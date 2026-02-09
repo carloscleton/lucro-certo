@@ -10,7 +10,11 @@ dotenv.config({ path: '../.env' }); // Fallback para o .env da raiz do projeto
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'apikey', 'x-api-key'],
+}));
 app.use(express.json());
 
 // Evolution API Config
