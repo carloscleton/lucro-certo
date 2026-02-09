@@ -88,12 +88,14 @@ export class MercadoPagoAdapter implements PaymentAdapter {
                     } : undefined
                 },
                 payment_methods: {
-                    included_payment_methods: [
-                        { id: request.payment_method === 'boleto' ? 'bolbradesco' : 'visa' } // MP defaults
-                    ],
+                    included_payment_methods: request.payment_method === 'boleto'
+                        ? [{ id: 'bolbradesco' }]
+                        : [],
                     excluded_payment_types: request.payment_method === 'credit_card'
                         ? [{ id: 'ticket' }, { id: 'bank_transfer' }]
-                        : [{ id: 'credit_card' }, { id: 'debit_card' }]
+                        : request.payment_method === 'boleto'
+                            ? [{ id: 'credit_card' }, { id: 'debit_card' }]
+                            : [] // If 'all' or undefined, exclude nothing (allow everything)
                 },
                 back_urls: {
                     success: request.notification_url,
