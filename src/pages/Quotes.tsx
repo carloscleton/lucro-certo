@@ -18,6 +18,7 @@ import { useNotification } from '../context/NotificationContext';
 import { webhookService } from '../services/webhookService';
 import { fiscalService } from '../services/fiscalService';
 import { supabase } from '../lib/supabase';
+import { API_BASE_URL } from '../lib/constants';
 
 export function Quotes() {
     const navigate = useNavigate();
@@ -71,7 +72,7 @@ export function Quotes() {
         try {
             const message = `Olá, ${quote.contact?.name || 'cliente'}! Segue o link para pagamento do seu orçamento:\n\n🔗 ${result.payment_link}\n\nObrigado pela confiança!`;
 
-            const response = await fetch('http://localhost:3001/whatsapp/send', {
+            const response = await fetch(`${API_BASE_URL}/whatsapp/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

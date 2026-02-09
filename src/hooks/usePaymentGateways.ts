@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
+import { API_BASE_URL } from '../lib/constants';
 import axios from 'axios';
 
 export interface PaymentGateway {
@@ -105,7 +106,7 @@ export function usePaymentGateways() {
     const testConnection = async (provider: string, config: any, is_sandbox: boolean) => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/payments/test-connection`, {
+            const response = await axios.post(`${API_BASE_URL}/payments/test-connection`, {
                 provider,
                 config,
                 is_sandbox

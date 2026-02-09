@@ -25,6 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../context/NotificationContext';
+import { API_BASE_URL } from '../lib/constants';
 
 interface Instance {
     id: string;
@@ -124,7 +125,7 @@ export function WhatsApp() {
 
     const checkProxyStatus = async () => {
         try {
-            const response = await fetch('http://localhost:3001/health');
+            const response = await fetch(`${API_BASE_URL}/health`);
             setProxyOnline(response.ok);
         } catch (err) {
             setProxyOnline(false);
@@ -154,7 +155,7 @@ export function WhatsApp() {
             // Sync status and details with Evolution for ALL instances
             // This ensures if a webhook was missed (proxy down), we recover the correct status
             if (data && data.length > 0) {
-                const checkProxy = await fetch('http://localhost:3001/health').then(r => r.ok).catch(() => false);
+                const checkProxy = await fetch(`${API_BASE_URL}/health`).then(r => r.ok).catch(() => false);
                 if (checkProxy) {
                     data.forEach((inst: Instance) => syncInstanceWithEvolution(inst));
                 }
@@ -170,7 +171,7 @@ export function WhatsApp() {
 
     const syncInstanceWithEvolution = async (instance: Instance) => {
         try {
-            const response = await fetch(`http://localhost:3001/instances/${instance.instance_name}/details?token=${instance.evolution_instance_id}`);
+            const response = await fetch(`${API_BASE_URL}/instances/${instance.instance_name}/details?token=${instance.evolution_instance_id}`);
             if (response.ok) {
                 const data = await response.json();
 
@@ -246,7 +247,7 @@ export function WhatsApp() {
         setIsCreating(true);
         try {
             // 1. Criar na Evolution API via Proxy Server
-            const response = await fetch('http://localhost:3001/instances', {
+            const response = await fetch(`${API_BASE_URL}/instances`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -306,7 +307,7 @@ export function WhatsApp() {
 
         setIsTestingWebhook(true);
         try {
-            const response = await fetch('http://localhost:3001/webhook/test', {
+            const response = await fetch(`${API_BASE_URL}/webhook/test`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -337,7 +338,7 @@ export function WhatsApp() {
 
         try {
             console.log(`🔌 Desconectando instância ${instance.instance_name} (ID Técnico: ${instance.evolution_instance_id})...`);
-            const response = await fetch(`http://localhost:3001/instances/${instance.instance_name}/logout?token=${instance.evolution_instance_id}`, {
+            const response = await fetch(`${API_BASE_URL}/instances/${instance.instance_name}/logout?token=${instance.evolution_instance_id}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
@@ -386,7 +387,7 @@ export function WhatsApp() {
 
         try {
             // 1. Tentar deletar na Evolution via Proxy usando o nome amigável + token
-            await fetch(`http://localhost:3001/instances/${instance.instance_name}?token=${instance.evolution_instance_id}`, {
+            await fetch(`${API_BASE_URL}/instances/${instance.instance_name}?token=${instance.evolution_instance_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
@@ -429,7 +430,7 @@ export function WhatsApp() {
             // 1. Se o nome mudou, atualizar na Evolution primeiro
             if (friendlyName !== editingInstance.instance_name) {
                 console.log(`🔄 Alterando nome da instância de "${editingInstance.instance_name}" para "${friendlyName}"...`);
-                const renameRes = await fetch(`http://localhost:3001/instances/${editingInstance.instance_name}/rename?token=${editingInstance.evolution_instance_id}`, {
+                const renameRes = await fetch(`${API_BASE_URL}/instances/${editingInstance.instance_name}/rename?token=${editingInstance.evolution_instance_id}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -446,7 +447,7 @@ export function WhatsApp() {
             // 1.1 Se o nome do perfil mudou, atualizar na Evolution
             if (waProfileName && waProfileName !== editingInstance.whatsapp_name) {
                 console.log(`👤 Alterando nome do perfil de "${editingInstance.whatsapp_name}" para "${waProfileName}"...`);
-                const profileRes = await fetch(`http://localhost:3001/instances/${editingInstance.instance_name}/profile-name?token=${editingInstance.evolution_instance_id}`, {
+                const profileRes = await fetch(`${API_BASE_URL}/instances/${editingInstance.instance_name}/profile-name?token=${editingInstance.evolution_instance_id}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -465,7 +466,7 @@ export function WhatsApp() {
             // 2. Atualizar Webhook na Evolution API via Proxy
             // Note: Usamos o friendlyName novo se a renomeação funcionou, ou o antigo se falhou
             // Mas o Proxy lida com o nome antigo na URL.
-            const response = await fetch(`http://localhost:3001/instances/${editingInstance.instance_name}/webhook`, {
+            const response = await fetch(`${API_BASE_URL}/instances/${editingInstance.instance_name}/webhook`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -523,7 +524,7 @@ export function WhatsApp() {
 
         try {
             // Buscar QR Code via Proxy usando o nome amigável
-            const response = await fetch(`http://localhost:3001/instances/${instance.instance_name}/connect`);
+            const response = await fetch(`${API_BASE_URL}/instances/${instance.instance_name}/connect`);
             if (!response.ok) throw new Error('Falha ao obter QR Code');
 
             const data = await response.json();

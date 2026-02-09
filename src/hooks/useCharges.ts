@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
+import { API_BASE_URL } from '../lib/constants';
 import axios from 'axios';
 
 export interface Charge {
@@ -81,7 +82,7 @@ export function useCharges() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/payments/create`, {
+            const response = await axios.post(`${API_BASE_URL}/payments/create`, {
                 companyId: currentEntity.id,
                 ...params
             }, {

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { CreditCard, QrCode, FileText, CheckCircle2, AlertCircle, Rocket } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { API_BASE_URL } from '../lib/constants';
 import axios from 'axios';
 
 export function Checkout() {
@@ -55,7 +56,7 @@ export function Checkout() {
         setError(null);
 
         try {
-            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/payments/process-checkout`, {
+            const response = await axios.post(`${API_BASE_URL}/payments/process-checkout`, {
                 chargeId: id,
                 provider,
                 method

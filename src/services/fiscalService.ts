@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../lib/constants';
 
-const API_URL = 'http://localhost:3001/fiscal';
+const API_URL = `${API_BASE_URL}/fiscal`;
 
 export interface FiscalPayload {
     companyId: string;
