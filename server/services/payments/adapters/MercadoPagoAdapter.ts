@@ -102,7 +102,9 @@ export class MercadoPagoAdapter implements PaymentAdapter {
                     pending: request.notification_url,
                     failure: request.notification_url
                 },
-                auto_return: 'all'
+                auto_return: 'all',
+                binary_mode: true,
+                statement_descriptor: 'LUCRO CERTO'
             };
 
             const prefResponse = await axios.post(`https://api.mercadopago.com/checkout/preferences`, preferencePayload, {
