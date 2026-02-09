@@ -1,0 +1,211 @@
+.layout {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: var(--color-background);
+}
+
+.sidebar {
+    width: 280px;
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 20;
+    /* 3D Depth */
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
+}
+
+.sidebarHeader {
+    padding: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    /* border-bottom: 1px solid var(--color-border); Remove border for cleaner look */
+    margin-bottom: var(--spacing-sm);
+    position: relative;
+    z-index: 2;
+}
+
+.logoText {
+    font-size: var(--font-size-lg);
+    font-weight: 800;
+    /* Gradient Text */
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+}
+
+.nav {
+    padding: 0 var(--spacing-md);
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    /* Better spacing */
+}
+
+/* Nav Section Label/Divider if needed in future */
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--radius-lg);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    background: transparent;
+}
+
+.navIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--color-background);
+    /* Default subtle bg */
+    color: var(--color-text-secondary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Initial flat state */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Hover State */
+.navItem:hover {
+    background-color: color-mix(in srgb, var(--hover-color), transparent 92%);
+    color: var(--hover-color, var(--color-text-primary)) !important;
+    transform: translateX(4px);
+}
+
+.navItem::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 3px;
+    height: 0;
+    background-color: var(--hover-color);
+    border-radius: 0 4px 4px 0;
+    transition: all 0.3s ease;
+    opacity: 0;
+}
+
+.navItem:hover::before,
+.navItemActive::before {
+    height: 20px;
+    opacity: 1;
+}
+
+.navItem:hover .navIcon {
+    background: var(--hover-color, linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)) !important;
+    color: white;
+    /* 3D Pop Effect */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transform: scale(1.1) rotate(-3deg);
+}
+
+/* Active State */
+.navItemActive {
+    background-color: color-mix(in srgb, var(--hover-color), transparent 88%);
+    color: var(--hover-color, var(--color-primary)) !important;
+    font-weight: 600;
+}
+
+.navItemActive .navIcon {
+    background: var(--hover-color, linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)) !important;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.navLabel {
+    flex: 1;
+}
+
+/* Admin Submenu Adjustments */
+.adminItem {
+    padding-left: 2.5rem;
+}
+
+.userSection {
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: linear-gradient(to top, var(--color-background) 0%, transparent 100%);
+    /* Subtle bottom fade */
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    background-color: #f8fafc;
+    /* Slightly different bg for main to distinct from sidebar */
+}
+
+/* Dark mode adjustment for main bg handled by vars mostly, but explicit override if needed */
+:global(.dark) .main {
+    background-color: #0f172a;
+    /* Slate 900 */
+}
+
+.header {
+    height: 64px;
+    background-color: var(--color-surface);
+    /* border-bottom: 1px solid var(--color-border); */
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    /* Floating header */
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-lg);
+    justify-content: space-between;
+    z-index: 10;
+}
+
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+}
+
+.mobileOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    /* Blur effect */
+    z-index: 15;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+        /* Stronger shadow on mobile */
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .mobileOverlay.open {
+        display: block;
+    }
+}

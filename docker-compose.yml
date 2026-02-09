@@ -1,0 +1,20 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - SERVER_PORT=3001
+      # Note: In production you should pass these variables securely
+      # For local Docker, you can use an .env file or rely on defaults

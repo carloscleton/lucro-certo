@@ -1,0 +1,1 @@
+ALTER TABLE public.instances ADD COLUMN IF NOT EXISTS webhook_events TEXT[] DEFAULT '{MESSAGES_UPSERT}';
