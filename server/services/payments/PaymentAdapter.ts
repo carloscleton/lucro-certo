@@ -16,7 +16,17 @@ export interface ChargeRequest {
         name: string;
         email: string;
         tax_id?: string; // CPF/CNPJ
+        phone?: string;
+        address?: {
+            street: string;
+            number: string;
+            neighborhood?: string;
+            city?: string;
+            state?: string;
+            zip_code?: string;
+        };
     };
+
     notification_url?: string;
     payment_method?: 'pix' | 'boleto' | 'credit_card' | 'debit_card' | 'all';
 }
