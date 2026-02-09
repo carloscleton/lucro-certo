@@ -26,7 +26,20 @@ export interface Quote {
     user_id: string;
     company_id?: string | null;
     contact_id?: string;
-    contact?: { name: string; email?: string; phone?: string; tax_id?: string }; // Joined
+    contact?: {
+        name: string;
+        email?: string;
+        phone?: string;
+        tax_id?: string;
+        address?: {
+            street: string;
+            number: string;
+            neighborhood?: string;
+            city?: string;
+            state?: string;
+            zip_code?: string;
+        }
+    }; // Joined
     profile?: { full_name: string };
     title: string;
     quote_number?: string;
