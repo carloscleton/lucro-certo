@@ -74,7 +74,7 @@ export function useQuotes() {
                 .from('quotes')
                 .select(`
                     *,
-                    contact:contact_id ( name, email, tax_id )
+                    contact:contact_id ( name, email, tax_id, phone, address )
                 `)
                 .order('created_at', { ascending: false });
 
