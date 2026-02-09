@@ -74,7 +74,18 @@ export function useQuotes() {
                 .from('quotes')
                 .select(`
                     *,
-                    contact:contact_id ( name, email, tax_id, phone, address )
+                    contact:contact_id ( 
+                        name, 
+                        email, 
+                        tax_id, 
+                        phone, 
+                        zip_code, 
+                        street, 
+                        number, 
+                        neighborhood, 
+                        city, 
+                        state 
+                    )
                 `)
                 .order('created_at', { ascending: false });
 
@@ -87,7 +98,27 @@ export function useQuotes() {
             const { data, error } = await query;
 
             if (error) throw error;
-            setQuotes(data || []);
+
+            // Transform flat contact data to nested address structure
+            const formattedQuotes = (data as any[])?.map(quote => ({
+                ...quote,
+                contact: quote.contact ? {
+                    name: quote.contact.name,
+                    email: quote.contact.email,
+                    tax_id: quote.contact.tax_id,
+                    phone: quote.contact.phone,
+                    address: {
+                        street: quote.contact.street,
+                        number: quote.contact.number,
+                        zip_code: quote.contact.zip_code,
+                        neighborhood: quote.contact.neighborhood,
+                        city: quote.contact.city,
+                        state: quote.contact.state
+                    }
+                } : undefined
+            }));
+
+            setQuotes(formattedQuotes || []);
         } catch (error) {
             console.error('Error fetching quotes:', error);
         } finally {
