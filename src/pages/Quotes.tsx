@@ -511,10 +511,12 @@ export function Quotes() {
 
     const validatePaymentRequirements = (quote: Quote) => {
         const missing = [];
-        if (!quote.contact?.tax_id) missing.push('CPF/CNPJ do Cliente');
-        if (!quote.contact?.phone) missing.push('Telefone do Cliente');
-        if (!quote.contact?.address?.street) missing.push('Endereço (Rua)');
-        if (!quote.contact?.address?.number) missing.push('Número do Endereço');
+        const contact = quote.contact as any; // Force type to avoid build error with Vercel
+
+        if (!contact?.tax_id) missing.push('CPF/CNPJ do Cliente');
+        if (!contact?.phone) missing.push('Telefone do Cliente');
+        if (!contact?.address?.street) missing.push('Endereço (Rua)');
+        if (!contact?.address?.number) missing.push('Número do Endereço');
 
         if (missing.length > 0) {
             alert(`⚠️ Para gerar o link de pagamento, complete o cadastro do cliente:\n\nFaltando:\n- ${missing.join('\n- ')}`);
