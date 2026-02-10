@@ -12,7 +12,8 @@ import {
     Moon,
     Settings,
     DollarSign,
-    Bell
+    Bell,
+    Users
 } from 'lucide-react';
 import styles from './Layout.module.css';
 import { useAuth } from '../../context/AuthContext';
@@ -132,40 +133,39 @@ export function Layout() {
                     </button>
                 </div>
 
-                <div className="px-4 mb-4">
-                    {currentEntity.type === 'company' && currentEntity.logo_url && (
-                        <div className="mb-4 flex justify-center">
-                            <img
-                                src={currentEntity.logo_url}
-                                alt={currentEntity.name}
-                                className="max-h-24 w-auto object-contain"
-                            />
+                <div className={styles.contextSection}>
+                    <div className={styles.entitySelectWrapper}>
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ambiente Atual</span>
+                            <div className={`${styles.entityBadge} ${currentEntity.type === 'personal' ? styles.badgePersonal : styles.badgeCompany}`}>
+                                {currentEntity.type === 'personal' ? 'Pessoal' : 'Empresa'}
+                            </div>
                         </div>
-                    )}
-                    <div className="relative">
-                        <select
-                            value={currentEntity.type === 'personal' ? 'personal' : currentEntity.id}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                const entity = availableEntities.find(ent =>
-                                    value === 'personal' ? ent.type === 'personal' : ent.id === value
-                                );
-                                if (entity) switchEntity(entity);
-                            }}
-                            className="w-full pl-3 pr-8 py-2 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200"
-                            disabled={isLoading}
-                        >
-                            {availableEntities.map((entity) => (
-                                <option
-                                    key={entity.type === 'personal' ? 'personal' : entity.id}
-                                    value={entity.type === 'personal' ? 'personal' : entity.id}
-                                >
-                                    {entity.name}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                            <Briefcase className="w-4 h-4 text-gray-500" />
+                        <div className="relative">
+                            <select
+                                value={currentEntity.type === 'personal' ? 'personal' : currentEntity.id}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    const entity = availableEntities.find(ent =>
+                                        value === 'personal' ? ent.type === 'personal' : ent.id === value
+                                    );
+                                    if (entity) switchEntity(entity);
+                                }}
+                                className="w-full pl-3 pr-8 py-2 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200"
+                                disabled={isLoading}
+                            >
+                                {availableEntities.map((entity) => (
+                                    <option
+                                        key={entity.type === 'personal' ? 'personal' : entity.id}
+                                        value={entity.type === 'personal' ? 'personal' : entity.id}
+                                    >
+                                        {entity.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                <Briefcase className="w-4 h-4 text-gray-500" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -285,6 +285,31 @@ export function Layout() {
                                 </button>
                             </div>
                         )}
+                        <div className="flex items-center gap-4">
+                            <div className={styles.headerContext}>
+                                <div className="flex items-center gap-2">
+                                    {currentEntity.type === 'personal' ? (
+                                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">
+                                            <Users size={16} />
+                                        </div>
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                            {currentEntity.logo_url ? (
+                                                <img src={currentEntity.logo_url} alt="" className="w-5 h-5 object-contain" />
+                                            ) : (
+                                                <Briefcase size={16} />
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className="flex flex-col">
+                                        <span className={styles.headerContextLabel}>{currentEntity.name}</span>
+                                        <span className={`${styles.headerContextType} ${currentEntity.type === 'personal' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-blue-600 bg-blue-50 dark:bg-blue-900/20'}`}>
+                                            {currentEntity.type === 'personal' ? 'Contexto Pessoal' : 'Contexto Empresarial'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div className="flex-1" /> {/* Spacer */}
                         <button
                             onClick={toggleTheme}
