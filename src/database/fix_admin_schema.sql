@@ -23,6 +23,9 @@ BEGIN
 END $$;
 
 -- 4. Recria a função de listagem de usuários (Admin)
+-- É necessário dar DROP antes pois a assinatura (colunas de retorno) mudou
+DROP FUNCTION IF EXISTS public.get_admin_users_list();
+
 CREATE OR REPLACE FUNCTION public.get_admin_users_list()
 RETURNS TABLE (
     id UUID,
