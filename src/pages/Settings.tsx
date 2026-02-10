@@ -993,10 +993,6 @@ export function Settings() {
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-gray-50 dark:bg-slate-900/50">
                                         <tr>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Logo / Empresa</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Responsável (Dono)</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Time</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Fiscal</th>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white">Logo / Empresa</th>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Responsável (Dono)</th>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Time</th>
