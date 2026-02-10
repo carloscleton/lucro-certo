@@ -62,8 +62,7 @@ BEGIN
     SET 
         fiscal_module_enabled = fiscal_enabled,
         payments_module_enabled = payments_enabled,
-        settings = COALESCE(settings_input, settings),
-        updated_at = NOW()
+        settings = COALESCE(settings_input, settings)
     WHERE id = target_company_id;
 END;
 $$;
