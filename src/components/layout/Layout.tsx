@@ -129,7 +129,7 @@ export function Layout() {
                             <img
                                 src={currentEntity.logo_url}
                                 alt={currentEntity.name}
-                                className="max-h-16 w-auto object-contain"
+                                className="max-h-24 w-auto object-contain"
                             />
                         </div>
                     )}
