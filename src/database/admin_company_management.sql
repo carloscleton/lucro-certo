@@ -1,5 +1,10 @@
 -- SUPER ADMIN: COMPANY MANAGEMENT FUNCTIONS 🏢🛡️
 
+-- First, drop existing functions to allow changing return types
+DROP FUNCTION IF EXISTS public.get_admin_companies_list();
+DROP FUNCTION IF EXISTS public.admin_update_company_config(UUID, BOOLEAN, BOOLEAN);
+DROP FUNCTION IF EXISTS public.admin_update_company_config(UUID, BOOLEAN, BOOLEAN, JSONB);
+
 -- 1. Function to list all companies with metadata for the Super Admin
 CREATE OR REPLACE FUNCTION public.get_admin_companies_list()
 RETURNS TABLE (
@@ -12,6 +17,7 @@ RETURNS TABLE (
     members_count BIGINT,
     fiscal_module_enabled BOOLEAN,
     payments_module_enabled BOOLEAN,
+    settings JSONB,
     logo_url TEXT,
     created_at TIMESTAMPTZ
 )
@@ -30,6 +36,7 @@ BEGIN
         (SELECT COUNT(*) FROM public.company_members cm_inner WHERE cm_inner.company_id = c.id) as members_count,
         COALESCE(c.fiscal_module_enabled, false) as fiscal_module_enabled,
         COALESCE(c.payments_module_enabled, false) as payments_module_enabled,
+        c.settings,
         c.logo_url,
         c.created_at
     FROM public.companies c
@@ -43,21 +50,19 @@ $$;
 CREATE OR REPLACE FUNCTION public.admin_update_company_config(
     target_company_id UUID,
     fiscal_enabled BOOLEAN,
-    payments_enabled BOOLEAN
+    payments_enabled BOOLEAN,
+    settings_input JSONB DEFAULT NULL
 )
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-    -- Authorization check (only specific admin email can do this)
-    -- This assumes the executing user is authenticated and is the system owner
-    -- The check should ideally also happen in the application layer
-    
     UPDATE public.companies
     SET 
         fiscal_module_enabled = fiscal_enabled,
         payments_module_enabled = payments_enabled,
+        settings = COALESCE(settings_input, settings),
         updated_at = NOW()
     WHERE id = target_company_id;
 END;

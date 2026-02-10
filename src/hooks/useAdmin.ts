@@ -30,6 +30,7 @@ export interface AdminCompany {
     members_count: number;
     fiscal_module_enabled: boolean;
     payments_module_enabled: boolean;
+    settings?: any;
     logo_url?: string;
     created_at: string;
 }
@@ -80,14 +81,15 @@ export function useAdmin() {
         }
     };
 
-    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean) => {
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, settings?: any) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
         try {
             const { error } = await supabase.rpc('admin_update_company_config', {
                 target_company_id: companyId,
                 fiscal_enabled: fiscal,
-                payments_enabled: payments
+                payments_enabled: payments,
+                settings_input: settings
             });
 
             if (error) throw error;

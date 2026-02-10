@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Edit2, Lock, ShieldAlert, MessageSquare, CreditCard } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Edit2, Lock, MessageSquare, CreditCard, X } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useSettings } from '../hooks/useSettings';
@@ -20,7 +20,7 @@ export function Settings() {
     const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, updateUserLimit, updateCompanyConfig } = useAdmin();
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity } = useEntity();
-    const { updateCompany, companies } = useCompanies();
+    const { companies } = useCompanies();
 
     const [saving, setSaving] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -33,7 +33,6 @@ export function Settings() {
     const [productCommissionRate, setProductCommissionRate] = useState(0);
 
     // Company Settings State
-    const [memberCanDelete, setMemberCanDelete] = useState(true);
 
 
     // Invite form state
@@ -41,17 +40,12 @@ export function Settings() {
     const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
     const [inviting, setInviting] = useState(false);
 
-    const [activeTab, setActiveTab] = useState<'quotes' | 'financial' | 'team' | 'webhooks' | 'admin' | 'permissions' | 'whatsapp' | 'fiscal' | 'payments'>('quotes');
+    const [activeTab, setActiveTab] = useState<'quotes' | 'financial' | 'team' | 'webhooks' | 'whatsapp' | 'fiscal' | 'payments' | 'admin'>('quotes');
+    const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
 
     // Update local state when company settings load
     useEffect(() => {
-        if (currentEntity.type === 'company' && currentEntity.id) {
-            const currentCompany = companies.find(c => c.id === currentEntity.id);
-            if (currentCompany?.settings) {
-                setMemberCanDelete(currentCompany.settings.member_can_delete ?? false);
-
-            }
-        }
+        // Company settings effect removed as it's now handled in the Super Admin modal for central management
     }, [currentEntity, companies]);
 
     // Listen for online users only if admin
@@ -183,7 +177,6 @@ export function Settings() {
                     { key: 'webhooks', label: 'Webhooks', icon: SettingsIcon, color: 'purple' },
                     { key: 'whatsapp', label: 'WhatsApp API', icon: MessageSquare, color: 'green' },
                     { key: 'payments', label: 'Pagamentos', icon: CreditCard, color: 'emerald' },
-                    { key: 'permissions', label: 'Permissões', icon: Lock, color: 'orange' },
                     { key: 'fiscal', label: 'Fiscal (TecnoSpeed)', icon: FileText, color: 'indigo' },
                     ...(isAdmin ? [{ key: 'admin', label: 'Administração', icon: Shield, color: 'purple' }] : [])
                 ].filter(tab => {
@@ -201,7 +194,7 @@ export function Settings() {
 
                     // Hide company-specific tabs in personal context
                     if (currentEntity.type === 'personal') {
-                        const companyOnlyTabs = ['financial', 'team', 'webhooks', 'permissions'];
+                        const companyOnlyTabs = ['financial', 'team', 'webhooks'];
                         if (companyOnlyTabs.includes(tab.key)) {
                             return false;
                         }
@@ -559,206 +552,168 @@ export function Settings() {
                     <PaymentSettings />
                 )}
 
-                {activeTab === 'permissions' && (
-                    <div className="space-y-6">
-                        <div className="flex items-start gap-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                            <ShieldAlert className="text-orange-600 mt-1" size={24} />
-                            <div>
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Permissões de Acesso</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-300">
-                                    Configure o que os membros da equipe podem ou não fazer.
-                                </p>
+                {/* Per-Company Config Modal */}
+                {selectedCompanyForConfig && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                        <Shield size={24} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configurar Empresa</h2>
+                                        <p className="text-sm text-gray-500">{selectedCompanyForConfig.trade_name} • {selectedCompanyForConfig.cnpj}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedCompanyForConfig(null)}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors text-gray-500"
+                                >
+                                    <X size={24} />
+                                </button>
                             </div>
-                        </div>
 
-                        {currentEntity.type !== 'company' ? (
-                            <div className="text-center py-12 text-gray-500">
-                                <Building size={48} className="mx-auto mb-4 opacity-50" />
-                                <h3 className="text-lg font-medium">Configuração disponível apenas para Empresas</h3>
-                                <p>Selecione uma empresa no menu lateral para configurar permissões.</p>
-                            </div>
-                        ) : (
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-gray-200 dark:border-slate-700">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h4 className="text-base font-medium text-gray-900 dark:text-white">Exclusão de Dados</h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            Permitir que membros com perfil "Member" excluam registros (Transações, Clientes, etc)?
-                                        </p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="sr-only peer"
-                                            checked={memberCanDelete}
-                                            onChange={async (e) => {
-                                                const newValue = e.target.checked;
-                                                setMemberCanDelete(newValue);
-                                                // Auto-save setting
-                                                try {
-                                                    const currentCompany = companies.find(c => c.id === currentEntity.id);
-                                                    await updateCompany(currentEntity.id!, {
-                                                        settings: {
-                                                            ...currentCompany?.settings,
-                                                            member_can_delete: newValue
-                                                        }
-                                                    });
-                                                } catch (err) {
-                                                    alert("Erro ao salvar permissão.");
-                                                    setMemberCanDelete(!newValue); // Rollback
-                                                }
-                                            }}
-                                        />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </div>
-
-                                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                                    <div>
-                                        <h4 className="text-base font-medium text-gray-900 dark:text-white">Módulo Fiscal (TecnoSpeed)</h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            Habilitar emissão de Notas Fiscais Eletrônicas (NF-e/NFS-e)?
-                                        </p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="sr-only peer"
-                                            checked={companies.find(c => c.id === currentEntity.id)?.fiscal_module_enabled ?? false}
-                                            onChange={async (e) => {
-                                                const newValue = e.target.checked;
-                                                try {
-                                                    await updateCompany(currentEntity.id!, {
-                                                        fiscal_module_enabled: newValue
-                                                    });
-                                                    if (newValue) {
-                                                        alert("Módulo Fiscal habilitado! Uma nova aba apareceu para configurações.");
-                                                    }
-                                                } catch (err) {
-                                                    alert("Erro ao salvar configuração fiscal.");
-                                                }
-                                            }}
-                                        />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </div>
-
-                                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                                    <div>
-                                        <h4 className="text-base font-medium text-gray-900 dark:text-white">Módulo de Pagamentos (Gateways)</h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            Habilitar integração com gateways de pagamento (Mercado Pago, Stripe, Asaas)?
-                                        </p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="sr-only peer"
-                                            checked={companies.find(c => c.id === currentEntity.id)?.payments_module_enabled ?? false}
-                                            onChange={async (e) => {
-                                                const newValue = e.target.checked;
-                                                try {
-                                                    await updateCompany(currentEntity.id!, {
-                                                        payments_module_enabled: newValue
-                                                    });
-                                                    if (newValue) {
-                                                        alert("Módulo de Pagamentos habilitado! Uma nova aba apareceu para configurações.");
-                                                    }
-                                                } catch (err) {
-                                                    alert("Erro ao salvar configuração de pagamentos.");
-                                                }
-                                            }}
-                                        />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </div>
-
-                                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div>
-                                            <h4 className="text-base font-medium text-gray-900 dark:text-white">Matriz de Acesso aos Módulos</h4>
-                                            <p className="text-sm text-gray-500">Defina com precisão quem pode acessar cada área do sistema.</p>
+                            <div className="p-8 overflow-y-auto space-y-10">
+                                {/* Direct Module Toggles (Legacy/Quick) */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Módulo Fiscal</h4>
+                                                <p className="text-xs text-gray-500">Habilita emissão de notas fiscais</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={selectedCompanyForConfig.fiscal_module_enabled}
+                                                    onChange={async (e) => {
+                                                        const { error } = await updateCompanyConfig(
+                                                            selectedCompanyForConfig.id,
+                                                            e.target.checked,
+                                                            selectedCompanyForConfig.payments_module_enabled,
+                                                            selectedCompanyForConfig.settings
+                                                        );
+                                                        if (error) alert('Erro: ' + error);
+                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, fiscal_module_enabled: e.target.checked });
+                                                    }}
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                            </label>
                                         </div>
                                     </div>
 
-                                    <div className="overflow-hidden border border-gray-200 dark:border-slate-700 rounded-lg">
+                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Módulo Pagamentos</h4>
+                                                <p className="text-xs text-gray-500">Habilita links de pagamento e checkout</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={selectedCompanyForConfig.payments_module_enabled}
+                                                    onChange={async (e) => {
+                                                        const { error } = await updateCompanyConfig(
+                                                            selectedCompanyForConfig.id,
+                                                            selectedCompanyForConfig.fiscal_module_enabled,
+                                                            e.target.checked,
+                                                            selectedCompanyForConfig.settings
+                                                        );
+                                                        if (error) alert('Erro: ' + error);
+                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, payments_module_enabled: e.target.checked });
+                                                    }}
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Exclusão de Dados</h4>
+                                                <p className="text-xs text-gray-500">Membros podem excluir registros</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={selectedCompanyForConfig.settings?.member_can_delete}
+                                                    onChange={async (e) => {
+                                                        const newSettings = {
+                                                            ...selectedCompanyForConfig.settings,
+                                                            member_can_delete: e.target.checked
+                                                        };
+                                                        const { error } = await updateCompanyConfig(
+                                                            selectedCompanyForConfig.id,
+                                                            selectedCompanyForConfig.fiscal_module_enabled,
+                                                            selectedCompanyForConfig.payments_module_enabled,
+                                                            newSettings
+                                                        );
+                                                        if (error) alert('Erro: ' + error);
+                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                                    }}
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Permissions Matrix */}
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <Lock size={18} className="text-orange-500" />
+                                        Matriz de Acesso aos Módulos
+                                    </h4>
+                                    <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
-                                            <thead className="bg-gray-50 dark:bg-slate-900/50">
+                                            <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
                                                 <tr>
-                                                    <th className="px-4 py-3 font-medium text-gray-900 dark:text-white w-1/3">Módulo</th>
-                                                    <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center w-1/3">
-                                                        <div className="flex flex-col items-center">
-                                                            <span>Admin</span>
-                                                            <span className="text-[10px] font-normal text-gray-500">Acesso Total (Padrão)</span>
-                                                        </div>
-                                                    </th>
-                                                    <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center w-1/3">
-                                                        <div className="flex flex-col items-center">
-                                                            <span>Membro</span>
-                                                            <span className="text-[10px] font-normal text-gray-500">Acesso Limitado</span>
-                                                        </div>
-                                                    </th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200">Módulo</th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">Admin</th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">Membro</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                                            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                                                 {APP_MODULES.map((module) => {
-                                                    const currentCompany = companies.find(c => c.id === currentEntity.id);
-                                                    const settings = currentCompany?.settings || {};
+                                                    const settings = selectedCompanyForConfig.settings || {};
                                                     const modules = settings.modules || {};
-
                                                     const adminEnabled = getModulePermission(module.key, 'admin', settings);
                                                     const memberEnabled = getModulePermission(module.key, 'member', settings);
 
-                                                    const togglePermission = async (role: 'admin' | 'member', value: boolean) => {
-                                                        try {
-                                                            await updateCompany(currentEntity.id!, {
-                                                                settings: {
-                                                                    ...settings,
-                                                                    modules: {
-                                                                        ...modules,
-                                                                        [module.key]: {
-                                                                            ...modules[module.key],
-                                                                            [role]: value
-                                                                        }
-                                                                    }
+                                                    const toggleMod = async (role: 'admin' | 'member', value: boolean) => {
+                                                        const newSettings = {
+                                                            ...settings,
+                                                            modules: {
+                                                                ...modules,
+                                                                [module.key]: {
+                                                                    ...modules[module.key],
+                                                                    [role]: value
                                                                 }
-                                                            });
-                                                        } catch (err) {
-                                                            alert("Erro ao atualizar permissão.");
-                                                        }
+                                                            }
+                                                        };
+                                                        const { error } = await updateCompanyConfig(
+                                                            selectedCompanyForConfig.id,
+                                                            selectedCompanyForConfig.fiscal_module_enabled,
+                                                            selectedCompanyForConfig.payments_module_enabled,
+                                                            newSettings
+                                                        );
+                                                        if (error) alert('Erro: ' + error);
+                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
                                                     };
 
                                                     return (
-                                                        <tr key={module.key} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                                                            <td className="px-4 py-3">
-                                                                <span className="font-medium text-gray-900 dark:text-white block">{module.label}</span>
-                                                                <span className="text-xs text-gray-500 hidden md:block">{module.desc}</span>
+                                                        <tr key={module.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                                            <td className="px-5 py-4 text-gray-800 dark:text-gray-300 font-medium">{module.label}</td>
+                                                            <td className="px-5 py-4 text-center">
+                                                                <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleMod('admin', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                             </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <div className="flex justify-center">
-                                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="sr-only peer"
-                                                                            checked={adminEnabled}
-                                                                            onChange={(e) => togglePermission('admin', e.target.checked)}
-                                                                        />
-                                                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                                                    </label>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <div className="flex justify-center">
-                                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="sr-only peer"
-                                                                            checked={memberEnabled}
-                                                                            onChange={(e) => togglePermission('member', e.target.checked)}
-                                                                        />
-                                                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                                                    </label>
-                                                                </div>
+                                                            <td className="px-5 py-4 text-center">
+                                                                <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleMod('member', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                             </td>
                                                         </tr>
                                                     );
@@ -768,90 +723,57 @@ export function Settings() {
                                     </div>
                                 </div>
 
-                                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div>
-                                            <h4 className="text-base font-medium text-gray-900 dark:text-white">Matriz de Acesso: Abas de Configuração</h4>
-                                            <p className="text-sm text-gray-500">Controle quais abas aparecem dentro da tela de Configurações.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="overflow-hidden border border-gray-200 dark:border-slate-700 rounded-lg">
+                                {/* Tabs Matrix */}
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <SettingsIcon size={18} className="text-purple-500" />
+                                        Matriz de Acesso: Abas de Configuração
+                                    </h4>
+                                    <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
-                                            <thead className="bg-gray-50 dark:bg-slate-900/50">
+                                            <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
                                                 <tr>
-                                                    <th className="px-4 py-3 font-medium text-gray-900 dark:text-white w-1/3">Aba</th>
-                                                    <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center w-1/3">
-                                                        <div className="flex flex-col items-center">
-                                                            <span>Admin</span>
-                                                        </div>
-                                                    </th>
-                                                    <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center w-1/3">
-                                                        <div className="flex flex-col items-center">
-                                                            <span>Membro</span>
-                                                        </div>
-                                                    </th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200">Aba</th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">Admin</th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">Membro</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                                            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                                                 {SETTINGS_TABS.map((tab) => {
-                                                    const currentCompany = companies.find(c => c.id === currentEntity.id);
-                                                    const settings = currentCompany?.settings || {};
-
+                                                    const settings = selectedCompanyForConfig.settings || {};
+                                                    const tabs = settings.settings_tabs || {};
                                                     const adminEnabled = getTabPermission(tab.key, 'admin', settings);
                                                     const memberEnabled = getTabPermission(tab.key, 'member', settings);
 
-                                                    const toggleTabPermission = async (role: 'admin' | 'member', value: boolean) => {
-                                                        try {
-                                                            const settingsTabs = settings.settings_tabs || {};
-                                                            await updateCompany(currentEntity.id!, {
-                                                                settings: {
-                                                                    ...settings,
-                                                                    settings_tabs: {
-                                                                        ...settingsTabs,
-                                                                        [tab.key]: {
-                                                                            ...settingsTabs[tab.key],
-                                                                            [role]: value
-                                                                        }
-                                                                    }
+                                                    const toggleTb = async (role: 'admin' | 'member', value: boolean) => {
+                                                        const newSettings = {
+                                                            ...settings,
+                                                            settings_tabs: {
+                                                                ...tabs,
+                                                                [tab.key]: {
+                                                                    ...tabs[tab.key],
+                                                                    [role]: value
                                                                 }
-                                                            });
-                                                        } catch (err) {
-                                                            alert("Erro ao atualizar permissão da aba.");
-                                                        }
+                                                            }
+                                                        };
+                                                        const { error } = await updateCompanyConfig(
+                                                            selectedCompanyForConfig.id,
+                                                            selectedCompanyForConfig.fiscal_module_enabled,
+                                                            selectedCompanyForConfig.payments_module_enabled,
+                                                            newSettings
+                                                        );
+                                                        if (error) alert('Erro: ' + error);
+                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
                                                     };
 
                                                     return (
-                                                        <tr key={tab.key} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                                                            <td className="px-4 py-3">
-                                                                <span className="font-medium text-gray-900 dark:text-white block">{tab.label}</span>
-                                                                <span className="text-xs text-gray-500 hidden md:block">{tab.desc}</span>
+                                                        <tr key={tab.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                                            <td className="px-5 py-4 text-gray-800 dark:text-gray-300 font-medium">{tab.label}</td>
+                                                            <td className="px-5 py-4 text-center">
+                                                                <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleTb('admin', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                             </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <div className="flex justify-center">
-                                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="sr-only peer"
-                                                                            checked={adminEnabled}
-                                                                            onChange={(e) => toggleTabPermission('admin', e.target.checked)}
-                                                                        />
-                                                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                                                    </label>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <div className="flex justify-center">
-                                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="sr-only peer"
-                                                                            checked={memberEnabled}
-                                                                            onChange={(e) => toggleTabPermission('member', e.target.checked)}
-                                                                        />
-                                                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                                                    </label>
-                                                                </div>
+                                                            <td className="px-5 py-4 text-center">
+                                                                <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleTb('member', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                             </td>
                                                         </tr>
                                                     );
@@ -861,7 +783,11 @@ export function Settings() {
                                     </div>
                                 </div>
                             </div>
-                        )}
+
+                            <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50 flex justify-end">
+                                <Button onClick={() => setSelectedCompanyForConfig(null)} variant="primary">Concluído</Button>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -1148,7 +1074,18 @@ export function Settings() {
                                                             </label>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-3 text-right text-gray-500">
+                                                    <td className="px-4 py-3 text-right">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="primary"
+                                                            className="flex items-center gap-2"
+                                                            onClick={() => setSelectedCompanyForConfig(c)}
+                                                        >
+                                                            <Shield size={14} />
+                                                            Configurar
+                                                        </Button>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-gray-500 font-mono text-xs">
                                                         {new Date(c.created_at).toLocaleDateString()}
                                                     </td>
                                                 </tr>
