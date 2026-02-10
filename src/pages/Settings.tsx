@@ -685,6 +685,75 @@ export function Settings() {
                                     </div>
                                 </div>
 
+                                {/* Subscription Plan (Monthly & Annual) */}
+                                <div className="p-6 rounded-xl border-2 border-blue-100 dark:border-blue-900/30 bg-blue-50/20 dark:bg-blue-900/10 space-y-6">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                                            <CreditCard size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">Plano de Assinatura (Mensalidade e Licença)</h4>
+                                            <p className="text-sm text-gray-500">Controle os valores fixos de mensalidade e licença anual.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <Input
+                                            label="Mensalidade (R$ / mês)"
+                                            type="number"
+                                            value={selectedCompanyForConfig.settings?.monthly_fee || 0}
+                                            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), monthly_fee: val };
+                                                const { error } = await updateCompanyConfig(
+                                                    selectedCompanyForConfig.id,
+                                                    selectedCompanyForConfig.fiscal_module_enabled,
+                                                    selectedCompanyForConfig.payments_module_enabled,
+                                                    newSettings
+                                                );
+                                                if (error) alert('Erro: ' + error);
+                                                else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                            }}
+                                            placeholder="Ex: 150"
+                                        />
+                                        <Input
+                                            label="Licença Anual (R$ / ano)"
+                                            type="number"
+                                            value={selectedCompanyForConfig.settings?.annual_fee || 0}
+                                            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), annual_fee: val };
+                                                const { error } = await updateCompanyConfig(
+                                                    selectedCompanyForConfig.id,
+                                                    selectedCompanyForConfig.fiscal_module_enabled,
+                                                    selectedCompanyForConfig.payments_module_enabled,
+                                                    newSettings
+                                                );
+                                                if (error) alert('Erro: ' + error);
+                                                else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                            }}
+                                            placeholder="Ex: 1200"
+                                        />
+                                        <Input
+                                            label="Vencimento da Licença"
+                                            type="date"
+                                            value={selectedCompanyForConfig.settings?.license_expires_at ? new Date(selectedCompanyForConfig.settings.license_expires_at).toISOString().split('T')[0] : ''}
+                                            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                                                const val = e.target.value;
+                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), license_expires_at: val };
+                                                const { error } = await updateCompanyConfig(
+                                                    selectedCompanyForConfig.id,
+                                                    selectedCompanyForConfig.fiscal_module_enabled,
+                                                    selectedCompanyForConfig.payments_module_enabled,
+                                                    newSettings
+                                                );
+                                                if (error) alert('Erro: ' + error);
+                                                else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Permissions Matrix */}
                                 <div>
                                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -1185,6 +1254,7 @@ export function Settings() {
                                         <tr>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white">Logo / Empresa</th>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Responsável</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Plano / Licença</th>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Faturamento</th>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Sua Comissão</th>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Ações</th>
@@ -1225,6 +1295,30 @@ export function Settings() {
                                                         <div className="flex flex-col items-center">
                                                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{c.owner_name || 'Desconhecido'}</span>
                                                             {c.owner_email && <span className="text-[10px] text-gray-500">{c.owner_email}</span>}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <div className="flex flex-col items-center">
+                                                            <div className="flex items-center gap-1.5 font-medium text-gray-900 dark:text-gray-100">
+                                                                <span className="text-xs">M:</span>
+                                                                <span className="text-blue-600 dark:text-blue-400">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.settings?.monthly_fee || 0)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                                                <span>A:</span>
+                                                                <span>
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.settings?.annual_fee || 0)}
+                                                                </span>
+                                                            </div>
+                                                            {c.settings?.license_expires_at && (
+                                                                <span className={`text-[9px] mt-1 px-1.5 py-0.5 rounded-full ${new Date(c.settings.license_expires_at) < new Date()
+                                                                        ? 'bg-red-100 text-red-600 dark:bg-red-900/30'
+                                                                        : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30'
+                                                                    }`}>
+                                                                    Expira {new Date(c.settings.license_expires_at).toLocaleDateString()}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">

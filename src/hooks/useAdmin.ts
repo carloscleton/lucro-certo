@@ -36,6 +36,9 @@ export interface AdminCompany {
     created_at: string;
     total_revenue: number;
     commission_earned: number;
+    monthly_fee: number;
+    annual_fee: number;
+    license_expires_at?: string;
 }
 
 export function useAdmin() {

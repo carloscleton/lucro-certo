@@ -18,7 +18,10 @@ RETURNS TABLE (
     logo_url TEXT,
     created_at TIMESTAMPTZ,
     total_revenue NUMERIC,
-    commission_earned NUMERIC
+    commission_earned NUMERIC,
+    monthly_fee NUMERIC,
+    annual_fee NUMERIC,
+    license_expires_at TIMESTAMPTZ
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -41,7 +44,10 @@ BEGIN
         COALESCE((SELECT SUM(amount) FROM public.transactions t WHERE t.company_id = c.id AND t.type = 'income' AND t.status = 'received'), 0) as total_revenue,
         COALESCE((SELECT SUM(amount * COALESCE((c.settings->>'commission_rate')::numeric, 0) / 100) 
                   FROM public.transactions t 
-                  WHERE t.company_id = c.id AND t.type = 'income' AND t.status = 'received'), 0) as commission_earned
+                  WHERE t.company_id = c.id AND t.type = 'income' AND t.status = 'received'), 0) as commission_earned,
+        COALESCE((c.settings->>'monthly_fee')::numeric, 0) as monthly_fee,
+        COALESCE((c.settings->>'annual_fee')::numeric, 0) as annual_fee,
+        (c.settings->>'license_expires_at')::timestamptz as license_expires_at
     FROM public.companies c
     LEFT JOIN public.company_members cm ON cm.company_id = c.id AND cm.role = 'owner'
     LEFT JOIN public.profiles p ON p.id = cm.user_id
