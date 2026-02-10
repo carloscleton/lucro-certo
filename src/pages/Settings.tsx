@@ -734,23 +734,44 @@ export function Settings() {
                                             }}
                                             placeholder="Ex: 1200"
                                         />
-                                        <Input
-                                            label="Vencimento da Licença"
-                                            type="date"
-                                            value={selectedCompanyForConfig.settings?.license_expires_at ? new Date(selectedCompanyForConfig.settings.license_expires_at).toISOString().split('T')[0] : ''}
-                                            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
-                                                const val = e.target.value;
-                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), license_expires_at: val };
-                                                const { error } = await updateCompanyConfig(
-                                                    selectedCompanyForConfig.id,
-                                                    selectedCompanyForConfig.fiscal_module_enabled,
-                                                    selectedCompanyForConfig.payments_module_enabled,
-                                                    newSettings
-                                                );
-                                                if (error) alert('Erro: ' + error);
-                                                else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
-                                            }}
-                                        />
+                                        <div className="flex flex-col gap-2">
+                                            <Input
+                                                label="Vencimento da Licença"
+                                                type="date"
+                                                value={selectedCompanyForConfig.settings?.license_expires_at ? new Date(selectedCompanyForConfig.settings.license_expires_at).toISOString().split('T')[0] : ''}
+                                                onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                                                    const val = e.target.value;
+                                                    const newSettings = { ...(selectedCompanyForConfig.settings || {}), license_expires_at: val };
+                                                    const { error } = await updateCompanyConfig(
+                                                        selectedCompanyForConfig.id,
+                                                        selectedCompanyForConfig.fiscal_module_enabled,
+                                                        selectedCompanyForConfig.payments_module_enabled,
+                                                        newSettings
+                                                    );
+                                                    if (error) alert('Erro: ' + error);
+                                                    else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                                }}
+                                            />
+                                            <button
+                                                onClick={async () => {
+                                                    const nextYear = new Date();
+                                                    nextYear.setFullYear(nextYear.getFullYear() + 1);
+                                                    const val = nextYear.toISOString().split('T')[0];
+                                                    const newSettings = { ...(selectedCompanyForConfig.settings || {}), license_expires_at: val };
+                                                    const { error } = await updateCompanyConfig(
+                                                        selectedCompanyForConfig.id,
+                                                        selectedCompanyForConfig.fiscal_module_enabled,
+                                                        selectedCompanyForConfig.payments_module_enabled,
+                                                        newSettings
+                                                    );
+                                                    if (error) alert('Erro: ' + error);
+                                                    else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                                }}
+                                                className="text-[10px] w-fit font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
+                                            >
+                                                Renovar 1 Ano
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1313,8 +1334,8 @@ export function Settings() {
                                                             </div>
                                                             {c.settings?.license_expires_at && (
                                                                 <span className={`text-[9px] mt-1 px-1.5 py-0.5 rounded-full ${new Date(c.settings.license_expires_at) < new Date()
-                                                                        ? 'bg-red-100 text-red-600 dark:bg-red-900/30'
-                                                                        : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30'
+                                                                    ? 'bg-red-100 text-red-600 dark:bg-red-900/30'
+                                                                    : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30'
                                                                     }`}>
                                                                     Expira {new Date(c.settings.license_expires_at).toLocaleDateString()}
                                                                 </span>
