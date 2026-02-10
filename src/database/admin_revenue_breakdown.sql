@@ -25,7 +25,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $func$
 BEGIN
     RETURN QUERY
     SELECT 
@@ -53,14 +53,14 @@ BEGIN
     LEFT JOIN public.profiles p ON p.id = cm.user_id
     ORDER BY c.created_at DESC;
 END;
-$$;
+$func$;
 
 -- 2. Atualizar get_admin_stats para refletir a nova realidade
 CREATE OR REPLACE FUNCTION public.get_admin_stats()
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $func$
 DECLARE
     _total_users BIGINT;
     _total_companies BIGINT;
@@ -88,4 +88,4 @@ BEGIN
         'total_commission', _total_commission
     );
 END;
-$$;
+$func$;
