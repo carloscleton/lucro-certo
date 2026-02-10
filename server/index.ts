@@ -18,12 +18,12 @@ app.use(cors({
 app.use(express.json());
 
 // Evolution API Config
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY;
+const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim();
+const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
 
 // Supabase Config for Fiscal Proxy
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY?.trim() || process.env.SUPABASE_ANON_KEY?.trim();
 
 if (!EVOLUTION_API_URL || EVOLUTION_API_URL.includes('sua-instancia')) {
     console.warn('⚠️ AVISO: EVOLUTION_API_URL não configurada corretamente no .env');
@@ -800,8 +800,10 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+}
 
 export default app;

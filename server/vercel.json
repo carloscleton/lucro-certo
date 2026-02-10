@@ -1,4 +1,5 @@
 {
+    "name": "lucro-certo-backend",
     "version": 2,
     "builds": [
         {

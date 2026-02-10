@@ -21,12 +21,14 @@ export interface Entity {
     city?: string;
     state?: string;
     zip_code?: string;
+    settings?: any;
 }
 
 interface EntityContextType {
     currentEntity: Entity;
     availableEntities: Entity[];
     switchEntity: (entity: Entity) => void;
+    refresh: () => Promise<void>;
     isLoading: boolean;
 }
 
@@ -34,6 +36,7 @@ const EntityContext = createContext<EntityContextType>({
     currentEntity: { type: 'personal', name: 'Pessoal' },
     availableEntities: [],
     switchEntity: () => { },
+    refresh: async () => { },
     isLoading: true,
 });
 
@@ -43,82 +46,112 @@ export function EntityProvider({ children }: { children: ReactNode }) {
     const [availableEntities, setAvailableEntities] = useState<Entity[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchCompanies = async () => {
         if (!user) {
-            setAvailableEntities([]);
+            setAvailableEntities([{ type: 'personal', name: 'Pessoal' }]);
             setIsLoading(false);
             return;
         }
 
-        const fetchCompanies = async () => {
-            try {
-                // Fetch companies via membership to ensure we get all companies the user is part of
-                const { data, error } = await supabase
-                    .from('company_members')
-                    .select(`
-                        company:companies (
-                            id,
-                            trade_name,
-                            legal_name,
-                            cnpj,
-                            whatsapp_instance_limit,
-                            logo_url,
-                            street,
-                            number,
-                            complement,
-                            neighborhood,
-                            city,
-                            state,
-                            zip_code
-                        ),
-                        role,
-                        status
-                    `)
-                    .eq('user_id', user.id);
+        try {
+            // Fetch companies via membership to ensure we get all companies the user is part of
+            const { data, error } = await supabase
+                .from('company_members')
+                .select(`
+                    company:companies (
+                        id,
+                        trade_name,
+                        legal_name,
+                        cnpj,
+                        whatsapp_instance_limit,
+                        logo_url,
+                        street,
+                        number,
+                        complement,
+                        neighborhood,
+                        city,
+                        state,
+                        zip_code,
+                        settings
+                    ),
+                    role,
+                    status
+                `)
+                .eq('user_id', user.id);
 
-                if (error) throw error;
-                console.log('All memberships found (any status):', data);
+            if (error) throw error;
 
-                // Map nested result to Entity
-                const companies: Entity[] = (data || [])
-                    .filter((item: any) => item.company && item.status === 'active') // Filter active only for UI
-                    .map((item: any) => ({
-                        type: 'company',
-                        id: item.company.id,
-                        name: item.company.trade_name,
-                        role: item.role,
-                        whatsapp_instance_limit: item.company.whatsapp_instance_limit || 1,
-                        logo_url: item.company.logo_url,
-                        // Extensive mapping for "any" usage in PDF generation
-                        legal_name: item.company.legal_name,
-                        cnpj: item.company.cnpj,
-                        street: item.company.street,
-                        number: item.company.number,
-                        complement: item.company.complement,
-                        neighborhood: item.company.neighborhood,
-                        city: item.company.city,
-                        state: item.company.state,
-                        zip_code: item.company.zip_code
-                    }));
+            // Map nested result to Entity
+            const companies: Entity[] = (data || [])
+                .filter((item: any) => item.company && item.status === 'active') // Filter active only for UI
+                .map((item: any) => ({
+                    type: 'company',
+                    id: item.company.id,
+                    name: item.company.trade_name,
+                    role: item.role,
+                    whatsapp_instance_limit: item.company.whatsapp_instance_limit || 1,
+                    logo_url: item.company.logo_url,
+                    legal_name: item.company.legal_name,
+                    cnpj: item.company.cnpj,
+                    street: item.company.street,
+                    number: item.company.number,
+                    complement: item.company.complement,
+                    neighborhood: item.company.neighborhood,
+                    city: item.company.city,
+                    state: item.company.state,
+                    zip_code: item.company.zip_code,
+                    settings: item.company.settings
+                }));
 
-                // Always include Personal option
-                const personalOption: Entity = { type: 'personal', name: 'Pessoal' };
-                setAvailableEntities([personalOption, ...companies]);
+            // Always include Personal option
+            const personalOption: Entity = { type: 'personal', name: 'Pessoal' };
+            const allEntities = [personalOption, ...companies];
+            setAvailableEntities(allEntities);
 
-                // Default to PJ (first company) if available
-                if (companies.length > 0) {
-                    setCurrentEntity(companies[0]);
+            // Update current entity if it already exists to get latest settings
+            setCurrentEntity(prev => {
+                if (prev.type === 'personal') {
+                    // Decide if we should auto-switch to first company
+                    if (companies.length > 0 && prev.name === 'Pessoal') {
+                        return companies[0];
+                    }
+                    return prev;
                 }
-            } catch (err) {
-                console.error('Error fetching companies for entity selector:', err);
-                // Fallback to at least personal
-                setAvailableEntities([{ type: 'personal', name: 'Pessoal' }]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+                const updated = companies.find(c => c.id === prev.id);
+                if (updated) {
+                    return updated;
+                }
+                return prev;
+            });
 
+        } catch (err) {
+            console.error('Error fetching companies for entity selector:', err);
+            setAvailableEntities([{ type: 'personal', name: 'Pessoal' }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchCompanies();
+
+        if (user) {
+            // Realtime subscription for company updates (e.g. permission changes)
+            const channel = supabase
+                .channel('entity-updates')
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'companies'
+                }, () => {
+                    fetchCompanies();
+                })
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        }
     }, [user]);
 
     const switchEntity = (entity: Entity) => {
@@ -127,7 +160,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <EntityContext.Provider value={{ currentEntity, availableEntities, switchEntity, isLoading }}>
+        <EntityContext.Provider value={{ currentEntity, availableEntities, switchEntity, refresh: fetchCompanies, isLoading }}>
             {children}
         </EntityContext.Provider>
     );

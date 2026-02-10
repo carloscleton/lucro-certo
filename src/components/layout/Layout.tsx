@@ -20,7 +20,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { useEntity } from '../../context/EntityContext';
 import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
-import { useCompanies } from '../../hooks/useCompanies';
 import { APP_MODULES, getModulePermission } from '../../config/permissions';
 
 export function Layout() {
@@ -29,10 +28,7 @@ export function Layout() {
     const { theme, toggleTheme } = useTheme();
     const { currentEntity, availableEntities, switchEntity, isLoading } = useEntity();
 
-
     const navigate = useNavigate();
-    const { companies } = useCompanies();
-
     const [pendingInvites, setPendingInvites] = useState<any[]>([]);
 
     useEffect(() => {
@@ -48,24 +44,25 @@ export function Layout() {
 
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
-    const [adminOpen, setAdminOpen] = useState(false);
-    const isAdmin = user?.email === 'carloscleton.nat@gmail.com';
+    const [adminOpen, setAdminOpen] = useState(true); // Default to open for visibility
+    const isSystemAdmin = user?.email === 'carloscleton.nat@gmail.com';
+    const userRole = currentEntity.role || 'member';
 
     // Permission Logic
-    const currentCompany = currentEntity.type === 'company' ? companies.find(c => c.id === currentEntity.id) : null;
-    // const userRole = currentEntity.type === 'company' ? currentEntity.role : 'owner'; // Pessoal is owner-like
+    const settings = currentEntity.settings || {};
 
     // Filter Logic
     const displayedNavItems = APP_MODULES.filter(item => {
-        // Exclude items that are managed in the Admin Submenu below
-        if (isAdmin && ['commissions', 'settings'].includes(item.key)) return false;
+        // Exclude items that are managed in the Administrative Submenu below (only in company view)
+        const isManagementItem = ['commissions', 'settings'].includes(item.key);
+        if (currentEntity.type === 'company' && isManagementItem) return false;
 
-        if (currentEntity.type === 'company' && currentEntity.role) {
+        if (currentEntity.type === 'company' && userRole) {
             // Owner always sees everything
-            if (currentEntity.role === 'owner') return true;
+            if (userRole === 'owner') return true;
 
             // Admin/Member: Check Permission Matrix
-            return getModulePermission(item.key, currentEntity.role as 'admin' | 'member', currentCompany?.settings);
+            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
         // Personal View: Show everything by default (filtered later)
         return true;
@@ -75,10 +72,17 @@ export function Layout() {
         ? displayedNavItems.filter(item => ['dashboard', 'payables', 'receivables', 'categories', 'companies', 'reports', 'settings'].includes(item.key))
         : displayedNavItems;
 
-    const adminItems = [
+    // Management items for the sidebar group (Comissões, Configurações)
+    const managementItems = [
         { label: 'Comissões', icon: DollarSign, path: '/commissions', key: 'commissions' },
         { label: 'Configurações', icon: Settings, path: '/settings', key: 'settings' },
-    ];
+    ].filter(item => {
+        if (currentEntity.type !== 'company') return false; // Handled in main nav for personal
+        if (userRole === 'owner') return true;
+        return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
+    });
+
+    const canSeeManagementGroup = currentEntity.type === 'company' && (managementItems.length > 0 || isSystemAdmin);
 
     // Color Mapping (Hex values for CSS Variables)
     const MODULE_COLORS: Record<string, string> = {
@@ -95,6 +99,7 @@ export function Layout() {
         reports: '#e11d48',   // rose-600
         settings: '#475569',  // slate-600
         whatsapp: '#10b981',  // emerald-500
+        payments: '#2563eb', // blue-600
     };
 
     return (
@@ -179,7 +184,7 @@ export function Layout() {
                         })}
 
                     {/* Admin Submenu */}
-                    {isAdmin && (
+                    {canSeeManagementGroup && (
                         <div className="mt-2 pt-2 border-t border-gray-100 dark:border-slate-700">
                             <button
                                 onClick={() => setAdminOpen(!adminOpen)}
@@ -199,7 +204,7 @@ export function Layout() {
 
                             {adminOpen && (
                                 <div className="mt-1 space-y-1">
-                                    {adminItems.map((item) => {
+                                    {managementItems.map((item) => {
                                         const color = MODULE_COLORS[item.key] || '#2563eb';
                                         return (
                                             <NavLink

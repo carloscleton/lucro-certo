@@ -9,7 +9,7 @@ import { useTeam } from '../hooks/useTeam';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { supabase } from '../lib/supabase';
-import { SETTINGS_TABS, APP_MODULES, getTabPermission } from '../config/permissions';
+import { SETTINGS_TABS, APP_MODULES, getTabPermission, getModulePermission } from '../config/permissions';
 import { WebhookSettings } from './WebhookSettings';
 import { WhatsApp } from './WhatsApp';
 import { FiscalSettings } from '../components/settings/FiscalSettings';
@@ -706,8 +706,8 @@ export function Settings() {
                                                     const settings = currentCompany?.settings || {};
                                                     const modules = settings.modules || {};
 
-                                                    const adminEnabled = modules[module.key]?.admin ?? true;
-                                                    const memberEnabled = modules[module.key]?.member ?? (module.key === 'settings' ? false : true); // Settings default OFF for members
+                                                    const adminEnabled = getModulePermission(module.key, 'admin', settings);
+                                                    const memberEnabled = getModulePermission(module.key, 'member', settings);
 
                                                     const togglePermission = async (role: 'admin' | 'member', value: boolean) => {
                                                         try {
