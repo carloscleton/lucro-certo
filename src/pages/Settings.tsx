@@ -997,81 +997,54 @@ export function Settings() {
                                             <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Responsável (Dono)</th>
                                             <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Time</th>
                                             <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Fiscal</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Pagamentos</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Cadastrada em</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white">Logo / Empresa</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Responsável (Dono)</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Time</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Ações</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Cadastrada em</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                                    <tbody className="divide-y divide-gray-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
                                         {adminLoading ? (
                                             <tr>
-                                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                                                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                                                     Carregando empresas...
                                                 </td>
                                             </tr>
                                         ) : companiesList.length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                                                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                                                     Nenhuma empresa cadastrada.
                                                 </td>
                                             </tr>
                                         ) : (
                                             companiesList.map((c) => (
-                                                <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-all text-gray-700 dark:text-gray-200">
+                                                <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center gap-3">
-                                                            {c.logo_url ? (
-                                                                <img src={c.logo_url} alt="" className="w-10 h-10 object-contain rounded bg-white p-1 border border-gray-100" />
-                                                            ) : (
-                                                                <div className="w-10 h-10 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
-                                                                    {c.trade_name.substring(0, 2).toUpperCase()}
-                                                                </div>
-                                                            )}
+                                                            <div className="w-10 h-10 rounded border border-gray-100 dark:border-slate-700 overflow-hidden bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+                                                                {c.logo_url ? (
+                                                                    <img src={c.logo_url} alt={c.trade_name} className="w-full h-full object-contain" />
+                                                                ) : (
+                                                                    <Building className="text-gray-400" size={20} />
+                                                                )}
+                                                            </div>
                                                             <div>
-                                                                <div className="font-bold">{c.trade_name}</div>
+                                                                <div className="font-bold text-gray-900 dark:text-white">{c.trade_name}</div>
                                                                 <div className="text-[10px] text-gray-500 font-mono">{c.cnpj}</div>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="font-medium">{c.owner_name || 'Desconhecido'}</div>
-                                                        <div className="text-xs text-gray-500">{c.owner_email}</div>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{c.owner_name || 'Desconhecido'}</span>
+                                                            {c.owner_email && <span className="text-[10px] text-gray-500">{c.owner_email}</span>}
+                                                        </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            <Users size={14} className="text-gray-400" />
+                                                        <div className="flex items-center justify-center gap-1.5 text-gray-600 dark:text-gray-400">
+                                                            <Users size={14} />
                                                             <span className="font-bold">{c.members_count}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="sr-only peer"
-                                                                    checked={c.fiscal_module_enabled}
-                                                                    onChange={async (e) => {
-                                                                        const { error } = await updateCompanyConfig(c.id, e.target.checked, c.payments_module_enabled);
-                                                                        if (error) alert('Erro: ' + error);
-                                                                    }}
-                                                                />
-                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                                                            </label>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="sr-only peer"
-                                                                    checked={c.payments_module_enabled}
-                                                                    onChange={async (e) => {
-                                                                        const { error } = await updateCompanyConfig(c.id, c.fiscal_module_enabled, e.target.checked);
-                                                                        if (error) alert('Erro: ' + error);
-                                                                    }}
-                                                                />
-                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
-                                                            </label>
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
