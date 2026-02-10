@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useEntity } from '../context/EntityContext';
+import { useAdmin } from '../hooks/useAdmin';
 
 interface CommissionTransaction {
     id: string;
@@ -44,12 +45,15 @@ export function Commissions() {
 
     const [transactions, setTransactions] = useState<CommissionTransaction[]>([]);
     const [loading, setLoading] = useState(false);
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>(currentEntity.type === 'company' ? currentEntity.id! : 'all');
+
+    const { isAdmin, companiesList } = useAdmin();
 
     useEffect(() => {
-        if (user && !settingsLoading && settings.commission_rate !== undefined) {
+        if (user && !settingsLoading) {
             fetchTransactions();
         }
-    }, [user, settings, settingsLoading, startDate, endDate, currentEntity]);
+    }, [user, settings, settingsLoading, startDate, endDate, currentEntity, selectedCompanyId]);
 
     const fetchTransactions = async () => {
         setLoading(true);
@@ -63,7 +67,14 @@ export function Commissions() {
                 .lte('date', endDate)
                 .order('date', { ascending: true });
 
-            if (currentEntity.type === 'company' && currentEntity.id) {
+            if (isAdmin) {
+                if (selectedCompanyId === 'personal') {
+                    query = query.eq('user_id', user!.id).is('company_id', null);
+                } else if (selectedCompanyId !== 'all') {
+                    query = query.eq('company_id', selectedCompanyId);
+                }
+                // If 'all', we don't add company_id filter to show everything
+            } else if (currentEntity.type === 'company' && currentEntity.id) {
                 query = query.eq('company_id', currentEntity.id);
             } else {
                 query = query.eq('user_id', user!.id).is('company_id', null);
@@ -74,8 +85,16 @@ export function Commissions() {
             if (error) throw error;
 
             if (data) {
-                // Sum all commission rates
-                const effectiveRate = (settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0);
+                // Determine the rate to use
+                let rateToUse = (settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0);
+
+                if (isAdmin && selectedCompanyId !== 'all' && selectedCompanyId !== 'personal') {
+                    const companyDetails = companiesList.find((c: any) => c.id === selectedCompanyId);
+                    if (companyDetails) {
+                        // For Super Admin viewing a company, the "Commission" is the platform rate (commission_rate)
+                        rateToUse = companyDetails.settings?.commission_rate || 0;
+                    }
+                }
 
                 const formattedData = data.map(t => ({
                     id: t.id,
@@ -83,7 +102,7 @@ export function Commissions() {
                     description: t.description,
                     amount: Number(t.amount),
                     origin: t.contact?.name || t.origin || 'N/A',
-                    commission_value: Number(t.amount) * (effectiveRate / 100),
+                    commission_value: Number(t.amount) * (rateToUse / 100),
                     payment_method: t.payment_method,
                     status: t.status === 'received' ? 'received' : 'pending' // normalize late to pending for comm view
                 }));
@@ -145,7 +164,10 @@ export function Commissions() {
                         Comissões e Resultados
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400">
-                        Gestão de recebíveis e cálculo de comissões ({(settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0)}%).
+                        {isAdmin && selectedCompanyId !== 'all'
+                            ? `Visualizando faturamento e comissões da empresa selecionada.`
+                            : `Gestão de recebíveis e cálculo de comissões (${(settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0)}%).`
+                        }
                     </p>
                 </div>
                 <Button onClick={handlePrint} variant="outline">
@@ -169,6 +191,24 @@ export function Commissions() {
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
                     />
+
+                    {isAdmin && (
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Empresa (Filtro Admin)</label>
+                            <select
+                                value={selectedCompanyId}
+                                onChange={(e) => setSelectedCompanyId(e.target.value)}
+                                className="h-10 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                            >
+                                <option value="all">Todas as Empresas</option>
+                                <option value="personal">Apenas Pessoal</option>
+                                {companiesList.map((c: any) => (
+                                    <option key={c.id} value={c.id}>{c.trade_name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <div className="pb-1">
                         <Button onClick={fetchTransactions} isLoading={loading}>
                             <Filter size={18} className="mr-2" />

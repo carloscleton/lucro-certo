@@ -6,6 +6,7 @@ export interface AdminStats {
     total_users: number;
     total_companies: number;
     total_revenue: number;
+    total_commission: number;
 }
 
 export interface AdminUser {
@@ -33,6 +34,8 @@ export interface AdminCompany {
     settings?: any;
     logo_url?: string;
     created_at: string;
+    total_revenue: number;
+    commission_earned: number;
 }
 
 export function useAdmin() {

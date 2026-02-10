@@ -646,6 +646,45 @@ export function Settings() {
                                     </div>
                                 </div>
 
+                                {/* Platform Commission Setting */}
+                                <div className="p-6 rounded-xl border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/20 dark:bg-emerald-900/10">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600">
+                                            <DollarSign size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">Taxa da Plataforma (Sua Comissão)</h4>
+                                            <p className="text-sm text-gray-500">Defina a porcentagem que você recebe sobre cada transação desta empresa.</p>
+                                        </div>
+                                    </div>
+                                    <div className="max-w-xs">
+                                        <Input
+                                            label="Porcentagem de Comissão (%)"
+                                            type="number"
+                                            value={selectedCompanyForConfig.settings?.commission_rate || 0}
+                                            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                                                const rate = parseFloat(e.target.value) || 0;
+                                                const newSettings = {
+                                                    ...(selectedCompanyForConfig.settings || {}),
+                                                    commission_rate: rate
+                                                };
+                                                const { error } = await updateCompanyConfig(
+                                                    selectedCompanyForConfig.id,
+                                                    selectedCompanyForConfig.fiscal_module_enabled,
+                                                    selectedCompanyForConfig.payments_module_enabled,
+                                                    newSettings
+                                                );
+                                                if (error) alert('Erro: ' + error);
+                                                else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                            }}
+                                            placeholder="Ex: 5"
+                                            step="0.1"
+                                            min="0"
+                                            max="100"
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Permissions Matrix */}
                                 <div>
                                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -952,14 +991,27 @@ export function Settings() {
 
                             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
                                 <div className="flex items-center justify-between opacity-80 mb-4">
-                                    <span className="text-sm font-medium">Receita Total</span>
+                                    <span className="text-sm font-medium">Volume Processado</span>
                                     <DollarSign size={20} />
                                 </div>
                                 <div className="text-3xl font-bold">
                                     {adminLoading ? '...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.total_revenue || 0)}
                                 </div>
                                 <div className="text-xs mt-2 opacity-80">
-                                    Volume transacionado (Pago/Recebido)
+                                    Total de vendas (Recebidas)
+                                </div>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl p-6 text-white shadow-lg">
+                                <div className="flex items-center justify-between opacity-80 mb-4">
+                                    <span className="text-sm font-medium">Comissão Plataforma</span>
+                                    <Wallet size={20} />
+                                </div>
+                                <div className="text-3xl font-bold">
+                                    {adminLoading ? '...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.total_commission || 0)}
+                                </div>
+                                <div className="text-xs mt-2 opacity-80">
+                                    Sua receita estimada
                                 </div>
                             </div>
                         </div>
@@ -1132,10 +1184,10 @@ export function Settings() {
                                     <thead className="bg-gray-50 dark:bg-slate-900/50">
                                         <tr>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white">Logo / Empresa</th>
-                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Responsável (Dono)</th>
-                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Time</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">Responsável</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Faturamento</th>
+                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Sua Comissão</th>
                                             <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Ações</th>
-                                            <th className="px-4 py-3 font-medium text-gray-900 dark:text-white text-right">Cadastrada em</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -1175,25 +1227,36 @@ export function Settings() {
                                                             {c.owner_email && <span className="text-[10px] text-gray-500">{c.owner_email}</span>}
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <div className="flex items-center justify-center gap-1.5 text-gray-600 dark:text-gray-400">
-                                                            <Users size={14} />
-                                                            <span className="font-bold">{c.members_count}</span>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-bold text-gray-900 dark:text-gray-100">
+                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.total_revenue || 0)}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-500">Total Recebido</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="primary"
-                                                            className="flex items-center gap-2"
-                                                            onClick={() => setSelectedCompanyForConfig(c)}
-                                                        >
-                                                            <Shield size={14} />
-                                                            Configurar
-                                                        </Button>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.commission_earned || 0)}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-500">
+                                                                {c.settings?.commission_rate || 0}% de taxa
+                                                            </span>
+                                                        </div>
                                                     </td>
-                                                    <td className="px-4 py-3 text-right text-gray-500 font-mono text-xs">
-                                                        {new Date(c.created_at).toLocaleDateString()}
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="primary"
+                                                                className="flex items-center gap-2"
+                                                                onClick={() => setSelectedCompanyForConfig(c)}
+                                                            >
+                                                                <Shield size={14} />
+                                                                Configurar
+                                                            </Button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))
