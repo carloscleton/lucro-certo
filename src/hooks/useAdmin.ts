@@ -168,6 +168,24 @@ export function useAdmin() {
         }
     };
 
+    const updateUserConfig = async (userId: string, settings: any) => {
+        if (!isAdmin) return { error: 'Unauthorized' };
+
+        try {
+            const { error } = await supabase.rpc('admin_update_user_config', {
+                target_user_id: userId,
+                settings_input: settings
+            });
+
+            if (error) throw error;
+            await fetchAdminData(true);
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error updating user config:', err);
+            return { error: err.message };
+        }
+    };
+
     useEffect(() => {
         if (isAdmin) {
             fetchAdminData();
@@ -184,6 +202,7 @@ export function useAdmin() {
         deleteUser,
         toggleUserBan,
         updateUserLimit,
+        updateUserConfig,
         updateCompanyConfig,
         refresh: fetchAdminData
     };

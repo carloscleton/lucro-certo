@@ -69,7 +69,13 @@ export function Layout() {
     });
 
     const finalNavItems = currentEntity.type === 'personal'
-        ? displayedNavItems.filter(item => ['dashboard', 'payables', 'receivables', 'categories', 'companies', 'reports', 'settings'].includes(item.key))
+        ? displayedNavItems.filter(item => {
+            // Basic items always allowed in personal view
+            if (['dashboard', 'companies', 'settings'].includes(item.key)) return true;
+
+            // Check if module is allowed in personal settings (treat as admin)
+            return getModulePermission(item.key, 'admin', settings);
+        })
         : displayedNavItems;
 
     // Management items for the sidebar group (Comissões, Configurações)

@@ -15,6 +15,11 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'user_type') THEN
         ALTER TABLE public.profiles ADD COLUMN user_type TEXT DEFAULT 'PF';
     END IF;
+
+    -- 4. Garante coluna 'settings' (Para permissões do contexto Pessoal)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'settings') THEN
+        ALTER TABLE public.profiles ADD COLUMN settings JSONB DEFAULT '{}'::jsonb;
+    END IF;
 END $$;
 
 -- 4. Recria a função de listagem de usuários (Admin)
@@ -28,7 +33,8 @@ RETURNS TABLE (
     quotes_count BIGINT,
     transactions_count BIGINT,
     banned_until TIMESTAMPTZ,
-    max_companies INTEGER
+    max_companies INTEGER,
+    settings JSONB
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -44,7 +50,8 @@ BEGIN
         (SELECT COUNT(*) FROM quotes q WHERE q.user_id = p.id) as quotes_count,
         (SELECT COUNT(*) FROM transactions t WHERE t.user_id = p.id) as transactions_count,
         p.banned_until,
-        COALESCE(p.max_companies, 1) as max_companies
+        COALESCE(p.max_companies, 1) as max_companies,
+        COALESCE(p.settings, '{}'::jsonb) as settings
     FROM profiles p
     ORDER BY p.created_at DESC;
 END;
@@ -59,6 +66,23 @@ AS $$
 BEGIN
     UPDATE public.profiles
     SET max_companies = new_limit
+    WHERE id = target_user_id;
+END;
+$$;
+
+-- 6. Função para atualizar configurações/permissões do usuário (Admin)
+CREATE OR REPLACE FUNCTION public.admin_update_user_config(
+    target_user_id UUID,
+    settings_input JSONB
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.profiles
+    SET 
+        settings = COALESCE(settings_input, settings)
     WHERE id = target_user_id;
 END;
 $$;

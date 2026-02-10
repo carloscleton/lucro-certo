@@ -13,6 +13,7 @@ interface Profile {
     user_type: UserType;
     company_id?: string;
     max_companies?: number;
+    settings?: any;
 }
 
 interface AuthContextType {

@@ -17,7 +17,7 @@ import { PaymentSettings } from '../components/settings/PaymentSettings';
 
 export function Settings() {
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
-    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, updateUserLimit, updateCompanyConfig } = useAdmin();
+    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, updateUserLimit, updateUserConfig, updateCompanyConfig } = useAdmin();
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
@@ -42,6 +42,7 @@ export function Settings() {
 
     const [activeTab, setActiveTab] = useState<'quotes' | 'financial' | 'team' | 'webhooks' | 'whatsapp' | 'fiscal' | 'payments' | 'admin'>('quotes');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
+    const [selectedUserForConfig, setSelectedUserForConfig] = useState<any | null>(null);
 
     // Update local state when company settings load
     useEffect(() => {
@@ -202,40 +203,19 @@ export function Settings() {
 
                     // Always show Admin tab to system admin if included above
                     if (tab.key === 'admin') return true;
-                    if (isAdmin && tab.key === 'whatsapp') return true;
-                    // Always show Permissions tab to Owner (or if access granted logic is complex, keep it simple: Owner sees all)
-                    if (currentEntity.type === 'personal') return true;
 
-                    const userRole = currentEntity.role || 'owner';
+                    // Matrix-based filtering
+                    const matrix = currentEntity.settings || {};
+                    const role = currentEntity.type === 'company' ? (currentEntity.role || 'member') : 'admin';
 
-                    if (userRole === 'owner') return true;
-
-                    const tabSettings = currentCompany?.settings?.settings_tabs?.[tab.key];
-                    if (!tabSettings) {
-                        // Default Behavior if not configured:
-                        // Permissions: Owners only (so Members/Admins don't see it by default unless configured?)
-                        // Actually, let's Stick to the Matrix defaults.
-                        // If undefined, default to:
-                        // Admin: TRUE for all except maybe Permissions?
-                        // Member: FALSE for all?
-
-                        if (tab.key === 'permissions') return false; // Default Permissions hidden
-
-                        if (userRole === 'admin') return true; // Admins see others by default
-                        return false; // Members see nothing by default
-                    }
-
-                    if (userRole === 'member' && tabSettings.member === false) return false;
-                    if (userRole === 'admin' && tabSettings.admin === false) return false;
-
-                    return true;
+                    return getTabPermission(tab.key, role as any, matrix);
                 }).map(tab => (
                     <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key as any)}
-                        className={`pb-3 px-4 flex items-center gap-2 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === tab.key
-                            ? `border-${tab.color}-600 text-${tab.color}-600 dark:text-${tab.color}-400`
-                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                        className={`pb-3 px-4 flex items-center gap-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.key
+                            ? `border-b-2 border-${tab.color}-600 text-${tab.color}-600 dark:text-${tab.color}-400`
+                            : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                             }`}
                     >
                         <tab.icon size={18} />
@@ -368,7 +348,7 @@ export function Settings() {
                                     Sincronizar status de pagamento entre orçamentos e transações.
                                 </p>
                                 <Button variant="outline" size="sm" onClick={handleSyncTransactions} isLoading={syncing}>
-                                    <RefreshCw size={16} className="mr-2" />
+                                    <RefreshCw size={16} />
                                     Sincronizar
                                 </Button>
                             </div>
@@ -791,6 +771,152 @@ export function Settings() {
                     </div>
                 )}
 
+                {/* Per-User Config Modal */}
+                {selectedUserForConfig && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                        <Users size={24} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configurar Usuário</h2>
+                                        <p className="text-sm text-gray-500">{selectedUserForConfig.full_name} • {selectedUserForConfig.email}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedUserForConfig(null)}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors text-gray-500"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 overflow-y-auto space-y-6">
+                                {/* User-specific settings */}
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <Lock size={18} className="text-blue-500" />
+                                        Permissões Pessoais
+                                    </h4>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                            <div>
+                                                <h5 className="font-bold text-gray-900 dark:text-white">Pode Criar Empresas</h5>
+                                                <p className="text-xs text-gray-500">Permite ao usuário criar novas empresas (PJ)</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={selectedUserForConfig.can_create_companies}
+                                                    onChange={async (e) => {
+                                                        const newVal = e.target.checked;
+                                                        const newSettings = { ...(selectedUserForConfig.settings || {}), can_create_companies: newVal };
+                                                        const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                        if (error) alert('Erro: ' + error);
+                                                        else setSelectedUserForConfig({ ...selectedUserForConfig, can_create_companies: newVal, settings: newSettings });
+                                                    }}
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Modules Matrix */}
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Acesso aos Módulos (Sidebar)</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {APP_MODULES.filter(m => !['dashboard', 'companies', 'settings'].includes(m.key)).map(module => {
+                                            const isEnabled = selectedUserForConfig.settings?.modules?.[module.key]?.admin !== false;
+                                            return (
+                                                <div key={module.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
+                                                            <module.icon size={16} />
+                                                        </div>
+                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{module.label}</span>
+                                                    </div>
+                                                    <label className="relative inline-flex items-center cursor-pointer scale-90">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="sr-only peer"
+                                                            checked={isEnabled}
+                                                            onChange={async (e) => {
+                                                                const newVal = e.target.checked;
+                                                                const currentSettings = selectedUserForConfig.settings || {};
+                                                                const newSettings = {
+                                                                    ...currentSettings,
+                                                                    modules: {
+                                                                        ...(currentSettings.modules || {}),
+                                                                        [module.key]: { admin: newVal, member: newVal }
+                                                                    }
+                                                                };
+                                                                const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                                if (error) alert('Erro: ' + error);
+                                                                else setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                            }}
+                                                        />
+                                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                    </label>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Tabs Matrix */}
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Abas de Configuração</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map(tab => {
+                                            const isEnabled = selectedUserForConfig.settings?.settings_tabs?.[tab.key]?.admin !== false;
+                                            return (
+                                                <div key={tab.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
+                                                            <tab.icon size={16} />
+                                                        </div>
+                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{tab.label}</span>
+                                                    </div>
+                                                    <label className="relative inline-flex items-center cursor-pointer scale-90">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="sr-only peer"
+                                                            checked={isEnabled}
+                                                            onChange={async (e) => {
+                                                                const newVal = e.target.checked;
+                                                                const currentSettings = selectedUserForConfig.settings || {};
+                                                                const newSettings = {
+                                                                    ...currentSettings,
+                                                                    settings_tabs: {
+                                                                        ...(currentSettings.settings_tabs || {}),
+                                                                        [tab.key]: { admin: newVal, member: newVal }
+                                                                    }
+                                                                };
+                                                                const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                                if (error) alert('Erro: ' + error);
+                                                                else setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                            }}
+                                                        />
+                                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                    </label>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50 flex justify-end">
+                                <Button onClick={() => setSelectedUserForConfig(null)} variant="primary">Concluído</Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'admin' && isAdmin && (
                     <div className="space-y-8">
                         {/* KPI Cards */}
@@ -920,6 +1046,15 @@ export function Settings() {
                                                                 >
                                                                     <Edit2 size={14} />
                                                                 </button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="p-1 h-auto"
+                                                                    onClick={() => setSelectedUserForConfig(u)}
+                                                                    title="Configurar Permissões Pessoais"
+                                                                >
+                                                                    <Lock size={16} className="text-blue-500" />
+                                                                </Button>
                                                             </div>
                                                         </td>
                                                         <td className="px-4 py-3 text-center text-gray-900 dark:text-white font-medium">

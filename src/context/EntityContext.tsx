@@ -103,8 +103,12 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     settings: item.company.settings
                 }));
 
-            // Always include Personal option
-            const personalOption: Entity = { type: 'personal', name: 'Pessoal' };
+            // Always include Personal option with user's settings
+            const personalOption: Entity = {
+                type: 'personal',
+                name: 'Pessoal',
+                settings: user ? (await supabase.from('profiles').select('settings').eq('id', user.id).maybeSingle()).data?.settings : {}
+            };
             const allEntities = [personalOption, ...companies];
             setAvailableEntities(allEntities);
 
