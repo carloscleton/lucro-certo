@@ -19,10 +19,26 @@ export interface AdminUser {
     banned_until?: string | null;
     max_companies: number;
 }
+
+export interface AdminCompany {
+    id: string;
+    trade_name: string;
+    legal_name: string;
+    cnpj: string;
+    owner_name: string;
+    owner_email: string;
+    members_count: number;
+    fiscal_module_enabled: boolean;
+    payments_module_enabled: boolean;
+    logo_url?: string;
+    created_at: string;
+}
+
 export function useAdmin() {
     const { user } = useAuth();
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [usersList, setUsersList] = useState<AdminUser[]>([]);
+    const [companiesList, setCompaniesList] = useState<AdminCompany[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -49,11 +65,37 @@ export function useAdmin() {
             if (usersError) throw usersError;
             setUsersList(usersData || []);
 
+            // Fetch Companies List
+            const { data: companiesData, error: companiesError } = await supabase
+                .rpc('get_admin_companies_list');
+
+            if (companiesError) throw companiesError;
+            setCompaniesList(companiesData || []);
+
         } catch (err: any) {
             console.error('Error fetching admin data:', err);
             setError(err.message || 'Falha ao carregar dados administrativos');
         } finally {
             if (!silent) setLoading(false);
+        }
+    };
+
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean) => {
+        if (!isAdmin) return { error: 'Unauthorized' };
+
+        try {
+            const { error } = await supabase.rpc('admin_update_company_config', {
+                target_company_id: companyId,
+                fiscal_enabled: fiscal,
+                payments_enabled: payments
+            });
+
+            if (error) throw error;
+            await fetchAdminData(true);
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error updating company config:', err);
+            return { error: err.message };
         }
     };
 
@@ -134,11 +176,13 @@ export function useAdmin() {
         isAdmin,
         stats,
         usersList,
+        companiesList,
         loading,
         error,
         deleteUser,
         toggleUserBan,
         updateUserLimit,
+        updateCompanyConfig,
         refresh: fetchAdminData
     };
 }

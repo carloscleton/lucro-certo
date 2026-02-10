@@ -17,7 +17,7 @@ import { PaymentSettings } from '../components/settings/PaymentSettings';
 
 export function Settings() {
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
-    const { isAdmin, stats, usersList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, updateUserLimit } = useAdmin();
+    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, updateUserLimit, updateCompanyConfig } = useAdmin();
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity } = useEntity();
     const { updateCompany, companies } = useCompanies();
@@ -1048,6 +1048,111 @@ export function Settings() {
                                                     </tr>
                                                 );
                                             })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Companies Management Table */}
+                        <div className="pt-8 border-t border-gray-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Gestão de Empresas</h3>
+                                    <p className="text-sm text-gray-500">Controle os módulos ativos e visualize detalhes de todas as empresas do sistema.</p>
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 dark:bg-slate-900/50">
+                                        <tr>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Logo / Empresa</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Responsável (Dono)</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Time</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Fiscal</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Pagamentos</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Cadastrada em</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                                        {adminLoading ? (
+                                            <tr>
+                                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                                                    Carregando empresas...
+                                                </td>
+                                            </tr>
+                                        ) : companiesList.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                                                    Nenhuma empresa cadastrada.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            companiesList.map((c) => (
+                                                <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-all text-gray-700 dark:text-gray-200">
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-3">
+                                                            {c.logo_url ? (
+                                                                <img src={c.logo_url} alt="" className="w-10 h-10 object-contain rounded bg-white p-1 border border-gray-100" />
+                                                            ) : (
+                                                                <div className="w-10 h-10 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                                                                    {c.trade_name.substring(0, 2).toUpperCase()}
+                                                                </div>
+                                                            )}
+                                                            <div>
+                                                                <div className="font-bold">{c.trade_name}</div>
+                                                                <div className="text-[10px] text-gray-500 font-mono">{c.cnpj}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-medium">{c.owner_name || 'Desconhecido'}</div>
+                                                        <div className="text-xs text-gray-500">{c.owner_email}</div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            <Users size={14} className="text-gray-400" />
+                                                            <span className="font-bold">{c.members_count}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only peer"
+                                                                    checked={c.fiscal_module_enabled}
+                                                                    onChange={async (e) => {
+                                                                        const { error } = await updateCompanyConfig(c.id, e.target.checked, c.payments_module_enabled);
+                                                                        if (error) alert('Erro: ' + error);
+                                                                    }}
+                                                                />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only peer"
+                                                                    checked={c.payments_module_enabled}
+                                                                    onChange={async (e) => {
+                                                                        const { error } = await updateCompanyConfig(c.id, c.fiscal_module_enabled, e.target.checked);
+                                                                        if (error) alert('Erro: ' + error);
+                                                                    }}
+                                                                />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-gray-500">
+                                                        {new Date(c.created_at).toLocaleDateString()}
+                                                    </td>
+                                                </tr>
+                                            ))
                                         )}
                                     </tbody>
                                 </table>
