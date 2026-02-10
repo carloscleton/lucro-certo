@@ -92,7 +92,7 @@ export function useCompanies() {
         // 1. Create company first (we need ID for storage folder usually, though here we could generate UUID first but RPC handles creation)
         const { data, error } = await supabase.rpc('create_company', {
             name_input: company.legal_name,
-            trade_name: company.trade_name,
+            trade_name_input: company.trade_name,
             cnpj_input: company.cnpj,
             email_input: '',
             phone_input: '',
