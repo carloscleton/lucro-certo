@@ -89,7 +89,20 @@ export function Login() {
     const [message, setMessage] = useState<string | null>(null);
     const [showBannedModal, setShowBannedModal] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
+    const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+    const [isUpdatePassword, setIsUpdatePassword] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
     const navigate = useNavigate();
+
+    // Check for recovery hash in URL
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (hash && (hash.includes('access_token=') || hash.includes('type=recovery'))) {
+            setIsUpdatePassword(true);
+            setMessage('Por favor, defina sua nova senha abaixo.');
+        }
+    }, []);
 
     const handleAuth = async (e: FormEvent) => {
         e.preventDefault();
@@ -99,7 +112,15 @@ export function Login() {
         setShowInviteModal(false);
 
         try {
-            if (isSignUp) {
+            if (isUpdatePassword) {
+                const { error } = await supabase.auth.updateUser({
+                    password: password
+                });
+                if (error) throw error;
+                setMessage('Senha atualizada com sucesso! Você já pode fazer login.');
+                setIsUpdatePassword(false);
+                setPassword('');
+            } else if (isSignUp) {
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
@@ -123,7 +144,7 @@ export function Login() {
                 navigate('/');
             }
         } catch (err: any) {
-            console.error('Login error:', err.message);
+            console.error('Auth error:', err.message);
             if (err.message.includes('invalid_grant') || err.message.toLowerCase().includes('banned') || err.message.toLowerCase().includes('user is banned')) {
                 setShowBannedModal(true);
             } else if (err.message.includes('Invalid login credentials')) {
@@ -141,6 +162,27 @@ export function Login() {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e: FormEvent) => {
+        e.preventDefault();
+        setResetLoading(true);
+        setError(null);
+        setMessage(null);
+
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+                redirectTo: `${window.location.origin}/login`,
+            });
+            if (error) throw error;
+            setMessage('Email de recuperação enviado! Verifique sua caixa de entrada.');
+            setShowForgotPasswordModal(false);
+        } catch (err: any) {
+            console.error('Forgot password error:', err.message);
+            setError(err.message);
+        } finally {
+            setResetLoading(false);
         }
     };
     return (
@@ -162,12 +204,14 @@ export function Login() {
                             <img src={logoFull} alt="Lucro Certo" className="h-40 w-auto" />
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight text-gray-900 text-center">
-                            {isSignUp ? 'Criar sua conta' : 'Bem-vindo de volta!'}
+                            {isUpdatePassword ? 'Nova Senha' : (isSignUp ? 'Criar sua conta' : 'Bem-vindo de volta!')}
                         </h1>
                         <p className="text-lg text-gray-500">
-                            {isSignUp
-                                ? 'Comece a controlar suas finanças hoje mesmo.'
-                                : 'Entre com suas credenciais para acessar sua conta.'}
+                            {isUpdatePassword
+                                ? 'Crie uma senha forte e segura para sua conta.'
+                                : (isSignUp
+                                    ? 'Comece a controlar suas finanças hoje mesmo.'
+                                    : 'Entre com suas credenciais para acessar sua conta.')}
                         </p>
                     </div>
 
@@ -183,19 +227,21 @@ export function Login() {
                             />
                         )}
 
-                        <Input
-                            label="Email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="seu@email.com"
-                            required
-                            className="h-12"
-                        />
+                        {!isUpdatePassword && (
+                            <Input
+                                label="Email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="seu@email.com"
+                                required
+                                className="h-12"
+                            />
+                        )}
 
                         <div className="space-y-1">
                             <Input
-                                label="Senha"
+                                label={isUpdatePassword ? "Nova Senha" : "Senha"}
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -214,9 +260,16 @@ export function Login() {
                                     </button>
                                 }
                             />
-                            {!isSignUp && (
+                            {!isSignUp && !isUpdatePassword && (
                                 <div className="flex justify-end">
-                                    <button type="button" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                                    <button
+                                        type="button"
+                                        className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                                        onClick={() => {
+                                            setForgotEmail(email);
+                                            setShowForgotPasswordModal(true);
+                                        }}
+                                    >
                                         Esqueceu a senha?
                                     </button>
                                 </div>
@@ -236,22 +289,36 @@ export function Login() {
                         )}
 
                         <Button type="submit" isLoading={loading} className="w-full h-12 text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all">
-                            {isSignUp ? 'Criar Conta' : 'Entrar na Plataforma'}
+                            {isUpdatePassword ? 'Salvar Nova Senha' : (isSignUp ? 'Criar Conta' : 'Entrar na Plataforma')}
                             {!loading && <ArrowRight size={18} className="ml-2" />}
                         </Button>
                     </form>
 
                     <div className="pt-4 text-center border-t border-gray-100">
-                        <p className="text-sm text-gray-600">
-                            {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}
-                            <button
-                                onClick={() => setIsSignUp(!isSignUp)}
-                                className="ml-2 font-semibold text-blue-600 hover:text-blue-500 hover:underline transition-all"
-                                type="button"
-                            >
-                                {isSignUp ? 'Fazer Login' : 'Criar conta gratuitamente'}
-                            </button>
-                        </p>
+                        {!isUpdatePassword && (
+                            <p className="text-sm text-gray-600">
+                                {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}
+                                <button
+                                    onClick={() => setIsSignUp(!isSignUp)}
+                                    className="ml-2 font-semibold text-blue-600 hover:text-blue-500 hover:underline transition-all"
+                                    type="button"
+                                >
+                                    {isSignUp ? 'Fazer Login' : 'Criar conta gratuitamente'}
+                                </button>
+                            </p>
+                        )}
+                        {isUpdatePassword && (
+                            <p className="text-sm text-gray-600">
+                                Deseja cancelar?
+                                <button
+                                    onClick={() => setIsUpdatePassword(false)}
+                                    className="ml-2 font-semibold text-blue-600 hover:text-blue-500 hover:underline transition-all"
+                                    type="button"
+                                >
+                                    Voltar para Login
+                                </button>
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -401,6 +468,66 @@ export function Login() {
                             >
                                 Criar Conta Agora
                             </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Forgot Password Modal */}
+            {showForgotPasswordModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative transform transition-all scale-100">
+                        <button
+                            onClick={() => setShowForgotPasswordModal(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <div className="flex flex-col space-y-4">
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                                    <Eye size={24} className="text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                        Esqueceu a senha?
+                                    </h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        Enviaremos um link de recuperação.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleForgotPassword} className="space-y-4">
+                                <Input
+                                    label="Email de Recuperação"
+                                    type="email"
+                                    value={forgotEmail}
+                                    onChange={(e) => setForgotEmail(e.target.value)}
+                                    placeholder="seu@email.com"
+                                    required
+                                    className="h-12"
+                                />
+
+                                <div className="pt-2 flex flex-col gap-3">
+                                    <Button
+                                        type="submit"
+                                        isLoading={resetLoading}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12"
+                                    >
+                                        Enviar Link de Recuperação
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => setShowForgotPasswordModal(false)}
+                                        className="w-full h-12"
+                                    >
+                                        Cancelar
+                                    </Button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
