@@ -201,8 +201,11 @@ export function Settings() {
                         }
                     }
 
-                    // Always show Admin tab to system admin if included above
+                    // Always show Admin tab to system admin
                     if (tab.key === 'admin') return true;
+
+                    // Bypass for System Admin - they see all tabs
+                    if (isAdmin) return true;
 
                     // Matrix-based filtering
                     const matrix = currentEntity.settings || {};

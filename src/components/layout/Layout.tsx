@@ -70,7 +70,10 @@ export function Layout() {
 
     const finalNavItems = currentEntity.type === 'personal'
         ? displayedNavItems.filter(item => {
-            // Basic items always allowed in personal view
+            // Bypass for System Admin - they see everything in personal context
+            if (isSystemAdmin) return true;
+
+            // Basic items always allowed in personal view for others
             if (['dashboard', 'companies', 'settings'].includes(item.key)) return true;
 
             // Check if module is allowed in personal settings (treat as admin)
