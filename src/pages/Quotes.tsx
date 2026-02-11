@@ -1244,7 +1244,6 @@ export function Quotes() {
                         transactionType="income"
                         transactionAmount={quoteToApprove.total_amount}
                         transactionDescription={`Ref. Orçamento: ${quoteToApprove.title}`}
-                        transactionDueDate={quoteToApprove.valid_until ? new Date(quoteToApprove.valid_until).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
                     />
                 )
             }

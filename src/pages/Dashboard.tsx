@@ -51,7 +51,7 @@ export function Dashboard() {
         setMonthFilter(''); // Clear month selection if manual date is picked
     };
 
-    const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, loading } = useDashboard(startDate, endDate);
+    const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
     const { categories } = useCategories();
 
     // Modal state
@@ -164,7 +164,7 @@ export function Dashboard() {
 
                 <div className="space-y-6">
                     {/* Upcoming Bills Widget */}
-                    <UpcomingBillsWidget />
+                    <UpcomingBillsWidget onRefreshMetrics={refreshDashboard} />
 
                     {/* Quick Summary Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
@@ -190,7 +190,6 @@ export function Dashboard() {
                 onClose={() => setModalOpen(false)}
                 title={modalTitle}
                 transactions={getFilteredTransactions()}
-                type={modalType}
             />
         </div>
     );

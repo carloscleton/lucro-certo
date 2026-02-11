@@ -101,10 +101,11 @@ export function useUpcomingBills(days: number = 30) {
                 }
 
                 // Calculate totals
+                const totalAmount = Number(transaction.amount) + Number(transaction.interest || 0) + Number(transaction.penalty || 0);
                 if (transaction.type === 'expense') {
-                    totalExpenses += transaction.amount;
+                    totalExpenses += totalAmount;
                 } else {
-                    totalIncome += transaction.amount;
+                    totalIncome += totalAmount;
                 }
             });
 

@@ -1,7 +1,8 @@
-import { X } from 'lucide-react';
+import { ListFilter } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Modal } from '../ui/Modal';
 
 interface Transaction {
     id: string;
@@ -21,15 +22,13 @@ interface TransactionDetailModalProps {
     onClose: () => void;
     title: string;
     transactions: Transaction[];
-    type: 'income' | 'expense' | 'receivable' | 'payable' | 'balance';
 }
 
 export function TransactionDetailModal({
     isOpen,
     onClose,
     title,
-    transactions,
-    type
+    transactions
 }: TransactionDetailModalProps) {
     if (!isOpen) return null;
 
@@ -48,58 +47,51 @@ export function TransactionDetailModal({
         return acc + (t.type === 'income' ? amount : -amount);
     }, 0);
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-            <div className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-800 rounded-lg shadow-xl overflow-hidden flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            {transactions.length} transação(ões) • Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)}
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                        <X size={24} />
-                    </button>
-                </div>
+    const subtitle = `${transactions.length} transação(ões) • Total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)}`;
 
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={title}
+            subtitle={subtitle}
+            icon={ListFilter}
+            maxWidth="max-w-4xl"
+        >
+            <div className="flex flex-col h-full max-h-[70vh]">
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Transaction List */}
-                        <div className="lg:col-span-2 space-y-3">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Transações</h3>
+                        <div className="lg:col-span-2 space-y-4">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Transações</h3>
                             {transactions.length === 0 ? (
-                                <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                                    Nenhuma transação encontrada
-                                </p>
+                                <div className="flex flex-col items-center justify-center py-12 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700">
+                                    <p className="text-gray-500 dark:text-gray-400">Nenhuma transação encontrada</p>
+                                </div>
                             ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {transactions.map((transaction) => (
                                         <div
                                             key={transaction.id}
-                                            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                            className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:shadow-md transition-all group"
                                         >
                                             <div className="flex-1">
-                                                <p className="font-medium text-gray-900 dark:text-white">
+                                                <p className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                                                     {transaction.description}
                                                 </p>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                <div className="flex items-center gap-3 mt-1.5">
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                                         {format(new Date(transaction.date), "dd 'de' MMMM", { locale: ptBR })}
                                                     </span>
                                                     {transaction.category && (
-                                                        <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                                                        <span className="text-[10px] px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full font-medium">
                                                             {transaction.category}
                                                         </span>
                                                     )}
-                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${transaction.status === 'received' || transaction.status === 'paid'
-                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                                        : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${transaction.status === 'received' || transaction.status === 'paid'
+                                                        ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300'
+                                                        : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300'
                                                         }`}>
                                                         {transaction.status === 'received' ? 'Recebido' :
                                                             transaction.status === 'paid' ? 'Pago' : 'Pendente'}
@@ -107,14 +99,14 @@ export function TransactionDetailModal({
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className={`font-bold ${transaction.type === 'income'
-                                                    ? 'text-green-600 dark:text-green-400'
-                                                    : 'text-red-600 dark:text-red-400'
+                                                <p className={`font-bold text-lg ${transaction.type === 'income'
+                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                    : 'text-rose-600 dark:text-rose-400'
                                                     }`}>
                                                     {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.paid_amount || transaction.amount)}
                                                 </p>
                                                 {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
-                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
                                                         (Orig: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
                                                         {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.interest || 0)}`}
                                                         {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.penalty || 0)}`}
@@ -130,49 +122,55 @@ export function TransactionDetailModal({
 
                         {/* Category Breakdown */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Por Categoria</h3>
-                            <div className="space-y-3">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Por Categoria</h3>
+                            <div className="space-y-5 bg-gray-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-gray-100 dark:border-slate-800">
                                 {Object.entries(categoryTotals)
-                                    .sort(([, a], [, b]) => b - a)
+                                    .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
                                     .map(([category, amount]) => {
-                                        const percentage = (amount / total) * 100;
+                                        const absAmount = Math.abs(amount);
+                                        const totalAbs = Object.values(categoryTotals).reduce((a, b) => a + Math.abs(b), 0);
+                                        const percentage = totalAbs > 0 ? (absAmount / totalAbs) * 100 : 0;
+
                                         return (
-                                            <div key={category} className="space-y-1">
+                                            <div key={category} className="space-y-2">
                                                 <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                                    <span className="text-gray-600 dark:text-gray-400 font-medium">
                                                         {category}
                                                     </span>
-                                                    <span className="text-gray-900 dark:text-white font-semibold">
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)}
+                                                    <span className="text-gray-900 dark:text-white font-bold">
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(amount))}
                                                     </span>
                                                 </div>
-                                                <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                                                <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
                                                     <div
-                                                        className={`h-2 rounded-full ${type === 'income' || type === 'receivable'
-                                                            ? 'bg-green-500'
-                                                            : 'bg-red-500'
+                                                        className={`h-full rounded-full transition-all duration-500 ${amount >= 0
+                                                            ? 'bg-emerald-500'
+                                                            : 'bg-rose-500'
                                                             }`}
                                                         style={{ width: `${percentage}%` }}
                                                     />
                                                 </div>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-500 text-right font-medium">
                                                     {percentage.toFixed(1)}% do total
                                                 </p>
                                             </div>
                                         );
                                     })}
+                                {Object.keys(categoryTotals).length === 0 && (
+                                    <p className="text-xs text-gray-500 text-center italic py-4">Sem dados por categoria</p>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700">
-                    <Button variant="outline" onClick={onClose}>
+                <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
+                    <Button variant="outline" onClick={onClose} className="px-8 border-gray-200 dark:border-slate-600">
                         Fechar
                     </Button>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 }

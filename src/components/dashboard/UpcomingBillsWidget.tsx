@@ -7,7 +7,11 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
-export function UpcomingBillsWidget() {
+interface UpcomingBillsWidgetProps {
+    onRefreshMetrics?: () => void;
+}
+
+export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetProps) {
     const { bills, loading, refresh } = useUpcomingBills(30);
     const { updateTransaction } = useTransactions('expense');
     const { updateTransaction: updateIncome } = useTransactions('income');
@@ -59,7 +63,8 @@ export function UpcomingBillsWidget() {
             setIsModalOpen(false);
             setSelectedBill(null);
             refresh();
-        } catch (error) {
+            if (onRefreshMetrics) onRefreshMetrics();
+        } catch (error: any) {
             console.error('Error marking bill as paid:', error);
         } finally {
             setIsSubmitting(false);
@@ -334,9 +339,8 @@ export function UpcomingBillsWidget() {
                             </div>
                         </div>
 
-                        <div className="flex gap-3 pt-4">
+                        <div className="flex justify-end gap-3 mt-6">
                             <Button
-                                type="button"
                                 variant="outline"
                                 onClick={() => setIsModalOpen(false)}
                                 className="flex-1"
@@ -347,9 +351,9 @@ export function UpcomingBillsWidget() {
                                 type="button"
                                 onClick={handleConfirmPayment}
                                 isLoading={isSubmitting}
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-200 dark:shadow-none transition-all active:scale-[0.98]"
                             >
-                                Confirmar Pagamento
+                                {selectedBill.type === 'expense' ? 'Confirmar Pagamento' : 'Confirmar Recebimento'}
                             </Button>
                         </div>
                     </div>

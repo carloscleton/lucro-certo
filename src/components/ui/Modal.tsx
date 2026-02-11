@@ -33,30 +33,30 @@ export function Modal({
                 )}
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header com Gradiente */}
-                <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-6 relative">
+                {/* Header with Gradient */}
+                <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-magenta-500 p-6 relative" style={{ background: 'linear-gradient(90deg, #9333ea 0%, #d946ef 100%)' }}>
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 p-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+                        className="absolute top-4 right-4 p-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors backdrop-blur-sm"
                     >
                         <X size={20} />
                     </button>
 
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-white/20 rounded-xl">
-                            <Icon className="text-white" size={24} />
+                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/10 shadow-lg">
+                            <Icon className="text-white" size={24} strokeWidth={2.5} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">{title}</h2>
+                            <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
                             {subtitle && (
-                                <p className="text-purple-100 text-sm">{subtitle}</p>
+                                <p className="text-white/80 text-sm mt-0.5">{subtitle}</p>
                             )}
                         </div>
                     </div>
                 </div>
 
                 {/* Body */}
-                <div className="p-6">
+                <div className="p-6 bg-white dark:bg-slate-800 transition-colors">
                     {children}
                 </div>
             </div>

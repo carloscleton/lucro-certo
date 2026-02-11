@@ -247,7 +247,6 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     transactionType={type}
                     transactionAmount={settlingTransaction.amount}
                     transactionDescription={settlingTransaction.description}
-                    transactionDueDate={settlingTransaction.date}
                 />
             )}
 
