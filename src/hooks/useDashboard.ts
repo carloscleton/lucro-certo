@@ -89,11 +89,11 @@ export function useDashboard(startDate: string, endDate: string) {
 
                 const income = currentPeriodTx
                     .filter(t => t.type === 'income' && t.status === 'received')
-                    .reduce((acc, t) => acc + Number(t.amount), 0);
+                    .reduce((acc, t) => acc + Number(t.paid_amount || t.amount), 0);
 
                 const expense = currentPeriodTx
                     .filter(t => t.type === 'expense' && t.status === 'paid')
-                    .reduce((acc, t) => acc + Number(t.amount), 0);
+                    .reduce((acc, t) => acc + Number(t.paid_amount || t.amount), 0);
 
                 const globalPayable = transactions
                     .filter(t => t.type === 'expense' && (t.status === 'pending' || t.status === 'late'))
@@ -150,10 +150,10 @@ export function useDashboard(startDate: string, endDate: string) {
                 }
 
                 incomeData.forEach(t => {
-                    if (daysMap.has(t.date)) daysMap.get(t.date)!.income += Number(t.amount);
+                    if (daysMap.has(t.date)) daysMap.get(t.date)!.income += Number(t.paid_amount || t.amount);
                 });
                 expenseData.forEach(t => {
-                    if (daysMap.has(t.date)) daysMap.get(t.date)!.expense += Number(t.amount);
+                    if (daysMap.has(t.date)) daysMap.get(t.date)!.expense += Number(t.paid_amount || t.amount);
                 });
 
                 const chart = Array.from(daysMap.entries()).map(([date, val]) => ({
@@ -216,7 +216,7 @@ export function useDashboard(startDate: string, endDate: string) {
 
                 expenses.forEach(t => {
                     const catId = t.category_id || 'uncategorized';
-                    const amount = Number(t.amount);
+                    const amount = Number(t.paid_amount || t.amount);
                     expensesMap.set(catId, (expensesMap.get(catId) || 0) + amount);
                 });
 

@@ -8,6 +8,9 @@ interface Transaction {
     type: 'income' | 'expense';
     status: 'pending' | 'received' | 'paid';
     amount: number;
+    paid_amount?: number;
+    interest?: number;
+    penalty?: number;
     description: string;
     category?: string;
     date: string;
@@ -33,14 +36,15 @@ export function TransactionDetailModal({
     // Group transactions by category
     const categoryTotals = transactions.reduce((acc, t) => {
         const cat = t.category || 'Sem Categoria';
-        const amount = t.type === 'income' ? Number(t.amount) : -Number(t.amount);
-        acc[cat] = (acc[cat] || 0) + amount;
+        const amount = t.paid_amount || t.amount;
+        const signedAmount = t.type === 'income' ? Number(amount) : -Number(amount);
+        acc[cat] = (acc[cat] || 0) + signedAmount;
         return acc;
     }, {} as Record<string, number>);
 
     // Calculate net total (income - expense)
     const total = transactions.reduce((acc, t) => {
-        const amount = Number(t.amount);
+        const amount = Number(t.paid_amount || t.amount);
         return acc + (t.type === 'income' ? amount : -amount);
     }, 0);
 
@@ -107,8 +111,16 @@ export function TransactionDetailModal({
                                                     ? 'text-green-600 dark:text-green-400'
                                                     : 'text-red-600 dark:text-red-400'
                                                     }`}>
-                                                    {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
+                                                    {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.paid_amount || transaction.amount)}
                                                 </p>
+                                                {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
+                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                        (Orig: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
+                                                        {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.interest || 0)}`}
+                                                        {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.penalty || 0)}`}
+                                                        )
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
