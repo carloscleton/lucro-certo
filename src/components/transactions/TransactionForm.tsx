@@ -18,6 +18,37 @@ interface TransactionFormProps {
     initialData?: Transaction | null;
 }
 
+// Helper function to calculate next recurring dates
+function calculateNextDates(startDate: string, frequency: string, count: number = 5): Date[] {
+    const dates: Date[] = [];
+    const start = new Date(startDate);
+
+    for (let i = 1; i <= count; i++) {
+        const nextDate = new Date(start);
+
+        if (frequency === 'weekly') {
+            nextDate.setDate(start.getDate() + (i * 7));
+        } else if (frequency === 'monthly') {
+            nextDate.setMonth(start.getMonth() + i);
+        } else if (frequency === 'yearly') {
+            nextDate.setFullYear(start.getFullYear() + i);
+        }
+
+        dates.push(nextDate);
+    }
+
+    return dates;
+}
+
+// Helper function to format date in Brazilian format
+function formatBrazilianDate(date: Date): string {
+    return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
 export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }: TransactionFormProps) {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
@@ -258,11 +289,35 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 <option value="yearly">Anual</option>
                             </select>
                             {date && (
-                                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium italic">
-                                    {frequency === 'monthly' && `* Este lançamento se repetirá todo dia ${date.split('-')[2]} de cada mês.`}
-                                    {frequency === 'weekly' && `* Este lançamento se repetirá no mesmo dia da semana.`}
-                                    {frequency === 'yearly' && `* Este lançamento se repetirá todo ano em ${date.split('-')[2]}/${date.split('-')[1]}.`}
-                                </p>
+                                <>
+                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium italic">
+                                        {frequency === 'monthly' && `* Este lançamento se repetirá todo dia ${date.split('-')[2]} de cada mês.`}
+                                        {frequency === 'weekly' && `* Este lançamento se repetirá no mesmo dia da semana.`}
+                                        {frequency === 'yearly' && `* Este lançamento se repetirá todo ano em ${date.split('-')[2]}/${date.split('-')[1]}.`}
+                                    </p>
+
+                                    {/* Preview of next recurring dates */}
+                                    <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2 uppercase tracking-wide">
+                                            📅 Próximas 5 Datas
+                                        </p>
+                                        <div className="grid grid-cols-5 gap-2">
+                                            {calculateNextDates(date, frequency, 5).map((nextDate, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 rounded-md border border-emerald-100 dark:border-emerald-800/50 shadow-sm"
+                                                >
+                                                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                        #{index + 2}
+                                                    </span>
+                                                    <span className="text-xs font-bold text-gray-900 dark:text-white mt-0.5">
+                                                        {formatBrazilianDate(nextDate)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
                     )}
