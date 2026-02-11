@@ -123,7 +123,7 @@ export function Layout() {
             {/* Sidebar */}
             <aside className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''}`}>
                 <div className={styles.sidebarHeader}>
-                    <img src={logoFull} alt="Lucro Certo" className="h-28 w-auto object-contain" />
+                    <img src={logoFull} alt="Lucro Certo" className="w-full max-w-[220px] h-auto object-contain" />
                     <button
                         className="md:hidden ml-auto p-1 text-gray-500"
                         onClick={() => setSidebarOpen(false)}

@@ -20,14 +20,13 @@
 }
 
 .sidebarHeader {
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-md);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-sm);
     margin-bottom: var(--spacing-xs);
     position: relative;
-    z-index: 2;
+    width: 100%;
 }
 
 .logoText {
