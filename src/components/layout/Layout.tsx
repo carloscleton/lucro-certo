@@ -3,7 +3,6 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
     ArrowUpCircle,
     ArrowDownCircle,
-    Wallet,
     Briefcase,
     Menu,
     LogOut,
@@ -15,6 +14,7 @@ import {
     Bell,
     Users
 } from 'lucide-react';
+import logoFull from '../../assets/logo-full.png';
 import styles from './Layout.module.css';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -123,8 +123,7 @@ export function Layout() {
             {/* Sidebar */}
             <aside className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''}`}>
                 <div className={styles.sidebarHeader}>
-                    <Wallet className="w-8 h-8 text-blue-600" />
-                    <span className={styles.logoText}>Lucro Certo</span>
+                    <img src={logoFull} alt="Lucro Certo" className="h-12 w-auto object-contain" />
                     <button
                         className="md:hidden ml-auto p-1 text-gray-500"
                         onClick={() => setSidebarOpen(false)}
@@ -267,7 +266,7 @@ export function Layout() {
                     >
                         <Menu size={24} />
                     </button>
-                    <h1 className="text-lg font-semibold md:hidden">Lucro Certo</h1>
+                    <img src={logoFull} alt="Lucro Certo" className="h-10 w-auto object-contain md:hidden ml-2" />
                     <div className="hidden md:flex items-center justify-between w-full">
                         {/* Pending Invite Banner */}
                         {pendingInvites.length > 0 && (
