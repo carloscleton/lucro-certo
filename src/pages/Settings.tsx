@@ -510,8 +510,8 @@ export function Settings() {
                                                         <div className="text-xs text-gray-500">{m.profile.email}</div>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <span className={`px-2 py-0.5 rounded text-xs border capitalize ${m.role === 'owner' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 border-gray-200'}`}>
-                                                            {m.role === 'owner' ? 'Dono' : m.role}
+                                                        <span className={`px-2 py-0.5 rounded text-xs border capitalize ${m.role === 'owner' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300' : 'bg-gray-50 border-gray-200 dark:bg-slate-800 dark:border-slate-700'}`}>
+                                                            {m.role === 'owner' ? '👑 Platform Owner' : m.role === 'admin' ? 'Admin' : 'Membro'}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3">
@@ -1370,9 +1370,17 @@ export function Settings() {
                                                             </div>
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
-                                                            <div className="flex flex-col items-center">
+                                                            <div className="flex flex-col items-center gap-0.5">
                                                                 <span className="font-bold text-emerald-600 dark:text-emerald-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.commission_earned || 0)}</span>
-                                                                <span className="text-[9px] text-gray-500 font-medium">{c.settings?.commission_rate || 0}% de taxa</span>
+                                                                {c.settings?.commission_rate > 0 && (
+                                                                    <span className="text-[9px] text-gray-500 font-medium">{c.settings.commission_rate}% (Geral)</span>
+                                                                )}
+                                                                {c.settings?.service_commission_rate > 0 && (
+                                                                    <span className="text-[9px] text-blue-600 dark:text-blue-400 font-medium">{c.settings.service_commission_rate}% Serviços</span>
+                                                                )}
+                                                                {c.settings?.product_commission_rate > 0 && (
+                                                                    <span className="text-[9px] text-purple-600 dark:text-purple-400 font-medium">{c.settings.product_commission_rate}% Produtos</span>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="px-4 py-3 text-right">

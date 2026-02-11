@@ -35,6 +35,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const { companies } = useCompanies();
     const { contacts } = useContacts();
 
+    // Load saved company preference for this transaction type
     useEffect(() => {
         if (initialData) {
             setDescription(initialData.description);
@@ -47,17 +48,27 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setIsRecurring(initialData.is_recurring || false);
             setFrequency(initialData.frequency || 'monthly');
         } else {
+            // New transaction - load saved preference
+            const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
+
             setDescription('');
             setAmount('');
             setDate(new Date().toISOString().split('T')[0]);
             setStatus('pending');
             setCategoryId('');
-            setCompanyId('');
+            setCompanyId(savedCompanyId);
             setContactId('');
             setIsRecurring(false);
             setFrequency('monthly');
         }
-    }, [initialData, isOpen]);
+    }, [initialData, isOpen, type]);
+
+    // Save company preference when changed (only for new transactions)
+    useEffect(() => {
+        if (!initialData && companyId !== undefined) {
+            localStorage.setItem(`lastCompanyId_${type}`, companyId);
+        }
+    }, [companyId, type, initialData]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();

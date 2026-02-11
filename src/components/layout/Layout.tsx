@@ -59,7 +59,7 @@ export function Layout() {
         if (currentEntity.type === 'company' && isManagementItem) return false;
 
         if (currentEntity.type === 'company' && userRole) {
-            // Owner always sees everything
+            // Owner (Platform Admin) always sees everything
             if (userRole === 'owner') return true;
 
             // Admin/Member: Check Permission Matrix

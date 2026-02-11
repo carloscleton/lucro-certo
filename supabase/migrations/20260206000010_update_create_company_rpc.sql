@@ -26,7 +26,7 @@ BEGIN
     -- Get current count of companies owned by user
     SELECT COUNT(*) INTO current_count
     FROM public.company_members cm
-    WHERE cm.user_id = auth.uid() AND cm.role = 'owner';
+    WHERE cm.user_id = auth.uid() AND cm.role = 'admin';
 
     -- Get user's max limit
     SELECT max_companies INTO max_limit
@@ -78,13 +78,40 @@ BEGIN
     )
     RETURNING id INTO new_company_id;
 
-    -- Create Membership (Owner)
+    -- Create Membership (Admin by default, owner reserved for platform admin)
     INSERT INTO public.company_members (company_id, user_id, role, status)
-    VALUES (new_company_id, auth.uid(), 'owner', 'active');
+    VALUES (new_company_id, auth.uid(), 'admin', 'active');
 
-    -- Create default settings for the company
+    -- Create default settings for the company with complete permission matrix
     UPDATE public.companies 
-    SET settings = '{"member_can_delete": false}'::jsonb
+    SET settings = jsonb_build_object(
+        'member_can_delete', false,
+        'modules', jsonb_build_object(
+            'dashboard', jsonb_build_object('admin', true, 'member', true),
+            'quotes', jsonb_build_object('admin', true, 'member', true),
+            'receivables', jsonb_build_object('admin', true, 'member', true),
+            'payables', jsonb_build_object('admin', true, 'member', true),
+            'categories', jsonb_build_object('admin', true, 'member', true),
+            'companies', jsonb_build_object('admin', true, 'member', true),
+            'contacts', jsonb_build_object('admin', true, 'member', true),
+            'services', jsonb_build_object('admin', true, 'member', true),
+            'products', jsonb_build_object('admin', true, 'member', true),
+            'commissions', jsonb_build_object('admin', true, 'member', false),
+            'reports', jsonb_build_object('admin', true, 'member', false),
+            'settings', jsonb_build_object('admin', true, 'member', false),
+            'whatsapp', jsonb_build_object('admin', true, 'member', false),
+            'payments', jsonb_build_object('admin', true, 'member', false)
+        ),
+        'settings_tabs', jsonb_build_object(
+            'quotes', jsonb_build_object('admin', true, 'member', false),
+            'financial', jsonb_build_object('admin', true, 'member', false),
+            'team', jsonb_build_object('admin', true, 'member', false),
+            'webhooks', jsonb_build_object('admin', true, 'member', false),
+            'permissions', jsonb_build_object('admin', false, 'member', false),
+            'whatsapp', jsonb_build_object('admin', true, 'member', false),
+            'payments', jsonb_build_object('admin', true, 'member', false)
+        )
+    )
     WHERE id = new_company_id;
 
     RETURN json_build_object('success', true, 'company_id', new_company_id);
