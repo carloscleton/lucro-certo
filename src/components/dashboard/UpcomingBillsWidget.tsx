@@ -16,12 +16,16 @@ export function UpcomingBillsWidget() {
     const [selectedBill, setSelectedBill] = useState<UpcomingBill | null>(null);
     const [paymentMethod, setPaymentMethod] = useState('Outros');
     const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+    const [interest, setInterest] = useState<number>(0);
+    const [penalty, setPenalty] = useState<number>(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleOpenModal = (bill: UpcomingBill) => {
         setSelectedBill(bill);
         setPaymentDate(new Date().toISOString().split('T')[0]);
         setPaymentMethod('Outros');
+        setInterest(0);
+        setPenalty(0);
         setIsModalOpen(true);
     };
 
@@ -31,10 +35,15 @@ export function UpcomingBillsWidget() {
         setIsSubmitting(true);
         try {
             const newStatus: 'paid' | 'received' = selectedBill.type === 'expense' ? 'paid' : 'received';
+            const totalPaid = Number(selectedBill.amount) + Number(interest) + Number(penalty);
+
             const updates = {
                 status: newStatus,
                 payment_method: paymentMethod,
-                payment_date: paymentDate
+                payment_date: paymentDate,
+                interest: Number(interest),
+                penalty: Number(penalty),
+                paid_amount: totalPaid
             };
 
             if (selectedBill.type === 'expense') {
@@ -254,7 +263,7 @@ export function UpcomingBillsWidget() {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Confirmar Pagamento"
+                title={selectedBill?.type === 'expense' ? 'Confirmar Pagamento' : 'Confirmar Recebimento'}
                 icon={DollarSign}
                 maxWidth="max-w-md"
             >
@@ -265,14 +274,14 @@ export function UpcomingBillsWidget() {
                                 {selectedBill.description}
                             </p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                Total: {formatCurrency(selectedBill.amount)}
+                                Total: {formatCurrency(Number(selectedBill.amount) + Number(interest) + Number(penalty))}
                             </p>
                         </div>
 
                         <div className="space-y-3">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Data do Pagamento
+                                    {selectedBill.type === 'expense' ? 'Data do Pagamento' : 'Data do Recebimento'}
                                 </label>
                                 <input
                                     type="date"
@@ -280,6 +289,35 @@ export function UpcomingBillsWidget() {
                                     onChange={(e) => setPaymentDate(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                 />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Juros (R$)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={interest || ''}
+                                        placeholder="0,00"
+                                        onChange={(e) => setInterest(Number(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Multa (R$)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={penalty || ''}
+                                        placeholder="0,00"
+                                        onChange={(e) => setPenalty(Number(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                    />
+                                </div>
                             </div>
 
                             <div>
