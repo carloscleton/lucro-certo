@@ -123,7 +123,7 @@ export function Layout() {
             {/* Sidebar */}
             <aside className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''}`}>
                 <div className={styles.sidebarHeader}>
-                    <img src={logoFull} alt="Lucro Certo" className="h-12 w-auto object-contain" />
+                    <img src={logoFull} alt="Lucro Certo" className="h-28 w-auto object-contain" />
                     <button
                         className="md:hidden ml-auto p-1 text-gray-500"
                         onClick={() => setSidebarOpen(false)}
@@ -266,7 +266,7 @@ export function Layout() {
                     >
                         <Menu size={24} />
                     </button>
-                    <img src={logoFull} alt="Lucro Certo" className="h-10 w-auto object-contain md:hidden ml-2" />
+                    <img src={logoFull} alt="Lucro Certo" className="h-14 w-auto object-contain md:hidden ml-2" />
                     <div className="hidden md:flex items-center justify-between w-full">
                         {/* Pending Invite Banner */}
                         {pendingInvites.length > 0 && (

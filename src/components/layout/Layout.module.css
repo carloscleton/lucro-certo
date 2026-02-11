@@ -20,12 +20,12 @@
 }
 
 .sidebarHeader {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-sm);
-    /* border-bottom: 1px solid var(--color-border); Remove border for cleaner look */
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
     position: relative;
     z-index: 2;
 }
