@@ -123,7 +123,9 @@ export function Layout() {
             {/* Sidebar */}
             <aside className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''}`}>
                 <div className={styles.sidebarHeader}>
-                    <img src={logoFull} alt="Lucro Certo" className="w-full max-w-[220px] h-auto object-contain" />
+                    <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md mb-2 w-full flex justify-center border border-gray-100 dark:border-slate-700">
+                        <img src={logoFull} alt="Lucro Certo" className="w-full max-w-[280px] h-auto object-contain transition-transform hover:scale-105" />
+                    </div>
                     <button
                         className="md:hidden ml-auto p-1 text-gray-500"
                         onClick={() => setSidebarOpen(false)}
@@ -266,7 +268,7 @@ export function Layout() {
                     >
                         <Menu size={24} />
                     </button>
-                    <img src={logoFull} alt="Lucro Certo" className="h-14 w-auto object-contain md:hidden ml-2" />
+                    <img src={logoFull} alt="Lucro Certo" className="h-20 w-auto object-contain md:hidden ml-2" />
                     <div className="hidden md:flex items-center justify-between w-full">
                         {/* Pending Invite Banner */}
                         {pendingInvites.length > 0 && (
