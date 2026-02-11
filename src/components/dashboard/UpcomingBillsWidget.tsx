@@ -1,23 +1,55 @@
-import { AlertCircle, Calendar, CheckCircle2, TrendingDown, TrendingUp } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, TrendingDown, TrendingUp, DollarSign } from 'lucide-react';
+import { useState } from 'react';
 import { useUpcomingBills } from '../../hooks/useUpcomingBills';
 import { useTransactions } from '../../hooks/useTransactions';
 import type { UpcomingBill } from '../../hooks/useUpcomingBills';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 export function UpcomingBillsWidget() {
-    const { bills, loading } = useUpcomingBills(30);
+    const { bills, loading, refresh } = useUpcomingBills(30);
     const { updateTransaction } = useTransactions('expense');
     const { updateTransaction: updateIncome } = useTransactions('income');
 
-    const handleMarkAsPaid = async (bill: UpcomingBill) => {
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedBill, setSelectedBill] = useState<UpcomingBill | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState('Outros');
+    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleOpenModal = (bill: UpcomingBill) => {
+        setSelectedBill(bill);
+        setPaymentDate(new Date().toISOString().split('T')[0]);
+        setPaymentMethod('Outros');
+        setIsModalOpen(true);
+    };
+
+    const handleConfirmPayment = async () => {
+        if (!selectedBill) return;
+
+        setIsSubmitting(true);
         try {
-            const newStatus = bill.type === 'expense' ? 'paid' : 'received';
-            if (bill.type === 'expense') {
-                await updateTransaction(bill.id, { status: newStatus });
+            const newStatus: 'paid' | 'received' = selectedBill.type === 'expense' ? 'paid' : 'received';
+            const updates = {
+                status: newStatus,
+                payment_method: paymentMethod,
+                payment_date: paymentDate
+            };
+
+            if (selectedBill.type === 'expense') {
+                await updateTransaction(selectedBill.id, updates);
             } else {
-                await updateIncome(bill.id, { status: newStatus });
+                await updateIncome(selectedBill.id, updates);
             }
+
+            setIsModalOpen(false);
+            setSelectedBill(null);
+            refresh();
         } catch (error) {
             console.error('Error marking bill as paid:', error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -37,7 +69,7 @@ export function UpcomingBillsWidget() {
         <div className="flex items-center justify-between py-2 px-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group">
             <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button
-                    onClick={() => handleMarkAsPaid(bill)}
+                    onClick={() => handleOpenModal(bill)}
                     className="flex-shrink-0 w-5 h-5 rounded border-2 border-gray-300 dark:border-slate-600 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors flex items-center justify-center group-hover:scale-110"
                     title="Marcar como pago"
                 >
@@ -55,8 +87,8 @@ export function UpcomingBillsWidget() {
                 </div>
             </div>
             <span className={`text-sm font-bold whitespace-nowrap ml-2 ${bill.type === 'expense'
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-emerald-600 dark:text-emerald-400'
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-emerald-600 dark:text-emerald-400'
                 }`}>
                 {bill.type === 'expense' ? '-' : '+'}{formatCurrency(bill.amount)}
             </span>
@@ -209,14 +241,88 @@ export function UpcomingBillsWidget() {
                             Saldo Previsto
                         </span>
                         <span className={`text-lg font-bold ${bills.netBalance >= 0
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-red-600 dark:text-red-400'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-red-600 dark:text-red-400'
                             }`}>
                             {bills.netBalance >= 0 ? '+' : ''}{formatCurrency(bills.netBalance)}
                         </span>
                     </div>
                 </div>
             </div>
+
+            {/* Payment Confirmation Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Confirmar Pagamento"
+                icon={DollarSign}
+                maxWidth="max-w-md"
+            >
+                {selectedBill && (
+                    <div className="space-y-4">
+                        <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                                {selectedBill.description}
+                            </p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                Total: {formatCurrency(selectedBill.amount)}
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Data do Pagamento
+                                </label>
+                                <input
+                                    type="date"
+                                    value={paymentDate}
+                                    onChange={(e) => setPaymentDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Forma de Pagamento
+                                </label>
+                                <select
+                                    value={paymentMethod}
+                                    onChange={(e) => setPaymentMethod(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                >
+                                    <option value="Outros">Outros</option>
+                                    <option value="Pix">Pix</option>
+                                    <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                    <option value="Cartão de Débito">Cartão de Débito</option>
+                                    <option value="Boleto">Boleto</option>
+                                    <option value="Dinheiro">Dinheiro</option>
+                                    <option value="Transferência">Transferência</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsModalOpen(false)}
+                                className="flex-1"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={handleConfirmPayment}
+                                isLoading={isSubmitting}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                            >
+                                Confirmar Pagamento
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }
