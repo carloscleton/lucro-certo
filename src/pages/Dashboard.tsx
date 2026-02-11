@@ -162,8 +162,26 @@ export function Dashboard() {
                     <BudgetProgress categories={categories} expenses={expensesByCategory} />
                 </div>
 
-                {/* Upcoming Bills Widget */}
-                <UpcomingBillsWidget />
+                <div className="space-y-6">
+                    {/* Upcoming Bills Widget */}
+                    <UpcomingBillsWidget />
+
+                    {/* Quick Summary Card */}
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
+                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Resumo Rápido</h3>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Resultado do Período</p>
+                                <p className={`text-xl font-bold ${metrics.income - metrics.expense >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metrics.income - metrics.expense)}
+                                </p>
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                                "O segredo de ficar rico é gastar menos do que se ganha e investir a diferença."
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Transaction Detail Modal */}
