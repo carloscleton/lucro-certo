@@ -25,7 +25,7 @@ export function useCategories() {
             const scope = currentEntity.type === 'company' ? 'business' : 'personal';
             let query = supabase
                 .from('categories')
-                .select('*')
+                .select('id, name, type, scope, user_id, company_id, budget_limit, entity_type')
                 .eq('scope', scope)
                 .order('name');
 
