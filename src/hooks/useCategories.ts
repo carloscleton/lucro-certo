@@ -10,6 +10,7 @@ export interface Category {
     scope: 'personal' | 'business';
     user_id: string;
     budget_limit?: number | null;
+    entity_type?: 'individual' | 'company';
 }
 
 export function useCategories() {
@@ -100,7 +101,8 @@ export function useCategories() {
                 name: category.name,
                 type: category.type,
                 user_id: user.id,
-                scope: targetScope
+                scope: targetScope,
+                entity_type: category.entity_type
             }]);
 
         if (error) throw error;

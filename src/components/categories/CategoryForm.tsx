@@ -38,7 +38,7 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
         e.preventDefault();
         setLoading(true);
         try {
-            const data: any = { name, type, entity_type: entityType, scope: 'personal' };
+            const data: any = { name, type, entity_type: entityType };
             if (type === 'expense' && budgetLimit) {
                 data.budget_limit = parseFloat(budgetLimit);
             } else {
