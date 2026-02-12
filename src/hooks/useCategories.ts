@@ -9,6 +9,7 @@ export interface Category {
     type: 'expense' | 'income';
     scope: 'personal' | 'business';
     user_id: string;
+    company_id?: string | null;
     budget_limit?: number | null;
     entity_type?: 'individual' | 'company';
 }
@@ -22,16 +23,16 @@ export function useCategories() {
     const fetchCategories = async () => {
         if (!user) return;
         try {
-            const scope = currentEntity.type === 'company' ? 'business' : 'personal';
             let query = supabase
                 .from('categories')
                 .select('id, name, type, scope, user_id, company_id, budget_limit, entity_type')
-                .eq('scope', scope)
                 .order('name');
 
             if (currentEntity.type === 'company' && currentEntity.id) {
+                // For companies, prioritize company_id association
                 query = query.eq('company_id', currentEntity.id);
             } else {
+                // For personal, show records with NULL company_id belonging to the user
                 query = query.eq('user_id', user.id).is('company_id', null);
             }
 
@@ -66,12 +67,18 @@ export function useCategories() {
     };
 
     const updateCategory = async (id: string, updates: Partial<Category>) => {
-        const { error } = await supabase
+        console.log('UPDATING CATEGORY:', id, updates);
+        const { data, error } = await supabase
             .from('categories')
             .update(updates)
-            .eq('id', id);
+            .eq('id', id)
+            .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('UPDATE ERROR:', error);
+            throw error;
+        }
+        console.log('UPDATE SUCCESS:', data);
         await fetchCategories();
     };
 

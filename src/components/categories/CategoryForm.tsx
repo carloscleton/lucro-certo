@@ -47,8 +47,9 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
 
             await onSubmit(data);
             onClose();
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            console.error('CategoryForm Error:', error);
+            alert(`Erro ao salvar categoria: ${error.message || 'Erro desconhecido'}`);
         } finally {
             setLoading(false);
         }
