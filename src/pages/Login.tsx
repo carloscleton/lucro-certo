@@ -26,8 +26,8 @@ export function Login() {
 
     const getHeroImage = (basePrompt: string) => {
         const seed = getSeed();
-        const prompt = encodeURIComponent(`${basePrompt}, high quality, 8k resolution, photorealistic, cinematic lighting`);
-        return `https://image.pollinations.ai/prompt/${prompt}?width=1080&height=1920&seed=${seed}&nologo=true`;
+        const prompt = encodeURIComponent(`${basePrompt}, high quality, sharp focus, extremely detailed, crisp edges, cinematic lighting`);
+        return `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=1280&seed=${seed}&nologo=true`;
     };
 
     // Carousel State & Data
@@ -201,7 +201,7 @@ export function Login() {
                 <div className="w-full max-w-sm space-y-10 relative z-10">
                     <div className="space-y-4">
                         <div className="flex justify-center mb-8">
-                            <img src={logoFull} alt="Lucro Certo" className="h-28 w-auto" />
+                            <img src={logoFull} alt="Lucro Certo" className="h-20 w-auto" />
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight text-gray-900 text-center">
                             {isUpdatePassword ? 'Nova Senha' : (isSignUp ? 'Criar sua conta' : 'Bem-vindo de volta!')}
