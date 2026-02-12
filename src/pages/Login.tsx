@@ -26,8 +26,8 @@ export function Login() {
 
     const getHeroImage = (basePrompt: string) => {
         const seed = getSeed();
-        const prompt = encodeURIComponent(`${basePrompt}, high quality, professional photography, sharp focus, vibrant colors, cinematic lighting`);
-        return `https://image.pollinations.ai/prompt/${prompt}?width=1080&height=1440&seed=${seed}&nologo=true`;
+        const prompt = encodeURIComponent(`${basePrompt}, wide shot, centered composition, main subject in center or right, high quality, professional photography, sharp focus, vibrant colors, cinematic lighting`);
+        return `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=1280&seed=${seed}&nologo=true`;
     };
 
     // Carousel State & Data
@@ -40,7 +40,7 @@ export function Login() {
             role: "Especialista Financeira",
             initials: "BO",
             color: "from-blue-400 to-purple-500",
-            image: getHeroImage("Strategic wealth management, a premium 3D composition with glowing green glass charts and 3D bar graphs on a dark corporate background. Financial growth, clarity, professional, clean minimalist style"),
+            image: getHeroImage("Strategic wealth management, a premium 3D composition with glowing green glass charts and 3D bar graphs on a dark corporate background. Financial growth, clarity, professional, clean minimalist style, centered framing"),
             fallback: loginHero1
         },
         {
@@ -49,7 +49,7 @@ export function Login() {
             role: "Gestão Empresarial",
             initials: "DF",
             color: "from-green-400 to-emerald-500",
-            image: getHeroImage("Successful profit growth concept, stack of premium gold coins and rising green arrow chart against a dark sophisticated background. Crystal textures, reflection, high success, prosperity"),
+            image: getHeroImage("Successful profit growth concept, stack of premium gold coins and rising green arrow chart against a dark sophisticated background. Crystal textures, reflection, high success, prosperity, centered subject"),
             fallback: loginHero2
         },
         {
@@ -58,7 +58,7 @@ export function Login() {
             role: "Empreendedorismo",
             initials: "DS",
             color: "from-orange-400 to-red-500",
-            image: getHeroImage("Balance and organization concept, abstract 3D scales or geometric shapes in warm gold and deep green. Sophisticated corporate aesthetics, structured organization, professional minimalist"),
+            image: getHeroImage("Balance and organization concept, abstract 3D scales or geometric shapes in warm gold and deep green. Sophisticated corporate aesthetics, structured organization, professional minimalist, balanced framing"),
             fallback: loginHero3
         },
         {
