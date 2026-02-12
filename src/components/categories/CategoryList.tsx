@@ -44,9 +44,15 @@ export function CategoryList({ categories, onEdit, onDelete, onClone, canDelete 
                                     </span>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">
-                                        {(category as any).entity_type === 'company' ? 'Pessoa Jurídica' : 'Pessoa Física'}
-                                    </span>
+                                    {(category as any).entity_type === 'company' ? (
+                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50">
+                                            Pessoa Jurídica
+                                        </span>
+                                    ) : (
+                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50">
+                                            Pessoa Física
+                                        </span>
+                                    )}
                                 </td>
                                 <td className="px-4 py-3 text-right flex justify-end gap-2">
                                     <Tooltip content="Clonar para outro perfil">
