@@ -157,6 +157,10 @@ export function Login() {
                 }
             } else if (err.message.includes('Email not confirmed')) {
                 setError('Email não confirmado. Verifique sua caixa de entrada.');
+            } else if (err.message.includes('New password should be different from the old password')) {
+                setError('A nova senha deve ser diferente da senha anterior.');
+            } else if (err.message.includes('Password should be at least 6 characters')) {
+                setError('A senha deve ter pelo menos 6 caracteres.');
             } else {
                 setError(err.message);
             }
