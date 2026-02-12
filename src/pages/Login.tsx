@@ -26,8 +26,8 @@ export function Login() {
 
     const getHeroImage = (basePrompt: string) => {
         const seed = getSeed();
-        const prompt = encodeURIComponent(`${basePrompt}, high quality, sharp focus, extremely detailed, crisp edges, cinematic lighting`);
-        return `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=1280&seed=${seed}&nologo=true`;
+        const prompt = encodeURIComponent(`${basePrompt}, high quality, professional photography, sharp focus, vibrant colors, cinematic lighting`);
+        return `https://image.pollinations.ai/prompt/${prompt}?width=1080&height=1440&seed=${seed}&nologo=true`;
     };
 
     // Carousel State & Data
@@ -40,7 +40,7 @@ export function Login() {
             role: "Especialista Financeira",
             initials: "BO",
             color: "from-blue-400 to-purple-500",
-            image: getHeroImage("A premium 3D abstract composition representing financial technology and organization. Deep dark blue background with glowing purple and blue floating geometric shapes, cubes, spheres, graphs. High tech, modern, clean, minimalist"),
+            image: getHeroImage("Strategic wealth management, a premium 3D composition with glowing green glass charts and 3D bar graphs on a dark corporate background. Financial growth, clarity, professional, clean minimalist style"),
             fallback: loginHero1
         },
         {
@@ -49,7 +49,7 @@ export function Login() {
             role: "Gestão Empresarial",
             initials: "DF",
             color: "from-green-400 to-emerald-500",
-            image: getHeroImage("A premium 3D composition representing financial growth and profit. Dark background with floating emerald green and gold coins, ascending bar charts made of glass or crystal. Positive, upward trend, successful, bright green accents"),
+            image: getHeroImage("Successful profit growth concept, stack of premium gold coins and rising green arrow chart against a dark sophisticated background. Crystal textures, reflection, high success, prosperity"),
             fallback: loginHero2
         },
         {
@@ -58,7 +58,7 @@ export function Login() {
             role: "Empreendedorismo",
             initials: "DS",
             color: "from-orange-400 to-red-500",
-            image: getHeroImage("A premium 3D composition representing organization and separation of work life. Abstract balance scales or split composition with warm orange and red glass elements against a dark background. Sophisticated, balanced, structural"),
+            image: getHeroImage("Balance and organization concept, abstract 3D scales or geometric shapes in warm gold and deep green. Sophisticated corporate aesthetics, structured organization, professional minimalist"),
             fallback: loginHero3
         },
         {
@@ -67,7 +67,7 @@ export function Login() {
             role: "Produtividade",
             initials: "LC",
             color: "from-blue-500 to-cyan-500",
-            image: getHeroImage("A premium 3D composition representing automation and productivity. Futuristic clock gears or flowing digital data streams in cyan and light blue. Speed, efficiency, fluid motion, glass texture"),
+            image: getHeroImage("Automation and productivity, high-tech digital gear system with glowing green data lines on a dark background. Efficiency, fluid motion, precision, futuristic financial technology"),
             fallback: loginHero4
         }
     ];
@@ -201,7 +201,7 @@ export function Login() {
                 <div className="w-full max-w-sm space-y-10 relative z-10">
                     <div className="space-y-4">
                         <div className="flex justify-center mb-8">
-                            <img src={logoFull} alt="Lucro Certo" className="h-20 w-auto" />
+                            <img src={logoFull} alt="Lucro Certo" className="h-24 w-auto" />
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight text-gray-900 text-center">
                             {isUpdatePassword ? 'Nova Senha' : (isSignUp ? 'Criar sua conta' : 'Bem-vindo de volta!')}

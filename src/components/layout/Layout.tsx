@@ -20,6 +20,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useEntity } from '../../context/EntityContext';
 import { Button } from '../ui/Button';
+import { OnboardingTour } from '../orientation/OnboardingTour';
+import { HelpCenter } from '../orientation/HelpCenter';
 import { supabase } from '../../lib/supabase';
 import { APP_MODULES, getModulePermission } from '../../config/permissions';
 
@@ -114,6 +116,8 @@ export function Layout() {
 
     return (
         <div className={styles.layout}>
+            <OnboardingTour />
+            <HelpCenter />
             {/* Mobile Overlay */}
             <div
                 className={`${styles.mobileOverlay} ${sidebarOpen ? styles.open : ''}`}
@@ -121,7 +125,10 @@ export function Layout() {
             />
 
             {/* Sidebar */}
-            <aside className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''}`}>
+            <aside
+                className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''}`}
+                data-tour="sidebar"
+            >
                 <div className={styles.sidebarHeader}>
                     <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md mb-2 w-full flex justify-center border border-gray-100 dark:border-slate-700">
                         <img src={logoFull} alt="Lucro Certo" className="w-full max-w-[280px] h-auto object-contain transition-transform hover:scale-105" />
@@ -134,7 +141,7 @@ export function Layout() {
                     </button>
                 </div>
 
-                <div className={styles.contextSection}>
+                <div className={styles.contextSection} data-tour="entity-selector">
                     <div className={styles.entitySelectWrapper}>
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ambiente Atual</span>
@@ -183,6 +190,7 @@ export function Layout() {
                                         `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
                                     }
                                     style={{ '--hover-color': color } as React.CSSProperties}
+                                    data-tour={`nav-${item.key}`}
                                     onClick={() => setSidebarOpen(false)}
                                 >
                                     <div className={styles.navIcon}>
@@ -239,7 +247,7 @@ export function Layout() {
                     )}
                 </nav>
 
-                <div className={styles.userSection}>
+                <div className={styles.userSection} data-tour="user-section">
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold truncate text-gray-900 dark:text-gray-100">
                             {profile?.full_name || 'Usuário'}
