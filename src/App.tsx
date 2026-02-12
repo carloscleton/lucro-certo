@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Layout } from './components/layout/Layout';
 import { Login } from './pages/Login';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -76,6 +77,7 @@ function App() {
           <EntityProvider>
             <NotificationProvider>
               <AppRoutes />
+              <SpeedInsights />
             </NotificationProvider>
           </EntityProvider>
         </AuthProvider>
