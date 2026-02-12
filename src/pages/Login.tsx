@@ -201,7 +201,7 @@ export function Login() {
                 <div className="w-full max-w-sm space-y-10 relative z-10">
                     <div className="space-y-4">
                         <div className="flex justify-center mb-8">
-                            <img src={logoFull} alt="Lucro Certo" className="h-40 w-auto" />
+                            <img src={logoFull} alt="Lucro Certo" className="h-28 w-auto" />
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight text-gray-900 text-center">
                             {isUpdatePassword ? 'Nova Senha' : (isSignUp ? 'Criar sua conta' : 'Bem-vindo de volta!')}
@@ -345,7 +345,7 @@ export function Login() {
                 {/* Overlay Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent opacity-90" />
 
-                <div className="absolute bottom-0 left-0 right-0 p-12 text-white z-10">
+                <div className="absolute bottom-0 left-0 right-0 p-8 sm:p-12 text-white z-10">
                     <div className="max-w-md relative min-h-[200px]">
                         {carouselItems.map((item, index) => (
                             <div
@@ -360,7 +360,7 @@ export function Login() {
                                         </svg>
                                     ))}
                                 </div>
-                                <blockquote className="text-2xl font-medium leading-relaxed mb-8">
+                                <blockquote className="text-xl font-medium leading-relaxed mb-6">
                                     "{item.text}"
                                 </blockquote>
                                 <div className="flex items-center gap-4">
