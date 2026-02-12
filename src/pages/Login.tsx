@@ -17,11 +17,11 @@ export function Login() {
     const mode = searchParams.get('mode');
     const emailParam = searchParams.get('email');
 
-    // Generate a new seed every 48 hours (2 days)
+    // Generate a new seed every 12 hours (Morning/Afternoon cycle)
     const getSeed = () => {
         const now = new Date();
-        const twoDays = 1000 * 60 * 60 * 48; // milliseconds in 2 days
-        return Math.floor(now.getTime() / twoDays);
+        const twelveHours = 1000 * 60 * 60 * 12; // 12 hours in milliseconds
+        return Math.floor(now.getTime() / twelveHours);
     };
 
     const getHeroImage = (basePrompt: string) => {
