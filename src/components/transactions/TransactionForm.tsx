@@ -278,7 +278,28 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             <select
                                 className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
                                 value={dealId}
-                                onChange={e => setDealId(e.target.value)}
+                                onChange={e => {
+                                    const selectedId = e.target.value;
+                                    setDealId(selectedId);
+
+                                    if (selectedId) {
+                                        const deal = deals.find(d => d.id === selectedId);
+                                        if (deal) {
+                                            // Auto-populate contact
+                                            if (deal.contact_id) {
+                                                setContactId(deal.contact_id);
+                                            }
+                                            // Auto-populate description if empty
+                                            if (!description || description.trim() === '') {
+                                                setDescription(`Ref: ${deal.title}`);
+                                            }
+                                            // Auto-populate amount if empty
+                                            if (!amount || parseFloat(amount) === 0) {
+                                                setAmount(deal.value.toString());
+                                            }
+                                        }
+                                    }
+                                }}
                             >
                                 <option value="">Nenhum negócio associado</option>
                                 {deals.filter(d => d.status === 'active').map(deal => (
