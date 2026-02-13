@@ -13,6 +13,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
+import { useCRM } from '../hooks/useCRM';
 
 export function QuoteForm() {
     const { id } = useParams();
@@ -25,6 +26,10 @@ export function QuoteForm() {
     const { user } = useAuth();
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
+    const { deals } = useCRM();
+
+    const isCRMEnabled = currentEntity.type === 'company' &&
+        companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
 
     const isFiscalEnabled = currentEntity.type === 'company' &&
         companies.find(c => c.id === currentEntity.id)?.fiscal_module_enabled;
@@ -40,6 +45,7 @@ export function QuoteForm() {
     const [paymentStatus, setPaymentStatus] = useState<Quote['payment_status']>('none');
 
     const [validityDays, setValidityDays] = useState<number | ''>('');
+    const [dealId, setDealId] = useState<string | null>(null);
 
     // Items State
     const [items, setItems] = useState<QuoteItem[]>([]);
@@ -129,6 +135,7 @@ export function QuoteForm() {
 
             setDiscount(data.discount || 0);
             setDiscountType(data.discount_type || 'amount');
+            setDealId(data.deal_id || null);
             console.log('✅ Discount set:', data.discount, data.discount_type);
 
             console.log('✅ All data loaded successfully!');
@@ -316,7 +323,8 @@ export function QuoteForm() {
                 discount,
                 discount_type: discountType,
                 total_amount: calculateTotal(),
-                status: id && id !== 'new' ? status : 'draft'
+                status: id && id !== 'new' ? status : 'draft',
+                deal_id: dealId
             };
 
             if (id && id !== 'new') {
@@ -425,6 +433,23 @@ export function QuoteForm() {
                             }}
                             placeholder="Ex: 15"
                         />
+                        {isCRMEnabled && (
+                            <div className="flex flex-col gap-1">
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Negócio (CRM)</label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-gray-300 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:focus:ring-blue-400"
+                                    value={dealId || ''}
+                                    onChange={e => setDealId(e.target.value || null)}
+                                >
+                                    <option value="">Nenhum negócio associado</option>
+                                    {deals.filter(d => d.status === 'active').map(deal => (
+                                        <option key={deal.id} value={deal.id}>
+                                            {deal.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                 </div>
 

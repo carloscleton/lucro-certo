@@ -29,6 +29,7 @@ export interface Transaction {
     paid_amount?: number;
     origin?: string; // for income
     quote_id?: string;
+    deal_id?: string;
     contact?: { name: string };
     profile?: { full_name: string };
     created_at: string;
@@ -81,7 +82,8 @@ export function useTransactions(type: TransactionType) {
                 .insert([{
                     ...transaction,
                     user_id: user.id,
-                    company_id: currentEntity.type === 'company' ? currentEntity.id : null
+                    company_id: currentEntity.type === 'company' ? currentEntity.id : null,
+                    deal_id: transaction.deal_id
                 }])
                 .select()
                 .maybeSingle();

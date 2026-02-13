@@ -59,6 +59,7 @@ export interface Quote {
     nfe_pdf_url?: string;
     nfe_xml_url?: string;
     nfe_error?: string;
+    deal_id?: string | null;
 }
 
 export function useQuotes() {
@@ -175,7 +176,7 @@ export function useQuotes() {
 
         const { data: newQuote, error: quoteError } = await supabase
             .from('quotes')
-            .insert([{ ...quoteData, user_id: user.id, company_id }])
+            .insert([{ ...quoteData, user_id: user.id, company_id, deal_id: quoteData.deal_id }])
             .select()
             .single();
 
@@ -339,7 +340,8 @@ export function useQuotes() {
                         interest: paymentDetails?.interest,
                         penalty: paymentDetails?.penalty,
                         paid_amount: transactionStatus === 'received' ? paymentDetails?.amount : null,
-                        quote_id: quote.id // Link the transaction to the quote
+                        quote_id: quote.id, // Link the transaction to the quote
+                        deal_id: quote.deal_id // Link the transaction to the deal if it exists
                     }]);
 
                 if (txError) {

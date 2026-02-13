@@ -8,6 +8,8 @@ import type { Transaction, TransactionType } from '../../hooks/useTransactions';
 import { useCategories } from '../../hooks/useCategories';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useContacts } from '../../hooks/useContacts';
+import { useCRM } from '../../hooks/useCRM';
+import { useEntity } from '../../context/EntityContext';
 import { supabase } from '../../lib/supabase';
 
 interface TransactionFormProps {
@@ -60,11 +62,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [isRecurring, setIsRecurring] = useState(false);
     const [frequency, setFrequency] = useState('monthly');
     const [file, setFile] = useState<File | null>(null);
+    const [dealId, setDealId] = useState('');
     const [loading, setLoading] = useState(false);
 
     const { categories } = useCategories();
     const { companies } = useCompanies();
     const { contacts } = useContacts();
+    const { deals } = useCRM();
+    const { currentEntity } = useEntity();
+
+    const isCRMEnabled = currentEntity.type === 'company' &&
+        companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
 
     // Load saved company preference for this transaction type
     useEffect(() => {
@@ -78,6 +86,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setContactId(initialData.contact_id || '');
             setIsRecurring(initialData.is_recurring || false);
             setFrequency(initialData.frequency || 'monthly');
+            setDealId(initialData.deal_id || '');
         } else {
             // New transaction - load saved preference
             const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
@@ -91,6 +100,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setContactId('');
             setIsRecurring(false);
             setFrequency('monthly');
+            setDealId('');
         }
     }, [initialData, isOpen, type]);
 
@@ -136,7 +146,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 is_recurring: isRecurring,
                 frequency: isRecurring ? frequency : null,
                 attachment_url: attachmentUrl,
-                attachment_path: attachmentPath
+                attachment_path: attachmentPath,
+                deal_id: dealId || null
             });
             onClose();
         } catch (error) {
@@ -260,6 +271,24 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             }
                         </select>
                     </div>
+
+                    {isCRMEnabled && !isExpense && (
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Negócio (CRM)</label>
+                            <select
+                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
+                                value={dealId}
+                                onChange={e => setDealId(e.target.value)}
+                            >
+                                <option value="">Nenhum negócio associado</option>
+                                {deals.filter(d => d.status === 'active').map(deal => (
+                                    <option key={deal.id} value={deal.id}>
+                                        {deal.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 space-y-4">

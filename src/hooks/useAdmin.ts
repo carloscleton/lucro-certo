@@ -31,6 +31,7 @@ export interface AdminCompany {
     members_count: number;
     fiscal_module_enabled: boolean;
     payments_module_enabled: boolean;
+    crm_module_enabled: boolean;
     settings?: any;
     logo_url?: string;
     created_at: string;
@@ -86,19 +87,29 @@ export function useAdmin() {
             if (!silent) setLoading(false);
         }
     };
-
-    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, settings?: any) => {
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, settings?: any) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
+        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, settings });
+
         try {
-            const { error } = await supabase.rpc('admin_update_company_config', {
+            const { data, error } = await supabase.rpc('admin_update_company_config', {
                 target_company_id: companyId,
                 fiscal_enabled: fiscal,
                 payments_enabled: payments,
+                crm_enabled: crm,
                 settings_input: settings
             });
 
             if (error) throw error;
+
+            // The RPC returns jsonb_build_object('success', true/false, 'message', string)
+            if (data && data.success === false) {
+                console.error('RPC Update Failed:', data.message);
+                return { error: data.message || 'Erro ao atualizar configuração no servidor' };
+            }
+
+            console.log('Update Success! Refreshing data...');
             await fetchAdminData(true);
             return { error: null };
         } catch (err: any) {

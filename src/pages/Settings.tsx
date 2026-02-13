@@ -21,7 +21,7 @@ export function Settings() {
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
     const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, updateUserConfig, updateCompanyConfig } = useAdmin();
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
-    const { currentEntity } = useEntity();
+    const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies } = useCompanies();
     const { createCharge, charges: recentCharges, loading: chargesLoading, fetchCharges: refreshCharges } = useCharges();
     const { profile } = useAuth();
@@ -643,16 +643,21 @@ export function Settings() {
                                                 <input
                                                     type="checkbox"
                                                     className="sr-only peer"
-                                                    checked={selectedCompanyForConfig.fiscal_module_enabled}
+                                                    checked={!!selectedCompanyForConfig.fiscal_module_enabled}
                                                     onChange={async (e) => {
+                                                        const val = e.target.checked;
                                                         const { error } = await updateCompanyConfig(
                                                             selectedCompanyForConfig.id,
-                                                            e.target.checked,
-                                                            selectedCompanyForConfig.payments_module_enabled,
-                                                            selectedCompanyForConfig.settings
+                                                            val,
+                                                            !!selectedCompanyForConfig.payments_module_enabled,
+                                                            !!selectedCompanyForConfig.crm_module_enabled,
+                                                            selectedCompanyForConfig.settings || {}
                                                         );
                                                         if (error) alert('Erro: ' + error);
-                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, fiscal_module_enabled: e.target.checked });
+                                                        else {
+                                                            setSelectedCompanyForConfig({ ...selectedCompanyForConfig, fiscal_module_enabled: val });
+                                                            refreshEntity();
+                                                        }
                                                     }}
                                                 />
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
@@ -670,16 +675,53 @@ export function Settings() {
                                                 <input
                                                     type="checkbox"
                                                     className="sr-only peer"
-                                                    checked={selectedCompanyForConfig.payments_module_enabled}
+                                                    checked={!!selectedCompanyForConfig.payments_module_enabled}
                                                     onChange={async (e) => {
+                                                        const val = e.target.checked;
                                                         const { error } = await updateCompanyConfig(
                                                             selectedCompanyForConfig.id,
-                                                            selectedCompanyForConfig.fiscal_module_enabled,
-                                                            e.target.checked,
-                                                            selectedCompanyForConfig.settings
+                                                            !!selectedCompanyForConfig.fiscal_module_enabled,
+                                                            val,
+                                                            !!selectedCompanyForConfig.crm_module_enabled,
+                                                            selectedCompanyForConfig.settings || {}
                                                         );
                                                         if (error) alert('Erro: ' + error);
-                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, payments_module_enabled: e.target.checked });
+                                                        else {
+                                                            setSelectedCompanyForConfig({ ...selectedCompanyForConfig, payments_module_enabled: val });
+                                                            refreshEntity();
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Módulo CRM</h4>
+                                                <p className="text-xs text-gray-500">Habilita Funil de Vendas e Negócios</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={!!selectedCompanyForConfig.crm_module_enabled}
+                                                    onChange={async (e) => {
+                                                        const val = e.target.checked;
+                                                        const { error } = await updateCompanyConfig(
+                                                            selectedCompanyForConfig.id,
+                                                            !!selectedCompanyForConfig.fiscal_module_enabled,
+                                                            !!selectedCompanyForConfig.payments_module_enabled,
+                                                            val,
+                                                            selectedCompanyForConfig.settings || {}
+                                                        );
+                                                        if (error) alert('Erro: ' + error);
+                                                        else {
+                                                            setSelectedCompanyForConfig({ ...selectedCompanyForConfig, crm_module_enabled: val });
+                                                            refreshEntity();
+                                                        }
                                                     }}
                                                 />
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
@@ -699,14 +741,16 @@ export function Settings() {
                                                     className="sr-only peer"
                                                     checked={selectedCompanyForConfig.settings?.member_can_delete}
                                                     onChange={async (e) => {
+                                                        const val = e.target.checked;
                                                         const newSettings = {
                                                             ...selectedCompanyForConfig.settings,
-                                                            member_can_delete: e.target.checked
+                                                            member_can_delete: val
                                                         };
                                                         const { error } = await updateCompanyConfig(
                                                             selectedCompanyForConfig.id,
-                                                            selectedCompanyForConfig.fiscal_module_enabled,
-                                                            selectedCompanyForConfig.payments_module_enabled,
+                                                            !!selectedCompanyForConfig.fiscal_module_enabled,
+                                                            !!selectedCompanyForConfig.payments_module_enabled,
+                                                            !!selectedCompanyForConfig.crm_module_enabled,
                                                             newSettings
                                                         );
                                                         if (error) alert('Erro: ' + error);
@@ -743,8 +787,9 @@ export function Settings() {
                                                 };
                                                 const { error } = await updateCompanyConfig(
                                                     selectedCompanyForConfig.id,
-                                                    selectedCompanyForConfig.fiscal_module_enabled,
-                                                    selectedCompanyForConfig.payments_module_enabled,
+                                                    !!selectedCompanyForConfig.fiscal_module_enabled,
+                                                    !!selectedCompanyForConfig.payments_module_enabled,
+                                                    !!selectedCompanyForConfig.crm_module_enabled,
                                                     newSettings
                                                 );
                                                 if (error) alert('Erro: ' + error);
@@ -780,8 +825,9 @@ export function Settings() {
                                                 const newSettings = { ...(selectedCompanyForConfig.settings || {}), monthly_fee: val };
                                                 const { error } = await updateCompanyConfig(
                                                     selectedCompanyForConfig.id,
-                                                    selectedCompanyForConfig.fiscal_module_enabled,
-                                                    selectedCompanyForConfig.payments_module_enabled,
+                                                    !!selectedCompanyForConfig.fiscal_module_enabled,
+                                                    !!selectedCompanyForConfig.payments_module_enabled,
+                                                    !!selectedCompanyForConfig.crm_module_enabled,
                                                     newSettings
                                                 );
                                                 if (error) alert('Erro: ' + error);
@@ -798,8 +844,9 @@ export function Settings() {
                                                 const newSettings = { ...(selectedCompanyForConfig.settings || {}), annual_fee: val };
                                                 const { error } = await updateCompanyConfig(
                                                     selectedCompanyForConfig.id,
-                                                    selectedCompanyForConfig.fiscal_module_enabled,
-                                                    selectedCompanyForConfig.payments_module_enabled,
+                                                    !!selectedCompanyForConfig.fiscal_module_enabled,
+                                                    !!selectedCompanyForConfig.payments_module_enabled,
+                                                    !!selectedCompanyForConfig.crm_module_enabled,
                                                     newSettings
                                                 );
                                                 if (error) alert('Erro: ' + error);
@@ -817,8 +864,9 @@ export function Settings() {
                                                     const newSettings = { ...(selectedCompanyForConfig.settings || {}), license_expires_at: val };
                                                     const { error } = await updateCompanyConfig(
                                                         selectedCompanyForConfig.id,
-                                                        selectedCompanyForConfig.fiscal_module_enabled,
-                                                        selectedCompanyForConfig.payments_module_enabled,
+                                                        !!selectedCompanyForConfig.fiscal_module_enabled,
+                                                        !!selectedCompanyForConfig.payments_module_enabled,
+                                                        !!selectedCompanyForConfig.crm_module_enabled,
                                                         newSettings
                                                     );
                                                     if (error) alert('Erro: ' + error);
@@ -835,6 +883,7 @@ export function Settings() {
                                                         selectedCompanyForConfig.id,
                                                         selectedCompanyForConfig.fiscal_module_enabled,
                                                         selectedCompanyForConfig.payments_module_enabled,
+                                                        selectedCompanyForConfig.crm_module_enabled,
                                                         newSettings
                                                     );
                                                     if (error) alert('Erro: ' + error);
@@ -885,6 +934,7 @@ export function Settings() {
                                                             selectedCompanyForConfig.id,
                                                             selectedCompanyForConfig.fiscal_module_enabled,
                                                             selectedCompanyForConfig.payments_module_enabled,
+                                                            selectedCompanyForConfig.crm_module_enabled,
                                                             newSettings
                                                         );
                                                         if (error) alert('Erro: ' + error);
@@ -945,6 +995,7 @@ export function Settings() {
                                                             selectedCompanyForConfig.id,
                                                             selectedCompanyForConfig.fiscal_module_enabled,
                                                             selectedCompanyForConfig.payments_module_enabled,
+                                                            selectedCompanyForConfig.crm_module_enabled,
                                                             newSettings
                                                         );
                                                         if (error) alert('Erro: ' + error);

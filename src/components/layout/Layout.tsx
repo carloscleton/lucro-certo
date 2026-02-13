@@ -60,6 +60,17 @@ export function Layout() {
         const isManagementItem = ['commissions', 'settings'].includes(item.key);
         if (currentEntity.type === 'company' && isManagementItem) return false;
 
+        // CRM Module Check
+        if (item.key === 'crm') {
+            const currentCompany = availableEntities.find(c => c.id === currentEntity.id);
+            const isCRMEnabled = currentCompany?.crm_module_enabled;
+            if (!isCRMEnabled) return false;
+            if (userRole === 'owner') return true;
+
+            const hasPermission = getModulePermission(item.key, userRole as 'admin' | 'member', settings);
+            return currentEntity.type === 'company' && hasPermission;
+        }
+
         if (currentEntity.type === 'company' && userRole) {
             // Owner (Platform Admin) always sees everything
             if (userRole === 'owner') return true;
@@ -112,6 +123,7 @@ export function Layout() {
         settings: '#475569',  // slate-600
         whatsapp: '#10b981',  // emerald-500
         payments: '#2563eb', // blue-600
+        crm: '#f59e0b',      // amber-500
     };
 
     return (

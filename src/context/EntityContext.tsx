@@ -22,6 +22,9 @@ export interface Entity {
     state?: string;
     zip_code?: string;
     settings?: any;
+    fiscal_module_enabled?: boolean;
+    payments_module_enabled?: boolean;
+    crm_module_enabled?: boolean;
 }
 
 interface EntityContextType {
@@ -72,7 +75,10 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         city,
                         state,
                         zip_code,
-                        settings
+                        settings,
+                        fiscal_module_enabled,
+                        payments_module_enabled,
+                        crm_module_enabled
                     ),
                     role,
                     status
@@ -100,7 +106,10 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     city: item.company.city,
                     state: item.company.state,
                     zip_code: item.company.zip_code,
-                    settings: item.company.settings
+                    settings: item.company.settings,
+                    fiscal_module_enabled: item.company.fiscal_module_enabled,
+                    payments_module_enabled: item.company.payments_module_enabled,
+                    crm_module_enabled: item.company.crm_module_enabled
                 }));
 
             // Always include Personal option with user's settings

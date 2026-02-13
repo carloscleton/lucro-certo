@@ -152,6 +152,14 @@ export const APP_MODULES: ModuleDefinition[] = [
         path: '/payments',
         desc: 'Gestão de cobranças e links',
         defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'crm',
+        label: 'CRM / Funil',
+        icon: Users,
+        path: '/crm',
+        desc: 'Gestão de leads e funil de vendas',
+        defaultPermissions: { admin: true, member: true }
     }
 ];
 
