@@ -189,21 +189,23 @@ export function Commissions() {
                         type="date"
                         value={startDate}
                         onChange={e => setStartDate(e.target.value)}
+                        containerClassName="md:w-48"
                     />
                     <Input
                         label="Data Final"
                         type="date"
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
+                        containerClassName="md:w-48"
                     />
 
                     {isAdmin && (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 w-full md:w-auto">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Empresa (Filtro Admin)</label>
                             <select
                                 value={selectedCompanyId}
                                 onChange={(e) => setSelectedCompanyId(e.target.value)}
-                                className="h-10 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                                className="h-10 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:min-w-[200px]"
                             >
                                 <option value="all">Todas as Empresas</option>
                                 <option value="personal">Apenas Pessoal</option>

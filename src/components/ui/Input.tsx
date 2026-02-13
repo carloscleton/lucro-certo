@@ -8,12 +8,13 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     helpText?: string;
     rightElement?: React.ReactNode;
     preserveCase?: boolean; // Don't convert to uppercase
+    containerClassName?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-    ({ className, label, error, helpText, rightElement, preserveCase = false, ...props }, ref) => {
+    ({ className, label, error, helpText, rightElement, preserveCase = false, containerClassName, ...props }, ref) => {
         return (
-            <div className="flex flex-col gap-1 w-full">
+            <div className={clsx("flex flex-col gap-1 w-full", containerClassName)}>
                 {label && (
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {label}
