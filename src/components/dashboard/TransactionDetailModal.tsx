@@ -1,4 +1,4 @@
-import { ListFilter } from 'lucide-react';
+import { ListFilter, Coffee } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -59,17 +59,22 @@ export function TransactionDetailModal({
             maxWidth="max-w-4xl"
         >
             <div className="flex flex-col h-full max-h-[70vh]">
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Transaction List */}
-                        <div className="lg:col-span-2 space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Transações</h3>
-                            {transactions.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700">
-                                    <p className="text-gray-500 dark:text-gray-400">Nenhuma transação encontrada</p>
-                                </div>
-                            ) : (
+                {transactions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700">
+                        <div className="p-4 bg-white dark:bg-slate-800 rounded-full shadow-sm mb-4">
+                            <Coffee className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Nenhum movimento encontrado</h3>
+                        <p className="text-gray-500 dark:text-gray-400 max-w-xs text-center mt-1">
+                            Não há registros de {title.toLowerCase()} para o período selecionado no seu resumo.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Transaction List */}
+                            <div className="lg:col-span-2 space-y-4">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Transações</h3>
                                 <div className="space-y-3">
                                     {transactions
                                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -119,52 +124,49 @@ export function TransactionDetailModal({
                                             </div>
                                         ))}
                                 </div>
-                            )}
-                        </div>
+                            </div>
 
-                        {/* Category Breakdown */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Por Categoria</h3>
-                            <div className="space-y-5 bg-gray-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-gray-100 dark:border-slate-800">
-                                {Object.entries(categoryTotals)
-                                    .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
-                                    .map(([category, amount]) => {
-                                        const absAmount = Math.abs(amount);
-                                        const totalAbs = Object.values(categoryTotals).reduce((a, b) => a + Math.abs(b), 0);
-                                        const percentage = totalAbs > 0 ? (absAmount / totalAbs) * 100 : 0;
+                            {/* Category Breakdown */}
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Por Categoria</h3>
+                                <div className="space-y-5 bg-gray-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                    {Object.entries(categoryTotals)
+                                        .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
+                                        .map(([category, amount]) => {
+                                            const absAmount = Math.abs(amount);
+                                            const totalAbs = Object.values(categoryTotals).reduce((a, b) => a + Math.abs(b), 0);
+                                            const percentage = totalAbs > 0 ? (absAmount / totalAbs) * 100 : 0;
 
-                                        return (
-                                            <div key={category} className="space-y-2">
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-600 dark:text-gray-400 font-medium">
-                                                        {category}
-                                                    </span>
-                                                    <span className="text-gray-900 dark:text-white font-bold">
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(amount))}
-                                                    </span>
+                                            return (
+                                                <div key={category} className="space-y-2">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                                            {category}
+                                                        </span>
+                                                        <span className="text-gray-900 dark:text-white font-bold">
+                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(amount))}
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full transition-all duration-500 ${amount >= 0
+                                                                ? 'bg-emerald-500'
+                                                                : 'bg-rose-500'
+                                                                }`}
+                                                            style={{ width: `${percentage}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-500 dark:text-gray-500 text-right font-medium">
+                                                        {percentage.toFixed(1)}% do total
+                                                    </p>
                                                 </div>
-                                                <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full transition-all duration-500 ${amount >= 0
-                                                            ? 'bg-emerald-500'
-                                                            : 'bg-rose-500'
-                                                            }`}
-                                                        style={{ width: `${percentage}%` }}
-                                                    />
-                                                </div>
-                                                <p className="text-[10px] text-gray-500 dark:text-gray-500 text-right font-medium">
-                                                    {percentage.toFixed(1)}% do total
-                                                </p>
-                                            </div>
-                                        );
-                                    })}
-                                {Object.keys(categoryTotals).length === 0 && (
-                                    <p className="text-xs text-gray-500 text-center italic py-4">Sem dados por categoria</p>
-                                )}
+                                            );
+                                        })}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* Footer */}
                 <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
