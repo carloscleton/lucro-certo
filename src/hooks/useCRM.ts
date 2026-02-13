@@ -69,9 +69,43 @@ export function useCRM() {
 
     const addStage = async (stage: Omit<CRMStage, 'id' | 'company_id'>) => {
         if (!currentEntity.id) return;
+
+        // Calculate next position
+        const nextPosition = stages.length > 0
+            ? Math.max(...stages.map(s => s.position)) + 1
+            : 0;
+
         const { error } = await supabase
             .from('crm_stages')
-            .insert([{ ...stage, company_id: currentEntity.id }]);
+            .insert([{
+                ...stage,
+                company_id: currentEntity.id,
+                position: stage.position ?? nextPosition
+            }]);
+        if (error) throw error;
+        await fetchCRMData();
+    };
+
+    const updateStage = async (id: string, updates: Partial<CRMStage>) => {
+        const { error } = await supabase
+            .from('crm_stages')
+            .update(updates)
+            .eq('id', id);
+        if (error) throw error;
+        await fetchCRMData();
+    };
+
+    const deleteStage = async (id: string) => {
+        // Check if there are deals in this stage
+        const hasDeals = deals.some(d => d.stage_id === id);
+        if (hasDeals) {
+            throw new Error('Não é possível excluir uma etapa que contém negócios.');
+        }
+
+        const { error } = await supabase
+            .from('crm_stages')
+            .delete()
+            .eq('id', id);
         if (error) throw error;
         await fetchCRMData();
     };
@@ -94,5 +128,35 @@ export function useCRM() {
         await fetchCRMData();
     };
 
-    return { stages, deals, loading, addStage, updateDealStage, addDeal, refresh: fetchCRMData };
+    const updateDeal = async (id: string, updates: Partial<CRMDeal>) => {
+        const { error } = await supabase
+            .from('crm_deals')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', id);
+        if (error) throw error;
+        await fetchCRMData();
+    };
+
+    const deleteDeal = async (id: string) => {
+        const { error } = await supabase
+            .from('crm_deals')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        await fetchCRMData();
+    };
+
+    return {
+        stages,
+        deals,
+        loading,
+        addStage,
+        updateStage,
+        deleteStage,
+        updateDealStage,
+        addDeal,
+        updateDeal,
+        deleteDeal,
+        refresh: fetchCRMData
+    };
 }
