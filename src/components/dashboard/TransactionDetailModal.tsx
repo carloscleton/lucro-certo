@@ -71,51 +71,53 @@ export function TransactionDetailModal({
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {transactions.map((transaction) => (
-                                        <div
-                                            key={transaction.id}
-                                            className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:shadow-md transition-all group"
-                                        >
-                                            <div className="flex-1">
-                                                <p className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                                    {transaction.description}
-                                                </p>
-                                                <div className="flex items-center gap-3 mt-1.5">
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                                        {format(new Date(transaction.date), "dd 'de' MMMM", { locale: ptBR })}
-                                                    </span>
-                                                    {transaction.category && (
-                                                        <span className="text-[10px] px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full font-medium">
-                                                            {transaction.category}
+                                    {transactions
+                                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                        .map((transaction) => (
+                                            <div
+                                                key={transaction.id}
+                                                className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:shadow-md transition-all group"
+                                            >
+                                                <div className="flex-1">
+                                                    <p className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                                        {transaction.description}
+                                                    </p>
+                                                    <div className="flex items-center gap-3 mt-1.5">
+                                                        <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                            {format(new Date(transaction.date), "dd 'de' MMMM", { locale: ptBR })}
                                                         </span>
-                                                    )}
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${transaction.status === 'received' || transaction.status === 'paid'
-                                                        ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300'
-                                                        : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300'
+                                                        {transaction.category && (
+                                                            <span className="text-[10px] px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full font-medium">
+                                                                {transaction.category}
+                                                            </span>
+                                                        )}
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${transaction.status === 'received' || transaction.status === 'paid'
+                                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300'
+                                                            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300'
+                                                            }`}>
+                                                            {transaction.status === 'received' ? 'Recebido' :
+                                                                transaction.status === 'paid' ? 'Pago' : 'Pendente'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className={`font-bold text-lg ${transaction.type === 'income'
+                                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                                        : 'text-rose-600 dark:text-rose-400'
                                                         }`}>
-                                                        {transaction.status === 'received' ? 'Recebido' :
-                                                            transaction.status === 'paid' ? 'Pago' : 'Pendente'}
-                                                    </span>
+                                                        {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.paid_amount || transaction.amount)}
+                                                    </p>
+                                                    {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
+                                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                                            (Orig: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
+                                                            {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.interest || 0)}`}
+                                                            {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.penalty || 0)}`}
+                                                            )
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className={`font-bold text-lg ${transaction.type === 'income'
-                                                    ? 'text-emerald-600 dark:text-emerald-400'
-                                                    : 'text-rose-600 dark:text-rose-400'
-                                                    }`}>
-                                                    {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.paid_amount || transaction.amount)}
-                                                </p>
-                                                {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
-                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                                        (Orig: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
-                                                        {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.interest || 0)}`}
-                                                        {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.penalty || 0)}`}
-                                                        )
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
                                 </div>
                             )}
                         </div>

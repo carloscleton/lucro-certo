@@ -66,7 +66,7 @@ export function Commissions() {
                 .in('status', ['received', 'pending', 'late']) // Fetch received and pending
                 .gte('date', startDate)
                 .lte('date', endDate)
-                .order('date', { ascending: true });
+                .order('date', { ascending: false });
 
             if (isAdmin) {
                 if (selectedCompanyId === 'personal') {
