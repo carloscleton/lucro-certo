@@ -1456,8 +1456,8 @@ export function Settings() {
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
-                                                                    variant="ghost"
-                                                                    className="h-8 px-3 text-[10px] gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                                                                    variant="primary"
+                                                                    className="h-8 px-3 text-[10px] gap-1.5 rounded-lg"
                                                                     onClick={() => setSelectedCompanyForConfig(c)}
                                                                 >
                                                                     <Shield size={14} />
