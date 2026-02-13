@@ -175,10 +175,6 @@ export function Commissions() {
                         }
                     </p>
                 </div>
-                <Button onClick={handlePrint} variant="outline">
-                    <Printer size={18} className="mr-2" />
-                    Gerar Recibo / PDF
-                </Button>
             </div>
 
             {/* Filters - Hidden on Print */}
@@ -216,10 +212,14 @@ export function Commissions() {
                         </div>
                     )}
 
-                    <div className="pb-1">
+                    <div className="pb-1 flex gap-2 ml-auto">
                         <Button onClick={fetchTransactions} isLoading={loading}>
                             <Filter size={18} className="mr-2" />
                             Atualizar
+                        </Button>
+                        <Button onClick={handlePrint} variant="outline">
+                            <Printer size={18} className="mr-2" />
+                            Gerar Recibo / PDF
                         </Button>
                     </div>
                 </div>
