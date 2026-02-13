@@ -439,7 +439,24 @@ export function QuoteForm() {
                                 <select
                                     className="flex h-10 w-full rounded-md border border-gray-300 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:focus:ring-blue-400"
                                     value={dealId || ''}
-                                    onChange={e => setDealId(e.target.value || null)}
+                                    onChange={e => {
+                                        const selectedDealId = e.target.value || null;
+                                        setDealId(selectedDealId);
+
+                                        if (selectedDealId) {
+                                            const deal = deals.find(d => d.id === selectedDealId);
+                                            if (deal) {
+                                                // Auto-populate contact if the deal is linked to one
+                                                if (deal.contact_id) {
+                                                    setContactId(deal.contact_id);
+                                                }
+                                                // Auto-populate title if empty or default
+                                                if (!title || title.trim() === '') {
+                                                    setTitle(deal.title);
+                                                }
+                                            }
+                                        }
+                                    }}
                                 >
                                     <option value="">Nenhum negócio associado</option>
                                     {deals.filter(d => d.status === 'active').map(deal => (
