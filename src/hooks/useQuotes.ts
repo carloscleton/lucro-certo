@@ -581,6 +581,16 @@ export function useQuotes() {
             // Or maybe we should warn? Let's assume we proceed but log it.
         }
 
+        // 1.1 Delete linked company charges (Payment links)
+        const { error: chargesError } = await supabase
+            .from('company_charges')
+            .delete()
+            .eq('quote_id', id);
+
+        if (chargesError) {
+            console.error('Error deleting linked company charges:', chargesError);
+        }
+
         // 2. Delete Quote PDFs from Storage
         // We need to find the files first because they are named with timestamps
         // The bucket is 'orcamento-quote-pdfs' and folders are by company_id
