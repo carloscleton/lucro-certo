@@ -15,6 +15,7 @@ interface CommissionTransaction {
     date: string;
     description: string;
     amount: number;
+    paid_amount?: number;
     origin: string;
     commission_value: number;
     payment_method?: string;
@@ -96,16 +97,20 @@ export function Commissions() {
                     }
                 }
 
-                const formattedData = data.map(t => ({
-                    id: t.id,
-                    date: t.date,
-                    description: t.description,
-                    amount: Number(t.amount),
-                    origin: t.contact?.name || t.origin || 'N/A',
-                    commission_value: Number(t.amount) * (rateToUse / 100),
-                    payment_method: t.payment_method,
-                    status: t.status === 'received' ? 'received' : 'pending' // normalize late to pending for comm view
-                }));
+                const formattedData = data.map(t => {
+                    const baseAmount = t.status === 'received' && t.paid_amount ? Number(t.paid_amount) : Number(t.amount);
+                    return {
+                        id: t.id,
+                        date: t.date,
+                        description: t.description,
+                        amount: Number(t.amount),
+                        paid_amount: t.paid_amount ? Number(t.paid_amount) : undefined,
+                        origin: t.contact?.name || t.origin || 'N/A',
+                        commission_value: baseAmount * (rateToUse / 100),
+                        payment_method: t.payment_method,
+                        status: t.status === 'received' ? 'received' : 'pending' // normalize late to pending for comm view
+                    };
+                });
                 // @ts-ignore - status match
                 setTransactions(formattedData);
             }
@@ -123,7 +128,7 @@ export function Commissions() {
     // Calculate totals
     const totalReceivedAmount = transactions
         .filter(t => t.status === 'received')
-        .reduce((acc, t) => acc + t.amount, 0);
+        .reduce((acc, t) => acc + (t.paid_amount || t.amount), 0);
 
     const totalReceivedCommission = transactions
         .filter(t => t.status === 'received')
@@ -312,7 +317,12 @@ export function Commissions() {
                                         </td>
                                         <td className="px-6 py-3 text-gray-900 dark:text-white">
                                             {t.origin}<br />
-                                            <span className="text-xs text-gray-500">{t.description}</span>
+                                            <span className="text-xs text-gray-500">
+                                                {t.description}
+                                                {t.paid_amount && t.paid_amount !== t.amount && (
+                                                    <span className="ml-1 text-blue-500">(Inc. Juros/Multa)</span>
+                                                )}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-3">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${t.status === 'received'
@@ -323,7 +333,7 @@ export function Commissions() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-3 text-right text-gray-600 dark:text-gray-300">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount)}
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.paid_amount || t.amount)}
                                         </td>
                                         <td className={`px-6 py-3 text-right font-bold ${t.status === 'received' ? 'text-green-600' : 'text-yellow-600'
                                             }`}>
