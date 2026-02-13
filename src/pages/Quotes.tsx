@@ -19,6 +19,7 @@ import { webhookService } from '../services/webhookService';
 import { fiscalService } from '../services/fiscalService';
 import { supabase } from '../lib/supabase';
 import { API_BASE_URL } from '../lib/constants';
+import { PDFService } from '../services/pdfService';
 
 export function Quotes() {
     const navigate = useNavigate();
@@ -759,7 +760,6 @@ export function Quotes() {
 
                                                                     // Generate and upload PDF
                                                                     console.log('📄 Generating PDF for quote:', quote.id);
-                                                                    const { PDFService } = await import('../services/pdfService');
 
                                                                     const pdfUrl = await PDFService.generateAndUploadQuotePDF({
                                                                         quote: {
