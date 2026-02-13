@@ -24,6 +24,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { EntityProvider } from './context/EntityContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { CRMProvider } from './context/CRMContext';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
@@ -77,7 +78,9 @@ function App() {
         <AuthProvider>
           <EntityProvider>
             <NotificationProvider>
-              <AppRoutes />
+              <CRMProvider>
+                <AppRoutes />
+              </CRMProvider>
             </NotificationProvider>
           </EntityProvider>
         </AuthProvider>
