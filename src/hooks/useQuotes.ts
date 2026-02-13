@@ -147,7 +147,7 @@ export function useQuotes() {
 
     useEffect(() => {
         fetchQuotes();
-    }, [user]);
+    }, [user, currentEntity.id]);
 
     const getQuote = async (id: string) => {
         const { data: quote, error } = await supabase
@@ -556,6 +556,17 @@ export function useQuotes() {
             if (quote && quote.status === 'approved' && (quote.payment_status === 'pending' || quote.payment_status === 'paid')) {
                 throw new Error('❌ Não é possível excluir orçamentos aprovados com pagamento associado. Esta é uma medida de segurança para proteger dados financeiros.');
             }
+        }
+
+        // 0. Delete linked items (Necessary due to foreign key constraints)
+        const { error: itemsDeleteError } = await supabase
+            .from('quote_items')
+            .delete()
+            .eq('quote_id', id);
+
+        if (itemsDeleteError) {
+            console.error('Error deleting quote items:', itemsDeleteError);
+            throw new Error('Falha ao excluir itens do orçamento. Tente novamente.');
         }
 
         // 1. Delete linked transaction (if any)
