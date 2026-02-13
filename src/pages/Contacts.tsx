@@ -3,6 +3,7 @@ import { Plus, Users } from 'lucide-react';
 import { useContacts, type Contact } from '../hooks/useContacts';
 import { ContactList } from '../components/contacts/ContactList';
 import { ContactForm } from '../components/contacts/ContactForm';
+import { ContactHistoryModal } from '../components/contacts/ContactHistoryModal';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -14,6 +15,9 @@ export function Contacts() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [filterType, setFilterType] = useState<'all' | 'client' | 'supplier'>('all');
+
+    // History Modal state
+    const [historyContact, setHistoryContact] = useState<{ id: string, name: string } | null>(null);
 
     // Permission Check
     const { user } = useAuth();
@@ -111,6 +115,7 @@ export function Contacts() {
             <ContactList
                 contacts={filteredContacts}
                 onEdit={handleOpenModal}
+                onViewHistory={(contact: Contact) => setHistoryContact({ id: contact.id, name: contact.name })}
                 onDelete={async (id) => {
                     if (!canDelete) {
                         alert('Você não tem permissão para excluir contatos.');
@@ -129,6 +134,15 @@ export function Contacts() {
                 onSubmit={handleSubmit}
                 initialData={editingContact}
             />
+
+            {historyContact && (
+                <ContactHistoryModal
+                    isOpen={!!historyContact}
+                    onClose={() => setHistoryContact(null)}
+                    contactId={historyContact.id}
+                    contactName={historyContact.name}
+                />
+            )}
         </div>
     );
 }

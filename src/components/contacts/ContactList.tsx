@@ -1,15 +1,16 @@
-import { Edit2, Trash2, User, Truck } from 'lucide-react';
+import { Edit2, Trash2, User, Truck, History } from 'lucide-react';
 import type { Contact } from '../../hooks/useContacts';
 import { Tooltip } from '../ui/Tooltip';
 
 interface ContactListProps {
     contacts: Contact[];
     onEdit: (contact: Contact) => void;
+    onViewHistory: (contact: Contact) => void;
     onDelete: (id: string) => void;
     canDelete?: boolean;
 }
 
-export function ContactList({ contacts, onEdit, onDelete, canDelete = true }: ContactListProps) {
+export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDelete = true }: ContactListProps) {
     return (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden transition-colors">
             <table className="w-full text-sm text-left">
@@ -69,6 +70,15 @@ export function ContactList({ contacts, onEdit, onDelete, canDelete = true }: Co
                                                 className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded"
                                             >
                                                 <Edit2 size={16} />
+                                            </button>
+                                        </Tooltip>
+
+                                        <Tooltip content="Ver Histórico">
+                                            <button
+                                                onClick={() => onViewHistory(contact)}
+                                                className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded"
+                                            >
+                                                <History size={16} />
                                             </button>
                                         </Tooltip>
                                         {canDelete && (

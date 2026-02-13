@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, LayoutGrid, List, Target, Pencil, Trash2 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useCRM, type CRMStage, type CRMDeal } from '../hooks/useCRM';
@@ -6,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { StageModal, DealModal } from '../components/crm/CRMModals';
 
 export function CRM() {
+    const navigate = useNavigate();
     const { stages, deals, loading, deleteStage, deleteDeal, updateDealStage, updateStage } = useCRM();
     const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
 
@@ -72,6 +74,18 @@ export function CRM() {
 
             try {
                 await updateDealStage(dealId, newStageId);
+
+                // 🔔 Phase 4: CRM Reminders
+                const stage = stages.find(s => s.id === newStageId);
+                if (stage && (stage.name.toLowerCase().includes('proposta') || stage.name.toLowerCase().includes('proposal'))) {
+                    if (confirm(`Negócio movido para ${stage.name}! 🚀\n\nDeseja gerar um Orçamento ou um Lançamento Financeiro para este negócio agora?`)) {
+                        const choice = confirm('Pressione OK para ir para ORÇAMENTOS ou CANCELAR para CONTAS A RECEBER.')
+                            ? '/quotes'
+                            : '/receivables';
+
+                        navigate(choice, { state: { dealId } });
+                    }
+                }
             } catch (err) {
                 console.error('Failed to move deal:', err);
                 alert('Erro ao mover negócio. Tente novamente.');

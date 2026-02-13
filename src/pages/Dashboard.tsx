@@ -10,6 +10,9 @@ import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TransactionDetailModal } from '../components/dashboard/TransactionDetailModal';
+import { useEntity } from '../context/EntityContext';
+import { useCompanies } from '../hooks/useCompanies';
+import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -53,6 +56,11 @@ export function Dashboard() {
 
     const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
     const { categories } = useCategories();
+    const { currentEntity } = useEntity();
+    const { companies } = useCompanies();
+
+    const isCRMEnabled = currentEntity.type === 'company' &&
+        companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
 
     // Modal state
     const [modalOpen, setModalOpen] = useState(false);
@@ -163,6 +171,9 @@ export function Dashboard() {
                 </div>
 
                 <div className="space-y-6">
+                    {/* CRM Dashboard 360 Widget */}
+                    {isCRMEnabled && <CRMStatsWidget receivedIncome={metrics.income} />}
+
                     {/* Upcoming Bills Widget */}
                     <UpcomingBillsWidget onRefreshMetrics={refreshDashboard} />
 

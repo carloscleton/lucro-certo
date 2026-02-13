@@ -21,6 +21,7 @@ export interface CRMDeal {
     status: 'active' | 'won' | 'lost';
     tags: string[];
     created_at: string;
+    updated_at?: string;
 }
 
 export const useCRM = useCRMFromContext;

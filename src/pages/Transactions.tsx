@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { useTeam } from '../hooks/useTeam';
+import { useCRM } from '../hooks/useCRM';
 
 interface TransactionPageProps {
     type: 'expense' | 'income';
@@ -117,6 +118,8 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         }
     };
 
+    const { updateDeal, stages: crmStages } = useCRM();
+
     const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number) => {
         if (!settlingTransaction) return;
 
@@ -129,6 +132,28 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             penalty,
             paid_amount: totalAmount
         });
+
+        // 🏆 Phase 2: Auto-Winning Deals
+        // If it's a receivable (income) being received and has a deal_id
+        if (type === 'income' && settlingTransaction.deal_id && crmStages.length > 0) {
+            try {
+                // Find "Won" stage or use the last one
+                const wonStage = crmStages.find((s: any) =>
+                    s.name.toLowerCase().includes('ganho') ||
+                    s.name.toLowerCase().includes('fechado')
+                ) || crmStages[crmStages.length - 1];
+
+                await updateDeal(settlingTransaction.deal_id, {
+                    stage_id: wonStage.id,
+                    status: 'won', // Update status to won as well
+                    updated_at: new Date().toISOString()
+                });
+                console.log('✅ Deal auto-won after payment confirmation');
+            } catch (err) {
+                console.error('Failed to auto-win deal:', err);
+            }
+        }
+
         setSettlingTransaction(null);
     };
 
