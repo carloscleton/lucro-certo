@@ -201,6 +201,7 @@ export function Dashboard() {
                 onClose={() => setModalOpen(false)}
                 title={modalTitle}
                 transactions={getFilteredTransactions()}
+                type={modalType}
             />
         </div>
     );

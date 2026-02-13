@@ -22,15 +22,39 @@ interface TransactionDetailModalProps {
     onClose: () => void;
     title: string;
     transactions: Transaction[];
+    type?: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected';
 }
 
 export function TransactionDetailModal({
     isOpen,
     onClose,
     title,
-    transactions
+    transactions,
+    type = 'balance'
 }: TransactionDetailModalProps) {
     if (!isOpen) return null;
+
+    const variantMap: Record<string, any> = {
+        income: 'success',
+        expense: 'danger',
+        receivable: 'info',
+        payable: 'warning',
+        rejected: 'recovery',
+        balance: 'primary'
+    };
+
+    const variant = variantMap[type] || 'primary';
+
+    const colorClasses: Record<string, string> = {
+        income: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-emerald-500/10',
+        expense: 'text-rose-500 bg-rose-50 dark:bg-rose-900/20 shadow-rose-500/10',
+        receivable: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-blue-500/10',
+        payable: 'text-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-orange-500/10',
+        rejected: 'text-pink-500 bg-pink-50 dark:bg-pink-900/20 shadow-pink-500/10',
+        balance: 'text-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-purple-500/10'
+    };
+
+    const iconColor = colorClasses[type] || colorClasses.balance;
 
     // Group transactions by category
     const categoryTotals = transactions.reduce((acc, t) => {
@@ -57,12 +81,13 @@ export function TransactionDetailModal({
             subtitle={subtitle}
             icon={ListFilter}
             maxWidth="max-w-4xl"
+            variant={variant}
         >
             <div className="flex flex-col h-full max-h-[70vh]">
                 {transactions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700">
-                        <div className="p-4 bg-white dark:bg-slate-800 rounded-full shadow-sm mb-4">
-                            <Coffee className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                        <div className={`p-4 rounded-full shadow-sm mb-4 ${iconColor}`}>
+                            <Coffee className="w-8 h-8" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Nenhum movimento encontrado</h3>
                         <p className="text-gray-500 dark:text-gray-400 max-w-xs text-center mt-1">

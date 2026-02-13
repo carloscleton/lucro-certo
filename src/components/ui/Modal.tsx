@@ -11,6 +11,7 @@ interface ModalProps {
     icon: LucideIcon;
     children: React.ReactNode;
     maxWidth?: string;
+    variant?: 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'recovery';
 }
 
 export function Modal({
@@ -20,9 +21,19 @@ export function Modal({
     subtitle,
     icon: Icon,
     children,
-    maxWidth = 'max-w-md'
+    maxWidth = 'max-w-md',
+    variant = 'primary'
 }: ModalProps) {
     if (!isOpen) return null;
+
+    const gradients = {
+        primary: 'linear-gradient(90deg, #9333ea 0%, #d946ef 100%)',
+        success: 'linear-gradient(90deg, #059669 0%, #10b981 100%)',
+        danger: 'linear-gradient(90deg, #e11d48 0%, #f43f5e 100%)',
+        warning: 'linear-gradient(90deg, #ea580c 0%, #f97316 100%)',
+        info: 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)',
+        recovery: 'linear-gradient(90deg, #db2777 0%, #f472b6 100%)'
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -34,7 +45,7 @@ export function Modal({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header with Gradient */}
-                <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-magenta-500 p-6 relative" style={{ background: 'linear-gradient(90deg, #9333ea 0%, #d946ef 100%)' }}>
+                <div className="p-6 relative" style={{ background: gradients[variant] }}>
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 p-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors backdrop-blur-sm"
