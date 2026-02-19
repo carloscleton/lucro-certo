@@ -75,14 +75,15 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden transition-colors">
             <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
                 <h3 className="font-semibold text-gray-700 dark:text-gray-200">Lançamentos</h3>
-                <button
-                    onClick={handleExport}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:border-slate-600 dark:hover:bg-slate-600 transition-colors"
-                    title="Exportar para CSV"
-                >
-                    <Download size={16} />
-                    Exportar
-                </button>
+                <Tooltip content="Exportar para CSV">
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:border-slate-600 dark:hover:bg-slate-600 transition-colors"
+                    >
+                        <Download size={16} />
+                        Exportar
+                    </button>
+                </Tooltip>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
@@ -101,8 +102,10 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                     <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                         {transactions.map((t) => (
                             <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white truncate max-w-[150px] lg:max-w-[300px]" title={t.description}>
-                                    {t.description}
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white truncate max-w-[150px] lg:max-w-[300px]">
+                                    <Tooltip content={t.description}>
+                                        <span>{t.description}</span>
+                                    </Tooltip>
                                 </td>
                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                     {getUserName(t.user_id)}
@@ -153,15 +156,16 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                                         )}
                                     </div>
                                     {t.attachment_url && (
-                                        <a
-                                            href={t.attachment_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="ml-2 inline-flex text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
-                                            title="Ver anexo"
-                                        >
-                                            <Paperclip size={14} />
-                                        </a>
+                                        <Tooltip content="Ver anexo">
+                                            <a
+                                                href={t.attachment_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="ml-2 inline-flex text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
+                                            >
+                                                <Paperclip size={14} />
+                                            </a>
+                                        </Tooltip>
                                     )}
                                 </td>
                                 <td className="px-4 py-3">

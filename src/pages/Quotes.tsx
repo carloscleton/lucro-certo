@@ -661,8 +661,10 @@ export function Quotes() {
                                         <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                                             {members.find(m => m.user_id === quote.user_id)?.profile.full_name.split(' ')[0] || '-'}
                                         </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300 max-w-[200px] truncate" title={quote.title}>
-                                            {quote.title}
+                                        <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300 max-w-[200px] truncate">
+                                            <Tooltip content={quote.title}>
+                                                <span>{quote.title}</span>
+                                            </Tooltip>
                                         </td>
                                         <td className="py-3 px-4 text-sm text-red-500 font-medium text-right whitespace-nowrap">
                                             {getDiscountDisplay(quote)}
@@ -676,17 +678,21 @@ export function Quotes() {
                                                     {statusLabels[quote.status]}
                                                 </span>
                                                 {quote.status === 'approved' && quote.payment_status === 'pending' && (
-                                                    <span className="flex items-center text-[10px] text-orange-600 dark:text-orange-400 font-medium bg-orange-50 dark:bg-orange-900/20 px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800" title="Pagamento Pendente">
-                                                        <AlertTriangle size={10} className="mr-1" />
-                                                        Aguardando Pagto
-                                                    </span>
+                                                    <Tooltip content="Pagamento Pendente">
+                                                        <span className="flex items-center text-[10px] text-orange-600 dark:text-orange-400 font-medium bg-orange-50 dark:bg-orange-900/20 px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800">
+                                                            <AlertTriangle size={10} className="mr-1" />
+                                                            Aguardando Pagto
+                                                        </span>
+                                                    </Tooltip>
                                                 )}
                                                 {quote.status === 'approved' && quote.payment_status === 'paid' && (
                                                     <div className="flex flex-col items-center gap-1">
-                                                        <span className="flex items-center text-[10px] text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded border border-green-200 dark:border-green-800" title="Pagamento Realizado">
-                                                            <Check size={10} className="mr-1" />
-                                                            Pago
-                                                        </span>
+                                                        <Tooltip content="Pagamento Realizado">
+                                                            <span className="flex items-center text-[10px] text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded border border-green-200 dark:border-green-800">
+                                                                <Check size={10} className="mr-1" />
+                                                                Pago
+                                                            </span>
+                                                        </Tooltip>
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();

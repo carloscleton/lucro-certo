@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, Save, Trash2, Power, Info, FlaskConical, Rocket, CheckCircle2 } from 'lucide-react';
+import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { usePaymentGateways } from '../../hooks/usePaymentGateways';
@@ -190,21 +191,24 @@ export function PaymentSettings() {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         {gateway && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleToggle(gateway.id, gateway.is_active);
-                                                }}
-                                                className={`p-1 rounded-md transition-colors ${gateway.is_active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-300 hover:bg-gray-100'}`}
-                                                title={gateway.is_active ? 'Desativar Gateway' : 'Ativar Gateway'}
-                                            >
-                                                <Power size={18} />
-                                            </button>
+                                            <Tooltip content={gateway.is_active ? 'Desativar Gateway' : 'Ativar Gateway'}>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleToggle(gateway.id, gateway.is_active);
+                                                    }}
+                                                    className={`p-1 rounded-md transition-colors ${gateway.is_active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-300 hover:bg-gray-100'}`}
+                                                >
+                                                    <Power size={18} />
+                                                </button>
+                                            </Tooltip>
                                         )}
                                         {gateway?.last_verified_at && (
-                                            <div className="flex items-center justify-center bg-emerald-500 text-white rounded-full p-0.5" title={`Verificado em: ${new Date(gateway.last_verified_at).toLocaleString()}`}>
-                                                <CheckCircle2 size={10} strokeWidth={3} />
-                                            </div>
+                                            <Tooltip content={`Verificado em: ${new Date(gateway.last_verified_at).toLocaleString()}`}>
+                                                <div className="flex items-center justify-center bg-emerald-500 text-white rounded-full p-0.5">
+                                                    <CheckCircle2 size={10} strokeWidth={3} />
+                                                </div>
+                                            </Tooltip>
                                         )}
                                         {gateway?.is_active && (
                                             <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] ${gateway.last_verified_at ? 'bg-emerald-500' : (gateway.is_sandbox ? 'bg-amber-400' : 'bg-emerald-500')}`} />

@@ -23,6 +23,7 @@ import { Button } from '../ui/Button';
 import { OnboardingTour } from '../orientation/OnboardingTour';
 import { HelpCenter } from '../orientation/HelpCenter';
 import { supabase } from '../../lib/supabase';
+import { Tooltip } from '../ui/Tooltip';
 import { APP_MODULES, getModulePermission } from '../../config/permissions';
 
 export function Layout() {
@@ -273,9 +274,11 @@ export function Layout() {
                                 : translateRole(currentEntity.role || 'member')}
                         </p>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={signOut} title="Sair">
-                        <LogOut size={18} />
-                    </Button>
+                    <Tooltip content="Sair">
+                        <Button variant="ghost" size="sm" onClick={signOut}>
+                            <LogOut size={18} />
+                        </Button>
+                    </Tooltip>
                 </div>
             </aside>
 
@@ -332,13 +335,14 @@ export function Layout() {
                             </div>
                         </div>
                         <div className="flex-1" /> {/* Spacer */}
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
-                            title="Alternar Tema"
-                        >
-                            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-                        </button>
+                        <Tooltip content="Alternar Tema">
+                            <button
+                                onClick={toggleTheme}
+                                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
+                            >
+                                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                            </button>
+                        </Tooltip>
                     </div>
                 </header>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Image as ImageIcon } from 'lucide-react';
+import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useSettings } from '../hooks/useSettings';
@@ -106,7 +107,7 @@ export function Settings() {
                 const { data: transactions } = await supabase
                     .from('transactions')
                     .select('id, status')
-                    .ilike('description', `%Ref. Orçamento: ${quote.title}%`);
+                    .ilike('description', `% Ref.Orçamento: ${quote.title}%`);
 
                 if (transactions && transactions.length > 0) {
                     // Update transaction with quote_id
@@ -1240,10 +1241,10 @@ export function Settings() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setAdminSubTab(tab.id as any)}
-                                    className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-all ${adminSubTab === tab.id
+                                    className={`flex items - center gap - 2 px - 6 py - 3 border - b - 2 transition - all ${adminSubTab === tab.id
                                         ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-800'
-                                        }`}
+                                        } `}
                                 >
                                     <tab.icon size={18} />
                                     <span className="text-sm font-medium">{tab.label}</span>
@@ -1289,26 +1290,28 @@ export function Settings() {
                                                         <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                                                             <td className="px-4 py-3">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className={`p-2 rounded-full ${isBanned ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                                    <div className={`p - 2 rounded - full ${isBanned ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'} `}>
                                                                         <Users size={16} />
                                                                     </div>
                                                                     <div>
-                                                                        <div className={`font-medium ${isBanned ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{u.full_name || 'Sem nome'}</div>
+                                                                        <div className={`font - medium ${isBanned ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'} `}>{u.full_name || 'Sem nome'}</div>
                                                                         <div className="text-xs text-gray-500">{u.email}</div>
                                                                     </div>
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-3">
-                                                                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${u.user_type === 'PJ' ? 'border-purple-200 bg-purple-50 text-purple-700' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+                                                                <span className={`px - 2 py - 0.5 rounded text - [10px] uppercase font - bold border ${u.user_type === 'PJ' ? 'border-purple-200 bg-purple-50 text-purple-700' : 'border-gray-200 bg-gray-50 text-gray-600'} `}>
                                                                     {u.user_type}
                                                                 </span>
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
                                                                 <div className="flex items-center justify-center gap-2">
                                                                     <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{u.max_companies ?? 1}</span>
-                                                                    <button onClick={() => setSelectedUserForConfig(u)} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded text-blue-500" title="Configurar Usuário">
-                                                                        <Lock size={14} />
-                                                                    </button>
+                                                                    <Tooltip content="Configurar Usuário">
+                                                                        <button onClick={() => setSelectedUserForConfig(u)} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded text-blue-500">
+                                                                            <Lock size={14} />
+                                                                        </button>
+                                                                    </Tooltip>
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
@@ -1402,10 +1405,10 @@ export function Settings() {
                                                                     <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.settings?.annual_fee || 0)}</span>
                                                                 </div>
                                                                 {c.license_expires_at && (
-                                                                    <div className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold ${getDaysRemaining(c.license_expires_at)! < 0 ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                                    <div className={`mt - 1 px - 2 py - 0.5 rounded - full text - [9px] font - bold ${getDaysRemaining(c.license_expires_at)! < 0 ? 'bg-red-50 text-red-600 border border-red-100' :
                                                                         getDaysRemaining(c.license_expires_at)! < 30 ? 'bg-yellow-50 text-yellow-600 border border-yellow-100' :
                                                                             'bg-blue-50 text-blue-600 border border-blue-100'
-                                                                        }`}>
+                                                                        } `}>
                                                                         Expira {new Date(c.license_expires_at).toLocaleDateString('pt-BR')}
                                                                         <span className="ml-1 opacity-75">
                                                                             ({getDaysRemaining(c.license_expires_at)! < 0 ? 'Expirado' : `Faltam ${getDaysRemaining(c.license_expires_at)} dias`})
@@ -1447,7 +1450,7 @@ export function Settings() {
                                                                         const commissions = c.commission_earned || 0;
                                                                         setInvoiceData({
                                                                             amount: (monthlyFee + commissions).toString(),
-                                                                            description: `Mensalidade + Comissões - ${c.trade_name} - ${month}`
+                                                                            description: `Mensalidade + Comissões - ${c.trade_name} - ${month} `
                                                                         });
                                                                     }}
                                                                 >
@@ -1516,25 +1519,26 @@ export function Settings() {
                                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(chg.amount)}
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
-                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${chg.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                            <span className={`px - 2 py - 0.5 rounded - full text - [10px] font - bold border ${chg.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' :
                                                                 chg.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
                                                                     'bg-gray-50 text-gray-600 border-gray-200'
-                                                                }`}>
+                                                                } `}>
                                                                 {chg.status.toUpperCase()}
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-3 text-right">
                                                             <div className="flex justify-end items-center gap-2">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        navigator.clipboard.writeText(chg.payment_link || '');
-                                                                        alert('Link copiado!');
-                                                                    }}
-                                                                    className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"
-                                                                    title="Copiar Link"
-                                                                >
-                                                                    <CreditCard size={14} />
-                                                                </button>
+                                                                <Tooltip content="Copiar Link">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            navigator.clipboard.writeText(chg.payment_link || '');
+                                                                            alert('Link copiado!');
+                                                                        }}
+                                                                        className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"
+                                                                    >
+                                                                        <CreditCard size={14} />
+                                                                    </button>
+                                                                </Tooltip>
                                                             </div>
                                                         </td>
                                                     </tr>

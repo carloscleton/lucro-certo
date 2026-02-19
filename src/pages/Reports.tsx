@@ -3,6 +3,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useCategories } from '../hooks/useCategories';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { PartyPopper, Wallet, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
+import { Tooltip } from '../components/ui/Tooltip';
 
 export function Reports() {
     const { transactions: expenses } = useTransactions('expense');
@@ -213,15 +214,14 @@ export function Reports() {
 
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Month Picker Quick Select */}
-                    <div>
+                    <Tooltip content="Seleção Rápida por Mês">
                         <input
                             type="month"
                             value={monthFilter}
                             onChange={handleMonthChange}
                             className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                            title="Seleção Rápida por Mês"
                         />
-                    </div>
+                    </Tooltip>
                     <span className="text-gray-400 hidden md:inline">|</span>
                     {/* Manual Date Range */}
                     <div className="flex items-center gap-2">

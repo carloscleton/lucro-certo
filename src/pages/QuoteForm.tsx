@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { useCRM } from '../hooks/useCRM';
+import { Tooltip } from '../components/ui/Tooltip';
 
 export function QuoteForm() {
     const { id } = useParams();
@@ -483,7 +484,11 @@ export function QuoteForm() {
                                     <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[10%] text-center">Qtd</th>
                                     <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[12%] text-right">Valor Unit.</th>
                                     <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[10%] text-right">Total</th>
-                                    <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[8%] text-center" title="Mostrar no PDF">PDF?</th>
+                                    <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[8%] text-center">
+                                        <Tooltip content="Mostrar no PDF">
+                                            <span>PDF?</span>
+                                        </Tooltip>
+                                    </th>
                                     <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[5%]"></th>
                                 </tr>
                             </thead>
@@ -566,13 +571,14 @@ export function QuoteForm() {
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * item.unit_price)}
                                         </td>
                                         <td className="p-2 align-top text-center pt-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={item.show_in_pdf !== false}
-                                                onChange={e => updateItem(index, 'show_in_pdf', e.target.checked)}
-                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
-                                                title="Mostrar este item no PDF"
-                                            />
+                                            <Tooltip content="Mostrar este item no PDF">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={item.show_in_pdf !== false}
+                                                    onChange={e => updateItem(index, 'show_in_pdf', e.target.checked)}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                                                />
+                                            </Tooltip>
                                         </td>
                                         <td className="p-2 align-top text-center pt-1.5">
                                             <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => removeItem(index)}>

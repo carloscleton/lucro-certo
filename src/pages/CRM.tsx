@@ -4,6 +4,7 @@ import { Plus, LayoutGrid, List, Target, Pencil, Trash2 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useCRM, type CRMStage, type CRMDeal } from '../hooks/useCRM';
 import { Button } from '../components/ui/Button';
+import { Tooltip } from '../components/ui/Tooltip';
 import { StageModal, DealModal } from '../components/crm/CRMModals';
 
 export function CRM() {
@@ -195,20 +196,22 @@ export function CRM() {
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
-                                                    <button
-                                                        onClick={() => handleEditStage(stage)}
-                                                        className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
-                                                        title="Editar Etapa"
-                                                    >
-                                                        <Pencil size={14} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteStage(stage.id)}
-                                                        className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                                                        title="Excluir Etapa"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
+                                                    <Tooltip content="Editar Etapa">
+                                                        <button
+                                                            onClick={() => handleEditStage(stage)}
+                                                            className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                                                        >
+                                                            <Pencil size={14} />
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Tooltip content="Excluir Etapa">
+                                                        <button
+                                                            onClick={() => handleDeleteStage(stage.id)}
+                                                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </Tooltip>
                                                 </div>
                                             </div>
 

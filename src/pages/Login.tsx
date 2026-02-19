@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Wallet, ArrowRight, AlertTriangle, X, Eye, EyeOff } from 'lucide-react';
+import { Tooltip } from '../components/ui/Tooltip';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import loginHero1 from '../assets/login-hero-1.png';
 import loginHero2 from '../assets/login-hero-2.png';
@@ -254,14 +255,15 @@ export function Login() {
                                 minLength={6}
                                 className="h-12"
                                 rightElement={
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
-                                        title={showPassword ? 'Esconder Senha' : 'Mostrar Senha'}
-                                    >
-                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                                    </button>
+                                    <Tooltip content={showPassword ? 'Esconder Senha' : 'Mostrar Senha'}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
+                                    </Tooltip>
                                 }
                             />
                             {!isSignUp && !isUpdatePassword && (

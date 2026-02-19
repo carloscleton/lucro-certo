@@ -16,6 +16,7 @@ import {
     FileText,
     Link as LinkIcon
 } from 'lucide-react';
+import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -314,42 +315,46 @@ export function Payments() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => setViewingCharge(charge)}
-                                                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-emerald-600 transition-colors"
-                                                    title="Ver Detalhes do Pagamento"
-                                                >
-                                                    <Search size={16} />
-                                                </button>
-                                                {charge.payment_link && (
-                                                    <a
-                                                        href={charge.payment_link}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-blue-500 transition-colors"
-                                                        title={charge.is_sandbox ? "Abrir Link (Pode exigir login sandbox)" : "Abrir Link de Pagamento"}
+                                                <Tooltip content="Ver Detalhes do Pagamento">
+                                                    <button
+                                                        onClick={() => setViewingCharge(charge)}
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-emerald-600 transition-colors"
                                                     >
-                                                        <ExternalLink size={16} />
-                                                    </a>
+                                                        <Search size={16} />
+                                                    </button>
+                                                </Tooltip>
+                                                {charge.payment_link && (
+                                                    <Tooltip content={charge.is_sandbox ? "Abrir Link (Pode exigir login sandbox)" : "Abrir Link de Pagamento"}>
+                                                        <a
+                                                            href={charge.payment_link}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-blue-500 transition-colors"
+                                                        >
+                                                            <ExternalLink size={16} />
+                                                        </a>
+                                                    </Tooltip>
                                                 )}
-                                                <button
-                                                    onClick={() => {
-                                                        const key = charge.qr_code || charge.payment_link || '';
-                                                        navigator.clipboard.writeText(key);
-                                                        notify('success', 'Copiado', charge.qr_code ? 'Código PIX copiado!' : 'Link de pagamento copiado!');
-                                                    }}
-                                                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-gray-400 hover:text-emerald-500 transition-colors"
-                                                    title={charge.qr_code ? "Copiar Chave PIX" : "Copiar Link"}
-                                                >
-                                                    <Copy size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(charge)}
-                                                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
-                                                    title="Excluir Cobrança"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                <Tooltip content={charge.qr_code ? "Copiar Chave PIX" : "Copiar Link"}>
+                                                    <button
+                                                        onClick={() => {
+                                                            const key = charge.qr_code || charge.payment_link || '';
+                                                            navigator.clipboard.writeText(key);
+                                                            notify('success', 'Copiado', charge.qr_code ? 'Código PIX copiado!' : 'Link de pagamento copiado!');
+                                                        }}
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-gray-400 hover:text-emerald-500 transition-colors"
+                                                    >
+                                                        <Copy size={16} />
+                                                    </button>
+                                                </Tooltip>
+                                                <Tooltip content="Excluir Cobrança">
+                                                    <button
+                                                        onClick={() => handleDelete(charge)}
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </Tooltip>
                                             </div>
                                         </td>
                                     </tr>

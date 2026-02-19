@@ -1,4 +1,5 @@
 import { useDashboard } from '../hooks/useDashboard';
+import { Tooltip } from '../components/ui/Tooltip';
 import { DashboardCards } from '../components/dashboard/DashboardCards';
 import { DashboardCharts } from '../components/dashboard/DashboardCharts';
 import { Alerts } from '../components/dashboard/Alerts';
@@ -130,15 +131,14 @@ export function Dashboard() {
 
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Month Picker Quick Select */}
-                    <div>
+                    <Tooltip content="Seleção Rápida por Mês">
                         <input
                             type="month"
                             value={monthFilter}
                             onChange={handleMonthChange}
                             className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                            title="Seleção Rápida por Mês"
                         />
-                    </div>
+                    </Tooltip>
                     <span className="text-gray-400 hidden md:inline">|</span>
                     {/* Manual Date Range */}
                     <div className="flex items-center gap-2">

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2, Trash2 } from 'lucide-react';
+import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { useWebhooks } from '../../hooks/useWebhooks';
 import { supabase } from '../../lib/supabase';
@@ -167,13 +168,14 @@ export function HelpCenter() {
                         </div>
                         <div className="flex items-center gap-2">
                             {view === 'chat' && messages.length > 0 && (
-                                <button
-                                    onClick={handleClearChat}
-                                    className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-                                    title="Limpar conversa"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
+                                <Tooltip content="Limpar conversa">
+                                    <button
+                                        onClick={handleClearChat}
+                                        className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </Tooltip>
                             )}
                             <button onClick={() => setIsOpen(false)} className="hover:rotate-90 transition-transform">
                                 <X size={20} />
@@ -281,13 +283,14 @@ export function HelpCenter() {
                     </div>
                 </div>
             ) : (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-700 hover:scale-110 active:scale-95 transition-all flex items-center justify-center group"
-                    title="Ajuda"
-                >
-                    <HelpCircle size={28} className="group-hover:rotate-12 transition-transform" />
-                </button>
+                <Tooltip content="Ajuda" position="left">
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-700 hover:scale-110 active:scale-95 transition-all flex items-center justify-center group"
+                    >
+                        <HelpCircle size={28} className="group-hover:rotate-12 transition-transform" />
+                    </button>
+                </Tooltip>
             )}
         </div>
     );

@@ -20,6 +20,7 @@ import {
     LogOut,
     Shield
 } from 'lucide-react';
+import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -626,14 +627,15 @@ export function WhatsApp() {
                                 className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 pr-12 focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
                                 required
                             />
-                            <button
-                                type="button"
-                                onClick={handleRandomizeName}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
-                                title="Gerar ID Aleatório"
-                            >
-                                <Wand2 size={18} />
-                            </button>
+                            <Tooltip content="Gerar ID Aleatório">
+                                <button
+                                    type="button"
+                                    onClick={handleRandomizeName}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
+                                >
+                                    <Wand2 size={18} />
+                                </button>
+                            </Tooltip>
                         </div>
                     </div>
                     <div className="md:col-span-2">
@@ -768,24 +770,26 @@ export function WhatsApp() {
                                         {instance.instance_name}
                                     </h3>
                                     <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={async () => {
-                                                notify('info', 'Sincronizando...', 'Aguarde');
-                                                await syncInstanceWithEvolution(instance);
-                                                fetchInstances();
-                                            }}
-                                            className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
-                                            title="Sincronizar Agora"
-                                        >
-                                            <RefreshCw size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleEditInstance(instance)}
-                                            className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
-                                            title="Editar Configurações"
-                                        >
-                                            <Pencil size={18} />
-                                        </button>
+                                        <Tooltip content="Sincronizar Agora">
+                                            <button
+                                                onClick={async () => {
+                                                    notify('info', 'Sincronizando...', 'Aguarde');
+                                                    await syncInstanceWithEvolution(instance);
+                                                    fetchInstances();
+                                                }}
+                                                className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                            >
+                                                <RefreshCw size={18} />
+                                            </button>
+                                        </Tooltip>
+                                        <Tooltip content="Editar Configurações">
+                                            <button
+                                                onClick={() => handleEditInstance(instance)}
+                                                className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
+                                            >
+                                                <Pencil size={18} />
+                                            </button>
+                                        </Tooltip>
                                         <StatusBadge status={instance.status} />
                                     </div>
                                 </div>
@@ -794,16 +798,17 @@ export function WhatsApp() {
                                     <div className="bg-gray-50 dark:bg-slate-900/50 p-2 rounded-lg border border-gray-100 dark:border-slate-700">
                                         <div className="flex items-center justify-between gap-2 mb-1">
                                             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">ID Técnico</span>
-                                            <button
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(instance.evolution_instance_id);
-                                                    notify('success', 'ID copiado para a área de transferência!', 'Copiado');
-                                                }}
-                                                className="hover:text-emerald-500 transition-colors"
-                                                title="Copiar ID"
-                                            >
-                                                <Copy size={12} />
-                                            </button>
+                                            <Tooltip content="Copiar ID">
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(instance.evolution_instance_id);
+                                                        notify('success', 'ID copiado para a área de transferência!', 'Copiado');
+                                                    }}
+                                                    className="hover:text-emerald-500 transition-colors"
+                                                >
+                                                    <Copy size={12} />
+                                                </button>
+                                            </Tooltip>
                                         </div>
                                         <code className="text-[13px] font-bold font-mono break-all text-emerald-600 dark:text-emerald-400">
                                             {instance.evolution_instance_id}
@@ -999,20 +1004,21 @@ export function WhatsApp() {
                                 </label>
 
                                 <div className="flex items-center gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={handleTestWebhook}
-                                        disabled={isTestingWebhook || !evoWebhookUrl}
-                                        className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors ${!evoWebhookUrl ? 'text-gray-300 cursor-not-allowed' : 'text-amber-600 hover:text-amber-700'}`}
-                                        title={!evoWebhookUrl ? "Configure uma URL para testar" : "Envia um evento de teste para a URL configurada"}
-                                    >
-                                        {isTestingWebhook ? (
-                                            <RefreshCw size={12} className="animate-spin" />
-                                        ) : (
-                                            <Send size={12} />
-                                        )}
-                                        {isTestingWebhook ? 'Enviando...' : 'Testar Integração'}
-                                    </button>
+                                    <Tooltip content={!evoWebhookUrl ? "Configure uma URL para testar" : "Envia um evento de teste para a URL configurada"}>
+                                        <button
+                                            type="button"
+                                            onClick={handleTestWebhook}
+                                            disabled={isTestingWebhook || !evoWebhookUrl}
+                                            className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors ${!evoWebhookUrl ? 'text-gray-300 cursor-not-allowed' : 'text-amber-600 hover:text-amber-700'}`}
+                                        >
+                                            {isTestingWebhook ? (
+                                                <RefreshCw size={12} className="animate-spin" />
+                                            ) : (
+                                                <Send size={12} />
+                                            )}
+                                            {isTestingWebhook ? 'Enviando...' : 'Testar Integração'}
+                                        </button>
+                                    </Tooltip>
                                     <span className="text-gray-300">|</span>
                                     <button
                                         type="button"

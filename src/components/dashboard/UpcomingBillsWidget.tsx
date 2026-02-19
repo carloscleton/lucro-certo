@@ -2,6 +2,7 @@ import { AlertCircle, Calendar, CheckCircle2, TrendingDown, TrendingUp, DollarSi
 import { useState } from 'react';
 import { useUpcomingBills } from '../../hooks/useUpcomingBills';
 import { useTransactions } from '../../hooks/useTransactions';
+import { Tooltip } from '../ui/Tooltip';
 import type { UpcomingBill } from '../../hooks/useUpcomingBills';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -86,13 +87,14 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
     const BillItem = ({ bill }: { bill: UpcomingBill }) => (
         <div className="flex items-center justify-between py-2 px-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-                <button
-                    onClick={() => handleOpenModal(bill)}
-                    className="flex-shrink-0 w-5 h-5 rounded border-2 border-gray-300 dark:border-slate-600 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors flex items-center justify-center group-hover:scale-110"
-                    title="Marcar como pago"
-                >
-                    <CheckCircle2 className="w-3 h-3 text-transparent group-hover:text-emerald-500 transition-colors" />
-                </button>
+                <Tooltip content="Marcar como pago">
+                    <button
+                        onClick={() => handleOpenModal(bill)}
+                        className="flex-shrink-0 w-5 h-5 rounded border-2 border-gray-300 dark:border-slate-600 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors flex items-center justify-center group-hover:scale-110"
+                    >
+                        <CheckCircle2 className="w-3 h-3 text-transparent group-hover:text-emerald-500 transition-colors" />
+                    </button>
+                </Tooltip>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">

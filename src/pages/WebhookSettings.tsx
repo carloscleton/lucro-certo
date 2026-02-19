@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Trash2, Power, PowerOff, Activity, Zap, Copy } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { Tooltip } from '../components/ui/Tooltip';
 import { useWebhooks } from '../hooks/useWebhooks';
 import { WebhookForm } from '../components/webhooks/WebhookForm';
 import { WebhookLogModal } from '../components/webhooks/WebhookLogModal';
@@ -166,59 +167,65 @@ export function WebhookSettings() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleToggle(webhook.id, webhook.is_active)}
-                                        title={webhook.is_active ? 'Desativar' : 'Ativar'}
-                                    >
-                                        {webhook.is_active ? (
-                                            <PowerOff size={18} className="text-orange-500" />
-                                        ) : (
-                                            <Power size={18} className="text-green-500" />
-                                        )}
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleViewLogs(webhook)}
-                                        title="Ver Logs"
-                                    >
-                                        <Activity size={18} className="text-blue-500" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleTest(webhook)}
-                                        isLoading={testingId === webhook.id}
-                                        title="Testar Webhook"
-                                    >
-                                        <Zap size={18} className="text-purple-500" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDuplicate(webhook)}
-                                        title="Duplicar"
-                                    >
-                                        <Copy size={18} className="text-gray-500" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleEdit(webhook)}
-                                        title="Editar"
-                                    >
-                                        Editar
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDelete(webhook.id)}
-                                        title="Excluir"
-                                    >
-                                        <Trash2 size={18} className="text-red-500" />
-                                    </Button>
+                                    <Tooltip content={webhook.is_active ? 'Desativar' : 'Ativar'}>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleToggle(webhook.id, webhook.is_active)}
+                                        >
+                                            {webhook.is_active ? (
+                                                <PowerOff size={18} className="text-orange-500" />
+                                            ) : (
+                                                <Power size={18} className="text-green-500" />
+                                            )}
+                                        </Button>
+                                    </Tooltip>
+                                    <Tooltip content="Ver Logs">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleViewLogs(webhook)}
+                                        >
+                                            <Activity size={18} className="text-blue-500" />
+                                        </Button>
+                                    </Tooltip>
+                                    <Tooltip content="Testar Webhook">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleTest(webhook)}
+                                            isLoading={testingId === webhook.id}
+                                        >
+                                            <Zap size={18} className="text-purple-500" />
+                                        </Button>
+                                    </Tooltip>
+                                    <Tooltip content="Duplicar">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleDuplicate(webhook)}
+                                        >
+                                            <Copy size={18} className="text-gray-500" />
+                                        </Button>
+                                    </Tooltip>
+                                    <Tooltip content="Editar">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleEdit(webhook)}
+                                        >
+                                            Editar
+                                        </Button>
+                                    </Tooltip>
+                                    <Tooltip content="Excluir">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleDelete(webhook.id)}
+                                        >
+                                            <Trash2 size={18} className="text-red-500" />
+                                        </Button>
+                                    </Tooltip>
                                 </div>
                             </div>
                         </div>

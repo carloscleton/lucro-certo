@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { Tooltip } from '../components/ui/Tooltip';
 import { useTransactions } from '../hooks/useTransactions';
 import type { Transaction } from '../hooks/useTransactions';
 import { TransactionList } from '../components/transactions/TransactionList';
@@ -210,15 +211,14 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                 <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
                     <div className="flex flex-wrap items-center gap-2">
                         {/* Month Picker Quick Select */}
-                        <div>
+                        <Tooltip content="Seleção Rápida por Mês">
                             <input
                                 type="month"
                                 value={monthFilter}
                                 onChange={handleMonthChange}
                                 className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                                title="Seleção Rápida por Mês"
                             />
-                        </div>
+                        </Tooltip>
                         <span className="text-gray-400 hidden md:inline">|</span>
                         {/* Manual Date Range */}
                         <div className="flex items-center gap-2">
