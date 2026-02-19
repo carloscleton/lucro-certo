@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2 } from 'lucide-react';
+import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useWebhooks } from '../../hooks/useWebhooks';
 import { supabase } from '../../lib/supabase';
@@ -120,6 +120,12 @@ export function HelpCenter() {
         }
     };
 
+    const handleClearChat = () => {
+        if (confirm('Deseja limpar o histórico desta conversa?')) {
+            setMessages([]);
+        }
+    };
+
     function DollarSignIcon(props: any) {
         return (
             <svg
@@ -154,9 +160,20 @@ export function HelpCenter() {
                             <HelpCircle size={20} />
                             <span className="font-bold">{view === 'main' ? 'Central de Ajuda' : 'Assistente IA'}</span>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="hover:rotate-90 transition-transform">
-                            <X size={20} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {view === 'chat' && messages.length > 0 && (
+                                <button
+                                    onClick={handleClearChat}
+                                    className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                                    title="Limpar conversa"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            )}
+                            <button onClick={() => setIsOpen(false)} className="hover:rotate-90 transition-transform">
+                                <X size={20} />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
