@@ -75,20 +75,31 @@ export function HelpCenter() {
 
             if (error) throw error;
 
-            // Assuming n8n returns something like { output: '...' } or { response: '...' }
-            // The edge function returns the exact response from the external webhook
-            // We need to handle potential parsing if it's a raw string or JSON
+            // The Edge Function returns { success, statusCode, response, error }
+            // where 'response' is the raw body from n8n
             let reply = 'Entendido! Como posso ajudar mais?';
 
-            if (data && typeof data === 'object') {
-                reply = data.output || data.response || data.text || JSON.stringify(data);
-            } else if (typeof data === 'string') {
+            if (data && data.response) {
+                const rawResponse = data.response;
+
+                // Try to parse the inner response if it's a string containing JSON
                 try {
-                    const parsed = JSON.parse(data);
-                    reply = parsed.output || parsed.response || parsed.text || data;
+                    const parsed = typeof rawResponse === 'string' ? JSON.parse(rawResponse) : rawResponse;
+
+                    // Handle array response (common in n8n)
+                    const content = Array.isArray(parsed) ? parsed[0] : parsed;
+
+                    if (content && typeof content === 'object') {
+                        reply = content.output || content.response || content.text || content.message || JSON.stringify(content);
+                    } else {
+                        reply = String(content);
+                    }
                 } catch {
-                    reply = data;
+                    // If not JSON, use the raw response string
+                    reply = rawResponse;
                 }
+            } else if (data && !data.success && data.error) {
+                throw new Error(data.error);
             }
 
             setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
