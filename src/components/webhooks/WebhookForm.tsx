@@ -23,6 +23,8 @@ const AVAILABLE_EVENTS: { value: WebhookEvent; label: string }[] = [
     { value: 'TRANSACTION_PAID', label: 'Transação Paga/Recebida' },
     { value: 'CONTACT_CREATED', label: 'Contato Criado' },
     { value: 'COMMISSION_GENERATED', label: 'Comissão Gerada' },
+    { value: 'SUPPORT_REQUEST', label: 'Suporte do Sistema' },
+    { value: 'GENERIC_EVENT', label: 'Evento Genérico (Aberto)' },
 ];
 
 export function WebhookForm({ isOpen, onClose, onSubmit, initialData }: WebhookFormProps) {

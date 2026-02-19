@@ -11,7 +11,9 @@ export type WebhookEvent =
     | 'TRANSACTION_CREATED'
     | 'TRANSACTION_PAID'
     | 'CONTACT_CREATED'
-    | 'COMMISSION_GENERATED';
+    | 'COMMISSION_GENERATED'
+    | 'SUPPORT_REQUEST'
+    | 'GENERIC_EVENT';
 
 export interface Webhook {
     id: string;
