@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useWebhooks } from '../../hooks/useWebhooks';
 import { supabase } from '../../lib/supabase';
 
 export function HelpCenter() {
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [view, setView] = useState<'main' | 'chat'>('main');
     const [message, setMessage] = useState('');
@@ -18,19 +20,28 @@ export function HelpCenter() {
             title: 'Primeiros Passos',
             icon: PlayCircle,
             description: 'Aprenda o básico do Lucro Certo.',
-            link: '#',
+            onClick: () => {
+                localStorage.removeItem('lucro_certo_onboarding_seen');
+                window.location.reload();
+            },
         },
         {
             title: 'Fluxo de Caixa',
             icon: DollarSignIcon,
             description: 'Como organizar suas entradas e saídas.',
-            link: '#',
+            onClick: () => {
+                navigate('/transactions');
+                setIsOpen(false);
+            },
         },
         {
             title: 'Gerindo Clientes',
             icon: BookOpen,
             description: 'Cadastro e gestão de pacientes/clientes.',
-            link: '#',
+            onClick: () => {
+                navigate('/crm');
+                setIsOpen(false);
+            },
         },
     ];
 
@@ -50,7 +61,6 @@ export function HelpCenter() {
         setIsSending(true);
 
         try {
-            // Find the webhook configured for generic or support requests
             const supportWebhook = webhooks?.find(w => w.events.includes('SUPPORT_REQUEST') || w.events.includes('GENERIC_EVENT'));
 
             if (!supportWebhook) {
@@ -61,7 +71,6 @@ export function HelpCenter() {
                 return;
             }
 
-            // Using Supabase Edge Function to avoid CORS issues and use service role if needed
             const { data, error } = await supabase.functions.invoke('execute-webhook', {
                 body: {
                     webhookId: supportWebhook.id,
@@ -75,18 +84,13 @@ export function HelpCenter() {
 
             if (error) throw error;
 
-            // The Edge Function returns { success, statusCode, response, error }
-            // where 'response' is the raw body from n8n
             let reply = 'Entendido! Como posso ajudar mais?';
 
             if (data && data.response) {
                 const rawResponse = data.response;
 
-                // Try to parse the inner response if it's a string containing JSON
                 try {
                     const parsed = typeof rawResponse === 'string' ? JSON.parse(rawResponse) : rawResponse;
-
-                    // Handle array response (common in n8n)
                     const content = Array.isArray(parsed) ? parsed[0] : parsed;
 
                     if (content && typeof content === 'object') {
@@ -95,7 +99,6 @@ export function HelpCenter() {
                         reply = String(content);
                     }
                 } catch {
-                    // If not JSON, use the raw response string
                     reply = rawResponse;
                 }
             } else if (data && !data.success && data.error) {
@@ -185,10 +188,10 @@ export function HelpCenter() {
 
                                 <div className="space-y-2">
                                     {guides.map((guide, index) => (
-                                        <a
+                                        <button
                                             key={index}
-                                            href={guide.link}
-                                            className="flex items-start gap-3 p-3 rounded-xl border border-gray-50 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all group"
+                                            onClick={guide.onClick}
+                                            className="w-full flex items-start text-left gap-3 p-3 rounded-xl border border-gray-50 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all group"
                                         >
                                             <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                                                 <guide.icon size={20} />
@@ -197,7 +200,7 @@ export function HelpCenter() {
                                                 <h4 className="text-sm font-bold text-gray-900 dark:text-white">{guide.title}</h4>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400">{guide.description}</p>
                                             </div>
-                                        </a>
+                                        </button>
                                     ))}
                                 </div>
 
@@ -273,18 +276,6 @@ export function HelpCenter() {
                                 </form>
                             </div>
                         )}
-                    </div>
-
-                    <div className="p-3 bg-gray-50 dark:bg-slate-900 text-center border-t border-gray-100 dark:border-slate-700 shrink-0">
-                        <button
-                            onClick={() => {
-                                localStorage.removeItem('lucro_certo_onboarding_seen');
-                                window.location.reload();
-                            }}
-                            className="text-xs text-blue-600 hover:underline"
-                        >
-                            Reiniciar Tour de Boas-vindas
-                        </button>
                     </div>
                 </div>
             ) : (
