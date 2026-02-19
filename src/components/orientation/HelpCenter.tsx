@@ -83,7 +83,10 @@ export function HelpCenter() {
                             ))}
                         </div>
 
-                        <Button className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700">
+                        <Button
+                            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
+                            onClick={() => window.open('https://wa.me/5584998071213?text=Olá,%20preciso%20de%20ajuda%20com%20o%20Lucro%20Certo.', '_blank')}
+                        >
                             <MessageCircle size={18} />
                             Falar com Suporte
                         </Button>
