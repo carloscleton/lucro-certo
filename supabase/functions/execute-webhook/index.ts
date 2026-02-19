@@ -89,6 +89,7 @@ serve(async (req) => {
             JSON.stringify({
                 success: !errorMessage,
                 statusCode,
+                response: response?.substring(0, 5000),
                 error: errorMessage,
             }),
             {

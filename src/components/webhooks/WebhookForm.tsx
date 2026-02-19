@@ -126,7 +126,7 @@ export function WebhookForm({ isOpen, onClose, onSubmit, initialData }: WebhookF
                             label="URL de Destino *"
                             type="url"
                             value={url}
-                            onChange={e => setUrl(e.target.value.toLowerCase())}
+                            onChange={e => setUrl(e.target.value)}
                             required
                             placeholder="https://seu-servidor.com/webhook"
                         />

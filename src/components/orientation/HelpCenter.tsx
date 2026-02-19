@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useWebhooks } from '../../hooks/useWebhooks';
+import { supabase } from '../../lib/supabase';
 
 export function HelpCenter() {
     const [isOpen, setIsOpen] = useState(false);
@@ -60,29 +61,49 @@ export function HelpCenter() {
                 return;
             }
 
-            const response = await fetch(supportWebhook.url, {
-                method: supportWebhook.method || 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...supportWebhook.headers,
-                },
-                body: JSON.stringify({
-                    event: 'SUPPORT_REQUEST',
-                    message: userMsg,
-                    timestamp: new Date().toISOString(),
-                }),
+            // Using Supabase Edge Function to avoid CORS issues and use service role if needed
+            const { data, error } = await supabase.functions.invoke('execute-webhook', {
+                body: {
+                    webhookId: supportWebhook.id,
+                    eventType: 'SUPPORT_REQUEST',
+                    payload: {
+                        message: userMsg,
+                        timestamp: new Date().toISOString(),
+                    }
+                }
             });
 
-            if (!response.ok) throw new Error('Falha ao conectar com o servidor de IA.');
+            if (error) throw error;
 
-            const data = await response.json();
             // Assuming n8n returns something like { output: '...' } or { response: '...' }
-            const reply = data.output || data.response || data.text || 'Entendido! Como posso ajudar mais?';
+            // The edge function returns the exact response from the external webhook
+            // We need to handle potential parsing if it's a raw string or JSON
+            let reply = 'Entendido! Como posso ajudar mais?';
+
+            if (data && typeof data === 'object') {
+                reply = data.output || data.response || data.text || JSON.stringify(data);
+            } else if (typeof data === 'string') {
+                try {
+                    const parsed = JSON.parse(data);
+                    reply = parsed.output || parsed.response || parsed.text || data;
+                } catch {
+                    reply = data;
+                }
+            }
 
             setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
-        } catch (error) {
-            console.error('Chat Error:', error);
-            setMessages(prev => [...prev, { role: 'assistant', text: 'Desculpe, tive um problema ao processar sua dúvida. Tente novamente em instantes.' }]);
+        } catch (error: any) {
+            console.error('Chat Error Details:', {
+                message: error.message,
+                status: error.status,
+                context: error.context
+            });
+
+            const errorMessage = error.message?.includes('functions_http_error')
+                ? 'O servidor de IA está offline ou a URL do Webhook está incorreta.'
+                : 'Desculpe, tive um problema ao conectar com o serviço de IA. Verifique se o Webhook está ativo.';
+
+            setMessages(prev => [...prev, { role: 'assistant', text: errorMessage }]);
         } finally {
             setIsSending(false);
         }
@@ -185,8 +206,8 @@ export function HelpCenter() {
                                     {messages.map((msg, i) => (
                                         <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user'
-                                                    ? 'bg-blue-600 text-white rounded-tr-none'
-                                                    : 'bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-slate-600'
+                                                ? 'bg-blue-600 text-white rounded-tr-none'
+                                                : 'bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-slate-600'
                                                 }`}>
                                                 <div className="flex items-center gap-1.5 mb-1 opacity-70 text-[10px] uppercase font-bold tracking-wider">
                                                     {msg.role === 'user' ? <User size={10} /> : <Bot size={10} />}
