@@ -59,7 +59,7 @@ serve(async (req) => {
                     timestamp: new Date().toISOString(),
                     data: payload,
                 }) : undefined,
-                signal: AbortSignal.timeout(10000), // 10 second timeout
+                signal: AbortSignal.timeout(60000), // 60 second timeout for AI responses
             })
 
             statusCode = fetchResponse.status

@@ -115,7 +115,9 @@ export function HelpCenter() {
 
             const errorMessage = error.message?.includes('functions_http_error')
                 ? 'O servidor de IA está offline ou a URL do Webhook está incorreta.'
-                : 'Desculpe, tive um problema ao conectar com o serviço de IA. Verifique se o Webhook está ativo.';
+                : error.message?.includes('timeout') || error.message?.includes('AbortError')
+                    ? 'A IA está demorando um pouco para responder. Por favor, tente enviar novamente em alguns segundos.'
+                    : 'Desculpe, tive um problema ao conectar com o serviço de IA. Verifique se o Webhook está ativo.';
 
             setMessages(prev => [...prev, { role: 'assistant', text: errorMessage }]);
         } finally {
