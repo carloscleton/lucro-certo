@@ -1,16 +1,23 @@
-import { useState } from 'react';
-import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { useWebhooks } from '../../hooks/useWebhooks';
 
 export function HelpCenter() {
     const [isOpen, setIsOpen] = useState(false);
+    const [view, setView] = useState<'main' | 'chat'>('main');
+    const [message, setMessage] = useState('');
+    const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
+    const [isSending, setIsSending] = useState(false);
+    const { webhooks } = useWebhooks();
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     const guides = [
         {
             title: 'Primeiros Passos',
             icon: PlayCircle,
             description: 'Aprenda o básico do Lucro Certo.',
-            link: '#', // TODO: Add real links
+            link: '#',
         },
         {
             title: 'Fluxo de Caixa',
@@ -25,6 +32,61 @@ export function HelpCenter() {
             link: '#',
         },
     ];
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages, isSending]);
+
+    const handleSendMessage = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!message.trim() || isSending) return;
+
+        const userMsg = message.trim();
+        setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+        setMessage('');
+        setIsSending(true);
+
+        try {
+            // Find the webhook configured for generic or support requests
+            const supportWebhook = webhooks?.find(w => w.events.includes('SUPPORT_REQUEST') || w.events.includes('GENERIC_EVENT'));
+
+            if (!supportWebhook) {
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    text: 'Ops! O suporte via IA ainda não foi configurado. Por favor, configure um Webhook com o evento "Suporte do Sistema" nas configurações.'
+                }]);
+                return;
+            }
+
+            const response = await fetch(supportWebhook.url, {
+                method: supportWebhook.method || 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...supportWebhook.headers,
+                },
+                body: JSON.stringify({
+                    event: 'SUPPORT_REQUEST',
+                    message: userMsg,
+                    timestamp: new Date().toISOString(),
+                }),
+            });
+
+            if (!response.ok) throw new Error('Falha ao conectar com o servidor de IA.');
+
+            const data = await response.json();
+            // Assuming n8n returns something like { output: '...' } or { response: '...' }
+            const reply = data.output || data.response || data.text || 'Entendido! Como posso ajudar mais?';
+
+            setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
+        } catch (error) {
+            console.error('Chat Error:', error);
+            setMessages(prev => [...prev, { role: 'assistant', text: 'Desculpe, tive um problema ao processar sua dúvida. Tente novamente em instantes.' }]);
+        } finally {
+            setIsSending(false);
+        }
+    };
 
     function DollarSignIcon(props: any) {
         return (
@@ -49,50 +111,122 @@ export function HelpCenter() {
     return (
         <div className="fixed bottom-6 right-6 z-[9999]">
             {isOpen ? (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 w-80 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-                    <div className="p-4 bg-blue-600 text-white flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 w-80 md:w-96 overflow-hidden animate-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[600px]">
+                    <div className="p-4 bg-blue-600 text-white flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-2">
+                            {view === 'chat' && (
+                                <button onClick={() => setView('main')} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+                                    <ArrowLeft size={18} />
+                                </button>
+                            )}
                             <HelpCircle size={20} />
-                            <span className="font-bold">Central de Ajuda</span>
+                            <span className="font-bold">{view === 'main' ? 'Central de Ajuda' : 'Assistente IA'}</span>
                         </div>
                         <button onClick={() => setIsOpen(false)} className="hover:rotate-90 transition-transform">
                             <X size={20} />
                         </button>
                     </div>
 
-                    <div className="p-4 space-y-4">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Precisa de ajuda? Escolha um dos guias rápidos abaixo ou fale conosco.
-                        </p>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                        {view === 'main' ? (
+                            <div className="p-4 space-y-4">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Precisa de ajuda? Escolha um dos guias rápidos abaixo ou tire suas dúvidas com nossa IA.
+                                </p>
 
-                        <div className="space-y-2">
-                            {guides.map((guide, index) => (
-                                <a
-                                    key={index}
-                                    href={guide.link}
-                                    className="flex items-start gap-3 p-3 rounded-xl border border-gray-50 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all group"
-                                >
-                                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                                        <guide.icon size={20} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">{guide.title}</h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{guide.description}</p>
-                                    </div>
-                                </a>
-                            ))}
-                        </div>
+                                <div className="space-y-2">
+                                    {guides.map((guide, index) => (
+                                        <a
+                                            key={index}
+                                            href={guide.link}
+                                            className="flex items-start gap-3 p-3 rounded-xl border border-gray-50 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all group"
+                                        >
+                                            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                                                <guide.icon size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-gray-900 dark:text-white">{guide.title}</h4>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">{guide.description}</p>
+                                            </div>
+                                        </a>
+                                    ))}
+                                </div>
 
-                        <Button
-                            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
-                            onClick={() => window.open('https://wa.me/5584998071213?text=Olá,%20preciso%20de%20ajuda%20com%20o%20Lucro%20Certo.', '_blank')}
-                        >
-                            <MessageCircle size={18} />
-                            Falar com Suporte
-                        </Button>
+                                <div className="space-y-2 pt-2">
+                                    <Button
+                                        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
+                                        onClick={() => setView('chat')}
+                                    >
+                                        <Bot size={18} />
+                                        Tirar dúvidas com IA
+                                    </Button>
+
+                                    <Button
+                                        className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
+                                        onClick={() => window.open('https://wa.me/5584998071213?text=Olá,%20preciso%20de%20ajuda%20com%20o%20Lucro%20Certo.', '_blank')}
+                                    >
+                                        <MessageCircle size={18} />
+                                        Falar com Suporte (Zap)
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col h-full min-h-[400px]">
+                                <div ref={scrollRef} className="flex-1 p-4 space-y-4 overflow-y-auto">
+                                    {messages.length === 0 && (
+                                        <div className="text-center py-8 space-y-2">
+                                            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <Bot size={24} />
+                                            </div>
+                                            <h3 className="font-bold text-gray-900 dark:text-white">Olá! Eu sou o Assistente do Lucro Certo.</h3>
+                                            <p className="text-xs text-gray-500">Como posso ajudar na sua gestão hoje? Pergunte qualquer coisa!</p>
+                                        </div>
+                                    )}
+                                    {messages.map((msg, i) => (
+                                        <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user'
+                                                    ? 'bg-blue-600 text-white rounded-tr-none'
+                                                    : 'bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-slate-600'
+                                                }`}>
+                                                <div className="flex items-center gap-1.5 mb-1 opacity-70 text-[10px] uppercase font-bold tracking-wider">
+                                                    {msg.role === 'user' ? <User size={10} /> : <Bot size={10} />}
+                                                    {msg.role === 'user' ? 'Você' : 'Assistente IA'}
+                                                </div>
+                                                <p className="whitespace-pre-wrap">{msg.text}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {isSending && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-gray-100 dark:bg-slate-700 p-3 rounded-2xl rounded-tl-none border border-gray-200 dark:border-slate-600">
+                                                <Loader2 size={18} className="animate-spin text-blue-600" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <form onSubmit={handleSendMessage} className="p-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 shrink-0">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={message}
+                                            onChange={e => setMessage(e.target.value)}
+                                            placeholder="Digite sua dúvida aqui..."
+                                            className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2 pr-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!message.trim() || isSending}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 hover:scale-110 disabled:opacity-30 disabled:scale-100 transition-all p-1"
+                                        >
+                                            <Send size={18} />
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="p-3 bg-gray-50 dark:bg-slate-900 text-center">
+                    <div className="p-3 bg-gray-50 dark:bg-slate-900 text-center border-t border-gray-100 dark:border-slate-700 shrink-0">
                         <button
                             onClick={() => {
                                 localStorage.removeItem('lucro_certo_onboarding_seen');
