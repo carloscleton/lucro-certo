@@ -25,6 +25,14 @@ export function useSettings() {
     useEffect(() => {
         if (user && currentEntity) {
             fetchSettings();
+        } else {
+            // Reset to defaults on logout
+            setSettings({
+                quote_validity_days: 7,
+                commission_rate: 0,
+                service_commission_rate: 0,
+                product_commission_rate: 0
+            });
         }
     }, [user, currentEntity]);
 

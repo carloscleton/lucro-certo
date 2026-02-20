@@ -206,6 +206,11 @@ export function useAdmin() {
     useEffect(() => {
         if (isAdmin) {
             fetchAdminData();
+        } else {
+            // Limpa dados administrativos se não for admin
+            setStats(null);
+            setUsersList([]);
+            setCompaniesList([]);
         }
     }, [user, isAdmin]);
 

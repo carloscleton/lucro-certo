@@ -146,9 +146,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
-        fetchCompanies();
-
         if (user) {
+            fetchCompanies();
             // Realtime subscription for company updates (e.g. permission changes)
             const channel = supabase
                 .channel('entity-updates')
@@ -164,6 +163,11 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             return () => {
                 supabase.removeChannel(channel);
             };
+        } else {
+            // Se deslogar, reseta TUDO imediatamente
+            setCurrentEntity({ type: 'personal', name: 'Pessoal' });
+            setAvailableEntities([{ type: 'personal', name: 'Pessoal' }]);
+            setIsLoading(false);
         }
     }, [user]);
 

@@ -56,7 +56,14 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        fetchCRMData();
+        if (user && currentEntity.type === 'company') {
+            fetchCRMData();
+        } else {
+            // Limpa dados se deslogar ou mudar para perfil pessoal
+            setStages([]);
+            setDeals([]);
+            setLoading(false);
+        }
     }, [user, currentEntity]);
 
     const addStage = async (stage: Omit<CRMStage, 'id' | 'company_id'>) => {
