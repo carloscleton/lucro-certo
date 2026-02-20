@@ -73,11 +73,14 @@ export function Layout() {
         }
 
         if (currentEntity.type === 'company' && userRole) {
-            // Owner (Platform Admin) always sees everything
-            if (userRole === 'owner') return true;
+            const hasPermission = getModulePermission(item.key, (userRole === 'owner' ? 'admin' : userRole) as 'admin' | 'member', settings);
 
-            // Admin/Member: Check Permission Matrix
-            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
+            // Owner/SystemAdmin see everything by default, UNLESS explicitly disabled
+            if (userRole === 'owner' || isSystemAdmin) {
+                return settings?.modules?.[item.key]?.[userRole === 'owner' ? 'admin' : userRole] !== false;
+            }
+
+            return hasPermission;
         }
         // Personal View: Show everything by default (filtered later)
         return true;
@@ -85,11 +88,13 @@ export function Layout() {
 
     const finalNavItems = currentEntity.type === 'personal'
         ? displayedNavItems.filter(item => {
-            // Bypass for System Admin - they see everything in personal context
-            if (isSystemAdmin) return true;
-
-            // Basic items always allowed in personal view for others
+            // Basic items always allowed in personal view
             if (['dashboard', 'companies'].includes(item.key)) return true;
+
+            const isExplicitlyDisabled = settings?.modules?.[item.key]?.admin === false;
+
+            // System Admin sees everything unless explicitly disabled for testing/cleanliness
+            if (isSystemAdmin) return !isExplicitlyDisabled;
 
             // Check if module is allowed in personal settings (treat as admin)
             return getModulePermission(item.key, 'admin', settings);
@@ -102,7 +107,10 @@ export function Layout() {
         { label: 'Configurações', icon: Settings, path: '/settings', key: 'settings' },
     ].filter(item => {
         if (currentEntity.type !== 'company') return false; // Handled in main nav for personal
-        if (userRole === 'owner') return true;
+
+        const isExplicitlyDisabled = settings?.modules?.[item.key]?.[userRole === 'owner' ? 'admin' : userRole] === false;
+        if (userRole === 'owner' || isSystemAdmin) return !isExplicitlyDisabled;
+
         return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
     });
 
