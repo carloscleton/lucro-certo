@@ -190,8 +190,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                     </option>
                                 ))
                             }
+                            {initialData?.category_id && !categories.some(c => c.id === initialData.category_id) && (
+                                <option key={`fallback-${initialData.category_id}`} value={initialData.category_id}>
+                                    {(initialData as any).category?.name || 'Categoria Original'} (Outro Perfil)
+                                </option>
+                            )}
                         </select>
-                        {categories.filter(c => c.type === type).length === 0 && (
+                        {categories.filter(c => c.type === type).length === 0 && !initialData?.category_id && (
                             <p className="text-[10px] text-red-500 font-medium">Cadastre categorias de {isExpense ? 'Despesa' : 'Receita'} primeiro.</p>
                         )}
                     </div>
