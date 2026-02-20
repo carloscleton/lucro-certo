@@ -31,7 +31,14 @@ export function PendingList({ transactions }: PendingListProps) {
                                     {isOverdue ? <AlertCircle size={18} /> : <CalendarClock size={18} />}
                                 </div>
                                 <div>
-                                    <p className="font-medium text-gray-900 dark:text-white">{t.description}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-medium text-gray-900 dark:text-white">{t.description}</p>
+                                        {t.category?.name && (
+                                            <span className="text-[10px] bg-gray-200 dark:bg-slate-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-sm">
+                                                {t.category.name}
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className={`text-xs ${isOverdue ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
                                         Vence: {format(new Date(t.date), 'dd/MM/yyyy', { locale: ptBR })}
                                     </p>
