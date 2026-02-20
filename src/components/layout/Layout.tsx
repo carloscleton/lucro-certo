@@ -73,18 +73,10 @@ export function Layout() {
         }
 
         if (currentEntity.type === 'company' && userRole) {
-            const effectiveRole = (userRole === 'owner' ? 'admin' : userRole) as 'admin' | 'member';
-            const hasPermission = getModulePermission(item.key, effectiveRole, settings);
+            // Owner/SystemAdmin see everything by default
+            if (userRole === 'owner' || isSystemAdmin) return true;
 
-            const isExplicitlyDisabledInProfile = profile?.settings?.modules?.[item.key]?.[effectiveRole] === false;
-            const isExplicitlyDisabledInCompany = settings?.modules?.[item.key]?.[effectiveRole] === false;
-
-            // Owner/SystemAdmin see everything by default, UNLESS explicitly disabled
-            if (userRole === 'owner' || isSystemAdmin) {
-                return !(isExplicitlyDisabledInProfile || isExplicitlyDisabledInCompany);
-            }
-
-            return hasPermission;
+            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
         // Personal View: Show everything by default (filtered later)
         return true;
@@ -92,13 +84,11 @@ export function Layout() {
 
     const finalNavItems = currentEntity.type === 'personal'
         ? displayedNavItems.filter(item => {
+            // Bypass for System Admin - they see everything in personal context
+            if (isSystemAdmin) return true;
+
             // Basic items always allowed in personal view
             if (['dashboard', 'companies'].includes(item.key)) return true;
-
-            const isExplicitlyDisabled = settings?.modules?.[item.key]?.admin === false;
-
-            // System Admin sees everything unless explicitly disabled for testing/cleanliness
-            if (isSystemAdmin) return !isExplicitlyDisabled;
 
             // Check if module is allowed in personal settings (treat as admin)
             return getModulePermission(item.key, 'admin', settings);
@@ -112,18 +102,10 @@ export function Layout() {
     ].filter(item => {
         if (currentEntity.type !== 'company') return false; // Handled in main nav for personal
 
-        const effectiveRole = (userRole === 'owner' ? 'admin' : userRole) as 'admin' | 'member';
+        // Owner/SystemAdmin see everything by default
+        if (userRole === 'owner' || isSystemAdmin) return true;
 
-        // Priority: Check if explicitly disabled in profile settings (User control)
-        const isExplicitlyDisabledInProfile = profile?.settings?.modules?.[item.key]?.[effectiveRole] === false;
-        // Also check company settings (Company control)
-        const isExplicitlyDisabledInCompany = settings?.modules?.[item.key]?.[effectiveRole] === false;
-
-        const isExplicitlyDisabled = isExplicitlyDisabledInProfile || isExplicitlyDisabledInCompany;
-
-        if (userRole === 'owner' || isSystemAdmin) return !isExplicitlyDisabled;
-
-        return getModulePermission(item.key, effectiveRole, settings);
+        return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
     });
 
     const canSeeManagementGroup = currentEntity.type === 'company' && (managementItems.length > 0 || isSystemAdmin);
