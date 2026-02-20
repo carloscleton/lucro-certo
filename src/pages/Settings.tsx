@@ -1392,22 +1392,22 @@ export function Settings() {
                                             ) : (
                                                 companiesList.map((c) => (
                                                     <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                                                        <td className="px-4 py-3">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded border border-gray-100 dark:border-slate-700 overflow-hidden bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+                                                        <td className="px-2 py-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-9 h-9 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden bg-gray-50 dark:bg-slate-900 flex items-center justify-center flex-shrink-0">
                                                                     {c.logo_url ? <img src={c.logo_url} alt="" className="w-full h-full object-contain" /> : <Building className="text-gray-400" size={16} />}
                                                                 </div>
-                                                                <div>
-                                                                    <div className="font-bold text-gray-900 dark:text-white leading-tight">{c.trade_name}</div>
-                                                                    <div className="text-[9px] text-gray-500 font-mono italic">{c.cnpj}</div>
+                                                                <div className="min-w-0">
+                                                                    <div className="font-bold text-gray-900 dark:text-white text-[12px] leading-tight truncate">{c.trade_name}</div>
+                                                                    <div className="text-[9px] text-gray-500 font-mono italic truncate">{c.cnpj}</div>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-center text-[11px]">
-                                                            <div className="font-medium text-gray-900 dark:text-white">{c.owner_name}</div>
-                                                            <div className="text-gray-400">{c.owner_email}</div>
+                                                        <td className="px-2 py-4 text-center text-[11px]">
+                                                            <div className="font-medium text-gray-900 dark:text-white truncate max-w-[100px]">{c.owner_name}</div>
+                                                            <div className="text-gray-400 truncate max-w-[100px]">{c.owner_email}</div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-center">
+                                                        <td className="px-2 py-4 text-center">
                                                             <div className="flex flex-col items-center">
                                                                 <div className="flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400">
                                                                     <span className="text-[10px]">M:</span>
@@ -1418,27 +1418,24 @@ export function Settings() {
                                                                     <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.settings?.annual_fee || 0)}</span>
                                                                 </div>
                                                                 {c.license_expires_at && (
-                                                                    <div className={`mt - 1 px - 2 py - 0.5 rounded - full text - [9px] font - bold ${getDaysRemaining(c.license_expires_at)! < 0 ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                                    <div className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold ${getDaysRemaining(c.license_expires_at)! < 0 ? 'bg-red-50 text-red-600 border border-red-100' :
                                                                         getDaysRemaining(c.license_expires_at)! < 30 ? 'bg-yellow-50 text-yellow-600 border border-yellow-100' :
                                                                             'bg-blue-50 text-blue-600 border border-blue-100'
-                                                                        } `}>
+                                                                        }`}>
                                                                         Expira {new Date(c.license_expires_at).toLocaleDateString('pt-BR')}
-                                                                        <span className="ml-1 opacity-75">
-                                                                            ({getDaysRemaining(c.license_expires_at)! < 0 ? 'Expirado' : `Faltam ${getDaysRemaining(c.license_expires_at)} dias`})
-                                                                        </span>
                                                                     </div>
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-center">
+                                                        <td className="px-2 py-4 text-center">
                                                             <div className="flex flex-col items-center">
-                                                                <span className="font-bold text-gray-900 dark:text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.total_revenue || 0)}</span>
-                                                                <span className="text-[9px] text-gray-500 font-medium">Total Recebido</span>
+                                                                <span className="font-bold text-gray-900 dark:text-white text-[12px]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.total_revenue || 0)}</span>
+                                                                <span className="text-[9px] text-gray-500 font-medium tracking-tight whitespace-nowrap">Recebido</span>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-center">
+                                                        <td className="px-2 py-4 text-center">
                                                             <div className="flex flex-col items-center gap-0.5">
-                                                                <span className="font-bold text-emerald-600 dark:text-emerald-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.commission_earned || 0)}</span>
+                                                                <span className="font-bold text-emerald-600 dark:text-emerald-400 text-[12px]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.commission_earned || 0)}</span>
                                                                 {c.settings?.commission_rate > 0 && (
                                                                     <span className="text-[9px] text-gray-500 font-medium">{c.settings.commission_rate}% (Geral)</span>
                                                                 )}
@@ -1450,13 +1447,13 @@ export function Settings() {
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-5 py-4 text-right">
-                                                            <div className="flex items-center justify-end gap-2">
+                                                        <td className="px-2 py-4 text-right">
+                                                            <div className="flex items-center justify-end gap-1.5">
                                                                 <Tooltip content="Gerar Faturamento">
                                                                     <Button
                                                                         size="sm"
                                                                         variant="outline"
-                                                                        className="h-9 w-9 p-0 flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 rounded-xl transition-all hover:scale-105 shadow-sm"
+                                                                        className="h-8 px-2.5 text-[10px] gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 rounded-lg transition-all"
                                                                         onClick={() => {
                                                                             setSelectedCompanyForInvoice(c);
                                                                             const month = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -1468,17 +1465,19 @@ export function Settings() {
                                                                             });
                                                                         }}
                                                                     >
-                                                                        <CreditCard size={18} />
+                                                                        <CreditCard size={14} />
+                                                                        Faturar
                                                                     </Button>
                                                                 </Tooltip>
-                                                                <Tooltip content="Configurações Master">
+                                                                <Tooltip content="Configurar Master">
                                                                     <Button
                                                                         size="sm"
                                                                         variant="primary"
-                                                                        className="h-9 w-9 p-0 flex items-center justify-center rounded-xl shadow-lg shadow-blue-500/10 transition-all hover:scale-105"
+                                                                        className="h-8 px-2.5 text-[10px] gap-1.5 rounded-lg shadow-lg shadow-blue-500/10 transition-all"
                                                                         onClick={() => setSelectedCompanyForConfig(c)}
                                                                     >
-                                                                        <Shield size={18} />
+                                                                        <Shield size={14} />
+                                                                        Configurar
                                                                     </Button>
                                                                 </Tooltip>
                                                             </div>
