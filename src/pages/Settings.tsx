@@ -775,33 +775,38 @@ export function Settings() {
                                             <p className="text-sm text-gray-500">Defina a porcentagem que você recebe sobre cada transação desta empresa.</p>
                                         </div>
                                     </div>
-                                    <div className="max-w-xs">
-                                        <Input
-                                            label="Porcentagem de Comissão (%)"
-                                            type="number"
-                                            value={selectedCompanyForConfig.settings?.commission_rate || 0}
-                                            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
-                                                const rate = parseFloat(e.target.value) || 0;
-                                                const newSettings = {
-                                                    ...(selectedCompanyForConfig.settings || {}),
-                                                    commission_rate: rate
-                                                };
-                                                const { error } = await updateCompanyConfig(
-                                                    selectedCompanyForConfig.id,
-                                                    !!selectedCompanyForConfig.fiscal_module_enabled,
-                                                    !!selectedCompanyForConfig.payments_module_enabled,
-                                                    !!selectedCompanyForConfig.crm_module_enabled,
-                                                    newSettings
-                                                );
-                                                if (error) alert('Erro: ' + error);
-                                                else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
-                                            }}
-                                            placeholder="Ex: 5"
-                                            step="0.1"
-                                            min="0"
-                                            max="100"
-                                        />
-                                    </div>
+                                    <Input
+                                        label="Porcentagem de Comissão (%)"
+                                        type="number"
+                                        value={selectedCompanyForConfig.settings?.commission_rate || 0}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                            const rate = parseFloat(e.target.value) || 0;
+                                            const newSettings = {
+                                                ...(selectedCompanyForConfig.settings || {}),
+                                                commission_rate: rate
+                                            };
+                                            setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                        }}
+                                        onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
+                                            const rate = parseFloat(e.target.value) || 0;
+                                            const newSettings = {
+                                                ...(selectedCompanyForConfig.settings || {}),
+                                                commission_rate: rate
+                                            };
+                                            const { error } = await updateCompanyConfig(
+                                                selectedCompanyForConfig.id,
+                                                !!selectedCompanyForConfig.fiscal_module_enabled,
+                                                !!selectedCompanyForConfig.payments_module_enabled,
+                                                !!selectedCompanyForConfig.crm_module_enabled,
+                                                newSettings
+                                            );
+                                            if (error) alert('Erro: ' + error);
+                                        }}
+                                        placeholder="Ex: 5"
+                                        step="0.1"
+                                        min="0"
+                                        max="100"
+                                    />
                                 </div>
 
                                 {/* Subscription Plan (Monthly & Annual) */}
@@ -821,7 +826,12 @@ export function Settings() {
                                             label="Mensalidade (R$ / mês)"
                                             type="number"
                                             value={selectedCompanyForConfig.settings?.monthly_fee || 0}
-                                            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), monthly_fee: val };
+                                                setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                            }}
+                                            onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
                                                 const val = parseFloat(e.target.value) || 0;
                                                 const newSettings = { ...(selectedCompanyForConfig.settings || {}), monthly_fee: val };
                                                 const { error } = await updateCompanyConfig(
@@ -832,7 +842,6 @@ export function Settings() {
                                                     newSettings
                                                 );
                                                 if (error) alert('Erro: ' + error);
-                                                else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
                                             }}
                                             placeholder="Ex: 150"
                                         />
@@ -840,7 +849,12 @@ export function Settings() {
                                             label="Licença Anual (R$ / ano)"
                                             type="number"
                                             value={selectedCompanyForConfig.settings?.annual_fee || 0}
-                                            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), annual_fee: val };
+                                                setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                            }}
+                                            onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
                                                 const val = parseFloat(e.target.value) || 0;
                                                 const newSettings = { ...(selectedCompanyForConfig.settings || {}), annual_fee: val };
                                                 const { error } = await updateCompanyConfig(
@@ -851,7 +865,6 @@ export function Settings() {
                                                     newSettings
                                                 );
                                                 if (error) alert('Erro: ' + error);
-                                                else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
                                             }}
                                             placeholder="Ex: 1200"
                                         />
