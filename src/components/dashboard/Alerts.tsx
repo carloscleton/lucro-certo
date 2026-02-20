@@ -42,7 +42,14 @@ export function Alerts({ alerts }: AlertsProps) {
                             {icon}
                         </div>
                         <div className="flex-1">
-                            <p className="font-medium">{title}</p>
+                            <div className="flex justify-between items-start">
+                                <p className="font-medium">{title}</p>
+                                {alert.category_name && (
+                                    <span className="text-xs bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                                        {alert.category_name}
+                                    </span>
+                                )}
+                            </div>
                             <div className="flex justify-between items-center mt-1">
                                 <span className="text-sm">{alert.description}</span>
                                 <span className="font-bold">

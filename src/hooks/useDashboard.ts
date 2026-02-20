@@ -26,6 +26,7 @@ export interface Alert {
     date: string;
     amount: number;
     type: 'overdue' | 'due_soon' | 'recovery_due';
+    category_name?: string;
 }
 
 export function useDashboard(startDate: string, endDate: string) {
@@ -59,7 +60,7 @@ export function useDashboard(startDate: string, endDate: string) {
 
         try {
             // Fetch Transactions
-            let txQuery = supabase.from('transactions').select('*');
+            let txQuery = supabase.from('transactions').select('*, category:categories(name)');
 
             // Fetch Quotes
             let quotesQuery = supabase.from('quotes').select('id, title, total_amount, status, created_at, follow_up_date, negotiation_notes');
@@ -174,7 +175,8 @@ export function useDashboard(startDate: string, endDate: string) {
                     description: t.description,
                     date: t.date,
                     amount: t.amount,
-                    type: 'overdue'
+                    type: 'overdue',
+                    category_name: t.category?.name
                 }));
 
             // Check Due Soon
@@ -185,7 +187,8 @@ export function useDashboard(startDate: string, endDate: string) {
                     description: t.description,
                     date: t.date,
                     amount: t.amount,
-                    type: 'due_soon'
+                    type: 'due_soon',
+                    category_name: t.category?.name
                 }));
 
             // RECOVERY ALERTS
