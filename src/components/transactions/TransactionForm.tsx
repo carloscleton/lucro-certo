@@ -11,6 +11,7 @@ import { useContacts } from '../../hooks/useContacts';
 import { useCRM } from '../../hooks/useCRM';
 import { useEntity } from '../../context/EntityContext';
 import { supabase } from '../../lib/supabase';
+import { calculateNextDates, formatBrazilianDate } from '../../utils/dateUtils';
 
 interface TransactionFormProps {
     type: TransactionType;
@@ -20,36 +21,6 @@ interface TransactionFormProps {
     initialData?: Transaction | null;
 }
 
-// Helper function to calculate next recurring dates
-function calculateNextDates(startDate: string, frequency: string, count: number = 5): Date[] {
-    const dates: Date[] = [];
-    const start = new Date(startDate);
-
-    for (let i = 1; i <= count; i++) {
-        const nextDate = new Date(start);
-
-        if (frequency === 'weekly') {
-            nextDate.setDate(start.getDate() + (i * 7));
-        } else if (frequency === 'monthly') {
-            nextDate.setMonth(start.getMonth() + i);
-        } else if (frequency === 'yearly') {
-            nextDate.setFullYear(start.getFullYear() + i);
-        }
-
-        dates.push(nextDate);
-    }
-
-    return dates;
-}
-
-// Helper function to format date in Brazilian format
-function formatBrazilianDate(date: Date): string {
-    return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-}
 
 export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }: TransactionFormProps) {
     const [description, setDescription] = useState('');
@@ -60,6 +31,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [companyId, setCompanyId] = useState('');
     const [contactId, setContactId] = useState('');
     const [isRecurring, setIsRecurring] = useState(false);
+    const [isVariableAmount, setIsVariableAmount] = useState(false);
     const [frequency, setFrequency] = useState('monthly');
     const [file, setFile] = useState<File | null>(null);
     const [dealId, setDealId] = useState('');
@@ -85,6 +57,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setCompanyId(initialData.company_id || '');
             setContactId(initialData.contact_id || '');
             setIsRecurring(initialData.is_recurring || false);
+            setIsVariableAmount((initialData as any).is_variable_amount || false);
             setFrequency(initialData.frequency || 'monthly');
             setDealId(initialData.deal_id || '');
         } else {
@@ -99,6 +72,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setCompanyId(savedCompanyId);
             setContactId('');
             setIsRecurring(false);
+            setIsVariableAmount(false);
             setFrequency('monthly');
             setDealId('');
         }
@@ -144,6 +118,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 company_id: companyId || null,
                 contact_id: contactId || null,
                 is_recurring: isRecurring,
+                is_variable_amount: isRecurring ? isVariableAmount : false,
                 frequency: isRecurring ? frequency : null,
                 attachment_url: attachmentUrl,
                 attachment_path: attachmentPath,
@@ -321,10 +296,28 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         <input
                             type="checkbox"
                             checked={isRecurring}
-                            onChange={e => setIsRecurring(e.target.checked)}
+                            onChange={e => {
+                                setIsRecurring(e.target.checked);
+                                if (!e.target.checked) setIsVariableAmount(false);
+                            }}
                             className="w-5 h-5 text-emerald-600 rounded-md border-gray-300 focus:ring-emerald-500 dark:bg-slate-700 dark:border-slate-600"
                         />
                     </div>
+
+                    {isRecurring && (
+                        <div className="flex items-center justify-between py-2 border-t border-gray-100 dark:border-slate-700 animate-in slide-in-from-top-1 duration-200">
+                            <div className="flex items-center gap-2">
+                                <TrendingUp className="w-4 h-4 text-blue-600" />
+                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Valor Variável (Estimado)</span>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={isVariableAmount}
+                                onChange={e => setIsVariableAmount(e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600"
+                            />
+                        </div>
+                    )}
 
                     {isRecurring && (
                         <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-200">

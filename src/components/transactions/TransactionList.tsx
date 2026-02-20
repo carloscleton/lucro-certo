@@ -1,4 +1,4 @@
-import { Edit2, Trash2, CheckCircle, Paperclip, Download, FileText } from 'lucide-react';
+import { Edit2, Trash2, CheckCircle, Paperclip, Download, FileText, Repeat, TrendingUp } from 'lucide-react';
 import type { Transaction } from '../../hooks/useTransactions';
 import { Tooltip } from '../ui/Tooltip';
 import { useAuth } from '../../context/AuthContext';
@@ -103,9 +103,23 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                         {transactions.map((t) => (
                             <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white truncate max-w-[150px] lg:max-w-[300px]">
-                                    <Tooltip content={t.description}>
-                                        <span>{t.description}</span>
-                                    </Tooltip>
+                                    <div className="flex items-center gap-2">
+                                        <Tooltip content={t.description}>
+                                            <span className="truncate">{t.description}</span>
+                                        </Tooltip>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            {t.is_recurring && (
+                                                <Tooltip content={`Recorrente (${{ weekly: 'Semanal', monthly: 'Mensal', yearly: 'Anual' }[t.frequency || 'monthly']}) ${t.installment_number ? `- Part #${t.installment_number}` : ''}`}>
+                                                    <Repeat size={12} className="text-emerald-500" />
+                                                </Tooltip>
+                                            )}
+                                            {t.is_variable_amount && (
+                                                <Tooltip content="Valor Variável (Estimado)">
+                                                    <TrendingUp size={12} className="text-blue-500" />
+                                                </Tooltip>
+                                            )}
+                                        </div>
+                                    </div>
                                 </td>
                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                     {getUserName(t.user_id)}
@@ -143,8 +157,9 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                                 <td className={`px-4 py-3 font-bold ${t.type === 'expense' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
                                     }`}>
                                     <div className="flex flex-col">
-                                        <span>
+                                        <span className={t.is_variable_amount && t.status === 'pending' ? 'text-blue-600 dark:text-blue-400 italic' : ''}>
                                             {t.type === 'expense' ? '-' : '+'} {formatCurrency(t.paid_amount || t.amount)}
+                                            {t.is_variable_amount && t.status === 'pending' && <span className="ml-1 text-[10px] font-normal">(est.)</span>}
                                         </span>
                                         {((t.interest || 0) > 0 || (t.penalty || 0) > 0) && (
                                             <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
+import { calculateNextDates } from '../utils/dateUtils';
 
 export type TransactionType = 'expense' | 'income';
 export type TransactionStatus = 'pending' | 'paid' | 'received' | 'late';
@@ -17,7 +18,10 @@ export interface Transaction {
     category_id?: string;
     company_id?: string;
     is_recurring: boolean;
+    is_variable_amount: boolean;
     frequency?: 'weekly' | 'monthly' | 'yearly';
+    recurrence_group_id?: string;
+    installment_number?: number;
     parent_id?: string;
     contact_id?: string;
     attachment_url?: string;
@@ -77,22 +81,47 @@ export function useTransactions(type: TransactionType) {
     const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at' | 'user_id'>) => {
         if (!user) return;
         try {
+            const userId = user.id;
+            const companyId = currentEntity.type === 'company' ? currentEntity.id : null;
+
+            // If recurring, generate group and installments
+            const recurrenceGroupId = transaction.is_recurring ? crypto.randomUUID() : null;
+
+            const entriesToInsert = [{
+                ...transaction,
+                user_id: userId,
+                company_id: companyId,
+                recurrence_group_id: recurrenceGroupId,
+                installment_number: transaction.is_recurring ? 1 : null
+            }];
+
+            if (transaction.is_recurring && transaction.frequency) {
+                const nextDates = calculateNextDates(transaction.date, transaction.frequency, 12);
+                nextDates.forEach((dateObj, index) => {
+                    entriesToInsert.push({
+                        ...transaction,
+                        date: dateObj.toISOString().split('T')[0],
+                        user_id: userId,
+                        company_id: companyId,
+                        recurrence_group_id: recurrenceGroupId,
+                        installment_number: index + 2,
+                        status: 'pending' // Future ones are always pending
+                    });
+                });
+            }
+
             const { data, error } = await supabase
                 .from('transactions')
-                .insert([{
-                    ...transaction,
-                    user_id: user.id,
-                    company_id: currentEntity.type === 'company' ? currentEntity.id : null,
-                    deal_id: transaction.deal_id
-                }])
-                .select()
-                .maybeSingle();
+                .insert(entriesToInsert)
+                .select();
 
             if (error) throw error;
             if (!data) throw new Error('Erro ao criar transação: Nenhum dado retornado.');
 
-            setTransactions(prev => [...prev, data]);
-            return data;
+            // Only add the first one (or the one matching the current view) to local state if needed
+            // Actually, better to just refresh to get all relevant ones for the current filter
+            await fetchTransactions();
+            return data[0];
         } catch (err: any) {
             setError(err.message);
             throw err;
