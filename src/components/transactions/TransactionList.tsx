@@ -89,48 +89,48 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-slate-700">
                         <tr>
-                            <th className="px-4 py-3">Descrição</th>
-                            <th className="px-4 py-3">Resp.</th>
-                            <th className="px-4 py-3">Vencimento</th>
-                            <th className="px-4 py-3">Pagamento</th>
-                            <th className="px-4 py-3">Forma Pgto</th>
-                            <th className="px-4 py-3">Valor</th>
-                            <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3 text-right">Ações</th>
+                            <th className="px-3 py-3 w-[25%]">Descrição</th>
+                            <th className="px-3 py-3 w-[10%]">Resp.</th>
+                            <th className="px-3 py-3 w-[12%]">Vencimento</th>
+                            <th className="px-3 py-3 w-[12%]">Pagamento</th>
+                            <th className="px-3 py-3 w-[15%]">Forma Pgto</th>
+                            <th className="px-3 py-3 w-[12%]">Valor</th>
+                            <th className="px-3 py-3 w-[10%]">Status</th>
+                            <th className="px-3 py-3 w-[4%] text-right">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                         {transactions.map((t) => (
                             <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white truncate max-w-[150px] lg:max-w-[300px]">
-                                    <div className="flex items-center gap-2">
+                                <td className="px-3 py-3 font-medium text-gray-900 dark:text-white truncate max-w-[120px] lg:max-w-[250px]">
+                                    <div className="flex items-center gap-1.5 min-w-0">
                                         <Tooltip content={t.description}>
                                             <span className="truncate">{t.description}</span>
                                         </Tooltip>
                                         <div className="flex items-center gap-1 shrink-0">
                                             {t.is_recurring && (
                                                 <Tooltip content={`Recorrente (${{ weekly: 'Semanal', monthly: 'Mensal', yearly: 'Anual' }[t.frequency || 'monthly']}) ${t.installment_number ? `- Part #${t.installment_number}` : ''}`}>
-                                                    <Repeat size={12} className="text-emerald-500" />
+                                                    <Repeat size={11} className="text-emerald-500" />
                                                 </Tooltip>
                                             )}
                                             {t.is_variable_amount && (
                                                 <Tooltip content="Valor Variável (Estimado)">
-                                                    <TrendingUp size={12} className="text-blue-500" />
+                                                    <TrendingUp size={11} className="text-blue-500" />
                                                 </Tooltip>
                                             )}
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                <td className="px-3 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap text-xs">
                                     {getUserName(t.user_id)}
                                 </td>
-                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{formatDate(t.date)}</td>
-                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
+                                <td className="px-3 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap text-xs">{formatDate(t.date)}</td>
+                                <td className="px-3 py-3 text-gray-600 dark:text-gray-400 text-[11px] whitespace-nowrap">
                                     {t.status === 'pending' || t.status === 'late' ? '-' : formatDate(t.payment_date || t.date)}
                                 </td>
-                                <td className="px-4 py-3 text-xs whitespace-nowrap">
+                                <td className="px-3 py-3 text-[11px] whitespace-nowrap">
                                     {t.payment_method ? (
-                                        <span className={`inline-flex px-2 py-1 rounded-md font-medium border ${{
+                                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium border ${{
                                             'pix': 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800',
                                             'credit_card': 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
                                             'debit_card': 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800',
@@ -154,9 +154,9 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                                         <span className="text-gray-400 dark:text-gray-600">-</span>
                                     )}
                                 </td>
-                                <td className={`px-4 py-3 font-bold ${t.type === 'expense' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                                <td className={`px-3 py-3 font-bold text-xs ${t.type === 'expense' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
                                     }`}>
-                                    <div className="flex flex-col">
+                                    <div className="flex flex-col whitespace-nowrap">
                                         <span className={t.is_variable_amount && t.status === 'pending' ? 'text-blue-600 dark:text-blue-400 italic' : ''}>
                                             {t.type === 'expense' ? '-' : '+'} {formatCurrency(t.paid_amount || t.amount)}
                                             {t.is_variable_amount && t.status === 'pending' && <span className="ml-1 text-[10px] font-normal">(est.)</span>}
@@ -183,7 +183,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                                         </Tooltip>
                                     )}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-3">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${t.status === 'pending'
                                         ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
                                         : t.status === 'late'
@@ -195,54 +195,56 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                                                 t.type === 'expense' ? 'Pago' : 'Recebido'}
                                     </span>
                                 </td>
-                                <td className="px-4 py-3 text-right flex justify-end gap-2">
-                                    <Tooltip content={t.status === 'pending' ? "Marcar como pago/recebido" : "Marcar como pendente"}>
-                                        <button
-                                            onClick={() => onToggleStatus(t)}
-                                            className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 ${t.status === 'pending' ? 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400' : 'text-green-600 dark:text-green-400'
-                                                }`}
-                                        >
-                                            <CheckCircle size={18} />
-                                        </button>
-                                    </Tooltip>
-
-                                    {t.quote_id && onViewQuote && (
-                                        <Tooltip content="Ver Orçamento (PDF)">
+                                <td className="px-3 py-3 text-right">
+                                    <div className="flex justify-end gap-1.5 min-w-max">
+                                        <Tooltip content={t.status === 'pending' ? "Marcar como pago/recebido" : "Marcar como pendente"}>
                                             <button
-                                                onClick={() => onViewQuote(t.quote_id!)}
-                                                className="p-1 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
-                                            >
-                                                <FileText size={18} />
-                                            </button>
-                                        </Tooltip>
-                                    )}
-
-                                    <Tooltip content="Editar">
-                                        <button
-                                            onClick={() => onEdit(t)}
-                                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
-                                        >
-                                            <Edit2 size={18} />
-                                        </button>
-                                    </Tooltip>
-                                    {canDelete && (
-                                        <Tooltip content={
-                                            !isSuperAdmin && (t.status === 'paid' || t.status === 'received')
-                                                ? "🔒 Transação paga/recebida não pode ser excluída"
-                                                : "Excluir"
-                                        }>
-                                            <button
-                                                onClick={() => onDelete(t.id)}
-                                                className={`p-1 rounded ${!isSuperAdmin && (t.status === 'paid' || t.status === 'received')
-                                                    ? 'text-gray-300 cursor-not-allowed'
-                                                    : 'text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                                onClick={() => onToggleStatus(t)}
+                                                className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 ${t.status === 'pending' ? 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400' : 'text-green-600 dark:text-green-400'
                                                     }`}
-                                                disabled={!isSuperAdmin && (t.status === 'paid' || t.status === 'received')}
                                             >
-                                                <Trash2 size={18} />
+                                                <CheckCircle size={16} />
                                             </button>
                                         </Tooltip>
-                                    )}
+
+                                        {t.quote_id && onViewQuote && (
+                                            <Tooltip content="Ver Orçamento (PDF)">
+                                                <button
+                                                    onClick={() => onViewQuote(t.quote_id!)}
+                                                    className="p-1 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
+                                                >
+                                                    <FileText size={16} />
+                                                </button>
+                                            </Tooltip>
+                                        )}
+
+                                        <Tooltip content="Editar">
+                                            <button
+                                                onClick={() => onEdit(t)}
+                                                className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                        </Tooltip>
+                                        {canDelete && (
+                                            <Tooltip content={
+                                                !isSuperAdmin && (t.status === 'paid' || t.status === 'received')
+                                                    ? "🔒 Transação paga/recebida não pode ser excluída"
+                                                    : "Excluir"
+                                            }>
+                                                <button
+                                                    onClick={() => onDelete(t.id)}
+                                                    className={`p-1 rounded ${!isSuperAdmin && (t.status === 'paid' || t.status === 'received')
+                                                        ? 'text-gray-300 cursor-not-allowed'
+                                                        : 'text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                                        }`}
+                                                    disabled={!isSuperAdmin && (t.status === 'paid' || t.status === 'received')}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </Tooltip>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
