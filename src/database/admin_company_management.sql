@@ -46,14 +46,17 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.admin_update_company_config(UUID, BOOLEAN, BOOLEAN, BOOLEAN, JSONB);
+
 -- 2. Function to update company configuration (Super Admin ONLY)
 CREATE OR REPLACE FUNCTION public.admin_update_company_config(
     target_company_id UUID,
     fiscal_enabled BOOLEAN,
     payments_enabled BOOLEAN,
+    crm_enabled BOOLEAN,
     settings_input JSONB DEFAULT NULL
 )
-RETURNS void
+RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
@@ -62,7 +65,10 @@ BEGIN
     SET 
         fiscal_module_enabled = fiscal_enabled,
         payments_module_enabled = payments_enabled,
+        crm_module_enabled = crm_enabled,
         settings = COALESCE(settings_input, settings)
     WHERE id = target_company_id;
+
+    RETURN jsonb_build_object('success', true);
 END;
 $$;

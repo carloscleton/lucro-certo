@@ -120,8 +120,16 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-    -- Remove profile (Auth user removal requires different privileges or triggers)
+    -- 1. Remove dependências em ordem
+    DELETE FROM public.user_settings WHERE user_id = target_user_id;
+    DELETE FROM public.company_members WHERE user_id = target_user_id;
+    
+    -- 2. Remove o perfil público
     DELETE FROM public.profiles WHERE id = target_user_id;
+
+    -- 3. Remove o usuário do AUTH (Supabase Native)
+    -- Isso é importante para que o usuário pare de conseguir logar
+    DELETE FROM auth.users WHERE id = target_user_id;
 END;
 $$;
 

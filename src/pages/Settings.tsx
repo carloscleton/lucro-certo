@@ -48,6 +48,8 @@ export function Settings() {
     const [activeTab, setActiveTab] = useState<'quotes' | 'financial' | 'team' | 'webhooks' | 'whatsapp' | 'fiscal' | 'payments' | 'admin'>('quotes');
     const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices'>('users');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
+    const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
+    const [savingConfig, setSavingConfig] = useState(false);
     const [selectedCompanyForInvoice, setSelectedCompanyForInvoice] = useState<any | null>(null);
     const [invoiceData, setInvoiceData] = useState({ amount: '', description: '' });
     const [generatingInvoice, setGeneratingInvoice] = useState(false);
@@ -632,7 +634,7 @@ export function Settings() {
                             </div>
 
                             <div className="p-8 overflow-y-auto space-y-10">
-                                {/* Direct Module Toggles (Legacy/Quick) */}
+                                {/* Direct Module Toggles */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
@@ -644,22 +646,8 @@ export function Settings() {
                                                 <input
                                                     type="checkbox"
                                                     className="sr-only peer"
-                                                    checked={!!selectedCompanyForConfig.fiscal_module_enabled}
-                                                    onChange={async (e) => {
-                                                        const val = e.target.checked;
-                                                        const { error } = await updateCompanyConfig(
-                                                            selectedCompanyForConfig.id,
-                                                            val,
-                                                            !!selectedCompanyForConfig.payments_module_enabled,
-                                                            !!selectedCompanyForConfig.crm_module_enabled,
-                                                            selectedCompanyForConfig.settings || {}
-                                                        );
-                                                        if (error) alert('Erro: ' + error);
-                                                        else {
-                                                            setSelectedCompanyForConfig({ ...selectedCompanyForConfig, fiscal_module_enabled: val });
-                                                            refreshEntity();
-                                                        }
-                                                    }}
+                                                    checked={!!tempCompanyConfig.fiscal_module_enabled}
+                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, fiscal_module_enabled: e.target.checked })}
                                                 />
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
                                             </label>
@@ -676,22 +664,8 @@ export function Settings() {
                                                 <input
                                                     type="checkbox"
                                                     className="sr-only peer"
-                                                    checked={!!selectedCompanyForConfig.payments_module_enabled}
-                                                    onChange={async (e) => {
-                                                        const val = e.target.checked;
-                                                        const { error } = await updateCompanyConfig(
-                                                            selectedCompanyForConfig.id,
-                                                            !!selectedCompanyForConfig.fiscal_module_enabled,
-                                                            val,
-                                                            !!selectedCompanyForConfig.crm_module_enabled,
-                                                            selectedCompanyForConfig.settings || {}
-                                                        );
-                                                        if (error) alert('Erro: ' + error);
-                                                        else {
-                                                            setSelectedCompanyForConfig({ ...selectedCompanyForConfig, payments_module_enabled: val });
-                                                            refreshEntity();
-                                                        }
-                                                    }}
+                                                    checked={!!tempCompanyConfig.payments_module_enabled}
+                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, payments_module_enabled: e.target.checked })}
                                                 />
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
                                             </label>
@@ -708,22 +682,8 @@ export function Settings() {
                                                 <input
                                                     type="checkbox"
                                                     className="sr-only peer"
-                                                    checked={!!selectedCompanyForConfig.crm_module_enabled}
-                                                    onChange={async (e) => {
-                                                        const val = e.target.checked;
-                                                        const { error } = await updateCompanyConfig(
-                                                            selectedCompanyForConfig.id,
-                                                            !!selectedCompanyForConfig.fiscal_module_enabled,
-                                                            !!selectedCompanyForConfig.payments_module_enabled,
-                                                            val,
-                                                            selectedCompanyForConfig.settings || {}
-                                                        );
-                                                        if (error) alert('Erro: ' + error);
-                                                        else {
-                                                            setSelectedCompanyForConfig({ ...selectedCompanyForConfig, crm_module_enabled: val });
-                                                            refreshEntity();
-                                                        }
-                                                    }}
+                                                    checked={!!tempCompanyConfig.crm_module_enabled}
+                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, crm_module_enabled: e.target.checked })}
                                                 />
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
                                             </label>
@@ -740,23 +700,11 @@ export function Settings() {
                                                 <input
                                                     type="checkbox"
                                                     className="sr-only peer"
-                                                    checked={selectedCompanyForConfig.settings?.member_can_delete}
-                                                    onChange={async (e) => {
-                                                        const val = e.target.checked;
-                                                        const newSettings = {
-                                                            ...selectedCompanyForConfig.settings,
-                                                            member_can_delete: val
-                                                        };
-                                                        const { error } = await updateCompanyConfig(
-                                                            selectedCompanyForConfig.id,
-                                                            !!selectedCompanyForConfig.fiscal_module_enabled,
-                                                            !!selectedCompanyForConfig.payments_module_enabled,
-                                                            !!selectedCompanyForConfig.crm_module_enabled,
-                                                            newSettings
-                                                        );
-                                                        if (error) alert('Erro: ' + error);
-                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
-                                                    }}
+                                                    checked={tempCompanyConfig.settings?.member_can_delete}
+                                                    onChange={(e) => setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        settings: { ...tempCompanyConfig.settings, member_can_delete: e.target.checked }
+                                                    })}
                                                 />
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
                                             </label>
@@ -778,29 +726,13 @@ export function Settings() {
                                     <Input
                                         label="Porcentagem de Comissão (%)"
                                         type="number"
-                                        value={selectedCompanyForConfig.settings?.commission_rate || 0}
+                                        value={tempCompanyConfig.settings?.commission_rate || 0}
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                             const rate = parseFloat(e.target.value) || 0;
-                                            const newSettings = {
-                                                ...(selectedCompanyForConfig.settings || {}),
-                                                commission_rate: rate
-                                            };
-                                            setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
-                                        }}
-                                        onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
-                                            const rate = parseFloat(e.target.value) || 0;
-                                            const newSettings = {
-                                                ...(selectedCompanyForConfig.settings || {}),
-                                                commission_rate: rate
-                                            };
-                                            const { error } = await updateCompanyConfig(
-                                                selectedCompanyForConfig.id,
-                                                !!selectedCompanyForConfig.fiscal_module_enabled,
-                                                !!selectedCompanyForConfig.payments_module_enabled,
-                                                !!selectedCompanyForConfig.crm_module_enabled,
-                                                newSettings
-                                            );
-                                            if (error) alert('Erro: ' + error);
+                                            setTempCompanyConfig({
+                                                ...tempCompanyConfig,
+                                                settings: { ...(tempCompanyConfig.settings || {}), commission_rate: rate }
+                                            });
                                         }}
                                         placeholder="Ex: 5"
                                         step="0.1"
@@ -825,46 +757,26 @@ export function Settings() {
                                         <Input
                                             label="Mensalidade (R$ / mês)"
                                             type="number"
-                                            value={selectedCompanyForConfig.settings?.monthly_fee || 0}
+                                            value={tempCompanyConfig.settings?.monthly_fee || 0}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                 const val = parseFloat(e.target.value) || 0;
-                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), monthly_fee: val };
-                                                setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
-                                            }}
-                                            onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
-                                                const val = parseFloat(e.target.value) || 0;
-                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), monthly_fee: val };
-                                                const { error } = await updateCompanyConfig(
-                                                    selectedCompanyForConfig.id,
-                                                    !!selectedCompanyForConfig.fiscal_module_enabled,
-                                                    !!selectedCompanyForConfig.payments_module_enabled,
-                                                    !!selectedCompanyForConfig.crm_module_enabled,
-                                                    newSettings
-                                                );
-                                                if (error) alert('Erro: ' + error);
+                                                setTempCompanyConfig({
+                                                    ...tempCompanyConfig,
+                                                    settings: { ...(tempCompanyConfig.settings || {}), monthly_fee: val }
+                                                });
                                             }}
                                             placeholder="Ex: 150"
                                         />
                                         <Input
                                             label="Licença Anual (R$ / ano)"
                                             type="number"
-                                            value={selectedCompanyForConfig.settings?.annual_fee || 0}
+                                            value={tempCompanyConfig.settings?.annual_fee || 0}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                 const val = parseFloat(e.target.value) || 0;
-                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), annual_fee: val };
-                                                setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
-                                            }}
-                                            onBlur={async (e: React.FocusEvent<HTMLInputElement>) => {
-                                                const val = parseFloat(e.target.value) || 0;
-                                                const newSettings = { ...(selectedCompanyForConfig.settings || {}), annual_fee: val };
-                                                const { error } = await updateCompanyConfig(
-                                                    selectedCompanyForConfig.id,
-                                                    !!selectedCompanyForConfig.fiscal_module_enabled,
-                                                    !!selectedCompanyForConfig.payments_module_enabled,
-                                                    !!selectedCompanyForConfig.crm_module_enabled,
-                                                    newSettings
-                                                );
-                                                if (error) alert('Erro: ' + error);
+                                                setTempCompanyConfig({
+                                                    ...tempCompanyConfig,
+                                                    settings: { ...(tempCompanyConfig.settings || {}), annual_fee: val }
+                                                });
                                             }}
                                             placeholder="Ex: 1200"
                                         />
@@ -872,36 +784,24 @@ export function Settings() {
                                             <Input
                                                 label="Vencimento da Licença"
                                                 type="date"
-                                                value={selectedCompanyForConfig.settings?.license_expires_at ? new Date(selectedCompanyForConfig.settings.license_expires_at).toISOString().split('T')[0] : ''}
-                                                onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                                                value={tempCompanyConfig.settings?.license_expires_at ? new Date(tempCompanyConfig.settings.license_expires_at).toISOString().split('T')[0] : ''}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                     const val = e.target.value;
-                                                    const newSettings = { ...(selectedCompanyForConfig.settings || {}), license_expires_at: val };
-                                                    const { error } = await updateCompanyConfig(
-                                                        selectedCompanyForConfig.id,
-                                                        !!selectedCompanyForConfig.fiscal_module_enabled,
-                                                        !!selectedCompanyForConfig.payments_module_enabled,
-                                                        !!selectedCompanyForConfig.crm_module_enabled,
-                                                        newSettings
-                                                    );
-                                                    if (error) alert('Erro: ' + error);
-                                                    else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        settings: { ...(tempCompanyConfig.settings || {}), license_expires_at: val }
+                                                    });
                                                 }}
                                             />
                                             <button
-                                                onClick={async () => {
+                                                onClick={() => {
                                                     const nextYear = new Date();
                                                     nextYear.setFullYear(nextYear.getFullYear() + 1);
                                                     const val = nextYear.toISOString().split('T')[0];
-                                                    const newSettings = { ...(selectedCompanyForConfig.settings || {}), license_expires_at: val };
-                                                    const { error } = await updateCompanyConfig(
-                                                        selectedCompanyForConfig.id,
-                                                        selectedCompanyForConfig.fiscal_module_enabled,
-                                                        selectedCompanyForConfig.payments_module_enabled,
-                                                        selectedCompanyForConfig.crm_module_enabled,
-                                                        newSettings
-                                                    );
-                                                    if (error) alert('Erro: ' + error);
-                                                    else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        settings: { ...(tempCompanyConfig.settings || {}), license_expires_at: val }
+                                                    });
                                                 }}
                                                 className="text-[10px] w-fit font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
                                             >
@@ -928,31 +828,25 @@ export function Settings() {
                                             </thead>
                                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                                                 {APP_MODULES.map((module) => {
-                                                    const settings = selectedCompanyForConfig.settings || {};
-                                                    const modules = settings.modules || {};
-                                                    const adminEnabled = getModulePermission(module.key, 'admin', settings);
-                                                    const memberEnabled = getModulePermission(module.key, 'member', settings);
+                                                    const currentSettings = tempCompanyConfig.settings || {};
+                                                    const adminEnabled = getModulePermission(module.key, 'admin', currentSettings);
+                                                    const memberEnabled = getModulePermission(module.key, 'member', currentSettings);
 
-                                                    const toggleMod = async (role: 'admin' | 'member', value: boolean) => {
-                                                        const newSettings = {
-                                                            ...settings,
-                                                            modules: {
-                                                                ...modules,
-                                                                [module.key]: {
-                                                                    ...modules[module.key],
-                                                                    [role]: value
+                                                    const toggleMod = (role: 'admin' | 'member', value: boolean) => {
+                                                        const modules = currentSettings.modules || {};
+                                                        setTempCompanyConfig({
+                                                            ...tempCompanyConfig,
+                                                            settings: {
+                                                                ...currentSettings,
+                                                                modules: {
+                                                                    ...modules,
+                                                                    [module.key]: {
+                                                                        ...modules[module.key],
+                                                                        [role]: value
+                                                                    }
                                                                 }
                                                             }
-                                                        };
-                                                        const { error } = await updateCompanyConfig(
-                                                            selectedCompanyForConfig.id,
-                                                            selectedCompanyForConfig.fiscal_module_enabled,
-                                                            selectedCompanyForConfig.payments_module_enabled,
-                                                            selectedCompanyForConfig.crm_module_enabled,
-                                                            newSettings
-                                                        );
-                                                        if (error) alert('Erro: ' + error);
-                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                                        });
                                                     };
 
                                                     return (
@@ -989,31 +883,25 @@ export function Settings() {
                                             </thead>
                                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                                                 {SETTINGS_TABS.map((tab) => {
-                                                    const settings = selectedCompanyForConfig.settings || {};
-                                                    const tabs = settings.settings_tabs || {};
-                                                    const adminEnabled = getTabPermission(tab.key, 'admin', settings);
-                                                    const memberEnabled = getTabPermission(tab.key, 'member', settings);
+                                                    const currentSettings = tempCompanyConfig.settings || {};
+                                                    const adminEnabled = getTabPermission(tab.key, 'admin', currentSettings);
+                                                    const memberEnabled = getTabPermission(tab.key, 'member', currentSettings);
 
-                                                    const toggleTb = async (role: 'admin' | 'member', value: boolean) => {
-                                                        const newSettings = {
-                                                            ...settings,
-                                                            settings_tabs: {
-                                                                ...tabs,
-                                                                [tab.key]: {
-                                                                    ...tabs[tab.key],
-                                                                    [role]: value
+                                                    const toggleTb = (role: 'admin' | 'member', value: boolean) => {
+                                                        const tabs = currentSettings.settings_tabs || {};
+                                                        setTempCompanyConfig({
+                                                            ...tempCompanyConfig,
+                                                            settings: {
+                                                                ...currentSettings,
+                                                                settings_tabs: {
+                                                                    ...tabs,
+                                                                    [tab.key]: {
+                                                                        ...tabs[tab.key],
+                                                                        [role]: value
+                                                                    }
                                                                 }
                                                             }
-                                                        };
-                                                        const { error } = await updateCompanyConfig(
-                                                            selectedCompanyForConfig.id,
-                                                            selectedCompanyForConfig.fiscal_module_enabled,
-                                                            selectedCompanyForConfig.payments_module_enabled,
-                                                            selectedCompanyForConfig.crm_module_enabled,
-                                                            newSettings
-                                                        );
-                                                        if (error) alert('Erro: ' + error);
-                                                        else setSelectedCompanyForConfig({ ...selectedCompanyForConfig, settings: newSettings });
+                                                        });
                                                     };
 
                                                     return (
@@ -1034,8 +922,34 @@ export function Settings() {
                                 </div>
                             </div>
 
-                            <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50 flex justify-end">
-                                <Button onClick={() => setSelectedCompanyForConfig(null)} variant="primary">Concluído</Button>
+                            <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50 flex justify-end gap-3">
+                                <Button onClick={() => setSelectedCompanyForConfig(null)} variant="ghost">Cancelar</Button>
+                                <Button
+                                    onClick={async () => {
+                                        setSavingConfig(true);
+                                        const { error } = await updateCompanyConfig(
+                                            tempCompanyConfig.id,
+                                            !!tempCompanyConfig.fiscal_module_enabled,
+                                            !!tempCompanyConfig.payments_module_enabled,
+                                            !!tempCompanyConfig.crm_module_enabled,
+                                            tempCompanyConfig.settings || {}
+                                        );
+                                        setSavingConfig(false);
+                                        if (error) {
+                                            alert('Erro ao salvar: ' + error);
+                                        } else {
+                                            // Se for a empresa atual, atualiza o contexto
+                                            if (tempCompanyConfig.id === currentEntity?.id) {
+                                                refreshEntity();
+                                            }
+                                            setSelectedCompanyForConfig(null);
+                                        }
+                                    }}
+                                    isLoading={savingConfig}
+                                    variant="primary"
+                                >
+                                    Salvar Alterações
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -1474,7 +1388,10 @@ export function Settings() {
                                                                         size="sm"
                                                                         variant="primary"
                                                                         className="h-8 px-2.5 text-[10px] gap-1.5 rounded-lg shadow-lg shadow-blue-500/10 transition-all"
-                                                                        onClick={() => setSelectedCompanyForConfig(c)}
+                                                                        onClick={() => {
+                                                                            setSelectedCompanyForConfig(c);
+                                                                            setTempCompanyConfig({ ...c });
+                                                                        }}
                                                                     >
                                                                         <Shield size={14} />
                                                                         Configurar
