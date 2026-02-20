@@ -26,7 +26,7 @@ BEGIN
     -- Get current count of companies owned by user
     SELECT COUNT(*) INTO current_count
     FROM public.company_members cm
-    WHERE cm.user_id = auth.uid() AND cm.role = 'admin';
+    WHERE cm.user_id = auth.uid() AND cm.role IN ('owner', 'admin');
 
     -- Get user's max limit
     SELECT max_companies INTO max_limit
