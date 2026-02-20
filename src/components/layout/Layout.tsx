@@ -73,11 +73,15 @@ export function Layout() {
         }
 
         if (currentEntity.type === 'company' && userRole) {
-            const hasPermission = getModulePermission(item.key, (userRole === 'owner' ? 'admin' : userRole) as 'admin' | 'member', settings);
+            const effectiveRole = (userRole === 'owner' ? 'admin' : userRole) as 'admin' | 'member';
+            const hasPermission = getModulePermission(item.key, effectiveRole, settings);
+
+            const isExplicitlyDisabledInProfile = profile?.settings?.modules?.[item.key]?.[effectiveRole] === false;
+            const isExplicitlyDisabledInCompany = settings?.modules?.[item.key]?.[effectiveRole] === false;
 
             // Owner/SystemAdmin see everything by default, UNLESS explicitly disabled
             if (userRole === 'owner' || isSystemAdmin) {
-                return settings?.modules?.[item.key]?.[userRole === 'owner' ? 'admin' : userRole] !== false;
+                return !(isExplicitlyDisabledInProfile || isExplicitlyDisabledInCompany);
             }
 
             return hasPermission;
@@ -108,10 +112,18 @@ export function Layout() {
     ].filter(item => {
         if (currentEntity.type !== 'company') return false; // Handled in main nav for personal
 
-        const isExplicitlyDisabled = settings?.modules?.[item.key]?.[userRole === 'owner' ? 'admin' : userRole] === false;
+        const effectiveRole = (userRole === 'owner' ? 'admin' : userRole) as 'admin' | 'member';
+
+        // Priority: Check if explicitly disabled in profile settings (User control)
+        const isExplicitlyDisabledInProfile = profile?.settings?.modules?.[item.key]?.[effectiveRole] === false;
+        // Also check company settings (Company control)
+        const isExplicitlyDisabledInCompany = settings?.modules?.[item.key]?.[effectiveRole] === false;
+
+        const isExplicitlyDisabled = isExplicitlyDisabledInProfile || isExplicitlyDisabledInCompany;
+
         if (userRole === 'owner' || isSystemAdmin) return !isExplicitlyDisabled;
 
-        return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
+        return getModulePermission(item.key, effectiveRole, settings);
     });
 
     const canSeeManagementGroup = currentEntity.type === 'company' && (managementItems.length > 0 || isSystemAdmin);
