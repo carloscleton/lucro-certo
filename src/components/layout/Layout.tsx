@@ -89,7 +89,7 @@ export function Layout() {
             if (isSystemAdmin) return true;
 
             // Basic items always allowed in personal view for others
-            if (['dashboard', 'companies', 'settings'].includes(item.key)) return true;
+            if (['dashboard', 'companies'].includes(item.key)) return true;
 
             // Check if module is allowed in personal settings (treat as admin)
             return getModulePermission(item.key, 'admin', settings);

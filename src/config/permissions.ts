@@ -160,6 +160,14 @@ export const APP_MODULES: ModuleDefinition[] = [
         path: '/crm',
         desc: 'Gestão de leads e funil de vendas',
         defaultPermissions: { admin: true, member: true }
+    },
+    {
+        key: 'fiscal',
+        label: 'Fiscal',
+        icon: FileText,
+        path: '/fiscal',
+        desc: 'NFe e tributação',
+        defaultPermissions: { admin: true, member: false }
     }
 ];
 
@@ -218,6 +226,14 @@ export const SETTINGS_TABS: TabDefinition[] = [
         icon: CreditCard,
         color: 'emerald',
         desc: 'Chaves de API e Gateways',
+        defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'fiscal',
+        label: 'Fiscal',
+        icon: FileText,
+        color: 'blue',
+        desc: 'Configurações fiscais e NFe',
         defaultPermissions: { admin: true, member: false }
     },
     // Admin tab is special, handled separately usually, but good to list if needed

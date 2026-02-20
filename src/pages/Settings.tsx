@@ -1013,7 +1013,7 @@ export function Settings() {
                                 <div>
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Acesso aos Módulos (Sidebar)</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {APP_MODULES.filter(m => !['dashboard', 'companies', 'settings'].includes(m.key)).map(module => {
+                                        {APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).map(module => {
                                             const isEnabled = selectedUserForConfig.settings?.modules?.[module.key]?.admin !== false;
                                             return (
                                                 <div key={module.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700">
