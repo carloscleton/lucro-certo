@@ -1245,7 +1245,7 @@ export function Settings() {
                         </div>
 
                         {/* Admin Sub-tabs */}
-                        <div className="flex border-b border-gray-200 dark:border-slate-700">
+                        <div className="flex gap-2 p-2 bg-gray-100/50 dark:bg-slate-900/50 rounded-xl mb-6">
                             {[
                                 { id: 'users', label: 'Usuários', icon: Users },
                                 { id: 'companies', label: 'Empresas', icon: Building },
@@ -1254,13 +1254,13 @@ export function Settings() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setAdminSubTab(tab.id as any)}
-                                    className={`flex items - center gap - 2 px - 6 py - 3 border - b - 2 transition - all ${adminSubTab === tab.id
-                                        ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-800'
-                                        } `}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all duration-200 ${adminSubTab === tab.id
+                                        ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 dark:hover:bg-slate-800/50'
+                                        }`}
                                 >
                                     <tab.icon size={18} />
-                                    <span className="text-sm font-medium">{tab.label}</span>
+                                    <span className="text-sm font-semibold">{tab.label}</span>
                                 </button>
                             ))}
                         </div>
@@ -1277,14 +1277,14 @@ export function Settings() {
 
                                 <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg">
                                     <table className="w-full text-left text-sm">
-                                        <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
+                                        <thead className="bg-gray-50/50 dark:bg-slate-900/50 text-gray-500 uppercase text-[10px] font-bold tracking-wider border-b border-gray-100 dark:border-slate-700">
                                             <tr>
-                                                <th className="px-4 py-3">Usuário / Email</th>
-                                                <th className="px-4 py-3">Tipo</th>
-                                                <th className="px-4 py-3 text-center">Config</th>
-                                                <th className="px-4 py-3 text-center">Atividades</th>
-                                                <th className="px-4 py-3 text-center">Status</th>
-                                                <th className="px-4 py-3 text-right">Ações</th>
+                                                <th className="px-5 py-4">Usuário / Email</th>
+                                                <th className="px-5 py-4">Tipo</th>
+                                                <th className="px-5 py-4 text-center">Config</th>
+                                                <th className="px-5 py-4 text-center">Atividades</th>
+                                                <th className="px-5 py-4 text-center">Status</th>
+                                                <th className="px-5 py-4 text-right">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -1303,17 +1303,17 @@ export function Settings() {
                                                         <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                                                             <td className="px-4 py-3">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className={`p - 2 rounded - full ${isBanned ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'} `}>
+                                                                    <div className={`p-2 rounded-full ${isBanned ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                                                                         <Users size={16} />
                                                                     </div>
                                                                     <div>
-                                                                        <div className={`font - medium ${isBanned ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'} `}>{u.full_name || 'Sem nome'}</div>
+                                                                        <div className={`font-medium ${isBanned ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{u.full_name || 'Sem nome'}</div>
                                                                         <div className="text-xs text-gray-500">{u.email}</div>
                                                                     </div>
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-3">
-                                                                <span className={`px - 2 py - 0.5 rounded text - [10px] uppercase font - bold border ${u.user_type === 'PJ' ? 'border-purple-200 bg-purple-50 text-purple-700' : 'border-gray-200 bg-gray-50 text-gray-600'} `}>
+                                                                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${u.user_type === 'PJ' ? 'border-purple-200 bg-purple-50 text-purple-700' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
                                                                     {u.user_type}
                                                                 </span>
                                                             </td>
@@ -1327,10 +1327,10 @@ export function Settings() {
                                                                     </Tooltip>
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <div className="flex flex-col text-[10px] text-gray-500">
-                                                                    <span>{u.quotes_count || 0} Orç.</span>
-                                                                    <span>{u.transactions_count || 0} Tx.</span>
+                                                            <td className="px-5 py-4 text-center">
+                                                                <div className="flex flex-col text-[10px] text-gray-500 font-medium">
+                                                                    <span>{u.quotes_count || 0} Orçamentos</span>
+                                                                    <span>{u.transactions_count || 0} Transações</span>
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
@@ -1344,9 +1344,9 @@ export function Settings() {
                                                                     <div className="w-11 h-6 bg-red-500 peer-focus:outline-none rounded-full peer dark:bg-red-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                                                                 </label>
                                                             </td>
-                                                            <td className="px-4 py-3 text-right">
-                                                                <button onClick={() => { if (confirm('Excluir usuário?')) deleteUser(u.id); }} className="p-1.5 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-lg transition-colors">
-                                                                    <Trash2 size={16} />
+                                                            <td className="px-5 py-4 text-right">
+                                                                <button onClick={() => { if (confirm('Excluir usuário?')) deleteUser(u.id); }} className="p-2 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-lg transition-colors group">
+                                                                    <Trash2 size={18} className="transition-transform group-hover:scale-110" />
                                                                 </button>
                                                             </td>
                                                         </tr>
@@ -1370,14 +1370,14 @@ export function Settings() {
 
                                 <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg">
                                     <table className="w-full text-left text-sm">
-                                        <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
+                                        <thead className="bg-gray-50/50 dark:bg-slate-900/50 text-gray-500 uppercase text-[10px] font-bold tracking-wider border-b border-gray-100 dark:border-slate-700">
                                             <tr>
-                                                <th className="px-4 py-3">Logo / Empresa</th>
-                                                <th className="px-4 py-3 text-center">Responsável</th>
-                                                <th className="px-4 py-3 text-center">Plano / Licença</th>
-                                                <th className="px-4 py-3 text-center">Faturamento</th>
-                                                <th className="px-4 py-3 text-center">Sua Comissão</th>
-                                                <th className="px-4 py-3 text-right">Ações</th>
+                                                <th className="px-5 py-4">Logo / Empresa</th>
+                                                <th className="px-5 py-4 text-center">Responsável</th>
+                                                <th className="px-5 py-4 text-center">Plano / Licença</th>
+                                                <th className="px-5 py-4 text-center">Faturamento</th>
+                                                <th className="px-5 py-4 text-center">Sua Comissão</th>
+                                                <th className="px-5 py-4 text-right">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -1450,35 +1450,37 @@ export function Settings() {
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <div className="flex items-center justify-end gap-1">
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="h-8 px-2 text-[10px] gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-                                                                    onClick={() => {
-                                                                        setSelectedCompanyForInvoice(c);
-                                                                        const month = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-                                                                        const monthlyFee = c.settings?.monthly_fee || 0;
-                                                                        const commissions = c.commission_earned || 0;
-                                                                        setInvoiceData({
-                                                                            amount: (monthlyFee + commissions).toString(),
-                                                                            description: `Mensalidade + Comissões - ${c.trade_name} - ${month} `
-                                                                        });
-                                                                    }}
-                                                                >
-                                                                    <CreditCard size={14} />
-                                                                    Fatura
-                                                                </Button>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="primary"
-                                                                    className="h-8 px-3 text-[10px] gap-1.5 rounded-lg"
-                                                                    onClick={() => setSelectedCompanyForConfig(c)}
-                                                                >
-                                                                    <Shield size={14} />
-                                                                    Configurar
-                                                                </Button>
+                                                        <td className="px-5 py-4 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <Tooltip content="Gerar Faturamento">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="h-9 w-9 p-0 flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 rounded-xl transition-all hover:scale-105 shadow-sm"
+                                                                        onClick={() => {
+                                                                            setSelectedCompanyForInvoice(c);
+                                                                            const month = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                                                                            const monthlyFee = c.settings?.monthly_fee || 0;
+                                                                            const commissions = c.commission_earned || 0;
+                                                                            setInvoiceData({
+                                                                                amount: (monthlyFee + commissions).toString(),
+                                                                                description: `Mensalidade + Comissões - ${c.trade_name} - ${month} `
+                                                                            });
+                                                                        }}
+                                                                    >
+                                                                        <CreditCard size={18} />
+                                                                    </Button>
+                                                                </Tooltip>
+                                                                <Tooltip content="Configurações Master">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="primary"
+                                                                        className="h-9 w-9 p-0 flex items-center justify-center rounded-xl shadow-lg shadow-blue-500/10 transition-all hover:scale-105"
+                                                                        onClick={() => setSelectedCompanyForConfig(c)}
+                                                                    >
+                                                                        <Shield size={18} />
+                                                                    </Button>
+                                                                </Tooltip>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -1508,12 +1510,12 @@ export function Settings() {
 
                                 <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
                                     <table className="w-full text-left text-sm">
-                                        <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
+                                        <thead className="bg-gray-50/50 dark:bg-slate-900/50 text-gray-500 uppercase text-[10px] font-bold tracking-wider border-b border-gray-100 dark:border-slate-700">
                                             <tr>
-                                                <th className="px-4 py-3">Empresa / Referência</th>
-                                                <th className="px-4 py-3 text-center">Valor</th>
-                                                <th className="px-4 py-3 text-center">Status</th>
-                                                <th className="px-4 py-3 text-right">Ações</th>
+                                                <th className="px-5 py-4">Empresa / Referência</th>
+                                                <th className="px-5 py-4 text-center">Valor</th>
+                                                <th className="px-5 py-4 text-center">Status</th>
+                                                <th className="px-5 py-4 text-right">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -1523,33 +1525,33 @@ export function Settings() {
                                                 <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">Nenhuma fatura encontrada.</td></tr>
                                             ) : (
                                                 recentCharges.map((chg) => (
-                                                    <tr key={chg.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                                                        <td className="px-4 py-3">
-                                                            <div className="font-medium text-gray-900 dark:text-white leading-tight">{chg.description}</div>
+                                                    <tr key={chg.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                                                        <td className="px-5 py-4">
+                                                            <div className="font-bold text-gray-900 dark:text-white leading-tight mb-0.5">{chg.description}</div>
                                                             <div className="text-[10px] text-gray-400 font-mono">Ref: {chg.external_reference}</div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">
+                                                        <td className="px-5 py-4 text-center font-bold text-gray-900 dark:text-white">
                                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(chg.amount)}
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
-                                                            <span className={`px - 2 py - 0.5 rounded - full text - [10px] font - bold border ${chg.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${chg.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' :
                                                                 chg.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
                                                                     'bg-gray-50 text-gray-600 border-gray-200'
-                                                                } `}>
+                                                                }`}>
                                                                 {chg.status.toUpperCase()}
                                                             </span>
                                                         </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <div className="flex justify-end items-center gap-2">
+                                                        <td className="px-5 py-4 text-right">
+                                                            <div className="flex justify-end items-center gap-1">
                                                                 <Tooltip content="Copiar Link">
                                                                     <button
                                                                         onClick={() => {
                                                                             navigator.clipboard.writeText(chg.payment_link || '');
                                                                             alert('Link copiado!');
                                                                         }}
-                                                                        className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"
+                                                                        className="p-2 hover:bg-blue-50 text-blue-500 rounded-xl transition-all hover:scale-110"
                                                                     >
-                                                                        <CreditCard size={14} />
+                                                                        <CreditCard size={18} />
                                                                     </button>
                                                                 </Tooltip>
                                                             </div>
@@ -1567,65 +1569,67 @@ export function Settings() {
             </div>
 
             {/* Modal Gerar Fatura */}
-            {selectedCompanyForInvoice && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                <CreditCard className="text-blue-600" size={20} />
-                                Gerar Fatura Admin
-                            </h2>
-                            <button onClick={() => setSelectedCompanyForInvoice(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <div className="text-xs text-blue-600 dark:text-blue-400 font-bold mb-1">EMPRESA DESTINO</div>
-                                <div className="text-sm font-bold text-gray-900 dark:text-white">{selectedCompanyForInvoice.trade_name}</div>
-                                <div className="text-[10px] text-gray-500">{selectedCompanyForInvoice.cnpj}</div>
+            {
+                selectedCompanyForInvoice && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <CreditCard className="text-blue-600" size={20} />
+                                    Gerar Fatura Admin
+                                </h2>
+                                <button onClick={() => setSelectedCompanyForInvoice(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                    <X size={24} />
+                                </button>
                             </div>
-
-                            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-900/30 space-y-2">
-                                <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">Detalhamento da Cobrança</div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">Mensalidade Fixa:</span>
-                                    <span className="font-medium text-gray-900 dark:text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyForInvoice.settings?.monthly_fee || 0)}</span>
+                            <div className="p-6 space-y-4">
+                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <div className="text-xs text-blue-600 dark:text-blue-400 font-bold mb-1">EMPRESA DESTINO</div>
+                                    <div className="text-sm font-bold text-gray-900 dark:text-white">{selectedCompanyForInvoice.trade_name}</div>
+                                    <div className="text-[10px] text-gray-500">{selectedCompanyForInvoice.cnpj}</div>
                                 </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">Comissões Acumuladas:</span>
-                                    <span className="font-medium text-emerald-600 dark:text-emerald-400">+{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyForInvoice.commission_earned || 0)}</span>
+
+                                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-900/30 space-y-2">
+                                    <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">Detalhamento da Cobrança</div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-500">Mensalidade Fixa:</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyForInvoice.settings?.monthly_fee || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-500">Comissões Acumuladas:</span>
+                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">+{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyForInvoice.commission_earned || 0)}</span>
+                                    </div>
+                                    <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800 flex justify-between text-sm font-bold">
+                                        <span className="text-gray-700 dark:text-gray-300">Total Sugerido:</span>
+                                        <span className="text-gray-900 dark:text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedCompanyForInvoice.settings?.monthly_fee || 0) + (selectedCompanyForInvoice.commission_earned || 0))}</span>
+                                    </div>
                                 </div>
-                                <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800 flex justify-between text-sm font-bold">
-                                    <span className="text-gray-700 dark:text-gray-300">Total Sugerido:</span>
-                                    <span className="text-gray-900 dark:text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedCompanyForInvoice.settings?.monthly_fee || 0) + (selectedCompanyForInvoice.commission_earned || 0))}</span>
+
+                                <Input
+                                    label="Valor da Fatura (R$)"
+                                    type="number"
+                                    value={invoiceData.amount}
+                                    onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
+                                    placeholder="0.00"
+                                    step="0.01"
+                                />
+
+                                <Input
+                                    label="Descrição / Referência"
+                                    value={invoiceData.description}
+                                    onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
+                                    placeholder="Ex: Mensalidade Fevereiro/2024"
+                                />
+
+                                <div className="pt-4 flex gap-3">
+                                    <Button variant="outline" className="flex-1" onClick={() => setSelectedCompanyForInvoice(null)}>Cancelar</Button>
+                                    <Button className="flex-1" onClick={handleGenerateInvoice} isLoading={generatingInvoice}>Gerar Link</Button>
                                 </div>
-                            </div>
-
-                            <Input
-                                label="Valor da Fatura (R$)"
-                                type="number"
-                                value={invoiceData.amount}
-                                onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
-                                placeholder="0.00"
-                                step="0.01"
-                            />
-
-                            <Input
-                                label="Descrição / Referência"
-                                value={invoiceData.description}
-                                onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
-                                placeholder="Ex: Mensalidade Fevereiro/2024"
-                            />
-
-                            <div className="pt-4 flex gap-3">
-                                <Button variant="outline" className="flex-1" onClick={() => setSelectedCompanyForInvoice(null)}>Cancelar</Button>
-                                <Button className="flex-1" onClick={handleGenerateInvoice} isLoading={generatingInvoice}>Gerar Link</Button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
