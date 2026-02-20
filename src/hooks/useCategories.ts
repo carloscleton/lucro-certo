@@ -83,6 +83,18 @@ export function useCategories() {
     };
 
     const deleteCategory = async (id: string) => {
+        // Primeiro, verifica se a categoria está em uso nas transações
+        const { count, error: countError } = await supabase
+            .from('transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('category_id', id);
+
+        if (countError) throw countError;
+
+        if (count && count > 0) {
+            throw new Error(`Esta categoria não pode ser excluída pois está vinculada a ${count} transaç${count === 1 ? 'ão' : 'ões'}.`);
+        }
+
         const { error } = await supabase
             .from('categories')
             .delete()
