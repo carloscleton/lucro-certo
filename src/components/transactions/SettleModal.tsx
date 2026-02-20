@@ -7,33 +7,40 @@ import { Modal } from '../ui/Modal';
 interface SettleModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number) => Promise<void>;
+    onConfirm: (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, baseAmount?: number) => Promise<void>;
     transactionType: 'expense' | 'income';
     transactionAmount: number;
     transactionDescription: string;
+    isVariableAmount?: boolean;
 }
 
-export function SettleModal({ isOpen, onClose, onConfirm, transactionType, transactionAmount, transactionDescription }: SettleModalProps) {
+export function SettleModal({ isOpen, onClose, onConfirm, transactionType, transactionAmount, transactionDescription, isVariableAmount }: SettleModalProps) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [paymentMethod, setPaymentMethod] = useState('');
+    const [currentAmount, setCurrentAmount] = useState(transactionAmount.toString());
     const [interest, setInterest] = useState('');
     const [penalty, setPenalty] = useState('');
     const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
 
-    // Check if payment date is after due date
-
-
+    const baseAmountValue = parseFloat(currentAmount) || 0;
     const interestValue = parseFloat(interest) || 0;
     const penaltyValue = parseFloat(penalty) || 0;
-    const totalAmount = transactionAmount + interestValue + penaltyValue;
+    const totalAmount = baseAmountValue + interestValue + penaltyValue;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
-            await onConfirm(date, paymentMethod, interestValue, penaltyValue, totalAmount);
+            await onConfirm(
+                date,
+                paymentMethod,
+                interestValue,
+                penaltyValue,
+                totalAmount,
+                isVariableAmount ? baseAmountValue : undefined
+            );
             onClose();
         } catch (error) {
             console.error(error);
@@ -53,10 +60,31 @@ export function SettleModal({ isOpen, onClose, onConfirm, transactionType, trans
             <div className="space-y-6">
                 <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">{transactionDescription}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                        Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}
-                    </p>
-                    {(interestValue > 0 || penaltyValue > 0) && (
+
+                    {isVariableAmount ? (
+                        <div className="mt-2">
+                            <Input
+                                label="Valor Original (Lançamento Variável)"
+                                type="number"
+                                step="0.01"
+                                value={currentAmount}
+                                onChange={e => setCurrentAmount(e.target.value)}
+                                className="font-bold text-lg"
+                            />
+                        </div>
+                    ) : (
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                            Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}
+                        </p>
+                    )}
+
+                    {isVariableAmount && (
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white mt-4 border-t border-gray-200 dark:border-slate-600 pt-2">
+                            Total Final: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}
+                        </p>
+                    )}
+
+                    {!isVariableAmount && (interestValue > 0 || penaltyValue > 0) && (
                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium italic">
                             (Original: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transactionAmount)} + Juros/Multa)
                         </p>

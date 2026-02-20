@@ -121,18 +121,24 @@ function TransactionPage({ type, title }: TransactionPageProps) {
 
     const { updateDeal, stages: crmStages } = useCRM();
 
-    const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number) => {
+    const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, baseAmount?: number) => {
         if (!settlingTransaction) return;
 
         const newStatus = type === 'expense' ? 'paid' : 'received';
-        await updateTransaction(settlingTransaction.id, {
+        const updates: any = {
             status: newStatus,
             payment_date: date,
             payment_method: paymentMethod || undefined,
             interest,
             penalty,
             paid_amount: totalAmount
-        });
+        };
+
+        if (baseAmount !== undefined) {
+            updates.amount = baseAmount;
+        }
+
+        await updateTransaction(settlingTransaction.id, updates);
 
         // 🏆 Phase 2: Auto-Winning Deals
         // If it's a receivable (income) being received and has a deal_id
@@ -272,6 +278,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     transactionType={type}
                     transactionAmount={settlingTransaction.amount}
                     transactionDescription={settlingTransaction.description}
+                    isVariableAmount={settlingTransaction.is_variable_amount}
                 />
             )}
 
