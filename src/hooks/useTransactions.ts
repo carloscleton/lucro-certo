@@ -35,6 +35,7 @@ export interface Transaction {
     quote_id?: string;
     deal_id?: string;
     contact?: { name: string };
+    category?: { name: string };
     profile?: { full_name: string };
     created_at: string;
 }

@@ -100,9 +100,16 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                             {formatDate(bill.date)}
                         </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {bill.description}
-                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {bill.description}
+                            </span>
+                            {bill.category?.name && (
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                                    {bill.category.name}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

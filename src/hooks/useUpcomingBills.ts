@@ -47,7 +47,7 @@ export function useUpcomingBills(days: number = 30) {
 
             let query = supabase
                 .from('transactions')
-                .select('*, contact:contacts(name)')
+                .select('*, contact:contacts(name), category:categories(name)')
                 .eq('status', 'pending')
                 .lte('date', futureDateStr)
                 .order('date', { ascending: true });
