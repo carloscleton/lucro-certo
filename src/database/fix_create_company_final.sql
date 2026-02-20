@@ -50,7 +50,7 @@ BEGIN
     -- A. Limit Check
     SELECT COUNT(*) INTO current_count
     FROM public.company_members cm
-    WHERE cm.user_id = auth.uid() AND cm.role = 'owner';
+    WHERE cm.user_id = auth.uid() AND cm.role IN ('owner', 'admin');
 
     SELECT COALESCE(max_companies, 1) INTO max_limit
     FROM public.profiles
@@ -97,9 +97,9 @@ BEGIN
     )
     RETURNING id INTO new_company_id;
 
-    -- C. Create Membership (Owner)
+    -- C. Create Membership (Admin)
     INSERT INTO public.company_members (company_id, user_id, role, status)
-    VALUES (new_company_id, auth.uid(), 'owner', 'active');
+    VALUES (new_company_id, auth.uid(), 'admin', 'active');
 
     -- D. Default Settings
     UPDATE public.companies 
