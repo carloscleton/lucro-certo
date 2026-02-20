@@ -1,17 +1,19 @@
 // Helper function to calculate next recurring dates
 export function calculateNextDates(startDate: string, frequency: string, count: number = 5): Date[] {
     const dates: Date[] = [];
-    const start = new Date(startDate);
+    // Decompose YYYY-MM-DD to avoid UTC conversion issues
+    const [year, month, day] = startDate.split('-').map(Number);
 
     for (let i = 1; i <= count; i++) {
-        const nextDate = new Date(start);
+        // Create date in local time (month is 0-indexed)
+        const nextDate = new Date(year, month - 1, day);
 
         if (frequency === 'weekly') {
-            nextDate.setDate(start.getDate() + (i * 7));
+            nextDate.setDate(nextDate.getDate() + (i * 7));
         } else if (frequency === 'monthly') {
-            nextDate.setMonth(start.getMonth() + i);
+            nextDate.setMonth(nextDate.getMonth() + i);
         } else if (frequency === 'yearly') {
-            nextDate.setFullYear(start.getFullYear() + i);
+            nextDate.setFullYear(nextDate.getFullYear() + i);
         }
 
         dates.push(nextDate);
