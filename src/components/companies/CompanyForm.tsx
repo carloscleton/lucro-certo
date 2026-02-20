@@ -72,14 +72,17 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
         }
     }, [initialData, isOpen]);
 
-    const handleZipCodeBlur = async () => {
-        if (!zipCode || zipCode.length < 8) return;
+    // Auto-CEP search when 8 digits are reached
+    useEffect(() => {
+        const cleanCep = zipCode.replace(/\D/g, '');
+        if (cleanCep.length === 8) {
+            handleZipCodeLookup(cleanCep);
+        }
+    }, [zipCode]);
 
+    const handleZipCodeLookup = async (cleanCep: string) => {
         setLoadingCep(true);
         try {
-            const cleanCep = zipCode.replace(/\D/g, '');
-            if (cleanCep.length !== 8) return;
-
             const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
             const data = await response.json();
 
@@ -93,6 +96,13 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             console.error('Erro ao buscar CEP:', error);
         } finally {
             setLoadingCep(false);
+        }
+    };
+
+    const handleZipCodeBlur = () => {
+        const cleanCep = zipCode.replace(/\D/g, '');
+        if (cleanCep.length === 8) {
+            handleZipCodeLookup(cleanCep);
         }
     };
 
