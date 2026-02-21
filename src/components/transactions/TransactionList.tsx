@@ -1,7 +1,7 @@
 import { Edit2, Trash2, CheckCircle, Paperclip, Download, FileText, Repeat, TrendingUp } from 'lucide-react';
 import type { Transaction } from '../../hooks/useTransactions';
 import { Tooltip } from '../ui/Tooltip';
-import { useAuth } from '../../context/AuthContext';
+
 import { useTeam } from '../../hooks/useTeam';
 
 
@@ -15,9 +15,7 @@ interface TransactionListProps {
 }
 
 export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus, canDelete = true, onViewQuote }: TransactionListProps) {
-    const { user } = useAuth();
     const { members } = useTeam();
-    const isSuperAdmin = user?.email === 'carloscleton.nat@gmail.com';
 
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -227,18 +225,10 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                                             </button>
                                         </Tooltip>
                                         {canDelete && (
-                                            <Tooltip content={
-                                                !isSuperAdmin && (t.status === 'paid' || t.status === 'received')
-                                                    ? "🔒 Transação paga/recebida não pode ser excluída"
-                                                    : "Excluir"
-                                            }>
+                                            <Tooltip content="Excluir">
                                                 <button
                                                     onClick={() => onDelete(t.id)}
-                                                    className={`p-1 rounded ${!isSuperAdmin && (t.status === 'paid' || t.status === 'received')
-                                                        ? 'text-gray-300 cursor-not-allowed'
-                                                        : 'text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700'
-                                                        }`}
-                                                    disabled={!isSuperAdmin && (t.status === 'paid' || t.status === 'received')}
+                                                    className="p-1 rounded text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
                                                 >
                                                     <Trash2 size={16} />
                                                 </button>

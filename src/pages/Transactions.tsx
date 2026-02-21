@@ -173,13 +173,10 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         // Find transaction to check status
         const transaction = transactions.find(t => t.id === id);
 
-        // 🔓 SUPER ADMIN: Bypass all protections
-        const isSuperAdmin = user?.email === 'carloscleton.nat@gmail.com';
-
-        if (!isSuperAdmin) {
-            // 🔒 Check if transaction is protected (only for non-super-admins)
+        if (!canDelete) {
+            // 🔒 Check if transaction is protected
             if (transaction && (transaction.status === 'paid' || transaction.status === 'received')) {
-                alert('🔒 Não é possível excluir transações pagas ou recebidas.\n\nEsta é uma medida de segurança para proteger dados financeiros.\n\nSe necessário, um administrador pode criar um estorno.');
+                alert('🔒 Não é possível excluir transações pagas ou recebidas sem permissão de administrador.');
                 return;
             }
         }
