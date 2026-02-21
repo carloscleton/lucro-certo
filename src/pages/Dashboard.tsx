@@ -102,9 +102,9 @@ export function Dashboard() {
             case 'expense':
                 return periodTransactions.filter(t => t.type === 'expense' && t.status === 'paid');
             case 'receivable':
-                return transactions.filter(t => t.type === 'income' && t.status === 'pending');
+                return periodTransactions.filter(t => t.type === 'income' && t.status === 'pending');
             case 'payable':
-                return transactions.filter(t => t.type === 'expense' && (t.status === 'pending' || t.status === 'late'));
+                return periodTransactions.filter(t => t.type === 'expense' && (t.status === 'pending' || t.status === 'late'));
             case 'balance':
                 return periodTransactions.filter(t =>
                     (t.type === 'income' && t.status === 'received') ||

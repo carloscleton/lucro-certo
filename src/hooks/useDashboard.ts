@@ -94,11 +94,11 @@ export function useDashboard(startDate: string, endDate: string) {
                 .filter(t => t.type === 'expense' && t.status === 'paid')
                 .reduce((acc, t) => acc + Number(t.paid_amount || t.amount), 0);
 
-            const globalPayable = transactions
+            const periodPayable = currentPeriodTx
                 .filter(t => t.type === 'expense' && (t.status === 'pending' || t.status === 'late'))
                 .reduce((acc, t) => acc + Number(t.amount), 0);
 
-            const globalReceivable = transactions
+            const periodReceivable = currentPeriodTx
                 .filter(t => t.type === 'income' && t.status === 'pending')
                 .reduce((acc, t) => acc + Number(t.amount), 0);
 
@@ -126,8 +126,8 @@ export function useDashboard(startDate: string, endDate: string) {
 
             setMetrics({
                 balance: periodBalance,
-                totalPayable: globalPayable,
-                totalReceivable: globalReceivable,
+                totalPayable: periodPayable,
+                totalReceivable: periodReceivable,
                 income,
                 expense,
                 rejectedTotal,
