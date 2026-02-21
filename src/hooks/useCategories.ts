@@ -54,9 +54,9 @@ export function useCategories() {
     const addCategory = async (category: Omit<Category, 'id' | 'user_id'>) => {
         if (!user) return;
 
-        // Override scope based on current context
-        const scope = currentEntity.type === 'company' ? 'business' : 'personal';
-        const company_id = currentEntity.type === 'company' ? currentEntity.id : null;
+        // Use provided scope/company_id or fallback to current context
+        const scope = category.scope ?? (currentEntity.type === 'company' ? 'business' : 'personal');
+        const company_id = category.company_id !== undefined ? category.company_id : (currentEntity.type === 'company' ? currentEntity.id : null);
 
         const { error } = await supabase
             .from('categories')

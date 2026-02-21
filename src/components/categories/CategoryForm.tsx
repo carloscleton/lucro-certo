@@ -5,6 +5,7 @@ import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { Tag } from 'lucide-react';
 import type { Category } from '../../hooks/useCategories';
+import { useCompanies } from '../../hooks/useCompanies';
 
 interface CategoryFormProps {
     isOpen: boolean;
@@ -16,20 +17,21 @@ interface CategoryFormProps {
 export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: CategoryFormProps) {
     const [name, setName] = useState('');
     const [type, setType] = useState('expense');
-    const [entityType, setEntityType] = useState<'individual' | 'company'>('individual');
+    const [companyId, setCompanyId] = useState('');
     const [budgetLimit, setBudgetLimit] = useState('');
     const [loading, setLoading] = useState(false);
+    const { companies } = useCompanies();
 
     useEffect(() => {
         if (initialData) {
             setName(initialData.name);
             setType(initialData.type);
-            setEntityType((initialData as any).entity_type || 'individual');
+            setCompanyId(initialData.company_id || '');
             setBudgetLimit(initialData.budget_limit ? initialData.budget_limit.toString() : '');
         } else {
             setName('');
             setType('expense');
-            setEntityType('individual');
+            setCompanyId('');
             setBudgetLimit('');
         }
     }, [initialData, isOpen]);
@@ -38,7 +40,13 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
         e.preventDefault();
         setLoading(true);
         try {
-            const data: any = { name, type, entity_type: entityType };
+            const data: any = {
+                name,
+                type,
+                company_id: companyId || null,
+                scope: companyId ? 'business' : 'personal',
+                entity_type: companyId ? 'company' : 'individual'
+            };
             if (type === 'expense' && budgetLimit) {
                 data.budget_limit = parseFloat(budgetLimit);
             } else {
@@ -86,14 +94,18 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Perfil</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Empresa / Conta</label>
                         <select
                             className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
-                            value={entityType}
-                            onChange={e => setEntityType(e.target.value as 'individual' | 'company')}
+                            value={companyId}
+                            onChange={e => setCompanyId(e.target.value)}
                         >
-                            <option value="individual">Pessoa Física</option>
-                            <option value="company">Pessoa Jurídica</option>
+                            <option value="">Pessoal (Individual)</option>
+                            {companies.map(company => (
+                                <option key={company.id} value={company.id}>
+                                    {company.trade_name}
+                                </option>
+                            ))}
                         </select>
                     </div>
                 </div>
