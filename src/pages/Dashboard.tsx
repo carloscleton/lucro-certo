@@ -14,6 +14,7 @@ import { TransactionDetailModal } from '../components/dashboard/TransactionDetai
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
+import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -55,7 +56,7 @@ export function Dashboard() {
         setMonthFilter(''); // Clear month selection if manual date is picked
     };
 
-    const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
+    const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, contextMetrics, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
     const { categories } = useCategories();
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
@@ -162,6 +163,8 @@ export function Dashboard() {
             <Alerts alerts={alerts} />
 
             <DashboardCards metrics={metrics} onCardClick={handleCardClick} />
+
+            <ContextSummaryWidget contextMetrics={contextMetrics} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">

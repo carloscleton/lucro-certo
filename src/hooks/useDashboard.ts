@@ -14,6 +14,11 @@ export interface DashboardMetrics {
     rejectedCount: number;
 }
 
+export interface ContextMetrics {
+    personal: { income: number; expense: number; balance: number };
+    business: { income: number; expense: number; balance: number };
+}
+
 export interface ChartData {
     name: string;
     income: number;
@@ -44,6 +49,10 @@ export function useDashboard(startDate: string, endDate: string) {
     const [expensesByCategory, setExpensesByCategory] = useState<{ category_id: string; amount: number }[]>([]);
     const [pendingList, setPendingList] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
+    const [contextMetrics, setContextMetrics] = useState<ContextMetrics>({
+        personal: { income: 0, expense: 0, balance: 0 },
+        business: { income: 0, expense: 0, balance: 0 }
+    });
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
@@ -73,15 +82,38 @@ export function useDashboard(startDate: string, endDate: string) {
                 quotesQuery = quotesQuery.eq('user_id', user.id).is('company_id', null);
             }
 
-            const [txRes, quotesRes] = await Promise.all([txQuery, quotesQuery]);
+            // Fetch all user transactions for the period (for personal vs business breakdown)
+            const allTxQuery = supabase
+                .from('transactions')
+                .select('type, status, amount, paid_amount, company_id, date')
+                .eq('user_id', user.id)
+                .gte('date', start)
+                .lte('date', end);
+
+            const [txRes, quotesRes, allTxRes] = await Promise.all([txQuery, quotesQuery, allTxQuery]);
 
             if (txRes.error) throw txRes.error;
             if (quotesRes.error) throw quotesRes.error;
 
             const transactions = txRes.data || [];
             const quotes = quotesRes.data || [];
+            const allTx = allTxRes.data || [];
 
             setTransactions(transactions);
+
+            // Context Metrics (Personal vs Business)
+            const personalTx = allTx.filter(t => !t.company_id);
+            const businessTx = allTx.filter(t => !!t.company_id);
+
+            const personalIncome = personalTx.filter(t => t.type === 'income' && t.status === 'received').reduce((acc, t) => acc + Number(t.paid_amount || t.amount), 0);
+            const personalExpense = personalTx.filter(t => t.type === 'expense' && t.status === 'paid').reduce((acc, t) => acc + Number(t.paid_amount || t.amount), 0);
+            const businessIncome = businessTx.filter(t => t.type === 'income' && t.status === 'received').reduce((acc, t) => acc + Number(t.paid_amount || t.amount), 0);
+            const businessExpense = businessTx.filter(t => t.type === 'expense' && t.status === 'paid').reduce((acc, t) => acc + Number(t.paid_amount || t.amount), 0);
+
+            setContextMetrics({
+                personal: { income: personalIncome, expense: personalExpense, balance: personalIncome - personalExpense },
+                business: { income: businessIncome, expense: businessExpense, balance: businessIncome - businessExpense }
+            });
 
             // Metrics for the SELECTED PERIOD
             const currentPeriodTx = transactions.filter(t => t.date >= start && t.date <= end);
@@ -252,6 +284,7 @@ export function useDashboard(startDate: string, endDate: string) {
         expensesByCategory,
         pendingList,
         transactions,
+        contextMetrics,
         loading,
         refresh: fetchMetrics
     };
