@@ -177,15 +177,8 @@ export function useTransactions(type: TransactionType) {
                 .eq('id', id)
                 .maybeSingle();
 
-            // 🔓 SUPER ADMIN: Bypass all protections
-            const isSuperAdmin = user?.email === 'carloscleton.nat@gmail.com';
-
-            if (!isSuperAdmin) {
-                // 🔒 PROTECTION: Block deletion of paid/received transactions
-                if (transaction && (transaction.status === 'paid' || transaction.status === 'received')) {
-                    throw new Error('🔒 Não é possível excluir transações pagas ou recebidas. Esta é uma medida de segurança para proteger dados financeiros.\n\nSe necessário, um administrador pode criar um estorno.');
-                }
-            }
+            // The UI (Transactions.tsx) now handles permission checks (admin/owner/member_can_delete)
+            // before calling this function. We removed the hardcoded superadmin lock here.
 
             const { error } = await supabase
                 .from('transactions')
