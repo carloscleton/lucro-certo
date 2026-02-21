@@ -13,9 +13,16 @@ interface Transaction {
     interest?: number;
     penalty?: number;
     description: string;
-    category?: string;
+    category?: any;
     date: string;
 }
+
+const getCategoryName = (category: any): string => {
+    if (!category) return 'Sem Categoria';
+    if (typeof category === 'string') return category;
+    if (typeof category === 'object' && category !== null) return category.name || 'Sem Categoria';
+    return String(category);
+};
 
 interface TransactionDetailModalProps {
     isOpen: boolean;
@@ -58,7 +65,7 @@ export function TransactionDetailModal({
 
     // Group transactions by category
     const categoryTotals = transactions.reduce((acc, t) => {
-        const cat = t.category || 'Sem Categoria';
+        const cat = getCategoryName(t.category);
         const amount = t.paid_amount || t.amount;
         const signedAmount = t.type === 'income' ? Number(amount) : -Number(amount);
         acc[cat] = (acc[cat] || 0) + signedAmount;
@@ -118,7 +125,7 @@ export function TransactionDetailModal({
                                                         </span>
                                                         {transaction.category && (
                                                             <span className="text-[10px] px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full font-medium">
-                                                                {transaction.category}
+                                                                {getCategoryName(transaction.category)}
                                                             </span>
                                                         )}
                                                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${transaction.status === 'received' || transaction.status === 'paid'
