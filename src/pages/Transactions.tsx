@@ -94,6 +94,15 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         return result;
     }, [transactions, startDate, endDate, statusFilter, searchQuery]);
 
+    // Status counts for filter tabs (must be above early returns - Rules of Hooks)
+    const dateFiltered = useMemo(() => transactions.filter(t => isInRange(t.date)), [transactions, startDate, endDate]);
+    const statusCounts = useMemo(() => ({
+        all: dateFiltered.length,
+        pending: dateFiltered.filter(t => t.status === 'pending').length,
+        paid: dateFiltered.filter(t => t.status === 'paid' || t.status === 'received').length,
+        late: dateFiltered.filter(t => t.status === 'late').length,
+    }), [dateFiltered]);
+
     // Permission Check
     const { user } = useAuth();
     const { currentEntity } = useEntity();
@@ -236,14 +245,6 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         .filter(t => t.status === 'late')
         .reduce((acc, t) => acc + t.amount, 0);
 
-    // Status counts for filter tabs
-    const dateFiltered = useMemo(() => transactions.filter(t => isInRange(t.date)), [transactions, startDate, endDate]);
-    const statusCounts = useMemo(() => ({
-        all: dateFiltered.length,
-        pending: dateFiltered.filter(t => t.status === 'pending').length,
-        paid: dateFiltered.filter(t => t.status === 'paid' || t.status === 'received').length,
-        late: dateFiltered.filter(t => t.status === 'late').length,
-    }), [dateFiltered]);
 
     return (
         <div className="flex flex-col gap-6">
@@ -302,14 +303,14 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                             key={tab.key}
                             onClick={() => setStatusFilter(tab.key)}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${statusFilter === tab.key
-                                    ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                                 }`}
                         >
                             {tab.label}
                             <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${statusFilter === tab.key
-                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                    : 'bg-gray-200 dark:bg-slate-600 text-gray-500 dark:text-gray-400'
+                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                : 'bg-gray-200 dark:bg-slate-600 text-gray-500 dark:text-gray-400'
                                 }`}>
                                 {tab.count}
                             </span>
