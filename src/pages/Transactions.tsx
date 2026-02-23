@@ -200,11 +200,18 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-    // Calculate sum of displayed transactions
-    // If it's expense: sum is negative? No, usually displayed as positive, but conceptually debt.
-    // The previous request asked for "total value". Usually sum of amount.
-    // However, for expenses, we might want to just show the absolute total.
-    const totalValue = filteredTransactions.reduce((acc, t) => acc + (t.paid_amount || t.amount), 0);
+    // Calculate breakdown by status
+    const paidTotal = filteredTransactions
+        .filter(t => t.status === 'paid' || t.status === 'received')
+        .reduce((acc, t) => acc + (t.paid_amount || t.amount), 0);
+
+    const pendingTotal = filteredTransactions
+        .filter(t => t.status === 'pending')
+        .reduce((acc, t) => acc + t.amount, 0);
+
+    const lateTotal = filteredTransactions
+        .filter(t => t.status === 'late')
+        .reduce((acc, t) => acc + t.amount, 0);
 
     return (
         <div className="flex flex-col gap-6">
@@ -285,11 +292,47 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                         Exibindo {filteredTransactions.length} lançamentos
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-5">
+                        {/* Paid/Received */}
+                        {paidTotal > 0 && (
+                            <div className="text-right">
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">
+                                    {type === 'expense' ? 'Pago' : 'Recebido'}
+                                </span>
+                                <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                                    {formatCurrency(paidTotal)}
+                                </span>
+                            </div>
+                        )}
+                        {/* Pending */}
+                        {pendingTotal > 0 && (
+                            <div className="text-right">
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">
+                                    Pendente
+                                </span>
+                                <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
+                                    {formatCurrency(pendingTotal)}
+                                </span>
+                            </div>
+                        )}
+                        {/* Late */}
+                        {lateTotal > 0 && (
+                            <div className="text-right">
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">
+                                    Atrasado
+                                </span>
+                                <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                                    {formatCurrency(lateTotal)}
+                                </span>
+                            </div>
+                        )}
+                        {/* Separator */}
+                        <div className="w-px h-8 bg-gray-200 dark:bg-slate-600 hidden sm:block" />
+                        {/* Total */}
                         <div className="text-right">
                             <span className="text-xs text-gray-500 dark:text-gray-400 block uppercase tracking-wider">Valor Total</span>
                             <span className={`text-xl font-bold ${type === 'expense' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                {formatCurrency(totalValue)}
+                                {formatCurrency(paidTotal + pendingTotal + lateTotal)}
                             </span>
                         </div>
                     </div>
