@@ -228,7 +228,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                     <div className="flex items-center gap-2">
                         <TrendingDown className="w-4 h-4 text-red-600" />
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Total a Pagar
+                            Total a Pagar <span className="text-[10px] text-gray-400 dark:text-gray-500">(pendente)</span>
                         </span>
                     </div>
                     <span className="text-sm font-bold text-red-600 dark:text-red-400">
@@ -240,7 +240,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                     <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-emerald-600" />
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Total a Receber
+                            Total a Receber <span className="text-[10px] text-gray-400 dark:text-gray-500">(pendente)</span>
                         </span>
                     </div>
                     <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">

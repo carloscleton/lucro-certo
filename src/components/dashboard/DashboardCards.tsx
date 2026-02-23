@@ -19,6 +19,7 @@ export function DashboardCards({ metrics, onCardClick }: DashboardCardsProps) {
                 <div className="flex justify-between items-start">
                     <div>
                         <p className="text-green-700 dark:text-gray-400 text-sm font-medium">Receitas (Mês)</p>
+                        <p className="text-[10px] text-green-600/60 dark:text-green-500/50">Valores já recebidos</p>
                         <h3 className="text-2xl font-bold mt-1 text-green-700 dark:text-green-400">
                             {formatCurrency(metrics.income)}
                         </h3>
@@ -36,6 +37,7 @@ export function DashboardCards({ metrics, onCardClick }: DashboardCardsProps) {
                 <div className="flex justify-between items-start">
                     <div>
                         <p className="text-red-700 dark:text-gray-400 text-sm font-medium">Despesas (Mês)</p>
+                        <p className="text-[10px] text-red-600/60 dark:text-red-500/50">Valores já pagos</p>
                         <h3 className="text-2xl font-bold mt-1 text-red-700 dark:text-red-400">
                             {formatCurrency(metrics.expense)}
                         </h3>
@@ -53,6 +55,7 @@ export function DashboardCards({ metrics, onCardClick }: DashboardCardsProps) {
                 <div className="flex justify-between items-start">
                     <div>
                         <p className="text-orange-800 dark:text-gray-400 text-sm font-medium">A Pagar (Pendente)</p>
+                        <p className="text-[10px] text-orange-600/60 dark:text-orange-500/50">Contas em aberto no período</p>
                         <h3 className="text-2xl font-bold mt-1 text-orange-700 dark:text-orange-400">
                             {formatCurrency(metrics.totalPayable)}
                         </h3>
@@ -70,6 +73,7 @@ export function DashboardCards({ metrics, onCardClick }: DashboardCardsProps) {
                 <div className="flex justify-between items-start">
                     <div>
                         <p className="text-blue-700 dark:text-gray-400 text-sm font-medium">A Receber (Pendente)</p>
+                        <p className="text-[10px] text-blue-600/60 dark:text-blue-500/50">Receitas pendentes no período</p>
                         <h3 className="text-2xl font-bold mt-1 text-blue-700 dark:text-blue-400">
                             {formatCurrency(metrics.totalReceivable)}
                         </h3>

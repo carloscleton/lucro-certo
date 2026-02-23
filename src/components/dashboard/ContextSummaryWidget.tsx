@@ -54,7 +54,7 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
                         <TrendingUp size={13} className="text-emerald-500" />
-                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Receitas</span>
+                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Recebido</span>
                     </div>
                     <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(income)}</p>
                 </div>
@@ -63,7 +63,7 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
                         <TrendingDown size={13} className="text-red-500" />
-                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Despesas</span>
+                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pago</span>
                     </div>
                     <p className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(expense)}</p>
                 </div>
@@ -110,7 +110,7 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
                 <ContextCard
                     icon={User}
                     label="Pessoal"
-                    sublabel="Pessoa física"
+                    sublabel="Pessoa física · Realizado"
                     income={personal.income}
                     expense={personal.expense}
                     balance={personal.balance}
@@ -121,7 +121,7 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
                 <ContextCard
                     icon={Building2}
                     label="Empresarial"
-                    sublabel="Pessoa jurídica"
+                    sublabel="Pessoa jurídica · Realizado"
                     income={business.income}
                     expense={business.expense}
                     balance={business.balance}
