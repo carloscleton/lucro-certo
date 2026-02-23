@@ -6,6 +6,9 @@ import { Alerts } from '../components/dashboard/Alerts';
 import { BudgetProgress } from '../components/dashboard/BudgetProgress';
 import { PendingList } from '../components/dashboard/PendingList';
 import { UpcomingBillsWidget } from '../components/dashboard/UpcomingBillsWidget';
+import { ExpenseByCategoryChart } from '../components/dashboard/ExpenseByCategoryChart';
+import { CashFlowForecast } from '../components/dashboard/CashFlowForecast';
+import { MonthlyComparison } from '../components/dashboard/MonthlyComparison';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
@@ -15,6 +18,7 @@ import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
 import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
+import { useBillNotifications } from '../hooks/useBillNotifications';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -56,10 +60,21 @@ export function Dashboard() {
         setMonthFilter(''); // Clear month selection if manual date is picked
     };
 
-    const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, contextMetrics, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
+    const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, contextMetrics, previousPeriod, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
     const { categories } = useCategories();
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
+
+    // Browser push notifications for due bills
+    useBillNotifications();
+
+    // Month labels for comparison
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const currentDate = new Date(startDate);
+    const currentMonthLabel = monthNames[currentDate.getMonth()] || '';
+    const prevDate = new Date(currentDate);
+    prevDate.setMonth(prevDate.getMonth() - 1);
+    const previousMonthLabel = monthNames[prevDate.getMonth()] || '';
 
     const isCRMEnabled = currentEntity.type === 'company' &&
         companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
@@ -169,6 +184,15 @@ export function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <DashboardCharts data={chartData} />
+                    <ExpenseByCategoryChart expenses={expensesByCategory} categories={categories} />
+                    <MonthlyComparison
+                        currentIncome={metrics.income}
+                        currentExpense={metrics.expense}
+                        previousIncome={previousPeriod.income}
+                        previousExpense={previousPeriod.expense}
+                        currentMonthLabel={currentMonthLabel}
+                        previousMonthLabel={previousMonthLabel}
+                    />
                     <PendingList transactions={pendingList} />
                     <BudgetProgress categories={categories} expenses={expensesByCategory} />
                 </div>
@@ -176,6 +200,15 @@ export function Dashboard() {
                 <div className="space-y-6">
                     {/* CRM Dashboard 360 Widget */}
                     {isCRMEnabled && <CRMStatsWidget receivedIncome={metrics.income} />}
+
+                    {/* Cash Flow Forecast */}
+                    <CashFlowForecast
+                        currentBalance={metrics.balance}
+                        monthlyIncome={metrics.income}
+                        monthlyExpense={metrics.expense}
+                        pendingReceivable={metrics.totalReceivable}
+                        pendingPayable={metrics.totalPayable}
+                    />
 
                     {/* Upcoming Bills Widget */}
                     <UpcomingBillsWidget onRefreshMetrics={refreshDashboard} />

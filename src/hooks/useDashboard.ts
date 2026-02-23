@@ -53,6 +53,7 @@ export function useDashboard(startDate: string, endDate: string) {
         personal: { income: 0, expense: 0, balance: 0 },
         business: { income: 0, expense: 0, balance: 0 }
     });
+    const [previousPeriod, setPreviousPeriod] = useState<{ income: number; expense: number }>({ income: 0, expense: 0 });
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
@@ -90,7 +91,27 @@ export function useDashboard(startDate: string, endDate: string) {
                 .gte('date', start)
                 .lte('date', end);
 
-            const [txRes, quotesRes, allTxRes] = await Promise.all([txQuery, quotesQuery, allTxQuery]);
+            // Previous period query (one month back)
+            const prevStart = new Date(start);
+            prevStart.setMonth(prevStart.getMonth() - 1);
+            const prevEnd = new Date(end);
+            prevEnd.setMonth(prevEnd.getMonth() - 1);
+            const prevStartStr = prevStart.toISOString().split('T')[0];
+            const prevEndStr = prevEnd.toISOString().split('T')[0];
+
+            let prevTxQuery = supabase
+                .from('transactions')
+                .select('type, status, amount, paid_amount')
+                .gte('date', prevStartStr)
+                .lte('date', prevEndStr);
+
+            if (currentEntity.type === 'company' && currentEntity.id) {
+                prevTxQuery = prevTxQuery.eq('company_id', currentEntity.id);
+            } else {
+                prevTxQuery = prevTxQuery.eq('user_id', user.id).is('company_id', null);
+            }
+
+            const [txRes, quotesRes, allTxRes, prevTxRes] = await Promise.all([txQuery, quotesQuery, allTxQuery, prevTxQuery]);
 
             if (txRes.error) throw txRes.error;
             if (quotesRes.error) throw quotesRes.error;
@@ -98,6 +119,12 @@ export function useDashboard(startDate: string, endDate: string) {
             const transactions = txRes.data || [];
             const quotes = quotesRes.data || [];
             const allTx = allTxRes.data || [];
+            const prevTx = prevTxRes.data || [];
+
+            // Previous period metrics
+            const prevIncome = prevTx.filter((t: any) => t.type === 'income' && t.status === 'received').reduce((acc: number, t: any) => acc + Number(t.paid_amount || t.amount), 0);
+            const prevExpense = prevTx.filter((t: any) => t.type === 'expense' && t.status === 'paid').reduce((acc: number, t: any) => acc + Number(t.paid_amount || t.amount), 0);
+            setPreviousPeriod({ income: prevIncome, expense: prevExpense });
 
             setTransactions(transactions);
 
@@ -285,6 +312,7 @@ export function useDashboard(startDate: string, endDate: string) {
         pendingList,
         transactions,
         contextMetrics,
+        previousPeriod,
         loading,
         refresh: fetchMetrics
     };
