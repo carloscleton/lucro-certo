@@ -43,6 +43,8 @@ const EntityContext = createContext<EntityContextType>({
     isLoading: true,
 });
 
+const STORAGE_KEY = 'lucro-certo:selected-entity';
+
 export function EntityProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
     const [currentEntity, setCurrentEntity] = useState<Entity>({ type: 'personal', name: 'Pessoal' });
@@ -121,19 +123,33 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             const allEntities = [personalOption, ...companies];
             setAvailableEntities(allEntities);
 
-            // Update current entity if it already exists to get latest settings
+            // Restaurar preferência salva do localStorage
+            const savedKey = localStorage.getItem(STORAGE_KEY);
+
             setCurrentEntity(prev => {
-                if (prev.type === 'personal') {
-                    // Decide if we should auto-switch to first company
-                    if (companies.length > 0 && prev.name === 'Pessoal') {
-                        return companies[0];
+                // Se o usuário já fez uma escolha ativa (não é a primeira carga), manter
+                // Atualizar dados da entidade atual sem trocar de entidade
+                if (prev.type === 'company') {
+                    const updated = companies.find(c => c.id === prev.id);
+                    if (updated) return updated;
+                }
+
+                // Se há preferência salva no localStorage, usar ela
+                if (savedKey) {
+                    if (savedKey === 'personal') {
+                        return personalOption;
                     }
-                    return prev;
+                    const savedCompany = companies.find(c => c.id === savedKey);
+                    if (savedCompany) return savedCompany;
                 }
-                const updated = companies.find(c => c.id === prev.id);
-                if (updated) {
-                    return updated;
+
+                // Primeira vez (sem preferência): auto-switch para primeira empresa se houver
+                if (companies.length > 0 && prev.type === 'personal' && !savedKey) {
+                    const firstCompany = companies[0];
+                    localStorage.setItem(STORAGE_KEY, firstCompany.id || 'personal');
+                    return firstCompany;
                 }
+
                 return prev;
             });
 
@@ -167,13 +183,16 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             // Se deslogar, reseta TUDO imediatamente
             setCurrentEntity({ type: 'personal', name: 'Pessoal' });
             setAvailableEntities([{ type: 'personal', name: 'Pessoal' }]);
+            localStorage.removeItem(STORAGE_KEY);
             setIsLoading(false);
         }
     }, [user]);
 
     const switchEntity = (entity: Entity) => {
         setCurrentEntity(entity);
-        // Persist preference logically if needed, for now just state
+        // Persistir preferência do usuário no localStorage
+        const key = entity.type === 'personal' ? 'personal' : entity.id;
+        localStorage.setItem(STORAGE_KEY, key || 'personal');
     };
 
     return (
