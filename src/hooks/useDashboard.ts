@@ -119,12 +119,16 @@ export function useDashboard(startDate: string, endDate: string) {
             const transactions = txRes.data || [];
             const quotes = quotesRes.data || [];
             const allTx = allTxRes.data || [];
-            const prevTx = prevTxRes.data || [];
+            const prevTx = prevTxRes?.data || [];
 
-            // Previous period metrics
-            const prevIncome = prevTx.filter((t: any) => t.type === 'income' && t.status === 'received').reduce((acc: number, t: any) => acc + Number(t.paid_amount || t.amount), 0);
-            const prevExpense = prevTx.filter((t: any) => t.type === 'expense' && t.status === 'paid').reduce((acc: number, t: any) => acc + Number(t.paid_amount || t.amount), 0);
-            setPreviousPeriod({ income: prevIncome, expense: prevExpense });
+            // Previous period metrics (safe - don't let it break dashboard)
+            try {
+                const prevIncome = prevTx.filter((t: any) => t.type === 'income' && t.status === 'received').reduce((acc: number, t: any) => acc + Number(t.paid_amount || t.amount), 0);
+                const prevExpense = prevTx.filter((t: any) => t.type === 'expense' && t.status === 'paid').reduce((acc: number, t: any) => acc + Number(t.paid_amount || t.amount), 0);
+                setPreviousPeriod({ income: prevIncome, expense: prevExpense });
+            } catch {
+                setPreviousPeriod({ income: 0, expense: 0 });
+            }
 
             setTransactions(transactions);
 
