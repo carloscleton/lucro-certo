@@ -1,12 +1,21 @@
-import { AlertTriangle, Clock, CalendarClock, Calendar, Tag, FileText } from 'lucide-react';
+import { AlertTriangle, Clock, CalendarClock, Calendar, Tag, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
 import type { Alert } from '../../hooks/useDashboard';
 
 interface AlertsProps {
     alerts: Alert[];
 }
 
+const VISIBLE_LIMIT = 3;
+
 export function Alerts({ alerts }: AlertsProps) {
+    const [expanded, setExpanded] = useState(false);
+
     if (alerts.length === 0) return null;
+
+    const hasMore = alerts.length > VISIBLE_LIMIT;
+    const visibleAlerts = expanded ? alerts : alerts.slice(0, VISIBLE_LIMIT);
+    const hiddenCount = alerts.length - VISIBLE_LIMIT;
 
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -78,7 +87,7 @@ export function Alerts({ alerts }: AlertsProps) {
 
             {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {alerts.map((alert) => {
+                {visibleAlerts.map((alert) => {
                     const config = getAlertConfig(alert.type);
                     const Icon = config.icon;
 
@@ -135,6 +144,28 @@ export function Alerts({ alerts }: AlertsProps) {
                     );
                 })}
             </div>
+
+            {/* Toggle Button */}
+            {hasMore && (
+                <div className="flex justify-center pt-1">
+                    <button
+                        onClick={() => setExpanded(!expanded)}
+                        className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-full transition-all"
+                    >
+                        {expanded ? (
+                            <>
+                                <ChevronUp size={14} />
+                                Ver menos
+                            </>
+                        ) : (
+                            <>
+                                <ChevronDown size={14} />
+                                Ver mais {hiddenCount} alerta{hiddenCount > 1 ? 's' : ''}
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
