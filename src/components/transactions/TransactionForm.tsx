@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Receipt, TrendingUp, Paperclip, Repeat } from 'lucide-react';
+import { Receipt, TrendingUp, Paperclip, Repeat, Plus, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -37,11 +37,21 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [dealId, setDealId] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const { categories } = useCategories();
+    const { categories, addCategory } = useCategories();
     const { companies } = useCompanies();
-    const { contacts } = useContacts();
+    const { contacts, addContact } = useContacts();
     const { deals } = useCRM();
     const { currentEntity } = useEntity();
+
+    // Quick-add states
+    const [showQuickCategory, setShowQuickCategory] = useState(false);
+    const [quickCategoryName, setQuickCategoryName] = useState('');
+    const [quickCategoryLoading, setQuickCategoryLoading] = useState(false);
+    const [pendingCategoryName, setPendingCategoryName] = useState<string | null>(null);
+
+    const [showQuickContact, setShowQuickContact] = useState(false);
+    const [quickContactName, setQuickContactName] = useState('');
+    const [quickContactLoading, setQuickContactLoading] = useState(false);
 
     const isCRMEnabled = currentEntity.type === 'company' &&
         companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
@@ -134,6 +144,52 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
     const isExpense = type === 'expense';
 
+    const handleQuickAddCategory = async () => {
+        if (!quickCategoryName.trim()) return;
+        setQuickCategoryLoading(true);
+        const nameToCreate = quickCategoryName.trim();
+        try {
+            const scope = currentEntity.type === 'company' ? 'business' : 'personal';
+            const company_id = currentEntity.type === 'company' ? currentEntity.id : null;
+            await addCategory({ name: nameToCreate, type, scope, company_id });
+            // Mark name so the effect below can auto-select once categories list refreshes
+            setPendingCategoryName(nameToCreate);
+            setQuickCategoryName('');
+            setShowQuickCategory(false);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setQuickCategoryLoading(false);
+        }
+    };
+
+    const handleQuickAddContact = async () => {
+        if (!quickContactName.trim()) return;
+        setQuickContactLoading(true);
+        try {
+            const contactType = isExpense ? 'supplier' : 'client';
+            const newContact = await addContact({ name: quickContactName.trim(), type: contactType });
+            if (newContact) setContactId(newContact.id);
+            setQuickContactName('');
+            setShowQuickContact(false);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setQuickContactLoading(false);
+        }
+    };
+
+    // Auto-select newly created category after the list refreshes
+    useEffect(() => {
+        if (pendingCategoryName && categories.length > 0) {
+            const match = categories.find(c => c.name === pendingCategoryName && c.type === type);
+            if (match) {
+                setCategoryId(match.id);
+                setPendingCategoryName(null);
+            }
+        }
+    }, [categories, pendingCategoryName]);
+
     return (
         <Modal
             isOpen={isOpen}
@@ -174,7 +230,44 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     />
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
+                            <button
+                                type="button"
+                                onClick={() => { setShowQuickCategory(v => !v); setQuickCategoryName(''); }}
+                                className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+                            >
+                                <Plus className="w-3 h-3" /> Nova
+                            </button>
+                        </div>
+                        {showQuickCategory && (
+                            <div className="flex gap-2 animate-in slide-in-from-top-1 duration-150">
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={quickCategoryName}
+                                    onChange={e => setQuickCategoryName(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleQuickAddCategory(); } }}
+                                    placeholder={`Nome da categoria de ${isExpense ? 'despesa' : 'receita'}`}
+                                    className="flex-1 h-8 rounded-lg border border-emerald-400 bg-[var(--color-surface)] dark:bg-slate-700 px-3 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleQuickAddCategory}
+                                    disabled={quickCategoryLoading || !quickCategoryName.trim()}
+                                    className="px-3 h-8 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                                >
+                                    {quickCategoryLoading ? '...' : 'Salvar'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowQuickCategory(false)}
+                                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-slate-600 text-gray-500 hover:text-red-500 transition-colors"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
                         <select
                             className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
                             value={categoryId}
@@ -232,9 +325,46 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {isExpense ? 'Fornecedor' : 'Cliente'}
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {isExpense ? 'Fornecedor' : 'Cliente'}
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => { setShowQuickContact(v => !v); setQuickContactName(''); }}
+                                className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+                            >
+                                <Plus className="w-3 h-3" /> {isExpense ? 'Novo' : 'Novo'}
+                            </button>
+                        </div>
+                        {showQuickContact && (
+                            <div className="flex gap-2 animate-in slide-in-from-top-1 duration-150">
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={quickContactName}
+                                    onChange={e => setQuickContactName(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleQuickAddContact(); } }}
+                                    placeholder={`Nome do ${isExpense ? 'fornecedor' : 'cliente'}`}
+                                    className="flex-1 h-8 rounded-lg border border-emerald-400 bg-[var(--color-surface)] dark:bg-slate-700 px-3 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleQuickAddContact}
+                                    disabled={quickContactLoading || !quickContactName.trim()}
+                                    className="px-3 h-8 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                                >
+                                    {quickContactLoading ? '...' : 'Salvar'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowQuickContact(false)}
+                                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-slate-600 text-gray-500 hover:text-red-500 transition-colors"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
                         <select
                             className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
                             value={contactId}
