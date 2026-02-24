@@ -44,6 +44,7 @@ export interface WebhookLog {
 
 export function useWebhooks() {
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
+    const [templateWebhooks, setTemplateWebhooks] = useState<(Webhook & { company_name?: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
@@ -73,9 +74,83 @@ export function useWebhooks() {
         }
     };
 
+    // Fetch webhooks from OTHER companies as templates
+    const fetchTemplateWebhooks = async () => {
+        if (!user || currentEntity.type !== 'company' || !currentEntity.id) {
+            setTemplateWebhooks([]);
+            return;
+        }
+
+        try {
+            // Get all webhooks visible to user, then filter out current company
+            const { data, error } = await supabase
+                .from('webhooks')
+                .select('*, company:companies(name)')
+                .neq('company_id', currentEntity.id)
+                .eq('is_active', true)
+                .order('name');
+
+            if (error) throw error;
+
+            const templates = (data || []).map((w: any) => ({
+                ...w,
+                company_name: w.company?.name || 'Outra empresa'
+            }));
+
+            // Deduplicate by name (keep first occurrence)
+            const seen = new Set<string>();
+            const unique = templates.filter((t: any) => {
+                const key = t.name.toLowerCase();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            setTemplateWebhooks(unique);
+        } catch (error) {
+            console.error('Error fetching template webhooks:', error);
+            setTemplateWebhooks([]);
+        }
+    };
+
+    // Deploy a template webhook to the current company
+    const deployWebhook = async (template: Webhook & { company_name?: string }) => {
+        if (!user) return;
+
+        const company_id = currentEntity.type === 'company' ? currentEntity.id : null;
+
+        const webhookData = {
+            name: template.name,
+            url: template.url,
+            method: template.method,
+            events: template.events,
+            headers: template.headers || {},
+            auth_username: template.auth_username,
+            auth_password: template.auth_password,
+            is_active: false, // Start as inactive for review
+            user_id: user.id,
+            company_id
+        };
+
+        const { error } = await supabase
+            .from('webhooks')
+            .insert([webhookData])
+            .select();
+
+        if (error) throw error;
+        await fetchWebhooks();
+    };
+
     useEffect(() => {
         fetchWebhooks();
     }, [user, currentEntity]);
+
+    // Fetch templates when webhooks are loaded and empty
+    useEffect(() => {
+        if (!loading && webhooks.length === 0) {
+            fetchTemplateWebhooks();
+        }
+    }, [loading, webhooks.length, currentEntity]);
 
     const createWebhook = async (webhook: Omit<Webhook, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
         console.log('🔧 Creating webhook:', webhook);
@@ -86,11 +161,8 @@ export function useWebhooks() {
         }
 
         const company_id = currentEntity.type === 'company' ? currentEntity.id : null;
-        console.log('🏢 Company ID:', company_id);
-        console.log('👤 User ID:', user.id);
 
         const webhookData = { ...webhook, user_id: user.id, company_id };
-        console.log('📦 Webhook data to insert:', webhookData);
 
         const { data, error } = await supabase
             .from('webhooks')
@@ -144,11 +216,13 @@ export function useWebhooks() {
 
     return {
         webhooks,
+        templateWebhooks,
         loading,
         createWebhook,
         updateWebhook,
         deleteWebhook,
         toggleWebhook,
+        deployWebhook,
         getWebhookLogs,
         refresh: fetchWebhooks
     };
