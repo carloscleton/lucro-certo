@@ -77,41 +77,67 @@ export function useWebhooks() {
     // Fetch webhooks from OTHER companies as templates
     const fetchTemplateWebhooks = async () => {
         if (!user || currentEntity.type !== 'company' || !currentEntity.id) {
+            console.log('📋 Templates: skipped (no user/company)');
             setTemplateWebhooks([]);
             return;
         }
 
         try {
-            // Step 1: Fetch all webhooks the user can see, excluding current company
-            const { data: allWebhooks, error: whError } = await supabase
+            console.log('📋 Templates: fetching for company', currentEntity.id);
+
+            // Step 1: Get all companies this user belongs to
+            const { data: memberships, error: memError } = await supabase
+                .from('company_members')
+                .select('company_id, companies(name)')
+                .eq('user_id', user.id);
+
+            if (memError) {
+                console.error('📋 Templates: error fetching memberships:', memError);
+                setTemplateWebhooks([]);
+                return;
+            }
+
+            // Filter out current company
+            const otherCompanies = (memberships || [])
+                .filter((m: any) => m.company_id !== currentEntity.id)
+                .map((m: any) => ({
+                    id: m.company_id,
+                    name: (m as any).companies?.name || 'Outra empresa'
+                }));
+
+            console.log('📋 Templates: other companies found:', otherCompanies.length, otherCompanies);
+
+            if (otherCompanies.length === 0) {
+                setTemplateWebhooks([]);
+                return;
+            }
+
+            // Step 2: Fetch webhooks from those companies
+            const otherCompanyIds = otherCompanies.map((c: any) => c.id);
+            const { data: otherWebhooks, error: whError } = await supabase
                 .from('webhooks')
                 .select('*')
-                .not('company_id', 'is', null)
-                .neq('company_id', currentEntity.id)
+                .in('company_id', otherCompanyIds)
                 .order('name');
 
             if (whError) {
-                console.error('Error fetching template webhooks:', whError);
+                console.error('📋 Templates: error fetching webhooks:', whError);
                 setTemplateWebhooks([]);
                 return;
             }
 
-            if (!allWebhooks || allWebhooks.length === 0) {
+            console.log('📋 Templates: webhooks found:', otherWebhooks?.length || 0);
+
+            if (!otherWebhooks || otherWebhooks.length === 0) {
                 setTemplateWebhooks([]);
                 return;
             }
 
-            // Step 2: Get unique company IDs and fetch their names
-            const companyIds = [...new Set(allWebhooks.map(w => w.company_id).filter(Boolean))];
-            const { data: companies } = await supabase
-                .from('companies')
-                .select('id, name')
-                .in('id', companyIds);
-
+            // Step 3: Map company names
             const companyMap = new Map<string, string>();
-            (companies || []).forEach((c: any) => companyMap.set(c.id, c.name));
+            otherCompanies.forEach((c: any) => companyMap.set(c.id, c.name));
 
-            const templates = allWebhooks.map((w: any) => ({
+            const templates = otherWebhooks.map((w: any) => ({
                 ...w,
                 company_name: companyMap.get(w.company_id) || 'Outra empresa'
             }));
@@ -125,9 +151,10 @@ export function useWebhooks() {
                 return true;
             });
 
+            console.log('📋 Templates: final count:', unique.length);
             setTemplateWebhooks(unique);
         } catch (error) {
-            console.error('Error fetching template webhooks:', error);
+            console.error('📋 Templates: unexpected error:', error);
             setTemplateWebhooks([]);
         }
     };
