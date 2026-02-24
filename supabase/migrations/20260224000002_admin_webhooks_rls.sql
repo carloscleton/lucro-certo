@@ -10,16 +10,16 @@ DROP FUNCTION IF EXISTS get_template_webhooks(UUID);
 
 CREATE OR REPLACE FUNCTION get_template_webhooks(current_company_id UUID)
 RETURNS TABLE (
-    id UUID,
-    company_id UUID,
-    name TEXT,
-    url TEXT,
-    method TEXT,
-    events JSONB,
-    headers JSONB,
-    is_active BOOLEAN,
-    created_at TIMESTAMPTZ,
-    company_name TEXT
+    webhook_id UUID,
+    webhook_company_id UUID,
+    webhook_name TEXT,
+    webhook_url TEXT,
+    webhook_method TEXT,
+    webhook_events JSONB,
+    webhook_headers JSONB,
+    webhook_is_active BOOLEAN,
+    webhook_created_at TIMESTAMPTZ,
+    webhook_company_name TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -32,10 +32,16 @@ BEGIN
 
     RETURN QUERY
     SELECT 
-        w.id, w.company_id, w.name, w.url, w.method,
-        w.events, w.headers,
-        w.is_active, w.created_at,
-        c.trade_name as company_name
+        w.id,
+        w.company_id,
+        w.name::TEXT,
+        w.url::TEXT,
+        w.method::TEXT,
+        w.events,
+        COALESCE(w.headers, '{}'::JSONB),
+        w.is_active,
+        w.created_at,
+        COALESCE(c.trade_name, c.legal_name, 'Empresa')::TEXT
     FROM webhooks w
     JOIN companies c ON c.id = w.company_id
     WHERE w.company_id != current_company_id

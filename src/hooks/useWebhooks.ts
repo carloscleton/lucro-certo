@@ -98,8 +98,22 @@ export function useWebhooks() {
                 return;
             }
 
-            const webhookData = data || [];
-            logs.push(`Webhooks encontrados: ${webhookData.length}`);
+            const rawData = data || [];
+            logs.push(`Webhooks encontrados: ${rawData.length}`);
+
+            // Map RPC columns (webhook_ prefixed) back to standard Webhook shape
+            const webhookData = rawData.map((row: any) => ({
+                id: row.webhook_id,
+                company_id: row.webhook_company_id,
+                name: row.webhook_name,
+                url: row.webhook_url,
+                method: row.webhook_method,
+                events: row.webhook_events,
+                headers: row.webhook_headers,
+                is_active: row.webhook_is_active,
+                created_at: row.webhook_created_at,
+                company_name: row.webhook_company_name
+            }));
 
             // Deduplicate by name
             const seen = new Set<string>();
