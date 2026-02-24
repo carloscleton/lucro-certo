@@ -41,6 +41,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
     const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
     const [propagateChanges, setPropagateChanges] = useState(false);
+    const [dbInstallments, setDbInstallments] = useState<Record<number, { amount: number; date: string }>>({});
 
     const { categories, addCategory } = useCategories();
     const { companies } = useCompanies();
@@ -97,6 +98,31 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             localStorage.setItem(`lastCompanyId_${type}`, companyId);
         }
     }, [companyId, type, initialData]);
+
+    // Fetch real installment data when editing an existing recurrence
+    useEffect(() => {
+        if (isOpen && initialData?.recurrence_group_id) {
+            const fetchGroupData = async () => {
+                const { data, error } = await supabase
+                    .from('transactions')
+                    .select('installment_number, amount, date')
+                    .eq('recurrence_group_id', initialData.recurrence_group_id);
+
+                if (data && !error) {
+                    const mapped: Record<number, { amount: number; date: string }> = {};
+                    data.forEach(item => {
+                        if (item.installment_number) {
+                            mapped[item.installment_number] = { amount: item.amount, date: item.date };
+                        }
+                    });
+                    setDbInstallments(mapped);
+                }
+            };
+            fetchGroupData();
+        } else if (!isOpen) {
+            setDbInstallments({});
+        }
+    }, [isOpen, initialData]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -430,8 +456,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     const installmentIdx = (initialData?.installment_number || 1) + index + 1;
                                                     const currentOverride = overrides[installmentIdx];
                                                     const isEditing = editingInstallment === installmentIdx;
-                                                    const displayDate = currentOverride?.date || nextDate.toISOString().split('T')[0];
-                                                    const displayAmount = currentOverride?.amount !== undefined ? currentOverride.amount : parseFloat(amount || '0');
+
+                                                    // Source data prioritizes Overrides (unsaved) > Database (real) > Projection (fallback)
+                                                    const realData = dbInstallments[installmentIdx];
+                                                    const displayDate = currentOverride?.date || realData?.date || nextDate.toISOString().split('T')[0];
+                                                    const displayAmount = currentOverride?.amount !== undefined
+                                                        ? currentOverride.amount
+                                                        : (realData?.amount ?? parseFloat(amount || '0'));
 
                                                     return (
                                                         <div
