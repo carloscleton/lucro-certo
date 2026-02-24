@@ -82,6 +82,7 @@ export function useTransactions(type: TransactionType) {
     const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at' | 'user_id'>) => {
         if (!user) return;
         try {
+            const { overrides, ...cleanTransaction } = transaction as any;
             const userId = user.id;
             const companyId = currentEntity.type === 'company' ? currentEntity.id : null;
 
@@ -89,7 +90,7 @@ export function useTransactions(type: TransactionType) {
             const recurrenceGroupId = transaction.is_recurring ? crypto.randomUUID() : null;
 
             const entriesToInsert = [{
-                ...transaction,
+                ...cleanTransaction,
                 user_id: userId,
                 company_id: companyId,
                 recurrence_group_id: recurrenceGroupId,
@@ -100,10 +101,10 @@ export function useTransactions(type: TransactionType) {
                 const nextDates = calculateNextDates(transaction.date, transaction.frequency, 12);
                 nextDates.forEach((dateObj, index) => {
                     const installmentIdx = index + 2;
-                    const override = (transaction as any).overrides?.[installmentIdx];
+                    const override = overrides?.[installmentIdx];
 
                     entriesToInsert.push({
-                        ...transaction,
+                        ...cleanTransaction,
                         amount: override?.amount ?? transaction.amount,
                         date: override?.date ?? dateObj.toISOString().split('T')[0],
                         user_id: userId,
@@ -135,7 +136,7 @@ export function useTransactions(type: TransactionType) {
 
     const updateTransaction = async (id: string, updates: Partial<Transaction> & { propagate?: boolean }) => {
         try {
-            const { propagate, ...cleanUpdates } = updates;
+            const { propagate, overrides, ...cleanUpdates } = updates as any;
 
             // Find original transaction in local state to check for quote link or recurrence
             const originalTransaction = transactions.find(t => t.id === id);
