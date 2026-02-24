@@ -82,19 +82,38 @@ export function useWebhooks() {
         }
 
         try {
-            // Get all webhooks visible to user, then filter out current company
-            const { data, error } = await supabase
+            // Step 1: Fetch all webhooks the user can see, excluding current company
+            const { data: allWebhooks, error: whError } = await supabase
                 .from('webhooks')
-                .select('*, company:companies(name)')
+                .select('*')
+                .not('company_id', 'is', null)
                 .neq('company_id', currentEntity.id)
-                .eq('is_active', true)
                 .order('name');
 
-            if (error) throw error;
+            if (whError) {
+                console.error('Error fetching template webhooks:', whError);
+                setTemplateWebhooks([]);
+                return;
+            }
 
-            const templates = (data || []).map((w: any) => ({
+            if (!allWebhooks || allWebhooks.length === 0) {
+                setTemplateWebhooks([]);
+                return;
+            }
+
+            // Step 2: Get unique company IDs and fetch their names
+            const companyIds = [...new Set(allWebhooks.map(w => w.company_id).filter(Boolean))];
+            const { data: companies } = await supabase
+                .from('companies')
+                .select('id, name')
+                .in('id', companyIds);
+
+            const companyMap = new Map<string, string>();
+            (companies || []).forEach((c: any) => companyMap.set(c.id, c.name));
+
+            const templates = allWebhooks.map((w: any) => ({
                 ...w,
-                company_name: w.company?.name || 'Outra empresa'
+                company_name: companyMap.get(w.company_id) || 'Outra empresa'
             }));
 
             // Deduplicate by name (keep first occurrence)
