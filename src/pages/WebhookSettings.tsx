@@ -9,7 +9,7 @@ import { webhookService } from '../services/webhookService';
 import type { Webhook } from '../hooks/useWebhooks';
 
 export function WebhookSettings() {
-    const { webhooks, templateWebhooks, loading, createWebhook, updateWebhook, deleteWebhook, toggleWebhook, deployWebhook, getWebhookLogs } = useWebhooks();
+    const { webhooks, templateWebhooks, debugInfo, loading, createWebhook, updateWebhook, deleteWebhook, toggleWebhook, deployWebhook, getWebhookLogs } = useWebhooks();
     const [formOpen, setFormOpen] = useState(false);
     const [logsOpen, setLogsOpen] = useState(false);
     const [selectedWebhook, setSelectedWebhook] = useState<Webhook | null>(null);
@@ -147,6 +147,16 @@ export function WebhookSettings() {
                             Criar Webhook
                         </Button>
                     </div>
+
+                    {/* 🔍 DEBUG TEMPORÁRIO — remover depois */}
+                    {debugInfo.length > 0 && (
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-xs font-mono">
+                            <p className="font-bold text-yellow-800 dark:text-yellow-300 mb-2">🔍 Debug Templates:</p>
+                            {debugInfo.map((line, i) => (
+                                <p key={i} className="text-yellow-700 dark:text-yellow-400">{line}</p>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Template Webhooks from other companies */}
                     {templateWebhooks.length > 0 && (

@@ -46,6 +46,7 @@ export function useWebhooks() {
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [templateWebhooks, setTemplateWebhooks] = useState<(Webhook & { company_name?: string })[]>([]);
     const [loading, setLoading] = useState(true);
+    const [debugInfo, setDebugInfo] = useState<string[]>([]);
     const { user } = useAuth();
     const { currentEntity, availableEntities } = useEntity();
 
@@ -76,24 +77,32 @@ export function useWebhooks() {
 
     // Fetch webhooks from OTHER companies as templates
     const fetchTemplateWebhooks = async () => {
+        const logs: string[] = [];
+        logs.push(`Entidade atual: ${currentEntity.type} / ${currentEntity.id} / ${currentEntity.name}`);
+        logs.push(`Total de entidades disponíveis: ${availableEntities.length}`);
+        availableEntities.forEach(e => logs.push(`  - ${e.type}: ${e.name} (${e.id || 'sem id'})`));
+
         if (!user || currentEntity.type !== 'company' || !currentEntity.id) {
+            logs.push('❌ Parou: sem user ou não é empresa');
+            setDebugInfo(logs);
             setTemplateWebhooks([]);
             return;
         }
 
         try {
-            // Use availableEntities from EntityContext — already has all companies the user belongs to
             const otherCompanies = availableEntities
                 .filter(e => e.type === 'company' && e.id && e.id !== currentEntity.id);
 
-            console.log('📋 Templates: other companies from context:', otherCompanies.map(c => ({ id: c.id, name: c.name })));
+            logs.push(`Outras empresas encontradas: ${otherCompanies.length}`);
+            otherCompanies.forEach(c => logs.push(`  → ${c.name} (${c.id})`));
 
             if (otherCompanies.length === 0) {
+                logs.push('❌ Parou: nenhuma outra empresa');
+                setDebugInfo(logs);
                 setTemplateWebhooks([]);
                 return;
             }
 
-            // Fetch webhooks from those companies
             const otherCompanyIds = otherCompanies.map(c => c.id!);
             const { data: otherWebhooks, error: whError } = await supabase
                 .from('webhooks')
@@ -102,19 +111,21 @@ export function useWebhooks() {
                 .order('name');
 
             if (whError) {
-                console.error('📋 Templates: error fetching webhooks:', whError);
+                logs.push(`❌ Erro na query: ${JSON.stringify(whError)}`);
+                setDebugInfo(logs);
                 setTemplateWebhooks([]);
                 return;
             }
 
-            console.log('📋 Templates: webhooks found:', otherWebhooks?.length || 0);
+            logs.push(`Webhooks encontrados: ${otherWebhooks?.length || 0}`);
 
             if (!otherWebhooks || otherWebhooks.length === 0) {
+                logs.push('❌ Parou: nenhum webhook nas outras empresas');
+                setDebugInfo(logs);
                 setTemplateWebhooks([]);
                 return;
             }
 
-            // Map company names from availableEntities
             const companyMap = new Map<string, string>();
             otherCompanies.forEach(c => companyMap.set(c.id!, c.name));
 
@@ -123,7 +134,6 @@ export function useWebhooks() {
                 company_name: companyMap.get(w.company_id) || 'Outra empresa'
             }));
 
-            // Deduplicate by name (keep first occurrence)
             const seen = new Set<string>();
             const unique = templates.filter((t: any) => {
                 const key = t.name.toLowerCase();
@@ -132,10 +142,13 @@ export function useWebhooks() {
                 return true;
             });
 
-            console.log('📋 Templates: final count:', unique.length);
+            logs.push(`✅ Templates finais: ${unique.length}`);
+            unique.forEach((t: any) => logs.push(`  ✓ ${t.name} (${t.company_name})`));
+            setDebugInfo(logs);
             setTemplateWebhooks(unique);
-        } catch (error) {
-            console.error('📋 Templates: unexpected error:', error);
+        } catch (error: any) {
+            logs.push(`❌ Erro inesperado: ${error.message}`);
+            setDebugInfo(logs);
             setTemplateWebhooks([]);
         }
     };
@@ -244,6 +257,7 @@ export function useWebhooks() {
     return {
         webhooks,
         templateWebhooks,
+        debugInfo,
         loading,
         createWebhook,
         updateWebhook,
