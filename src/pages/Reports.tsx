@@ -430,32 +430,144 @@ export function Reports() {
             </div>
 
             {/* Fluxo de Caixa */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
-                <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">Fluxo de Caixa ({startDate.split('-')[0]})</h3>
-                <div className="h-64">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                    Fluxo de Caixa ({startDate.split('-')[0]})
+                </h3>
+                <div className="h-80">
                     {isMounted && (
                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <BarChart
                                 data={cashFlowData}
-                                margin={{
-                                    top: 5,
-                                    right: 30,
-                                    left: 20,
-                                    bottom: 5,
-                                }}
+                                margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
+                                barGap={2}
+                                barCategoryGap="20%"
                             >
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
-                                <RechartsTooltip
-                                    formatter={(value: any) => [`R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, '']}
-                                    contentStyle={{ backgroundColor: 'var(--bg-content)', borderColor: 'var(--border-color)' }}
+                                <defs>
+                                    <linearGradient id="rptReceivedGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.95} />
+                                        <stop offset="100%" stopColor="#34d399" stopOpacity={0.7} />
+                                    </linearGradient>
+                                    <linearGradient id="rptReceivableGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#6ee7b7" stopOpacity={0.7} />
+                                        <stop offset="100%" stopColor="#a7f3d0" stopOpacity={0.5} />
+                                    </linearGradient>
+                                    <linearGradient id="rptPaidGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.95} />
+                                        <stop offset="100%" stopColor="#f87171" stopOpacity={0.7} />
+                                    </linearGradient>
+                                    <linearGradient id="rptPayableGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#fca5a5" stopOpacity={0.7} />
+                                        <stop offset="100%" stopColor="#fecaca" stopOpacity={0.5} />
+                                    </linearGradient>
+                                </defs>
+
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    vertical={false}
+                                    stroke="currentColor"
+                                    className="text-gray-100 dark:text-slate-700"
                                 />
-                                <Legend />
-                                <Bar dataKey="ReceitasRealizadas" name="Recebido" stackId="revenue" fill="#10B981" />
-                                <Bar dataKey="ReceitasPendentes" name="A Receber" stackId="revenue" fill="#6EE7B7" />
-                                <Bar dataKey="DespesasPagas" name="Pago" stackId="expense" fill="#EF4444" />
-                                <Bar dataKey="DespesasPendentes" name="A Pagar" stackId="expense" fill="#FCA5A5" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    dy={8}
+                                    tick={{ fontSize: 12, fill: '#9ca3af' }}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toString()}
+                                    width={45}
+                                />
+                                <RechartsTooltip
+                                    cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                                    content={({ active, payload, label }: any) => {
+                                        if (!active || !payload?.length) return null;
+                                        const received = payload.find((p: any) => p.dataKey === 'ReceitasRealizadas')?.value || 0;
+                                        const receivable = payload.find((p: any) => p.dataKey === 'ReceitasPendentes')?.value || 0;
+                                        const paid = payload.find((p: any) => p.dataKey === 'DespesasPagas')?.value || 0;
+                                        const payable = payload.find((p: any) => p.dataKey === 'DespesasPendentes')?.value || 0;
+                                        const balance = (received + receivable) - (paid + payable);
+                                        const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+                                        return (
+                                            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-3 shadow-xl min-w-[200px]">
+                                                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">{label}</p>
+                                                <div className="space-y-1">
+                                                    {received > 0 && (
+                                                        <div className="flex justify-between gap-4">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">Recebido</span>
+                                                            </div>
+                                                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{fmt(received)}</span>
+                                                        </div>
+                                                    )}
+                                                    {receivable > 0 && (
+                                                        <div className="flex justify-between gap-4">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-emerald-300" />
+                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">A Receber</span>
+                                                            </div>
+                                                            <span className="text-[11px] font-bold text-emerald-500">{fmt(receivable)}</span>
+                                                        </div>
+                                                    )}
+                                                    {paid > 0 && (
+                                                        <div className="flex justify-between gap-4">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-red-500" />
+                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">Pago</span>
+                                                            </div>
+                                                            <span className="text-[11px] font-bold text-red-600 dark:text-red-400">{fmt(paid)}</span>
+                                                        </div>
+                                                    )}
+                                                    {payable > 0 && (
+                                                        <div className="flex justify-between gap-4">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-red-300" />
+                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">A Pagar</span>
+                                                            </div>
+                                                            <span className="text-[11px] font-bold text-red-400">{fmt(payable)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="pt-1.5 mt-1.5 border-t border-gray-100 dark:border-slate-700 flex justify-between">
+                                                    <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Saldo</span>
+                                                    <span className={`text-[11px] font-bold ${balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                        {fmt(balance)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    }}
+                                />
+                                <Legend content={() => (
+                                    <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #10b981, #34d399)' }} />
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Recebido</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #6ee7b7, #a7f3d0)' }} />
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">A Receber</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #ef4444, #f87171)' }} />
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Pago</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #fca5a5, #fecaca)' }} />
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">A Pagar</span>
+                                        </div>
+                                    </div>
+                                )} />
+                                <Bar dataKey="ReceitasRealizadas" name="Recebido" stackId="revenue" fill="url(#rptReceivedGrad)" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="ReceitasPendentes" name="A Receber" stackId="revenue" fill="url(#rptReceivableGrad)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="DespesasPagas" name="Pago" stackId="expense" fill="url(#rptPaidGrad)" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="DespesasPendentes" name="A Pagar" stackId="expense" fill="url(#rptPayableGrad)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
