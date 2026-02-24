@@ -1,7 +1,10 @@
--- Add RLS policy allowing the platform admin to view ALL webhooks
--- This is much simpler than using an RPC with SECURITY DEFINER
+-- Fix: use auth.jwt() instead of auth.users (not accessible in RLS context)
+-- Drop old broken policy first
+DROP POLICY IF EXISTS "Admin can view all webhooks" ON webhooks;
+
+-- Recreate with auth.jwt() which reads email directly from the JWT token
 CREATE POLICY "Admin can view all webhooks"
     ON webhooks FOR SELECT
     USING (
-        (SELECT email FROM auth.users WHERE id = auth.uid()) = 'carloscleton.nat@gmail.com'
+        (auth.jwt() ->> 'email') = 'carloscleton.nat@gmail.com'
     );
