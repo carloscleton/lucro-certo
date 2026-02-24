@@ -81,31 +81,47 @@ export function useTransactions(type: TransactionType) {
 
     const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at' | 'user_id'>) => {
         if (!user) return;
+        console.log('[useTransactions] addTransaction v1.1', transaction);
         try {
-            const { overrides, ...cleanTransaction } = transaction as any;
+            const { overrides, propagate, is_recurring, frequency, ...rawData } = transaction as any;
+
+            // Whitelist of columns actually in the database
+            const dbSchema = [
+                'description', 'amount', 'date', 'type', 'status', 'category_id',
+                'company_id', 'contact_id', 'attachment_url', 'attachment_path',
+                'payment_method', 'payment_date', 'interest', 'penalty',
+                'paid_amount', 'quote_id', 'deal_id', 'is_variable_amount',
+                'recurrence_group_id', 'installment_number'
+            ];
+
+            const cleanTransaction: any = {};
+            dbSchema.forEach(key => {
+                if (rawData[key] !== undefined) cleanTransaction[key] = rawData[key];
+            });
+
             const userId = user.id;
             const companyId = currentEntity.type === 'company' ? currentEntity.id : null;
 
             // If recurring, generate group and installments
-            const recurrenceGroupId = transaction.is_recurring ? crypto.randomUUID() : null;
+            const recurrenceGroupId = is_recurring ? crypto.randomUUID() : null;
 
             const entriesToInsert = [{
                 ...cleanTransaction,
                 user_id: userId,
                 company_id: companyId,
                 recurrence_group_id: recurrenceGroupId,
-                installment_number: transaction.is_recurring ? 1 : null
+                installment_number: is_recurring ? 1 : null
             }];
 
-            if (transaction.is_recurring && transaction.frequency) {
-                const nextDates = calculateNextDates(transaction.date, transaction.frequency, 12);
+            if (is_recurring && frequency) {
+                const nextDates = calculateNextDates(transaction.date, frequency, 12);
                 nextDates.forEach((dateObj, index) => {
                     const installmentIdx = index + 2;
                     const override = overrides?.[installmentIdx];
 
                     entriesToInsert.push({
                         ...cleanTransaction,
-                        amount: override?.amount ?? transaction.amount,
+                        amount: override?.amount ?? cleanTransaction.amount,
                         date: override?.date ?? dateObj.toISOString().split('T')[0],
                         user_id: userId,
                         company_id: companyId,
@@ -135,8 +151,23 @@ export function useTransactions(type: TransactionType) {
     };
 
     const updateTransaction = async (id: string, updates: Partial<Transaction> & { propagate?: boolean }) => {
+        console.log('[useTransactions] updateTransaction v1.1', updates);
         try {
-            const { propagate, overrides, ...cleanUpdates } = updates as any;
+            const { propagate, overrides, is_recurring, frequency, ...rawData } = updates as any;
+
+            // Whitelist of columns actually in the database
+            const dbSchema = [
+                'description', 'amount', 'date', 'type', 'status', 'category_id',
+                'company_id', 'contact_id', 'attachment_url', 'attachment_path',
+                'payment_method', 'payment_date', 'interest', 'penalty',
+                'paid_amount', 'quote_id', 'deal_id', 'is_variable_amount',
+                'recurrence_group_id', 'installment_number'
+            ];
+
+            const cleanUpdates: any = {};
+            dbSchema.forEach(key => {
+                if (rawData[key] !== undefined) cleanUpdates[key] = rawData[key];
+            });
 
             // Find original transaction in local state to check for quote link or recurrence
             const originalTransaction = transactions.find(t => t.id === id);
