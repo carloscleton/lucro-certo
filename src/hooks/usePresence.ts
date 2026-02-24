@@ -1,54 +1,14 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
 
-export function usePresence(shouldListen: boolean = false) {
-    const { user } = useAuth();
-    const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+/**
+ * Hook simplified to disable Supabase Realtime which was causing WebSocket errors.
+ * Presence tracking is currently disabled to ensure system stability.
+ */
+export function usePresence(_shouldListen: boolean = false) {
+    // Return empty state to avoid breaking UI components that use this hook
+    const [onlineUsers] = useState<string[]>([]);
 
-    useEffect(() => {
-        // Don't create channel if no user is authenticated
-        if (!user) return;
-
-        const channel = supabase.channel('system_presence', {
-            config: {
-                presence: {
-                    key: user.id,
-                },
-            },
-        });
-
-        // Track this user's presence
-        channel.subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                await channel.track({
-                    user_id: user.id,
-                    online_at: new Date().toISOString(),
-                });
-            }
-            if (status === 'CHANNEL_ERROR') {
-                console.warn('Presence channel error - will retry automatically');
-            }
-        });
-
-        // If this component wants to know about others (e.g. Admin)
-        if (shouldListen) {
-            channel.on('presence', { event: 'sync' }, () => {
-                const state = channel.presenceState();
-                const userIds = Object.values(state)
-                    .flat()
-                    .map((data: any) => data.user_id)
-                    .filter(Boolean);
-
-                const uniqueIds = [...new Set(userIds)];
-                setOnlineUsers(uniqueIds as string[]);
-            });
-        }
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [user, shouldListen]);
+    // Realtime logic removed to prevent WebSocket connection failures
 
     return { onlineUsers };
 }

@@ -164,21 +164,6 @@ export function EntityProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (user) {
             fetchCompanies();
-            // Realtime subscription for company updates (e.g. permission changes)
-            const channel = supabase
-                .channel('entity-updates')
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'companies'
-                }, () => {
-                    fetchCompanies();
-                })
-                .subscribe();
-
-            return () => {
-                supabase.removeChannel(channel);
-            };
         } else {
             // Se deslogar, reseta TUDO imediatamente
             setCurrentEntity({ type: 'personal', name: 'Pessoal' });
