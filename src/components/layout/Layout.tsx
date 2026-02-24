@@ -25,6 +25,7 @@ import { HelpCenter } from '../orientation/HelpCenter';
 import { supabase } from '../../lib/supabase';
 import { Tooltip } from '../ui/Tooltip';
 import { APP_MODULES, getModulePermission } from '../../config/permissions';
+import { OfflineBanner } from '../ui/OfflineBanner';
 
 export function Layout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -348,6 +349,7 @@ export function Layout() {
                     </div>
                 </header>
 
+                <OfflineBanner />
                 <div className={styles.content}>
                     <Outlet />
                 </div>
