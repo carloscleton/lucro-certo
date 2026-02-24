@@ -38,6 +38,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [file, setFile] = useState<File | null>(null);
     const [dealId, setDealId] = useState('');
     const [loading, setLoading] = useState(false);
+    const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
+    const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
+    const [propagateChanges, setPropagateChanges] = useState(false);
 
     const { categories, addCategory } = useCategories();
     const { companies } = useCompanies();
@@ -82,6 +85,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setIsVariableAmount(false);
             setFrequency('monthly');
             setDealId('');
+            setOverrides({});
+            setEditingInstallment(null);
+            setPropagateChanges(false);
         }
     }, [initialData, isOpen, type]);
 
@@ -129,7 +135,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 frequency: isRecurring ? frequency : null,
                 attachment_url: attachmentUrl,
                 attachment_path: attachmentPath,
-                deal_id: dealId || null
+                deal_id: dealId || null,
+                overrides: Object.keys(overrides).length > 0 ? overrides : undefined,
+                propagate: propagateChanges
             });
             onClose();
         } catch (error) {
@@ -361,17 +369,34 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         </div>
 
                         {isRecurring && (
-                            <div className="flex items-center justify-between py-2 border-t border-gray-100 dark:border-slate-700 animate-in slide-in-from-top-1 duration-200">
-                                <div className="flex items-center gap-2">
-                                    <TrendingUp className="w-4 h-4 text-blue-600" />
-                                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Valor Variável (Estimado)</span>
+                            <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-slate-700 animate-in slide-in-from-top-1 duration-200">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 text-blue-600" />
+                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Valor Variável (Estimado)</span>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={isVariableAmount}
+                                        onChange={e => setIsVariableAmount(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600"
+                                    />
                                 </div>
-                                <input
-                                    type="checkbox"
-                                    checked={isVariableAmount}
-                                    onChange={e => setIsVariableAmount(e.target.checked)}
-                                    className="w-4 h-4 text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600"
-                                />
+
+                                {initialData?.recurrence_group_id && (
+                                    <div className="flex items-center justify-between py-1 px-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <Repeat className="w-3.5 h-3.5 text-amber-600" />
+                                            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">Propagar alteração para os próximos meses?</span>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={propagateChanges}
+                                            onChange={e => setPropagateChanges(e.target.checked)}
+                                            className="w-4 h-4 text-amber-600 rounded-md border-amber-300 focus:ring-amber-500 dark:bg-slate-700 dark:border-slate-600"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -401,19 +426,65 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 📅 Próximas 5 Datas
                                             </p>
                                             <div className="grid grid-cols-5 gap-2">
-                                                {calculateNextDates(date, frequency, 5).map((nextDate, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 rounded-md border border-emerald-100 dark:border-emerald-800/50 shadow-sm"
-                                                    >
-                                                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                            #{index + 2}
-                                                        </span>
-                                                        <span className="text-xs font-bold text-gray-900 dark:text-white mt-0.5">
-                                                            {formatBrazilianDate(nextDate)}
-                                                        </span>
-                                                    </div>
-                                                ))}
+                                                {calculateNextDates(date, frequency, 5).map((nextDate, index) => {
+                                                    const installmentIdx = index + 2;
+                                                    const currentOverride = overrides[installmentIdx];
+                                                    const isEditing = editingInstallment === installmentIdx;
+                                                    const displayDate = currentOverride?.date || nextDate.toISOString().split('T')[0];
+                                                    const displayAmount = currentOverride?.amount !== undefined ? currentOverride.amount : parseFloat(amount || '0');
+
+                                                    return (
+                                                        <div
+                                                            key={index}
+                                                            onClick={() => setEditingInstallment(isEditing ? null : installmentIdx)}
+                                                            className={`flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 rounded-md border transition-all cursor-pointer group ${isEditing ? 'ring-2 ring-emerald-500 border-emerald-500' : 'border-emerald-100 dark:border-emerald-800/50 hover:border-emerald-400 shadow-sm'}`}
+                                                        >
+                                                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                                #{installmentIdx}
+                                                            </span>
+
+                                                            {isEditing ? (
+                                                                <div className="flex flex-col gap-1 mt-1 w-full" onClick={e => e.stopPropagation()}>
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        placeholder="Valor"
+                                                                        className="w-full text-[10px] p-1 border rounded bg-gray-50 dark:bg-slate-700 dark:border-slate-600 text-center focus:ring-1 focus:ring-emerald-500 outline-none"
+                                                                        value={currentOverride?.amount ?? ''}
+                                                                        onChange={e => {
+                                                                            const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                                                                            setOverrides(prev => ({
+                                                                                ...prev,
+                                                                                [installmentIdx]: { ...prev[installmentIdx], amount: val }
+                                                                            }));
+                                                                        }}
+                                                                        autoFocus
+                                                                    />
+                                                                    <input
+                                                                        type="date"
+                                                                        className="w-full text-[9px] p-0.5 border rounded bg-gray-50 dark:bg-slate-700 dark:border-slate-600 text-center focus:ring-1 focus:ring-emerald-500 outline-none"
+                                                                        value={displayDate}
+                                                                        onChange={e => {
+                                                                            setOverrides(prev => ({
+                                                                                ...prev,
+                                                                                [installmentIdx]: { ...prev[installmentIdx], date: e.target.value }
+                                                                            }));
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <span className={`text-[10px] font-bold mt-0.5 ${currentOverride?.amount !== undefined ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}
+                                                                    </span>
+                                                                    <span className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                                                        {formatBrazilianDate(new Date(displayDate + 'T12:00:00'))}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </>

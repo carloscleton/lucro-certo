@@ -99,13 +99,17 @@ export function useTransactions(type: TransactionType) {
             if (transaction.is_recurring && transaction.frequency) {
                 const nextDates = calculateNextDates(transaction.date, transaction.frequency, 12);
                 nextDates.forEach((dateObj, index) => {
+                    const installmentIdx = index + 2;
+                    const override = (transaction as any).overrides?.[installmentIdx];
+
                     entriesToInsert.push({
                         ...transaction,
-                        date: dateObj.toISOString().split('T')[0],
+                        amount: override?.amount ?? transaction.amount,
+                        date: override?.date ?? dateObj.toISOString().split('T')[0],
                         user_id: userId,
                         company_id: companyId,
                         recurrence_group_id: recurrenceGroupId,
-                        installment_number: index + 2,
+                        installment_number: installmentIdx,
                         status: 'pending' // Future ones are always pending
                     });
                 });
@@ -129,14 +133,16 @@ export function useTransactions(type: TransactionType) {
         }
     };
 
-    const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    const updateTransaction = async (id: string, updates: Partial<Transaction> & { propagate?: boolean }) => {
         try {
-            // Find original transaction in local state to check for quote link
+            const { propagate, ...cleanUpdates } = updates;
+
+            // Find original transaction in local state to check for quote link or recurrence
             const originalTransaction = transactions.find(t => t.id === id);
 
             const { error, count } = await supabase
                 .from('transactions')
-                .update(updates, { count: 'exact' })
+                .update(cleanUpdates, { count: 'exact' })
                 .eq('id', id);
 
             if (error) throw error;
@@ -147,6 +153,34 @@ export function useTransactions(type: TransactionType) {
                 // Diagnose why
                 console.warn('Update matched 0 rows. Probable causes: ID mismatch or RLS policy.');
                 throw new Error("Falha na atualização: O registro não foi alterado. Verifique suas permissões.");
+            }
+
+            // Propagate to future ones if requested
+            if (propagate && originalTransaction?.recurrence_group_id) {
+                console.log(`📡 Propagating changes for group ${originalTransaction.recurrence_group_id}...`);
+
+                // Fields to propagate (not everything from updates should be propagated)
+                const propagationPayload: any = {};
+                if (cleanUpdates.amount !== undefined) propagationPayload.amount = cleanUpdates.amount;
+                if (cleanUpdates.description !== undefined) propagationPayload.description = cleanUpdates.description;
+                if (cleanUpdates.category_id !== undefined) propagationPayload.category_id = cleanUpdates.category_id;
+                if (cleanUpdates.company_id !== undefined) propagationPayload.company_id = cleanUpdates.company_id;
+                if (cleanUpdates.contact_id !== undefined) propagationPayload.contact_id = cleanUpdates.contact_id;
+                if (cleanUpdates.is_variable_amount !== undefined) propagationPayload.is_variable_amount = cleanUpdates.is_variable_amount;
+
+                if (Object.keys(propagationPayload).length > 0) {
+                    const { error: propError } = await supabase
+                        .from('transactions')
+                        .update(propagationPayload)
+                        .eq('recurrence_group_id', originalTransaction.recurrence_group_id)
+                        .eq('status', 'pending')
+                        .gt('date', originalTransaction.date);
+
+                    if (propError) {
+                        console.error('Propagation error:', propError);
+                        // We don't throw here to avoid failing the main update, but we log it
+                    }
+                }
             }
 
             // Sync Quote Payment Status if needed
