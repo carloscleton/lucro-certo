@@ -7,49 +7,42 @@ export function usePresence(shouldListen: boolean = false) {
     const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
     useEffect(() => {
-        // Defines the channel
+        // Don't create channel if no user is authenticated
+        if (!user) return;
+
         const channel = supabase.channel('system_presence', {
             config: {
                 presence: {
-                    key: user?.id, // Identify this client by user ID
+                    key: user.id,
                 },
             },
         });
 
-        // If logged in, track this user's presence
-        if (user) {
-            channel.subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
-                    await channel.track({
-                        user_id: user.id,
-                        online_at: new Date().toISOString(),
-                    });
-                }
-            });
-        }
+        // Track this user's presence
+        channel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await channel.track({
+                    user_id: user.id,
+                    online_at: new Date().toISOString(),
+                });
+            }
+            if (status === 'CHANNEL_ERROR') {
+                console.warn('Presence channel error - will retry automatically');
+            }
+        });
 
         // If this component wants to know about others (e.g. Admin)
         if (shouldListen) {
-            channel
-                .on('presence', { event: 'sync' }, () => {
-                    const state = channel.presenceState();
-                    // Robustly extract user_ids from the payloads, not just keys
-                    const userIds = Object.values(state)
-                        .flat()
-                        .map((data: any) => data.user_id)
-                        .filter(Boolean); // Remove empty/nulls
+            channel.on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                const userIds = Object.values(state)
+                    .flat()
+                    .map((data: any) => data.user_id)
+                    .filter(Boolean);
 
-                    // Remove duplicates
-                    const uniqueIds = [...new Set(userIds)];
-
-                    console.log('Online Users (Sync):', uniqueIds);
-                    setOnlineUsers(uniqueIds as string[]);
-                })
-                .subscribe(async (status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('Presence Listener Connected');
-                    }
-                });
+                const uniqueIds = [...new Set(userIds)];
+                setOnlineUsers(uniqueIds as string[]);
+            });
         }
 
         return () => {
