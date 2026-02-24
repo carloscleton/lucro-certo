@@ -227,10 +227,10 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
         res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro ao configurar webhook:', errorDetail);
+        console.error('❌ Erro ao configurar webhook:', JSON.stringify(errorDetail, null, 2));
         res.status(500).json({
             error: 'Erro ao configurar webhook na Evolution API',
-            detail: errorDetail
+            detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
     }
 });

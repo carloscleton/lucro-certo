@@ -263,7 +263,8 @@ export function WhatsApp() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Erro no servidor proxy');
+                const detail = errorData.detail ? `: ${errorData.detail}` : '';
+                throw new Error((errorData.error || 'Erro no servidor proxy') + detail);
             }
 
             const data = await response.json();
@@ -484,7 +485,8 @@ export function WhatsApp() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Erro ao sincronizar com Evolution');
+                const detail = errorData.detail ? `: ${errorData.detail}` : '';
+                throw new Error((errorData.error || 'Erro ao sincronizar com Evolution') + detail);
             }
 
             // 3. Atualizar no Supabase
