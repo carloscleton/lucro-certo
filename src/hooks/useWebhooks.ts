@@ -46,7 +46,6 @@ export function useWebhooks() {
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [templateWebhooks, setTemplateWebhooks] = useState<(Webhook & { company_name?: string })[]>([]);
     const [loading, setLoading] = useState(true);
-    const [debugInfo, setDebugInfo] = useState<string[]>([]);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
 
@@ -74,34 +73,25 @@ export function useWebhooks() {
         }
     };
 
-    // Fetch webhooks from OTHER companies as templates
+    // Fetch webhooks from OTHER companies as templates (always, not just when empty)
     const fetchTemplateWebhooks = async () => {
-        const logs: string[] = [];
-        logs.push(`Empresa: ${currentEntity.name}`);
-
         if (!user || currentEntity.type !== 'company' || !currentEntity.id) {
-            setDebugInfo(logs);
             setTemplateWebhooks([]);
             return;
         }
 
         try {
-            // RPC available to ANY authenticated user (SECURITY DEFINER bypasses RLS)
-            logs.push('Chamando RPC get_template_webhooks...');
             const { data, error } = await supabase
                 .rpc('get_template_webhooks', { current_company_id: currentEntity.id });
 
             if (error) {
-                logs.push(`❌ Erro: ${error.message}`);
-                setDebugInfo(logs);
+                console.error('Error fetching template webhooks:', error);
                 setTemplateWebhooks([]);
                 return;
             }
 
             const rawData = data || [];
-            // RETURNS JSON gives us data with original column names
             const webhookData = Array.isArray(rawData) ? rawData : [];
-            logs.push(`Webhooks encontrados: ${webhookData.length}`);
 
             // Deduplicate by name
             const seen = new Set<string>();
@@ -112,13 +102,9 @@ export function useWebhooks() {
                 return true;
             });
 
-            logs.push(`✅ Templates finais: ${unique.length}`);
-            unique.forEach((t: any) => logs.push(`  ✓ ${t.name} (${t.company_name})`));
-            setDebugInfo(logs);
             setTemplateWebhooks(unique);
-        } catch (error: any) {
-            logs.push(`❌ Erro: ${error.message}`);
-            setDebugInfo(logs);
+        } catch (error) {
+            console.error('Error fetching template webhooks:', error);
             setTemplateWebhooks([]);
         }
     };
@@ -155,12 +141,12 @@ export function useWebhooks() {
         fetchWebhooks();
     }, [user, currentEntity]);
 
-    // Fetch templates when webhooks are loaded and empty
+    // Always fetch templates when loading is done (not just when webhooks are empty)
     useEffect(() => {
-        if (!loading && webhooks.length === 0) {
+        if (!loading) {
             fetchTemplateWebhooks();
         }
-    }, [loading, webhooks.length, currentEntity]);
+    }, [loading, currentEntity]);
 
     const createWebhook = async (webhook: Omit<Webhook, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
         if (!user) return;
@@ -216,7 +202,6 @@ export function useWebhooks() {
     return {
         webhooks,
         templateWebhooks,
-        debugInfo,
         loading,
         createWebhook,
         updateWebhook,

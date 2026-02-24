@@ -9,7 +9,7 @@ import { webhookService } from '../services/webhookService';
 import type { Webhook } from '../hooks/useWebhooks';
 
 export function WebhookSettings() {
-    const { webhooks, templateWebhooks, debugInfo, loading, createWebhook, updateWebhook, deleteWebhook, toggleWebhook, deployWebhook, getWebhookLogs } = useWebhooks();
+    const { webhooks, templateWebhooks, loading, createWebhook, updateWebhook, deleteWebhook, toggleWebhook, deployWebhook, getWebhookLogs } = useWebhooks();
     const [formOpen, setFormOpen] = useState(false);
     const [logsOpen, setLogsOpen] = useState(false);
     const [selectedWebhook, setSelectedWebhook] = useState<Webhook | null>(null);
@@ -147,89 +147,6 @@ export function WebhookSettings() {
                             Criar Webhook
                         </Button>
                     </div>
-
-                    {/* 🔍 DEBUG TEMPORÁRIO — remover depois */}
-                    {debugInfo.length > 0 && (
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-xs font-mono">
-                            <p className="font-bold text-yellow-800 dark:text-yellow-300 mb-2">🔍 Debug Templates:</p>
-                            {debugInfo.map((line, i) => (
-                                <p key={i} className="text-yellow-700 dark:text-yellow-400">{line}</p>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Template Webhooks from other companies */}
-                    {templateWebhooks.length > 0 && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2">
-                                    <Download size={18} className="text-blue-500" />
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                        Webhooks Disponíveis
-                                    </h3>
-                                </div>
-                                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full font-semibold">
-                                    {templateWebhooks.length}
-                                </span>
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">
-                                Estes webhooks já estão configurados em outras empresas. Implemente-os aqui com um clique.
-                            </p>
-
-                            <div className="grid gap-3">
-                                {templateWebhooks.map(template => (
-                                    <div
-                                        key={template.id}
-                                        className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-700"
-                                    >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">
-                                                        {template.name}
-                                                    </h4>
-                                                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">
-                                                        {template.method}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate mb-2" title={template.url}>
-                                                    {template.url}
-                                                </p>
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    {template.events.slice(0, 3).map(event => (
-                                                        <span
-                                                            key={event}
-                                                            className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300 rounded font-medium"
-                                                        >
-                                                            {event}
-                                                        </span>
-                                                    ))}
-                                                    {template.events.length > 3 && (
-                                                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                                            +{template.events.length - 3} mais
-                                                        </span>
-                                                    )}
-                                                    <span className="text-gray-300 dark:text-gray-600">|</span>
-                                                    <div className="flex items-center gap-1 text-gray-400 dark:text-gray-500">
-                                                        <Building2 size={11} />
-                                                        <span className="text-[10px] font-medium">{template.company_name}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                onClick={() => handleDeploy(template)}
-                                                isLoading={deployingId === template.id}
-                                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 flex-shrink-0"
-                                            >
-                                                <Download size={14} className="mr-1.5" />
-                                                Implementar
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
             ) : (
                 <div className="grid gap-4">
@@ -329,6 +246,79 @@ export function WebhookSettings() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Template Webhooks from other companies — always visible */}
+            {templateWebhooks.length > 0 && (
+                <div className="space-y-4 mt-6">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <Download size={18} className="text-blue-500" />
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                Webhooks Disponíveis
+                            </h3>
+                        </div>
+                        <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full font-semibold">
+                            {templateWebhooks.length}
+                        </span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">
+                        Estes webhooks já estão configurados em outras empresas. Implemente-os aqui com um clique.
+                    </p>
+
+                    <div className="grid gap-3">
+                        {templateWebhooks.map(template => (
+                            <div
+                                key={template.id}
+                                className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-700"
+                            >
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <h4 className="text-base font-semibold text-gray-900 dark:text-white">
+                                                {template.name}
+                                            </h4>
+                                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">
+                                                {template.method}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate mb-2" title={template.url}>
+                                            {template.url}
+                                        </p>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {template.events.slice(0, 3).map(event => (
+                                                <span
+                                                    key={event}
+                                                    className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300 rounded font-medium"
+                                                >
+                                                    {event}
+                                                </span>
+                                            ))}
+                                            {template.events.length > 3 && (
+                                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                                    +{template.events.length - 3} mais
+                                                </span>
+                                            )}
+                                            <span className="text-gray-300 dark:text-gray-600">|</span>
+                                            <div className="flex items-center gap-1 text-gray-400 dark:text-gray-500">
+                                                <Building2 size={11} />
+                                                <span className="text-[10px] font-medium">{template.company_name}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={() => handleDeploy(template)}
+                                        isLoading={deployingId === template.id}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 flex-shrink-0"
+                                    >
+                                        <Download size={14} className="mr-1.5" />
+                                        Implementar
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 
