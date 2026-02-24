@@ -22,11 +22,33 @@ export function calculateNextDates(startDate: string, frequency: string, count: 
     return dates;
 }
 
-// Helper function to format date in Brazilian format
+// Helper function to format date in Brazilian format from a Date object
 export function formatBrazilianDate(date: Date): string {
     return date.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric'
     });
+}
+
+/**
+ * Robustly formats a YYYY-MM-DD string into DD/MM/YYYY.
+ * Bypasses timezone shifts by avoiding UTC interpretation.
+ */
+export function formatDateString(dateStr: string | null | undefined, includeYear: boolean = true): string {
+    if (!dateStr) return '-';
+
+    try {
+        // String splitting is the safest way to avoid Date object timezone shifting
+        const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+
+        if (!year || !month || !day) return '-';
+
+        const dayStr = day.toString().padStart(2, '0');
+        const monthStr = month.toString().padStart(2, '0');
+
+        return includeYear ? `${dayStr}/${monthStr}/${year}` : `${dayStr}/${monthStr}`;
+    } catch (e) {
+        return '-';
+    }
 }

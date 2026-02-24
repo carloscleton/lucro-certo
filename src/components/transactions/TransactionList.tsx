@@ -1,6 +1,7 @@
 import { Edit2, Trash2, CheckCircle, Paperclip, Download, FileText, Repeat, TrendingUp } from 'lucide-react';
 import type { Transaction } from '../../hooks/useTransactions';
 import { Tooltip } from '../ui/Tooltip';
+import { formatDateString } from '../../utils/dateUtils';
 
 import { useTeam } from '../../hooks/useTeam';
 
@@ -21,7 +22,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
     const formatDate = (dateStr: string | null | undefined) =>
-        dateStr ? new Date(dateStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-';
+        formatDateString(dateStr);
 
     const getUserName = (userId: string) => {
         const member = members.find(m => m.user_id === userId);
@@ -50,7 +51,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                 return [
                     `"${t.description}"`,
                     `"${getUserName(t.user_id)}"`,
-                    new Date(t.date).toLocaleDateString('pt-BR'),
+                    `"${formatDateString(t.date)}"`,
                     `"${amount}"`,
                     t.type === 'expense' ? 'Despesa' : 'Receita',
                     status,

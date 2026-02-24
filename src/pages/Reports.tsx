@@ -4,6 +4,7 @@ import { useCategories } from '../hooks/useCategories';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { PartyPopper, Wallet, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
+import { formatDateString } from '../utils/dateUtils';
 
 export function Reports() {
     const { transactions: expenses } = useTransactions('expense');
@@ -202,7 +203,7 @@ export function Reports() {
     }, [expenses, startDate, endDate, categories]);
 
     const formatDateDisplay = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+        return formatDateString(dateStr);
     };
 
     const dateRangeDisplay = `${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}`;

@@ -4,6 +4,7 @@ import { useUpcomingBills } from '../../hooks/useUpcomingBills';
 import { useTransactions } from '../../hooks/useTransactions';
 import { Tooltip } from '../ui/Tooltip';
 import type { UpcomingBill } from '../../hooks/useUpcomingBills';
+import { formatDateString } from '../../utils/dateUtils';
 import { SettleModal } from '../transactions/SettleModal';
 
 interface UpcomingBillsWidgetProps {
@@ -66,8 +67,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
     };
 
     const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        return formatDateString(dateStr, false); // DD/MM
     };
 
     const BillItem = ({ bill }: { bill: UpcomingBill }) => (
