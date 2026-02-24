@@ -132,34 +132,18 @@ export function useWebhooks() {
                 return;
             }
 
-            // Fetch webhooks — admin uses RPC (bypasses RLS), regular uses direct query
-            let otherWebhooks: any[] = [];
+            // Fetch webhooks from those companies (RLS allows admin to see all)
+            const { data: otherWebhooks, error: whError } = await supabase
+                .from('webhooks')
+                .select('*')
+                .in('company_id', otherCompanyIds)
+                .order('name');
 
-            if (isAdmin) {
-                const { data, error: whError } = await supabase
-                    .rpc('get_webhooks_by_company_ids', { company_ids: otherCompanyIds });
-
-                if (whError) {
-                    logs.push(`❌ Erro buscando webhooks: ${whError.message}`);
-                    setDebugInfo(logs);
-                    setTemplateWebhooks([]);
-                    return;
-                }
-                otherWebhooks = data || [];
-            } else {
-                const { data, error: whError } = await supabase
-                    .from('webhooks')
-                    .select('*')
-                    .in('company_id', otherCompanyIds)
-                    .order('name');
-
-                if (whError) {
-                    logs.push(`❌ Erro buscando webhooks: ${whError.message}`);
-                    setDebugInfo(logs);
-                    setTemplateWebhooks([]);
-                    return;
-                }
-                otherWebhooks = data || [];
+            if (whError) {
+                logs.push(`❌ Erro buscando webhooks: ${whError.message}`);
+                setDebugInfo(logs);
+                setTemplateWebhooks([]);
+                return;
             }
 
             logs.push(`Webhooks encontrados: ${otherWebhooks.length}`);
