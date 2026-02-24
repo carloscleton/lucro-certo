@@ -39,13 +39,13 @@ export function Modal({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div
                 className={clsx(
-                    'w-full bg-[var(--color-surface)] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200',
+                    'w-full bg-[var(--color-surface)] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[95vh]',
                     maxWidth
                 )}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header with Gradient */}
-                <div className="p-6 relative" style={{ background: gradients[variant] }}>
+                <div className="p-5 flex-shrink-0 relative" style={{ background: gradients[variant] }}>
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 p-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors backdrop-blur-sm"
@@ -54,20 +54,20 @@ export function Modal({
                     </button>
 
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/10 shadow-lg">
-                            <Icon className="text-white" size={24} strokeWidth={2.5} />
+                        <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm border border-white/10 shadow-lg">
+                            <Icon className="text-white" size={22} strokeWidth={2.5} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
+                            <h2 className="text-lg font-bold text-white tracking-tight leading-tight">{title}</h2>
                             {subtitle && (
-                                <p className="text-white/80 text-sm mt-0.5">{subtitle}</p>
+                                <p className="text-white/85 text-xs mt-0.5">{subtitle}</p>
                             )}
                         </div>
                     </div>
                 </div>
 
                 {/* Body */}
-                <div className="p-6 bg-white dark:bg-slate-800 transition-colors">
+                <div className="p-6 bg-white dark:bg-slate-800 transition-colors overflow-y-auto flex-grow scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
                     {children}
                 </div>
             </div>

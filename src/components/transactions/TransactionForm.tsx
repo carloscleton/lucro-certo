@@ -210,8 +210,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 icon={isExpense ? Receipt : TrendingUp}
                 maxWidth="max-w-2xl"
             >
-                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="md:col-span-2">
                             <Input
                                 label="Descrição"
@@ -377,7 +377,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         )}
                     </div>
 
-                    <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 space-y-4">
+                    <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 space-y-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Repeat className="w-4 h-4 text-emerald-600" />
@@ -447,11 +447,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                         </p>
 
                                         {/* Preview of next recurring dates */}
-                                        <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2 uppercase tracking-wide">
+                                        <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                            <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 mb-2 uppercase tracking-wide">
                                                 📅 Próximas 5 Datas
                                             </p>
-                                            <div className="grid grid-cols-5 gap-2">
+                                            <div className="grid grid-cols-5 gap-1.5">
                                                 {calculateNextDates(date, frequency, 5).map((nextDate, index) => {
                                                     const installmentIdx = (initialData?.installment_number || 1) + index + 1;
                                                     const currentOverride = overrides[installmentIdx];
@@ -529,12 +529,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             <Paperclip className="w-4 h-4" /> Anexo / Comprovante
                         </label>
                         <div className="flex items-center justify-center w-full">
-                            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 transition-all">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
+                            <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 transition-all">
+                                <div className="flex flex-col items-center justify-center pt-2 pb-3">
+                                    <p className="mb-0.5 text-xs text-gray-500 dark:text-gray-400">
                                         <span className="font-semibold">Clique para anexar</span> ou arraste o arquivo
                                     </p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500">PDF, PNG, JPG (Máx. 5MB)</p>
+                                    <p className="text-[10px] text-gray-400 dark:text-gray-500">PDF, PNG, JPG (Máx. 5MB)</p>
                                 </div>
                                 <input
                                     type="file"
@@ -553,11 +553,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         )}
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-4">
-                        <Button type="button" variant="outline" onClick={onClose} className="px-8">
+                    <div className="flex justify-end gap-3 mt-2">
+                        <Button type="button" variant="outline" onClick={onClose} className="px-6 h-9 text-sm">
                             Cancelar
                         </Button>
-                        <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-8 shadow-lg shadow-emerald-500/20">
+                        <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm shadow-lg shadow-emerald-500/20">
                             Processar Lançamento
                         </Button>
                     </div>
