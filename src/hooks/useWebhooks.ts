@@ -47,7 +47,7 @@ export function useWebhooks() {
     const [templateWebhooks, setTemplateWebhooks] = useState<(Webhook & { company_name?: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
-    const { currentEntity } = useEntity();
+    const { currentEntity, availableEntities } = useEntity();
 
     const fetchWebhooks = async () => {
         if (!user) return;
@@ -77,43 +77,24 @@ export function useWebhooks() {
     // Fetch webhooks from OTHER companies as templates
     const fetchTemplateWebhooks = async () => {
         if (!user || currentEntity.type !== 'company' || !currentEntity.id) {
-            console.log('📋 Templates: skipped (no user/company)');
             setTemplateWebhooks([]);
             return;
         }
 
         try {
-            console.log('📋 Templates: fetching for company', currentEntity.id);
+            // Use availableEntities from EntityContext — already has all companies the user belongs to
+            const otherCompanies = availableEntities
+                .filter(e => e.type === 'company' && e.id && e.id !== currentEntity.id);
 
-            // Step 1: Get all companies this user belongs to
-            const { data: memberships, error: memError } = await supabase
-                .from('company_members')
-                .select('company_id, companies(name)')
-                .eq('user_id', user.id);
-
-            if (memError) {
-                console.error('📋 Templates: error fetching memberships:', memError);
-                setTemplateWebhooks([]);
-                return;
-            }
-
-            // Filter out current company
-            const otherCompanies = (memberships || [])
-                .filter((m: any) => m.company_id !== currentEntity.id)
-                .map((m: any) => ({
-                    id: m.company_id,
-                    name: (m as any).companies?.name || 'Outra empresa'
-                }));
-
-            console.log('📋 Templates: other companies found:', otherCompanies.length, otherCompanies);
+            console.log('📋 Templates: other companies from context:', otherCompanies.map(c => ({ id: c.id, name: c.name })));
 
             if (otherCompanies.length === 0) {
                 setTemplateWebhooks([]);
                 return;
             }
 
-            // Step 2: Fetch webhooks from those companies
-            const otherCompanyIds = otherCompanies.map((c: any) => c.id);
+            // Fetch webhooks from those companies
+            const otherCompanyIds = otherCompanies.map(c => c.id!);
             const { data: otherWebhooks, error: whError } = await supabase
                 .from('webhooks')
                 .select('*')
@@ -133,9 +114,9 @@ export function useWebhooks() {
                 return;
             }
 
-            // Step 3: Map company names
+            // Map company names from availableEntities
             const companyMap = new Map<string, string>();
-            otherCompanies.forEach((c: any) => companyMap.set(c.id, c.name));
+            otherCompanies.forEach(c => companyMap.set(c.id!, c.name));
 
             const templates = otherWebhooks.map((w: any) => ({
                 ...w,
@@ -193,10 +174,10 @@ export function useWebhooks() {
 
     // Fetch templates when webhooks are loaded and empty
     useEffect(() => {
-        if (!loading && webhooks.length === 0) {
+        if (!loading && webhooks.length === 0 && availableEntities.length > 1) {
             fetchTemplateWebhooks();
         }
-    }, [loading, webhooks.length, currentEntity]);
+    }, [loading, webhooks.length, currentEntity, availableEntities]);
 
     const createWebhook = async (webhook: Omit<Webhook, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
         console.log('🔧 Creating webhook:', webhook);
