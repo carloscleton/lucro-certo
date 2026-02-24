@@ -427,7 +427,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                             </p>
                                             <div className="grid grid-cols-5 gap-2">
                                                 {calculateNextDates(date, frequency, 5).map((nextDate, index) => {
-                                                    const installmentIdx = index + 2;
+                                                    const installmentIdx = (initialData?.installment_number || 1) + index + 1;
                                                     const currentOverride = overrides[installmentIdx];
                                                     const isEditing = editingInstallment === installmentIdx;
                                                     const displayDate = currentOverride?.date || nextDate.toISOString().split('T')[0];

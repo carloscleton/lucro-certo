@@ -215,6 +215,32 @@ export function useTransactions(type: TransactionType) {
                 }
             }
 
+            // Individual Overrides (targeting specific installments by number)
+            if (overrides && originalTransaction?.recurrence_group_id) {
+                console.log(`🎯 Applying individual overrides for group ${originalTransaction.recurrence_group_id}...`);
+
+                for (const [idxStr, override] of Object.entries(overrides)) {
+                    const installmentNum = parseInt(idxStr);
+                    const { amount: ovAmount, date: ovDate } = override as any;
+
+                    const overridePayload: any = {};
+                    if (ovAmount !== undefined) overridePayload.amount = ovAmount;
+                    if (ovDate !== undefined) overridePayload.date = ovDate;
+
+                    if (Object.keys(overridePayload).length > 0) {
+                        const { error: overError } = await supabase
+                            .from('transactions')
+                            .update(overridePayload)
+                            .eq('recurrence_group_id', originalTransaction.recurrence_group_id)
+                            .eq('installment_number', installmentNum);
+
+                        if (overError) {
+                            console.error(`Error applying override to installment #${installmentNum}:`, overError);
+                        }
+                    }
+                }
+            }
+
             // Sync Quote Payment Status if needed
             if (updates.status && originalTransaction?.quote_id) {
                 const isPaid = updates.status === 'paid' || updates.status === 'received';
