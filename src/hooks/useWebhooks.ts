@@ -50,6 +50,9 @@ export function useWebhooks() {
     const { user } = useAuth();
     const { currentEntity, availableEntities } = useEntity();
 
+    const ADMIN_EMAIL = 'carloscleton.nat@gmail.com';
+    const isAdmin = user?.email === ADMIN_EMAIL;
+
     const fetchWebhooks = async () => {
         if (!user) return;
         try {
@@ -65,7 +68,6 @@ export function useWebhooks() {
             }
 
             const { data, error } = await query;
-
             if (error) throw error;
             setWebhooks(data || []);
         } catch (error) {
@@ -76,105 +78,81 @@ export function useWebhooks() {
     };
 
     // Fetch webhooks from OTHER companies as templates
-    const ADMIN_EMAIL = 'carloscleton.nat@gmail.com';
-    const isAdmin = user?.email === ADMIN_EMAIL;
-
     const fetchTemplateWebhooks = async () => {
         const logs: string[] = [];
-        logs.push(`Entidade: ${currentEntity.type} / ${currentEntity.name}`);
-        logs.push(`Admin: ${isAdmin ? 'Sim' : 'Não'}`);
+        logs.push(`Admin: ${isAdmin ? 'Sim' : 'Não'} | Empresa: ${currentEntity.name}`);
 
         if (!user || currentEntity.type !== 'company' || !currentEntity.id) {
-            logs.push('❌ Parou: sem user ou não é empresa');
             setDebugInfo(logs);
             setTemplateWebhooks([]);
             return;
         }
 
         try {
-            let otherCompanyIds: string[] = [];
-            const companyNameMap = new Map<string, string>();
-
             if (isAdmin) {
-                // Admin: use RPC to get ALL companies
-                logs.push('Buscando empresas via admin RPC...');
-                const { data: allCompanies, error: compError } = await supabase
-                    .rpc('get_admin_companies_list');
+                // Admin: single RPC does everything (bypasses RLS via SECURITY DEFINER)
+                logs.push('Chamando RPC get_template_webhooks...');
+                const { data, error } = await supabase
+                    .rpc('get_template_webhooks', { current_company_id: currentEntity.id });
 
-                if (compError) {
-                    logs.push(`❌ Erro no RPC: ${compError.message}`);
+                if (error) {
+                    logs.push(`❌ Erro: ${error.message}`);
                     setDebugInfo(logs);
                     setTemplateWebhooks([]);
                     return;
                 }
 
-                const others = (allCompanies || []).filter((c: any) => c.id !== currentEntity.id);
-                others.forEach((c: any) => {
-                    otherCompanyIds.push(c.id);
-                    companyNameMap.set(c.id, c.trade_name || c.legal_name || 'Empresa');
+                const webhookData = data || [];
+                logs.push(`Webhooks encontrados: ${webhookData.length}`);
+
+                // Deduplicate by name
+                const seen = new Set<string>();
+                const unique = webhookData.filter((t: any) => {
+                    const key = t.name.toLowerCase();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
                 });
-                logs.push(`Empresas encontradas (admin): ${others.length}`);
+
+                logs.push(`✅ Templates finais: ${unique.length}`);
+                unique.forEach((t: any) => logs.push(`  ✓ ${t.name} (${t.company_name})`));
+                setDebugInfo(logs);
+                setTemplateWebhooks(unique);
             } else {
-                // Regular user: use availableEntities
+                // Regular user: use availableEntities + direct query
                 const otherCompanies = availableEntities
                     .filter(e => e.type === 'company' && e.id && e.id !== currentEntity.id);
-                otherCompanies.forEach(c => {
-                    otherCompanyIds.push(c.id!);
-                    companyNameMap.set(c.id!, c.name);
-                });
-                logs.push(`Empresas encontradas (membro): ${otherCompanies.length}`);
+
+                if (otherCompanies.length === 0) {
+                    setDebugInfo(logs);
+                    setTemplateWebhooks([]);
+                    return;
+                }
+
+                const otherCompanyIds = otherCompanies.map(c => c.id!);
+                const { data: otherWebhooks, error: whError } = await supabase
+                    .from('webhooks')
+                    .select('*')
+                    .in('company_id', otherCompanyIds)
+                    .order('name');
+
+                if (whError || !otherWebhooks || otherWebhooks.length === 0) {
+                    setTemplateWebhooks([]);
+                    return;
+                }
+
+                const companyMap = new Map<string, string>();
+                otherCompanies.forEach(c => companyMap.set(c.id!, c.name));
+
+                const templates = otherWebhooks.map((w: any) => ({
+                    ...w,
+                    company_name: companyMap.get(w.company_id) || 'Outra empresa'
+                }));
+
+                setTemplateWebhooks(templates);
             }
-
-            if (otherCompanyIds.length === 0) {
-                logs.push('❌ Parou: nenhuma outra empresa');
-                setDebugInfo(logs);
-                setTemplateWebhooks([]);
-                return;
-            }
-
-            // Fetch webhooks from those companies (RLS allows admin to see all)
-            const { data: otherWebhooks, error: whError } = await supabase
-                .from('webhooks')
-                .select('*')
-                .in('company_id', otherCompanyIds)
-                .order('name');
-
-            if (whError) {
-                logs.push(`❌ Erro buscando webhooks: ${whError.message}`);
-                setDebugInfo(logs);
-                setTemplateWebhooks([]);
-                return;
-            }
-
-            logs.push(`Webhooks encontrados: ${otherWebhooks.length}`);
-
-            if (otherWebhooks.length === 0) {
-                logs.push('❌ Parou: nenhum webhook nas outras empresas');
-                setDebugInfo(logs);
-                setTemplateWebhooks([]);
-                return;
-            }
-
-            const templates = otherWebhooks.map((w: any) => ({
-                ...w,
-                company_name: companyNameMap.get(w.company_id) || 'Outra empresa'
-            }));
-
-            // Deduplicate by name
-            const seen = new Set<string>();
-            const unique = templates.filter((t: any) => {
-                const key = t.name.toLowerCase();
-                if (seen.has(key)) return false;
-                seen.add(key);
-                return true;
-            });
-
-            logs.push(`✅ Templates finais: ${unique.length}`);
-            unique.forEach((t: any) => logs.push(`  ✓ ${t.name} (${t.company_name})`));
-            setDebugInfo(logs);
-            setTemplateWebhooks(unique);
         } catch (error: any) {
-            logs.push(`❌ Erro inesperado: ${error.message}`);
+            logs.push(`❌ Erro: ${error.message}`);
             setDebugInfo(logs);
             setTemplateWebhooks([]);
         }
@@ -214,34 +192,23 @@ export function useWebhooks() {
 
     // Fetch templates when webhooks are loaded and empty
     useEffect(() => {
-        if (!loading && webhooks.length === 0 && availableEntities.length > 1) {
+        if (!loading && webhooks.length === 0) {
             fetchTemplateWebhooks();
         }
     }, [loading, webhooks.length, currentEntity, availableEntities]);
 
     const createWebhook = async (webhook: Omit<Webhook, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-        console.log('🔧 Creating webhook:', webhook);
-
-        if (!user) {
-            console.error('❌ No user found!');
-            return;
-        }
+        if (!user) return;
 
         const company_id = currentEntity.type === 'company' ? currentEntity.id : null;
-
         const webhookData = { ...webhook, user_id: user.id, company_id };
 
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('webhooks')
             .insert([webhookData])
             .select();
 
-        if (error) {
-            console.error('❌ Error creating webhook:', error);
-            throw error;
-        }
-
-        console.log('✅ Webhook created successfully:', data);
+        if (error) throw error;
         await fetchWebhooks();
     };
 
