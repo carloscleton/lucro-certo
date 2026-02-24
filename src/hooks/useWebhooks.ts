@@ -199,9 +199,15 @@ export function useWebhooks() {
         return data as WebhookLog[];
     };
 
+    // Filter out templates already implemented in this company
+    const existingNames = new Set(webhooks.map(w => w.name.toLowerCase()));
+    const availableTemplates = templateWebhooks.filter(
+        t => !existingNames.has(t.name.toLowerCase())
+    );
+
     return {
         webhooks,
-        templateWebhooks,
+        templateWebhooks: availableTemplates,
         loading,
         createWebhook,
         updateWebhook,
