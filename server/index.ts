@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import multer from 'multer';
 import { PaymentFactory } from './services/payments/PaymentFactory.js';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 dotenv.config();
 dotenv.config({ path: '../.env' }); // Fallback para o .env da raiz do projeto
@@ -630,6 +633,43 @@ app.get('/fiscal/nfe/:id/pdf', authenticate, async (req, res) => {
         res.send(response.data);
     } catch (error: any) {
         res.status(500).json({ error: 'Erro ao baixar PDF', detail: error.response?.data || error.message });
+    }
+});
+
+app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), async (req: any, res) => {
+    const { companyId, senha } = req.body;
+    const authHeader = req.headers.authorization;
+    const file = req.file;
+
+    if (!companyId || !file || !senha) {
+        return res.status(400).json({ error: 'companyId, arquivo e senha são obrigatórios' });
+    }
+
+    try {
+        const config = await getCompanyFiscalConfig(authHeader!, companyId);
+        const apiKey = config.tecnospeed_api_key;
+        const isSandbox = config.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+
+        console.log(`🔐 Uploading certificate for company ${companyId} (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
+
+        // Convert memory file to FormData to send to PlugNotas
+        const formData = new FormData();
+        const blob = new Blob([file.buffer], { type: file.mimetype });
+        formData.append('arquivo', blob, file.originalname);
+        formData.append('senha', senha);
+
+        const response = await axios.post(`${baseUrl}/certificado`, formData, {
+            headers: {
+                'x-api-key': apiKey
+            }
+        });
+
+        res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));
+        res.status(500).json({ error: 'Erro ao enviar certificado para TecnoSpeed', detail: errorDetail });
     }
 });
 

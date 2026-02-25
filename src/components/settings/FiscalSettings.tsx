@@ -13,6 +13,9 @@ export function FiscalSettings() {
     const { companies, updateCompany } = useCompanies();
     const [saving, setSaving] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [uploadingCert, setUploadingCert] = useState(false);
+    const [certFile, setCertFile] = useState<File | null>(null);
+    const [certPassword, setCertPassword] = useState('');
 
     const [config, setConfig] = useState({
         cnpj: '',
@@ -48,6 +51,30 @@ export function FiscalSettings() {
             alert('Erro ao salvar configurações fiscais.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleUploadCertificate = async () => {
+        if (!currentEntity.id || !certFile || !certPassword) {
+            alert('Selecione o arquivo e informe a senha do certificado.');
+            return;
+        }
+
+        setUploadingCert(true);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            await fiscalService.uploadCertificate(currentEntity.id, certFile, certPassword, token);
+            alert('Certificado Digital enviado com sucesso!');
+            setCertFile(null);
+            setCertPassword('');
+        } catch (error: any) {
+            console.error(error);
+            alert('Erro ao enviar certificado: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setUploadingCert(false);
         }
     };
 
@@ -173,6 +200,54 @@ export function FiscalSettings() {
                                 <span className="text-sm">Produção (Real)</span>
                             </label>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 mb-4">
+                    <ShieldCheck className="text-blue-600" size={20} />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Certificado Digital (A1)</h3>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6 border border-blue-100 dark:border-blue-900/30">
+                    <p className="text-sm text-blue-800 dark:text-blue-400">
+                        O envio do certificado digital A1 (.pfx ou .p12) é obrigatório para a emissão de notas em produção.
+                        Sua senha é transmitida de forma segura e não fica armazenada em nossos servidores.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Arquivo do Certificado (.pfx, .p12)
+                        </label>
+                        <input
+                            type="file"
+                            accept=".pfx,.p12"
+                            onChange={(e) => setCertFile(e.target.files?.[0] || null)}
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                        />
+                    </div>
+                    <div className="flex gap-4 items-end">
+                        <div className="flex-1">
+                            <Input
+                                label="Senha do Certificado"
+                                type="password"
+                                value={certPassword}
+                                onChange={(e: any) => setCertPassword(e.target.value)}
+                                placeholder="Sua senha"
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            onClick={handleUploadCertificate}
+                            isLoading={uploadingCert}
+                            className="border-blue-200 text-blue-700 hover:bg-blue-50 h-[42px]"
+                        >
+                            <Save size={18} className="mr-2" />
+                            Subir Certificado
+                        </Button>
                     </div>
                 </div>
             </div>

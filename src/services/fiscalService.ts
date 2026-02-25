@@ -79,5 +79,20 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async uploadCertificate(companyId: string, certificateFile: File, password: string, token: string) {
+        const formData = new FormData();
+        formData.append('companyId', companyId);
+        formData.append('arquivo', certificateFile);
+        formData.append('senha', password);
+
+        const response = await axios.post(`${API_URL}/upload-certificate`, formData, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
     }
 };
