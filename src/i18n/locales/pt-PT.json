@@ -280,7 +280,10 @@
         "subscription_desc": "Mensalidade e licença anual.",
         "monthly_fee": "Mensalidade (€ / mês)",
         "annual_fee": "Licença Anual (€ / ano)",
-        "license_expiry": "Validade da Licença"
+        "license_expiry": "Validade da Licença",
+        "renew_one_year": "Renovar 1 Ano",
+        "module_access_matrix": "Matriz de Acesso aos Módulos",
+        "module": "Módulo"
     },
     "settings_tabs_desc": {
         "quotes": "Validade e termos",

@@ -221,6 +221,9 @@
         "tab_payments": "Pagamentos",
         "tab_fiscal": "Fiscal (TecnoSpeed)",
         "tab_admin": "Administração",
+        "admin_subtab_users": "Usuários",
+        "admin_subtab_companies": "Empresas",
+        "admin_subtab_invoices": "Faturas",
         "save_settings": "Salvar Configurações",
         "loading": "Carregando configurações...",
         "save_error": "Erro ao salvar as configurações.",
@@ -280,7 +283,10 @@
         "subscription_desc": "Controle os valores fixos de mensalidade e licença anual.",
         "monthly_fee": "Mensalidade (R$ / mês)",
         "annual_fee": "Licença Anual (R$ / ano)",
-        "license_expiry": "Vencimento da Licença"
+        "license_expiry": "Vencimento da Licença",
+        "renew_one_year": "Renovar 1 Ano",
+        "module_access_matrix": "Matriz de Acesso aos Módulos",
+        "module": "Módulo"
     },
     "settings_tabs_desc": {
         "quotes": "Validade e termos",
@@ -569,5 +575,29 @@
     "language": {
         "title": "Idioma",
         "select": "Selecionar idioma"
+    },
+    "help_center": {
+        "title": "Central de Ajuda",
+        "assistant_title": "Assistente IA",
+        "main_desc": "Precisa de ajuda? Escolha um dos guias rápidos abaixo ou tire suas dúvidas com nossa IA.",
+        "guide_start": "Primeiros Passos",
+        "guide_start_desc": "Aprenda o básico do Lucro Certo.",
+        "guide_cashflow": "Fluxo de Caixa",
+        "guide_cashflow_desc": "Como organizar suas entradas e saídas.",
+        "guide_crm": "Gerindo Clientes",
+        "guide_crm_desc": "Cadastro e gestão de pacientes/clientes.",
+        "ask_ia": "Tirar dúvidas com IA",
+        "talk_support": "Falar com Suporte (Zap)",
+        "chat_welcome": "Olá! Eu sou o Assistente do Lucro Certo.",
+        "chat_welcome_desc": "Como posso ajudar na sua gestão hoje? Pergunte qualquer coisa!",
+        "chat_placeholder": "Digite sua dúvida aqui...",
+        "clear_chat": "Limpar conversa",
+        "clear_chat_confirm": "Deseja limpar o histórico desta conversa?",
+        "ia_error_not_configured": "Ops! O suporte via IA ainda não foi configurado. Por favor, configure um Webhook com o evento \"Suporte do Sistema\" nas configurações.",
+        "ia_error_offline": "O servidor de IA está offline ou a URL do Webhook está incorreta.",
+        "ia_error_timeout": "A IA está demorando um pouco para responder. Por favor, tente enviar novamente em alguns segundos.",
+        "ia_error_generic": "Desculpe, tive um problema ao conectar com o serviço de IA. Verifique se o Webhook está ativo.",
+        "you": "Você",
+        "ai_fallback": "Entendido! Como posso ajudar mais?"
     }
 }

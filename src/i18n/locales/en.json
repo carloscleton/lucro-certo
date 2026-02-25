@@ -221,6 +221,9 @@
         "tab_payments": "Payments",
         "tab_fiscal": "Fiscal (TecnoSpeed)",
         "tab_admin": "Administration",
+        "admin_subtab_users": "Users",
+        "admin_subtab_companies": "Companies",
+        "admin_subtab_invoices": "Invoices",
         "save_settings": "Save Settings",
         "loading": "Loading settings...",
         "save_error": "Error saving settings.",
@@ -280,7 +283,10 @@
         "subscription_desc": "Control fixed monthly fees and annual license values.",
         "monthly_fee": "Monthly Fee ($ / month)",
         "annual_fee": "Annual License ($ / year)",
-        "license_expiry": "License Expiry"
+        "license_expiry": "License Expiry",
+        "renew_one_year": "Renew 1 Year",
+        "module_access_matrix": "Module Access Matrix",
+        "module": "Module"
     },
     "settings_tabs_desc": {
         "quotes": "Validity and terms",
@@ -569,5 +575,29 @@
     "language": {
         "title": "Language",
         "select": "Select language"
+    },
+    "help_center": {
+        "title": "Help Center",
+        "assistant_title": "AI Assistant",
+        "main_desc": "Need help? Choose one of our quick guides below or ask our AI assistant.",
+        "guide_start": "Getting Started",
+        "guide_start_desc": "Learn the basics of Lucro Certo.",
+        "guide_cashflow": "Cash Flow",
+        "guide_cashflow_desc": "How to organize your income and expenses.",
+        "guide_crm": "Managing Clients",
+        "guide_crm_desc": "Registration and management of patients/clients.",
+        "ask_ia": "Ask our AI",
+        "talk_support": "Talk to Support (WhatsApp)",
+        "chat_welcome": "Hello! I am the Lucro Certo Assistant.",
+        "chat_welcome_desc": "How can I help you today? Ask me anything!",
+        "chat_placeholder": "Type your question here...",
+        "clear_chat": "Clear conversation",
+        "clear_chat_confirm": "Do you want to clear the chat history?",
+        "ia_error_not_configured": "Oops! AI support has not been configured yet. Please set up a Webhook with the \"System Support\" event in settings.",
+        "ia_error_offline": "The AI server is offline or the Webhook URL is incorrect.",
+        "ia_error_timeout": "The AI is taking a bit long to respond. Please try sending again in a few seconds.",
+        "ia_error_generic": "Sorry, I had trouble connecting to the AI service. Please check if the Webhook is active.",
+        "you": "You",
+        "ai_fallback": "Understood! How can I help you more?"
     }
 }

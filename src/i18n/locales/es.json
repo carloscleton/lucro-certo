@@ -280,7 +280,10 @@
         "subscription_desc": "Mensualidad y licencia anual.",
         "monthly_fee": "Mensualidad ($ / mes)",
         "annual_fee": "Licencia Anual ($ / año)",
-        "license_expiry": "Vencimiento de Licencia"
+        "license_expiry": "Vencimiento de Licencia",
+        "renew_one_year": "Renovar 1 Año",
+        "module_access_matrix": "Matriz de Acceso a Módulos",
+        "module": "Módulo"
     },
     "settings_tabs_desc": {
         "quotes": "Validez y términos",

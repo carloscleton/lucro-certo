@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
@@ -7,6 +8,7 @@ import { useWebhooks } from '../../hooks/useWebhooks';
 import { supabase } from '../../lib/supabase';
 
 export function HelpCenter() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [view, setView] = useState<'main' | 'chat'>('main');
@@ -18,27 +20,27 @@ export function HelpCenter() {
 
     const guides = [
         {
-            title: 'Primeiros Passos',
+            title: t('help_center.guide_start'),
             icon: PlayCircle,
-            description: 'Aprenda o básico do Lucro Certo.',
+            description: t('help_center.guide_start_desc'),
             onClick: () => {
                 localStorage.removeItem('lucro_certo_onboarding_seen');
                 window.location.reload();
             },
         },
         {
-            title: 'Fluxo de Caixa',
+            title: t('help_center.guide_cashflow'),
             icon: DollarSignIcon,
-            description: 'Como organizar suas entradas e saídas.',
+            description: t('help_center.guide_cashflow_desc'),
             onClick: () => {
                 navigate('/transactions');
                 setIsOpen(false);
             },
         },
         {
-            title: 'Gerindo Clientes',
+            title: t('help_center.guide_crm'),
             icon: BookOpen,
-            description: 'Cadastro e gestão de pacientes/clientes.',
+            description: t('help_center.guide_crm_desc'),
             onClick: () => {
                 navigate('/crm');
                 setIsOpen(false);
@@ -67,7 +69,7 @@ export function HelpCenter() {
             if (!supportWebhook) {
                 setMessages(prev => [...prev, {
                     role: 'assistant',
-                    text: 'Ops! O suporte via IA ainda não foi configurado. Por favor, configure um Webhook com o evento "Suporte do Sistema" nas configurações.'
+                    text: t('help_center.ia_error_not_configured')
                 }]);
                 return;
             }
@@ -85,7 +87,7 @@ export function HelpCenter() {
 
             if (error) throw error;
 
-            let reply = 'Entendido! Como posso ajudar mais?';
+            let reply = t('help_center.ai_fallback');
 
             if (data && data.response) {
                 const rawResponse = data.response;
@@ -115,10 +117,10 @@ export function HelpCenter() {
             });
 
             const errorMessage = error.message?.includes('functions_http_error')
-                ? 'O servidor de IA está offline ou a URL do Webhook está incorreta.'
+                ? t('help_center.ia_error_offline')
                 : error.message?.includes('timeout') || error.message?.includes('AbortError')
-                    ? 'A IA está demorando um pouco para responder. Por favor, tente enviar novamente em alguns segundos.'
-                    : 'Desculpe, tive um problema ao conectar com o serviço de IA. Verifique se o Webhook está ativo.';
+                    ? t('help_center.ia_error_timeout')
+                    : t('help_center.ia_error_generic');
 
             setMessages(prev => [...prev, { role: 'assistant', text: errorMessage }]);
         } finally {
@@ -127,7 +129,7 @@ export function HelpCenter() {
     };
 
     const handleClearChat = () => {
-        if (confirm('Deseja limpar o histórico desta conversa?')) {
+        if (confirm(t('help_center.clear_chat_confirm'))) {
             setMessages([]);
         }
     };
@@ -164,7 +166,7 @@ export function HelpCenter() {
                                 </button>
                             )}
                             <HelpCircle size={20} />
-                            <span className="font-bold">{view === 'main' ? 'Central de Ajuda' : 'Assistente IA'}</span>
+                            <span className="font-bold">{view === 'main' ? t('help_center.title') : t('help_center.assistant_title')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             {view === 'chat' && messages.length > 0 && (
@@ -187,7 +189,7 @@ export function HelpCenter() {
                         {view === 'main' ? (
                             <div className="p-4 space-y-4">
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Precisa de ajuda? Escolha um dos guias rápidos abaixo ou tire suas dúvidas com nossa IA.
+                                    {t('help_center.main_desc')}
                                 </p>
 
                                 <div className="space-y-2">
@@ -214,7 +216,7 @@ export function HelpCenter() {
                                         onClick={() => setView('chat')}
                                     >
                                         <Bot size={18} />
-                                        Tirar dúvidas com IA
+                                        {t('help_center.ask_ia')}
                                     </Button>
 
                                     <Button
@@ -222,7 +224,7 @@ export function HelpCenter() {
                                         onClick={() => window.open('https://wa.me/5584998071213?text=Olá,%20preciso%20de%20ajuda%20com%20o%20Lucro%20Certo.', '_blank')}
                                     >
                                         <MessageCircle size={18} />
-                                        Falar com Suporte (Zap)
+                                        {t('help_center.talk_support')}
                                     </Button>
                                 </div>
                             </div>
@@ -234,8 +236,8 @@ export function HelpCenter() {
                                             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <Bot size={24} />
                                             </div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white">Olá! Eu sou o Assistente do Lucro Certo.</h3>
-                                            <p className="text-xs text-gray-500">Como posso ajudar na sua gestão hoje? Pergunte qualquer coisa!</p>
+                                            <h3 className="font-bold text-gray-900 dark:text-white">{t('help_center.chat_welcome')}</h3>
+                                            <p className="text-xs text-gray-500">{t('help_center.chat_welcome_desc')}</p>
                                         </div>
                                     )}
                                     {messages.map((msg, i) => (
@@ -246,7 +248,7 @@ export function HelpCenter() {
                                                 }`}>
                                                 <div className="flex items-center gap-1.5 mb-1 opacity-70 text-[10px] uppercase font-bold tracking-wider">
                                                     {msg.role === 'user' ? <User size={10} /> : <Bot size={10} />}
-                                                    {msg.role === 'user' ? 'Você' : 'Assistente IA'}
+                                                    {msg.role === 'user' ? t('help_center.you') : t('help_center.assistant_title')}
                                                 </div>
                                                 <p className="whitespace-pre-wrap">{msg.text}</p>
                                             </div>
@@ -266,7 +268,7 @@ export function HelpCenter() {
                                             type="text"
                                             value={message}
                                             onChange={e => setMessage(e.target.value)}
-                                            placeholder="Digite sua dúvida aqui..."
+                                            placeholder={t('help_center.chat_placeholder')}
                                             className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2 pr-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
                                         />
                                         <button
@@ -283,7 +285,7 @@ export function HelpCenter() {
                     </div>
                 </div>
             ) : (
-                <Tooltip content="Ajuda" position="left">
+                <Tooltip content={t('common.help_label') || 'Ajuda'} position="left">
                     <button
                         onClick={() => setIsOpen(true)}
                         className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-700 hover:scale-110 active:scale-95 transition-all flex items-center justify-center group"

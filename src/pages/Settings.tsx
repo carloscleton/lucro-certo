@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
@@ -19,6 +20,7 @@ import { useCharges } from '../hooks/useCharges';
 import { useAuth } from '../context/AuthContext';
 
 export function Settings() {
+    const { t } = useTranslation();
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
     const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, updateUserConfig, updateCompanyConfig } = useAdmin();
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
@@ -85,9 +87,9 @@ export function Settings() {
         });
         setSaving(false);
         if (error) {
-            alert('Erro ao salvar as configurações.');
+            alert(t('settings.save_error'));
         } else {
-            alert('Configurações salvas com sucesso!');
+            alert(t('settings.save_success'));
         }
     };
 
@@ -130,26 +132,26 @@ export function Settings() {
                     }
                 }
             }
-            alert(`Sincronização concluída! ${updatedCount} registros atualizados.`);
+            alert(t('settings.sync_complete', { count: updatedCount }));
         } catch (error) {
             console.error(error);
-            alert('Erro ao sincronizar.');
+            alert(t('settings.sync_error'));
         } finally {
             setSyncing(false);
         }
     };
 
     const handleImportFromPersonal = async () => {
-        if (!confirm('Deseja importar todas as taxas e validade da sua conta pessoal para esta empresa? Isso substituirá os valores atuais.')) return;
+        if (!confirm(t('settings.import_confirm'))) return;
 
         setCloning(true);
         const { error } = await clonePersonalSettings();
         setCloning(false);
 
         if (error) {
-            alert('Erro ao importar: ' + error);
+            alert(t('settings.import_error') + error);
         } else {
-            alert('Configurações importadas da conta pessoal!');
+            alert(t('settings.import_success'));
         }
     };
 
@@ -159,9 +161,9 @@ export function Settings() {
         const { error } = await inviteMember(inviteEmail, inviteRole);
         setInviting(false);
         if (error) {
-            alert('Erro ao enviar convite: ' + error);
+            alert(t('settings.invite_error') + error);
         } else {
-            alert('Convite enviado com sucesso!');
+            alert(t('settings.invite_success'));
             setInviteEmail('');
         }
     };
@@ -231,7 +233,7 @@ export function Settings() {
         }
     };
 
-    if (loading) return <div className="p-6">Carregando configurações...</div>;
+    if (loading) return <div className="p-6">{t('settings.loading')}</div>;
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-20">
@@ -239,23 +241,23 @@ export function Settings() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <SettingsIcon className="text-blue-600" />
-                        Configurações do Sistema
+                        {t('settings.title')}
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400">Gerencie as preferências globais da aplicação.</p>
+                    <p className="text-gray-500 dark:text-gray-400">{t('settings.subtitle')}</p>
                 </div>
             </div>
 
             {/* Tabs Header */}
             <div className="flex gap-4 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
                 {[
-                    { key: 'quotes', label: 'Orçamentos', icon: FileText, color: 'blue' },
-                    { key: 'financial', label: 'Financeiro', icon: Wallet, color: 'blue' },
-                    { key: 'team', label: 'Time', icon: Users, color: 'blue' },
-                    { key: 'webhooks', label: 'Webhooks', icon: SettingsIcon, color: 'purple' },
-                    { key: 'whatsapp', label: 'WhatsApp API', icon: MessageSquare, color: 'green' },
-                    { key: 'payments', label: 'Pagamentos', icon: CreditCard, color: 'emerald' },
-                    { key: 'fiscal', label: 'Fiscal (TecnoSpeed)', icon: FileText, color: 'indigo' },
-                    ...(isAdmin ? [{ key: 'admin', label: 'Administração', icon: Shield, color: 'purple' }] : [])
+                    { key: 'quotes', label: t('settings.tab_quotes'), icon: FileText, color: 'blue' },
+                    { key: 'financial', label: t('settings.tab_financial'), icon: Wallet, color: 'blue' },
+                    { key: 'team', label: t('settings.tab_team'), icon: Users, color: 'blue' },
+                    { key: 'webhooks', label: t('settings.tab_webhooks'), icon: SettingsIcon, color: 'purple' },
+                    { key: 'whatsapp', label: t('settings.tab_whatsapp'), icon: MessageSquare, color: 'green' },
+                    { key: 'payments', label: t('settings.tab_payments'), icon: CreditCard, color: 'emerald' },
+                    { key: 'fiscal', label: t('settings.tab_fiscal'), icon: FileText, color: 'indigo' },
+                    ...(isAdmin ? [{ key: 'admin', label: t('settings.tab_admin'), icon: Shield, color: 'purple' }] : [])
                 ].filter(tab => {
                     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
@@ -310,28 +312,28 @@ export function Settings() {
                         <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             <FileText className="text-blue-600 mt-1" size={24} />
                             <div>
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Padrões de Orçamento</h3>
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t('settings.quote_defaults')}</h3>
                                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                                    Defina os valores padrão que serão preenchidos automaticamente ao criar um novo orçamento.
+                                    {t('settings.quote_defaults_desc')}
                                 </p>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Input
-                                label="Validade Padrão (Dias)"
+                                label={t('settings.default_validity')}
                                 type="number"
                                 value={quoteValidity}
                                 onChange={(e) => setQuoteValidity(parseInt(e.target.value) || 0)}
                                 placeholder="Ex: 7"
                                 min="1"
-                                helpText="Número de dias que a proposta será válida a partir da data de criação."
+                                helpText={t('settings.validity_help')}
                             />
                         </div>
                         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex justify-end">
                             <Button onClick={handleSave} isLoading={saving}>
                                 <Save size={18} className="mr-2" />
-                                Salvar Configurações
+                                {t('settings.save_settings')}
                             </Button>
                         </div>
                     </div>
@@ -342,9 +344,9 @@ export function Settings() {
                         <div className="flex items-start gap-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                             <Wallet className="text-green-600 mt-1" size={24} />
                             <div>
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Taxas e Comissões</h3>
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t('settings.fees_commissions')}</h3>
                                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                                    Configure as taxas administrativas cobradas pela plataforma ou meios de pagamento.
+                                    {t('settings.fees_desc')}
                                 </p>
                             </div>
                         </div>
@@ -360,7 +362,7 @@ export function Settings() {
                                     className="text-blue-600 border-blue-200 hover:bg-blue-50"
                                 >
                                     <RefreshCw size={14} className="mr-2" />
-                                    Importar da Conta Pessoal
+                                    {t('settings.import_personal')}
                                 </Button>
                             </div>
                         )}
@@ -368,7 +370,7 @@ export function Settings() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="relative">
                                 <Input
-                                    label="Taxa de Recebimento (%)"
+                                    label={t('settings.receiving_fee')}
                                     type="number"
                                     value={commissionRate}
                                     onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
@@ -376,12 +378,12 @@ export function Settings() {
                                     step="0.1"
                                     min="0"
                                     max="100"
-                                    helpText="Percentual descontado automaticamente de cada recebimento (ex: taxa de cartão/intermediação)."
+                                    helpText={t('settings.receiving_fee_help')}
                                 />
                             </div>
                             <div className="relative">
                                 <Input
-                                    label="Comissão Serviços (%)"
+                                    label={t('settings.service_commission')}
                                     type="number"
                                     value={serviceCommissionRate}
                                     onChange={(e) => setServiceCommissionRate(parseFloat(e.target.value) || 0)}
@@ -389,12 +391,12 @@ export function Settings() {
                                     step="0.1"
                                     min="0"
                                     max="100"
-                                    helpText="Taxa de comissão padrão para serviços."
+                                    helpText={t('settings.service_commission_help')}
                                 />
                             </div>
                             <div className="relative">
                                 <Input
-                                    label="Comissão Produtos (%)"
+                                    label={t('settings.product_commission')}
                                     type="number"
                                     value={productCommissionRate}
                                     onChange={(e) => setProductCommissionRate(parseFloat(e.target.value) || 0)}
@@ -402,14 +404,14 @@ export function Settings() {
                                     step="0.1"
                                     min="0"
                                     max="100"
-                                    helpText="Taxa de comissão padrão para produtos."
+                                    helpText={t('settings.product_commission_help')}
                                 />
                             </div>
                         </div>
                         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex justify-end">
                             <Button onClick={handleSave} isLoading={saving}>
                                 <Save size={18} className="mr-2" />
-                                Salvar Configurações
+                                {t('settings.save_settings')}
                             </Button>
                         </div>
 
@@ -421,15 +423,15 @@ export function Settings() {
                             I'll put it in Financial for now as it relates to transactions.
                          */}
                         <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
-                            <h3 className="text-md font-medium text-gray-900 dark:text-white mb-2">Manutenção</h3>
+                            <h3 className="text-md font-medium text-gray-900 dark:text-white mb-2">{t('settings.maintenance')}</h3>
                             <div className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-lg flex items-center justify-between">
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Sincronizar status de pagamento entre orçamentos e transações.
+                                    {t('settings.sync_desc')}
                                 </p>
-                                <Button variant="outline" size="sm" onClick={handleSyncTransactions} isLoading={syncing}>
-                                    <RefreshCw size={16} />
-                                    Sincronizar
-                                </Button>
+                                <button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors" onClick={handleSyncTransactions} disabled={syncing}>
+                                    <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+                                    {t('common.sync')}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -439,11 +441,11 @@ export function Settings() {
                     <div className="space-y-8">
                         {/* Invite Section */}
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Convidar Membro</h3>
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('settings.invite_member')}</h3>
                             <form onSubmit={handleInvite} className="flex gap-4 items-end">
                                 <div className="flex-1">
                                     <Input
-                                        label="Email do Usuário"
+                                        label={t('settings.user_email')}
                                         type="email"
                                         value={inviteEmail}
                                         onChange={(e) => setInviteEmail(e.target.value)}
@@ -453,19 +455,19 @@ export function Settings() {
                                 </div>
                                 <div className="w-48">
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Função
+                                        {t('settings.role')}
                                     </label>
                                     <select
                                         value={inviteRole}
                                         onChange={(e) => setInviteRole(e.target.value as 'admin' | 'member')}
                                         className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
-                                        <option value="member">Membro</option>
-                                        <option value="admin">Admin</option>
+                                        <option value="member">{t('settings.role_member')}</option>
+                                        <option value="admin">{t('settings.role_admin')}</option>
                                     </select>
                                 </div>
                                 <Button type="submit" isLoading={inviting} className="mb-[2px]">
-                                    Convidar
+                                    {t('settings.invite_btn')}
                                 </Button>
                             </form>
                         </div>
@@ -473,7 +475,7 @@ export function Settings() {
                         {/* Members List */}
                         <div>
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Membros da Equipe</h3>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('settings.team_members')}</h3>
                                 <Button size="sm" variant="ghost" onClick={refreshTeam} isLoading={teamLoading}>
                                     <RefreshCw size={16} />
                                 </Button>
@@ -483,24 +485,24 @@ export function Settings() {
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-gray-50 dark:bg-slate-900/50">
                                         <tr>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Nome / Email</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Função</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Entrou em</th>
-                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Ações</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('settings.name_email')}</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('settings.role')}</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('common.status')}</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('settings.joined_at')}</th>
+                                            <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">{t('common.actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                                         {teamLoading ? (
                                             <tr>
                                                 <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                                                    Carregando equipe...
+                                                    {t('settings.loading_team')}
                                                 </td>
                                             </tr>
                                         ) : members.length === 0 ? (
                                             <tr>
                                                 <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                                                    Nenhum membro encontrado.
+                                                    {t('settings.no_members')}
                                                 </td>
                                             </tr>
                                         ) : (
@@ -514,12 +516,12 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <span className={`px-2 py-0.5 rounded text-xs border capitalize ${m.role === 'owner' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300' : 'bg-gray-50 border-gray-200 dark:bg-slate-800 dark:border-slate-700'}`}>
-                                                            {m.role === 'owner' ? '👑 Platform Owner' : m.role === 'admin' ? 'Admin' : 'Membro'}
+                                                            {m.role === 'owner' ? t('settings.platform_owner') : m.role === 'admin' ? t('settings.role_admin') : t('settings.role_member')}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <span className="px-2 py-0.5 rounded text-xs bg-green-50 text-green-700 border border-green-200">
-                                                            Ativo
+                                                            {t('common.active')}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-gray-500">
@@ -529,11 +531,11 @@ export function Settings() {
                                                         {m.role !== 'owner' && (
                                                             <button
                                                                 onClick={() => {
-                                                                    if (confirm('Remover este membro?')) removeMember(m.id);
+                                                                    if (confirm(t('settings.remove_member_confirm'))) removeMember(m.id);
                                                                 }}
                                                                 className="text-red-600 hover:text-red-800 text-xs font-medium"
                                                             >
-                                                                Remover
+                                                                {t('settings.remove_member')}
                                                             </button>
                                                         )}
                                                     </td>
@@ -548,15 +550,15 @@ export function Settings() {
                         {/* Invites List */}
                         {invites.length > 0 && (
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Convites Pendentes</h3>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('settings.pending_invites')}</h3>
                                 <div className="overflow-hidden border border-gray-200 dark:border-slate-700 rounded-lg">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-gray-50 dark:bg-slate-900/50">
                                             <tr>
-                                                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
-                                                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Função</th>
-                                                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Expira em</th>
-                                                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Ações</th>
+                                                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('common.email')}</th>
+                                                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('settings.role')}</th>
+                                                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('settings.expires_at')}</th>
+                                                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">{t('common.actions')}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -576,13 +578,13 @@ export function Settings() {
                                                             onClick={() => copyInviteLink(inv.token)}
                                                             className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                                                         >
-                                                            Copiar Link
+                                                            {t('common.copy_link')}
                                                         </button>
                                                         <button
                                                             onClick={() => cancelInvite(inv.id)}
                                                             className="text-red-600 hover:text-red-800 text-xs font-medium"
                                                         >
-                                                            Cancelar
+                                                            {t('settings.cancel_invite')}
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -621,7 +623,7 @@ export function Settings() {
                                         <Shield size={24} />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configurar Empresa</h2>
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('settings.configure_company')}</h2>
                                         <p className="text-sm text-gray-500">{selectedCompanyForConfig.trade_name} • {selectedCompanyForConfig.cnpj}</p>
                                     </div>
                                 </div>
@@ -639,8 +641,8 @@ export function Settings() {
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">Módulo Fiscal</h4>
-                                                <p className="text-xs text-gray-500">Habilita emissão de notas fiscais</p>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.fiscal_module')}</h4>
+                                                <p className="text-xs text-gray-500">{t('settings.fiscal_module_desc')}</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
@@ -657,8 +659,8 @@ export function Settings() {
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">Módulo Pagamentos</h4>
-                                                <p className="text-xs text-gray-500">Habilita links de pagamento e checkout</p>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.payments_module')}</h4>
+                                                <p className="text-xs text-gray-500">{t('settings.payments_module_desc')}</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
@@ -675,8 +677,8 @@ export function Settings() {
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">Módulo CRM</h4>
-                                                <p className="text-xs text-gray-500">Habilita Funil de Vendas e Negócios</p>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.crm_module')}</h4>
+                                                <p className="text-xs text-gray-500">{t('settings.crm_module_desc')}</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
@@ -693,8 +695,8 @@ export function Settings() {
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">Exclusão de Dados</h4>
-                                                <p className="text-xs text-gray-500">Membros podem excluir registros</p>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.data_deletion')}</h4>
+                                                <p className="text-xs text-gray-500">{t('settings.data_deletion_desc')}</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
@@ -719,12 +721,12 @@ export function Settings() {
                                             <DollarSign size={20} />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-900 dark:text-white">Taxa da Plataforma (Sua Comissão)</h4>
-                                            <p className="text-sm text-gray-500">Defina a porcentagem que você recebe sobre cada transação desta empresa.</p>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.platform_fee')}</h4>
+                                            <p className="text-sm text-gray-500">{t('settings.platform_fee_desc')}</p>
                                         </div>
                                     </div>
                                     <Input
-                                        label="Porcentagem de Comissão (%)"
+                                        label={t('settings.commission_rate')}
                                         type="number"
                                         value={tempCompanyConfig.settings?.commission_rate || 0}
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -748,14 +750,14 @@ export function Settings() {
                                             <CreditCard size={20} />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-900 dark:text-white">Plano de Assinatura (Mensalidade e Licença)</h4>
-                                            <p className="text-sm text-gray-500">Controle os valores fixos de mensalidade e licença anual.</p>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.subscription_plan')}</h4>
+                                            <p className="text-sm text-gray-500">{t('settings.subscription_desc')}</p>
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <Input
-                                            label="Mensalidade (R$ / mês)"
+                                            label={t('settings.monthly_fee')}
                                             type="number"
                                             value={tempCompanyConfig.settings?.monthly_fee || 0}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -768,7 +770,7 @@ export function Settings() {
                                             placeholder="Ex: 150"
                                         />
                                         <Input
-                                            label="Licença Anual (R$ / ano)"
+                                            label={t('settings.annual_fee')}
                                             type="number"
                                             value={tempCompanyConfig.settings?.annual_fee || 0}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -782,7 +784,7 @@ export function Settings() {
                                         />
                                         <div className="flex flex-col gap-2">
                                             <Input
-                                                label="Vencimento da Licença"
+                                                label={t('settings.license_expiry')}
                                                 type="date"
                                                 value={tempCompanyConfig.settings?.license_expires_at ? new Date(tempCompanyConfig.settings.license_expires_at).toISOString().split('T')[0] : ''}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -805,7 +807,7 @@ export function Settings() {
                                                 }}
                                                 className="text-[10px] w-fit font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
                                             >
-                                                Renovar 1 Ano
+                                                {t('settings.renew_one_year')}
                                             </button>
                                         </div>
                                     </div>
@@ -815,15 +817,15 @@ export function Settings() {
                                 <div>
                                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                         <Lock size={18} className="text-orange-500" />
-                                        Matriz de Acesso aos Módulos
+                                        {t('settings.module_access_matrix')}
                                     </h4>
                                     <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
                                                 <tr>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200">Módulo</th>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">Admin</th>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">Membro</th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200">{t('settings.module')}</th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">{t('settings.role_admin')}</th>
+                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">{t('settings.role_member')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
