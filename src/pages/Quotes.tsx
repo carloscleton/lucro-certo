@@ -359,6 +359,11 @@ export function Quotes() {
 
             if (quoteError || !fullQuote) throw new Error('Erro ao buscar itens do orçamento.');
 
+            // Check if customer has tax_id
+            if (!fullQuote.contact?.tax_id) {
+                throw new Error('O cliente do orçamento não possui CPF/CNPJ cadastrado.');
+            }
+
             // 1. Detect if it is Service or Product
             const isServiceOnly = fullQuote.items.every((item: any) => item.service_id);
             const token = (await supabase.auth.getSession()).data.session?.access_token;
@@ -382,7 +387,7 @@ export function Quotes() {
                             numero: fullQuote.contact?.number || 'S/N',
                             bairro: fullQuote.contact?.neighborhood || '',
                             cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: '', // PlugNotas resolve via nome/uf se vazio? Melhor enviar se tiver.
+                            codigoCidade: '3106200', // BH Default para teste, idealmente viria do endereço do cliente
                             uf: fullQuote.contact?.state || ''
                         }
                     },
@@ -396,7 +401,7 @@ export function Quotes() {
                 };
 
                 setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e (Serviços)...' });
-                result = await fiscalService.emitirNFSe(currentEntity.id, payload, token);
+                result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
             } else {
                 // Map to PlugNotas format (NF-e - Products)
                 const payload = {
@@ -427,18 +432,20 @@ export function Quotes() {
                 };
 
                 setFiscalStatus({ status: 'loading', message: 'Enviando NF-e (Produtos)...' });
-                result = await fiscalService.emitirNFe(currentEntity.id, payload, token);
+                result = await fiscalService.emitirNFe(currentEntity.id, payload, token, quote.id);
             }
+
+            const externalId = result.data?.id || result.id;
 
             setFiscalStatus({
                 status: 'success',
-                message: `Nota enviada com sucesso! ID: ${result.data?.id || 'Pendente'}`
+                message: `Nota enviada com sucesso! ID: ${externalId || 'Pendente'}`
             });
 
             // Update quote with NFe ID
-            if (result.data?.id) {
+            if (externalId) {
                 await supabase.from('quotes').update({
-                    nfe_id: result.data.id,
+                    nfe_id: externalId,
                     nfe_status: 'processando'
                 }).eq('id', quote.id);
             }
@@ -448,6 +455,41 @@ export function Quotes() {
             setFiscalStatus({
                 status: 'error',
                 message: error.response?.data?.error || error.message || 'Erro desconhecido na emissão.'
+            });
+        } finally {
+            setIsEmittingFiscal(null);
+        }
+    };
+
+    const handleCheckFiscalStatus = async (quote: Quote) => {
+        if (!quote.nfe_id || !currentEntity.id) return;
+
+        setIsEmittingFiscal(quote.id);
+        setFiscalStatus({ status: 'loading', message: 'Consultando status no SEFAZ...' });
+        setShowFiscalModal(true);
+
+        try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.checkStatus(quote.nfe_id, currentEntity.id, token);
+            const newStatus = result.data?.status || result.status;
+
+            setFiscalStatus({
+                status: 'success',
+                message: `Status atual: ${newStatus.toUpperCase()}`
+            });
+
+            // Update local quote
+            await supabase.from('quotes').update({
+                nfe_status: newStatus
+            }).eq('id', quote.id);
+
+        } catch (error: any) {
+            console.error('Erro status fiscal:', error);
+            setFiscalStatus({
+                status: 'error',
+                message: error.response?.data?.error || error.message || 'Erro ao consultar status.'
             });
         } finally {
             setIsEmittingFiscal(null);
@@ -862,22 +904,46 @@ export function Quotes() {
 
                                                 {/* Fiscal Button */}
                                                 {quote.status === 'approved' && currentCompany?.fiscal_module_enabled && (
-                                                    <Tooltip content={quote.nfe_id ? "Ver Nota Fiscal" : "Emitir NF-e"}>
-                                                        <button
-                                                            onClick={() => quote.nfe_id ? alert('Status da nota: ' + quote.nfe_status) : handleEmitFiscal(quote)}
-                                                            className={`p-1 rounded transition-colors ${quote.nfe_id
-                                                                ? 'text-emerald-600 hover:bg-emerald-50'
-                                                                : 'text-orange-600 hover:bg-orange-50'
-                                                                }`}
-                                                            disabled={isEmittingFiscal === quote.id}
-                                                        >
-                                                            {isEmittingFiscal === quote.id ? (
-                                                                <Loader2 size={16} className="animate-spin" />
-                                                            ) : (
-                                                                <FileText size={16} />
-                                                            )}
-                                                        </button>
-                                                    </Tooltip>
+                                                    <div className="flex items-center gap-1">
+                                                        <Tooltip content={quote.nfe_id ? `NF: ${quote.nfe_status || 'Pendente'}` : "Emitir NF-e"}>
+                                                            <button
+                                                                onClick={() => quote.nfe_id ? handleCheckFiscalStatus(quote) : handleEmitFiscal(quote)}
+                                                                className={`p-1 rounded transition-colors ${quote.nfe_id
+                                                                    ? (quote.nfe_status === 'concluido' || quote.nfe_status === 'autorizado'
+                                                                        ? 'text-emerald-600 bg-emerald-50'
+                                                                        : 'text-orange-600 bg-orange-50')
+                                                                    : 'text-gray-400 hover:text-orange-600 hover:bg-orange-50'
+                                                                    }`}
+                                                                disabled={isEmittingFiscal === quote.id}
+                                                            >
+                                                                {isEmittingFiscal === quote.id ? (
+                                                                    <Loader2 size={16} className="animate-spin" />
+                                                                ) : (
+                                                                    <FileText size={16} />
+                                                                )}
+                                                            </button>
+                                                        </Tooltip>
+
+                                                        {quote.nfe_id && (quote.nfe_status === 'concluido' || quote.nfe_status === 'autorizado') && (
+                                                            <Tooltip content="Baixar PDF da Nota">
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        const token = (await supabase.auth.getSession()).data.session?.access_token;
+                                                                        if (!token) return;
+                                                                        const blob = await fiscalService.downloadPDF(quote.nfe_id!, currentEntity.id!, token);
+                                                                        const url = window.URL.createObjectURL(blob);
+                                                                        const a = document.createElement('a');
+                                                                        a.href = url;
+                                                                        a.download = `nota_${quote.quote_number || quote.id.slice(0, 8)}.pdf`;
+                                                                        a.click();
+                                                                    }}
+                                                                    className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                                                                >
+                                                                    <Printer size={16} />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
+                                                    </div>
                                                 )}
 
                                                 {/* Payment Action Button */}

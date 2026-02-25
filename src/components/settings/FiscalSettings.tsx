@@ -4,11 +4,15 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useEntity } from '../../context/EntityContext';
+import { fiscalService } from '../../services/fiscalService';
+import { supabase } from '../../lib/supabase';
+import { RefreshCw } from 'lucide-react';
 
 export function FiscalSettings() {
     const { currentEntity } = useEntity();
     const { companies, updateCompany } = useCompanies();
     const [saving, setSaving] = useState(false);
+    const [syncing, setSyncing] = useState(false);
 
     const [config, setConfig] = useState({
         cnpj: '',
@@ -44,6 +48,31 @@ export function FiscalSettings() {
             alert('Erro ao salvar configurações fiscais.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleSyncIssuer = async () => {
+        if (!currentEntity.id) return;
+
+        // 1. Confirm fields
+        if (!config.cnpj || !config.tecnospeed_api_key) {
+            alert('CNPJ e API Key são obrigatórios para sincronizar.');
+            return;
+        }
+
+        setSyncing(true);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.syncIssuer(currentEntity.id, config, token);
+            alert('Emitente sincronizado com sucesso no PlugNotas!\n\nID: ' + (result.data?.id || 'OK'));
+        } catch (error: any) {
+            console.error(error);
+            alert('Erro ao sincronizar emitente: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setSyncing(false);
         }
     };
 
@@ -157,10 +186,21 @@ export function FiscalSettings() {
                 >
                     Acessar Painel TecnoSpeed <ExternalLink size={14} />
                 </a>
-                <Button onClick={handleSave} isLoading={saving} className="bg-indigo-600 hover:bg-indigo-700">
-                    <Save size={18} className="mr-2" />
-                    Salvar Configurações Fiscais
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={handleSyncIssuer}
+                        isLoading={syncing}
+                        className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                    >
+                        <RefreshCw size={18} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                        Sincronizar Emitente
+                    </Button>
+                    <Button onClick={handleSave} isLoading={saving} className="bg-indigo-600 hover:bg-indigo-700">
+                        <Save size={18} className="mr-2" />
+                        Salvar Configurações
+                    </Button>
+                </div>
             </div>
         </div>
     );

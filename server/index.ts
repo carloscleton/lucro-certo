@@ -466,7 +466,7 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
 // --- ENDPOINTS FISCAIS (TecnoSpeed PlugNotas) ---
 
 app.post('/fiscal/emitir', authenticate, async (req, res) => {
-    const { companyId, payload, type } = req.body;
+    const { companyId, payload, type, quoteId } = req.body;
     const authHeader = req.headers.authorization;
 
     if (!companyId || !payload) {
@@ -476,12 +476,84 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId);
         const apiKey = config.tecnospeed_api_key;
-        // Determinar endpoint baseado no tipo (padrão nfe)
+        const isSandbox = config.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
 
-        console.log(`🧾 Emitindo ${endpoint.toUpperCase()} via PlugNotas para empresa ${companyId}...`);
+        console.log(`🧾 Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'}) para empresa ${companyId}...`);
 
-        const response = await axios.post(`https://api.plugnotas.com.br/${endpoint}`, payload, {
+        const response = await axios.post(`${baseUrl}/${endpoint}`, payload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey
+            }
+        });
+
+        // PERSISTÊNCIA: Salvar no banco de dados local para rastreamento
+        const externalId = response.data?.data?.id || response.data?.id;
+
+        if (externalId && SUPABASE_URL) {
+            try {
+                await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    company_id: companyId,
+                    quote_id: quoteId,
+                    external_id: externalId,
+                    type: endpoint,
+                    status: 'processando',
+                    payload: payload
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log('✅ Nota fiscal persistida no banco de dados.');
+            } catch (dbErr: any) {
+                console.warn('⚠️ Falha ao persistir nota no banco:', dbErr.message);
+            }
+        }
+
+        res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        console.error('❌ Erro na emissão fiscal:', JSON.stringify(errorDetail, null, 2));
+        res.status(500).json({ error: 'Erro na comunicação com TecnoSpeed', detail: errorDetail });
+    }
+});
+
+app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
+    const { companyId, config } = req.body;
+    const authHeader = req.headers.authorization;
+
+    try {
+        const apiKey = config.tecnospeed_api_key;
+        const isSandbox = config.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+
+        console.log(`🏢 Sincronizando Emitente (${config.cnpj}) no PlugNotas...`);
+
+        // Payload simplificado para o PlugNotas
+        const issuerPayload = {
+            cpfCnpj: config.cnpj.replace(/\D/g, ''),
+            inscricaoEstadual: config.inscricao_estadual,
+            inscricaoMunicipal: config.inscricao_municipal,
+            razaoSocial: config.razao_social || 'Empresa Vinx', // Idealmente viria do banco
+            nomeFantasia: config.nome_fantasia || 'Vinx Store',
+            regimeTributario: parseInt(config.regime_tributario),
+            email: config.email,
+            endereco: config.endereco || {
+                logradouro: 'Rua Exemplo',
+                numero: '123',
+                bairro: 'Centro',
+                cep: '00000000',
+                codigoCidade: '3106200', // BH Default para teste
+                uf: 'MG'
+            }
+        };
+
+        const response = await axios.post(`${baseUrl}/emitente`, issuerPayload, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey
@@ -491,8 +563,8 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
         res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro na emissão fiscal:', JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({ error: 'Erro na comunicação com TecnoSpeed', detail: errorDetail });
+        console.error('❌ Erro ao sincronizar emitente:', JSON.stringify(errorDetail, null, 2));
+        res.status(500).json({ error: 'Erro ao sincronizar emitente', detail: errorDetail });
     }
 });
 
@@ -504,12 +576,35 @@ app.get('/fiscal/status/:id', authenticate, async (req, res) => {
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key;
+        const isSandbox = config.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
 
-        const response = await axios.get(`https://api.plugnotas.com.br/nfe/${id}`, {
+        const response = await axios.get(`${baseUrl}/nfe/${id}`, {
             headers: { 'x-api-key': apiKey }
         });
 
-        res.json(response.data);
+        const statusData = response.data;
+
+        // ATUALIZAR STATUS LOCAL (Opcional, mas recomendado se quiser manter o banco limpo)
+        if (statusData?.data?.status && SUPABASE_URL) {
+            try {
+                await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                    status: statusData.data.status,
+                    pdf_url: statusData.data.pdf,
+                    xml_url: statusData.data.xml
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (dbErr) {
+                console.warn('⚠️ Não foi possível atualizar status local da nota.');
+            }
+        }
+
+        res.json(statusData);
     } catch (error: any) {
         res.status(500).json({ error: 'Erro ao consultar status', detail: error.response?.data || error.message });
     }
@@ -523,8 +618,10 @@ app.get('/fiscal/nfe/:id/pdf', authenticate, async (req, res) => {
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key;
+        const isSandbox = config.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
 
-        const response = await axios.get(`https://api.plugnotas.com.br/nfe/${id}/pdf`, {
+        const response = await axios.get(`${baseUrl}/nfe/${id}/pdf`, {
             headers: { 'x-api-key': apiKey },
             responseType: 'arraybuffer'
         });
@@ -544,8 +641,10 @@ app.get('/fiscal/nfe/:id/xml', authenticate, async (req, res) => {
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key;
+        const isSandbox = config.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
 
-        const response = await axios.get(`https://api.plugnotas.com.br/nfe/${id}/xml`, {
+        const response = await axios.get(`${baseUrl}/nfe/${id}/xml`, {
             headers: { 'x-api-key': apiKey }
         });
 

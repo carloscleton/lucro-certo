@@ -9,11 +9,12 @@ export interface FiscalPayload {
 }
 
 export const fiscalService = {
-    async emitirNFe(companyId: string, payload: any, token: string) {
+    async emitirNFe(companyId: string, payload: any, token: string, quoteId?: string) {
         const response = await axios.post(`${API_URL}/emitir`, {
             companyId,
             payload,
-            type: 'nfe'
+            type: 'nfe',
+            quoteId
         }, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -22,11 +23,12 @@ export const fiscalService = {
         return response.data;
     },
 
-    async emitirNFSe(companyId: string, payload: any, token: string) {
+    async emitirNFSe(companyId: string, payload: any, token: string, quoteId?: string) {
         const response = await axios.post(`${API_URL}/emitir`, {
             companyId,
             payload,
-            type: 'nfse'
+            type: 'nfse',
+            quoteId
         }, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -63,6 +65,18 @@ export const fiscalService = {
                 'Authorization': `Bearer ${token}`
             },
             responseType: 'blob'
+        });
+        return response.data;
+    },
+
+    async syncIssuer(companyId: string, config: any, token: string) {
+        const response = await axios.post(`${API_URL}/sync-issuer`, {
+            companyId,
+            config
+        }, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
         return response.data;
     }
