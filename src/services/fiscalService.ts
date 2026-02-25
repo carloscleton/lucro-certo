@@ -8,9 +8,10 @@ const getFiscalUrl = (endpoint: string) => {
     const url = `${base}/fiscal/${endpoint}`;
 
     // Log para depuração (vísivel no navegador do usuário)
-    console.log(`[FiscalService] BaseURL: "${API_BASE_URL}"`);
-    console.log(`[FiscalService] API_BASE_URL (Process): "${import.meta.env.VITE_API_URL}"`);
-    console.log(`[FiscalService] Target URL: "${url}"`);
+    if (url.includes('localhost')) {
+        console.warn('⚠️ [FiscalService] ATENÇÃO: Chamando localhost em vez do backend de produção!');
+    }
+    console.log(`🚀 [FiscalService] Endpoint: ${endpoint} | Base: ${base} | URL: ${url}`);
 
     return url;
 };
