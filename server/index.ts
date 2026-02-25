@@ -100,6 +100,29 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
     }
 });
 
+app.get('/fiscal/certificate-status', authenticate, async (req, res) => {
+    const { companyId } = req.query;
+    const authHeader = req.headers.authorization;
+
+    if (!companyId) return res.status(400).json({ error: 'companyId é obrigatório' });
+
+    try {
+        const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const apiKey = config.tecnospeed_api_key;
+        const isSandbox = config.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+
+        const response = await axios.get(`${baseUrl}/certificado`, {
+            headers: { 'x-api-key': apiKey }
+        });
+
+        res.json(response.data);
+    } catch (error: any) {
+        // Se retornar 404 ou erro, provavelmente não tem certificado
+        res.json({ success: false, message: 'Nenhum certificado encontrado ou erro na consulta', detail: error.response?.data });
+    }
+});
+
 // Helper para resolver o nome correto da instância na Evolution API (Resiliente a Case-Sensitivity e IDs Órfãos)
 async function resolveTargetName(requestedName: string, token?: string): Promise<string> {
     try {

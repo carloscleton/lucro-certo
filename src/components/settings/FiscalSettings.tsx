@@ -16,6 +16,7 @@ export function FiscalSettings() {
     const [uploadingCert, setUploadingCert] = useState(false);
     const [certFile, setCertFile] = useState<File | null>(null);
     const [certPassword, setCertPassword] = useState('');
+    const [certStatus, setCertStatus] = useState<any>(null);
 
     const [config, setConfig] = useState({
         cnpj: '',
@@ -32,11 +33,30 @@ export function FiscalSettings() {
         if (currentCompany?.tecnospeed_config) {
             setConfig((prev: any) => ({ ...prev, ...currentCompany.tecnospeed_config }));
         }
-        // Fallback for CNPJ if not in config but in company
         if (currentCompany?.cnpj && !currentCompany.tecnospeed_config?.cnpj) {
             setConfig((prev: any) => ({ ...prev, cnpj: currentCompany.cnpj }));
         }
-    }, [currentCompany]);
+
+        if (currentEntity.id) {
+            loadCertStatus();
+        }
+    }, [currentCompany, currentEntity.id]);
+
+    const loadCertStatus = async () => {
+        if (!currentEntity.id) return;
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) return;
+
+            const status = await fiscalService.getCertificateStatus(currentEntity.id, token);
+            if (status && status.data) {
+                setCertStatus(status.data);
+            }
+        } catch (error) {
+            console.warn('Não foi possível carregar status do certificado');
+        }
+    };
 
     const handleSave = async () => {
         if (!currentEntity.id) return;
@@ -70,6 +90,7 @@ export function FiscalSettings() {
             alert('Certificado Digital enviado com sucesso!');
             setCertFile(null);
             setCertPassword('');
+            loadCertStatus(); // Recarrega o status após subir
         } catch (error: any) {
             console.error(error);
             alert('Erro ao enviar certificado: ' + (error.response?.data?.error || error.message));
@@ -250,6 +271,23 @@ export function FiscalSettings() {
                         </Button>
                     </div>
                 </div>
+
+                {certStatus && (
+                    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/20">
+                        <div className="flex items-center gap-2 mb-2">
+                            <ShieldCheck className="text-green-600" size={18} />
+                            <span className="font-semibold text-green-800 dark:text-green-400">Certificado Ativo</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <p className="text-gray-700 dark:text-gray-300">
+                                <span className="font-medium">Vencimento:</span> {new Date(certStatus.vencimento).toLocaleDateString('pt-BR')}
+                            </p>
+                            <p className="text-gray-700 dark:text-gray-300">
+                                <span className="font-medium">Emitente:</span> {certStatus.alias || certStatus.sujeito || 'Configurado'}
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="pt-6 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center">

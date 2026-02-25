@@ -106,5 +106,15 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async getCertificateStatus(companyId: string, token: string) {
+        const response = await axios.get(getFiscalUrl('certificate-status'), {
+            params: { companyId },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };
