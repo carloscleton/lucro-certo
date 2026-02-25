@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/constants';
 
-const API_URL = `${API_BASE_URL}/fiscal`.replace(/\/$/, '') + '/fiscal'; // Garante que termine em /fiscal sem duplicar
+// Função para garantir URLs consistentes com prefixo /fiscal
 // Na verdade, vamos ser mais simples e diretos:
 const getFiscalUrl = (endpoint: string) => {
     const base = API_BASE_URL.replace(/\/$/, '');
