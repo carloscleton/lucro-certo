@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useContacts, type Contact } from '../hooks/useContacts';
 import { ContactList } from '../components/contacts/ContactList';
 import { ContactForm } from '../components/contacts/ContactForm';
@@ -15,6 +16,7 @@ export function Contacts() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [filterType, setFilterType] = useState<'all' | 'client' | 'supplier'>('all');
+    const { t } = useTranslation();
 
     // History Modal state
     const [historyContact, setHistoryContact] = useState<{ id: string, name: string } | null>(null);
@@ -64,7 +66,7 @@ export function Contacts() {
         filterType === 'all' || contact.type === filterType
     );
 
-    if (loading) return <div>Carregando contatos...</div>;
+    if (loading) return <div>{t('contacts.loading')}</div>;
 
     return (
         <div className="space-y-6">
@@ -72,13 +74,13 @@ export function Contacts() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Users className="text-blue-600" />
-                        Clientes e Fornecedores
+                        {t('contacts.title')}
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400">Gerencie seus contatos comerciais.</p>
+                    <p className="text-gray-500 dark:text-gray-400">{t('contacts.subtitle')}</p>
                 </div>
                 <Button onClick={() => handleOpenModal()}>
                     <Plus size={20} className="mr-2" />
-                    Novo Contato
+                    {t('contacts.new_contact')}
                 </Button>
             </div>
 
@@ -90,7 +92,7 @@ export function Contacts() {
                         : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-slate-800 dark:text-gray-300 dark:border-slate-700 dark:hover:bg-slate-700'
                         }`}
                 >
-                    Todos
+                    {t('common.all')}
                 </button>
                 <button
                     onClick={() => setFilterType('client')}
@@ -99,7 +101,7 @@ export function Contacts() {
                         : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-slate-800 dark:text-gray-300 dark:border-slate-700 dark:hover:bg-slate-700'
                         }`}
                 >
-                    Clientes
+                    {t('contacts.clients')}
                 </button>
                 <button
                     onClick={() => setFilterType('supplier')}
@@ -108,7 +110,7 @@ export function Contacts() {
                         : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-slate-800 dark:text-gray-300 dark:border-slate-700 dark:hover:bg-slate-700'
                         }`}
                 >
-                    Fornecedores
+                    {t('contacts.suppliers')}
                 </button>
             </div>
 
@@ -118,10 +120,10 @@ export function Contacts() {
                 onViewHistory={(contact: Contact) => setHistoryContact({ id: contact.id, name: contact.name })}
                 onDelete={async (id) => {
                     if (!canDelete) {
-                        alert('Você não tem permissão para excluir contatos.');
+                        alert(t('contacts.no_permission_delete'));
                         return;
                     }
-                    if (confirm('Tem certeza que deseja excluir?')) {
+                    if (confirm(t('common.confirm_delete'))) {
                         await deleteContact(id);
                     }
                 }}

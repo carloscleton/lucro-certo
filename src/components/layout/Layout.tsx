@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     ArrowUpCircle,
     ArrowDownCircle,
@@ -26,12 +27,14 @@ import { supabase } from '../../lib/supabase';
 import { Tooltip } from '../ui/Tooltip';
 import { APP_MODULES, getModulePermission } from '../../config/permissions';
 import { OfflineBanner } from '../ui/OfflineBanner';
+import { LanguageSelector } from '../ui/LanguageSelector';
 
 export function Layout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { signOut, user, profile } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { currentEntity, availableEntities, switchEntity, isLoading } = useEntity();
+    const { t } = useTranslation();
 
     const navigate = useNavigate();
     const [pendingInvites, setPendingInvites] = useState<any[]>([]);
@@ -98,8 +101,8 @@ export function Layout() {
 
     // Management items for the sidebar group (Comissões, Configurações)
     const managementItems = [
-        { label: 'Comissões', icon: DollarSign, path: '/commissions', key: 'commissions' },
-        { label: 'Configurações', icon: Settings, path: '/settings', key: 'settings' },
+        { label: t('nav.commissions'), icon: DollarSign, path: '/commissions', key: 'commissions' },
+        { label: t('nav.settings'), icon: Settings, path: '/settings', key: 'settings' },
     ].filter(item => {
         if (currentEntity.type !== 'company') return false; // Handled in main nav for personal
 
@@ -160,9 +163,9 @@ export function Layout() {
                 <div className={styles.contextSection} data-tour="entity-selector">
                     <div className={styles.entitySelectWrapper}>
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ambiente Atual</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('layout.current_environment')}</span>
                             <div className={`${styles.entityBadge} ${currentEntity.type === 'personal' ? styles.badgePersonal : styles.badgeCompany}`}>
-                                {currentEntity.type === 'personal' ? 'Pessoal' : 'Empresa'}
+                                {currentEntity.type === 'personal' ? t('layout.personal_label') : t('layout.company_label')}
                             </div>
                         </div>
                         <div className="relative">
@@ -231,7 +234,7 @@ export function Layout() {
                                     <div className={`${styles.navIcon} ${adminOpen ? 'bg-blue-600 !text-white' : ''}`}>
                                         <Settings size={20} />
                                     </div>
-                                    <span className="font-semibold">Administrativo</span>
+                                    <span className="font-semibold">{t('nav.administrative')}</span>
                                 </div>
                                 {adminOpen ? <ArrowUpCircle size={18} className="text-blue-500" /> : <ArrowDownCircle size={18} className="text-gray-400 group-hover:text-gray-600" />}
                             </button>
@@ -266,18 +269,18 @@ export function Layout() {
                 <div className={styles.userSection} data-tour="user-section">
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold truncate text-gray-900 dark:text-gray-100">
-                            {profile?.full_name || 'Usuário'}
+                            {profile?.full_name || t('common.user')}
                         </p>
                         <p className="text-[11px] text-gray-500 truncate -mt-0.5">
                             {user?.email}
                         </p>
                         <p className="text-[11px] font-medium text-blue-600 dark:text-blue-400 truncate mt-0.5">
                             {currentEntity.type === 'personal'
-                                ? 'Conta Pessoal'
-                                : translateRole(currentEntity.role || 'member')}
+                                ? t('layout.personal_account')
+                                : translateRole(currentEntity.role || 'member', t)}
                         </p>
                     </div>
-                    <Tooltip content="Sair">
+                    <Tooltip content={t('nav.logout')}>
                         <Button variant="ghost" size="sm" onClick={signOut}>
                             <LogOut size={18} />
                         </Button>
@@ -301,14 +304,15 @@ export function Layout() {
                             <div className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm shadow-md animate-pulse">
                                 <Bell size={16} />
                                 <span>
-                                    Você tem {pendingInvites.length} convite(s) pendente(s)!
+                                    {t('layout.pending_invites', { count: pendingInvites.length })}
                                     <span className="font-bold ml-1">{pendingInvites[0].company_name}</span>
                                 </span>
                                 <button
                                     onClick={() => navigate(`/accept-invite?token=${pendingInvites[0].token}`)}
                                     className="bg-white text-blue-600 px-3 py-0.5 rounded-full text-xs font-bold hover:bg-blue-50 transition-colors ml-2"
                                 >
-                                    Aceitar Agora
+                                    {t('layout.accept_now')}
+
                                 </button>
                             </div>
                         )}
@@ -331,14 +335,15 @@ export function Layout() {
                                     <div className="flex flex-col">
                                         <span className={styles.headerContextLabel}>{currentEntity.name}</span>
                                         <span className={`${styles.headerContextType} ${currentEntity.type === 'personal' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-blue-600 bg-blue-50 dark:bg-blue-900/20'}`}>
-                                            {currentEntity.type === 'personal' ? 'Contexto Pessoal' : 'Contexto Empresarial'}
+                                            {currentEntity.type === 'personal' ? t('layout.personal_context') : t('layout.company_context')}
                                         </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div className="flex-1" /> {/* Spacer */}
-                        <Tooltip content="Alternar Tema">
+                        <LanguageSelector />
+                        <Tooltip content={t('layout.toggle_theme')}>
                             <button
                                 onClick={toggleTheme}
                                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
@@ -358,11 +363,11 @@ export function Layout() {
     );
 }
 
-function translateRole(role: string): string {
+function translateRole(role: string, t: (key: string) => string): string {
     const roles: Record<string, string> = {
-        owner: 'Proprietário',
-        admin: 'Administrador',
-        member: 'Membro',
+        owner: t('layout.role_owner'),
+        admin: t('layout.role_admin'),
+        member: t('layout.role_member'),
     };
     return roles[role] || role;
 }

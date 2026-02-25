@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Tag } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCategories, type Category } from '../hooks/useCategories';
 import { CategoryList } from '../components/categories/CategoryList';
 import { CategoryForm } from '../components/categories/CategoryForm';
@@ -13,6 +14,7 @@ export function Categories() {
     const { categories, loading, addCategory, updateCategory, deleteCategory, duplicateCategory } = useCategories();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+    const { t } = useTranslation();
 
     // Permission Check
     const { user } = useAuth();
@@ -34,13 +36,13 @@ export function Categories() {
     }
 
     const handleClone = async (category: Category) => {
-        if (confirm(`Deseja clonar a categoria "${category.name}" para o outro perfil?`)) {
+        if (confirm(t('categories.clone_confirm', { name: category.name }))) {
             try {
                 const targetLabel = await duplicateCategory(category);
-                alert(`Categoria clonada com sucesso para o perfil: ${targetLabel}!`);
+                alert(t('categories.clone_success', { target: targetLabel }));
             } catch (err) {
                 console.error(err);
-                alert('Erro ao clonar categoria.');
+                alert(t('categories.clone_error'));
             }
         }
     };
@@ -67,7 +69,7 @@ export function Categories() {
         }
     };
 
-    if (loading) return <div>Carregando categorias...</div>;
+    if (loading) return <div>{t('categories.loading')}</div>;
 
     return (
         <div className="space-y-6">
@@ -75,13 +77,13 @@ export function Categories() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <Tag className="text-blue-600" />
-                        Categorias
+                        {t('categories.title')}
                     </h1>
-                    <p className="text-gray-500">Gerencie as categorias de suas receitas e despesas.</p>
+                    <p className="text-gray-500">{t('categories.subtitle')}</p>
                 </div>
                 <Button onClick={() => handleOpenModal()}>
                     <Plus size={20} className="mr-2" />
-                    Nova Categoria
+                    {t('categories.new_category')}
                 </Button>
             </div>
 
@@ -90,7 +92,7 @@ export function Categories() {
                 onEdit={handleOpenModal}
                 onDelete={async (id) => {
                     if (!canDelete) {
-                        alert('Você não tem permissão para excluir categorias.');
+                        alert(t('categories.no_permission_delete'));
                         return;
                     }
                     await deleteCategory(id);

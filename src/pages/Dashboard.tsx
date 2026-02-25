@@ -1,4 +1,5 @@
 import { useDashboard } from '../hooks/useDashboard';
+import { useTranslation } from 'react-i18next';
 import { Tooltip } from '../components/ui/Tooltip';
 import { DashboardCards } from '../components/dashboard/DashboardCards';
 import { DashboardCharts } from '../components/dashboard/DashboardCharts';
@@ -23,6 +24,7 @@ import { useBillNotifications } from '../hooks/useBillNotifications';
 export function Dashboard() {
     const { profile } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     // Initial State: Current Month
     const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -69,7 +71,7 @@ export function Dashboard() {
     useBillNotifications();
 
     // Month labels for comparison
-    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const monthNames = t('dashboard.month_names', { returnObjects: true }) as string[];
     const currentDate = new Date(startDate);
     const currentMonthLabel = monthNames[currentDate.getMonth()] || '';
     const prevDate = new Date(currentDate);
@@ -95,11 +97,11 @@ export function Dashboard() {
         setModalOpen(true);
 
         const titles = {
-            income: 'Receitas (Mês)',
-            expense: 'Despesas (Mês)',
-            receivable: 'A Receber (Pendentes)',
-            payable: 'A Pagar (Pendentes)',
-            balance: 'Saldo Atual'
+            income: t('dashboard.income_month'),
+            expense: t('dashboard.expense_month'),
+            receivable: t('dashboard.receivable_pending'),
+            payable: t('dashboard.payable_pending'),
+            balance: t('dashboard.current_balance')
         };
         setModalTitle(titles[type]);
     };
@@ -131,23 +133,23 @@ export function Dashboard() {
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Carregando dashboard...</div>;
+    if (loading) return <div className="p-8 text-center text-gray-500">{t('dashboard.loading')}</div>;
 
     const currentHour = new Date().getHours();
-    const greeting = currentHour < 12 ? 'Bom dia' : currentHour < 18 ? 'Boa tarde' : 'Boa noite';
-    const firstName = profile?.full_name?.split(' ')[0] || 'Usuário';
+    const greeting = currentHour < 12 ? t('dashboard.greeting_morning') : currentHour < 18 ? t('dashboard.greeting_afternoon') : t('dashboard.greeting_evening');
+    const firstName = profile?.full_name?.split(' ')[0] || t('common.user');
 
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{greeting}, {firstName}</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Aqui está o resumo financeiro.</p>
+                    <p className="text-gray-500 dark:text-gray-400">{t('dashboard.financial_summary')}</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Month Picker Quick Select */}
-                    <Tooltip content="Seleção Rápida por Mês">
+                    <Tooltip content={t('dashboard.quick_month_select')}>
                         <input
                             type="month"
                             value={monthFilter}
@@ -164,7 +166,7 @@ export function Dashboard() {
                             onChange={handleStartDateChange}
                             className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
                         />
-                        <span className="text-gray-500">até</span>
+                        <span className="text-gray-500">{t('common.to')}</span>
                         <input
                             type="date"
                             value={endDate}
@@ -215,16 +217,16 @@ export function Dashboard() {
 
                     {/* Quick Summary Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Resumo Rápido</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('dashboard.quick_summary')}</h3>
                         <div className="space-y-4">
                             <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Resultado do Período</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.period_result')}</p>
                                 <p className={`text-xl font-bold ${metrics.income - metrics.expense >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metrics.income - metrics.expense)}
                                 </p>
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                                "O segredo de ficar rico é gastar menos do que se ganha e investir a diferença."
+                                {t('dashboard.quote_tip')}
                             </p>
                         </div>
                     </div>
