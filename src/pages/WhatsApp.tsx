@@ -765,7 +765,7 @@ export function WhatsApp() {
                     </div>
                 ) : (
                     instances.map((instance: Instance) => (
-                        <div key={instance.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 overflow-hidden group">
+                        <div key={instance.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 group">
                             <div className="p-5">
                                 <div className="flex justify-between items-start mb-4">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
