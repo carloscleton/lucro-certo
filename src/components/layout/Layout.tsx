@@ -215,7 +215,7 @@ export function Layout() {
                                     <div className={styles.navIcon}>
                                         <item.icon size={20} />
                                     </div>
-                                    <span className={styles.navLabel}>{item.label}</span>
+                                    <span className={styles.navLabel}>{t(`nav.${item.key}`)}</span>
                                 </NavLink>
                             );
                         })}

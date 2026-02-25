@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Building } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCompanies, type Company } from '../hooks/useCompanies';
 import { CompanyList } from '../components/companies/CompanyList';
 import { CompanyForm } from '../components/companies/CompanyForm';
@@ -11,6 +12,7 @@ export function Companies() {
     const { companies, loading, addCompany, updateCompany, deleteCompany } = useCompanies();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+    const { t } = useTranslation();
 
     const handleOpenModal = (company?: Company) => {
         if (company) {
@@ -34,7 +36,7 @@ export function Companies() {
         }
     };
 
-    if (loading) return <div>Carregando empresas...</div>;
+    if (loading) return <div>{t('common.loading')}</div>;
 
     const maxCompanies = profile?.max_companies ?? 1; // Default to 1 if not set
     const canCreateCompany = companies.length < maxCompanies;
@@ -45,20 +47,20 @@ export function Companies() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Building className="text-blue-600" />
-                        Minhas Empresas
+                        {t('companies.title')}
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400">Gerencie as empresas e contas que você administra.</p>
+                    <p className="text-gray-500 dark:text-gray-400">{t('companies.subtitle')}</p>
                 </div>
                 {canCreateCompany ? (
                     <Button onClick={() => handleOpenModal()}>
                         <Plus size={20} className="mr-2" />
-                        Nova Empresa
+                        {t('companies.new_company')}
                     </Button>
                 ) : (
                     <div className="flex flex-col items-end">
                         <Button disabled className="opacity-50 cursor-not-allowed">
                             <Plus size={20} className="mr-2" />
-                            Nova Empresa
+                            {t('companies.new_company')}
                         </Button>
                         <span className="text-xs text-red-500 mt-1">
                             Limite atingido ({companies.length}/{maxCompanies})

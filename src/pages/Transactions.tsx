@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useTransactions } from '../hooks/useTransactions';
 import type { Transaction } from '../hooks/useTransactions';
@@ -21,6 +22,7 @@ interface TransactionPageProps {
 
 function TransactionPage({ type, title }: TransactionPageProps) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { transactions, loading, error, addTransaction, updateTransaction, deleteTransaction } = useTransactions(type);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -198,7 +200,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
 
     const handleDelete = async (id: string) => {
         if (!canDelete) {
-            alert('Você não tem permissão para excluir registros.');
+            alert(t('common.no_permission_delete'));
             return;
         }
 
@@ -208,16 +210,16 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         if (!canDelete) {
             // 🔒 Check if transaction is protected
             if (transaction && (transaction.status === 'paid' || transaction.status === 'received')) {
-                alert('🔒 Não é possível excluir transações pagas ou recebidas sem permissão de administrador.');
+                alert(t('common.no_permission_delete'));
                 return;
             }
         }
 
-        if (confirm('Tem certeza que deseja excluir?')) {
+        if (confirm(t('common.confirm_delete'))) {
             try {
                 await deleteTransaction(id);
             } catch (error: any) {
-                alert(error.message || 'Erro ao excluir transação');
+                alert(error.message || t('common.delete_error'));
             }
         }
     };
@@ -226,8 +228,8 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         navigate(`/quotes/${quoteId}/print`);
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Carregando...</div>;
-    if (error) return <div className="p-8 text-center text-red-500">Erro: {error}</div>;
+    if (loading) return <div className="p-8 text-center text-gray-500">{t('common.loading')}</div>;
+    if (error) return <div className="p-8 text-center text-red-500">{t('common.error')}: {error}</div>;
 
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -254,7 +256,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                 <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
                     <div className="flex flex-wrap items-center gap-2">
                         {/* Month Picker Quick Select */}
-                        <Tooltip content="Seleção Rápida por Mês">
+                        <Tooltip content={t('dashboard.quick_month_select')}>
                             <input
                                 type="month"
                                 value={monthFilter}
@@ -271,7 +273,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                                 onChange={handleStartDateChange}
                                 className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
                             />
-                            <span className="text-gray-500">até</span>
+                            <span className="text-gray-500">{t('common.to')}</span>
                             <input
                                 type="date"
                                 value={endDate}
@@ -283,7 +285,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
 
                     <Button onClick={handleAddStart} className="ml-auto md:ml-0">
                         <Plus size={20} className="mr-2" />
-                        Nova {type === 'expense' ? 'Conta' : 'Receita'}
+                        {t('transactions.new_transaction')}
                     </Button>
                 </div>
             </div>
@@ -294,10 +296,10 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
                     {[
-                        { key: 'all' as const, label: 'Todos', count: statusCounts.all },
-                        { key: 'pending' as const, label: 'Pendente', count: statusCounts.pending },
-                        { key: 'paid' as const, label: type === 'expense' ? 'Pago' : 'Recebido', count: statusCounts.paid },
-                        { key: 'late' as const, label: 'Atrasado', count: statusCounts.late },
+                        { key: 'all' as const, label: t('common.all'), count: statusCounts.all },
+                        { key: 'pending' as const, label: t('common.pending'), count: statusCounts.pending },
+                        { key: 'paid' as const, label: type === 'expense' ? t('transactions.paid') : t('transactions.received'), count: statusCounts.paid },
+                        { key: 'late' as const, label: t('transactions.late'), count: statusCounts.late },
                     ].filter(t => t.key === 'all' || t.count > 0).map(tab => (
                         <button
                             key={tab.key}
@@ -321,7 +323,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Buscar descrição, contato..."
+                        placeholder={t('common.search')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -369,7 +371,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                         {paidTotal > 0 && (
                             <div className="text-right">
                                 <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">
-                                    {type === 'expense' ? 'Pago' : 'Recebido'}
+                                    {type === 'expense' ? t('transactions.paid') : t('transactions.received')}
                                 </span>
                                 <span className="text-sm font-bold text-green-600 dark:text-green-400">
                                     {formatCurrency(paidTotal)}
@@ -380,7 +382,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                         {pendingTotal > 0 && (
                             <div className="text-right">
                                 <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">
-                                    Pendente
+                                    {t('common.pending')}
                                 </span>
                                 <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
                                     {formatCurrency(pendingTotal)}
@@ -391,7 +393,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                         {lateTotal > 0 && (
                             <div className="text-right">
                                 <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">
-                                    Atrasado
+                                    {t('transactions.late')}
                                 </span>
                                 <span className="text-sm font-bold text-red-600 dark:text-red-400">
                                     {formatCurrency(lateTotal)}
@@ -402,7 +404,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                         <div className="w-px h-8 bg-gray-200 dark:bg-slate-600 hidden sm:block" />
                         {/* Total */}
                         <div className="text-right">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 block uppercase tracking-wider">Valor Total</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 block uppercase tracking-wider">{t('common.total')}</span>
                             <span className={`text-xl font-bold ${type === 'expense' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                 {formatCurrency(paidTotal + pendingTotal + lateTotal)}
                             </span>
@@ -418,9 +420,11 @@ function TransactionPage({ type, title }: TransactionPageProps) {
 }
 
 export function Payables() {
-    return <TransactionPage type="expense" title="Contas a Pagar" />;
+    const { t } = useTranslation();
+    return <TransactionPage type="expense" title={t('transactions.payables_title')} />;
 }
 
 export function Receivables() {
-    return <TransactionPage type="income" title="Contas a Receber" />;
+    const { t } = useTranslation();
+    return <TransactionPage type="income" title={t('transactions.receivables_title')} />;
 }

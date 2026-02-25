@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, LayoutGrid, List, Target, Pencil, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useCRM, type CRMStage, type CRMDeal } from '../hooks/useCRM';
 import { Button } from '../components/ui/Button';
@@ -9,6 +10,7 @@ import { StageModal, DealModal } from '../components/crm/CRMModals';
 
 export function CRM() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { stages, deals, loading, deleteStage, deleteDeal, updateDealStage, updateStage } = useCRM();
     const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
 
@@ -41,7 +43,7 @@ export function CRM() {
     };
 
     const handleDeleteStage = async (id: string) => {
-        if (confirm('Deseja excluir esta etapa?')) {
+        if (confirm(t('crm.delete_stage_confirm'))) {
             try {
                 await deleteStage(id);
             } catch (err: any) {
@@ -51,7 +53,7 @@ export function CRM() {
     };
 
     const handleDeleteDeal = async (id: string) => {
-        if (confirm('Deseja excluir este negócio?')) {
+        if (confirm(t('crm.delete_deal_confirm'))) {
             await deleteDeal(id);
         }
     };
@@ -79,8 +81,8 @@ export function CRM() {
                 // 🔔 Phase 4: CRM Reminders
                 const stage = stages.find(s => s.id === newStageId);
                 if (stage && (stage.name.toLowerCase().includes('proposta') || stage.name.toLowerCase().includes('proposal'))) {
-                    if (confirm(`Negócio movido para ${stage.name}! 🚀\n\nDeseja gerar um Orçamento ou um Lançamento Financeiro para este negócio agora?`)) {
-                        const choice = confirm('Pressione OK para ir para ORÇAMENTOS ou CANCELAR para CONTAS A RECEBER.')
+                    if (confirm(`${t('crm.deal_moved', { stage: stage.name })}\n\n${t('crm.deal_moved_prompt')}`)) {
+                        const choice = confirm(t('crm.go_quotes'))
                             ? '/quotes'
                             : '/receivables';
 
@@ -89,7 +91,7 @@ export function CRM() {
                 }
             } catch (err) {
                 console.error('Failed to move deal:', err);
-                alert('Erro ao mover negócio. Tente novamente.');
+                alert(t('crm.move_error'));
             }
         }
 
@@ -108,26 +110,26 @@ export function CRM() {
                 );
             } catch (err) {
                 console.error('Failed to reorder stages:', err);
-                alert('Erro ao reordenar etapas.');
+                alert(t('crm.reorder_error'));
             }
         }
     };
 
     if (loading) {
-        return <div className="flex items-center justify-center h-64 italic animate-pulse">Carregando CRM...</div>;
+        return <div className="flex items-center justify-center h-64 italic animate-pulse">{t('crm.loading')}</div>;
     }
 
     if (stages.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700 p-8 shadow-inner">
                 <LayoutGrid size={48} className="text-gray-300 mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Configure seu Funil</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">{t('crm.setup_funnel')}</h3>
                 <p className="text-gray-500 text-center mb-6 max-w-md italic">
-                    Para começar a usar o CRM, você precisa criar as etapas do seu funil de vendas (ex: Lead, Contato, Proposta).
+                    {t('crm.setup_desc')}
                 </p>
                 <Button onClick={handleCreateStage} className="shadow-lg shadow-blue-500/20">
                     <Plus size={18} className="mr-2" />
-                    Criar Primeira Etapa
+                    {t('crm.create_first_stage')}
                 </Button>
 
                 <StageModal
@@ -143,8 +145,8 @@ export function CRM() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 italic">CRM / Funil de Vendas</h1>
-                    <p className="text-sm text-gray-500 italic">Gerencie seus leads e oportunidades de negócio</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 italic">{t('crm.title')}</h1>
+                    <p className="text-sm text-gray-500 italic">{t('crm.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="bg-gray-100 dark:bg-slate-800 p-1 rounded-lg flex outline-none border border-gray-200 dark:border-slate-700">
@@ -161,10 +163,10 @@ export function CRM() {
                             <List size={18} />
                         </button>
                     </div>
-                    <Button variant="outline" onClick={handleCreateStage} className="hidden sm:flex">Nova Etapa</Button>
+                    <Button variant="outline" onClick={handleCreateStage} className="hidden sm:flex">{t('crm.new_stage')}</Button>
                     <Button onClick={() => handleCreateDeal()} className="shadow-lg shadow-blue-500/20">
                         <Plus size={18} className="mr-2" />
-                        Novo Negócio
+                        {t('crm.new_deal')}
                     </Button>
                 </div>
             </div>
@@ -196,7 +198,7 @@ export function CRM() {
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
-                                                    <Tooltip content="Editar Etapa">
+                                                    <Tooltip content={t('crm.edit_stage')}>
                                                         <button
                                                             onClick={() => handleEditStage(stage)}
                                                             className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
@@ -204,7 +206,7 @@ export function CRM() {
                                                             <Pencil size={14} />
                                                         </button>
                                                     </Tooltip>
-                                                    <Tooltip content="Excluir Etapa">
+                                                    <Tooltip content={t('crm.delete_stage')}>
                                                         <button
                                                             onClick={() => handleDeleteStage(stage.id)}
                                                             className="p-1 text-gray-400 hover:text-red-500 transition-colors"
@@ -250,7 +252,7 @@ export function CRM() {
                                                                         </div>
 
                                                                         <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-4 line-clamp-2 leading-relaxed">
-                                                                            {deal.description || 'Sem descrição adicional'}
+                                                                            {deal.description || t('crm.no_description')}
                                                                         </p>
 
                                                                         <div className="flex items-center justify-between border-t border-gray-50 dark:border-slate-700/30 pt-3">
@@ -279,7 +281,7 @@ export function CRM() {
                                                 className="w-full py-2.5 flex items-center justify-center gap-2 text-[11px] font-bold text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all border border-dashed border-gray-200 dark:border-slate-700 hover:border-blue-200"
                                             >
                                                 <Plus size={14} />
-                                                Adicionar Negócio
+                                                {t('crm.add_deal')}
                                             </button>
                                         </div>
                                     )}
@@ -292,7 +294,7 @@ export function CRM() {
                                 className="flex-shrink-0 w-80 h-14 bg-gray-50/50 dark:bg-slate-900/40 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700/50 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-all group font-bold text-xs uppercase tracking-widest"
                             >
                                 <Plus size={18} className="mr-2 group-hover:scale-110 transition-transform" />
-                                Nova Etapa
+                                {t('crm.new_stage')}
                             </button>
                         </div>
                     )}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useSettings } from '../hooks/useSettings';
@@ -23,6 +24,7 @@ interface CommissionTransaction {
 }
 
 export function Commissions() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const { currentEntity } = useEntity();
     const { settings, loading: settingsLoading } = useSettings();
@@ -166,12 +168,12 @@ export function Commissions() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <DollarSign className="text-green-600" />
-                        Comissões e Resultados
+                        {t('commissions.title')}
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400">
                         {isAdmin && selectedCompanyId !== 'all'
-                            ? `Visualizando faturamento e comissões da empresa selecionada.`
-                            : `Gestão de recebíveis e cálculo de comissões (${(settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0)}%).`
+                            ? t('commissions.company_view')
+                            : `${t('commissions.personal_view')} (${(settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0)}%).`
                         }
                     </p>
                 </div>
@@ -181,14 +183,14 @@ export function Commissions() {
             <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-4 print:hidden">
                 <div className="flex flex-wrap items-end gap-4">
                     <Input
-                        label="Data Inicial"
+                        label={t('commissions.start_date')}
                         type="date"
                         value={startDate}
                         onChange={e => setStartDate(e.target.value)}
                         containerClassName="md:w-48"
                     />
                     <Input
-                        label="Data Final"
+                        label={t('commissions.end_date')}
                         type="date"
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
@@ -197,14 +199,14 @@ export function Commissions() {
 
                     {isAdmin && (
                         <div className="flex flex-col gap-1 w-full md:w-auto">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Empresa (Filtro Admin)</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('commissions.company_filter')}</label>
                             <select
                                 value={selectedCompanyId}
                                 onChange={(e) => setSelectedCompanyId(e.target.value)}
                                 className="h-10 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:min-w-[200px]"
                             >
-                                <option value="all">Todas as Empresas</option>
-                                <option value="personal">Apenas Pessoal</option>
+                                <option value="all">{t('commissions.all_companies')}</option>
+                                <option value="personal">{t('commissions.personal_only')}</option>
                                 {companiesList.map((c: any) => (
                                     <option key={c.id} value={c.id}>{c.trade_name}</option>
                                 ))}
@@ -215,11 +217,11 @@ export function Commissions() {
                     <div className="pb-1 flex gap-2 ml-auto">
                         <Button onClick={fetchTransactions} isLoading={loading}>
                             <Filter size={18} className="mr-2" />
-                            Atualizar
+                            {t('commissions.update')}
                         </Button>
                         <Button onClick={handlePrint} variant="outline">
                             <Printer size={18} className="mr-2" />
-                            Gerar Recibo / PDF
+                            {t('commissions.generate_receipt')}
                         </Button>
                     </div>
                 </div>
@@ -229,12 +231,12 @@ export function Commissions() {
             <div className="hidden print:block mb-8 border-b-2 border-black pb-4">
                 <div className="flex justify-between items-start">
                     <div>
-                        <h1 className="text-3xl font-bold text-black mb-1">Demonstrativo de Comissões</h1>
-                        <p className="text-sm text-gray-600">Período de Apuração: {format(new Date(startDate), 'dd/MM/yyyy')} a {format(new Date(endDate), 'dd/MM/yyyy')}</p>
+                        <h1 className="text-3xl font-bold text-black mb-1">{t('commissions.receipt_title')}</h1>
+                        <p className="text-sm text-gray-600">{t('commissions.period')}: {format(new Date(startDate), 'dd/MM/yyyy')} a {format(new Date(endDate), 'dd/MM/yyyy')}</p>
                     </div>
                     <div className="text-right">
                         <p className="font-bold text-lg">{currentEntity.type === 'company' ? 'EMPRESA' : user.email}</p>
-                        <p className="text-sm text-gray-500">Data de Emissão: {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+                        <p className="text-sm text-gray-500">{t('commissions.issue_date')}: {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
                     </div>
                 </div>
             </div>
@@ -242,38 +244,38 @@ export function Commissions() {
             {/* Stats Cards - Hidden on print? Maybe allow summary on print. */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:grid-cols-3 print:gap-2">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-green-500 print:shadow-none print:border">
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Comissões Recebidas</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('commissions.received_commissions')}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceivedCommission)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">Disponível para saque</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('commissions.available_withdrawal')}</p>
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-yellow-500 print:shadow-none print:border">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">À Receber / Futuro</p>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('commissions.future_commissions')}</p>
                             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPendingCommission)}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">Estimativa de ganhos</p>
+                            <p className="text-xs text-gray-400 mt-1">{t('commissions.earnings_estimate')}</p>
                         </div>
                         <Clock className="text-yellow-500 opacity-50" size={24} />
                     </div>
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-blue-500 print:shadow-none print:border">
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendas Totais (Período)</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('commissions.total_sales')}</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceivedAmount)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">Base de cálculo (Realizado)</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('commissions.calculation_base')}</p>
                 </div>
             </div>
 
             {/* Chart - Hidden on Print to keep receipt clean */}
             <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6 print:hidden">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Evolução do Período</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('commissions.period_evolution')}</h3>
                 <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData}>
@@ -291,55 +293,55 @@ export function Commissions() {
             {/* Grid */}
             <div className="bg-white dark:bg-slate-800 shadow rounded-lg overflow-hidden print:shadow-none print:border-gray-200 print:mt-4">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 print:bg-gray-100">
-                    <h3 className="font-medium text-gray-900 dark:text-white">Detalhamento dos Lançamentos</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-white">{t('commissions.entries_detail')}</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-gray-50 dark:bg-slate-700/50">
                             <tr>
-                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Data</th>
-                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Origem</th>
-                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
-                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Valor Venda</th>
-                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Comissão</th>
+                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('common.date')}</th>
+                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('commissions.origin')}</th>
+                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('common.status')}</th>
+                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">{t('commissions.sale_value')}</th>
+                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">{t('commissions.commission')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                             {transactions.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                                        Nenhuma comissão encontrada.
+                                        {t('commissions.no_commissions')}
                                     </td>
                                 </tr>
                             ) : (
-                                transactions.map((t) => (
-                                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
+                                transactions.map((tx) => (
+                                    <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                                         <td className="px-6 py-3 text-gray-900 dark:text-white">
-                                            {format(new Date(t.date), 'dd/MM/yyyy')}
+                                            {format(new Date(tx.date), 'dd/MM/yyyy')}
                                         </td>
                                         <td className="px-6 py-3 text-gray-900 dark:text-white">
-                                            {t.origin}<br />
+                                            {tx.origin}<br />
                                             <span className="text-xs text-gray-500">
-                                                {t.description}
-                                                {t.paid_amount && t.paid_amount !== t.amount && (
-                                                    <span className="ml-1 text-blue-500">(Inc. Juros/Multa)</span>
+                                                {tx.description}
+                                                {tx.paid_amount && tx.paid_amount !== tx.amount && (
+                                                    <span className="ml-1 text-blue-500">{t('commissions.inc_fees')}</span>
                                                 )}
                                             </span>
                                         </td>
                                         <td className="px-6 py-3">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${t.status === 'received'
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tx.status === 'received'
                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                                 : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                                                 }`}>
-                                                {t.status === 'received' ? 'Pago' : 'Pendente'}
+                                                {tx.status === 'received' ? t('transactions.paid') : t('common.pending')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-3 text-right text-gray-600 dark:text-gray-300">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.paid_amount || t.amount)}
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tx.paid_amount || tx.amount)}
                                         </td>
-                                        <td className={`px-6 py-3 text-right font-bold ${t.status === 'received' ? 'text-green-600' : 'text-yellow-600'
+                                        <td className={`px-6 py-3 text-right font-bold ${tx.status === 'received' ? 'text-green-600' : 'text-yellow-600'
                                             }`}>
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.commission_value)}
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tx.commission_value)}
                                         </td>
                                     </tr>
                                 ))
@@ -347,7 +349,7 @@ export function Commissions() {
                         </tbody>
                         <tfoot className="bg-gray-50 dark:bg-slate-700/50 font-bold border-t-2 border-gray-300">
                             <tr>
-                                <td colSpan={3} className="px-6 py-3 text-right text-gray-900 dark:text-white uppercase tracking-wider">Total Pago:</td>
+                                <td colSpan={3} className="px-6 py-3 text-right text-gray-900 dark:text-white uppercase tracking-wider">{t('commissions.total_paid')}</td>
                                 <td colSpan={2} className="px-6 py-3 text-right text-green-600 dark:text-green-400 text-lg">
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceivedCommission)}
                                 </td>
@@ -362,17 +364,17 @@ export function Commissions() {
                 <div className="grid grid-cols-2 gap-20">
                     <div className="text-center">
                         <div className="border-t border-black pt-2">
-                            Assinatura do Pagador (Empresa)
+                            {t('commissions.payer_signature')}
                         </div>
                     </div>
                     <div className="text-center">
                         <div className="border-t border-black pt-2">
-                            Assinatura do Recebedor ({user.email})
+                            {t('commissions.receiver_signature')} ({user.email})
                         </div>
                     </div>
                 </div>
                 <div className="mt-8 text-center text-xs text-gray-400">
-                    Documento gerado eletronicamente em {new Date().toLocaleString('pt-BR')} pelo sistema Lucro Certo.
+                    {t('commissions.generated_by')}
                 </div>
             </div>
         </div>

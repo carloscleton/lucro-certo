@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Box } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { useProducts } from '../hooks/useProducts';
 import type { Product } from '../hooks/useProducts';
@@ -13,6 +14,7 @@ export function Products() {
     const { products, loading, addProduct, updateProduct, deleteProduct } = useProducts();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const { t } = useTranslation();
 
     // Permission Check
     const { user } = useAuth();
@@ -40,10 +42,10 @@ export function Products() {
 
     const handleDelete = async (id: string) => {
         if (!canDelete) {
-            alert('Você não tem permissão para excluir produtos.');
+            alert(t('common.no_permission_delete'));
             return;
         }
-        if (confirm('Tem certeza que deseja excluir este produto?')) {
+        if (confirm(t('common.confirm_delete'))) {
             await deleteProduct(id);
         }
     };
@@ -57,25 +59,25 @@ export function Products() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Produtos e Materiais</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Gerencie seu catálogo de produtos para orçamentos.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('products.title')}</h1>
+                    <p className="text-gray-500 dark:text-gray-400">{t('products.subtitle')}</p>
                 </div>
                 <Button onClick={() => setIsFormOpen(true)}>
                     <Plus size={20} className="mr-2" />
-                    Novo Produto
+                    {t('products.new_product')}
                 </Button>
             </div>
 
             {loading ? (
-                <div className="text-center py-10 text-gray-500">Carregando...</div>
+                <div className="text-center py-10 text-gray-500">{t('common.loading')}</div>
             ) : products.length === 0 ? (
                 <div className="text-center py-10 bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700">
                     <Box size={48} className="mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhum produto cadastrado</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">Comece adicionando seus materiais ou produtos.</p>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('common.no_results')}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">{t('products.subtitle')}</p>
                     <Button onClick={() => setIsFormOpen(true)}>
                         <Plus size={20} className="mr-2" />
-                        Cadastrar Agora
+                        {t('common.add')}
                     </Button>
                 </div>
             ) : (
@@ -83,11 +85,11 @@ export function Products() {
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                         <thead className="bg-gray-50 dark:bg-slate-900">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nome</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descrição</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('common.name')}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('common.description')}</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unidade</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Preço</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('common.value')}</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">

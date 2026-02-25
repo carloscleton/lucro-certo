@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTransactions } from '../hooks/useTransactions';
 import { useCategories } from '../hooks/useCategories';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -7,6 +8,7 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { formatDateString } from '../utils/dateUtils';
 
 export function Reports() {
+    const { t: tr } = useTranslation();
     const { transactions: expenses } = useTransactions('expense');
     const { transactions: income } = useTransactions('income');
     const { categories } = useCategories();
@@ -74,7 +76,7 @@ export function Reports() {
         const categoryMap = new Map<string, number>();
 
         filteredExpenses.forEach(t => {
-            const catName = categories.find(c => c.id === t.category_id)?.name || 'Sem Categoria';
+            const catName = categories.find(c => c.id === t.category_id)?.name || tr('reports.no_category');
             const current = categoryMap.get(catName) || 0;
             const amountToAdd = t.paid_amount || t.amount;
             categoryMap.set(catName, current + amountToAdd);
@@ -89,7 +91,7 @@ export function Reports() {
         const categoryMap = new Map<string, number>();
 
         filteredIncome.forEach(t => {
-            const catName = categories.find(c => c.id === t.category_id)?.name || 'Sem Categoria';
+            const catName = categories.find(c => c.id === t.category_id)?.name || tr('reports.no_category');
             const current = categoryMap.get(catName) || 0;
             const amountToAdd = t.paid_amount || t.amount;
             categoryMap.set(catName, current + amountToAdd);
@@ -104,12 +106,12 @@ export function Reports() {
         const methodMap = new Map<string, number>();
 
         filteredIncome.forEach(t => {
-            let method = t.payment_method || 'Outros';
-            if (method === 'credit_card') method = 'Cartão de Crédito';
-            if (method === 'debit_card') method = 'Cartão de Débito';
-            if (method === 'pix') method = 'Pix';
-            if (method === 'cash') method = 'Dinheiro';
-            if (method === 'transfer') method = 'Transferência';
+            let method = t.payment_method || tr('reports.other');
+            if (method === 'credit_card') method = tr('reports.credit_card');
+            if (method === 'debit_card') method = tr('reports.debit_card');
+            if (method === 'pix') method = tr('reports.pix');
+            if (method === 'cash') method = tr('reports.cash');
+            if (method === 'transfer') method = tr('reports.transfer');
 
             // Capitalize if it's a raw string
             method = method.charAt(0).toUpperCase() + method.slice(1);
@@ -128,13 +130,13 @@ export function Reports() {
         const methodMap = new Map<string, number>();
 
         filteredExpenses.forEach(t => {
-            let method = t.payment_method || 'Outros';
-            if (method === 'credit_card') method = 'Cartão de Crédito';
-            if (method === 'debit_card') method = 'Cartão de Débito';
-            if (method === 'pix') method = 'Pix';
-            if (method === 'cash') method = 'Dinheiro';
-            if (method === 'transfer') method = 'Transferência';
-            if (method === 'boleto') method = 'Boleto';
+            let method = t.payment_method || tr('reports.other');
+            if (method === 'credit_card') method = tr('reports.credit_card');
+            if (method === 'debit_card') method = tr('reports.debit_card');
+            if (method === 'pix') method = tr('reports.pix');
+            if (method === 'cash') method = tr('reports.cash');
+            if (method === 'transfer') method = tr('reports.transfer');
+            if (method === 'boleto') method = tr('reports.boleto');
 
             // Capitalize if it's a raw string
             method = method.charAt(0).toUpperCase() + method.slice(1);
@@ -194,7 +196,7 @@ export function Reports() {
         const categoryMap = new Map<string, number>();
 
         filteredExpenses.forEach(t => {
-            const catName = categories.find(c => c.id === t.category_id)?.name || 'Sem Categoria';
+            const catName = categories.find(c => c.id === t.category_id)?.name || tr('reports.no_category');
             const current = categoryMap.get(catName) || 0;
             categoryMap.set(catName, current + t.amount);
         });
@@ -211,11 +213,11 @@ export function Reports() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Relatórios e Análises</h1>
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{tr('reports.title')}</h1>
 
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Month Picker Quick Select */}
-                    <Tooltip content="Seleção Rápida por Mês">
+                    <Tooltip content={tr('dashboard.quick_month_select')}>
                         <input
                             type="month"
                             value={monthFilter}
@@ -232,7 +234,7 @@ export function Reports() {
                             onChange={handleStartDateChange}
                             className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
                         />
-                        <span className="text-gray-500">até</span>
+                        <span className="text-gray-500">{tr('common.to')}</span>
                         <input
                             type="date"
                             value={endDate}
@@ -248,7 +250,7 @@ export function Reports() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Despesas Realizadas */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">Despesas Totais ({dateRangeDisplay})</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">{tr('reports.total_expenses')} ({dateRangeDisplay})</h3>
                     <div className="h-64">
                         {isMounted && expenseData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -275,8 +277,8 @@ export function Reports() {
                                 <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-3">
                                     <Wallet size={32} className="text-gray-400 dark:text-gray-500" />
                                 </div>
-                                <p className="font-medium text-gray-900 dark:text-white">Sem despesas</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Tudo calmo por aqui.</p>
+                                <p className="font-medium text-gray-900 dark:text-white">{tr('reports.no_expenses')}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{tr('reports.all_calm')}</p>
                             </div>
                         )}
                     </div>
@@ -284,7 +286,7 @@ export function Reports() {
 
                 {/* Despesas PENDENTES (New) */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
-                    <h3 className="text-lg font-semibold mb-4 text-red-600 dark:text-red-400">Despesas Pendentes ({dateRangeDisplay})</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-red-600 dark:text-red-400">{tr('reports.pending_expenses')} ({dateRangeDisplay})</h3>
                     <div className="h-64">
                         {isMounted && expensePendingData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -311,8 +313,8 @@ export function Reports() {
                                 <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full mb-3 animate-bounce">
                                     <PartyPopper size={32} className="text-green-600 dark:text-green-400" />
                                 </div>
-                                <p className="font-medium text-gray-900 dark:text-white">Tudo pago! 🎉</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Nenhuma despesa pendente neste período.</p>
+                                <p className="font-medium text-gray-900 dark:text-white">{tr('reports.all_paid')}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{tr('reports.no_pending')}</p>
                             </div>
                         )}
                     </div>
@@ -320,7 +322,7 @@ export function Reports() {
 
                 {/* Receitas */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">Receitas ({dateRangeDisplay})</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">{tr('reports.income')} ({dateRangeDisplay})</h3>
                     <div className="h-64">
                         {isMounted && incomeData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -347,8 +349,8 @@ export function Reports() {
                                 <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-3">
                                     <TrendingUp size={32} className="text-gray-400 dark:text-gray-500" />
                                 </div>
-                                <p className="font-medium text-gray-900 dark:text-white">Sem receitas</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Nenhuma venda registrada.</p>
+                                <p className="font-medium text-gray-900 dark:text-white">{tr('reports.no_income')}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{tr('reports.no_sales')}</p>
                             </div>
                         )}
                     </div>
@@ -359,7 +361,7 @@ export function Reports() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Formas de Recebimento */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
-                    <h3 className="text-lg font-semibold mb-4 text-green-600 dark:text-green-400">Formas de Recebimento ({dateRangeDisplay})</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-green-600 dark:text-green-400">{tr('reports.payment_methods_income')} ({dateRangeDisplay})</h3>
                     <div className="h-64">
                         {isMounted && incomePaymentMethodData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -386,8 +388,8 @@ export function Reports() {
                                 <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-3">
                                     <PieChartIcon size={32} className="text-gray-400 dark:text-gray-500" />
                                 </div>
-                                <p className="font-medium text-gray-900 dark:text-white">Sem dados</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Não há registros de recebimento.</p>
+                                <p className="font-medium text-gray-900 dark:text-white">{tr('reports.no_data')}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{tr('reports.no_receipts')}</p>
                             </div>
                         )}
                     </div>
@@ -395,7 +397,7 @@ export function Reports() {
 
                 {/* Formas de Pagamento (Despesas) */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
-                    <h3 className="text-lg font-semibold mb-4 text-red-600 dark:text-red-400">Formas de Pagamento (Despesas) ({dateRangeDisplay})</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-red-600 dark:text-red-400">{tr('reports.payment_methods_expense')} ({dateRangeDisplay})</h3>
                     <div className="h-64">
                         {isMounted && expensePaymentMethodData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -422,8 +424,8 @@ export function Reports() {
                                 <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-3">
                                     <PieChartIcon size={32} className="text-gray-400 dark:text-gray-500" />
                                 </div>
-                                <p className="font-medium text-gray-900 dark:text-white">Sem dados</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Não há registros de pagamento.</p>
+                                <p className="font-medium text-gray-900 dark:text-white">{tr('reports.no_data')}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{tr('reports.no_payments')}</p>
                             </div>
                         )}
                     </div>
@@ -433,7 +435,7 @@ export function Reports() {
             {/* Fluxo de Caixa */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                    Fluxo de Caixa ({startDate.split('-')[0]})
+                    {tr('reports.cash_flow')} ({startDate.split('-')[0]})
                 </h3>
                 <div className="h-80">
                     {isMounted && (
@@ -502,7 +504,7 @@ export function Reports() {
                                                         <div className="flex justify-between gap-4">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">Recebido</span>
+                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">{tr('reports.received')}</span>
                                                             </div>
                                                             <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{fmt(received)}</span>
                                                         </div>
@@ -511,7 +513,7 @@ export function Reports() {
                                                         <div className="flex justify-between gap-4">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-2 h-2 rounded-full bg-emerald-300" />
-                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">A Receber</span>
+                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">{tr('reports.to_receive')}</span>
                                                             </div>
                                                             <span className="text-[11px] font-bold text-emerald-500">{fmt(receivable)}</span>
                                                         </div>
@@ -520,7 +522,7 @@ export function Reports() {
                                                         <div className="flex justify-between gap-4">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-2 h-2 rounded-full bg-red-500" />
-                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">Pago</span>
+                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">{tr('reports.paid')}</span>
                                                             </div>
                                                             <span className="text-[11px] font-bold text-red-600 dark:text-red-400">{fmt(paid)}</span>
                                                         </div>
@@ -529,14 +531,14 @@ export function Reports() {
                                                         <div className="flex justify-between gap-4">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-2 h-2 rounded-full bg-red-300" />
-                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">A Pagar</span>
+                                                                <span className="text-[11px] text-gray-600 dark:text-gray-300">{tr('reports.to_pay')}</span>
                                                             </div>
                                                             <span className="text-[11px] font-bold text-red-400">{fmt(payable)}</span>
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="pt-1.5 mt-1.5 border-t border-gray-100 dark:border-slate-700 flex justify-between">
-                                                    <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Saldo</span>
+                                                    <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{tr('reports.balance')}</span>
                                                     <span className={`text-[11px] font-bold ${balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                         {fmt(balance)}
                                                     </span>
@@ -549,26 +551,26 @@ export function Reports() {
                                     <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #10b981, #34d399)' }} />
-                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Recebido</span>
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{tr('reports.received')}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #6ee7b7, #a7f3d0)' }} />
-                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">A Receber</span>
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{tr('reports.to_receive')}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #ef4444, #f87171)' }} />
-                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Pago</span>
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{tr('reports.paid')}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #fca5a5, #fecaca)' }} />
-                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">A Pagar</span>
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{tr('reports.to_pay')}</span>
                                         </div>
                                     </div>
                                 )} />
-                                <Bar dataKey="ReceitasRealizadas" name="Recebido" stackId="revenue" fill="url(#rptReceivedGrad)" radius={[0, 0, 0, 0]} />
-                                <Bar dataKey="ReceitasPendentes" name="A Receber" stackId="revenue" fill="url(#rptReceivableGrad)" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="DespesasPagas" name="Pago" stackId="expense" fill="url(#rptPaidGrad)" radius={[0, 0, 0, 0]} />
-                                <Bar dataKey="DespesasPendentes" name="A Pagar" stackId="expense" fill="url(#rptPayableGrad)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="ReceitasRealizadas" name={tr('reports.received')} stackId="revenue" fill="url(#rptReceivedGrad)" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="ReceitasPendentes" name={tr('reports.to_receive')} stackId="revenue" fill="url(#rptReceivableGrad)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="DespesasPagas" name={tr('reports.paid')} stackId="expense" fill="url(#rptPaidGrad)" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="DespesasPendentes" name={tr('reports.to_pay')} stackId="expense" fill="url(#rptPayableGrad)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
