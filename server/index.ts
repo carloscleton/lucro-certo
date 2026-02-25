@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import multer from 'multer';
+import FormData from 'form-data';
 import { PaymentFactory } from './services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -45,6 +46,53 @@ const authenticate = (req: any, res: any, next: any) => {
     // Aqui validaremos o JWT do Supabase no futuro
     next();
 };
+
+// --- ENDPOINTS FISCAIS (TecnoSpeed PlugNotas) ---
+// Movidos para o topo para garantir prioridade e depuração
+
+app.get('/fiscal/health', (req, res) => {
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date() });
+});
+
+app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), async (req: any, res) => {
+    const { companyId, senha } = req.body;
+    const authHeader = req.headers.authorization;
+    const file = req.file;
+
+    if (!companyId || !file || !senha) {
+        return res.status(400).json({ error: 'companyId, arquivo e senha são obrigatórios' });
+    }
+
+    try {
+        const config = await getCompanyFiscalConfig(authHeader!, companyId);
+        const apiKey = config.tecnospeed_api_key;
+        const isSandbox = config.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+
+        console.log(`🔐 Uploading certificate for company ${companyId} (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
+
+        // Usando form-data (Package) para garantir compatibilidade no Node
+        const form = new FormData();
+        form.append('arquivo', file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype,
+        });
+        form.append('senha', senha);
+
+        const response = await axios.post(`${baseUrl}/certificado`, form, {
+            headers: {
+                ...form.getHeaders(),
+                'x-api-key': apiKey
+            }
+        });
+
+        res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));
+        res.status(500).json({ error: 'Erro ao enviar certificado para TecnoSpeed', detail: errorDetail });
+    }
+});
 
 // Helper para resolver o nome correto da instância na Evolution API (Resiliente a Case-Sensitivity e IDs Órfãos)
 async function resolveTargetName(requestedName: string, token?: string): Promise<string> {
@@ -633,43 +681,6 @@ app.get('/fiscal/nfe/:id/pdf', authenticate, async (req, res) => {
         res.send(response.data);
     } catch (error: any) {
         res.status(500).json({ error: 'Erro ao baixar PDF', detail: error.response?.data || error.message });
-    }
-});
-
-app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), async (req: any, res) => {
-    const { companyId, senha } = req.body;
-    const authHeader = req.headers.authorization;
-    const file = req.file;
-
-    if (!companyId || !file || !senha) {
-        return res.status(400).json({ error: 'companyId, arquivo e senha são obrigatórios' });
-    }
-
-    try {
-        const config = await getCompanyFiscalConfig(authHeader!, companyId);
-        const apiKey = config.tecnospeed_api_key;
-        const isSandbox = config.ambiente === 'homologacao';
-        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-
-        console.log(`🔐 Uploading certificate for company ${companyId} (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
-
-        // Convert memory file to FormData to send to PlugNotas
-        const formData = new FormData();
-        const blob = new Blob([file.buffer], { type: file.mimetype });
-        formData.append('arquivo', blob, file.originalname);
-        formData.append('senha', senha);
-
-        const response = await axios.post(`${baseUrl}/certificado`, formData, {
-            headers: {
-                'x-api-key': apiKey
-            }
-        });
-
-        res.json(response.data);
-    } catch (error: any) {
-        const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({ error: 'Erro ao enviar certificado para TecnoSpeed', detail: errorDetail });
     }
 });
 

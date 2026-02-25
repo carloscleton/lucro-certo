@@ -1,7 +1,14 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/constants';
 
-const API_URL = `${API_BASE_URL}/fiscal`;
+const API_URL = `${API_BASE_URL}/fiscal`.replace(/\/$/, '') + '/fiscal'; // Garante que termine em /fiscal sem duplicar
+// Na verdade, vamos ser mais simples e diretos:
+const getFiscalUrl = (endpoint: string) => {
+    const base = API_BASE_URL.replace(/\/$/, '');
+    const url = `${base}/fiscal/${endpoint}`;
+    console.log(`[FiscalService] Calling: ${url}`);
+    return url;
+};
 
 export interface FiscalPayload {
     companyId: string;
@@ -10,7 +17,7 @@ export interface FiscalPayload {
 
 export const fiscalService = {
     async emitirNFe(companyId: string, payload: any, token: string, quoteId?: string) {
-        const response = await axios.post(`${API_URL}/emitir`, {
+        const response = await axios.post(getFiscalUrl('emitir'), {
             companyId,
             payload,
             type: 'nfe',
@@ -24,7 +31,7 @@ export const fiscalService = {
     },
 
     async emitirNFSe(companyId: string, payload: any, token: string, quoteId?: string) {
-        const response = await axios.post(`${API_URL}/emitir`, {
+        const response = await axios.post(getFiscalUrl('emitir'), {
             companyId,
             payload,
             type: 'nfse',
@@ -38,7 +45,7 @@ export const fiscalService = {
     },
 
     async checkStatus(id: string, companyId: string, token: string) {
-        const response = await axios.get(`${API_URL}/status/${id}`, {
+        const response = await axios.get(getFiscalUrl(`status/${id}`), {
             params: { companyId },
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -48,7 +55,7 @@ export const fiscalService = {
     },
 
     async downloadPDF(id: string, companyId: string, token: string) {
-        const response = await axios.get(`${API_URL}/nfe/${id}/pdf`, {
+        const response = await axios.get(getFiscalUrl(`nfe/${id}/pdf`), {
             params: { companyId },
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -59,7 +66,7 @@ export const fiscalService = {
     },
 
     async downloadXML(id: string, companyId: string, token: string) {
-        const response = await axios.get(`${API_URL}/nfe/${id}/xml`, {
+        const response = await axios.get(getFiscalUrl(`nfe/${id}/xml`), {
             params: { companyId },
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -70,7 +77,7 @@ export const fiscalService = {
     },
 
     async syncIssuer(companyId: string, config: any, token: string) {
-        const response = await axios.post(`${API_URL}/sync-issuer`, {
+        const response = await axios.post(getFiscalUrl('sync-issuer'), {
             companyId,
             config
         }, {
@@ -87,7 +94,7 @@ export const fiscalService = {
         formData.append('arquivo', certificateFile);
         formData.append('senha', password);
 
-        const response = await axios.post(`${API_URL}/upload-certificate`, formData, {
+        const response = await axios.post(getFiscalUrl('upload-certificate'), formData, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'multipart/form-data'
