@@ -2,11 +2,16 @@ import axios from 'axios';
 import { API_BASE_URL } from '../lib/constants';
 
 // Função para garantir URLs consistentes com prefixo /fiscal
-// Na verdade, vamos ser mais simples e diretos:
 const getFiscalUrl = (endpoint: string) => {
-    const base = API_BASE_URL.replace(/\/$/, '');
+    // Limpeza agressiva: remove barras, hífens ou espaços no final da URL base
+    const base = (API_BASE_URL || '').trim().replace(/[\/\-]+$/, '');
     const url = `${base}/fiscal/${endpoint}`;
-    console.log(`[FiscalService] Calling: ${url}`);
+
+    // Log para depuração (vísivel no navegador do usuário)
+    console.log(`[FiscalService] BaseURL: "${API_BASE_URL}"`);
+    console.log(`[FiscalService] API_BASE_URL (Process): "${import.meta.env.VITE_API_URL}"`);
+    console.log(`[FiscalService] Target URL: "${url}"`);
+
     return url;
 };
 
