@@ -50,6 +50,12 @@ const authenticate = (req: any, res: any, next: any) => {
 // --- ENDPOINTS FISCAIS (TecnoSpeed PlugNotas) ---
 // Movidos para o topo para garantir prioridade e depuração
 
+// Logger específico para depurar 404 e rotas
+app.use('/fiscal', (req, _res, next) => {
+    console.log(`📡 [Fiscal Request] ${req.method} ${req.originalUrl}`);
+    next();
+});
+
 app.get('/fiscal/health', (req, res) => {
     res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date() });
 });
