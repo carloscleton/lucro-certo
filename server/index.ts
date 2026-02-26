@@ -5,12 +5,12 @@ console.log('🚀 [Backend] Inicializando servidor...');
 import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
-import { PaymentFactory } from './services/payments/PaymentFactory.js';
+import { PaymentFactory } from './services/payments/PaymentFactory';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 dotenv.config();
-dotenv.config({ path: '../.env' }); // Fallback para o .env da raiz do projeto
+// O path '../.env' pode causar erros no Vercel
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
@@ -39,6 +39,7 @@ if (!EVOLUTION_API_KEY || EVOLUTION_API_KEY.includes('sua-api-key')) {
 
 // Health Check
 app.get('/health', (req, res) => {
+    console.log('💚 [Backend] Recebido /health check');
     res.json({ status: 'ok', timestamp: new Date() });
 });
 
