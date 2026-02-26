@@ -21,6 +21,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Middleware para lidar com o prefixo /api no Vercel (Unificado)
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api')) {
+        req.url = req.url.replace(/^\/api/, '');
+    }
+    next();
+});
+
 // Evolution API Config
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim();
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
