@@ -67,7 +67,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setCategoryId(initialData.category_id || '');
             setCompanyId(initialData.company_id || '');
             setContactId(initialData.contact_id || '');
-            setIsRecurring(initialData.is_recurring || false);
+            setIsRecurring(!!initialData.recurrence_group_id);
             setIsVariableAmount((initialData as any).is_variable_amount || false);
             setFrequency(initialData.frequency || 'monthly');
             setDealId(initialData.deal_id || '');
