@@ -42,6 +42,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
     const [propagateChanges, setPropagateChanges] = useState(false);
     const [dbInstallments, setDbInstallments] = useState<Record<number, { amount: number; date: string }>>({});
+    const [keepOpen, setKeepOpen] = useState(() => localStorage.getItem('transactionKeepOpen') === 'true');
 
     const { categories, addCategory } = useCategories();
     const { companies } = useCompanies();
@@ -65,39 +66,70 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setDate(initialData.date);
             setStatus(initialData.status);
             setCategoryId(initialData.category_id || '');
-            setCompanyId(initialData.company_id || '');
+            setCompanyId(initialData.company_id || localStorage.getItem(`lastCompanyId_${type}`) || '');
             setContactId(initialData.contact_id || '');
             setIsRecurring(initialData.is_recurring || false);
             setIsVariableAmount((initialData as any).is_variable_amount || false);
             setFrequency(initialData.frequency || 'monthly');
             setDealId(initialData.deal_id || '');
         } else {
-            // New transaction - load saved preference
-            const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
-
-            setDescription('');
-            setAmount('');
-            setDate(new Date().toISOString().split('T')[0]);
-            setStatus('pending');
-            setCategoryId('');
-            setCompanyId(savedCompanyId);
-            setContactId('');
-            setIsRecurring(false);
-            setIsVariableAmount(false);
-            setFrequency('monthly');
-            setDealId('');
-            setOverrides({});
-            setEditingInstallment(null);
-            setPropagateChanges(false);
+            const draftStr = localStorage.getItem(`transactionDraft_${type}`);
+            if (draftStr && isOpen) {
+                try {
+                    const draft = JSON.parse(draftStr);
+                    setDescription(draft.description || '');
+                    setAmount(draft.amount || '');
+                    setDate(draft.date || new Date().toISOString().split('T')[0]);
+                    setStatus(draft.status || 'pending');
+                    setCategoryId(draft.categoryId || '');
+                    setCompanyId(draft.companyId || localStorage.getItem(`lastCompanyId_${type}`) || '');
+                    setContactId(draft.contactId || '');
+                    setIsRecurring(draft.isRecurring || false);
+                    setIsVariableAmount(draft.isVariableAmount || false);
+                    setFrequency(draft.frequency || 'monthly');
+                    setDealId(draft.dealId || '');
+                } catch {
+                    resetForm();
+                }
+            } else if (isOpen) {
+                resetForm();
+            }
         }
     }, [initialData, isOpen, type]);
 
-    // Save company preference when changed (only for new transactions)
+    const resetForm = () => {
+        const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
+        setDescription('');
+        setAmount('');
+        setDate(new Date().toISOString().split('T')[0]);
+        setStatus('pending');
+        setCategoryId('');
+        setCompanyId(savedCompanyId);
+        setContactId('');
+        setIsRecurring(false);
+        setIsVariableAmount(false);
+        setFrequency('monthly');
+        setDealId('');
+        setOverrides({});
+        setEditingInstallment(null);
+        setPropagateChanges(false);
+    };
+
+    // Save company preference and keepOpen preference
     useEffect(() => {
         if (!initialData && companyId !== undefined) {
             localStorage.setItem(`lastCompanyId_${type}`, companyId);
         }
-    }, [companyId, type, initialData]);
+        localStorage.setItem('transactionKeepOpen', keepOpen.toString());
+    }, [companyId, type, initialData, keepOpen]);
+
+    // Save draft auto-save
+    useEffect(() => {
+        if (!initialData && isOpen) {
+            const draft = { description, amount, date, status, categoryId, companyId, contactId, isRecurring, isVariableAmount, frequency, dealId };
+            localStorage.setItem(`transactionDraft_${type}`, JSON.stringify(draft));
+        }
+    }, [description, amount, date, status, categoryId, companyId, contactId, isRecurring, isVariableAmount, frequency, dealId, initialData, isOpen, type]);
 
     // Fetch real installment data when editing an existing recurrence
     useEffect(() => {
@@ -165,7 +197,21 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 overrides: Object.keys(overrides).length > 0 ? overrides : undefined,
                 propagate: propagateChanges
             });
-            onClose();
+
+            localStorage.removeItem(`transactionDraft_${type}`);
+
+            if (keepOpen && !initialData) {
+                // Keep modal open, reset volatile fields for rapid entry
+                setDescription('');
+                setAmount('');
+                setCategoryId('');
+                setFile(null);
+                setOverrides({});
+                setIsRecurring(false);
+                setIsVariableAmount(false);
+            } else {
+                onClose();
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -553,13 +599,31 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         )}
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-2">
-                        <Button type="button" variant="outline" onClick={onClose} className="px-6 h-9 text-sm">
-                            Cancelar
-                        </Button>
-                        <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm shadow-lg shadow-emerald-500/20">
-                            Processar Lançamento
-                        </Button>
+                    <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4 pb-2">
+                        {!initialData ? (
+                            <div className="flex items-center gap-2 self-start sm:self-center">
+                                <input
+                                    type="checkbox"
+                                    id="keepOpen"
+                                    checked={keepOpen}
+                                    onChange={e => setKeepOpen(e.target.checked)}
+                                    className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 dark:bg-slate-700 dark:border-slate-600"
+                                />
+                                <label htmlFor="keepOpen" className="text-sm font-medium text-gray-600 dark:text-gray-400 cursor-pointer select-none">
+                                    Salvar e continuar adicionando
+                                </label>
+                            </div>
+                        ) : (
+                            <div />
+                        )}
+                        <div className={`flex justify-end gap-3 w-full ${!initialData ? 'sm:w-auto' : ''}`}>
+                            <Button type="button" variant="outline" onClick={onClose} className="flex-1 sm:flex-none px-6 h-9 text-sm">
+                                Cancelar
+                            </Button>
+                            <Button type="submit" isLoading={loading} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm shadow-lg shadow-emerald-500/20">
+                                {initialData ? 'Salvar Alterações' : 'Processar Lançamento'}
+                            </Button>
+                        </div>
                     </div>
                 </form>
             </Modal>
