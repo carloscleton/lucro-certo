@@ -40,7 +40,6 @@ export function useSettings() {
         setLoading(true);
         try {
             if (currentEntity.type === 'company') {
-                console.log('DEBUG: Fetching settings for company:', currentEntity.id);
                 // 1. Fetch Company Settings
                 const { data, error } = await supabase
                     .from('companies')
@@ -49,14 +48,12 @@ export function useSettings() {
                     .single();
 
                 if (error) {
-                    console.error('DEBUG: Error fetching company settings:', error);
+                    console.error('Error fetching company settings:', error);
                 }
 
-                console.log('DEBUG: Company data received:', data);
 
                 if (data?.settings && Object.keys(data.settings).length > 0) {
                     const s = data.settings;
-                    console.log('DEBUG: Applying settings from company:', s);
                     setSettings({
                         quote_validity_days: s.quote_validity_days ?? 7,
                         commission_rate: s.commission_rate ?? 0,
@@ -64,7 +61,6 @@ export function useSettings() {
                         product_commission_rate: s.product_commission_rate ?? 0
                     });
                 } else {
-                    console.log('DEBUG: No company settings found, using defaults.');
                     // Default values if company has no settings (or RLS blocked reading)
                     setSettings({
                         quote_validity_days: 7,
@@ -75,7 +71,6 @@ export function useSettings() {
                 }
             } else {
                 // 2. Fetch Personal Settings
-                console.log('DEBUG: Fetching settings for personal context');
 
                 const { data, error } = await supabase
                     .from('user_settings')

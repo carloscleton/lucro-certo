@@ -186,7 +186,6 @@ export function WhatsApp() {
                 if (evoStatus === 'open' || evoStatus === 'connected') newStatus = 'connected';
                 else if (evoStatus === 'connecting') newStatus = 'connecting';
 
-                console.log(`📡 Instance ${instance.instance_name} (${instance.evolution_instance_id}) status: ${evoStatus} -> ${newStatus}`);
 
                 // Fields to update
                 const updates: any = {};
@@ -227,7 +226,6 @@ export function WhatsApp() {
 
                 // Perform update if needed
                 if (Object.keys(updates).length > 0) {
-                    console.log(`🔄 Syncing instance ${instance.instance_name}:`, updates);
 
                     // Update Local State
                     setInstances(prev => prev.map(i => i.id === instance.id ? { ...i, ...updates } : i));
