@@ -56,28 +56,31 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Despesas por Categoria</h3>
             <div className="flex flex-col lg:flex-row items-center gap-4">
                 {/* Chart */}
-                <div className="w-full lg:w-1/2 min-h-[220px] relative">
-                    {isMounted ? (
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-                            <PieChart>
-                                <Pie
-                                    data={data}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={55}
-                                    outerRadius={90}
-                                    paddingAngle={3}
-                                    dataKey="value"
-                                    stroke="none"
-                                >
-                                    {data.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip content={<CustomTooltip />} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    ) : (
+                <div className="w-full lg:w-1/2 relative min-h-[220px]">
+                    {isMounted && (
+                        <div className="absolute inset-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={data}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={55}
+                                        outerRadius={90}
+                                        paddingAngle={3}
+                                        dataKey="value"
+                                        stroke="none"
+                                    >
+                                        {data.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip content={<CustomTooltip />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
+                    {!isMounted && (
                         <div className="w-full h-full flex items-center justify-center">
                             <div className="animate-pulse text-gray-400">Carregando gráfico...</div>
                         </div>
