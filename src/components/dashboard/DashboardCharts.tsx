@@ -98,7 +98,7 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsMounted(true), 1000);
+        const timer = setTimeout(() => setIsMounted(true), 1500);
         return () => clearTimeout(timer);
     }, []);
 
@@ -116,7 +116,7 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
             <div className="flex-1 w-full relative min-h-[300px] min-w-0 overflow-hidden">
                 {isMounted && (
                     <div className="absolute inset-0 w-full h-full">
-                        <ResponsiveContainer key="chart-fluxo" width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
+                        <ResponsiveContainer key="chart-fluxo" width="99.9%" height="100%" minWidth={0} minHeight={0} debounce={200}>
                             <BarChart
                                 data={weeklyData}
                                 margin={{ top: 10, right: 10, left: 0, bottom: 5 }}

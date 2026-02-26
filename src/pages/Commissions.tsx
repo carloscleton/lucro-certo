@@ -54,7 +54,7 @@ export function Commissions() {
     const { isAdmin, companiesList } = useAdmin();
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsMounted(true), 1000);
+        const timer = setTimeout(() => setIsMounted(true), 1500);
         return () => clearTimeout(timer);
     }, []);
 
@@ -285,7 +285,7 @@ export function Commissions() {
                 <div className="relative min-h-[256px] w-full min-w-0 overflow-hidden">
                     {isMounted && (
                         <div className="absolute inset-0 w-full h-full">
-                            <ResponsiveContainer key="chart-comm" width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
+                            <ResponsiveContainer key="chart-comm" width="99.9%" height="100%" minWidth={0} minHeight={0} debounce={200}>
                                 <BarChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                     <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />

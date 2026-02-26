@@ -63,12 +63,21 @@ export function Dashboard() {
     };
 
     const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, contextMetrics, previousPeriod, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
-    const { categories } = useCategories();
+    const { categories, loading: categoriesLoading } = useCategories();
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
 
     // Browser push notifications for due bills
     useBillNotifications();
+
+    if (loading || categoriesLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="text-gray-500 animate-pulse">{t('common.loading') || 'Carregando dados...'}</p>
+            </div>
+        );
+    }
 
     // Month labels for comparison
     const monthNames = t('dashboard.month_names', { returnObjects: true }) as string[];

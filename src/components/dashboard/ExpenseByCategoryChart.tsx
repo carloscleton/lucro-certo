@@ -17,7 +17,7 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsMounted(true), 1000);
+        const timer = setTimeout(() => setIsMounted(true), 1500);
         return () => clearTimeout(timer);
     }, []);
 
@@ -59,7 +59,7 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
                 <div className="w-full lg:w-1/2 relative min-h-[220px] min-w-0 overflow-hidden">
                     {isMounted && (
                         <div className="absolute inset-0 w-full h-full">
-                            <ResponsiveContainer key="chart-cat" width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
+                            <ResponsiveContainer key="chart-cat" width="99.9%" height="100%" minWidth={0} minHeight={0} debounce={200}>
                                 <PieChart>
                                     <Pie
                                         data={data}

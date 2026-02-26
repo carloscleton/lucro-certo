@@ -111,10 +111,17 @@ export function useDashboard(startDate: string, endDate: string) {
                 prevTxQuery = prevTxQuery.eq('user_id', user.id).is('company_id', null);
             }
 
-            const [txRes, quotesRes, allTxRes, prevTxRes] = await Promise.all([txQuery, quotesQuery, allTxQuery, prevTxQuery]);
+            const results = await Promise.allSettled([txQuery, quotesQuery, allTxQuery, prevTxQuery]);
 
-            if (txRes.error) throw txRes.error;
-            if (quotesRes.error) throw quotesRes.error;
+            const txRes = results[0].status === 'fulfilled' ? results[0].value : { data: [], error: (results[0] as any).reason };
+            const quotesRes = results[1].status === 'fulfilled' ? results[1].value : { data: [], error: (results[1] as any).reason };
+            const allTxRes = results[2].status === 'fulfilled' ? results[2].value : { data: [], error: (results[2] as any).reason };
+            const prevTxRes = results[3].status === 'fulfilled' ? results[3].value : { data: [], error: (results[3] as any).reason };
+
+            if (txRes.error) console.error('Dashboard: Error fetching transactions:', txRes.error);
+            if (quotesRes.error) console.error('Dashboard: Error fetching quotes:', quotesRes.error);
+            if (allTxRes.error) console.error('Dashboard: Error fetching all transactions:', allTxRes.error);
+            if (prevTxRes.error) console.error('Dashboard: Error fetching previous transactions:', prevTxRes.error);
 
             const transactions = txRes.data || [];
             const quotes = quotesRes.data || [];

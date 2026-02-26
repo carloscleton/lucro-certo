@@ -48,12 +48,8 @@ export function useBillNotifications() {
 
         if (Notification.permission === 'granted') {
             sendNotification();
-        } else if (Notification.permission !== 'denied') {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    sendNotification();
-                }
-            });
         }
+        // Notification permission MUST be requested via user gesture (button click).
+        // Automation in useEffect results in browser violations.
     }, [bills]);
 }
