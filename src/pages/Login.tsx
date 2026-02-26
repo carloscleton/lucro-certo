@@ -230,6 +230,7 @@ export function Login() {
                                 onChange={(e) => setFullName(e.target.value)}
                                 placeholder={t('login.full_name_placeholder')}
                                 required={isSignUp}
+                                autoComplete="name"
                                 className="h-12"
                             />
                         )}
@@ -242,6 +243,7 @@ export function Login() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="seu@email.com"
                                 required
+                                autoComplete="email"
                                 className="h-12"
                             />
                         )}
@@ -255,6 +257,7 @@ export function Login() {
                                 placeholder="••••••••"
                                 required
                                 minLength={6}
+                                autoComplete="current-password"
                                 className="h-12"
                                 rightElement={
                                     <Tooltip content={showPassword ? t('login.hide_password') : t('login.show_password')}>

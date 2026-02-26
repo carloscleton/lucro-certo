@@ -284,7 +284,7 @@ export function Commissions() {
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('commissions.period_evolution')}</h3>
                 <div className="h-64 w-full">
                     {isMounted ? (
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <ResponsiveContainer width="99%" height="99%" debounce={50}>
                             <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
