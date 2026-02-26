@@ -14,6 +14,18 @@ dotenv.config({ path: '../.env' }); // Fallback para o .env da raiz do projeto
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
 
+// Configuração global do Axios para evitar travamentos (Timeout de 15s)
+axios.defaults.timeout = 15000;
+axios.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.code === 'ECONNABORTED') {
+            console.error('[Proxy] Erro: Timeout na comunicação externa (serviço lento)');
+        }
+        return Promise.reject(error);
+    }
+);
+
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -21,10 +33,15 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Middleware para lidar com o prefixo /api no Vercel (Unificado)
+// Middleware para lidar com o prefixo /api de forma robusta
 app.use((req, res, next) => {
-    if (req.url.startsWith('/api')) {
+    // Logger simples para depurar chamadas que chegam ao proxy
+    console.log(`[Proxy] ${req.method} ${req.url}`);
+
+    if (req.url.startsWith('/api/')) {
         req.url = req.url.replace(/^\/api/, '');
+    } else if (req.url === '/api') {
+        req.url = '/';
     }
     next();
 });
@@ -958,9 +975,33 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
     }
 });
 
-if (process.env.NODE_ENV !== 'production') {
+// --- FINAL HANDLERS ---
+
+// Rota de fallback para 404 - Retorna JSON em vez do HTML padrão do Express
+app.use((req, res) => {
+    console.warn(`[Proxy] 404 Not Found: ${req.method} ${req.url}`);
+    res.status(404).json({
+        error: 'Rota não encontrada no servidor proxy',
+        method: req.method,
+        path: req.url
+    });
+});
+
+// Tratamento global de erros - Retorna JSON em vez do HTML padrão do Express
+app.use((err: any, req: any, res: any, next: any) => {
+    console.error('[Proxy] Internal Server Error:', err);
+    res.status(err.status || 500).json({
+        error: 'Erro interno no servidor proxy',
+        message: err.message,
+        detail: process.env.NODE_ENV === 'production' ? undefined : err.stack
+    });
+});
+
+// No local, escutamos na porta definida (3001 por padrão)
+// Em produção (Vercel), o app é exportado e gerenciado pelo serviço.
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     app.listen(PORT, () => {
-        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        console.log(`🚀 [Proxy Server] Rodando em http://localhost:${PORT}`);
     });
 }
 

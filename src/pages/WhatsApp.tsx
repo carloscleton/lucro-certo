@@ -174,10 +174,8 @@ export function WhatsApp() {
         try {
             const response = await fetch(`${API_BASE_URL}/instances/${instance.instance_name}/details?token=${instance.evolution_instance_id}`);
             if (response.ok) {
-                const data = await response.json();
-
-                // Debug response structure
-                // console.log(`🔍 Received data for ${instance.instance_name}:`, data);
+                const data = await response.json().catch(() => null);
+                if (!data) return;
 
                 // Map Evolution status to our app status (Support v1 and v2)
                 const evoStatus = data?.connectionStatus || data?.instance?.connectionStatus || data?.instance?.status || data?.status;
@@ -260,12 +258,15 @@ export function WhatsApp() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(async () => {
+                    const text = await response.text();
+                    return { error: 'Resposta inválida do servidor', detail: text.substring(0, 100) };
+                });
                 const detail = errorData.detail ? `: ${errorData.detail}` : '';
                 throw new Error((errorData.error || 'Erro no servidor proxy') + detail);
             }
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             // A Evolution agora usa o Nome Amigável como identifier, mas o Token é o nosso UUID
             // Queremos salvar o UUID (token) para usar nos payloads do n8n
             const technicalId = data.instance?.token || instanceId;
@@ -317,15 +318,16 @@ export function WhatsApp() {
                 })
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({ error: 'Falha ao processar resposta do servidor' }));
 
-            if (!response.ok) throw data;
+            if (!response.ok) {
+                throw new Error(data.error || data.message || 'Falha ao testar webhook');
+            }
 
             notify('success', 'Webhook de teste disparado com sucesso!', 'Teste Confirmado');
         } catch (error: any) {
             console.error('Erro no teste de webhook:', error);
-            const errorMessage = error.details || error.error || error.message || 'Falha ao testar webhook.';
-            notify('error', errorMessage, 'Erro no Teste');
+            notify('error', error.message || 'Falha ao testar webhook.', 'Erro no Teste');
         } finally {
             setIsTestingWebhook(false);
         }
@@ -346,7 +348,7 @@ export function WhatsApp() {
             });
 
             if (!response.ok) {
-                const data = await response.json();
+                const data = await response.json().catch(() => ({}));
                 console.warn('⚠️ Falha ao desconectar na Evolution:', data);
                 if (!silent) throw new Error(data.error || 'Falha ao desconectar');
             }
@@ -440,7 +442,8 @@ export function WhatsApp() {
                 });
 
                 if (!renameRes.ok) {
-                    console.warn('⚠️ Não foi possível renomear na Evolution, mas continuaremos com o webhook.');
+                    const errData = await renameRes.json().catch(() => ({}));
+                    console.warn('⚠️ Não foi possível renomear na Evolution:', errData);
                 }
             }
 
@@ -482,7 +485,10 @@ export function WhatsApp() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(async () => {
+                    const text = await response.text();
+                    return { error: 'Resposta inválida do servidor', detail: text.substring(0, 100) };
+                });
                 const detail = errorData.detail ? `: ${errorData.detail}` : '';
                 throw new Error((errorData.error || 'Erro ao sincronizar com Evolution') + detail);
             }
@@ -526,18 +532,26 @@ export function WhatsApp() {
         try {
             // Buscar QR Code via Proxy usando o nome amigável
             const response = await fetch(`${API_BASE_URL}/instances/${instance.instance_name}/connect`);
-            if (!response.ok) throw new Error('Falha ao obter QR Code');
 
-            const data = await response.json();
+            const data = await response.json().catch(async () => {
+                // Se falhar o parse do JSON, pode ser um HTML (404/500 do servidor)
+                const text = await response.text();
+                return { error: 'Resposta inválida do servidor', detail: text.substring(0, 100) };
+            });
+
+            if (!response.ok) {
+                throw new Error(data.error || data.message || 'Falha ao obter QR Code');
+            }
+
             // A Evolution retorna base64 ou link dependendo da config
             if (data.base64) {
                 setQrCode(data.base64);
             } else if (data.qrcode) {
                 setQrCode(data.qrcode.base64);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erro ao conectar:', error);
-            notify('error', 'Não foi possível gerar o código QR agora.', 'Erro de Conexão');
+            notify('error', error.message || 'Não foi possível gerar o código QR agora.', 'Erro de Conexão');
         }
     };
 
