@@ -1,40 +1,33 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-console.log('🚀 [Backend] Carregando dependências...');
 import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
-console.log('📦 [Backend] Dependências carregadas.');
-import { PaymentFactory } from './services/payments/PaymentFactory';
+import { PaymentFactory } from './services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 dotenv.config();
-console.log('⚙️ [Backend] Dotenv configurado.');
-// O path '../.env' pode causar erros no Vercel
+dotenv.config({ path: '../.env' }); // Fallback para o .env da raiz do projeto
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
 
-console.log('🛡️ [Backend] Configurando Middlewares...');
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'apikey', 'x-api-key'],
 }));
 app.use(express.json());
-console.log('🛡️ [Backend] Middlewares OK.');
 
 // Evolution API Config
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim();
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
-console.log(`📡 [Backend] Evolution API: ${EVOLUTION_API_URL ? 'Configurada' : 'NÃO CONFIGURADA'}`);
 
 // Supabase Config for Fiscal Proxy
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY?.trim() || process.env.SUPABASE_ANON_KEY?.trim();
-console.log(`🔗 [Backend] Supabase: ${SUPABASE_URL ? 'Configurado' : 'NÃO CONFIGURADO'}`);
 
 if (!EVOLUTION_API_URL || EVOLUTION_API_URL.includes('sua-instancia')) {
     console.warn('⚠️ AVISO: EVOLUTION_API_URL não configurada corretamente no .env');
@@ -45,7 +38,6 @@ if (!EVOLUTION_API_KEY || EVOLUTION_API_KEY.includes('sua-api-key')) {
 
 // Health Check
 app.get('/health', (req, res) => {
-    console.log('💚 [Backend] Recebido /health check');
     res.json({ status: 'ok', timestamp: new Date() });
 });
 
@@ -57,12 +49,6 @@ const authenticate = (req: any, res: any, next: any) => {
 
 // --- ENDPOINTS FISCAIS (TecnoSpeed PlugNotas) ---
 // Movidos para o topo para garantir prioridade e depuração
-
-// Logger específico para depurar 404 e rotas
-app.use('/fiscal', (req, _res, next) => {
-    console.log(`📡 [Fiscal Request] ${req.method} ${req.originalUrl}`);
-    next();
-});
 
 app.get('/fiscal/health', (req, res) => {
     res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date() });
@@ -105,29 +91,6 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));
         res.status(500).json({ error: 'Erro ao enviar certificado para TecnoSpeed', detail: errorDetail });
-    }
-});
-
-app.get('/fiscal/certificate-status', authenticate, async (req, res) => {
-    const { companyId } = req.query;
-    const authHeader = req.headers.authorization;
-
-    if (!companyId) return res.status(400).json({ error: 'companyId é obrigatório' });
-
-    try {
-        const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
-        const apiKey = config.tecnospeed_api_key;
-        const isSandbox = config.ambiente === 'homologacao';
-        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-
-        const response = await axios.get(`${baseUrl}/certificado`, {
-            headers: { 'x-api-key': apiKey }
-        });
-
-        res.json(response.data);
-    } catch (error: any) {
-        // Se retornar 404 ou erro, provavelmente não tem certificado
-        res.json({ success: false, message: 'Nenhum certificado encontrado ou erro na consulta', detail: error.response?.data });
     }
 });
 
@@ -993,5 +956,4 @@ if (process.env.NODE_ENV !== 'production') {
     });
 }
 
-console.log('✅ [Backend] Inicialização concluída.');
 export default app;

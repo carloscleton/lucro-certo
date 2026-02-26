@@ -2,17 +2,11 @@ import axios from 'axios';
 import { API_BASE_URL } from '../lib/constants';
 
 // Função para garantir URLs consistentes com prefixo /fiscal
+// Na verdade, vamos ser mais simples e diretos:
 const getFiscalUrl = (endpoint: string) => {
-    // Limpeza agressiva: remove barras, hífens ou espaços no final da URL base
-    const base = (API_BASE_URL || '').trim().replace(/[\/\-]+$/, '');
+    const base = API_BASE_URL.replace(/\/$/, '');
     const url = `${base}/fiscal/${endpoint}`;
-
-    // Log para depuração (vísivel no navegador do usuário)
-    if (url.includes('localhost')) {
-        console.warn('⚠️ [FiscalService] ATENÇÃO: Chamando localhost em vez do backend de produção!');
-    }
-    console.log(`🚀 [FiscalService] Endpoint: ${endpoint} | Base: ${base} | URL: ${url}`);
-
+    console.log(`[FiscalService] Calling: ${url}`);
     return url;
 };
 
@@ -104,16 +98,6 @@ export const fiscalService = {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'multipart/form-data'
-            }
-        });
-        return response.data;
-    },
-
-    async getCertificateStatus(companyId: string, token: string) {
-        const response = await axios.get(getFiscalUrl('certificate-status'), {
-            params: { companyId },
-            headers: {
-                'Authorization': `Bearer ${token}`
             }
         });
         return response.data;
