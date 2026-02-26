@@ -167,10 +167,6 @@ export function useDashboard(startDate: string, endDate: string) {
 
             // Rejected Quotes (Potential Recovery)
             const rejectedQuotes = quotes.filter(q => q.status === 'rejected');
-            console.log('📊 Quotes Stats:', {
-                total: quotes.length,
-                rejected: rejectedQuotes.length
-            });
 
             const rejectedTotal = rejectedQuotes.reduce((acc, q) => {
                 let val = q.total_amount;
@@ -228,7 +224,6 @@ export function useDashboard(startDate: string, endDate: string) {
             // Alerts Logic
             const newAlerts: Alert[] = [];
             // Check Overdue
-            console.log("Processing Alerts...");
             const globalPayableList = transactions.filter(t => t.type === 'expense' && (t.status === 'pending' || t.status === 'late'));
 
             globalPayableList
