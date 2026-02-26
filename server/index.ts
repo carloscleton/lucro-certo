@@ -1,34 +1,40 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-console.log('🚀 [Backend] Inicializando servidor...');
+console.log('🚀 [Backend] Carregando dependências...');
 import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
+console.log('📦 [Backend] Dependências carregadas.');
 import { PaymentFactory } from './services/payments/PaymentFactory';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 dotenv.config();
+console.log('⚙️ [Backend] Dotenv configurado.');
 // O path '../.env' pode causar erros no Vercel
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
 
+console.log('🛡️ [Backend] Configurando Middlewares...');
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'apikey', 'x-api-key'],
 }));
 app.use(express.json());
+console.log('🛡️ [Backend] Middlewares OK.');
 
 // Evolution API Config
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim();
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
+console.log(`📡 [Backend] Evolution API: ${EVOLUTION_API_URL ? 'Configurada' : 'NÃO CONFIGURADA'}`);
 
 // Supabase Config for Fiscal Proxy
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY?.trim() || process.env.SUPABASE_ANON_KEY?.trim();
+console.log(`🔗 [Backend] Supabase: ${SUPABASE_URL ? 'Configurado' : 'NÃO CONFIGURADO'}`);
 
 if (!EVOLUTION_API_URL || EVOLUTION_API_URL.includes('sua-instancia')) {
     console.warn('⚠️ AVISO: EVOLUTION_API_URL não configurada corretamente no .env');
@@ -987,4 +993,5 @@ if (process.env.NODE_ENV !== 'production') {
     });
 }
 
+console.log('✅ [Backend] Inicialização concluída.');
 export default app;
