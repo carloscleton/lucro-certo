@@ -449,10 +449,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                         {/* Preview of next recurring dates */}
                                         <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                                             <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 mb-2 uppercase tracking-wide">
-                                                📅 Próximas 5 Datas
+                                                📅 Próximas 12 Datas
                                             </p>
-                                            <div className="grid grid-cols-5 gap-1.5">
-                                                {calculateNextDates(date, frequency, 5).map((nextDate, index) => {
+                                            <div className="flex overflow-x-auto gap-2 pb-2 snap-x scrollbar-thin scrollbar-thumb-emerald-200 dark:scrollbar-thumb-emerald-800">
+                                                {calculateNextDates(date, frequency, 12).map((nextDate, index) => {
                                                     const installmentIdx = (initialData?.installment_number || 1) + index + 1;
                                                     const currentOverride = overrides[installmentIdx];
                                                     const isEditing = editingInstallment === installmentIdx;
@@ -468,7 +468,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                         <div
                                                             key={index}
                                                             onClick={() => setEditingInstallment(isEditing ? null : installmentIdx)}
-                                                            className={`flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 rounded-md border transition-all cursor-pointer group ${isEditing ? 'ring-2 ring-emerald-500 border-emerald-500' : 'border-emerald-100 dark:border-emerald-800/50 hover:border-emerald-400 shadow-sm'}`}
+                                                            className={`flex-none w-28 snap-start flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 rounded-md border transition-all cursor-pointer group ${isEditing ? 'ring-2 ring-emerald-500 border-emerald-500' : 'border-emerald-100 dark:border-emerald-800/50 hover:border-emerald-400 shadow-sm'}`}
                                                         >
                                                             <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                                                                 #{installmentIdx}
