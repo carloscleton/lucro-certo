@@ -405,7 +405,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                         type="checkbox"
                                         checked={isVariableAmount}
                                         onChange={e => setIsVariableAmount(e.target.checked)}
-                                        className="w-4 h-4 text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600"
+                                        className="w-5 h-5 text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600"
                                     />
                                 </div>
 
@@ -419,7 +419,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                             type="checkbox"
                                             checked={propagateChanges}
                                             onChange={e => setPropagateChanges(e.target.checked)}
-                                            className="w-4 h-4 text-amber-600 rounded-md border-amber-300 focus:ring-amber-500 dark:bg-slate-700 dark:border-slate-600"
+                                            className="w-5 h-5 text-amber-600 rounded-md border-amber-300 focus:ring-amber-500 dark:bg-slate-700 dark:border-slate-600"
                                         />
                                     </div>
                                 )}
