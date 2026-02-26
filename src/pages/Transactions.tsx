@@ -215,12 +215,37 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             }
         }
 
-        if (confirm(t('common.confirm_delete'))) {
-            try {
-                await deleteTransaction(id);
-            } catch (error: any) {
-                alert(error.message || t('common.delete_error'));
+        let scope: 'single' | 'future' | 'all' = 'single';
+
+        if (transaction?.recurrence_group_id) { // Is recurring
+            const choice = window.prompt(
+                'Lançamento Recorrente detectado. O que deseja apagar?\n\n' +
+                '1 - APENAS este Lançamento\n' +
+                '2 - Este e os FUTUROS (A partir desta data)\n' +
+                '3 - TODOS (Histórico completo desta repetição)\n\n' +
+                'Digite o número (1, 2 ou 3):',
+                '1'
+            );
+
+            if (choice === null) return; // Cancelled
+            if (choice === '2') {
+                scope = 'future';
+            } else if (choice === '3') {
+                scope = 'all';
+            } else if (choice !== '1') {
+                alert('Opção inválida. Operação cancelada.');
+                return;
             }
+        } else {
+            if (!confirm(t('common.confirm_delete'))) {
+                return;
+            }
+        }
+
+        try {
+            await deleteTransaction(id, scope);
+        } catch (error: any) {
+            alert(error.message || t('common.delete_error'));
         }
     };
 

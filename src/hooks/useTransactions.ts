@@ -260,22 +260,30 @@ export function useTransactions(type: TransactionType) {
         }
     };
 
-    const deleteTransaction = async (id: string) => {
+    const deleteTransaction = async (id: string, scope: 'single' | 'future' | 'all' = 'single') => {
         try {
             // Get transaction details first to check status and quote link
             const { data: transaction } = await supabase
                 .from('transactions')
-                .select('quote_id, status')
+                .select('quote_id, status, recurrence_group_id, date')
                 .eq('id', id)
                 .maybeSingle();
 
             // The UI (Transactions.tsx) now handles permission checks (admin/owner/member_can_delete)
             // before calling this function. We removed the hardcoded superadmin lock here.
 
-            const { error } = await supabase
-                .from('transactions')
-                .delete()
-                .eq('id', id);
+            let query = supabase.from('transactions').delete();
+
+            if (scope === 'single' || !transaction?.recurrence_group_id) {
+                query = query.eq('id', id);
+            } else if (scope === 'future') {
+                query = query.eq('recurrence_group_id', transaction.recurrence_group_id)
+                    .gte('date', transaction.date);
+            } else if (scope === 'all') {
+                query = query.eq('recurrence_group_id', transaction.recurrence_group_id);
+            }
+
+            const { error } = await query;
 
             if (error) throw error;
 
@@ -291,7 +299,11 @@ export function useTransactions(type: TransactionType) {
                     .eq('id', transaction.quote_id);
             }
 
-            setTransactions(prev => prev.filter(t => t.id !== id));
+            if (scope === 'single' || !transaction?.recurrence_group_id) {
+                setTransactions(prev => prev.filter(t => t.id !== id));
+            } else {
+                fetchTransactions(); // Refresh all if deleting multiple to keep state consistent
+            }
         } catch (err: any) {
             setError(err.message);
             throw err;
