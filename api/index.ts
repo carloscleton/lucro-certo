@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
-import { PaymentFactory } from './services/payments/PaymentFactory.js';
+import { PaymentFactory } from './services/payments/PaymentFactory';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
