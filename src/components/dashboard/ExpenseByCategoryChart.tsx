@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Category } from '../../hooks/useCategories';
+import { useState, useEffect } from 'react';
 
 interface ExpenseByCategoryChartProps {
     expenses: { category_id: string; amount: number }[];
@@ -13,6 +14,12 @@ const COLORS = [
 ];
 
 export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCategoryChartProps) {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     if (expenses.length === 0) return null;
 
     const formatCurrency = (value: number) =>
@@ -49,8 +56,9 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
             <div className="flex flex-col lg:flex-row items-center gap-4">
                 {/* Chart */}
                 <div className="w-full lg:w-1/2 h-[220px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
+                    {isMounted ? (
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                            <PieChart>
                             <Pie
                                 data={data}
                                 cx="50%"
@@ -67,7 +75,12 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
                             </Pie>
                             <Tooltip content={<CustomTooltip />} />
                         </PieChart>
-                    </ResponsiveContainer>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <div className="animate-pulse text-gray-400">Carregando gráfico...</div>
+                        </div>
+                    )}
                 </div>
                 {/* Legend */}
                 <div className="w-full lg:w-1/2 space-y-2 max-h-[220px] overflow-y-auto">

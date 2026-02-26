@@ -1,5 +1,6 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface CashFlowForecastProps {
     currentBalance: number;
@@ -10,6 +11,12 @@ interface CashFlowForecastProps {
 }
 
 export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense, pendingReceivable, pendingPayable }: CashFlowForecastProps) {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -72,8 +79,9 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
             </div>
 
             <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={projections} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                {isMounted ? (
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <LineChart data={projections} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
                         <YAxis
@@ -93,7 +101,12 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
                             activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2 }}
                         />
                     </LineChart>
-                </ResponsiveContainer>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <div className="animate-pulse text-gray-400">Carregando gráfico...</div>
+                    </div>
+                )}
             </div>
 
             {/* Legend */}

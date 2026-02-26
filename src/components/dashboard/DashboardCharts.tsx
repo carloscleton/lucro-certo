@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import type { ChartData } from '../../hooks/useDashboard';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 // Aggregate daily data into weeks for better visualization
 function aggregateByWeek(data: ChartData[]): { name: string; income: number; expense: number; balance: number }[] {
@@ -95,6 +95,11 @@ const CustomLegend = () => (
 
 export function DashboardCharts({ data }: { data: ChartData[] }) {
     const weeklyData = useMemo(() => aggregateByWeek(data), [data]);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     if (weeklyData.length === 0) {
         return (
@@ -108,7 +113,8 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 h-[400px] flex flex-col transition-colors">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Fluxo de Caixa</h3>
             <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
+                {isMounted ? (
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <BarChart
                         data={weeklyData}
                         margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
@@ -166,7 +172,12 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
                             maxBarSize={48}
                         />
                     </BarChart>
-                </ResponsiveContainer>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <div className="animate-pulse text-gray-400">Carregando gráfico...</div>
+                    </div>
+                )}
             </div>
         </div>
     );
