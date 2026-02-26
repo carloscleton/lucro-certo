@@ -40,7 +40,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [loading, setLoading] = useState(false);
     const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
     const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
-    const [propagateChanges, setPropagateChanges] = useState(false);
+    const [propagateChanges, setPropagateChanges] = useState(() => localStorage.getItem('propagatePref') === 'true');
     const [dbInstallments, setDbInstallments] = useState<Record<number, { amount: number; date: string }>>({});
 
     const { categories, addCategory } = useCategories();
@@ -88,16 +88,16 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setDealId('');
             setOverrides({});
             setEditingInstallment(null);
-            setPropagateChanges(false);
         }
     }, [initialData, isOpen, type]);
 
-    // Save company preference when changed (only for new transactions)
+    // Save preferences
     useEffect(() => {
         if (!initialData && companyId !== undefined) {
             localStorage.setItem(`lastCompanyId_${type}`, companyId);
         }
-    }, [companyId, type, initialData]);
+        localStorage.setItem('propagatePref', propagateChanges.toString());
+    }, [companyId, type, initialData, propagateChanges]);
 
     // Fetch real installment data when editing an existing recurrence
     useEffect(() => {
