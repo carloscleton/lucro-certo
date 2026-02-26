@@ -47,9 +47,9 @@ export function useTransactions(type: TransactionType) {
     const { user } = useAuth();
     const { currentEntity } = useEntity();
 
-    const fetchTransactions = useCallback(async (isBackground = false) => {
+    const fetchTransactions = useCallback(async () => {
         if (!user) return;
-        if (!isBackground) setLoading(true);
+        setLoading(true);
         setError(null); // Reset error on new fetch
         try {
             let query = supabase
@@ -71,7 +71,7 @@ export function useTransactions(type: TransactionType) {
         } catch (err: any) {
             setError(err.message);
         } finally {
-            if (!isBackground) setLoading(false);
+            setLoading(false);
         }
     }, [user, type, currentEntity]);
 
@@ -100,7 +100,7 @@ export function useTransactions(type: TransactionType) {
             });
 
             const userId = user.id;
-            const targetCompanyId = rawData.company_id !== undefined ? rawData.company_id : (currentEntity.type === 'company' ? currentEntity.id : null);
+            const companyId = currentEntity.type === 'company' ? currentEntity.id : null;
 
             // If recurring, generate group and installments
             const recurrenceGroupId = is_recurring ? crypto.randomUUID() : null;
@@ -108,7 +108,7 @@ export function useTransactions(type: TransactionType) {
             const entriesToInsert = [{
                 ...cleanTransaction,
                 user_id: userId,
-                company_id: targetCompanyId,
+                company_id: companyId,
                 recurrence_group_id: recurrenceGroupId,
                 installment_number: is_recurring ? 1 : null
             }];
@@ -124,7 +124,7 @@ export function useTransactions(type: TransactionType) {
                         amount: override?.amount ?? cleanTransaction.amount,
                         date: override?.date ?? dateObj.toISOString().split('T')[0],
                         user_id: userId,
-                        company_id: targetCompanyId,
+                        company_id: companyId,
                         recurrence_group_id: recurrenceGroupId,
                         installment_number: installmentIdx,
                         status: 'pending' // Future ones are always pending
@@ -141,8 +141,8 @@ export function useTransactions(type: TransactionType) {
             if (!data) throw new Error('Erro ao criar transação: Nenhum dado retornado.');
 
             // Only add the first one (or the one matching the current view) to local state if needed
-            // Background refresh to get all relevant ones for the current filter without UI flicker
-            await fetchTransactions(true);
+            // Actually, better to just refresh to get all relevant ones for the current filter
+            await fetchTransactions();
             return data[0];
         } catch (err: any) {
             setError(err.message);
@@ -219,7 +219,7 @@ export function useTransactions(type: TransactionType) {
             if (overrides && originalTransaction?.recurrence_group_id) {
                 console.log(`🎯 Applying individual overrides for group ${originalTransaction.recurrence_group_id}...`);
 
-                const overridePromises = Object.entries(overrides).map(async ([idxStr, override]) => {
+                for (const [idxStr, override] of Object.entries(overrides)) {
                     const installmentNum = parseInt(idxStr);
                     const { amount: ovAmount, date: ovDate } = override as any;
 
@@ -238,9 +238,7 @@ export function useTransactions(type: TransactionType) {
                             console.error(`Error applying override to installment #${installmentNum}:`, overError);
                         }
                     }
-                });
-
-                await Promise.all(overridePromises);
+                }
             }
 
             // Sync Quote Payment Status if needed
@@ -254,7 +252,7 @@ export function useTransactions(type: TransactionType) {
                     .eq('id', originalTransaction.quote_id);
             }
 
-            await fetchTransactions(true);
+            await fetchTransactions();
         } catch (err: any) {
             console.error('Error updating transaction:', err);
             setError(err.message);

@@ -68,9 +68,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
 
     // Helper to check if date is in range
     const isInRange = (dateStr: string) => {
-        if (!dateStr) return false;
-        const normalizedDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
-        return normalizedDate >= startDate && normalizedDate <= endDate;
+        return dateStr >= startDate && dateStr <= endDate;
     };
 
     const filteredTransactions = useMemo(() => {
