@@ -17,7 +17,8 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        setIsMounted(true);
+        const timer = setTimeout(() => setIsMounted(true), 100);
+        return () => clearTimeout(timer);
     }, []);
 
     if (expenses.length === 0) return null;
@@ -59,22 +60,22 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
                     {isMounted ? (
                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <PieChart>
-                            <Pie
-                                data={data}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={55}
-                                outerRadius={90}
-                                paddingAngle={3}
-                                dataKey="value"
-                                stroke="none"
-                            >
-                                {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip content={<CustomTooltip />} />
-                        </PieChart>
+                                <Pie
+                                    data={data}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={55}
+                                    outerRadius={90}
+                                    paddingAngle={3}
+                                    dataKey="value"
+                                    stroke="none"
+                                >
+                                    {data.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                            </PieChart>
                         </ResponsiveContainer>
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">

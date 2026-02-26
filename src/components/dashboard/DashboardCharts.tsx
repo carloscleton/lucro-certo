@@ -98,7 +98,8 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        setIsMounted(true);
+        const timer = setTimeout(() => setIsMounted(true), 100);
+        return () => clearTimeout(timer);
     }, []);
 
     if (weeklyData.length === 0) {
@@ -115,63 +116,63 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
             <div className="flex-1 w-full min-h-0">
                 {isMounted ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    <BarChart
-                        data={weeklyData}
-                        margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                        barGap={4}
-                    >
-                        <defs>
-                            <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
-                                <stop offset="100%" stopColor="#34d399" stopOpacity={0.7} />
-                            </linearGradient>
-                            <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#ef4444" stopOpacity={0.9} />
-                                <stop offset="100%" stopColor="#f87171" stopOpacity={0.7} />
-                            </linearGradient>
-                        </defs>
+                        <BarChart
+                            data={weeklyData}
+                            margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
+                            barGap={4}
+                        >
+                            <defs>
+                                <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
+                                    <stop offset="100%" stopColor="#34d399" stopOpacity={0.7} />
+                                </linearGradient>
+                                <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.9} />
+                                    <stop offset="100%" stopColor="#f87171" stopOpacity={0.7} />
+                                </linearGradient>
+                            </defs>
 
-                        <CartesianGrid
-                            strokeDasharray="3 3"
-                            vertical={false}
-                            stroke="currentColor"
-                            className="text-gray-100 dark:text-slate-700"
-                        />
-                        <XAxis
-                            dataKey="name"
-                            axisLine={false}
-                            tickLine={false}
-                            dy={8}
-                            tick={{ fontSize: 11, fill: '#9ca3af' }}
-                        />
-                        <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 11, fill: '#9ca3af' }}
-                            tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toString()}
-                            width={45}
-                        />
-                        <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
-                        <Tooltip
-                            content={<CustomTooltip />}
-                            cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                        />
-                        <Legend content={<CustomLegend />} />
-                        <Bar
-                            dataKey="income"
-                            name="Receitas"
-                            fill="url(#incomeGradient)"
-                            radius={[6, 6, 0, 0]}
-                            maxBarSize={48}
-                        />
-                        <Bar
-                            dataKey="expense"
-                            name="Despesas"
-                            fill="url(#expenseGradient)"
-                            radius={[6, 6, 0, 0]}
-                            maxBarSize={48}
-                        />
-                    </BarChart>
+                            <CartesianGrid
+                                strokeDasharray="3 3"
+                                vertical={false}
+                                stroke="currentColor"
+                                className="text-gray-100 dark:text-slate-700"
+                            />
+                            <XAxis
+                                dataKey="name"
+                                axisLine={false}
+                                tickLine={false}
+                                dy={8}
+                                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toString()}
+                                width={45}
+                            />
+                            <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
+                            <Tooltip
+                                content={<CustomTooltip />}
+                                cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                            />
+                            <Legend content={<CustomLegend />} />
+                            <Bar
+                                dataKey="income"
+                                name="Receitas"
+                                fill="url(#incomeGradient)"
+                                radius={[6, 6, 0, 0]}
+                                maxBarSize={48}
+                            />
+                            <Bar
+                                dataKey="expense"
+                                name="Despesas"
+                                fill="url(#expenseGradient)"
+                                radius={[6, 6, 0, 0]}
+                                maxBarSize={48}
+                            />
+                        </BarChart>
                     </ResponsiveContainer>
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">

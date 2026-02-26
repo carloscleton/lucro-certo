@@ -1,6 +1,10 @@
 {
     "rewrites": [
         {
+            "source": "/api/(.*)",
+            "destination": "/server/index.ts"
+        },
+        {
             "source": "/((?!api/|assets/|.*\\..*).*)",
             "destination": "/index.html"
         }

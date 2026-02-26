@@ -14,7 +14,8 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        setIsMounted(true);
+        const timer = setTimeout(() => setIsMounted(true), 100);
+        return () => clearTimeout(timer);
     }, []);
 
     const formatCurrency = (value: number) =>
@@ -82,25 +83,25 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
                 {isMounted ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <LineChart data={projections} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                        <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 11 }}
-                            tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-                        />
-                        <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={1.5} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Line
-                            type="monotone"
-                            dataKey="balance"
-                            stroke="#3b82f6"
-                            strokeWidth={2.5}
-                            dot={{ r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
-                            activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2 }}
-                        />
-                    </LineChart>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 11 }}
+                                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                            />
+                            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={1.5} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Line
+                                type="monotone"
+                                dataKey="balance"
+                                stroke="#3b82f6"
+                                strokeWidth={2.5}
+                                dot={{ r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                                activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2 }}
+                            />
+                        </LineChart>
                     </ResponsiveContainer>
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">
