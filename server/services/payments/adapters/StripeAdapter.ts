@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import type { PaymentAdapter, ChargeRequest, PaymentResponse } from '../PaymentAdapter.js';
+import type { PaymentAdapter, ChargeRequest, PaymentResponse } from '../PaymentAdapter';
 
 export class StripeAdapter implements PaymentAdapter {
     private stripe: Stripe;
