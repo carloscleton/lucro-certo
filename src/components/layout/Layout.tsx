@@ -28,6 +28,7 @@ import { Tooltip } from '../ui/Tooltip';
 import { APP_MODULES, getModulePermission } from '../../config/permissions';
 import { OfflineBanner } from '../ui/OfflineBanner';
 import { LanguageSelector } from '../ui/LanguageSelector';
+import { useBillNotifications } from '../../hooks/useBillNotifications';
 
 export function Layout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -35,6 +36,9 @@ export function Layout() {
     const { theme, toggleTheme } = useTheme();
     const { currentEntity, availableEntities, switchEntity, isLoading } = useEntity();
     const { t } = useTranslation();
+
+    // Browser push notifications for due bills
+    useBillNotifications();
 
     const navigate = useNavigate();
     const [pendingInvites, setPendingInvites] = useState<any[]>([]);

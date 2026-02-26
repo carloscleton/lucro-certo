@@ -122,7 +122,7 @@ export function useUpcomingBills(days: number = 30) {
         } finally {
             setLoading(false);
         }
-    }, [user, days, currentEntity]);
+    }, [user, days, currentEntity.id, currentEntity.type]);
 
     useEffect(() => {
         fetchUpcomingBills();

@@ -49,6 +49,7 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         <Route index element={<Dashboard />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="payables" element={<Payables />} />
         <Route path="receivables" element={<Receivables />} />
         <Route path="categories" element={<Categories />} />

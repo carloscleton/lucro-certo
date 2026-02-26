@@ -19,7 +19,6 @@ import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
 import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
-import { useBillNotifications } from '../hooks/useBillNotifications';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -67,8 +66,10 @@ export function Dashboard() {
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
 
-    // Browser push notifications for due bills
-    useBillNotifications();
+    // Modal state
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalType, setModalType] = useState<'income' | 'expense' | 'receivable' | 'payable' | 'balance'>('income');
+    const [modalTitle, setModalTitle] = useState('');
 
     if (loading || categoriesLoading) {
         return (
@@ -89,11 +90,6 @@ export function Dashboard() {
 
     const isCRMEnabled = currentEntity.type === 'company' &&
         companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
-
-    // Modal state
-    const [modalOpen, setModalOpen] = useState(false);
-    const [modalType, setModalType] = useState<'income' | 'expense' | 'receivable' | 'payable' | 'balance'>('income');
-    const [modalTitle, setModalTitle] = useState('');
 
     // Click handlers for cards
     const handleCardClick = (type: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected') => {
@@ -141,8 +137,6 @@ export function Dashboard() {
                 return [];
         }
     };
-
-    if (loading) return <div className="p-8 text-center text-gray-500">{t('dashboard.loading')}</div>;
 
     const currentHour = new Date().getHours();
     const greeting = currentHour < 12 ? t('dashboard.greeting_morning') : currentHour < 18 ? t('dashboard.greeting_afternoon') : t('dashboard.greeting_evening');

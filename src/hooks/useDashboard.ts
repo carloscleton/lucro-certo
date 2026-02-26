@@ -304,7 +304,7 @@ export function useDashboard(startDate: string, endDate: string) {
         } finally {
             setLoading(false);
         }
-    }, [user, currentEntity.id, startDate, endDate]);
+    }, [user, currentEntity.id, currentEntity.type, startDate, endDate]);
 
     useEffect(() => {
         fetchMetrics();
