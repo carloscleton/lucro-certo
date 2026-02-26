@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+console.log('🚀 [Backend] Inicializando servidor...');
 import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
