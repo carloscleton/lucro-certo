@@ -282,9 +282,9 @@ export function Commissions() {
             {/* Chart - Hidden on Print to keep receipt clean */}
             <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6 print:hidden">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('commissions.period_evolution')}</h3>
-                <div className="h-64 w-full">
+                <div className="min-h-[256px] w-full relative">
                     {isMounted ? (
-                        <ResponsiveContainer width="99%" height="99%" debounce={50}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
                             <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />

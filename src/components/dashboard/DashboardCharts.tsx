@@ -113,9 +113,9 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 h-[400px] flex flex-col transition-colors">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Fluxo de Caixa</h3>
-            <div className="flex-1 w-full min-h-0">
+            <div className="flex-1 w-full min-h-[300px] relative">
                 {isMounted ? (
-                    <ResponsiveContainer width="99%" height="99%" debounce={50}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
                         <BarChart
                             data={weeklyData}
                             margin={{ top: 10, right: 10, left: 0, bottom: 5 }}

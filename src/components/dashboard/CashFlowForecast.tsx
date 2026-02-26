@@ -79,9 +79,9 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
                 )}
             </div>
 
-            <div className="h-[200px]">
+            <div className="min-h-[200px] relative">
                 {isMounted ? (
-                    <ResponsiveContainer width="99%" height="99%" debounce={50}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
                         <LineChart data={projections} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
