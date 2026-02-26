@@ -56,10 +56,10 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Despesas por Categoria</h3>
             <div className="flex flex-col lg:flex-row items-center gap-4">
                 {/* Chart */}
-                <div className="w-full lg:w-1/2 relative min-h-[220px]">
+                <div className="w-full lg:w-1/2 relative min-h-[220px] min-w-0 overflow-hidden">
                     {isMounted && (
-                        <div className="absolute inset-0">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="absolute inset-0 w-full h-full">
+                            <ResponsiveContainer key="chart-cat" width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
                                 <PieChart>
                                     <Pie
                                         data={data}

@@ -113,10 +113,10 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 h-[400px] flex flex-col transition-colors">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Fluxo de Caixa</h3>
-            <div className="flex-1 w-full relative min-h-[300px]">
+            <div className="flex-1 w-full relative min-h-[300px] min-w-0 overflow-hidden">
                 {isMounted && (
-                    <div className="absolute inset-0">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="absolute inset-0 w-full h-full">
+                        <ResponsiveContainer key="chart-fluxo" width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
                             <BarChart
                                 data={weeklyData}
                                 margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
