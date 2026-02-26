@@ -98,7 +98,7 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsMounted(true), 100);
+        const timer = setTimeout(() => setIsMounted(true), 500);
         return () => clearTimeout(timer);
     }, []);
 

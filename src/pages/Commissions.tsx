@@ -54,7 +54,7 @@ export function Commissions() {
     const { isAdmin, companiesList } = useAdmin();
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsMounted(true), 100);
+        const timer = setTimeout(() => setIsMounted(true), 500);
         return () => clearTimeout(timer);
     }, []);
 
