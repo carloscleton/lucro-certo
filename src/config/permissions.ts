@@ -13,7 +13,8 @@ import {
     Settings,
     Lock,
     MessageSquare,
-    CreditCard
+    CreditCard,
+    Sparkles
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -159,6 +160,14 @@ export const APP_MODULES: ModuleDefinition[] = [
         icon: Users,
         path: '/crm',
         desc: 'Gestão de leads e funil de vendas',
+        defaultPermissions: { admin: true, member: true }
+    },
+    {
+        key: 'marketing',
+        label: 'Marketing IA',
+        icon: Sparkles,
+        path: '/marketing',
+        desc: 'Geração automática de postagens',
         defaultPermissions: { admin: true, member: true }
     }
 ];

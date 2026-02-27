@@ -80,6 +80,17 @@ export function Layout() {
             return currentEntity.type === 'company' && hasPermission;
         }
 
+        // Marketing Module Check
+        if (item.key === 'marketing') {
+            const currentCompany = availableEntities.find(c => c.id === currentEntity.id);
+            const isMarketingEnabled = currentCompany?.has_social_copilot;
+            if (!isMarketingEnabled) return false;
+            if (userRole === 'owner') return true;
+
+            const hasPermission = getModulePermission(item.key, userRole as 'admin' | 'member', settings);
+            return currentEntity.type === 'company' && hasPermission;
+        }
+
         if (currentEntity.type === 'company' && userRole) {
             // Owner/SystemAdmin see everything by default
             if (userRole === 'owner' || isSystemAdmin) return true;
@@ -135,6 +146,7 @@ export function Layout() {
         whatsapp: '#10b981',  // emerald-500
         payments: '#2563eb', // blue-600
         crm: '#f59e0b',      // amber-500
+        marketing: '#f43f5e', // rose-500
     };
 
     return (

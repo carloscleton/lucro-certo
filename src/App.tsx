@@ -20,6 +20,7 @@ import { WhatsApp } from './pages/WhatsApp';
 import { Payments } from './pages/Payments';
 import { Checkout } from './pages/Checkout';
 import { CRM } from './pages/CRM';
+import { Marketing } from './pages/Marketing';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { EntityProvider } from './context/EntityContext';
@@ -67,6 +68,7 @@ function AppRoutes() {
         <Route path="whatsapp" element={<WhatsApp />} />
         <Route path="payments" element={<Payments />} />
         <Route path="crm" element={<CRM />} />
+        <Route path="marketing" element={<Marketing />} />
       </Route>
     </Routes>
   );
