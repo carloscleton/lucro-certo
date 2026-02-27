@@ -952,6 +952,7 @@ export function Settings() {
                                             !!tempCompanyConfig.fiscal_module_enabled,
                                             !!tempCompanyConfig.payments_module_enabled,
                                             !!tempCompanyConfig.crm_module_enabled,
+                                            !!tempCompanyConfig.has_social_copilot,
                                             tempCompanyConfig.settings || {}
                                         );
                                         setSavingConfig(false);

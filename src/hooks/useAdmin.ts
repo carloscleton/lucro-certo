@@ -40,6 +40,7 @@ export interface AdminCompany {
     monthly_fee: number;
     annual_fee: number;
     license_expires_at?: string;
+    has_social_copilot?: boolean;
 }
 
 export function useAdmin() {
@@ -87,10 +88,10 @@ export function useAdmin() {
             if (!silent) setLoading(false);
         }
     };
-    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, settings?: any) => {
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, settings?: any) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
-        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, settings });
+        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, settings });
 
         try {
             const { data, error } = await supabase.rpc('admin_update_company_config', {
@@ -98,6 +99,7 @@ export function useAdmin() {
                 fiscal_enabled: fiscal,
                 payments_enabled: payments,
                 crm_enabled: crm,
+                marketing_enabled: marketing,
                 settings_input: settings
             });
 
