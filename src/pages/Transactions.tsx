@@ -156,7 +156,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                 paid_amount: null,
                 interest: 0,
                 penalty: 0
-            });
+            } as any);
         }
     };
 
