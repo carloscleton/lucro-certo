@@ -183,6 +183,9 @@ export function Marketing() {
                                     maxLength={20}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Este número receberá a notificação matinal com a postagem pronta.</p>
+                                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 text-xs rounded-lg border border-blue-100 dark:border-blue-800/50">
+                                    <strong>Atenção:</strong> Para que a notificação de aprovação seja enviada com sucesso, sua empresa precisa ter pelo menos <strong>uma conexão de WhatsApp ativa</strong> configurada no módulo "WhatsApp".
+                                </div>
                             </div>
 
                             <div className="pt-4 flex justify-end">
