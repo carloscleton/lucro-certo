@@ -149,7 +149,14 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             setSettlingTransaction(t);
         } else {
             // Revert directly to pending
-            await updateTransaction(t.id, { status: 'pending' });
+            await updateTransaction(t.id, {
+                status: 'pending',
+                payment_date: null,
+                payment_method: null,
+                paid_amount: null,
+                interest: 0,
+                penalty: 0
+            });
         }
     };
 
