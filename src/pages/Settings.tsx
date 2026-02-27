@@ -695,6 +695,24 @@ export function Settings() {
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
                                             <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Marketing: Postagens IA</h4>
+                                                <p className="text-xs text-gray-500">Permite que a IA crie postagens estrategicas automaticamente via WhatsApp/Instagram.</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={!!tempCompanyConfig.has_social_copilot}
+                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_social_copilot: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-pink-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                        <div className="flex items-center justify-between">
+                                            <div>
                                                 <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.data_deletion')}</h4>
                                                 <p className="text-xs text-gray-500">{t('settings.data_deletion_desc')}</p>
                                             </div>

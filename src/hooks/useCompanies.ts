@@ -29,6 +29,7 @@ export interface Company {
     fiscal_module_enabled?: boolean;
     payments_module_enabled?: boolean;
     crm_module_enabled?: boolean;
+    has_social_copilot?: boolean;
     tecnospeed_config?: any;
     zip_code?: string;
     street?: string;
