@@ -33,6 +33,7 @@ serve(async (req) => {
     }
 
     let processed = 0;
+    const processedLogs: any[] = [];
 
     for (const company of companies) {
       // 2. See if they have a configured Profile
@@ -94,10 +95,13 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
         .select()
         .single()
 
+      let dispatchLog = 'No action';
       // 5. Send Notification via Evolution API to the company's owner/WhatsApp
       try {
         if (!profile.approval_whatsapp) {
+          dispatchLog = `Skipped: no approval_whatsapp config`;
           console.log(`Empresa ${company.trade_name} ignorada para WhatsApp - sem numero de approvação configurado.`);
+          processedLogs.push({ company: company.trade_name, event: dispatchLog });
           processed++
           continue;
         }
@@ -111,14 +115,14 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
           .limit(1);
 
         if (!instances || instances.length === 0) {
+          dispatchLog = `Skipped: no instance found or not 'connected'`;
           console.log(`Empresa ${company.trade_name} ignorada para WhatsApp - sem instância conectada.`);
+          processedLogs.push({ company: company.trade_name, event: dispatchLog });
           processed++
           continue;
         }
 
         const instance = instances[0];
-
-        // Ensure numbers are digits only
         const targetNumber = profile.approval_whatsapp.replace(/\D/g, '');
 
         const messageText = `🤖 Olá! O seu *Marketing IA* preparou o post de hoje.
@@ -131,7 +135,7 @@ Responda *SIM* para aprovar ou *NAO* para descartar.
 
 _(Ref: Post ${insertedPost.id})_`;
 
-        console.log(`Disparando WhatsApp via Instância ${instance.instance_name} (${instance.evolution_instance_id}) para ${targetNumber}`);
+        dispatchLog = `Attempting send to ${targetNumber} via instance ${instance.instance_name}`;
 
         const response = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
           method: 'POST',
@@ -141,30 +145,27 @@ _(Ref: Post ${insertedPost.id})_`;
           },
           body: JSON.stringify({
             number: targetNumber,
-            options: {
-              delay: 1200,
-              presence: "composing"
-            },
-            textMessage: {
-              text: messageText
-            }
+            options: { delay: 1200, presence: "composing" },
+            text: messageText,
+            textMessage: { text: messageText } // Manter os dois para compatibilidade de versao evo
           })
         });
 
         if (!response.ok) {
-          console.error("Evolution api falhou: ", await response.text());
+          const errText = await response.text();
+          dispatchLog += ` | ERROR: ${errText}`;
         } else {
-          console.log("Mensagem enviada com sucesso!");
+          dispatchLog += ` | SUCCESS!`;
         }
-
-      } catch (evoErr) {
-        console.error("Evolution api falhou", evoErr)
+      } catch (evoErr: any) {
+        dispatchLog += ` | FATAL_ERROR: ${evoErr?.message}`;
       }
 
+      processedLogs.push({ company: company.trade_name, event: dispatchLog, post_id: insertedPost?.id, content: generatedContent });
       processed++
     }
 
-    return new Response(JSON.stringify({ message: "Job completed", processed }), { headers: { "Content-Type": "application/json" }, status: 200 })
+    return new Response(JSON.stringify({ message: "Job completed", processed, logs: processedLogs }), { headers: { "Content-Type": "application/json" }, status: 200 })
   } catch (err: any) {
     return new Response(String(err?.message), { status: 500 })
   }

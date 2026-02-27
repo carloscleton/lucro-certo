@@ -47,18 +47,21 @@ app.use((req, res, next) => {
 });
 
 // Evolution API Config
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim();
+const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, '');
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
 
 // Supabase Config for Fiscal Proxy
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY?.trim() || process.env.SUPABASE_ANON_KEY?.trim();
+const SUPABASE_URL = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL)?.trim().replace(/\/+$/, '');
+const SUPABASE_ANON_KEY = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)?.trim();
 
 if (!EVOLUTION_API_URL || EVOLUTION_API_URL.includes('sua-instancia')) {
-    console.warn('⚠️ AVISO: EVOLUTION_API_URL não configurada corretamente no .env');
+    console.warn('⚠️ [WhatsApp Proxy] AVISO: EVOLUTION_API_URL não configurada corretamente ou usando valor padrão no .env');
 }
 if (!EVOLUTION_API_KEY || EVOLUTION_API_KEY.includes('sua-api-key')) {
-    console.warn('⚠️ AVISO: EVOLUTION_API_KEY não configurada corretamente no .env');
+    console.warn('⚠️ [WhatsApp Proxy] AVISO: EVOLUTION_API_KEY não configurada corretamente ou usando valor padrão no .env');
+}
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.warn('⚠️ [WhatsApp Proxy] AVISO: Credenciais do Supabase não encontradas no ambiente do servidor.');
 }
 
 // Health Check
@@ -259,8 +262,9 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
     const { name } = req.params;
 
     try {
+        const encodedName = encodeURIComponent(name);
         console.log(`🔍 Fetching QR Code for instance "${name}"...`);
-        const response = await axios.get(`${EVOLUTION_API_URL}/instance/connect/${name}`, {
+        const response = await axios.get(`${EVOLUTION_API_URL}/instance/connect/${encodedName}`, {
             headers: {
                 'apikey': EVOLUTION_API_KEY
             }
@@ -284,9 +288,10 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token);
+        const encodedName = encodeURIComponent(targetName);
         console.log(`📡 Updating webhook for instance "${targetName}"...`);
         // O endpoint testado com sucesso é /webhook/set/:instance com payload aninhado
-        const response = await axios.post(`${EVOLUTION_API_URL}/webhook/set/${targetName}`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/webhook/set/${encodedName}`, {
             webhook: {
                 enabled: enabled ?? true,
                 url: url,
@@ -318,9 +323,10 @@ app.post('/instances/:name/rename', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
+        const encodedName = encodeURIComponent(targetName);
         console.log(`📝 Renaming instance "${targetName}" to "${newName}"...`);
 
-        const response = await axios.post(`${EVOLUTION_API_URL}/instance/updateInstanceName/${targetName}`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/instance/updateInstanceName/${encodedName}`, {
             newInstanceName: newName
         }, {
             headers: {
@@ -347,9 +353,10 @@ app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
+        const encodedName = encodeURIComponent(targetName);
         console.log(`👤 Updating WhatsApp profile name for "${targetName}" to "${profileName}"...`);
 
-        const response = await axios.post(`${EVOLUTION_API_URL}/chat/updateProfileName/${targetName}`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/chat/updateProfileName/${encodedName}`, {
             name: profileName,
             profileName: profileName
         }, {
@@ -468,8 +475,9 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
         let lastError: any = null;
 
         try {
+            const encodedName = encodeURIComponent(targetName);
             console.log(`📡 Trying DELETE /instance/logout/${targetName}...`);
-            await axios.delete(`${EVOLUTION_API_URL}/instance/logout/${targetName}`, {
+            await axios.delete(`${EVOLUTION_API_URL}/instance/logout/${encodedName}`, {
                 headers: { 'apikey': EVOLUTION_API_KEY }
             });
             console.log(`✅ Logout (DELETE) bem sucedido para "${targetName}"`);
@@ -486,8 +494,9 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
 
         if (!logoutSuccess) {
             try {
+                const encodedName = encodeURIComponent(targetName);
                 console.log(`📡 Trying POST /instance/logout/${targetName}...`);
-                await axios.post(`${EVOLUTION_API_URL}/instance/logout/${targetName}`, {}, {
+                await axios.post(`${EVOLUTION_API_URL}/instance/logout/${encodedName}`, {}, {
                     headers: { 'apikey': EVOLUTION_API_KEY }
                 });
                 console.log(`✅ Logout (POST) bem sucedido para "${targetName}"`);
@@ -522,9 +531,10 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
+        const encodedName = encodeURIComponent(targetName);
         console.log(`🗑️ Deleting instance "${targetName}"...`);
 
-        const response = await axios.delete(`${EVOLUTION_API_URL}/instance/delete/${targetName}`, {
+        const response = await axios.delete(`${EVOLUTION_API_URL}/instance/delete/${encodedName}`, {
             headers: {
                 'apikey': EVOLUTION_API_KEY
             }

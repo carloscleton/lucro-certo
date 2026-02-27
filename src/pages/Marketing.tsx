@@ -36,19 +36,21 @@ export function Marketing() {
                 .from('social_profiles')
                 .select('*')
                 .eq('company_id', currentEntity.id)
-                .single();
+                .limit(1);
 
-            if (error && error.code !== 'PGRST116') {
+            if (error) {
                 console.error('Error fetching social profile:', error);
                 return;
             }
 
-            if (data) {
-                setProfile(data);
-                setNiche(data.niche);
-                setTone(data.tone);
-                setAudience(data.target_audience);
-                setApprovalWhatsapp(data.approval_whatsapp || '');
+            const profileData = data && data.length > 0 ? data[0] : null;
+
+            if (profileData) {
+                setProfile(profileData);
+                setNiche(profileData.niche);
+                setTone(profileData.tone);
+                setAudience(profileData.target_audience);
+                setApprovalWhatsapp(profileData.approval_whatsapp || '');
                 await fetchPosts();
             }
         } finally {
@@ -81,19 +83,50 @@ export function Marketing() {
                     .update({ niche, tone, target_audience: audience, approval_whatsapp: approvalWhatsapp })
                     .eq('id', profile.id);
                 if (error) throw error;
-                alert('Perfil atualizado com sucesso!');
             } else {
                 // Create
                 const { error } = await supabase
                     .from('social_profiles')
                     .insert({ company_id: currentEntity.id, niche, tone, target_audience: audience, approval_whatsapp: approvalWhatsapp });
                 if (error) throw error;
-                alert('Perfil criado com sucesso!');
-                await fetchProfile(); // refresh to get ID
             }
+
+            // Also ensure the company has the social copilot flag enabled
+            const { error: cmpError } = await supabase
+                .from('companies')
+                .update({ has_social_copilot: true })
+                .eq('id', currentEntity.id);
+            if (cmpError) console.error('Error enabling social copilot on company:', cmpError);
+
+            alert('Perfil salvo com sucesso!');
+            if (!profile) await fetchProfile(); // refresh to get ID
         } catch (error: any) {
             console.error('Error saving profile', error);
             alert('Erro ao salvar o perfil. Tente novamente.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleGenerateNow = async () => {
+        try {
+            setSaving(true);
+            const { data: session } = await supabase.auth.getSession();
+            const token = session.session?.access_token;
+
+            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-cron`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) throw new Error('Não foi possível gerar no momento.');
+            alert('A IA foi notificada e já deve ter gerado seu post! Confira o seu WhatsApp em instantes.');
+            await fetchPosts();
+        } catch (error: any) {
+            console.error('Error triggering manual cron', error);
+            alert('Falha ao acionar a Inteligência Artificial manualmente.');
         } finally {
             setSaving(false);
         }
@@ -241,10 +274,19 @@ export function Marketing() {
             {/* Generated Posts Section */}
             {profile && (
                 <div className="mt-8">
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Sparkles size={18} className="text-rose-500" />
-                        Suas Postagens Geradas pela IA
-                    </h2>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <Sparkles size={18} className="text-rose-500" />
+                            Suas Postagens Geradas pela IA
+                        </h2>
+                        <Button
+                            onClick={handleGenerateNow}
+                            disabled={saving}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm whitespace-nowrap"
+                        >
+                            🤖 Gerar Postagem IA Agora
+                        </Button>
+                    </div>
 
                     {posts.length === 0 ? (
                         <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-8 text-center border border-dashed border-gray-300 dark:border-slate-700">

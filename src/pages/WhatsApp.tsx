@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Modal } from '../components/ui/Modal';
 import {
     MessageSquare,
@@ -46,6 +46,11 @@ export function WhatsApp() {
     const { notify } = useNotification();
     const [instances, setInstances] = useState<Instance[]>([]);
     const [loading, setLoading] = useState(true);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        return () => { isMounted.current = false; };
+    }, []);
     const [isCreating, setIsCreating] = useState(false);
     const [friendlyName, setFriendlyName] = useState('');
     const [instanceId, setInstanceId] = useState('');
@@ -149,30 +154,32 @@ export function WhatsApp() {
             }
 
             const { data, error } = await query;
+            if (!isMounted.current) return;
 
             if (error) throw error;
             setInstances(data || []);
 
             // Sync status and details with Evolution for ALL instances
-            // This ensures if a webhook was missed (proxy down), we recover the correct status
             if (data && data.length > 0) {
                 const checkProxy = await fetch(`${API_BASE_URL}/health`).then(r => r.ok).catch(() => false);
-                if (checkProxy) {
+                if (checkProxy && isMounted.current) {
                     data.forEach((inst: Instance) => syncInstanceWithEvolution(inst));
                 }
             }
 
         } catch (error) {
-            console.error('Erro ao buscar instâncias:', error);
-            notify('error', 'Falha ao carregar instâncias.', 'Erro de Conexão');
+            if (isMounted.current) {
+                console.error('Erro ao buscar instâncias:', error);
+                notify('error', 'Falha ao carregar instâncias.', 'Erro de Conexão');
+            }
         } finally {
-            setLoading(false);
+            if (isMounted.current) setLoading(false);
         }
     };
 
     const syncInstanceWithEvolution = async (instance: Instance) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/instances/${instance.instance_name}/details?token=${instance.evolution_instance_id}`);
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}`);
             if (response.ok) {
                 const data = await response.json().catch(() => null);
                 if (!data) return;
@@ -222,8 +229,7 @@ export function WhatsApp() {
                     updates.whatsapp_name = profileName;
                 }
 
-                // Perform update if needed
-                if (Object.keys(updates).length > 0) {
+                if (Object.keys(updates).length > 0 && isMounted.current) {
 
                     // Update Local State
                     setInstances(prev => prev.map(i => i.id === instance.id ? { ...i, ...updates } : i));
@@ -233,7 +239,9 @@ export function WhatsApp() {
                 }
             }
         } catch (error) {
-            console.error('Error syncing instance:', instance.instance_name, error);
+            if (isMounted.current) {
+                console.error('Error syncing instance:', instance.instance_name, error);
+            }
         }
     };
 
@@ -340,7 +348,7 @@ export function WhatsApp() {
 
         try {
             console.log(`🔌 Desconectando instância ${instance.instance_name} (ID Técnico: ${instance.evolution_instance_id})...`);
-            const response = await fetch(`${API_BASE_URL}/instances/${instance.instance_name}/logout?token=${instance.evolution_instance_id}`, {
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/logout?token=${instance.evolution_instance_id}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
@@ -389,7 +397,7 @@ export function WhatsApp() {
 
         try {
             // 1. Tentar deletar na Evolution via Proxy usando o nome amigável + token
-            await fetch(`${API_BASE_URL}/instances/${instance.instance_name}?token=${instance.evolution_instance_id}`, {
+            await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
@@ -432,7 +440,7 @@ export function WhatsApp() {
             // 1. Se o nome mudou, atualizar na Evolution primeiro
             if (friendlyName !== editingInstance.instance_name) {
                 console.log(`🔄 Alterando nome da instância de "${editingInstance.instance_name}" para "${friendlyName}"...`);
-                const renameRes = await fetch(`${API_BASE_URL}/instances/${editingInstance.instance_name}/rename?token=${editingInstance.evolution_instance_id}`, {
+                const renameRes = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(editingInstance.instance_name)}/rename?token=${editingInstance.evolution_instance_id}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -450,7 +458,7 @@ export function WhatsApp() {
             // 1.1 Se o nome do perfil mudou, atualizar na Evolution
             if (waProfileName && waProfileName !== editingInstance.whatsapp_name) {
                 console.log(`👤 Alterando nome do perfil de "${editingInstance.whatsapp_name}" para "${waProfileName}"...`);
-                const profileRes = await fetch(`${API_BASE_URL}/instances/${editingInstance.instance_name}/profile-name?token=${editingInstance.evolution_instance_id}`, {
+                const profileRes = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(editingInstance.instance_name)}/profile-name?token=${editingInstance.evolution_instance_id}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -469,7 +477,7 @@ export function WhatsApp() {
             // 2. Atualizar Webhook na Evolution API via Proxy
             // Note: Usamos o friendlyName novo se a renomeação funcionou, ou o antigo se falhou
             // Mas o Proxy lida com o nome antigo na URL.
-            const response = await fetch(`${API_BASE_URL}/instances/${editingInstance.instance_name}/webhook`, {
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(editingInstance.instance_name)}/webhook`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -531,7 +539,7 @@ export function WhatsApp() {
 
         try {
             // Buscar QR Code via Proxy usando o nome amigável
-            const response = await fetch(`${API_BASE_URL}/instances/${instance.instance_name}/connect`);
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/connect`);
 
             const data = await response.json().catch(async () => {
                 // Se falhar o parse do JSON, pode ser um HTML (404/500 do servidor)
@@ -900,10 +908,12 @@ export function WhatsApp() {
                     fetchInstances();
 
                     // Polling para garantir que o número seja salvo após a conexão
-                    // Tenta em 3s, 6s e 10s
-                    setTimeout(() => fetchInstances(), 3000);
-                    setTimeout(() => fetchInstances(), 6000);
-                    setTimeout(() => fetchInstances(), 10000);
+                    // Tenta em 3s, 6s e 10s (Verifica se componente ainda está montado)
+                    [3000, 6000, 10000].forEach(delay => {
+                        setTimeout(() => {
+                            if (isMounted.current) fetchInstances();
+                        }, delay);
+                    });
                 }}
                 title="Conectar WhatsApp"
                 subtitle="Escaneie o QR Code abaixo com o seu celular para ativar a instância"
