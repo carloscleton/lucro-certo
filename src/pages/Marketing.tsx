@@ -132,6 +132,18 @@ export function Marketing() {
         }
     };
 
+    const handleDeletePost = async (postId: string) => {
+        if (!window.confirm('Tem certeza que deseja excluir esta postagem?')) return;
+        try {
+            const { error } = await supabase.from('social_posts').delete().eq('id', postId);
+            if (error) throw error;
+            setPosts(posts.filter(p => p.id !== postId));
+        } catch (error) {
+            console.error('Erro ao excluir post:', error);
+            alert('Falha ao excluir o post.');
+        }
+    };
+
     if (currentEntity.type !== 'company') {
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center h-full">
@@ -311,7 +323,10 @@ export function Marketing() {
                                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{post.content}</p>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                                        <Button size="sm" variant="outline" className="text-xs">Editar</Button>
+                                        <div className="flex gap-2">
+                                            <Button size="sm" variant="outline" className="text-xs">Editar</Button>
+                                            <Button size="sm" variant="outline" className="text-xs text-red-500 hover:bg-red-50 border-red-200" onClick={() => handleDeletePost(post.id)}>Excluir</Button>
+                                        </div>
                                         {post.status === 'pending' && <Button size="sm" className="bg-rose-500 hover:bg-rose-600 text-white text-xs">Postar Agora</Button>}
                                     </div>
                                 </div>

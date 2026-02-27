@@ -10,7 +10,16 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     // Authenticate the cron caller (optional but recommended)
     const authHeader = req.headers.get('Authorization')
@@ -29,7 +38,7 @@ serve(async (req) => {
 
     if (cmpError) throw cmpError
     if (!companies || companies.length === 0) {
-      return new Response('Nenhuma empresa ativa para copilot.', { status: 200 })
+      return new Response('Nenhuma empresa ativa para copilot.', { status: 200, headers: corsHeaders })
     }
 
     let processed = 0;
@@ -165,8 +174,8 @@ _(Ref: Post ${insertedPost.id})_`;
       processed++
     }
 
-    return new Response(JSON.stringify({ message: "Job completed", processed, logs: processedLogs }), { headers: { "Content-Type": "application/json" }, status: 200 })
+    return new Response(JSON.stringify({ message: "Job completed", processed, logs: processedLogs }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 })
   } catch (err: any) {
-    return new Response(String(err?.message), { status: 500 })
+    return new Response(String(err?.message), { headers: corsHeaders, status: 500 })
   }
 })
