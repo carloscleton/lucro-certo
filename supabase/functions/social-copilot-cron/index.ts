@@ -96,23 +96,69 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
 
       // 5. Send Notification via Evolution API to the company's owner/WhatsApp
       try {
-        // For this, we need the owner's phone number or the company's designated AI whatsapp instance...
-        // Assuming we use a Central Bot or the client's own instance if connected
-        // Example: We send a generic text to an endpoint we just print here,
-        // In full production, you select the exact whatsapp number of the owner.
+        if (!profile.approval_whatsapp) {
+          console.log(`Empresa ${company.trade_name} ignorada para WhatsApp - sem numero de approvação configurado.`);
+          processed++
+          continue;
+        }
 
-        console.log(`[Whatsapp Simulator] Para ${company.trade_name}:
-🤖 Bom dia! O seu 'Lucro Certo Marketing' preparou o post de hoje.
-Legenda:
+        // Fetch an active instance for this company
+        const { data: instances } = await supabase
+          .from('instances')
+          .select('instance_name, evolution_instance_id')
+          .eq('company_id', company.id)
+          .eq('status', 'connected')
+          .limit(1);
+
+        if (!instances || instances.length === 0) {
+          console.log(`Empresa ${company.trade_name} ignorada para WhatsApp - sem instância conectada.`);
+          processed++
+          continue;
+        }
+
+        const instance = instances[0];
+
+        // Ensure numbers are digits only
+        const targetNumber = profile.approval_whatsapp.replace(/\D/g, '');
+
+        const messageText = `🤖 Olá! O seu *Marketing IA* preparou o post de hoje.
+
+*Legenda:*
 ${generatedContent}
 
-O que deseja fazer?
-1️⃣ - Postar Agora no Instagram
-2️⃣ - Agendar para as 18h
-3️⃣ - Descartar`);
+Deseja Aprovar e Postar Agora no Instagram?
+Responda *SIM* para aprovar ou *NAO* para descartar.
+
+_(Ref: Post ${insertedPost.id})_`;
+
+        console.log(`Disparando WhatsApp via Instância ${instance.instance_name} (${instance.evolution_instance_id}) para ${targetNumber}`);
+
+        const response = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': EVO_API_KEY
+          },
+          body: JSON.stringify({
+            number: targetNumber,
+            options: {
+              delay: 1200,
+              presence: "composing"
+            },
+            textMessage: {
+              text: messageText
+            }
+          })
+        });
+
+        if (!response.ok) {
+          console.error("Evolution api falhou: ", await response.text());
+        } else {
+          console.log("Mensagem enviada com sucesso!");
+        }
 
       } catch (evoErr) {
-        console.error("Evolution api fail", evoErr)
+        console.error("Evolution api falhou", evoErr)
       }
 
       processed++

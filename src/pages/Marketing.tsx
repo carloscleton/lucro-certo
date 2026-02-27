@@ -20,6 +20,7 @@ export function Marketing() {
     const [niche, setNiche] = useState('');
     const [tone, setTone] = useState('');
     const [audience, setAudience] = useState('');
+    const [approvalWhatsapp, setApprovalWhatsapp] = useState('');
 
     useEffect(() => {
         if (currentEntity.type === 'company' && user) {
@@ -47,6 +48,7 @@ export function Marketing() {
                 setNiche(data.niche);
                 setTone(data.tone);
                 setAudience(data.target_audience);
+                setApprovalWhatsapp(data.approval_whatsapp || '');
                 await fetchPosts();
             }
         } finally {
@@ -76,7 +78,7 @@ export function Marketing() {
                 // Update
                 const { error } = await supabase
                     .from('social_profiles')
-                    .update({ niche, tone, target_audience: audience })
+                    .update({ niche, tone, target_audience: audience, approval_whatsapp: approvalWhatsapp })
                     .eq('id', profile.id);
                 if (error) throw error;
                 alert('Perfil atualizado com sucesso!');
@@ -84,7 +86,7 @@ export function Marketing() {
                 // Create
                 const { error } = await supabase
                     .from('social_profiles')
-                    .insert({ company_id: currentEntity.id, niche, tone, target_audience: audience });
+                    .insert({ company_id: currentEntity.id, niche, tone, target_audience: audience, approval_whatsapp: approvalWhatsapp });
                 if (error) throw error;
                 alert('Perfil criado com sucesso!');
                 await fetchProfile(); // refresh to get ID
@@ -170,6 +172,19 @@ export function Marketing() {
                                 />
                             </div>
 
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    WhatsApp para Aprovação (Seu Celular)
+                                </label>
+                                <Input
+                                    value={approvalWhatsapp}
+                                    onChange={(e) => setApprovalWhatsapp(e.target.value)}
+                                    placeholder="Ex: 5511999999999"
+                                    maxLength={20}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Este número receberá a notificação matinal com a postagem pronta.</p>
+                            </div>
+
                             <div className="pt-4 flex justify-end">
                                 <Button
                                     type="submit"
@@ -242,8 +257,8 @@ export function Marketing() {
                                                 {new Date(post.created_at).toLocaleDateString()}
                                             </span>
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${post.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                                    post.status === 'posted' ? 'bg-emerald-100 text-emerald-700' :
-                                                        'bg-gray-100 text-gray-700'
+                                                post.status === 'posted' ? 'bg-emerald-100 text-emerald-700' :
+                                                    'bg-gray-100 text-gray-700'
                                                 }`}>
                                                 {post.status.toUpperCase()}
                                             </span>

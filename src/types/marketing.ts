@@ -4,6 +4,7 @@ export interface SocialProfile {
     niche: string;
     tone: string;
     target_audience: string;
+    approval_whatsapp?: string;
     created_at: string;
     updated_at: string;
 }
