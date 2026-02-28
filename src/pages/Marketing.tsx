@@ -136,6 +136,22 @@ export function Marketing() {
     const handleDeletePost = async (postId: string) => {
         if (!window.confirm('Tem certeza que deseja excluir esta postagem?')) return;
         try {
+            const postToDelete = posts.find(p => p.id === postId);
+
+            // Excluir a imagem do Storage do Supabase se ela existir
+            if (postToDelete?.image_url) {
+                try {
+                    const urlParts = postToDelete.image_url.split('/social_media_assets/');
+                    if (urlParts.length > 1) {
+                        const filePath = urlParts[1];
+                        console.log('Removendo ativo do disco:', filePath);
+                        await supabase.storage.from('social_media_assets').remove([filePath]);
+                    }
+                } catch (storageError) {
+                    console.error('Erro ignorado ao excluir imagem do storage:', storageError);
+                }
+            }
+
             const { error } = await supabase.from('social_posts').delete().eq('id', postId);
             if (error) throw error;
             setPosts(posts.filter(p => p.id !== postId));
