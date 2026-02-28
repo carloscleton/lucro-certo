@@ -22,6 +22,7 @@ export function Marketing() {
     const [audience, setAudience] = useState('');
     const [approvalWhatsapp, setApprovalWhatsapp] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [hasWhatsappConnection, setHasWhatsappConnection] = useState(true);
 
     // Edit post state
     const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
@@ -52,6 +53,15 @@ export function Marketing() {
 
     const fetchProfile = async () => {
         try {
+            // Check WhatsApp connection
+            const { data: instances } = await supabase
+                .from('instances')
+                .select('id')
+                .eq('company_id', currentEntity.id)
+                .eq('status', 'connected')
+                .limit(1);
+            setHasWhatsappConnection(Boolean(instances && instances.length > 0));
+
             const { data, error } = await supabase
                 .from('social_profiles')
                 .select('*')
@@ -325,9 +335,19 @@ export function Marketing() {
                                     maxLength={20}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Este número receberá a notificação matinal com a postagem pronta.</p>
-                                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 text-xs rounded-lg border border-blue-100 dark:border-blue-800/50">
-                                    <strong>Atenção:</strong> Para que a notificação de aprovação seja enviada com sucesso, sua empresa precisa ter pelo menos <strong>uma conexão de WhatsApp ativa</strong> configurada no módulo "WhatsApp".
-                                </div>
+                                {!hasWhatsappConnection ? (
+                                    <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 text-xs rounded-lg border border-rose-200 dark:border-rose-800/50 flex flex-col gap-2">
+                                        <div>
+                                            <strong>⚠️ WhatsApp Desconectado:</strong> Identificamos que sua empresa <strong>não</strong> possui um WhatsApp gerador online.
+                                            As mensagens de aprovação não chegarão no seu celular sem isso.
+                                        </div>
+                                        <p className="font-semibold text-rose-800 dark:text-rose-300">Acesse o menu WhatsApp ao lado e leia o QRCode para conectar a inteligência.</p>
+                                    </div>
+                                ) : (
+                                    <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs rounded-lg border border-emerald-100 dark:border-emerald-800/50">
+                                        <strong>✅ WhatsApp Conectado:</strong> Tudo certo! Você já possui conectividade ativa e começará a receber as postagens para aprovação automaticamente neste celular.
+                                    </div>
+                                )}
                             </div>
 
                             <div className="pt-4 flex justify-end">
