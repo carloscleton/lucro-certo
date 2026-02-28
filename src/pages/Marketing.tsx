@@ -23,6 +23,25 @@ export function Marketing() {
     const [approvalWhatsapp, setApprovalWhatsapp] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
 
+    // Edit post state
+    const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
+    const [editContent, setEditContent] = useState('');
+
+    const formatWhatsAppMask = (value: string) => {
+        let v = value.replace(/\D/g, '');
+        if (v.startsWith('55')) v = v.substring(2);
+        v = v.substring(0, 11);
+
+        if (v.length === 0) return '55 ';
+
+        let formatted = '55 ';
+        if (v.length > 0) formatted += `(${v.slice(0, 2)}`;
+        if (v.length > 2) formatted += `) ${v.slice(2, 3)}`;
+        if (v.length > 3) formatted += ` ${v.slice(3, 7)}`;
+        if (v.length > 7) formatted += `-${v.slice(7, 11)}`;
+        return formatted;
+    };
+
     useEffect(() => {
         if (currentEntity.type === 'company' && user) {
             fetchProfile();
@@ -51,7 +70,7 @@ export function Marketing() {
                 setNiche(profileData.niche);
                 setTone(profileData.tone);
                 setAudience(profileData.target_audience);
-                setApprovalWhatsapp(profileData.approval_whatsapp || '');
+                setApprovalWhatsapp(formatWhatsAppMask(profileData.approval_whatsapp || ''));
                 await fetchPosts();
             }
         } finally {
@@ -77,18 +96,19 @@ export function Marketing() {
 
         setSaving(true);
         try {
+            const cleanPhone = approvalWhatsapp.replace(/\D/g, '');
             if (profile) {
                 // Update
                 const { error } = await supabase
                     .from('social_profiles')
-                    .update({ niche, tone, target_audience: audience, approval_whatsapp: approvalWhatsapp })
+                    .update({ niche, tone, target_audience: audience, approval_whatsapp: cleanPhone })
                     .eq('id', profile.id);
                 if (error) throw error;
             } else {
                 // Create
                 const { error } = await supabase
                     .from('social_profiles')
-                    .insert({ company_id: currentEntity.id, niche, tone, target_audience: audience, approval_whatsapp: approvalWhatsapp });
+                    .insert({ company_id: currentEntity.id, niche, tone, target_audience: audience, approval_whatsapp: cleanPhone });
                 if (error) throw error;
             }
 
@@ -130,6 +150,20 @@ export function Marketing() {
             alert('Falha ao acionar a Inteligência Artificial manualmente.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleSavePostEdit = async () => {
+        if (!editingPost) return;
+        try {
+            const { error } = await supabase.from('social_posts').update({ content: editContent }).eq('id', editingPost.id);
+            if (error) throw error;
+            setPosts(posts.map(p => p.id === editingPost.id ? { ...p, content: editContent } : p));
+            setEditingPost(null);
+            alert('Legenda atualizada com sucesso!');
+        } catch (error) {
+            console.error('Erro ao editar post:', error);
+            alert('Falha ao editar a legenda.');
         }
     };
 
@@ -286,8 +320,8 @@ export function Marketing() {
                                 </label>
                                 <Input
                                     value={approvalWhatsapp}
-                                    onChange={(e) => setApprovalWhatsapp(e.target.value)}
-                                    placeholder="Ex: 5511999999999"
+                                    onChange={(e) => setApprovalWhatsapp(formatWhatsAppMask(e.target.value))}
+                                    placeholder="Ex: 55 (84) 9 9807-1213"
                                     maxLength={20}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Este número receberá a notificação matinal com a postagem pronta.</p>
@@ -418,7 +452,7 @@ export function Marketing() {
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
                                         <div className="flex gap-2">
-                                            <Button size="sm" variant="outline" className="text-xs">Editar</Button>
+                                            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setEditingPost(post); setEditContent(post.content); }}>Editar</Button>
                                             <Button size="sm" variant="outline" className="text-xs text-red-500 hover:bg-red-50 border-red-200" onClick={() => handleDeletePost(post.id)}>Excluir</Button>
                                         </div>
                                         {post.status === 'pending' && <Button size="sm" className="bg-rose-500 hover:bg-rose-600 text-white text-xs">Postar Agora</Button>}
@@ -427,6 +461,28 @@ export function Marketing() {
                             ))}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Modal de Edição de Post */}
+            {editingPost && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700">
+                        <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                            <Megaphone size={20} className="text-rose-500" />
+                            Editar Legenda da Postagem
+                        </h3>
+                        <textarea
+                            className="w-full h-56 p-4 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all font-medium"
+                            value={editContent}
+                            onChange={e => setEditContent(e.target.value)}
+                            placeholder="Escreva a legenda incrível aqui..."
+                        />
+                        <div className="flex justify-end gap-3 mt-6">
+                            <Button variant="outline" onClick={() => setEditingPost(null)} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
+                            <Button onClick={handleSavePostEdit} className="bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/30">Salvar Alterações</Button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
