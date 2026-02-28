@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -21,6 +21,7 @@ export function Marketing() {
     const [tone, setTone] = useState('');
     const [audience, setAudience] = useState('');
     const [approvalWhatsapp, setApprovalWhatsapp] = useState('');
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     useEffect(() => {
         if (currentEntity.type === 'company' && user) {
@@ -141,6 +142,47 @@ export function Marketing() {
         } catch (error) {
             console.error('Erro ao excluir post:', error);
             alert('Falha ao excluir o post.');
+        }
+    };
+
+    const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || currentEntity.type !== 'company') return;
+
+        try {
+            setUploadingImage(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${currentEntity.id}/${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            // 1. Fazer upload da imagem pro Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('social_media_assets')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // 2. Pegar a URL pública
+            const { data: { publicUrl } } = supabase.storage
+                .from('social_media_assets')
+                .getPublicUrl(filePath);
+
+            console.log('Imagem enviada com sucesso: ', publicUrl);
+
+            // AQUI OCORRERÁ A MÁGICA DE CHAMAR A EDGE FUNCTION DE VISÃO!
+            // Por enquanto vamos apenas simular um post criado com a imagem
+            alert('Foto enviada com sucesso! A Inteligência Artiificial com Visão vai ler essa foto agora... (Integração na próxima etapa!)');
+
+            // Recarregar posts
+            await fetchPosts();
+
+        } catch (error: any) {
+            console.error('Erro no upload da imagem:', error);
+            alert('Falha ao enviar e gerar a partir da foto.');
+        } finally {
+            setUploadingImage(false);
+            // Reset input
+            e.target.value = '';
         }
     };
 
@@ -291,13 +333,39 @@ export function Marketing() {
                             <Sparkles size={18} className="text-rose-500" />
                             Suas Postagens Geradas pela IA
                         </h2>
-                        <Button
-                            onClick={handleGenerateNow}
-                            disabled={saving}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm whitespace-nowrap"
-                        >
-                            🤖 Gerar Postagem IA Agora
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div>
+                                <input
+                                    type="file"
+                                    id="image-upload"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleUploadImage}
+                                    disabled={uploadingImage}
+                                />
+                                <Button
+                                    onClick={() => document.getElementById('image-upload')?.click()}
+                                    disabled={uploadingImage}
+                                    variant="outline"
+                                    className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900/30 text-sm whitespace-nowrap"
+                                >
+                                    {uploadingImage ? (
+                                        <UploadCloud size={16} className="animate-pulse mr-2 inline" />
+                                    ) : (
+                                        <ImageIcon size={16} className="mr-2 inline" />
+                                    )}
+                                    {uploadingImage ? 'Lendo a Foto...' : 'Enviar Foto Real e Gerar'}
+                                </Button>
+                            </div>
+
+                            <Button
+                                onClick={handleGenerateNow}
+                                disabled={saving || uploadingImage}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm whitespace-nowrap"
+                            >
+                                🤖 Gerar Postagem IA Agora
+                            </Button>
+                        </div>
                     </div>
 
                     {posts.length === 0 ? (
@@ -320,6 +388,11 @@ export function Marketing() {
                                                 {post.status.toUpperCase()}
                                             </span>
                                         </div>
+                                        {post.image_url && (
+                                            <div className="mb-4 rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+                                                <img src={post.image_url} alt="Post asset" className="w-full h-auto object-cover max-h-48" />
+                                            </div>
+                                        )}
                                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{post.content}</p>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">

@@ -13,6 +13,7 @@ export interface SocialPost {
     id: string;
     company_id: string;
     content: string;
+    image_url?: string;
     status: 'pending' | 'approved' | 'rejected' | 'posted';
     scheduled_for?: string;
     posted_at?: string;
