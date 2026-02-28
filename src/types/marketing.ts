@@ -5,6 +5,11 @@ export interface SocialProfile {
     tone: string;
     target_audience: string;
     approval_whatsapp?: string;
+    fb_access_token?: string;
+    fb_page_id?: string;
+    fb_page_name?: string;
+    ig_account_id?: string;
+    ig_username?: string;
     created_at: string;
     updated_at: string;
 }

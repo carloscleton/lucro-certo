@@ -23,6 +23,7 @@ export function Marketing() {
     const [approvalWhatsapp, setApprovalWhatsapp] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
     const [hasWhatsappConnection, setHasWhatsappConnection] = useState(true);
+    const [connectingMeta, setConnectingMeta] = useState(false);
 
     // Edit post state
     const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
@@ -44,6 +45,25 @@ export function Marketing() {
     };
 
     useEffect(() => {
+        // Load FB SDK
+        if (!(window as any).FB) {
+            (window as any).fbAsyncInit = function () {
+                (window as any).FB.init({
+                    appId: import.meta.env.VITE_META_APP_ID || '897720413143999',
+                    cookie: true,
+                    xfbml: true,
+                    version: 'v19.0'
+                });
+            };
+            (function (d, s, id) {
+                var js, fjs = d.getElementsByTagName(s)[0];
+                if (d.getElementById(id)) { return; }
+                js = d.createElement(s) as HTMLScriptElement; js.id = id;
+                js.src = "https://connect.facebook.net/pt_BR/sdk.js";
+                fjs?.parentNode?.insertBefore(js, fjs);
+            }(document, 'script', 'facebook-jssdk'));
+        }
+
         if (currentEntity.type === 'company' && user) {
             fetchProfile();
         } else {
@@ -137,6 +157,59 @@ export function Marketing() {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleConnectMeta = () => {
+        if (!profile) {
+            alert('Por favor, primeiro preencha e salve o Perfil da Marca.');
+            return;
+        }
+
+        const FB = (window as any).FB;
+        if (!FB) {
+            alert('Facebook SDK ainda não carregado. Aguarde um instante ou verifique extensões de bloqueio/AD Blocker.');
+            return;
+        }
+
+        setConnectingMeta(true);
+        FB.login(async (response: any) => {
+            if (response.authResponse) {
+                const accessToken = response.authResponse.accessToken;
+                try {
+                    const { data: session } = await supabase.auth.getSession();
+                    const token = session.session?.access_token;
+
+                    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-meta-connect`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            short_lived_token: accessToken,
+                            company_id: currentEntity.id
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Erro ao conectar');
+                    }
+
+                    const metaData = await res.json();
+                    alert(`Sucesso! Conectado comercialmente à conta Instagram: @${metaData.ig_username}`);
+                    fetchProfile(); // refresh data to show IG info
+                } catch (error: any) {
+                    console.error('Meta connect error', error);
+                    alert(`Falha ao conectar na API do Meta: ${error.message}`);
+                } finally {
+                    setConnectingMeta(false);
+                }
+            } else {
+                setConnectingMeta(false);
+                console.log('Usuário cancelou o login no FB.');
+            }
+        }, { scope: 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish' });
     };
 
     const handleGenerateNow = async () => {
@@ -375,15 +448,37 @@ export function Marketing() {
                             Para publicar automaticamente, conecte sua conta comercial do Instagram/Facebook aqui.
                         </p>
 
-                        <Button
-                            className="w-full bg-white text-indigo-600 hover:bg-gray-50 flex items-center justify-center gap-2 font-bold shadow-lg"
-                        >
-                            <Facebook size={18} />
-                            Fazer Login com Meta
-                        </Button>
-                        <p className="text-[10px] text-center mt-3 text-indigo-200 opacity-80">
-                            Integração 100% oficial e segura. (Em breve nas próximas Fases)
-                        </p>
+                        {!profile?.ig_account_id ? (
+                            <>
+                                <Button
+                                    onClick={handleConnectMeta}
+                                    disabled={connectingMeta || !profile}
+                                    className="w-full bg-white text-indigo-600 hover:bg-gray-50 flex items-center justify-center gap-2 font-bold shadow-lg disabled:opacity-80"
+                                >
+                                    <Facebook size={18} />
+                                    {connectingMeta ? 'Conectando...' : 'Fazer Login com Meta'}
+                                </Button>
+                                {!profile && <p className="text-center text-xs text-indigo-200 mt-2">Salve o Perfil da Marca primeiro.</p>}
+                                <p className="text-[10px] text-center mt-3 text-indigo-200 opacity-80">
+                                    Integração 100% oficial e segura com a API Graph Meta.
+                                </p>
+                            </>
+                        ) : (
+                            <div className="bg-white/20 p-4 rounded-xl border border-white/30 backdrop-blur-sm z-10 relative">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+                                        <Instagram size={20} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-wider text-indigo-100 font-bold mb-0.5">Conectado Oficial</p>
+                                        <p className="font-bold text-white leading-none">@{profile.ig_username}</p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-indigo-100/90 mt-3 pt-3 border-t border-white/20">
+                                    Página Vinculada: <strong>{profile.fb_page_name}</strong>
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800/50 rounded-2xl p-5">
