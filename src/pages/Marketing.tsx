@@ -169,9 +169,14 @@ export function Marketing() {
 
             console.log('Imagem enviada com sucesso: ', publicUrl);
 
-            // AQUI OCORRERÁ A MÁGICA DE CHAMAR A EDGE FUNCTION DE VISÃO!
-            // Por enquanto vamos apenas simular um post criado com a imagem
-            alert('Foto enviada com sucesso! A Inteligência Artiificial com Visão vai ler essa foto agora... (Integração na próxima etapa!)');
+            // Invocar a inteligência!
+            const { error: visionError } = await supabase.functions.invoke('social-copilot-vision', {
+                body: { company_id: currentEntity.id, image_url: publicUrl }
+            });
+
+            if (visionError) throw visionError;
+
+            alert('Tudo Certo! A IA leu sua foto e já enviou a postagem para aprovação no seu WhatsApp!');
 
             // Recarregar posts
             await fetchPosts();
