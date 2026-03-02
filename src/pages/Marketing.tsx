@@ -172,39 +172,41 @@ export function Marketing() {
         }
 
         setConnectingMeta(true);
-        FB.login(async (response: any) => {
+        FB.login((response: any) => {
             if (response.authResponse) {
                 const accessToken = response.authResponse.accessToken;
-                try {
-                    const { data: session } = await supabase.auth.getSession();
-                    const token = session.session?.access_token;
+                (async () => {
+                    try {
+                        const { data: session } = await supabase.auth.getSession();
+                        const token = session.session?.access_token;
 
-                    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-meta-connect`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                            short_lived_token: accessToken,
-                            company_id: currentEntity.id
-                        })
-                    });
+                        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-meta-connect`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                short_lived_token: accessToken,
+                                company_id: currentEntity.id
+                            })
+                        });
 
-                    if (!res.ok) {
-                        const err = await res.json();
-                        throw new Error(err.error || 'Erro ao conectar');
+                        if (!res.ok) {
+                            const err = await res.json();
+                            throw new Error(err.error || 'Erro ao conectar');
+                        }
+
+                        const metaData = await res.json();
+                        alert(`Sucesso! Conectado comercialmente à conta Instagram: @${metaData.ig_username}`);
+                        fetchProfile(); // refresh data to show IG info
+                    } catch (error: any) {
+                        console.error('Meta connect error', error);
+                        alert(`Falha ao conectar na API do Meta: ${error.message}`);
+                    } finally {
+                        setConnectingMeta(false);
                     }
-
-                    const metaData = await res.json();
-                    alert(`Sucesso! Conectado comercialmente à conta Instagram: @${metaData.ig_username}`);
-                    fetchProfile(); // refresh data to show IG info
-                } catch (error: any) {
-                    console.error('Meta connect error', error);
-                    alert(`Falha ao conectar na API do Meta: ${error.message}`);
-                } finally {
-                    setConnectingMeta(false);
-                }
+                })();
             } else {
                 setConnectingMeta(false);
                 console.log('Usuário cancelou o login no FB.');
