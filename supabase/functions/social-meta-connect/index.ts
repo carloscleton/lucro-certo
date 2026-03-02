@@ -42,7 +42,7 @@ serve(async (req) => {
     const pagesData = await pagesRes.json()
 
     if (pagesData.error) throw new Error(pagesData.error.message || 'Erro ao obter contas')
-    if (!pagesData.data || pagesData.data.length === 0) throw new Error('Nenhuma Página do Facebook encontrada com este usuário.')
+    if (!pagesData.data || pagesData.data.length === 0) throw new Error('Nenhuma Página do Facebook encontrada com este usuário. Retorno Face: ' + JSON.stringify(pagesData))
 
     let fbPageId = ''
     let fbPageName = ''
