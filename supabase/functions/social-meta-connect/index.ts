@@ -9,22 +9,25 @@ const APP_ID = Deno.env.get('VITE_META_APP_ID') || '897720413143999'
 const APP_SECRET = Deno.env.get('META_APP_SECRET') || '223203568dc19fecaff9be861f5ba57f'
 const API_VERSION = 'v19.0'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
   // CORS Header
   if (req.method === 'OPTIONS') {
-    const headers = new Headers({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    })
-    return new Response('ok', { headers })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const { short_lived_token, company_id } = await req.json()
 
     if (!short_lived_token || !company_id) {
-      return new Response(JSON.stringify({ error: 'Faltam parametros' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'Faltam parametros' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
     // 1. Obter token de longa duraçao
@@ -71,7 +74,10 @@ serve(async (req) => {
     }
 
     if (!igAccountId) {
-      return new Response(JSON.stringify({ error: 'Nenhum Instagram Comercial vinculado encontrado nas páginas deste Facebook. Verifique as configurações da sua página no Facebook.' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'Nenhum Instagram Comercial vinculado encontrado nas páginas deste Facebook. Verifique as configurações da sua página no Facebook.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
     // 4. Salvar essas infos gigantes lá no banco "social_profiles"
@@ -94,14 +100,14 @@ serve(async (req) => {
       ig_username: igUsername
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
   } catch (error: any) {
     console.error('Erro no social-meta-connect:', error)
     return new Response(JSON.stringify({ error: error.message || 'Erro na conexão' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
 })
