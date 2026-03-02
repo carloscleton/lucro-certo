@@ -7,9 +7,21 @@
   <link rel="icon" type="image/png" href="/logo-custom.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lucro Certo</title>
+  <!-- Facebook SDK for Meta Business Connect -->
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/pt_BR/sdk.js"></script>
 </head>
 
 <body>
+  <script>
+    window.fbAsyncInit = function () {
+      FB.init({
+        appId: '897720413143999',
+        cookie: true,
+        xfbml: true,
+        version: 'v19.0'
+      });
+    };
+  </script>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
