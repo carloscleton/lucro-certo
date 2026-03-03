@@ -106,6 +106,10 @@ serve(async (req) => {
 
     // Agora enviar para a API do Grafo do Instagram
 
+    if (!post.image_url) {
+      return new Response(JSON.stringify({ error: 'O Instagram exige uma imagem ou vídeo para publicar. Esta postagem não possui mídia.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     // 1. Criar container de imagem
     let isVideo = post.image_url.toLowerCase().endsWith('.mp4') || post.image_url.toLowerCase().endsWith('.mov');
     let mediaUrlParams = new URLSearchParams({
