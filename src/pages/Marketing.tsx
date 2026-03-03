@@ -47,6 +47,12 @@ export function Marketing() {
     const [campaignCount, setCampaignCount] = useState<number>(3);
     const [savingCampaign, setSavingCampaign] = useState(false);
 
+    // Studio Mode
+    const [isStudioOpen, setIsStudioOpen] = useState(false);
+    const [studioScript, setStudioScript] = useState('');
+    const [isGeneratingStudio, setIsGeneratingStudio] = useState(false);
+    const [isFinalizingStudio, setIsFinalizingStudio] = useState(false);
+
     // Video/Avatar Settings
     const [videoEnabled, setVideoEnabled] = useState(false);
     const [avatarGender, setAvatarGender] = useState('male');
@@ -317,13 +323,14 @@ export function Marketing() {
         }
     };
 
-    const handleGenerateNow = async () => {
+    const handleGenerateStudio = async () => {
         try {
-            setSaving(true);
+            setIsGeneratingStudio(true);
+            setIsStudioOpen(true);
             const { data: session } = await supabase.auth.getSession();
             const token = session.session?.access_token;
 
-            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-cron`, {
+            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-script-generator`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -332,14 +339,47 @@ export function Marketing() {
                 body: JSON.stringify({ company_id: currentEntity.id })
             });
 
-            if (!res.ok) throw new Error('Não foi possível gerar no momento.');
-            alert('A IA foi notificada e já deve ter gerado seu post! Confira o seu WhatsApp em instantes.');
+            if (!res.ok) throw new Error('Não foi possível gerar roteiro no momento.');
+            const data = await res.json();
+            setStudioScript(data.script || '');
+        } catch (error: any) {
+            console.error('Falha ao gerar roteiro:', error);
+            alert('Erro ao tentar gerar o roteiro IA.');
+        } finally {
+            setIsGeneratingStudio(false);
+        }
+    };
+
+    const handleFinalizeStudio = async () => {
+        if (!studioScript) return;
+        try {
+            setIsFinalizingStudio(true);
+            const { data: session } = await supabase.auth.getSession();
+            const token = session.session?.access_token;
+
+            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-post-finalizer`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    company_id: currentEntity.id,
+                    content: studioScript
+                })
+            });
+
+            if (!res.ok) throw new Error('Não foi possível finalizar o post.');
+
+            setIsStudioOpen(false);
+            setStudioScript('');
+            alert('A IA está finalizando a mídia (imagem/vídeo) e enviará para seu WhatsApp!');
             await fetchPosts();
         } catch (error: any) {
-            console.error('Falha ao acionar webhook de geracao:', error);
-            alert('Erro ao tentar gerar postagem agora.');
+            console.error('Falha ao finalizar post do Studio:', error);
+            alert('Erro ao tentar finalizar a postagem.');
         } finally {
-            setSaving(false);
+            setIsFinalizingStudio(false);
         }
     };
 
@@ -872,11 +912,11 @@ export function Marketing() {
                                 Nova Postagem Manual
                             </Button>
                             <Button
-                                onClick={handleGenerateNow}
+                                onClick={handleGenerateStudio}
                                 disabled={saving || uploadingImage}
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm whitespace-nowrap"
                             >
-                                🤖 Gerar Postagem IA Agora
+                                🎬 Modo Studio (Gerar Roteiro)
                             </Button>
                             <Button
                                 onClick={() => setIsCreatingCampaign(true)}
@@ -1230,6 +1270,78 @@ export function Marketing() {
                         </div>
                     </div>
                 )}
+            {/* Studio Modal */}
+            {isStudioOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-500/10 to-transparent">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                                    <Video size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-none">Studio de Criação</h2>
+                                    <p className="text-xs text-gray-500 mt-1">Refine o roteiro da IA antes de gerar o vídeo/imagem final.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsStudioOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2">
+                                <Save size={20} className="rotate-45" /> {/* Close icon workaround if X not in imports */}
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {isGeneratingStudio ? (
+                                <div className="py-12 flex flex-col items-center justify-center space-y-4">
+                                    <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-indigo-600 font-medium animate-pulse">A IA está escrevendo o seu roteiro perfeito...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Roteiro Sugerido (Você pode editar aqui embaixo)
+                                        </label>
+                                        <textarea
+                                            className="w-full h-80 p-5 border border-gray-200 dark:border-slate-700 rounded-2xl resize-none bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium leading-relaxed"
+                                            value={studioScript}
+                                            onChange={e => setStudioScript(e.target.value)}
+                                            placeholder="A IA vai colocar o texto aqui..."
+                                        />
+                                    </div>
+
+                                    <div className="bg-indigo-50 dark:bg-indigo-900/10 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 flex items-start gap-3">
+                                        <Sparkles size={18} className="text-indigo-500 mt-0.5 shrink-0" />
+                                        <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                                            <strong>Dica do Mentor:</strong> Tente manter o texto entre 30 e 60 segundos de fala para melhor engajamento. Adicione ganchos mentais nos primeiros 3 segundos!
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="p-6 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-100 dark:border-slate-800 flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsStudioOpen(false)}>Cancelar</Button>
+                            <Button
+                                disabled={isGeneratingStudio || isFinalizingStudio || !studioScript}
+                                onClick={handleFinalizeStudio}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-lg shadow-indigo-500/20 px-8"
+                            >
+                                {isFinalizingStudio ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Finalizando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Rocket size={18} />
+                                        Gerar Mídia agora e Postar
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
