@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, ShieldCheck, Trash2 } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -139,7 +139,7 @@ export function Marketing() {
                 setVideoEnabled(profileData.video_enabled || false);
                 setAvatarGender(profileData.avatar_gender || 'male');
                 setAvatarStyle(profileData.avatar_style || 'professional');
-                setBrandLogo(profileData.brand_logo_url || null);
+                setBrandLogo(profileData.brand_logo_url || currentEntity.logo_url || null);
                 setBrandPrimaryColor(profileData.brand_primary_color || '#4f46e5');
                 setBrandSecondaryColor(profileData.brand_secondary_color || '#f43f5e');
                 await fetchPosts();
