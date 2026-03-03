@@ -2,8 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-const EVO_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://evo.idealzap.com.br'
-const EVO_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
+const EVO_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
+const EVO_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -13,18 +13,25 @@ const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-async function runCopilotJobs() {
-  console.log('Marketing Copilot: Starting daily run')
+async function runCopilotJobs(target_company_id?: string) {
+  console.log('Marketing Copilot: Starting run', target_company_id ? `for company ${target_company_id}` : 'for all companies')
   let processed = 0;
   const processedLogs: any[] = [];
 
-  // 1. Fetch companies that have Social Copilot enabled TRUE
-  const { data: companies, error: cmpError } = await supabase
+  // 1. Fetch companies
+  let query = supabase
     .from('companies')
     .select('id, trade_name')
-    .eq('has_social_copilot', true)
+    .eq('has_social_copilot', true);
+
+  if (target_company_id) {
+    query = query.eq('id', target_company_id);
+  }
+
+  const { data: companies, error: cmpError } = await query;
 
   if (cmpError) throw cmpError
   if (!companies || companies.length === 0) {
@@ -207,14 +214,18 @@ _(Ref: Post ${insertedPost.id})_`;
 // -------------------------------------------------------------
 // 1. Cron Trigger: Runs automatically everyday at 09:00 AM UTC (06:00 BRT)
 // -------------------------------------------------------------
-Deno.cron('Social Copilot Daily Generation', '0 9 * * *', async () => {
-  try {
-    console.log("Triggered by Deno Cron Engine");
-    await runCopilotJobs();
-  } catch (err) {
-    console.error("Cron Engine Error:", err);
-  }
-})
+if (typeof (Deno as any).cron === 'function') {
+  (Deno as any).cron('Social Copilot Daily Generation', '0 9 * * *', async () => {
+    try {
+      console.log("Triggered by Deno Cron Engine");
+      await runCopilotJobs();
+    } catch (err) {
+      console.error("Cron Engine Error:", err);
+    }
+  })
+} else {
+  console.warn("Deno.cron is not available in this environment.");
+}
 
 // -------------------------------------------------------------
 // 2. HTTP Trigger: For the manual "Gerar Agora" button in the App
@@ -225,7 +236,8 @@ serve(async (req) => {
   }
 
   try {
-    const result = await runCopilotJobs();
+    const { company_id } = await req.json().catch(() => ({}));
+    const result = await runCopilotJobs(company_id);
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 })
   } catch (err: any) {
     return new Response(String(err?.message), { headers: corsHeaders, status: 500 })

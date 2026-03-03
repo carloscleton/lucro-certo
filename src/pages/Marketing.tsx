@@ -299,8 +299,10 @@ export function Marketing() {
             const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-cron`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ company_id: currentEntity.id })
             });
 
             if (!res.ok) throw new Error('Não foi possível gerar no momento.');
