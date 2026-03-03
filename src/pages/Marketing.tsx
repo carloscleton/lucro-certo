@@ -253,6 +253,9 @@ export function Marketing() {
     };
 
     const handlePublishNow = async (postId: string) => {
+        const isConfirmed = window.confirm("⚠️ ATENÇÃO: Esta postagem ainda está PENDENTE e pode não ter sido aprovada pelo cliente no WhatsApp.\n\nSe der continuídade, ela será postada IMEDIATAMENTE no Instagram.\n\nTem certeza que deseja forçar a publicação agora?");
+        if (!isConfirmed) return;
+
         try {
             setPublishingId(postId);
             const { data: session } = await supabase.auth.getSession();
