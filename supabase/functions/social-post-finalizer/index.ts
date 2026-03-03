@@ -34,7 +34,13 @@ serve(async (req) => {
     // 2. Decide if Video or Image
     if (!profile.video_enabled) {
       // Generate Image with DALL-E 3
-      const imagePrompt = `Crie uma fotografia profissional, ultra-realista e de alta qualidade (estilo raw photo), formato quadrado, sem letras e sem textos visíveis. A imagem deve ser natural e humanizada, retratando pessoas reais ou ambientes de trabalho autênticos sobre o nicho: ${profile.niche}. Evite terminantemente ilustrações, 3D render, desenhos ou qualquer estilo futurista robótico. Público: ${profile.target_audience}.`;
+      const brandInfo = profile.brand_logo_url ? `Please ensure the overall aesthetic feels ready for a brand watermark.` : '';
+      const colorInfo = profile.brand_primary_color ? `The image should emphasize or subtly feature the brand color ${profile.brand_primary_color}.` : '';
+
+      const imagePrompt = `Crie uma fotografia profissional, ultra-realista e de alta qualidade (estilo raw photo), formato quadrado, sem letras e sem textos visíveis. 
+      A imagem deve ser natural e humanizada, retratando pessoas reais ou ambientes de trabalho autênticos sobre o nicho: ${profile.niche}. 
+      ${colorInfo} ${brandInfo}
+      Evite terminantemente ilustrações, 3D render, desenhos ou qualquer estilo futurista robótico. Público: ${profile.target_audience}.`;
 
       const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',

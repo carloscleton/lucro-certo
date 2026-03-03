@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2 } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -63,6 +63,9 @@ export function Marketing() {
     const [brandPrimaryColor, setBrandPrimaryColor] = useState('#4f46e5');
     const [brandSecondaryColor, setBrandSecondaryColor] = useState('#f43f5e');
     const [uploadingLogo, setUploadingLogo] = useState(false);
+
+    // View State
+    const [viewMode, setViewMode] = useState<'feed' | 'calendar'>('feed');
 
     const formatWhatsAppMask = (value: string) => {
         let v = value.replace(/\D/g, '');
@@ -996,6 +999,22 @@ export function Marketing() {
                             Suas Postagens Geradas pela IA
                         </h2>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto justify-start lg:justify-end">
+                            <div className="flex items-center bg-gray-100 dark:bg-slate-800 p-1 rounded-xl border border-gray-200 dark:border-slate-700 mr-2">
+                                <button
+                                    onClick={() => setViewMode('feed')}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'feed' ? 'bg-white dark:bg-slate-700 text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    <LayoutGrid size={14} />
+                                    Feed
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('calendar')}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    <Calendar size={14} />
+                                    Calendário
+                                </button>
+                            </div>
                             <div>
                                 <input
                                     type="file"
@@ -1048,7 +1067,7 @@ export function Marketing() {
                         <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-8 text-center border border-dashed border-gray-300 dark:border-slate-700">
                             <p className="text-gray-500">Nenhuma postagem gerada ainda. Nossa IA vai trabalhar na primeira durante a madrugada!</p>
                         </div>
-                    ) : (
+                    ) : viewMode === 'feed' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {posts.map(post => (
                                 <div key={post.id} className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-gray-200 dark:border-slate-700 flex flex-col justify-between">
@@ -1118,10 +1137,61 @@ export function Marketing() {
                                 </div>
                             ))}
                         </div>
+                    ) : (
+                        /* Calendar View Implementation */
+                        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+                            <div className="grid grid-cols-7 gap-px bg-gray-100 dark:bg-slate-700 border border-gray-100 dark:border-slate-700 rounded-2xl overflow-hidden shadow-inner">
+                                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                                    <div key={day} className="bg-gray-50 dark:bg-slate-900/50 p-3 text-center border-b border-gray-100 dark:border-slate-800">
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{day}</span>
+                                    </div>
+                                ))}
+                                {Array.from({ length: 35 }).map((_, i) => {
+                                    const date = new Date();
+                                    // Começar do início da semana atual
+                                    date.setDate(date.getDate() - (date.getDay()) + i);
+                                    const dateStr = date.toISOString().split('T')[0];
+                                    const dayPosts = posts.filter(p => (p.scheduled_for?.split('T')[0] || p.created_at.split('T')[0]) === dateStr);
+                                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
+
+                                    return (
+                                        <div key={i} className={`bg-white dark:bg-slate-800 min-h-[120px] p-2 relative hover:bg-rose-50/30 dark:hover:bg-rose-900/10 transition-colors border-r border-b border-gray-50 dark:border-slate-800/50 ${!isToday ? 'opacity-90' : 'ring-2 ring-inset ring-rose-500/20'}`}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className={`text-xs font-black ${isToday ? 'bg-rose-500 text-white w-6 h-6 flex items-center justify-center rounded-full shadow-lg shadow-rose-500/40' : 'text-gray-400'}`}>
+                                                    {date.getDate()}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-1.5 overflow-y-auto max-h-[80px]">
+                                                {dayPosts.map(post => (
+                                                    <div
+                                                        key={post.id}
+                                                        onClick={() => {
+                                                            setEditingPost(post);
+                                                            setEditContent(post.content);
+                                                            setEditMediaType(post.media_type as any || 'feed');
+                                                        }}
+                                                        className={`text-[9px] p-2 rounded-xl border leading-tight truncate cursor-pointer transition-all hover:scale-[1.03] active:scale-95 shadow-sm ${post.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400' :
+                                                            post.status === 'posted' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' :
+                                                                post.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400' :
+                                                                    'bg-gray-50 text-gray-500 border-gray-100 dark:bg-slate-900 dark:border-slate-800'
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-center gap-1">
+                                                            <span>{post.media_type === 'reels' ? '🎬' : '🖼️'}</span>
+                                                            <span className="font-bold">{post.content.slice(0, 15)}...</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     )}
                 </div>
-            )
-            }
+            )}
+
 
             {/* Modal de Criação de Post Manual */}
             {

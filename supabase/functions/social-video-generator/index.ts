@@ -101,7 +101,11 @@ serve(async (req) => {
     const location = "us-central1" // Local padrão para Vertex AI Video
     const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/veo-3-1:predict`
 
-    const prompt = `A professional ${profile.avatar_gender === 'male' ? 'man' : 'woman'} avatar in a ${profile.avatar_style} setting, speaking naturally to the camera. High quality, realistic lip-sync, corporate social media video style.`
+    const brandInfo = profile.brand_logo_url ? `with the company logo (${profile.brand_logo_url}) as a watermark` : '';
+    const colorInfo = profile.brand_primary_color ? `The color scheme of the scene should subtly incorporate the brand color ${profile.brand_primary_color}.` : '';
+
+    const prompt = `A professional ${profile.avatar_gender === 'male' ? 'man' : 'woman'} avatar in a ${profile.avatar_style} setting, speaking naturally to the camera. 
+    High quality, realistic lip-sync, corporate social media video style. ${brandInfo} ${colorInfo}`;
 
     const veoRes = await fetch(endpoint, {
       method: "POST",
