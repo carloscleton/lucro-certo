@@ -46,9 +46,10 @@ async function runCopilotJobs() {
 
     // 3. Optional: Call OpenAI to generate content
     let generatedContent = '';
+    let publicUrl = null;
+
     if (OPENAI_API_KEY) {
-      const prompt = `
-Crie uma postagem de Instagram para a empresa: "${company.trade_name}".
+      const prompt = `Crie uma postagem de Instagram para a empresa: "${company.trade_name}".
 O nicho da empresa é: "${profile.niche}".
 O tom de voz deve ser: "${profile.tone}".
 O público-alvo é: "${profile.target_audience}".
@@ -71,12 +72,49 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
         });
         const aiData = await aiResponse.json();
         generatedContent = aiData.choices?.[0]?.message?.content || 'Erro ao gerar legenda com API.';
+
+        // Gerar Imagem com DALL-E 3
+        const imagePrompt = `Crie uma imagem de alta qualidade, formato quadrado, sem letras e sem textos visíveis, apropriada para o Instagram e Facebook. Estilo profissional e envolvente sobre o nicho: ${profile.niche}. Público: ${profile.target_audience}.`;
+
+        const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'dall-e-3',
+            prompt: imagePrompt,
+            n: 1,
+            size: '1024x1024'
+          })
+        });
+
+        const imageData = await imageRes.json();
+        if (!imageData.error && imageData.data && imageData.data.length > 0) {
+          const imageUrlOpenai = imageData.data[0].url;
+
+          // Baixar imagem do DALL-E e salvar no Supabase Storage
+          const imgFetchRes = await fetch(imageUrlOpenai);
+          const imgBlob = await imgFetchRes.blob();
+
+          const fileName = `${company.id}/cron-${crypto.randomUUID()}.png`;
+          const { error: uploadError } = await supabase.storage
+            .from('social_media_assets')
+            .upload(fileName, imgBlob, { contentType: 'image/png' });
+
+          if (!uploadError) {
+            const { data: publicData } = supabase.storage
+              .from('social_media_assets')
+              .getPublicUrl(fileName);
+            publicUrl = publicData.publicUrl;
+          }
+        }
       } catch (e) {
-        console.error('Error with OpenAI:', e);
-        generatedContent = `🌟 Novidades em breve na ${company.trade_name}!\n\n#${profile.niche.replace(/\s/g, '')} #novidade`;
+        console.error('Error with OpenAI generation in CRON:', e);
+        if (!generatedContent) generatedContent = `🌟 Novidades em breve na ${company.trade_name}!\n\n#${profile.niche.replace(/\s/g, '')} #novidade`;
       }
     } else {
-      // Mock text if no AI KEY yet
       generatedContent = `✨ Postagem Sugerida para ${company.trade_name}:\nO melhor do ${profile.niche} está aqui. Fique ligado para novidades exclusivas que preparamos!\n\n#marketing #sucesso #${company.trade_name.replace(/\s+/g, '')}`;
     }
 
@@ -86,6 +124,8 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
       .insert({
         company_id: company.id,
         content: generatedContent,
+        image_url: publicUrl,
+        media_type: 'feed',
         status: 'pending'
       })
       .select()
