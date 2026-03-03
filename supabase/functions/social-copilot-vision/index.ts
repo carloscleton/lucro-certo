@@ -125,7 +125,7 @@ ${generatedContent}
 
 Link da Imagem no Servidor: ${image_url}
 
-Deseja Aprovar? (Responda *SIM* ou *NAO*)
+Deseja Aprovar? (Responda *1* para aprovar ou *NAO*)
 _(Ref: Post ${insertedPost?.id})_`;
 
           await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {

@@ -174,7 +174,7 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
 ${generatedContent}
 
 Deseja Aprovar e Postar Agora no Instagram?
-Responda *SIM* para aprovar ou *NAO* para descartar.
+Responda *1* para aprovar ou *NAO* para descartar.
 
 _(Ref: Post ${insertedPost.id})_`;
 

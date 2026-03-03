@@ -37,6 +37,7 @@ export function Marketing() {
 
     const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
     const [editContent, setEditContent] = useState('');
+    const [editMediaType, setEditMediaType] = useState<'feed' | 'story' | 'reels'>('feed');
     const [showInstructions, setShowInstructions] = useState(false);
 
     // Campaign State
@@ -358,14 +359,24 @@ export function Marketing() {
     const handleSavePostEdit = async () => {
         if (!editingPost) return;
         try {
-            const { error } = await supabase.from('social_posts').update({ content: editContent }).eq('id', editingPost.id);
+            const { error } = await supabase.from('social_posts').update({
+                content: editContent,
+                media_type: editMediaType
+            }).eq('id', editingPost.id);
+
             if (error) throw error;
-            setPosts(posts.map(p => p.id === editingPost.id ? { ...p, content: editContent } : p));
+
+            setPosts(posts.map(p => p.id === editingPost.id ? {
+                ...p,
+                content: editContent,
+                media_type: editMediaType
+            } : p));
+
             setEditingPost(null);
-            alert('Legenda atualizada com sucesso!');
+            alert('Postagem atualizada com sucesso!');
         } catch (error) {
             console.error('Erro ao editar post:', error);
-            alert('Falha ao editar a legenda.');
+            alert('Falha ao editar a postagem.');
         }
     };
 
@@ -809,9 +820,19 @@ export function Marketing() {
                                                 <span className="text-xs font-bold text-gray-400">
                                                     {new Date(post.created_at).toLocaleDateString()}
                                                 </span>
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400`}>
-                                                    {post.media_type ? post.media_type.toUpperCase() : 'FEED'}
-                                                </span>
+                                                <select
+                                                    className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold px-1 py-0.5 rounded border-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                                    value={post.media_type || 'feed'}
+                                                    onChange={async (e) => {
+                                                        const newType = e.target.value as 'feed' | 'story' | 'reels';
+                                                        setPosts(posts.map(p => p.id === post.id ? { ...p, media_type: newType } : p));
+                                                        await supabase.from('social_posts').update({ media_type: newType }).eq('id', post.id);
+                                                    }}
+                                                >
+                                                    <option value="feed">FEED</option>
+                                                    <option value="story">STORY</option>
+                                                    <option value="reels">REELS</option>
+                                                </select>
                                             </div>
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${post.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                                                 post.status === 'posted' ? 'bg-emerald-100 text-emerald-700' :
@@ -829,7 +850,11 @@ export function Marketing() {
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
                                         <div className="flex gap-2">
-                                            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setEditingPost(post); setEditContent(post.content); }}>Editar</Button>
+                                            <Button size="sm" variant="outline" className="text-xs" onClick={() => {
+                                                setEditingPost(post);
+                                                setEditContent(post.content);
+                                                setEditMediaType(post.media_type as any || 'feed');
+                                            }}>Editar</Button>
                                             <Button size="sm" variant="outline" className="text-xs text-red-500 hover:bg-red-50 border-red-200" onClick={() => handleDeletePost(post.id)}>Excluir</Button>
                                         </div>
                                         {post.status === 'pending' && (
@@ -848,251 +873,281 @@ export function Marketing() {
                         </div>
                     )}
                 </div>
-            )}
+            )
+            }
 
             {/* Modal de Criação de Post Manual */}
-            {isCreatingManualPost && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
-                        <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-                            <UploadCloud size={20} className="text-purple-500" />
-                            Criar Postagem Manualmente
-                        </h3>
-                        <p className="text-sm text-gray-500 mb-6">Monte a sua postagem e ela ficará pendente na lista para publicação no Instagram.</p>
+            {
+                isCreatingManualPost && (
+                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
+                            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                                <UploadCloud size={20} className="text-purple-500" />
+                                Criar Postagem Manualmente
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-6">Monte a sua postagem e ela ficará pendente na lista para publicação no Instagram.</p>
 
-                        <div className="space-y-4">
-                            {/* Upload da Imagem */}
-                            <div className="border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer relative overflow-hidden"
-                                onClick={() => document.getElementById('manual-image-upload')?.click()}>
-                                <input
-                                    type="file"
-                                    id="manual-image-upload"
-                                    className="hidden"
-                                    accept="image/*,video/*"
-                                    onChange={handleManualFileSelection}
-                                    disabled={isGeneratingMagic}
-                                />
-                                {isGeneratingMagic ? (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 dark:bg-slate-900/90 z-10 backdrop-blur-sm">
-                                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-                                        <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Criando Imagem e Legenda...</p>
-                                    </div>
-                                ) : manualPreview ? (
-                                    <img src={manualPreview} alt="Preview" className="absolute inset-0 w-full h-full object-contain bg-black/5" />
-                                ) : (
-                                    <>
-                                        <ImageIcon size={32} className="text-gray-400 mb-2" />
-                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Clique para enviar Imagem/Vídeo</span>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Type Selector */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Onde vai postar?
-                                </label>
-                                <select
-                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    value={manualMediaType}
-                                    onChange={e => setManualMediaType(e.target.value as any)}
-                                >
-                                    <option value="feed">Feed (Instagram Feed)</option>
-                                    <option value="story">Story</option>
-                                    <option value="reels">Reels (Certifique-se de enviar um Vídeo!)</option>
-                                </select>
-                            </div>
-
-                            {/* Caption Textarea */}
-                            <div>
-                                <div className="flex items-center justify-between mb-1">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Legenda (Opcional)
-                                    </label>
-                                    <button
-                                        onClick={handleGenerateMagic}
+                            <div className="space-y-4">
+                                {/* Upload da Imagem */}
+                                <div className="border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer relative overflow-hidden"
+                                    onClick={() => document.getElementById('manual-image-upload')?.click()}>
+                                    <input
+                                        type="file"
+                                        id="manual-image-upload"
+                                        className="hidden"
+                                        accept="image/*,video/*"
+                                        onChange={handleManualFileSelection}
                                         disabled={isGeneratingMagic}
-                                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 flex items-center gap-1 disabled:opacity-50"
-                                    >
-                                        <Sparkles size={14} />
-                                        {isGeneratingMagic ? 'Criando Mágica...' : 'Varinha Mágica (IA)'}
-                                    </button>
+                                    />
+                                    {isGeneratingMagic ? (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 dark:bg-slate-900/90 z-10 backdrop-blur-sm">
+                                            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                            <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Criando Imagem e Legenda...</p>
+                                        </div>
+                                    ) : manualPreview ? (
+                                        <img src={manualPreview} alt="Preview" className="absolute inset-0 w-full h-full object-contain bg-black/5" />
+                                    ) : (
+                                        <>
+                                            <ImageIcon size={32} className="text-gray-400 mb-2" />
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Clique para enviar Imagem/Vídeo</span>
+                                        </>
+                                    )}
                                 </div>
-                                <textarea
-                                    className="w-full h-32 p-3 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm"
-                                    value={manualContent}
-                                    onChange={e => setManualContent(e.target.value)}
-                                    placeholder="Escreva a legenda da postagem aqui..."
-                                />
-                            </div>
-                        </div>
 
-                        <div className="flex justify-end gap-3 mt-6">
-                            <Button variant="outline" onClick={() => { setIsCreatingManualPost(false); setManualPreview(null); setManualFile(null); setManualContent(''); setManualMediaType('feed'); }} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
-                            <Button onClick={handleSaveManualPost} disabled={savingManualPost} className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30">
-                                {savingManualPost ? 'Salvando...' : 'Salvar Postagem'}
-                            </Button>
+                                {/* Type Selector */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Onde vai postar?
+                                    </label>
+                                    <select
+                                        className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        value={manualMediaType}
+                                        onChange={e => setManualMediaType(e.target.value as any)}
+                                    >
+                                        <option value="feed">Feed (Instagram Feed)</option>
+                                        <option value="story">Story</option>
+                                        <option value="reels">Reels (Certifique-se de enviar um Vídeo!)</option>
+                                    </select>
+                                </div>
+
+                                {/* Caption Textarea */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Legenda (Opcional)
+                                        </label>
+                                        <button
+                                            onClick={handleGenerateMagic}
+                                            disabled={isGeneratingMagic}
+                                            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 flex items-center gap-1 disabled:opacity-50"
+                                        >
+                                            <Sparkles size={14} />
+                                            {isGeneratingMagic ? 'Criando Mágica...' : 'Varinha Mágica (IA)'}
+                                        </button>
+                                    </div>
+                                    <textarea
+                                        className="w-full h-32 p-3 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm"
+                                        value={manualContent}
+                                        onChange={e => setManualContent(e.target.value)}
+                                        placeholder="Escreva a legenda da postagem aqui..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <Button variant="outline" onClick={() => { setIsCreatingManualPost(false); setManualPreview(null); setManualFile(null); setManualContent(''); setManualMediaType('feed'); }} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
+                                <Button onClick={handleSaveManualPost} disabled={savingManualPost} className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30">
+                                    {savingManualPost ? 'Salvando...' : 'Salvar Postagem'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Modal de Edição de Post (Autogerados) */}
-            {editingPost && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700">
-                        <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-                            <Megaphone size={20} className="text-rose-500" />
-                            Editar Legenda da Postagem
-                        </h3>
-                        <textarea
-                            className="w-full h-56 p-4 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all font-medium"
-                            value={editContent}
-                            onChange={e => setEditContent(e.target.value)}
-                            placeholder="Escreva a legenda incrível aqui..."
-                        />
-                        <div className="flex justify-end gap-3 mt-6">
-                            <Button variant="outline" onClick={() => setEditingPost(null)} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
-                            <Button onClick={handleSavePostEdit} className="bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/30">Salvar Alterações</Button>
+            {
+                editingPost && (
+                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700">
+                            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                                <Megaphone size={20} className="text-rose-500" />
+                                Editar Legenda da Postagem
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Onde vai postar?
+                                    </label>
+                                    <select
+                                        className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                        value={editMediaType}
+                                        onChange={e => setEditMediaType(e.target.value as any)}
+                                    >
+                                        <option value="feed">Feed (Instagram Feed)</option>
+                                        <option value="story">Story</option>
+                                        <option value="reels">Reels (Certifique-se de enviar um Vídeo!)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Legenda
+                                    </label>
+                                    <textarea
+                                        className="w-full h-56 p-4 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all font-medium"
+                                        value={editContent}
+                                        onChange={e => setEditContent(e.target.value)}
+                                        placeholder="Escreva a legenda incrível aqui..."
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <Button variant="outline" onClick={() => setEditingPost(null)} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
+                                <Button onClick={handleSavePostEdit} className="bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/30">Salvar Alterações</Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Modal de Instruções Face/Insta */}
-            {showInstructions && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
-                        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-                            <Instagram size={24} className="text-pink-500" />
-                            Como Preparar seu Instagram para a Automação
-                        </h3>
+            {
+                showInstructions && (
+                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
+                            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                                <Instagram size={24} className="text-pink-500" />
+                                Como Preparar seu Instagram para a Automação
+                            </h3>
 
-                        <div className="space-y-6 text-sm text-gray-700 dark:text-gray-300">
-                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
-                                <p className="font-semibold text-blue-800 dark:text-blue-300 mb-1">Por que preciso fazer isso?</p>
-                                <p className="text-xs">Para que nosso sistema (ou qualquer outro sistema de inteligência) consiga postar no seu Instagram automaticamente sem precisar da sua senha, o Facebook exige que a conta siga regras profissionais de segurança.</p>
-                            </div>
+                            <div className="space-y-6 text-sm text-gray-700 dark:text-gray-300">
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                                    <p className="font-semibold text-blue-800 dark:text-blue-300 mb-1">Por que preciso fazer isso?</p>
+                                    <p className="text-xs">Para que nosso sistema (ou qualquer outro sistema de inteligência) consiga postar no seu Instagram automaticamente sem precisar da sua senha, o Facebook exige que a conta siga regras profissionais de segurança.</p>
+                                </div>
 
-                            <div>
-                                <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span> Mudar para Conta Profissional</h4>
-                                <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
-                                    <li>Abra o aplicativo do Instagram no seu celular.</li>
-                                    <li>Vá no seu <strong>Perfil</strong> e toque nos <strong>3 tracinhos</strong> (Menu) no canto superior direito.</li>
-                                    <li>Vá em <strong>Configurações</strong> {'>'} Tipo de conta e ferramentas.</li>
-                                    <li>Toque em <strong>Mudar para conta profissional / empresarial</strong> e siga até o final.</li>
-                                </ol>
-                            </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span> Mudar para Conta Profissional</h4>
+                                    <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                        <li>Abra o aplicativo do Instagram no seu celular.</li>
+                                        <li>Vá no seu <strong>Perfil</strong> e toque nos <strong>3 tracinhos</strong> (Menu) no canto superior direito.</li>
+                                        <li>Vá em <strong>Configurações</strong> {'>'} Tipo de conta e ferramentas.</li>
+                                        <li>Toque em <strong>Mudar para conta profissional / empresarial</strong> e siga até o final.</li>
+                                    </ol>
+                                </div>
 
-                            <hr className="border-gray-100 dark:border-slate-700" />
+                                <hr className="border-gray-100 dark:border-slate-700" />
 
-                            <div>
-                                <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span> Vincular a uma Página do Facebook</h4>
-                                <p className="text-xs mb-2 italic">Dica: É muito mais fácil fazer isso pelo Computador!</p>
-                                <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
-                                    <li>Acesse o <strong>Facebook.com</strong> e abra a Página da sua empresa.</li>
-                                    <li>No menu lateral esquerdo, clique em <strong>Configurações</strong>.</li>
-                                    <li>Procure por <strong>Contas Vinculadas</strong>.</li>
-                                    <li>Clique em <strong>Instagram</strong> e botão <strong>Conectar Conta</strong>.</li>
-                                    <li>Coloque a senha do seu Insta e confirme.</li>
-                                </ol>
-                            </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span> Vincular a uma Página do Facebook</h4>
+                                    <p className="text-xs mb-2 italic">Dica: É muito mais fácil fazer isso pelo Computador!</p>
+                                    <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                        <li>Acesse o <strong>Facebook.com</strong> e abra a Página da sua empresa.</li>
+                                        <li>No menu lateral esquerdo, clique em <strong>Configurações</strong>.</li>
+                                        <li>Procure por <strong>Contas Vinculadas</strong>.</li>
+                                        <li>Clique em <strong>Instagram</strong> e botão <strong>Conectar Conta</strong>.</li>
+                                        <li>Coloque a senha do seu Insta e confirme.</li>
+                                    </ol>
+                                </div>
 
-                            <hr className="border-gray-100 dark:border-slate-700" />
+                                <hr className="border-gray-100 dark:border-slate-700" />
 
-                            <div>
-                                <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">3</span> Fazer o Vínculo Final aqui no Lucro Certo</h4>
-                                <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
-                                    <li>Feche esta janela.</li>
-                                    <li>Clique no botão branco de <strong>Fazer Login com Meta</strong>.</li>
-                                    <li>O Facebook vai abrir. Clique em <strong>Editar configurações / Escolher o que permitir</strong>.</li>
-                                    <li>Tenha a certeza absoluta de <strong>marcar a caixinha do seu Instagram e da sua página do Facebook</strong> em todas as telas que aparecerem.</li>
-                                    <li>Conclua!</li>
-                                </ol>
-                            </div>
-                        </div>
-
-                        <div className="mt-8 flex justify-end">
-                            <Button onClick={() => setShowInstructions(false)} className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto">
-                                Entendi, vou configurar!
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal de Nova Campanha IA */}
-            {isCreatingCampaign && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
-                        <h3 className="text-lg font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 to-indigo-600 flex items-center gap-2">
-                            <Rocket size={24} className="text-fuchsia-600" />
-                            Lançar Campanha de Marketing
-                        </h3>
-
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-                            Nossa Inteligência Artificial criará um pacote rápido de publicações super interligadas para sua marca num piscar de olhos.
-                        </p>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Tema da Campanha
-                                </label>
-                                <Input
-                                    placeholder="Ex: Liquidação de Inverno, Semana do Consumidor, Oferta de Relógios..."
-                                    value={campaignTheme}
-                                    onChange={e => setCampaignTheme(e.target.value)}
-                                    className="w-full text-base"
-                                    disabled={savingCampaign}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Quantidade de Postagens (Máx 7)
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="range"
-                                        min="1"
-                                        max="7"
-                                        value={campaignCount}
-                                        onChange={(e) => setCampaignCount(Number(e.target.value))}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-fuchsia-600"
-                                        disabled={savingCampaign}
-                                    />
-                                    <span className="font-bold text-fuchsia-600 dark:text-fuchsia-400 min-w-[30px] text-center">
-                                        {campaignCount}x
-                                    </span>
+                                <div>
+                                    <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">3</span> Fazer o Vínculo Final aqui no Lucro Certo</h4>
+                                    <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                        <li>Feche esta janela.</li>
+                                        <li>Clique no botão branco de <strong>Fazer Login com Meta</strong>.</li>
+                                        <li>O Facebook vai abrir. Clique em <strong>Editar configurações / Escolher o que permitir</strong>.</li>
+                                        <li>Tenha a certeza absoluta de <strong>marcar a caixinha do seu Instagram e da sua página do Facebook</strong> em todas as telas que aparecerem.</li>
+                                        <li>Conclua!</li>
+                                    </ol>
                                 </div>
                             </div>
 
-                            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-700">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => { setIsCreatingCampaign(false); setCampaignTheme(''); setCampaignCount(3); }}
-                                    disabled={savingCampaign}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    onClick={handleSaveCampaign}
-                                    className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-700 hover:to-indigo-700 text-white"
-                                    disabled={savingCampaign}
-                                >
-                                    {savingCampaign ? (
-                                        <span className="flex items-center gap-2">
-                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            Gerando Mágica...
-                                        </span>
-                                    ) : 'Lançar Foguete 🚀'}
+                            <div className="mt-8 flex justify-end">
+                                <Button onClick={() => setShowInstructions(false)} className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto">
+                                    Entendi, vou configurar!
                                 </Button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {/* Modal de Nova Campanha IA */}
+            {
+                isCreatingCampaign && (
+                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
+                            <h3 className="text-lg font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 to-indigo-600 flex items-center gap-2">
+                                <Rocket size={24} className="text-fuchsia-600" />
+                                Lançar Campanha de Marketing
+                            </h3>
+
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+                                Nossa Inteligência Artificial criará um pacote rápido de publicações super interligadas para sua marca num piscar de olhos.
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Tema da Campanha
+                                    </label>
+                                    <Input
+                                        placeholder="Ex: Liquidação de Inverno, Semana do Consumidor, Oferta de Relógios..."
+                                        value={campaignTheme}
+                                        onChange={e => setCampaignTheme(e.target.value)}
+                                        className="w-full text-base"
+                                        disabled={savingCampaign}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Quantidade de Postagens (Máx 7)
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="range"
+                                            min="1"
+                                            max="7"
+                                            value={campaignCount}
+                                            onChange={(e) => setCampaignCount(Number(e.target.value))}
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-fuchsia-600"
+                                            disabled={savingCampaign}
+                                        />
+                                        <span className="font-bold text-fuchsia-600 dark:text-fuchsia-400 min-w-[30px] text-center">
+                                            {campaignCount}x
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-700">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => { setIsCreatingCampaign(false); setCampaignTheme(''); setCampaignCount(3); }}
+                                        disabled={savingCampaign}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        onClick={handleSaveCampaign}
+                                        className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-700 hover:to-indigo-700 text-white"
+                                        disabled={savingCampaign}
+                                    >
+                                        {savingCampaign ? (
+                                            <span className="flex items-center gap-2">
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                Gerando Mágica...
+                                            </span>
+                                        ) : 'Lançar Foguete 🚀'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
         </div>
     );
 }

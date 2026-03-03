@@ -48,8 +48,8 @@ serve(async (req) => {
     const text = typeof message === 'string' ? message.trim().toUpperCase() : ''
 
     // Palavras-chave que o usuário pode responder
-    const allowKeywords = ['SIM', 'S', 'APROVAR', 'APROVADO', 'POSTA', 'POSTAR']
-    const blockKeywords = ['NAO', 'NÃO', 'N', 'REPROVAR', 'DESCARTAR']
+    const allowKeywords = ['SIM', 'S', 'APROVAR', 'APROVADO', 'POSTA', 'POSTAR', '1']
+    const blockKeywords = ['NAO', 'NÃO', 'N', 'REPROVAR', 'DESCARTAR', '2']
 
     let newStatus = ''
     let replyMsg = ''
