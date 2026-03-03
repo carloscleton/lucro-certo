@@ -739,12 +739,12 @@ export function Marketing() {
             {/* Generated Posts Section */}
             {profile && (
                 <div className="mt-8">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
                             <Sparkles size={18} className="text-rose-500" />
                             Suas Postagens Geradas pela IA
                         </h2>
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto justify-start lg:justify-end">
                             <div>
                                 <input
                                     type="file"
