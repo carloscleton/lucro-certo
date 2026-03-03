@@ -78,7 +78,7 @@ serve(async (req) => {
     // Como os números salvos lá podem estar como "55 11 9...", vamos buscar todos e filtrar os dígitos
     const { data: profiles, error: profileErr } = await supabase
       .from('social_profiles')
-      .select('company_id, approval_whatsapp')
+      .select('company_id, approval_whatsapp, ig_account_id, fb_access_token')
 
     if (profileErr) throw profileErr
 
@@ -159,7 +159,43 @@ serve(async (req) => {
       console.error('Falha ao enviar resposta de confirmação no wpp:', err)
     }
 
-    // TODO: AQUI É ONDE SERÁ ACIONADA A API DO INSTAGRAM PARA POSTAR SE APROVADO!
+    // 3. SE APROVADO, FAZER A POSTAGEM DIRETA NO INSTAGRAM!
+    if (newStatus === 'approved') {
+      try {
+        const profileInfo = matchingProfiles.find(p => p.company_id === post.company_id)
+        if (profileInfo && profileInfo.ig_account_id && profileInfo.fb_access_token) {
+          const API_VERSION = 'v19.0'
+          const ig_account_id = profileInfo.ig_account_id
+          const fb_access_token = profileInfo.fb_access_token
+
+          // 3.1 Criar container
+          const mediaUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media?image_url=${encodeURIComponent(post.image_url)}&caption=${encodeURIComponent(post.content)}&access_token=${fb_access_token}`
+          const mediaRes = await fetch(mediaUrl, { method: 'POST' })
+          const mediaData = await mediaRes.json()
+
+          if (!mediaData.error && mediaData.id) {
+            // 3.2 Publicar
+            const publishUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media_publish?creation_id=${mediaData.id}&access_token=${fb_access_token}`
+            const publishRes = await fetch(publishUrl, { method: 'POST' })
+            const publishData = await publishRes.json()
+
+            if (!publishData.error && publishData.id) {
+              // Atualiza post para publicado
+              await supabase.from('social_posts').update({ status: 'posted' }).eq('id', post.id)
+              console.log('Sucesso! Publicado no IG com id:', publishData.id)
+            } else {
+              console.error('Erro na publicacao Media:', publishData.error)
+            }
+          } else {
+            console.error('Erro na geracao do Container Media:', mediaData.error)
+          }
+        } else {
+          console.warn('Post aprovado, porém perfil não tem integração Meta ativa para publicar no automático.')
+        }
+      } catch (igError) {
+        console.error('Erro isolado ao tentar postar no instagram direto do zap:', igError)
+      }
+    }
 
     return new Response(JSON.stringify({ success: true, post_id: post.id, newStatus }), { status: 200, headers: { 'Content-Type': 'application/json' } })
   } catch (e: any) {

@@ -24,6 +24,7 @@ export function Marketing() {
     const [uploadingImage, setUploadingImage] = useState(false);
     const [hasWhatsappConnection, setHasWhatsappConnection] = useState(true);
     const [connectingMeta, setConnectingMeta] = useState(false);
+    const [publishingId, setPublishingId] = useState<string | null>(null);
 
     const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
     const [editContent, setEditContent] = useState('');
@@ -239,6 +240,35 @@ export function Marketing() {
             alert('Erro ao desconectar.');
         } finally {
             setConnectingMeta(false);
+        }
+    };
+
+    const handlePublishNow = async (postId: string) => {
+        try {
+            setPublishingId(postId);
+            const { data: session } = await supabase.auth.getSession();
+            const token = session.session?.access_token;
+
+            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-post-publisher`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ post_id: postId })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'Erro ao publicar.');
+
+            alert('Sucesso! A postagem foi publicada no Instagram 🚀');
+            await fetchPosts();
+        } catch (error: any) {
+            console.error('Falha ao publicar manualmente:', error);
+            alert(`Falha ao publicar a postagem: ${error.message}`);
+        } finally {
+            setPublishingId(null);
         }
     };
 
@@ -620,7 +650,16 @@ export function Marketing() {
                                             <Button size="sm" variant="outline" className="text-xs" onClick={() => { setEditingPost(post); setEditContent(post.content); }}>Editar</Button>
                                             <Button size="sm" variant="outline" className="text-xs text-red-500 hover:bg-red-50 border-red-200" onClick={() => handleDeletePost(post.id)}>Excluir</Button>
                                         </div>
-                                        {post.status === 'pending' && <Button size="sm" className="bg-rose-500 hover:bg-rose-600 text-white text-xs">Postar Agora</Button>}
+                                        {post.status === 'pending' && (
+                                            <Button
+                                                size="sm"
+                                                disabled={publishingId === post.id}
+                                                onClick={() => handlePublishNow(post.id)}
+                                                className="bg-rose-500 hover:bg-rose-600 text-white text-xs disabled:opacity-50"
+                                            >
+                                                {publishingId === post.id ? 'Publicando...' : 'Postar Agora'}
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
