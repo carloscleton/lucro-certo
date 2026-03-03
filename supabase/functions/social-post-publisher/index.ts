@@ -37,15 +37,28 @@ serve(async (req) => {
     // Buscar o post
     const { data: post, error: postErr } = await supabase
       .from('social_posts')
-      .select('*, social_profiles(ig_account_id, fb_access_token)')
+      .select('*')
       .eq('id', post_id)
       .single()
 
     if (postErr || !post) {
-      return new Response(JSON.stringify({ error: 'Post not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      console.error("Erro ao buscar post:", postErr)
+      return new Response(JSON.stringify({ error: 'Post not found', req_id: post_id }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const { ig_account_id, fb_access_token } = post.social_profiles || {}
+    // Buscar o profile da company
+    const { data: profile, error: profileErr } = await supabase
+      .from('social_profiles')
+      .select('ig_account_id, fb_access_token')
+      .eq('company_id', post.company_id)
+      .single()
+
+    if (profileErr || !profile) {
+      console.error("Erro ao buscar profile:", profileErr)
+      return new Response(JSON.stringify({ error: 'Profile not found para publicar' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const { ig_account_id, fb_access_token } = profile
 
     if (!ig_account_id || !fb_access_token) {
       return new Response(JSON.stringify({ error: 'Instagram não conectado neste perfil.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
