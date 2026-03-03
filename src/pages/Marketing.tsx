@@ -1018,6 +1018,79 @@ export function Marketing() {
                     </div>
                 </div>
             )}
+
+            {/* Modal de Nova Campanha IA */}
+            {isCreatingCampaign && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
+                        <h3 className="text-lg font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 to-indigo-600 flex items-center gap-2">
+                            <Rocket size={24} className="text-fuchsia-600" />
+                            Lançar Campanha de Marketing
+                        </h3>
+
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+                            Nossa Inteligência Artificial criará um pacote rápido de publicações super interligadas para sua marca num piscar de olhos.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Tema da Campanha
+                                </label>
+                                <Input
+                                    placeholder="Ex: Liquidação de Inverno, Semana do Consumidor, Oferta de Relógios..."
+                                    value={campaignTheme}
+                                    onChange={e => setCampaignTheme(e.target.value)}
+                                    className="w-full text-base"
+                                    disabled={savingCampaign}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Quantidade de Postagens (Máx 7)
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="7"
+                                        value={campaignCount}
+                                        onChange={(e) => setCampaignCount(Number(e.target.value))}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-fuchsia-600"
+                                        disabled={savingCampaign}
+                                    />
+                                    <span className="font-bold text-fuchsia-600 dark:text-fuchsia-400 min-w-[30px] text-center">
+                                        {campaignCount}x
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-700">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => { setIsCreatingCampaign(false); setCampaignTheme(''); setCampaignCount(3); }}
+                                    disabled={savingCampaign}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    onClick={handleSaveCampaign}
+                                    className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-700 hover:to-indigo-700 text-white"
+                                    disabled={savingCampaign}
+                                >
+                                    {savingCampaign ? (
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Gerando Mágica...
+                                        </span>
+                                    ) : 'Lançar Foguete 🚀'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
