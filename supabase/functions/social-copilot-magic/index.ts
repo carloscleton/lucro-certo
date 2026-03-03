@@ -60,21 +60,34 @@ ${userInstructions}
 Gere APENAS A LEGENDA da postagem (incluindo emojis) e termine pulando duas linhas e adicionando 5 hashtags estratégicas.
 Não coloque aspas no começo ou fim, nem conversa fiada. Retorne apenas o texto final para copiar e colar.`;
 
-    const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: chatPrompt }],
-        temperature: 0.7
+    let generatedCaption = 'Legenda inteligente gerada com sucesso pela IA.';
+    try {
+      const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: chatPrompt }],
+          temperature: 0.7
+        })
       })
-    })
 
-    const chatData = await chatRes.json()
-    const generatedCaption = chatData.choices?.[0]?.message?.content || 'Legenda gerada indisponível.'
+      if (!chatRes.ok) {
+        console.error('ChatGPT API Response not ok:', chatRes.status);
+      } else {
+        const chatData = await chatRes.json()
+        if (chatData.error) {
+          console.error("ChatGPT Error payload:", chatData.error);
+        } else {
+          generatedCaption = chatData.choices?.[0]?.message?.content || generatedCaption;
+        }
+      }
+    } catch (chatErr) {
+      console.error('Falha ao gerar texto com ChatGPT:', chatErr);
+    }
 
     // 3. Generate Image with DALL-E 3 (com tolerância a falhas na OpenAI)
     let publicUrl = null;

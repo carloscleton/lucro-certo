@@ -813,9 +813,15 @@ export function Marketing() {
                                     className="hidden"
                                     accept="image/*,video/*"
                                     onChange={handleManualFileSelection}
+                                    disabled={isGeneratingMagic}
                                 />
-                                {manualPreview ? (
-                                    <img src={manualPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                                {isGeneratingMagic ? (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 dark:bg-slate-900/90 z-10 backdrop-blur-sm">
+                                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                        <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Criando Imagem e Legenda...</p>
+                                    </div>
+                                ) : manualPreview ? (
+                                    <img src={manualPreview} alt="Preview" className="absolute inset-0 w-full h-full object-contain bg-black/5" />
                                 ) : (
                                     <>
                                         <ImageIcon size={32} className="text-gray-400 mb-2" />
