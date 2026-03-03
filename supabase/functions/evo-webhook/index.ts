@@ -96,14 +96,15 @@ serve(async (req) => {
 
     const companyIds = matchingProfiles.map(p => p.company_id)
 
-    // Buscar o post pendente mais recente dentre todas as empresas que ele gerencia
+    // Buscar postagens pendentes nas empresas que ele gerencia
+    // Usamos limit(2) porque queremos saber se existe APENAS 1 ou MAIS DE 1.
     const { data: pendingPosts, error: postsErr } = await supabase
       .from('social_posts')
       .select('*')
       .in('company_id', companyIds)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
-      .limit(1)
+      .limit(2)
 
     if (postsErr) throw postsErr
 
@@ -125,6 +126,31 @@ serve(async (req) => {
       } catch (err) { console.error(err) }
 
       return new Response('Sem post pendente', { status: 200 })
+    }
+
+    // Trava de Segurança para Campanhas:
+    // Se ele tem mais de 1 post pendente, nós barramos a aprovação via WhatsApp para evitar disparo indesejado!
+    if (pendingPosts.length > 1) {
+      console.log('Múltiplos posts pendentes. Rejeitando aprovação no whatsapp.');
+
+      const avisoMultiplos = '✋ *Ação Bloqueada!*\nEu notei que você tem *múltiplas postagens pendentes* na plataforma, possivelmente devido a uma Campanha recém gerada.\n\nPara evitar que os dados sejam postados de maneira incorreta ou fora de ordem, *por favor acesse o Painel Web* para publicar ou agendar cada postagem individualmente! 😉';
+
+      try {
+        if (instance) {
+          await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+            body: JSON.stringify({
+              number: senderPhone,
+              options: { delay: 1000, presence: "composing" },
+              text: avisoMultiplos,
+              textMessage: { text: avisoMultiplos }
+            })
+          })
+        }
+      } catch (err) { console.error(err) }
+
+      return new Response('Multiplos posts pendentes (campanha)', { status: 200 })
     }
 
     const post = pendingPosts[0]
