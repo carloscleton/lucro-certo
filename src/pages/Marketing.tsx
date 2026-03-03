@@ -1446,7 +1446,7 @@ export function Marketing() {
                                     <span className="text-xs font-black uppercase tracking-widest text-gray-400">Curtidas</span>
                                 </div>
                                 <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                    {syncingMetrics ? '...' : (metrics?.summary?.total_likes || '1.4k')}
+                                    {syncingMetrics ? '...' : (metrics?.summary?.total_likes || '0')}
                                 </div>
                             </div>
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
@@ -1455,7 +1455,7 @@ export function Marketing() {
                                     <span className="text-xs font-black uppercase tracking-widest text-gray-400">Alcance</span>
                                 </div>
                                 <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                    {syncingMetrics ? '...' : (metrics?.summary?.total_reach || '12.5k')}
+                                    {syncingMetrics ? '...' : (metrics?.summary?.total_reach || '0')}
                                 </div>
                             </div>
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
@@ -1464,7 +1464,7 @@ export function Marketing() {
                                     <span className="text-xs font-black uppercase tracking-widest text-gray-400">Comentários</span>
                                 </div>
                                 <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                    {syncingMetrics ? '...' : (metrics?.summary?.total_comments || '342')}
+                                    {syncingMetrics ? '...' : (metrics?.summary?.total_comments || '0')}
                                 </div>
                             </div>
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
@@ -1473,7 +1473,7 @@ export function Marketing() {
                                     <span className="text-xs font-black uppercase tracking-widest text-gray-400">Engajamento</span>
                                 </div>
                                 <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                    {syncingMetrics ? '...' : (metrics?.summary?.avg_engagement || '4.2%')}
+                                    {syncingMetrics ? '...' : (metrics?.summary?.avg_engagement || '0%')}
                                 </div>
                             </div>
                         </div>
@@ -1488,10 +1488,12 @@ export function Marketing() {
                                     <span className="text-[10px] font-black uppercase bg-emerald-400/30 px-2 py-1 rounded-lg">Inteligência ROI</span>
                                 </div>
                                 <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mb-1">Retorno Estimado (LCR)</p>
-                                <div className="text-4xl font-black mb-4">R$ 4.280,00</div>
+                                <div className="text-4xl font-black mb-4">
+                                    {syncingMetrics ? '...' : `R$ ${metrics?.summary?.total_roi?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}`}
+                                </div>
                                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-50 bg-white/10 p-2 rounded-xl border border-white/10">
                                     <Target size={14} />
-                                    <span>24 Conversões de Venda</span>
+                                    <span>{syncingMetrics ? '...' : (metrics?.summary?.total_conversions || '0')} Conversões de Venda</span>
                                 </div>
                             </div>
                             <div className="absolute -bottom-4 -right-4 text-white/5 group-hover:text-white/10 transition-colors">

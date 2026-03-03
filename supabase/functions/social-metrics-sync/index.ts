@@ -34,30 +34,40 @@ serve(async (req) => {
 
         const { data: posts } = await supabase
             .from('social_posts')
-            .select('id, content, status, likes_count, comments_count')
+            .select('likes_count, comments_count, reach_count, impressions_count, conversion_count, estimated_roi_value')
             .eq('company_id', company_id)
             .eq('status', 'posted')
-            .limit(20)
 
-        if (!posts || posts.length === 0) {
-            return new Response(JSON.stringify({ message: 'Nenhuma postagem publicada para monitorar.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        const summary = {
+            total_likes: 0,
+            total_comments: 0,
+            total_reach: 0,
+            total_impressions: 0,
+            total_conversions: 0,
+            total_roi: 0,
+            avg_engagement: '0%'
         }
 
-        // 2. Fetch Business Discovery or Media Insights from Meta
-        // Note: For real-time metrics per post, we need to iterate or use business_discovery
-        // For this prototype, we'll try to fetch basic media insights if we have the media ids (which we should store in social_posts)
+        if (posts && posts.length > 0) {
+            posts.forEach(post => {
+                summary.total_likes += post.likes_count || 0
+                summary.total_comments += post.comments_count || 0
+                summary.total_reach += post.reach_count || 0
+                summary.total_impressions += post.impressions_count || 0
+                summary.total_conversions += post.conversion_count || 0
+                summary.total_roi += Number(post.estimated_roi_value || 0)
+            })
 
-        // TODO: Store media_id from Meta in social_posts when publishing. 
-        // For now, let's just return success to prove the connection.
+            if (summary.total_reach > 0) {
+                const engRate = ((summary.total_likes + summary.total_comments) / summary.total_reach) * 100
+                summary.avg_engagement = engRate.toFixed(1) + '%'
+            }
+        }
 
         return new Response(JSON.stringify({
             success: true,
-            message: 'Métricas sincronizadas com sucesso (Simulado por enquanto).',
-            summary: {
-                total_reach: 1250,
-                avg_engagement: '4.2%',
-                top_post: posts[0]?.content?.substring(0, 20)
-            }
+            message: 'Métricas sincronizadas com sucesso.',
+            summary
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
