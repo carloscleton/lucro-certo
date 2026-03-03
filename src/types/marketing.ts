@@ -15,6 +15,9 @@ export interface SocialProfile {
     voice_id?: string;
     avatar_style?: string;
     avatar_gender?: string;
+    brand_logo_url?: string;
+    brand_primary_color?: string;
+    brand_secondary_color?: string;
     created_at: string;
     updated_at: string;
 }

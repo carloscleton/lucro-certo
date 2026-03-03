@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, ShieldCheck, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -57,6 +57,12 @@ export function Marketing() {
     const [videoEnabled, setVideoEnabled] = useState(false);
     const [avatarGender, setAvatarGender] = useState('male');
     const [avatarStyle, setAvatarStyle] = useState('professional');
+
+    // Brand Kit State
+    const [brandLogo, setBrandLogo] = useState<string | null>(null);
+    const [brandPrimaryColor, setBrandPrimaryColor] = useState('#4f46e5');
+    const [brandSecondaryColor, setBrandSecondaryColor] = useState('#f43f5e');
+    const [uploadingLogo, setUploadingLogo] = useState(false);
 
     const formatWhatsAppMask = (value: string) => {
         let v = value.replace(/\D/g, '');
@@ -133,6 +139,9 @@ export function Marketing() {
                 setVideoEnabled(profileData.video_enabled || false);
                 setAvatarGender(profileData.avatar_gender || 'male');
                 setAvatarStyle(profileData.avatar_style || 'professional');
+                setBrandLogo(profileData.brand_logo_url || null);
+                setBrandPrimaryColor(profileData.brand_primary_color || '#4f46e5');
+                setBrandSecondaryColor(profileData.brand_secondary_color || '#f43f5e');
                 await fetchPosts();
             }
         } finally {
@@ -170,7 +179,10 @@ export function Marketing() {
                         approval_whatsapp: cleanPhone,
                         video_enabled: videoEnabled,
                         avatar_gender: avatarGender,
-                        avatar_style: avatarStyle
+                        avatar_style: avatarStyle,
+                        brand_logo_url: brandLogo,
+                        brand_primary_color: brandPrimaryColor,
+                        brand_secondary_color: brandSecondaryColor
                     })
                     .eq('id', profile.id);
                 if (error) throw error;
@@ -186,7 +198,10 @@ export function Marketing() {
                         approval_whatsapp: cleanPhone,
                         video_enabled: videoEnabled,
                         avatar_gender: avatarGender,
-                        avatar_style: avatarStyle
+                        avatar_style: avatarStyle,
+                        brand_logo_url: brandLogo,
+                        brand_primary_color: brandPrimaryColor,
+                        brand_secondary_color: brandSecondaryColor
                     });
                 if (error) throw error;
             }
@@ -578,6 +593,25 @@ export function Marketing() {
         }
     };
 
+    const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || currentEntity.type !== 'company') return;
+        try {
+            setUploadingLogo(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${currentEntity.id}/brand-logo-${Math.random()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage.from('social_media_assets').upload(fileName, file);
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabase.storage.from('social_media_assets').getPublicUrl(fileName);
+            setBrandLogo(publicUrl);
+        } catch (error) {
+            console.error('Error uploading logo:', error);
+            alert('Falha ao subir o logotipo.');
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
+
     const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || currentEntity.type !== 'company') return;
@@ -779,6 +813,88 @@ export function Marketing() {
                                 </div>
                             </div>
 
+                            <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
+                                <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                    <Palette size={18} className="text-rose-500" />
+                                    Brand Kit (Identidade Visual)
+                                </h3>
+                                <p className="text-xs text-gray-500 mb-4">Configure o logotipo e as cores da sua marca para que a IA possa aplicá-las em seus conteúdos.</p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                    <div className="space-y-3">
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wider text-indigo-100">Logotipo da Marca</label>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-20 h-20 rounded-xl bg-white dark:bg-slate-800 border border-dashed border-gray-300 dark:border-slate-700 flex items-center justify-center overflow-hidden relative group">
+                                                {brandLogo ? (
+                                                    <>
+                                                        <img src={brandLogo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setBrandLogo(null)}
+                                                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                                                        >
+                                                            <Trash2 size={20} />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <ImageIcon size={24} className="text-gray-300" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <input
+                                                    type="file"
+                                                    id="brand-logo-upload"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleUploadLogo}
+                                                    disabled={uploadingLogo}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => document.getElementById('brand-logo-upload')?.click()}
+                                                    disabled={uploadingLogo}
+                                                    className="w-full text-xs"
+                                                >
+                                                    {uploadingLogo ? 'Enviando...' : 'Selecionar Logo'}
+                                                </Button>
+                                                <p className="text-[10px] text-gray-500 mt-2">Use arquivos PNG transparente para melhor resultado.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wider">Cores da Identidade</label>
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex-1">
+                                                <p className="text-[10px] text-gray-500 mb-1">Cor Primária</p>
+                                                <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-gray-200 dark:border-slate-700">
+                                                    <input
+                                                        type="color"
+                                                        value={brandPrimaryColor}
+                                                        onChange={(e) => setBrandPrimaryColor(e.target.value)}
+                                                        className="w-8 h-8 rounded-lg cursor-pointer border-none bg-transparent"
+                                                    />
+                                                    <span className="text-xs font-mono text-gray-600 dark:text-gray-400 uppercase">{brandPrimaryColor}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-[10px] text-gray-500 mb-1">Cor Secundária</p>
+                                                <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-gray-200 dark:border-slate-700">
+                                                    <input
+                                                        type="color"
+                                                        value={brandSecondaryColor}
+                                                        onChange={(e) => setBrandSecondaryColor(e.target.value)}
+                                                        className="w-8 h-8 rounded-lg cursor-pointer border-none bg-transparent"
+                                                    />
+                                                    <span className="text-xs font-mono text-gray-600 dark:text-gray-400 uppercase">{brandSecondaryColor}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="pt-4 flex justify-end">
                                 <Button
                                     type="submit"
@@ -965,7 +1081,16 @@ export function Marketing() {
                                         </div>
                                         {post.image_url && (
                                             <div className="mb-4 rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
-                                                <img src={post.image_url} alt="Post asset" className="w-full h-auto object-cover max-h-48" />
+                                                {post.media_type === 'reels' || post.image_url.toLowerCase().endsWith('.mp4') ? (
+                                                    <video
+                                                        src={post.image_url}
+                                                        controls
+                                                        className="w-full h-auto object-cover max-h-64"
+                                                        poster="/video-placeholder.png"
+                                                    />
+                                                ) : (
+                                                    <img src={post.image_url} alt="Post asset" className="w-full h-auto object-cover max-h-48" />
+                                                )}
                                             </div>
                                         )}
                                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{post.content}</p>
