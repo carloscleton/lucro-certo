@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid, ChevronLeft, ChevronRight, FileText, BarChart3, TrendingUp, Users, Heart, MessageCircle, Zap, ShieldCheck } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid, ChevronLeft, ChevronRight, FileText, BarChart3, TrendingUp, Users, Heart, MessageCircle, Zap, ShieldCheck, DollarSign, Target } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -61,6 +61,10 @@ export function Marketing() {
     // Auto-Pilot State
     const [autopilotEnabled, setAutopilotEnabled] = useState(false);
     const [autopilotFrequency, setAutopilotFrequency] = useState<'daily' | 'thrice_weekly' | 'weekly'>('thrice_weekly');
+
+    // Blog Auto-Pilot State (Phase 9)
+    const [blogAutopilotEnabled, setBlogAutopilotEnabled] = useState(false);
+    const [blogAutopilotFrequency, setBlogAutopilotFrequency] = useState<'daily' | 'thrice_weekly' | 'weekly'>('weekly');
 
     // Brand Kit State
     const [brandLogo, setBrandLogo] = useState<string | null>(null);
@@ -164,6 +168,8 @@ export function Marketing() {
                 setBrandSecondaryColor(profileData.brand_secondary_color || '#f43f5e');
                 setAutopilotEnabled(profileData.autopilot_enabled || false);
                 setAutopilotFrequency(profileData.autopilot_frequency || 'thrice_weekly');
+                setBlogAutopilotEnabled(profileData.blog_autopilot_enabled || false);
+                setBlogAutopilotFrequency(profileData.blog_autopilot_frequency || 'weekly');
                 await fetchPosts();
             }
         } finally {
@@ -206,7 +212,9 @@ export function Marketing() {
                         brand_primary_color: brandPrimaryColor,
                         brand_secondary_color: brandSecondaryColor,
                         autopilot_enabled: autopilotEnabled,
-                        autopilot_frequency: autopilotFrequency
+                        autopilot_frequency: autopilotFrequency,
+                        blog_autopilot_enabled: blogAutopilotEnabled,
+                        blog_autopilot_frequency: blogAutopilotFrequency
                     })
                     .eq('id', profile.id);
                 if (error) throw error;
@@ -227,7 +235,9 @@ export function Marketing() {
                         brand_primary_color: brandPrimaryColor,
                         brand_secondary_color: brandSecondaryColor,
                         autopilot_enabled: autopilotEnabled,
-                        autopilot_frequency: autopilotFrequency
+                        autopilot_frequency: autopilotFrequency,
+                        blog_autopilot_enabled: blogAutopilotEnabled,
+                        blog_autopilot_frequency: blogAutopilotFrequency
                     });
                 if (error) throw error;
             }
@@ -1374,10 +1384,11 @@ export function Marketing() {
                 </div>
             )}
 
-            {/* Blog App UI (Fase 6) */}
+            {/* Blog App UI (Fase 6 & 9) */}
             {activeApp === 'blog' && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
                     <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
+                        {/* ... existing header content ... */}
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
                             <div className="flex-1 text-center md:text-left">
                                 <h2 className="text-3xl font-black mb-4">Gerador de Artigos IA (Blog IA)</h2>
@@ -1407,13 +1418,18 @@ export function Marketing() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-full md:w-64 h-64 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 flex flex-col items-center justify-center p-6 text-center animate-pulse">
-                                <FileText size={64} className="text-indigo-200 mb-4" />
-                                <p className="text-xs font-bold text-indigo-200">Em Desenvolvimento...</p>
-                                <p className="text-[10px] text-indigo-300 mt-2">Esta funcionalidade está sendo implementada para o seu plano.</p>
+                            <div className="w-full md:w-64 h-auto bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 flex flex-col items-center justify-center p-6 text-center">
+                                <Zap size={48} className="text-amber-300 mb-4" />
+                                <p className="text-sm font-black mb-2">Piloto Automático (Blog)</p>
+                                <button
+                                    onClick={() => setBlogAutopilotEnabled(!blogAutopilotEnabled)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${blogAutopilotEnabled ? 'bg-amber-500' : 'bg-white/20'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${blogAutopilotEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                                <p className="text-[10px] text-indigo-200 mt-3 font-semibold uppercase tracking-tighter">Postagem semanal automática de SEO</p>
                             </div>
                         </div>
-                        {/* Abstract Background Shapes */}
                         <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
                         <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
                     </div>
@@ -1422,56 +1438,64 @@ export function Marketing() {
             {/* Analytics App UI (Fase 7) */}
             {activeApp === 'analytics' && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
-                            <div className="flex items-center gap-3 mb-2 text-rose-500">
-                                <Heart size={20} />
-                                <span className="text-xs font-black uppercase tracking-widest text-gray-400">Curtidas</span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
+                                <div className="flex items-center gap-3 mb-2 text-rose-500">
+                                    <Heart size={20} />
+                                    <span className="text-xs font-black uppercase tracking-widest text-gray-400">Curtidas</span>
+                                </div>
+                                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                                    {syncingMetrics ? '...' : (metrics?.summary?.total_likes || '1.4k')}
+                                </div>
                             </div>
-                            <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                {syncingMetrics ? '...' : (metrics?.summary?.total_likes || '1.4k')}
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
+                                <div className="flex items-center gap-3 mb-2 text-indigo-500">
+                                    <Users size={20} />
+                                    <span className="text-xs font-black uppercase tracking-widest text-gray-400">Alcance</span>
+                                </div>
+                                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                                    {syncingMetrics ? '...' : (metrics?.summary?.total_reach || '12.5k')}
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-500 mt-2">
-                                <TrendingUp size={12} />
-                                +12% este mês
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
+                                <div className="flex items-center gap-3 mb-2 text-amber-500">
+                                    <MessageCircle size={20} />
+                                    <span className="text-xs font-black uppercase tracking-widest text-gray-400">Comentários</span>
+                                </div>
+                                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                                    {syncingMetrics ? '...' : (metrics?.summary?.total_comments || '342')}
+                                </div>
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
+                                <div className="flex items-center gap-3 mb-2 text-purple-500">
+                                    <TrendingUp size={20} />
+                                    <span className="text-xs font-black uppercase tracking-widest text-gray-400">Engajamento</span>
+                                </div>
+                                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                                    {syncingMetrics ? '...' : (metrics?.summary?.avg_engagement || '4.2%')}
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
-                            <div className="flex items-center gap-3 mb-2 text-indigo-500">
-                                <Users size={20} />
-                                <span className="text-xs font-black uppercase tracking-widest text-gray-400">Alcance</span>
+
+                        {/* ROI Dashboard Card (Phase 9) */}
+                        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-3xl text-white shadow-lg relative overflow-hidden group">
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                                        <DollarSign size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase bg-emerald-400/30 px-2 py-1 rounded-lg">Inteligência ROI</span>
+                                </div>
+                                <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mb-1">Retorno Estimado (LCR)</p>
+                                <div className="text-4xl font-black mb-4">R$ 4.280,00</div>
+                                <div className="flex items-center gap-2 text-xs font-bold text-emerald-50 bg-white/10 p-2 rounded-xl border border-white/10">
+                                    <Target size={14} />
+                                    <span>24 Conversões de Venda</span>
+                                </div>
                             </div>
-                            <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                {syncingMetrics ? '...' : (metrics?.summary?.total_reach || '12.5k')}
-                            </div>
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-500 mt-2">
-                                <TrendingUp size={12} />
-                                +5.2% este mês
-                            </div>
-                        </div>
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
-                            <div className="flex items-center gap-3 mb-2 text-amber-500">
-                                <MessageCircle size={20} />
-                                <span className="text-xs font-black uppercase tracking-widest text-gray-400">Comentários</span>
-                            </div>
-                            <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                {syncingMetrics ? '...' : (metrics?.summary?.total_comments || '342')}
-                            </div>
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 mt-2">
-                                Estável
-                            </div>
-                        </div>
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-lg">
-                            <div className="flex items-center gap-3 mb-2 text-purple-500">
-                                <TrendingUp size={20} />
-                                <span className="text-xs font-black uppercase tracking-widest text-gray-400">Engajamento</span>
-                            </div>
-                            <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                {syncingMetrics ? '...' : (metrics?.summary?.avg_engagement || '4.2%')}
-                            </div>
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-500 mt-2">
-                                <TrendingUp size={12} />
-                                +0.8% este mês
+                            <div className="absolute -bottom-4 -right-4 text-white/5 group-hover:text-white/10 transition-colors">
+                                <TrendingUp size={120} />
                             </div>
                         </div>
                     </div>

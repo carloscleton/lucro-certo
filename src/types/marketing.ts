@@ -20,6 +20,8 @@ export interface SocialProfile {
     brand_secondary_color?: string;
     autopilot_enabled?: boolean;
     autopilot_frequency?: 'daily' | 'thrice_weekly' | 'weekly';
+    blog_autopilot_enabled?: boolean;
+    blog_autopilot_frequency?: 'daily' | 'thrice_weekly' | 'weekly';
     best_posting_times?: string[];
     created_at: string;
     updated_at: string;
@@ -38,6 +40,22 @@ export interface SocialPost {
     comments_count?: number;
     reach_count?: number;
     impressions_count?: number;
+    conversion_count?: number;
+    estimated_roi_value?: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BlogPost {
+    id: string;
+    company_id: string;
+    title: string;
+    content: string;
+    slug?: string;
+    status: 'draft' | 'published' | 'scheduled';
+    seo_score?: number;
+    conversion_count?: number;
+    estimated_roi_value?: number;
     created_at: string;
     updated_at: string;
 }
