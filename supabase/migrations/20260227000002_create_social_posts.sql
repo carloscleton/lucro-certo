@@ -23,6 +23,16 @@ CREATE POLICY "Users can view social posts for their companies"
         )
     );
 
+CREATE POLICY "Users can insert social posts for their companies"
+    ON social_posts FOR INSERT
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM company_members
+            WHERE company_members.company_id = social_posts.company_id
+            AND company_members.user_id = auth.uid()
+        )
+    );
+
 CREATE POLICY "Users can update social posts of their companies"
     ON social_posts FOR UPDATE
     USING (

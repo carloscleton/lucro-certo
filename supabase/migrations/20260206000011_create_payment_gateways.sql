@@ -24,7 +24,7 @@ USING (
         SELECT 1 FROM public.company_members cm
         WHERE cm.company_id = company_payment_gateways.company_id
         AND cm.user_id = auth.uid()
-        AND cm.role IN ('owner', 'admin')
+        AND cm.role = 'admin'
     )
 );
 
@@ -38,7 +38,7 @@ USING (
         SELECT 1 FROM public.company_members cm
         WHERE cm.company_id = company_payment_gateways.company_id
         AND cm.user_id = auth.uid()
-        AND cm.role IN ('owner', 'admin')
+        AND cm.role = 'admin'
     )
 )
 WITH CHECK (
@@ -46,7 +46,7 @@ WITH CHECK (
         SELECT 1 FROM public.company_members cm
         WHERE cm.company_id = company_payment_gateways.company_id
         AND cm.user_id = auth.uid()
-        AND cm.role IN ('owner', 'admin')
+        AND cm.role = 'admin'
     )
 );
 

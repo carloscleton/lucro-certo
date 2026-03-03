@@ -29,7 +29,47 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await authSupabase.auth.getUser()
     if (userError || !user) throw new Error('Unauthorized')
 
-    const { post_id } = await req.json()
+    const body = await req.json()
+    const action = body.action || 'publish'
+
+    if (action === 'create_manual_post') {
+      const { company_id, content, image_url, media_type } = body
+      if (!company_id) {
+        return new Response(JSON.stringify({ error: 'company_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      // 1. Verificar se o user autenticado (com authSupabase) é admin/member da company_id
+      const { data: member, error: memberErr } = await authSupabase
+        .from('company_members')
+        .select('*')
+        .eq('company_id', company_id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (memberErr || !member) {
+        return new Response(JSON.stringify({ error: 'Unauthorized for this company' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      // 2. Inserir post bypassando RLS (com db client admin)
+      const { data: newPost, error: insertError } = await supabase.from('social_posts').insert({
+        company_id,
+        content: content || '',
+        image_url,
+        media_type: media_type || 'feed',
+        status: 'pending'
+      }).select().single()
+
+      if (insertError) {
+        throw new Error('Falha ao inserir post: ' + insertError.message)
+      }
+
+      return new Response(JSON.stringify({ success: true, post: newPost }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Ação padrão: PUBLISH POST
+    const { post_id } = body
     if (!post_id) {
       return new Response(JSON.stringify({ error: 'Post ID is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }

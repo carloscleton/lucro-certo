@@ -31,6 +31,7 @@ export function Marketing() {
     const [manualFile, setManualFile] = useState<File | null>(null);
     const [manualPreview, setManualPreview] = useState<string | null>(null);
     const [manualContent, setManualContent] = useState('');
+    const [manualMediaType, setManualMediaType] = useState<'feed' | 'story' | 'reels'>('feed');
     const [savingManualPost, setSavingManualPost] = useState(false);
 
     const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
@@ -378,20 +379,33 @@ export function Marketing() {
                 publicUrl = data.publicUrl;
             }
 
-            const { error: insertError } = await supabase.from('social_posts').insert({
-                company_id: currentEntity.id,
-                content: manualContent,
-                image_url: publicUrl,
-                status: 'pending' // Fica pendente para que o usuário clique em "Postar Agora"
+            const { data: session } = await supabase.auth.getSession();
+            const token = session.session?.access_token;
+
+            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-post-publisher`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'create_manual_post',
+                    company_id: currentEntity.id,
+                    content: manualContent,
+                    image_url: publicUrl,
+                    media_type: manualMediaType
+                })
             });
 
-            if (insertError) throw insertError;
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro ao publicar.');
 
             alert('Postagem criada e salva com sucesso!');
             setIsCreatingManualPost(false);
             setManualFile(null);
             setManualPreview(null);
             setManualContent('');
+            setManualMediaType('feed');
             await fetchPosts();
         } catch (error: any) {
             console.error('Erro ao salvar post manual:', error);
@@ -698,9 +712,14 @@ export function Marketing() {
                                 <div key={post.id} className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-gray-200 dark:border-slate-700 flex flex-col justify-between">
                                     <div>
                                         <div className="flex items-center justify-between mb-3">
-                                            <span className="text-xs font-bold text-gray-400">
-                                                {new Date(post.created_at).toLocaleDateString()}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-gray-400">
+                                                    {new Date(post.created_at).toLocaleDateString()}
+                                                </span>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400`}>
+                                                    {post.media_type ? post.media_type.toUpperCase() : 'FEED'}
+                                                </span>
+                                            </div>
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${post.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                                                 post.status === 'posted' ? 'bg-emerald-100 text-emerald-700' :
                                                     'bg-gray-100 text-gray-700'
@@ -769,6 +788,22 @@ export function Marketing() {
                                 )}
                             </div>
 
+                            {/* Type Selector */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Onde vai postar?
+                                </label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    value={manualMediaType}
+                                    onChange={e => setManualMediaType(e.target.value as any)}
+                                >
+                                    <option value="feed">Feed (Instagram Feed)</option>
+                                    <option value="story">Story</option>
+                                    <option value="reels">Reels (Certifique-se de enviar um Vídeo!)</option>
+                                </select>
+                            </div>
+
                             {/* Caption Textarea */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -784,7 +819,7 @@ export function Marketing() {
                         </div>
 
                         <div className="flex justify-end gap-3 mt-6">
-                            <Button variant="outline" onClick={() => { setIsCreatingManualPost(false); setManualPreview(null); setManualFile(null); setManualContent(''); }} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
+                            <Button variant="outline" onClick={() => { setIsCreatingManualPost(false); setManualPreview(null); setManualFile(null); setManualContent(''); setManualMediaType('feed'); }} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
                             <Button onClick={handleSaveManualPost} disabled={savingManualPost} className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30">
                                 {savingManualPost ? 'Salvando...' : 'Salvar Postagem'}
                             </Button>

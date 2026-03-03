@@ -41,7 +41,7 @@ CREATE POLICY "Charges manageable by company admins/owners"
             SELECT 1 FROM public.company_members 
             WHERE company_id = company_charges.company_id 
             AND user_id = auth.uid()
-            AND role IN ('owner', 'admin')
+            AND role = 'admin'
         )
     );
 

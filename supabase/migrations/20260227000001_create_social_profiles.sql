@@ -30,7 +30,7 @@ CREATE POLICY "Users can insert social profiles for their companies"
             SELECT 1 FROM company_members
             WHERE company_members.company_id = social_profiles.company_id
             AND company_members.user_id = auth.uid()
-            AND company_members.role IN ('owner', 'admin', 'member')
+            AND company_members.role IN ('admin', 'member')
         )
     );
 
