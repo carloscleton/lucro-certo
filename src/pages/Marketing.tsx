@@ -474,9 +474,14 @@ export function Marketing() {
                         <h2 className="text-lg font-bold flex items-center gap-2 mb-2">
                             <Instagram size={20} /> Conectar Conta
                         </h2>
-                        <p className="text-sm text-indigo-100 mb-6 relative z-10">
-                            Para publicar automaticamente, conecte sua conta comercial do Instagram/Facebook aqui.
-                        </p>
+                        <div className="text-sm text-indigo-100 mb-6 relative z-10 space-y-2">
+                            <p>Para publicar automaticamente, siga os três passos:</p>
+                            <ul className="list-disc list-inside text-xs opacity-90 space-y-1">
+                                <li>Tenha seu <strong>Instagram como Conta Profissional</strong></li>
+                                <li>Tenha seu Instagram <strong>vinculado à uma Página do Facebook</strong></li>
+                                <li>Faça login abaixo garantindo que marcou todas as permissões do Facebook.</li>
+                            </ul>
+                        </div>
 
                         {!profile?.ig_account_id ? (
                             <>
