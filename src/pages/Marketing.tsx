@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -212,6 +212,34 @@ export function Marketing() {
                 console.log('Usuário cancelou o login no FB.');
             }
         }, { scope: 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish,business_management' });
+    };
+
+    const handleDisconnectMeta = async () => {
+        if (!confirm('Tem certeza que deseja desconectar o Instagram? Isso pausará as postagens automáticas.')) return;
+
+        try {
+            setConnectingMeta(true);
+            const { error } = await supabase
+                .from('social_profiles')
+                .update({
+                    fb_access_token: null,
+                    fb_page_id: null,
+                    fb_page_name: null,
+                    ig_account_id: null,
+                    ig_username: null
+                })
+                .eq('company_id', currentEntity.id);
+
+            if (error) throw error;
+
+            alert('Conta desconectada com sucesso.');
+            fetchProfile(); // Atualiza a tela limpando o cache
+        } catch (err: any) {
+            console.error('Error disconnecting meta:', err);
+            alert('Erro ao desconectar.');
+        } finally {
+            setConnectingMeta(false);
+        }
     };
 
     const handleGenerateNow = async () => {
@@ -479,6 +507,15 @@ export function Marketing() {
                                 <p className="text-xs text-indigo-100/90 mt-3 pt-3 border-t border-white/20">
                                     Página Vinculada: <strong>{profile.fb_page_name}</strong>
                                 </p>
+                                <button
+                                    onClick={handleDisconnectMeta}
+                                    type="button"
+                                    disabled={connectingMeta}
+                                    className="mt-3 w-full py-2 bg-black/20 hover:bg-rose-500/80 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Unplug size={14} />
+                                    {connectingMeta ? 'Aguarde...' : 'Desconectar Conta'}
+                                </button>
                             </div>
                         )}
                     </div>
