@@ -150,8 +150,12 @@ serve(async (req) => {
       throw new Error('Falha ao publicar a foto no Meta: ' + publishData.error.message)
     }
 
-    // 3. Sucesso! Atualizar status do post.
-    await supabase.from('social_posts').update({ status: 'posted' }).eq('id', post_id)
+    // 3. Sucesso! Atualizar status do post e salvar o media_id
+    await supabase.from('social_posts').update({
+      status: 'posted',
+      media_id: publishData.id,
+      posted_at: new Date().toISOString()
+    }).eq('id', post_id)
 
     return new Response(JSON.stringify({ success: true, meta_id: publishData.id }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
