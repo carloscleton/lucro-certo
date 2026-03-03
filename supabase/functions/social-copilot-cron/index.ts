@@ -81,7 +81,7 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
         generatedContent = aiData.choices?.[0]?.message?.content || 'Erro ao gerar legenda com API.';
 
         // Gerar Imagem com DALL-E 3
-        const imagePrompt = `Crie uma imagem de alta qualidade, formato quadrado, sem letras e sem textos visíveis, apropriada para o Instagram e Facebook. Estilo profissional e envolvente sobre o nicho: ${profile.niche}. Público: ${profile.target_audience}.`;
+        const imagePrompt = `Crie uma fotografia profissional, ultra-realista e de alta qualidade (estilo raw photo), formato quadrado, sem letras e sem textos visíveis. A imagem deve ser natural e humanizada, retratando pessoas reais ou ambientes de trabalho autênticos sobre o nicho: ${profile.niche}. Evite terminantemente ilustrações, 3D render, desenhos ou qualquer estilo futurista robótico. Público: ${profile.target_audience}.`;
 
         const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',

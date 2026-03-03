@@ -63,7 +63,7 @@ Crie uma CAMPANHA com ${post_count} postagens separadas focadas estritamente no 
 
 Retorne EXATAMENTE um objeto JSON que contenha uma propriedade chamada "posts", que deve ser um Array de Objetos. Cada objeto dentro de "posts" deve ter 2 propriedades:
 1) "caption": A legenda da postagem (incluindo emojis e 5 hashtags no final, sem conversa fiada).
-2) "image_prompt": Uma sugestão curta em inglês (aprox 15-30 palavras) para desenhar a imagem. Deve ser profissional, "without text", "without letters".
+2) "image_prompt": Uma sugestão curta em inglês (aprox 15-30 palavras) para gerar uma fotografia realista (raw photo). Foque em pessoas reais, ambientes de escritório autênticos e situações do dia a dia. Deve ser profissional, "without text", "without letters". NUNCA use as palavras "robot", "futuristic", "sci-fi", "illustration".
 
 Exemplo do formato:
 {
@@ -121,8 +121,8 @@ Exemplo do formato:
       let publicUrl = null;
       try {
         const dallePrompt = postItem.image_prompt ?
-          `Create a high quality image for Instagram: ${postItem.image_prompt}. Rule: NO TEXT, NO LETTERS. Professional style.` :
-          `Create an abstract high quality image about ${theme} for ${niche}. NO TEXT, NO LETTERS.`;
+          `High quality professional photography, ultra-realistic style: ${postItem.image_prompt}. Rule: NO TEXT, NO LETTERS. Natural lighting, human-centric. Avoid 3D render, avoid cartoon.` :
+          `High quality professional realistic photography about ${theme} for ${niche}. Real people in work environment. NO TEXT, NO LETTERS.`;
 
         const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
