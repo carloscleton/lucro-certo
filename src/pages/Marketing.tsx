@@ -765,21 +765,33 @@ export function Marketing() {
                 {/* App Switcher */}
                 <div className="flex items-center bg-gray-100 dark:bg-slate-800/50 p-1 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
                     <button
-                        onClick={() => setActiveApp('social')}
+                        type="button"
+                        onClick={() => {
+                            console.log('Switching to social');
+                            setActiveApp('social');
+                        }}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeApp === 'social' ? 'bg-white dark:bg-slate-700 text-rose-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <Instagram size={16} />
                         Social IA
                     </button>
                     <button
-                        onClick={() => setActiveApp('blog')}
+                        type="button"
+                        onClick={() => {
+                            console.log('Switching to blog');
+                            setActiveApp('blog');
+                        }}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeApp === 'blog' ? 'bg-white dark:bg-slate-700 text-rose-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <FileText size={16} />
                         Blog IA
                     </button>
                     <button
-                        onClick={() => setActiveApp('analytics')}
+                        type="button"
+                        onClick={() => {
+                            console.log('Switching to analytics');
+                            setActiveApp('analytics');
+                        }}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeApp === 'analytics' ? 'bg-white dark:bg-slate-700 text-rose-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <BarChart3 size={16} />
@@ -788,353 +800,357 @@ export function Marketing() {
                 </div>
             </div>
 
-            <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${activeApp === 'blog' ? 'hidden' : ''}`}>
+            {activeApp === 'social' && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* Left Column: Form Settings */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-700">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                            <Megaphone size={18} className="text-rose-500" />
-                            Perfil da Marca
-                        </h2>
-                        <p className="text-sm text-gray-500 mb-6">Ensine a Inteligência Artificial sobre o seu negócio para que ela possa criar postagens perfeitas pra você todos os dias.</p>
+                        {/* Left Column: Form Settings */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-slate-700">
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                    <Megaphone size={18} className="text-rose-500" />
+                                    Perfil da Marca
+                                </h2>
+                                <p className="text-sm text-gray-500 mb-6">Ensine a Inteligência Artificial sobre o seu negócio para que ela possa criar postagens perfeitas pra você todos os dias.</p>
 
-                        <form onSubmit={handleSave} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Qual o Nicho da Empresa?
-                                </label>
-                                <Input
-                                    value={niche}
-                                    onChange={(e) => setNiche(e.target.value)}
-                                    placeholder="Ex: Consultório Odontológico, Loja de Roupas, Pizzaria..."
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Tom de Voz (Personalidade)
-                                </label>
-                                <Input
-                                    value={tone}
-                                    onChange={(e) => setTone(e.target.value)}
-                                    placeholder="Ex: Formal e educativo, Engraçado e dinâmico, Motivacional..."
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Público-Alvo
-                                </label>
-                                <Input
-                                    value={audience}
-                                    onChange={(e) => setAudience(e.target.value)}
-                                    placeholder="Ex: Mães de 25 a 40 anos, Homens interessados em carros esportivos..."
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    WhatsApp para Aprovação (Seu Celular)
-                                </label>
-                                <Input
-                                    value={approvalWhatsapp}
-                                    onChange={(e) => setApprovalWhatsapp(formatWhatsAppMask(e.target.value))}
-                                    placeholder="Ex: 55 (84) 9 9807-1213"
-                                    maxLength={20}
-                                />
-                                <p className="text-xs text-gray-500 mt-1">Este número receberá a notificação matinal com a postagem pronta.</p>
-                                {!hasWhatsappConnection ? (
-                                    <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 text-xs rounded-lg border border-rose-200 dark:border-rose-800/50 flex flex-col gap-2">
-                                        <div>
-                                            <strong>⚠️ WhatsApp Desconectado:</strong> Identificamos que sua empresa <strong>não</strong> possui um WhatsApp gerador online.
-                                            As mensagens de aprovação não chegarão no seu celular sem isso.
-                                        </div>
-                                        <p className="font-semibold text-rose-800 dark:text-rose-300">Acesse o menu WhatsApp ao lado e leia o QRCode para conectar a inteligência.</p>
+                                <form onSubmit={handleSave} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Qual o Nicho da Empresa?
+                                        </label>
+                                        <Input
+                                            value={niche}
+                                            onChange={(e) => setNiche(e.target.value)}
+                                            placeholder="Ex: Consultório Odontológico, Loja de Roupas, Pizzaria..."
+                                        />
                                     </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Tom de Voz (Personalidade)
+                                        </label>
+                                        <Input
+                                            value={tone}
+                                            onChange={(e) => setTone(e.target.value)}
+                                            placeholder="Ex: Formal e educativo, Engraçado e dinâmico, Motivacional..."
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Público-Alvo
+                                        </label>
+                                        <Input
+                                            value={audience}
+                                            onChange={(e) => setAudience(e.target.value)}
+                                            placeholder="Ex: Mães de 25 a 40 anos, Homens interessados em carros esportivos..."
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            WhatsApp para Aprovação (Seu Celular)
+                                        </label>
+                                        <Input
+                                            value={approvalWhatsapp}
+                                            onChange={(e) => setApprovalWhatsapp(formatWhatsAppMask(e.target.value))}
+                                            placeholder="Ex: 55 (84) 9 9807-1213"
+                                            maxLength={20}
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Este número receberá a notificação matinal com a postagem pronta.</p>
+                                        {!hasWhatsappConnection ? (
+                                            <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 text-xs rounded-lg border border-rose-200 dark:border-rose-800/50 flex flex-col gap-2">
+                                                <div>
+                                                    <strong>⚠️ WhatsApp Desconectado:</strong> Identificamos que sua empresa <strong>não</strong> possui um WhatsApp gerador online.
+                                                    As mensagens de aprovação não chegarão no seu celular sem isso.
+                                                </div>
+                                                <p className="font-semibold text-rose-800 dark:text-rose-300">Acesse o menu WhatsApp ao lado e leia o QRCode para conectar a inteligência.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs rounded-lg border border-emerald-100 dark:border-emerald-800/50">
+                                                <strong>✅ WhatsApp Conectado:</strong> Tudo certo! Você já possui conectividade ativa e começará a receber as postagens para aprovação automaticamente neste celular.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                            <Video size={18} className="text-indigo-500" />
+                                            Configuração de Avatar de Vídeo (IA)
+                                        </h3>
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
+                                                <div>
+                                                    <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">Ativar Postagens com Vídeo</p>
+                                                    <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70">A IA gerará vídeos com avatar falando o roteiro em vez de imagens.</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setVideoEnabled(!videoEnabled)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${videoEnabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-slate-700'}`}
+                                                >
+                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${videoEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            {videoEnabled && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                                            <User size={14} /> Gênero do Avatar
+                                                        </label>
+                                                        <select
+                                                            className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                                            value={avatarGender}
+                                                            onChange={e => setAvatarGender(e.target.value)}
+                                                        >
+                                                            <option value="male">Masculino (Apresentador)</option>
+                                                            <option value="female">Feminino (Apresentadora)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                            Estilo do Vídeo
+                                                        </label>
+                                                        <select
+                                                            className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                                            value={avatarStyle}
+                                                            onChange={e => setAvatarStyle(e.target.value)}
+                                                        >
+                                                            <option value="professional">Profissional / Executivo</option>
+                                                            <option value="news">Telejornal / Notícias</option>
+                                                            <option value="casual">Casual / Descontraído</option>
+                                                            <option value="educational">Educativo / Professor</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                            <Zap size={18} className="text-amber-500" />
+                                            Modo Piloto Automático (Fase 8)
+                                        </h3>
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/50">
+                                                <div>
+                                                    <p className="text-sm font-bold text-amber-900 dark:text-amber-300">Ativar Postagens Inteligentes</p>
+                                                    <p className="text-xs text-amber-700/70 dark:text-amber-400/70">A IA criará e agendará posts sozinha nos melhores horários.</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAutopilotEnabled(!autopilotEnabled)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${autopilotEnabled ? 'bg-amber-500' : 'bg-gray-200 dark:bg-slate-700'}`}
+                                                >
+                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autopilotEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            {autopilotEnabled && (
+                                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                        Frequência de Postagem
+                                                    </label>
+                                                    <select
+                                                        className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-sm transition-all"
+                                                        value={autopilotFrequency}
+                                                        onChange={e => setAutopilotFrequency(e.target.value as any)}
+                                                    >
+                                                        <option value="daily">Postagem Diária (7x por semana)</option>
+                                                        <option value="thrice_weekly">Frequência Padrão (3x por semana)</option>
+                                                        <option value="weekly">Frequência Relaxada (1x por semana)</option>
+                                                    </select>
+                                                    <p className="text-[10px] text-amber-600 font-bold mt-2 flex items-center gap-1">
+                                                        <ShieldCheck size={12} /> Sugestão da IA: 3x por semana mantém o engajamento alto sem cansar o público.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                            <Palette size={18} className="text-rose-500" />
+                                            Brand Kit (Identidade Visual)
+                                        </h3>
+                                        <p className="text-xs text-gray-500 mb-4">Configure o logotipo e as cores da sua marca para que a IA possa aplicá-las em seus conteúdos.</p>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                            <div className="space-y-3">
+                                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wider text-indigo-100">Logotipo da Marca</label>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-20 h-20 rounded-xl bg-white dark:bg-slate-800 border border-dashed border-gray-300 dark:border-slate-700 flex items-center justify-center overflow-hidden relative group">
+                                                        {brandLogo ? (
+                                                            <>
+                                                                <img src={brandLogo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setBrandLogo(null)}
+                                                                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                                                                >
+                                                                    <Trash2 size={20} />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <ImageIcon size={24} className="text-gray-300" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <input
+                                                            type="file"
+                                                            id="brand-logo-upload"
+                                                            className="hidden"
+                                                            accept="image/*"
+                                                            onChange={handleUploadLogo}
+                                                            disabled={uploadingLogo}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            onClick={() => document.getElementById('brand-logo-upload')?.click()}
+                                                            disabled={uploadingLogo}
+                                                            className="w-full text-xs"
+                                                        >
+                                                            {uploadingLogo ? 'Enviando...' : 'Selecionar Logo'}
+                                                        </Button>
+                                                        <p className="text-[10px] text-gray-500 mt-2">Use arquivos PNG transparente para melhor resultado.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wider">Cores da Identidade</label>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] text-gray-500 mb-1">Cor Primária</p>
+                                                        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-gray-200 dark:border-slate-700">
+                                                            <input
+                                                                type="color"
+                                                                value={brandPrimaryColor}
+                                                                onChange={(e) => setBrandPrimaryColor(e.target.value)}
+                                                                className="w-8 h-8 rounded-lg cursor-pointer border-none bg-transparent"
+                                                            />
+                                                            <span className="text-xs font-mono text-gray-600 dark:text-gray-400 uppercase">{brandPrimaryColor}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] text-gray-500 mb-1">Cor Secundária</p>
+                                                        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-gray-200 dark:border-slate-700">
+                                                            <input
+                                                                type="color"
+                                                                value={brandSecondaryColor}
+                                                                onChange={(e) => setBrandSecondaryColor(e.target.value)}
+                                                                className="w-8 h-8 rounded-lg cursor-pointer border-none bg-transparent"
+                                                            />
+                                                            <span className="text-xs font-mono text-gray-600 dark:text-gray-400 uppercase">{brandSecondaryColor}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 flex justify-end">
+                                        <Button
+                                            type="submit"
+                                            disabled={saving}
+                                            className="bg-rose-600 hover:bg-rose-700 text-white gap-2 flex items-center shadow-lg shadow-rose-500/30"
+                                        >
+                                            <Save size={16} />
+                                            {saving ? 'Salvando...' : 'Salvar Perfil IA'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        {/* Right Column: Connection / Status */}
+                        <div className="space-y-6">
+                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 shadow-sm text-white relative overflow-hidden group">
+                                <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+                                <h2 className="text-lg font-bold flex items-center gap-2 mb-2">
+                                    <Instagram size={20} /> Conectar Conta
+                                </h2>
+                                <div className="text-sm text-indigo-100 mb-6 relative z-10 space-y-2">
+                                    <p>Para publicar automaticamente, siga os três passos:</p>
+                                    <ul className="list-disc list-inside text-xs opacity-90 space-y-1">
+                                        <li>Tenha seu <strong>Instagram como Conta Profissional</strong></li>
+                                        <li>Tenha seu Instagram <strong>vinculado à uma Página do Facebook</strong></li>
+                                        <li>Faça login abaixo garantindo que marcou todas as permissões do Facebook.</li>
+                                    </ul>
+                                    <button
+                                        onClick={() => setShowInstructions(true)}
+                                        className="mt-3 text-[11px] underline text-indigo-200 hover:text-white transition-colors"
+                                    >
+                                        Não sabe como fazer? Ver tutorial detalhado
+                                    </button>
+                                </div>
+
+                                {!profile?.ig_account_id ? (
+                                    <>
+                                        <Button
+                                            onClick={handleConnectMeta}
+                                            disabled={connectingMeta || !profile}
+                                            className="w-full bg-white text-indigo-600 hover:bg-gray-50 flex items-center justify-center gap-2 font-bold shadow-lg disabled:opacity-80"
+                                        >
+                                            <Facebook size={18} />
+                                            {connectingMeta ? 'Conectando...' : 'Fazer Login com Meta'}
+                                        </Button>
+                                        {!profile && <p className="text-center text-xs text-indigo-200 mt-2">Salve o Perfil da Marca primeiro.</p>}
+                                        <p className="text-[10px] text-center mt-3 text-indigo-200 opacity-80">
+                                            Integração 100% oficial e segura com a API Graph Meta.
+                                        </p>
+                                    </>
                                 ) : (
-                                    <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs rounded-lg border border-emerald-100 dark:border-emerald-800/50">
-                                        <strong>✅ WhatsApp Conectado:</strong> Tudo certo! Você já possui conectividade ativa e começará a receber as postagens para aprovação automaticamente neste celular.
+                                    <div className="bg-white/20 p-4 rounded-xl border border-white/30 backdrop-blur-sm z-10 relative">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+                                                <Instagram size={20} className="text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] uppercase tracking-wider text-indigo-100 font-bold mb-0.5">Conectado Oficial</p>
+                                                <p className="font-bold text-white leading-none">@{profile.ig_username}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-indigo-100/90 mt-3 pt-3 border-t border-white/20">
+                                            Página Vinculada: <strong>{profile.fb_page_name}</strong>
+                                        </p>
+                                        <button
+                                            onClick={handleDisconnectMeta}
+                                            type="button"
+                                            disabled={connectingMeta}
+                                            className="mt-3 w-full py-2 bg-black/20 hover:bg-rose-500/80 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Unplug size={14} />
+                                            {connectingMeta ? 'Aguarde...' : 'Desconectar Conta'}
+                                        </button>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                                    <Video size={18} className="text-indigo-500" />
-                                    Configuração de Avatar de Vídeo (IA)
-                                </h3>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
-                                        <div>
-                                            <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">Ativar Postagens com Vídeo</p>
-                                            <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70">A IA gerará vídeos com avatar falando o roteiro em vez de imagens.</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setVideoEnabled(!videoEnabled)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${videoEnabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-slate-700'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${videoEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-
-                                    {videoEnabled && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
-                                                    <User size={14} /> Gênero do Avatar
-                                                </label>
-                                                <select
-                                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                                                    value={avatarGender}
-                                                    onChange={e => setAvatarGender(e.target.value)}
-                                                >
-                                                    <option value="male">Masculino (Apresentador)</option>
-                                                    <option value="female">Feminino (Apresentadora)</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Estilo do Vídeo
-                                                </label>
-                                                <select
-                                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                                                    value={avatarStyle}
-                                                    onChange={e => setAvatarStyle(e.target.value)}
-                                                >
-                                                    <option value="professional">Profissional / Executivo</option>
-                                                    <option value="news">Telejornal / Notícias</option>
-                                                    <option value="casual">Casual / Descontraído</option>
-                                                    <option value="educational">Educativo / Professor</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                            <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800/50 rounded-2xl p-5">
+                                <h3 className="font-bold text-orange-800 dark:text-orange-400 text-sm mb-2">💡 Como Funciona?</h3>
+                                <ol className="text-xs text-orange-700/80 dark:text-orange-300/80 space-y-2 list-decimal list-inside">
+                                    <li>Preencha o perfil da sua marca aqui.</li>
+                                    <li>A IA "Aplica" essa personalidade todo dia de madrugada.</li>
+                                    <li>Pela manhã você recebe uma notificação no WhatsApp com a Postagem pronta.</li>
+                                    <li>Aprove digitando "1" e nós publicamos no seu Instagram automaticamente.</li>
+                                </ol>
                             </div>
-
-                            <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                                    <Zap size={18} className="text-amber-500" />
-                                    Modo Piloto Automático (Fase 8)
-                                </h3>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/50">
-                                        <div>
-                                            <p className="text-sm font-bold text-amber-900 dark:text-amber-300">Ativar Postagens Inteligentes</p>
-                                            <p className="text-xs text-amber-700/70 dark:text-amber-400/70">A IA criará e agendará posts sozinha nos melhores horários.</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setAutopilotEnabled(!autopilotEnabled)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${autopilotEnabled ? 'bg-amber-500' : 'bg-gray-200 dark:bg-slate-700'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autopilotEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-
-                                    {autopilotEnabled && (
-                                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                Frequência de Postagem
-                                            </label>
-                                            <select
-                                                className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-sm transition-all"
-                                                value={autopilotFrequency}
-                                                onChange={e => setAutopilotFrequency(e.target.value as any)}
-                                            >
-                                                <option value="daily">Postagem Diária (7x por semana)</option>
-                                                <option value="thrice_weekly">Frequência Padrão (3x por semana)</option>
-                                                <option value="weekly">Frequência Relaxada (1x por semana)</option>
-                                            </select>
-                                            <p className="text-[10px] text-amber-600 font-bold mt-2 flex items-center gap-1">
-                                                <ShieldCheck size={12} /> Sugestão da IA: 3x por semana mantém o engajamento alto sem cansar o público.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                                    <Palette size={18} className="text-rose-500" />
-                                    Brand Kit (Identidade Visual)
-                                </h3>
-                                <p className="text-xs text-gray-500 mb-4">Configure o logotipo e as cores da sua marca para que a IA possa aplicá-las em seus conteúdos.</p>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
-                                    <div className="space-y-3">
-                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wider text-indigo-100">Logotipo da Marca</label>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-20 h-20 rounded-xl bg-white dark:bg-slate-800 border border-dashed border-gray-300 dark:border-slate-700 flex items-center justify-center overflow-hidden relative group">
-                                                {brandLogo ? (
-                                                    <>
-                                                        <img src={brandLogo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setBrandLogo(null)}
-                                                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
-                                                        >
-                                                            <Trash2 size={20} />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <ImageIcon size={24} className="text-gray-300" />
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <input
-                                                    type="file"
-                                                    id="brand-logo-upload"
-                                                    className="hidden"
-                                                    accept="image/*"
-                                                    onChange={handleUploadLogo}
-                                                    disabled={uploadingLogo}
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    onClick={() => document.getElementById('brand-logo-upload')?.click()}
-                                                    disabled={uploadingLogo}
-                                                    className="w-full text-xs"
-                                                >
-                                                    {uploadingLogo ? 'Enviando...' : 'Selecionar Logo'}
-                                                </Button>
-                                                <p className="text-[10px] text-gray-500 mt-2">Use arquivos PNG transparente para melhor resultado.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wider">Cores da Identidade</label>
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-1">
-                                                <p className="text-[10px] text-gray-500 mb-1">Cor Primária</p>
-                                                <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-gray-200 dark:border-slate-700">
-                                                    <input
-                                                        type="color"
-                                                        value={brandPrimaryColor}
-                                                        onChange={(e) => setBrandPrimaryColor(e.target.value)}
-                                                        className="w-8 h-8 rounded-lg cursor-pointer border-none bg-transparent"
-                                                    />
-                                                    <span className="text-xs font-mono text-gray-600 dark:text-gray-400 uppercase">{brandPrimaryColor}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-[10px] text-gray-500 mb-1">Cor Secundária</p>
-                                                <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-gray-200 dark:border-slate-700">
-                                                    <input
-                                                        type="color"
-                                                        value={brandSecondaryColor}
-                                                        onChange={(e) => setBrandSecondaryColor(e.target.value)}
-                                                        className="w-8 h-8 rounded-lg cursor-pointer border-none bg-transparent"
-                                                    />
-                                                    <span className="text-xs font-mono text-gray-600 dark:text-gray-400 uppercase">{brandSecondaryColor}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pt-4 flex justify-end">
-                                <Button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="bg-rose-600 hover:bg-rose-700 text-white gap-2 flex items-center shadow-lg shadow-rose-500/30"
-                                >
-                                    <Save size={16} />
-                                    {saving ? 'Salvando...' : 'Salvar Perfil IA'}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                {/* Right Column: Connection / Status */}
-                <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 shadow-sm text-white relative overflow-hidden group">
-                        <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
-                        <h2 className="text-lg font-bold flex items-center gap-2 mb-2">
-                            <Instagram size={20} /> Conectar Conta
-                        </h2>
-                        <div className="text-sm text-indigo-100 mb-6 relative z-10 space-y-2">
-                            <p>Para publicar automaticamente, siga os três passos:</p>
-                            <ul className="list-disc list-inside text-xs opacity-90 space-y-1">
-                                <li>Tenha seu <strong>Instagram como Conta Profissional</strong></li>
-                                <li>Tenha seu Instagram <strong>vinculado à uma Página do Facebook</strong></li>
-                                <li>Faça login abaixo garantindo que marcou todas as permissões do Facebook.</li>
-                            </ul>
-                            <button
-                                onClick={() => setShowInstructions(true)}
-                                className="mt-3 text-[11px] underline text-indigo-200 hover:text-white transition-colors"
-                            >
-                                Não sabe como fazer? Ver tutorial detalhado
-                            </button>
                         </div>
 
-                        {!profile?.ig_account_id ? (
-                            <>
-                                <Button
-                                    onClick={handleConnectMeta}
-                                    disabled={connectingMeta || !profile}
-                                    className="w-full bg-white text-indigo-600 hover:bg-gray-50 flex items-center justify-center gap-2 font-bold shadow-lg disabled:opacity-80"
-                                >
-                                    <Facebook size={18} />
-                                    {connectingMeta ? 'Conectando...' : 'Fazer Login com Meta'}
-                                </Button>
-                                {!profile && <p className="text-center text-xs text-indigo-200 mt-2">Salve o Perfil da Marca primeiro.</p>}
-                                <p className="text-[10px] text-center mt-3 text-indigo-200 opacity-80">
-                                    Integração 100% oficial e segura com a API Graph Meta.
-                                </p>
-                            </>
-                        ) : (
-                            <div className="bg-white/20 p-4 rounded-xl border border-white/30 backdrop-blur-sm z-10 relative">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
-                                        <Instagram size={20} className="text-white" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] uppercase tracking-wider text-indigo-100 font-bold mb-0.5">Conectado Oficial</p>
-                                        <p className="font-bold text-white leading-none">@{profile.ig_username}</p>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-indigo-100/90 mt-3 pt-3 border-t border-white/20">
-                                    Página Vinculada: <strong>{profile.fb_page_name}</strong>
-                                </p>
-                                <button
-                                    onClick={handleDisconnectMeta}
-                                    type="button"
-                                    disabled={connectingMeta}
-                                    className="mt-3 w-full py-2 bg-black/20 hover:bg-rose-500/80 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Unplug size={14} />
-                                    {connectingMeta ? 'Aguarde...' : 'Desconectar Conta'}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800/50 rounded-2xl p-5">
-                        <h3 className="font-bold text-orange-800 dark:text-orange-400 text-sm mb-2">💡 Como Funciona?</h3>
-                        <ol className="text-xs text-orange-700/80 dark:text-orange-300/80 space-y-2 list-decimal list-inside">
-                            <li>Preencha o perfil da sua marca aqui.</li>
-                            <li>A IA "Aplica" essa personalidade todo dia de madrugada.</li>
-                            <li>Pela manhã você recebe uma notificação no WhatsApp com a Postagem pronta.</li>
-                            <li>Aprove digitando "1" e nós publicamos no seu Instagram automaticamente.</li>
-                        </ol>
+                        {/* Bottom Row/Section for Past/Generated Posts showing under left col or full width */}
                     </div>
                 </div>
-
-                {/* Bottom Row/Section for Past/Generated Posts showing under left col or full width */}
-            </div>
+            )}
 
             {/* Generated Posts Section */}
-            {profile && (
-                <div className="mt-8">
+            {activeApp === 'social' && profile && (
+                <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
                             <Sparkles size={18} className="text-rose-500" />
