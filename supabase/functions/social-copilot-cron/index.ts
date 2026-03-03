@@ -132,11 +132,33 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
         company_id: company.id,
         content: generatedContent,
         image_url: publicUrl,
-        media_type: 'feed',
+        media_type: profile.video_enabled ? 'reels' : 'feed',
         status: 'pending'
       })
       .select()
       .single()
+
+    // 4.1 Se o vídeo estiver habilitado, chama o gerador de vídeo
+    if (profile.video_enabled && insertedPost) {
+      console.log(`Chamando gerador de vídeo para a empresa ${company.trade_name}...`);
+      try {
+        const videoRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ post_id: insertedPost.id, company_id: company.id })
+        });
+        const videoData = await videoRes.json();
+        if (videoData.videoUrl) {
+          insertedPost.image_url = videoData.videoUrl;
+          insertedPost.media_type = 'reels';
+        }
+      } catch (videoErr) {
+        console.error('Erro ao gerar vídeo, mantendo imagem estática:', videoErr);
+      }
+    }
 
     let dispatchLog = 'No action';
     // 5. Send Notification via Evolution API to the company's owner/WhatsApp

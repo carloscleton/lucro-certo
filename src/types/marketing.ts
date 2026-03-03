@@ -10,6 +10,11 @@ export interface SocialProfile {
     fb_page_name?: string;
     ig_account_id?: string;
     ig_username?: string;
+    video_enabled?: boolean;
+    avatar_id?: string;
+    voice_id?: string;
+    avatar_style?: string;
+    avatar_gender?: string;
     created_at: string;
     updated_at: string;
 }

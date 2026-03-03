@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -45,6 +45,11 @@ export function Marketing() {
     const [campaignTheme, setCampaignTheme] = useState('');
     const [campaignCount, setCampaignCount] = useState<number>(3);
     const [savingCampaign, setSavingCampaign] = useState(false);
+
+    // Video/Avatar Settings
+    const [videoEnabled, setVideoEnabled] = useState(false);
+    const [avatarGender, setAvatarGender] = useState('male');
+    const [avatarStyle, setAvatarStyle] = useState('professional');
 
     const formatWhatsAppMask = (value: string) => {
         let v = value.replace(/\D/g, '');
@@ -118,6 +123,9 @@ export function Marketing() {
                 setTone(profileData.tone);
                 setAudience(profileData.target_audience);
                 setApprovalWhatsapp(formatWhatsAppMask(profileData.approval_whatsapp || ''));
+                setVideoEnabled(profileData.video_enabled || false);
+                setAvatarGender(profileData.avatar_gender || 'male');
+                setAvatarStyle(profileData.avatar_style || 'professional');
                 await fetchPosts();
             }
         } finally {
@@ -148,14 +156,31 @@ export function Marketing() {
                 // Update
                 const { error } = await supabase
                     .from('social_profiles')
-                    .update({ niche, tone, target_audience: audience, approval_whatsapp: cleanPhone })
+                    .update({
+                        niche,
+                        tone,
+                        target_audience: audience,
+                        approval_whatsapp: cleanPhone,
+                        video_enabled: videoEnabled,
+                        avatar_gender: avatarGender,
+                        avatar_style: avatarStyle
+                    })
                     .eq('id', profile.id);
                 if (error) throw error;
             } else {
                 // Create
                 const { error } = await supabase
                     .from('social_profiles')
-                    .insert({ company_id: currentEntity.id, niche, tone, target_audience: audience, approval_whatsapp: cleanPhone });
+                    .insert({
+                        company_id: currentEntity.id,
+                        niche,
+                        tone,
+                        target_audience: audience,
+                        approval_whatsapp: cleanPhone,
+                        video_enabled: videoEnabled,
+                        avatar_gender: avatarGender,
+                        avatar_style: avatarStyle
+                    });
                 if (error) throw error;
             }
 
@@ -655,6 +680,62 @@ export function Marketing() {
                                         <strong>✅ WhatsApp Conectado:</strong> Tudo certo! Você já possui conectividade ativa e começará a receber as postagens para aprovação automaticamente neste celular.
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
+                                <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                    <Video size={18} className="text-indigo-500" />
+                                    Configuração de Avatar de Vídeo (IA)
+                                </h3>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
+                                        <div>
+                                            <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">Ativar Postagens com Vídeo</p>
+                                            <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70">A IA gerará vídeos com avatar falando o roteiro em vez de imagens.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setVideoEnabled(!videoEnabled)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${videoEnabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-slate-700'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${videoEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    {videoEnabled && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                                    <User size={14} /> Gênero do Avatar
+                                                </label>
+                                                <select
+                                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                                    value={avatarGender}
+                                                    onChange={e => setAvatarGender(e.target.value)}
+                                                >
+                                                    <option value="male">Masculino (Apresentador)</option>
+                                                    <option value="female">Feminino (Apresentadora)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Estilo do Vídeo
+                                                </label>
+                                                <select
+                                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                                    value={avatarStyle}
+                                                    onChange={e => setAvatarStyle(e.target.value)}
+                                                >
+                                                    <option value="professional">Profissional / Executivo</option>
+                                                    <option value="news">Telejornal / Notícias</option>
+                                                    <option value="casual">Casual / Descontraído</option>
+                                                    <option value="educational">Educativo / Professor</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="pt-4 flex justify-end">

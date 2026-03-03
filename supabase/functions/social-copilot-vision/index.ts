@@ -93,6 +93,7 @@ Gere apenas o texto final da legenda, sem aspas, sem filler.`
         company_id: company_id,
         content: generatedContent,
         image_url: image_url,
+        media_type: profile.video_enabled ? 'reels' : 'feed',
         status: 'pending'
       })
       .select()
@@ -100,6 +101,28 @@ Gere apenas o texto final da legenda, sem aspas, sem filler.`
 
     if (insertErr) {
       console.error('Erro ao salvar post:', insertErr)
+    }
+
+    // 3.1 Se o vídeo estiver habilitado, chama o gerador de vídeo
+    if (profile.video_enabled && insertedPost) {
+      console.log(`Chamando gerador de vídeo para a empresa ${company_id} via Vision...`);
+      try {
+        const videoRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ post_id: insertedPost.id, company_id: company_id })
+        });
+        const videoData = await videoRes.json();
+        if (videoData.videoUrl) {
+          insertedPost.image_url = videoData.videoUrl;
+          insertedPost.media_type = 'reels';
+        }
+      } catch (videoErr) {
+        console.error('Erro ao gerar vídeo no Vision, mantendo imagem estática:', videoErr);
+      }
     }
 
     // 4. Enviar mensagem via Zap!
