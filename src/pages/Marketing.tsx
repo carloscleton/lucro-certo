@@ -74,6 +74,7 @@ export function Marketing() {
     const [blogContent, setBlogContent] = useState('');
     const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
     const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
     const formatWhatsAppMask = (value: string) => {
         let v = value.replace(/\D/g, '');
@@ -582,7 +583,8 @@ export function Marketing() {
                     company_id: currentEntity.id,
                     content: manualContent,
                     image_url: publicUrl,
-                    media_type: manualMediaType
+                    media_type: manualMediaType,
+                    scheduled_for: selectedDate
                 })
             });
 
@@ -595,6 +597,7 @@ export function Marketing() {
             setManualPreview(null);
             setManualContent('');
             setManualMediaType('feed');
+            setSelectedDate(null);
             await fetchPosts();
         } catch (error: any) {
             console.error('Erro ao salvar post manual:', error);
@@ -1236,7 +1239,15 @@ export function Marketing() {
                                     const isCurrentMonth = date.getMonth() === calendarDate.getMonth();
 
                                     return (
-                                        <div key={i} className={`bg-white dark:bg-slate-800 min-h-[140px] p-3 relative hover:bg-rose-50/20 dark:hover:bg-rose-900/5 transition-colors border-r border-b border-gray-50 dark:border-slate-800/50 ${!isCurrentMonth ? 'opacity-30' : 'opacity-100'} ${isToday ? 'bg-rose-50/10' : ''}`}>
+                                        <div
+                                            key={i}
+                                            onClick={() => {
+                                                if (!isCurrentMonth) return;
+                                                setSelectedDate(dateStr);
+                                                setIsCreatingManualPost(true);
+                                            }}
+                                            className={`bg-white dark:bg-slate-800 min-h-[140px] p-3 relative hover:bg-rose-50/20 dark:hover:bg-rose-900/5 transition-colors border-r border-b border-gray-50 dark:border-slate-800/50 cursor-pointer group/day ${!isCurrentMonth ? 'opacity-30 pointer-events-none' : 'opacity-100'} ${isToday ? 'bg-rose-50/10' : ''}`}
+                                        >
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className={`text-xs font-black ${isToday ? 'bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-full shadow-lg shadow-rose-500/40 animate-in zoom-in-50' : isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-300'}`}>
                                                     {date.getDate()}
@@ -1404,11 +1415,18 @@ export function Marketing() {
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-3 mt-6">
-                                <Button variant="outline" onClick={() => { setIsCreatingManualPost(false); setManualPreview(null); setManualFile(null); setManualContent(''); setManualMediaType('feed'); }} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
-                                <Button onClick={handleSaveManualPost} disabled={savingManualPost} className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30">
-                                    {savingManualPost ? 'Salvando...' : 'Salvar Postagem'}
-                                </Button>
+                            <div className="flex justify-between items-center mt-6">
+                                {selectedDate && (
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-purple-600 bg-purple-50 dark:bg-purple-900/30 px-3 py-1.5 rounded-lg border border-purple-100 dark:border-purple-800">
+                                        📅 Agendado para: {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                    </div>
+                                )}
+                                <div className="flex gap-3 ml-auto">
+                                    <Button variant="outline" onClick={() => { setIsCreatingManualPost(false); setManualPreview(null); setManualFile(null); setManualContent(''); setManualMediaType('feed'); setSelectedDate(null); }} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
+                                    <Button onClick={handleSaveManualPost} disabled={savingManualPost} className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30">
+                                        {savingManualPost ? 'Salvando...' : 'Salvar Postagem'}
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
