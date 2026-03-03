@@ -69,6 +69,12 @@ export function Marketing() {
     const [activeApp, setActiveApp] = useState<'social' | 'blog'>('social');
     const [calendarDate, setCalendarDate] = useState(new Date());
 
+    // Blog App State
+    const [blogTopic, setBlogTopic] = useState('');
+    const [blogContent, setBlogContent] = useState('');
+    const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
+    const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+
     const formatWhatsAppMask = (value: string) => {
         let v = value.replace(/\D/g, '');
         if (v.startsWith('55')) v = v.substring(2);
@@ -614,6 +620,24 @@ export function Marketing() {
             alert('Falha ao subir o logotipo.');
         } finally {
             setUploadingLogo(false);
+        }
+    };
+
+    const handleGenerateBlog = async () => {
+        if (!blogTopic) return;
+        setIsGeneratingBlog(true);
+        setIsBlogModalOpen(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('social-blog-generator', {
+                body: { company_id: currentEntity.id, topic: blogTopic }
+            });
+            if (error) throw error;
+            setBlogContent(data.content);
+        } catch (err) {
+            console.error('Error generating blog:', err);
+            alert('Falha ao gerar o artigo.');
+        } finally {
+            setIsGeneratingBlog(false);
         }
     };
 
@@ -1228,9 +1252,9 @@ export function Marketing() {
                                                             setEditMediaType(post.media_type as any || 'feed');
                                                         }}
                                                         className={`text-[9px] p-2.5 rounded-2xl border leading-tight truncate cursor-pointer transition-all hover:scale-[1.04] active:scale-95 shadow-sm active:shadow-inner ${post.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400' :
-                                                                post.status === 'posted' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' :
-                                                                    post.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400' :
-                                                                        'bg-gray-50 text-gray-500 border-gray-100 dark:bg-slate-900 dark:border-slate-800'
+                                                            post.status === 'posted' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' :
+                                                                post.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400' :
+                                                                    'bg-gray-50 text-gray-500 border-gray-100 dark:bg-slate-900 dark:border-slate-800'
                                                             }`}
                                                     >
                                                         <div className="flex items-center gap-1.5">
@@ -1262,14 +1286,29 @@ export function Marketing() {
                             <div className="flex-1 text-center md:text-left">
                                 <h2 className="text-3xl font-black mb-4">Gerador de Artigos IA (Blog IA)</h2>
                                 <p className="text-indigo-100 text-lg mb-6 leading-relaxed">Transforme ideias em artigos otimizados para SEO que trazem clientes orgânicos para o seu site no piloto automático.</p>
-                                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                                    <Button className="bg-white text-indigo-600 hover:bg-gray-50 font-bold px-8 py-6 rounded-2xl shadow-lg shadow-black/20 text-md">
-                                        Escrever Novo Artigo Agora
-                                    </Button>
-                                    <Button variant="outline" className="border-indigo-300 text-white hover:bg-white/10 px-6 py-6 rounded-2xl text-md">
-                                        <Globe size={18} className="mr-2" />
-                                        Configurar meu Blog
-                                    </Button>
+
+                                <div className="max-w-xl mx-auto md:mx-0 space-y-4">
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Sparkles className="h-5 w-5 text-indigo-400 group-focus-within:text-white transition-colors" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={blogTopic}
+                                            onChange={(e) => setBlogTopic(e.target.value)}
+                                            placeholder="Sobre o que você quer escrever hoje?"
+                                            className="block w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/20 transition-all shadow-lg"
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                                        <Button
+                                            onClick={handleGenerateBlog}
+                                            disabled={!blogTopic || isGeneratingBlog}
+                                            className="bg-white text-indigo-600 hover:bg-gray-50 font-black px-8 py-6 rounded-2xl shadow-lg shadow-black/20 text-md"
+                                        >
+                                            {isGeneratingBlog ? 'Gerando Mágica...' : 'Escrever Artigo Agora'}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                             <div className="w-full md:w-64 h-64 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 flex flex-col items-center justify-center p-6 text-center animate-pulse">
@@ -1626,6 +1665,70 @@ export function Marketing() {
                                         Gerar Mídia agora e Postar
                                     </>
                                 )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Modal de Studio de Criação de Blog */}
+            {isBlogModalOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-200 h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-500/10 to-transparent">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                                    <FileText size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-none">Editor de Artigo IA</h2>
+                                    <p className="text-xs text-gray-500 mt-1">Revise seu artigo otimizado para SEO antes de publicar.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsBlogModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 border border-gray-100 dark:border-slate-800 rounded-xl">
+                                <Save size={18} className="rotate-45" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 flex-1 overflow-y-auto space-y-4">
+                            {isGeneratingBlog ? (
+                                <div className="py-24 flex flex-col items-center justify-center space-y-4">
+                                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-indigo-600 font-bold text-xl animate-pulse">A IA está pesquisando e escrevendo seu artigo...</p>
+                                    <p className="text-gray-400 text-sm">Isso pode levar até 30 segundos devido ao tamanho do conteúdo.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-2xl border border-amber-100 dark:border-amber-800/50 flex items-start gap-3 mb-2">
+                                        <Sparkles size={18} className="text-amber-500 mt-0.5 shrink-0" />
+                                        <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                                            <strong>Dica de SEO:</strong> Este artigo foi estruturado com H1, H2 e palavras-chave semânticas. Você pode copiar este texto e colar no seu WordPress, Wix ou Blog próprio.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex-1 min-h-[400px]">
+                                        <textarea
+                                            className="w-full h-full min-h-[500px] p-8 border border-gray-200 dark:border-slate-700 rounded-3xl resize-none bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-serif text-lg leading-relaxed shadow-inner"
+                                            value={blogContent}
+                                            onChange={e => setBlogContent(e.target.value)}
+                                            placeholder="Seu artigo vai aparecer aqui..."
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="p-6 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-100 dark:border-slate-800 flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsBlogModalOpen(false)} className="rounded-2xl px-6">Fechar</Button>
+                            <Button
+                                disabled={isGeneratingBlog || !blogContent}
+                                onClick={() => {
+                                    navigator.clipboard.writeText(blogContent);
+                                    alert('Artigo copiado para a área de transferência! Cole no seu blog.');
+                                }}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-lg shadow-indigo-500/20 px-8 rounded-2xl"
+                            >
+                                <Save size={18} />
+                                Copiar e Finalizar
                             </Button>
                         </div>
                     </div>
