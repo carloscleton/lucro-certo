@@ -5,6 +5,9 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
+const EVO_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
+const EVO_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
+
 const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
 
 const corsHeaders = {
@@ -35,7 +38,7 @@ serve(async (req) => {
     // 1. Check Profile
     const { data: profile } = await supabase
       .from('social_profiles')
-      .select('niche, tone, target_audience')
+      .select('niche, tone, target_audience, approval_whatsapp')
       .eq('company_id', company_id)
       .single()
 
@@ -182,6 +185,45 @@ Exemplo do formato:
       .select()
 
     if (dbError) throw dbError;
+
+    // Enviar notificacao via Evolution API
+    if (profile?.approval_whatsapp) {
+      try {
+        const { data: instances } = await supabase
+          .from('instances')
+          .select('instance_name, evolution_instance_id')
+          .eq('company_id', company_id)
+          .eq('status', 'connected')
+          .limit(1);
+
+        if (instances && instances.length > 0) {
+          const instance = instances[0];
+          const targetNumber = profile.approval_whatsapp.replace(/\D/g, '');
+
+          // We'll send one message confirming the campaign creation with instructions
+          const messageText = `🚀 *Mágica Concluída!*
+Sua nova campanha sobre o tema _"${theme}"_ acaba de ser gerada com *${insertedPosts.length} postagens* inéditas, incluindo legendas e imagens criadas pela IA.
+
+As postagens já estão pendentes e salvas na sua plataforma Web. Para publicá-las ou agendá-las no Instagram, acesse o painel.`;
+
+          await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': EVO_API_KEY
+            },
+            body: JSON.stringify({
+              number: targetNumber,
+              options: { delay: 1200, presence: "composing" },
+              text: messageText,
+              textMessage: { text: messageText }
+            })
+          });
+        }
+      } catch (evoErr) {
+        console.error('Falha nao-critica ao enviar wpp da campanha', evoErr);
+      }
+    }
 
     return new Response(JSON.stringify({
       success: true,
