@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid, ChevronLeft, ChevronRight, FileText, BarChart3, TrendingUp, Users, Heart, MessageCircle } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid, ChevronLeft, ChevronRight, FileText, BarChart3, TrendingUp, Users, Heart, MessageCircle, Zap, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -57,6 +57,10 @@ export function Marketing() {
     const [videoEnabled, setVideoEnabled] = useState(false);
     const [avatarGender, setAvatarGender] = useState('male');
     const [avatarStyle, setAvatarStyle] = useState('professional');
+
+    // Auto-Pilot State
+    const [autopilotEnabled, setAutopilotEnabled] = useState(false);
+    const [autopilotFrequency, setAutopilotFrequency] = useState<'daily' | 'thrice_weekly' | 'weekly'>('thrice_weekly');
 
     // Brand Kit State
     const [brandLogo, setBrandLogo] = useState<string | null>(null);
@@ -158,6 +162,8 @@ export function Marketing() {
                 setBrandLogo(profileData.brand_logo_url || currentEntity.logo_url || null);
                 setBrandPrimaryColor(profileData.brand_primary_color || '#4f46e5');
                 setBrandSecondaryColor(profileData.brand_secondary_color || '#f43f5e');
+                setAutopilotEnabled(profileData.autopilot_enabled || false);
+                setAutopilotFrequency(profileData.autopilot_frequency || 'thrice_weekly');
                 await fetchPosts();
             }
         } finally {
@@ -198,7 +204,9 @@ export function Marketing() {
                         avatar_style: avatarStyle,
                         brand_logo_url: brandLogo,
                         brand_primary_color: brandPrimaryColor,
-                        brand_secondary_color: brandSecondaryColor
+                        brand_secondary_color: brandSecondaryColor,
+                        autopilot_enabled: autopilotEnabled,
+                        autopilot_frequency: autopilotFrequency
                     })
                     .eq('id', profile.id);
                 if (error) throw error;
@@ -217,7 +225,9 @@ export function Marketing() {
                         avatar_style: avatarStyle,
                         brand_logo_url: brandLogo,
                         brand_primary_color: brandPrimaryColor,
-                        brand_secondary_color: brandSecondaryColor
+                        brand_secondary_color: brandSecondaryColor,
+                        autopilot_enabled: autopilotEnabled,
+                        autopilot_frequency: autopilotFrequency
                     });
                 if (error) throw error;
             }
@@ -890,6 +900,49 @@ export function Marketing() {
                                                     <option value="educational">Educativo / Professor</option>
                                                 </select>
                                             </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 dark:border-slate-700 mt-6">
+                                <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                    <Zap size={18} className="text-amber-500" />
+                                    Modo Piloto Automático (Fase 8)
+                                </h3>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/50">
+                                        <div>
+                                            <p className="text-sm font-bold text-amber-900 dark:text-amber-300">Ativar Postagens Inteligentes</p>
+                                            <p className="text-xs text-amber-700/70 dark:text-amber-400/70">A IA criará e agendará posts sozinha nos melhores horários.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAutopilotEnabled(!autopilotEnabled)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${autopilotEnabled ? 'bg-amber-500' : 'bg-gray-200 dark:bg-slate-700'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autopilotEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    {autopilotEnabled && (
+                                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Frequência de Postagem
+                                            </label>
+                                            <select
+                                                className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-sm transition-all"
+                                                value={autopilotFrequency}
+                                                onChange={e => setAutopilotFrequency(e.target.value as any)}
+                                            >
+                                                <option value="daily">Postagem Diária (7x por semana)</option>
+                                                <option value="thrice_weekly">Frequência Padrão (3x por semana)</option>
+                                                <option value="weekly">Frequência Relaxada (1x por semana)</option>
+                                            </select>
+                                            <p className="text-[10px] text-amber-600 font-bold mt-2 flex items-center gap-1">
+                                                <ShieldCheck size={12} /> Sugestão da IA: 3x por semana mantém o engajamento alto sem cansar o público.
+                                            </p>
                                         </div>
                                     )}
                                 </div>

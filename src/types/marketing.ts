@@ -18,6 +18,9 @@ export interface SocialProfile {
     brand_logo_url?: string;
     brand_primary_color?: string;
     brand_secondary_color?: string;
+    autopilot_enabled?: boolean;
+    autopilot_frequency?: 'daily' | 'thrice_weekly' | 'weekly';
+    best_posting_times?: string[];
     created_at: string;
     updated_at: string;
 }
@@ -31,6 +34,10 @@ export interface SocialPost {
     status: 'pending' | 'approved' | 'rejected' | 'posted';
     scheduled_for?: string;
     posted_at?: string;
+    likes_count?: number;
+    comments_count?: number;
+    reach_count?: number;
+    impressions_count?: number;
     created_at: string;
     updated_at: string;
 }
