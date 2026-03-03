@@ -67,7 +67,23 @@ serve(async (req) => {
     // Agora enviar para a API do Grafo do Instagram
 
     // 1. Criar container de imagem
-    const mediaUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media?image_url=${encodeURIComponent(post.image_url)}&caption=${encodeURIComponent(post.content)}&access_token=${fb_access_token}`
+    let isVideo = post.image_url.toLowerCase().endsWith('.mp4') || post.image_url.toLowerCase().endsWith('.mov');
+    let mediaUrlParams = new URLSearchParams({
+      access_token: fb_access_token,
+      caption: post.content
+    })
+
+    if (isVideo) {
+      mediaUrlParams.append('media_type', 'REELS')
+      mediaUrlParams.append('video_url', post.image_url)
+    } else {
+      mediaUrlParams.append('image_url', post.image_url)
+      if (post.media_type === 'story') {
+        mediaUrlParams.append('media_type', 'STORIES')
+      }
+    }
+
+    const mediaUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media?${mediaUrlParams.toString()}`
 
     const mediaRes = await fetch(mediaUrl, { method: 'POST' })
     const mediaData = await mediaRes.json()

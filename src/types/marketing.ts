@@ -19,6 +19,7 @@ export interface SocialPost {
     company_id: string;
     content: string;
     image_url?: string;
+    media_type?: 'feed' | 'story' | 'reels';
     status: 'pending' | 'approved' | 'rejected' | 'posted';
     scheduled_for?: string;
     posted_at?: string;
