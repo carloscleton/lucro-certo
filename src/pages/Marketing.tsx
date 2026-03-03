@@ -25,9 +25,9 @@ export function Marketing() {
     const [hasWhatsappConnection, setHasWhatsappConnection] = useState(true);
     const [connectingMeta, setConnectingMeta] = useState(false);
 
-    // Edit post state
     const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
     const [editContent, setEditContent] = useState('');
+    const [showInstructions, setShowInstructions] = useState(false);
 
     const formatWhatsAppMask = (value: string) => {
         let v = value.replace(/\D/g, '');
@@ -481,6 +481,12 @@ export function Marketing() {
                                 <li>Tenha seu Instagram <strong>vinculado à uma Página do Facebook</strong></li>
                                 <li>Faça login abaixo garantindo que marcou todas as permissões do Facebook.</li>
                             </ul>
+                            <button
+                                onClick={() => setShowInstructions(true)}
+                                className="mt-3 text-[11px] underline text-indigo-200 hover:text-white transition-colors"
+                            >
+                                Não sabe como fazer? Ver tutorial detalhado
+                            </button>
                         </div>
 
                         {!profile?.ig_account_id ? (
@@ -640,6 +646,68 @@ export function Marketing() {
                         <div className="flex justify-end gap-3 mt-6">
                             <Button variant="outline" onClick={() => setEditingPost(null)} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
                             <Button onClick={handleSavePostEdit} className="bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/30">Salvar Alterações</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Instruções Face/Insta */}
+            {showInstructions && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
+                        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                            <Instagram size={24} className="text-pink-500" />
+                            Como Preparar seu Instagram para a Automação
+                        </h3>
+
+                        <div className="space-y-6 text-sm text-gray-700 dark:text-gray-300">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                                <p className="font-semibold text-blue-800 dark:text-blue-300 mb-1">Por que preciso fazer isso?</p>
+                                <p className="text-xs">Para que nosso sistema (ou qualquer outro sistema de inteligência) consiga postar no seu Instagram automaticamente sem precisar da sua senha, o Facebook exige que a conta siga regras profissionais de segurança.</p>
+                            </div>
+
+                            <div>
+                                <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span> Mudar para Conta Profissional</h4>
+                                <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                    <li>Abra o aplicativo do Instagram no seu celular.</li>
+                                    <li>Vá no seu <strong>Perfil</strong> e toque nos <strong>3 tracinhos</strong> (Menu) no canto superior direito.</li>
+                                    <li>Vá em <strong>Configurações</strong> {'>'} Tipo de conta e ferramentas.</li>
+                                    <li>Toque em <strong>Mudar para conta profissional / empresarial</strong> e siga até o final.</li>
+                                </ol>
+                            </div>
+
+                            <hr className="border-gray-100 dark:border-slate-700" />
+
+                            <div>
+                                <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span> Vincular a uma Página do Facebook</h4>
+                                <p className="text-xs mb-2 italic">Dica: É muito mais fácil fazer isso pelo Computador!</p>
+                                <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                    <li>Acesse o <strong>Facebook.com</strong> e abra a Página da sua empresa.</li>
+                                    <li>No menu lateral esquerdo, clique em <strong>Configurações</strong>.</li>
+                                    <li>Procure por <strong>Contas Vinculadas</strong>.</li>
+                                    <li>Clique em <strong>Instagram</strong> e botão <strong>Conectar Conta</strong>.</li>
+                                    <li>Coloque a senha do seu Insta e confirme.</li>
+                                </ol>
+                            </div>
+
+                            <hr className="border-gray-100 dark:border-slate-700" />
+
+                            <div>
+                                <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex gap-2"><span className="bg-gray-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-xs">3</span> Fazer o Vínculo Final aqui no Lucro Certo</h4>
+                                <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                    <li>Feche esta janela.</li>
+                                    <li>Clique no botão branco de <strong>Fazer Login com Meta</strong>.</li>
+                                    <li>O Facebook vai abrir. Clique em <strong>Editar configurações / Escolher o que permitir</strong>.</li>
+                                    <li>Tenha a certeza absoluta de <strong>marcar a caixinha do seu Instagram e da sua página do Facebook</strong> em todas as telas que aparecerem.</li>
+                                    <li>Conclua!</li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex justify-end">
+                            <Button onClick={() => setShowInstructions(false)} className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto">
+                                Entendi, vou configurar!
+                            </Button>
                         </div>
                     </div>
                 </div>
