@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid, ChevronLeft, ChevronRight, FileText, Globe } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -66,6 +66,8 @@ export function Marketing() {
 
     // View State
     const [viewMode, setViewMode] = useState<'feed' | 'calendar'>('feed');
+    const [activeApp, setActiveApp] = useState<'social' | 'blog'>('social');
+    const [calendarDate, setCalendarDate] = useState(new Date());
 
     const formatWhatsAppMask = (value: string) => {
         let v = value.replace(/\D/g, '');
@@ -687,9 +689,27 @@ export function Marketing() {
                         <p className="text-sm text-gray-500 dark:text-gray-400">Seu assistente virtual de inteligência artificial para mídias sociais.</p>
                     </div>
                 </div>
+
+                {/* App Switcher */}
+                <div className="flex items-center bg-gray-100 dark:bg-slate-800/50 p-1 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                    <button
+                        onClick={() => setActiveApp('social')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeApp === 'social' ? 'bg-white dark:bg-slate-700 text-rose-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <Instagram size={16} />
+                        Social IA
+                    </button>
+                    <button
+                        onClick={() => setActiveApp('blog')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeApp === 'blog' ? 'bg-white dark:bg-slate-700 text-rose-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <FileText size={16} />
+                        Blog IA
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${activeApp === 'blog' ? 'hidden' : ''}`}>
 
                 {/* Left Column: Form Settings */}
                 <div className="lg:col-span-2 space-y-6">
@@ -1138,30 +1158,67 @@ export function Marketing() {
                             ))}
                         </div>
                     ) : (
-                        /* Calendar View Implementation */
+                        /* Premium Calendar View Implementation */
                         <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+                            {/* Calendar Header */}
+                            <div className="flex items-center justify-between mb-6 px-2">
+                                <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+                                    {calendarDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
+                                </h3>
+                                <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900 p-1.5 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                    <button
+                                        onClick={() => {
+                                            const d = new Date(calendarDate);
+                                            d.setMonth(d.getMonth() - 1);
+                                            setCalendarDate(d);
+                                        }}
+                                        className="p-2 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded-xl transition-all text-gray-500"
+                                    >
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <button
+                                        onClick={() => setCalendarDate(new Date())}
+                                        className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                                    >
+                                        Hoje
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const d = new Date(calendarDate);
+                                            d.setMonth(d.getMonth() + 1);
+                                            setCalendarDate(d);
+                                        }}
+                                        className="p-2 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded-xl transition-all text-gray-500"
+                                    >
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-7 gap-px bg-gray-100 dark:bg-slate-700 border border-gray-100 dark:border-slate-700 rounded-2xl overflow-hidden shadow-inner">
                                 {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                                     <div key={day} className="bg-gray-50 dark:bg-slate-900/50 p-3 text-center border-b border-gray-100 dark:border-slate-800">
                                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{day}</span>
                                     </div>
                                 ))}
-                                {Array.from({ length: 35 }).map((_, i) => {
-                                    const date = new Date();
-                                    // Começar do início da semana atual
+                                {Array.from({ length: 42 }).map((_, i) => {
+                                    const firstDayOfMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1);
+                                    const date = new Date(firstDayOfMonth);
                                     date.setDate(date.getDate() - (date.getDay()) + i);
+
                                     const dateStr = date.toISOString().split('T')[0];
                                     const dayPosts = posts.filter(p => (p.scheduled_for?.split('T')[0] || p.created_at.split('T')[0]) === dateStr);
                                     const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                                    const isCurrentMonth = date.getMonth() === calendarDate.getMonth();
 
                                     return (
-                                        <div key={i} className={`bg-white dark:bg-slate-800 min-h-[120px] p-2 relative hover:bg-rose-50/30 dark:hover:bg-rose-900/10 transition-colors border-r border-b border-gray-50 dark:border-slate-800/50 ${!isToday ? 'opacity-90' : 'ring-2 ring-inset ring-rose-500/20'}`}>
+                                        <div key={i} className={`bg-white dark:bg-slate-800 min-h-[140px] p-3 relative hover:bg-rose-50/20 dark:hover:bg-rose-900/5 transition-colors border-r border-b border-gray-50 dark:border-slate-800/50 ${!isCurrentMonth ? 'opacity-30' : 'opacity-100'} ${isToday ? 'bg-rose-50/10' : ''}`}>
                                             <div className="flex justify-between items-start mb-2">
-                                                <span className={`text-xs font-black ${isToday ? 'bg-rose-500 text-white w-6 h-6 flex items-center justify-center rounded-full shadow-lg shadow-rose-500/40' : 'text-gray-400'}`}>
+                                                <span className={`text-xs font-black ${isToday ? 'bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-full shadow-lg shadow-rose-500/40 animate-in zoom-in-50' : isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-300'}`}>
                                                     {date.getDate()}
                                                 </span>
                                             </div>
-                                            <div className="space-y-1.5 overflow-y-auto max-h-[80px]">
+                                            <div className="space-y-1.5 overflow-y-auto max-h-[100px] custom-scrollbar">
                                                 {dayPosts.map(post => (
                                                     <div
                                                         key={post.id}
@@ -1170,19 +1227,24 @@ export function Marketing() {
                                                             setEditContent(post.content);
                                                             setEditMediaType(post.media_type as any || 'feed');
                                                         }}
-                                                        className={`text-[9px] p-2 rounded-xl border leading-tight truncate cursor-pointer transition-all hover:scale-[1.03] active:scale-95 shadow-sm ${post.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400' :
-                                                            post.status === 'posted' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' :
-                                                                post.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400' :
-                                                                    'bg-gray-50 text-gray-500 border-gray-100 dark:bg-slate-900 dark:border-slate-800'
+                                                        className={`text-[9px] p-2.5 rounded-2xl border leading-tight truncate cursor-pointer transition-all hover:scale-[1.04] active:scale-95 shadow-sm active:shadow-inner ${post.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400' :
+                                                                post.status === 'posted' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' :
+                                                                    post.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400' :
+                                                                        'bg-gray-50 text-gray-500 border-gray-100 dark:bg-slate-900 dark:border-slate-800'
                                                             }`}
                                                     >
-                                                        <div className="flex items-center gap-1">
-                                                            <span>{post.media_type === 'reels' ? '🎬' : '🖼️'}</span>
-                                                            <span className="font-bold">{post.content.slice(0, 15)}...</span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="shrink-0">{post.media_type === 'reels' ? '🎬' : '🖼️'}</div>
+                                                            <span className="font-bold opacity-90">{post.content.slice(0, 18)}...</span>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
+                                            {isCurrentMonth && dayPosts.length === 0 && isToday && (
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-white/20 backdrop-blur-[1px] pointer-events-none">
+                                                    <Sparkles size={24} className="text-rose-500/30" />
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -1191,6 +1253,38 @@ export function Marketing() {
                     )}
                 </div>
             )}
+
+            {/* Blog App UI (Fase 6) */}
+            {activeApp === 'blog' && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                    <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                            <div className="flex-1 text-center md:text-left">
+                                <h2 className="text-3xl font-black mb-4">Gerador de Artigos IA (Blog IA)</h2>
+                                <p className="text-indigo-100 text-lg mb-6 leading-relaxed">Transforme ideias em artigos otimizados para SEO que trazem clientes orgânicos para o seu site no piloto automático.</p>
+                                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                                    <Button className="bg-white text-indigo-600 hover:bg-gray-50 font-bold px-8 py-6 rounded-2xl shadow-lg shadow-black/20 text-md">
+                                        Escrever Novo Artigo Agora
+                                    </Button>
+                                    <Button variant="outline" className="border-indigo-300 text-white hover:bg-white/10 px-6 py-6 rounded-2xl text-md">
+                                        <Globe size={18} className="mr-2" />
+                                        Configurar meu Blog
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="w-full md:w-64 h-64 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 flex flex-col items-center justify-center p-6 text-center animate-pulse">
+                                <FileText size={64} className="text-indigo-200 mb-4" />
+                                <p className="text-xs font-bold text-indigo-200">Em Desenvolvimento...</p>
+                                <p className="text-[10px] text-indigo-300 mt-2">Esta funcionalidade está sendo implementada para o seu plano.</p>
+                            </div>
+                        </div>
+                        {/* Abstract Background Shapes */}
+                        <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+                        <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
+                    </div>
+                </div>
+            )}
+
 
 
             {/* Modal de Criação de Post Manual */}
