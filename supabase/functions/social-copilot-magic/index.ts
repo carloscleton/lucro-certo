@@ -76,54 +76,65 @@ Não coloque aspas no começo ou fim, nem conversa fiada. Retorne apenas o texto
     const chatData = await chatRes.json()
     const generatedCaption = chatData.choices?.[0]?.message?.content || 'Legenda gerada indisponível.'
 
-    // 3. Generate Image with DALL-E 3
-    const imagePrompt = `Crie uma imagem de alta qualidade, formato quadrado, sem letras e sem textos visíveis, apropriada para o Instagram e Facebook. O estilo deve ser profissional e altamente estético que combina com o tema: ${topic || 'Serviços excelentes de ' + niche}. Se for um produto, torne a fotografia em formato "product photography" bem nítido.`;
+    // 3. Generate Image with DALL-E 3 (com tolerância a falhas na OpenAI)
+    let publicUrl = null;
+    try {
+      const imagePrompt = `Crie uma imagem de alta qualidade, sem letras e sem palavras escritas, apropriada para o Instagram e Facebook. O estilo deve ser moderno, profissional e altamente estético. O foco e tema da imagem é: ${topic || ('Serviços excelentes sobre ' + niche)}. Faça algo abstrato mas ligado ao negócio se for muito difícil.`;
 
-    const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: imagePrompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'standard'
+      const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt: imagePrompt,
+          n: 1,
+          size: '1024x1024'
+        })
       })
-    })
 
-    const imageData = await imageRes.json()
-    if (imageData.error) throw new Error(imageData.error.message);
+      const imageData = await imageRes.json()
+      if (imageData.error) {
+        console.error('Dall-E API Error:', imageData.error);
+        throw new Error(imageData.error.message || 'Erro na API da OpenAI');
+      }
 
-    const imageUrlOpenai = imageData.data[0].url;
+      if (imageData.data && imageData.data.length > 0) {
+        const imageUrlOpenai = imageData.data[0].url;
 
-    // 4. Download DALL-E image and save to Supabase bucket
-    const imgFetchRes = await fetch(imageUrlOpenai);
-    const imgBlob = await imgFetchRes.blob();
+        // 4. Download DALL-E image and save to Supabase bucket
+        const imgFetchRes = await fetch(imageUrlOpenai);
+        const imgBlob = await imgFetchRes.blob();
 
-    const fileName = `${company_id}/magic-${crypto.randomUUID()}.png`;
+        const fileName = `${company_id}/magic-${crypto.randomUUID()}.png`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('social_media_assets')
-      .upload(fileName, imgBlob, {
-        contentType: 'image/png',
-        upsert: true
-      });
+        const { error: uploadError } = await supabase.storage
+          .from('social_media_assets')
+          .upload(fileName, imgBlob, {
+            contentType: 'image/png',
+            upsert: true
+          });
 
-    if (uploadError) throw new Error('Falha ao salvar a imagem na nuvem: ' + uploadError.message);
-
-    const { data: publicData } = supabase.storage
-      .from('social_media_assets')
-      .getPublicUrl(fileName);
-
-    const publicUrl = publicData.publicUrl;
+        if (uploadError) {
+          console.error('Storage Upload Error:', uploadError);
+        } else {
+          const { data: publicData } = supabase.storage
+            .from('social_media_assets')
+            .getPublicUrl(fileName);
+          publicUrl = publicData.publicUrl;
+        }
+      }
+    } catch (imageErr) {
+      console.error('Falha nao-critica ao gerar imagem com a OpenAI:', imageErr);
+      // Fica publicUrl como null, a UI ainda terá a caption gerada
+    }
 
     return new Response(JSON.stringify({
       success: true,
       caption: generatedCaption,
-      image_url: publicUrl
+      image_url: publicUrl // Pode ser null se a magica da foto falhar
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
