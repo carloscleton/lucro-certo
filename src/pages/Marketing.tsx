@@ -26,6 +26,13 @@ export function Marketing() {
     const [connectingMeta, setConnectingMeta] = useState(false);
     const [publishingId, setPublishingId] = useState<string | null>(null);
 
+    // Manual Post creation
+    const [isCreatingManualPost, setIsCreatingManualPost] = useState(false);
+    const [manualFile, setManualFile] = useState<File | null>(null);
+    const [manualPreview, setManualPreview] = useState<string | null>(null);
+    const [manualContent, setManualContent] = useState('');
+    const [savingManualPost, setSavingManualPost] = useState(false);
+
     const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
     const [editContent, setEditContent] = useState('');
     const [showInstructions, setShowInstructions] = useState(false);
@@ -338,6 +345,62 @@ export function Marketing() {
         }
     };
 
+    const handleManualFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setManualFile(file);
+            setManualPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleSaveManualPost = async () => {
+        if (!manualFile && !manualContent) {
+            alert('Você precisa enviar uma imagem/vídeo ou preencher o texto da postagem.');
+            return;
+        }
+
+        try {
+            setSavingManualPost(true);
+            let publicUrl = null;
+
+            if (manualFile) {
+                const fileExt = manualFile.name.split('.').pop();
+                const fileName = `${currentEntity.id}/${Math.random()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('social_media_assets')
+                    .upload(fileName, manualFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('social_media_assets')
+                    .getPublicUrl(fileName);
+                publicUrl = data.publicUrl;
+            }
+
+            const { error: insertError } = await supabase.from('social_posts').insert({
+                company_id: currentEntity.id,
+                content: manualContent,
+                image_url: publicUrl,
+                status: 'pending' // Fica pendente para que o usuário clique em "Postar Agora"
+            });
+
+            if (insertError) throw insertError;
+
+            alert('Postagem criada e salva com sucesso!');
+            setIsCreatingManualPost(false);
+            setManualFile(null);
+            setManualPreview(null);
+            setManualContent('');
+            await fetchPosts();
+        } catch (error: any) {
+            console.error('Erro ao salvar post manual:', error);
+            alert('Falha ao criar postagem manual.');
+        } finally {
+            setSavingManualPost(false);
+        }
+    };
+
     const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || currentEntity.type !== 'company') return;
@@ -607,7 +670,14 @@ export function Marketing() {
                                     {uploadingImage ? 'Lendo a Foto...' : 'Enviar Foto Real e Gerar'}
                                 </Button>
                             </div>
-
+                            <Button
+                                onClick={() => setIsCreatingManualPost(true)}
+                                variant="outline"
+                                className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-900/30 text-sm whitespace-nowrap"
+                            >
+                                <UploadCloud size={16} className="mr-2 inline" />
+                                Nova Postagem Manual
+                            </Button>
                             <Button
                                 onClick={handleGenerateNow}
                                 disabled={saving || uploadingImage}
@@ -668,7 +738,62 @@ export function Marketing() {
                 </div>
             )}
 
-            {/* Modal de Edição de Post */}
+            {/* Modal de Criação de Post Manual */}
+            {isCreatingManualPost && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700 my-8">
+                        <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                            <UploadCloud size={20} className="text-purple-500" />
+                            Criar Postagem Manualmente
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-6">Monte a sua postagem e ela ficará pendente na lista para publicação no Instagram.</p>
+
+                        <div className="space-y-4">
+                            {/* Upload da Imagem */}
+                            <div className="border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer relative overflow-hidden"
+                                onClick={() => document.getElementById('manual-image-upload')?.click()}>
+                                <input
+                                    type="file"
+                                    id="manual-image-upload"
+                                    className="hidden"
+                                    accept="image/*,video/*"
+                                    onChange={handleManualFileSelection}
+                                />
+                                {manualPreview ? (
+                                    <img src={manualPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                                ) : (
+                                    <>
+                                        <ImageIcon size={32} className="text-gray-400 mb-2" />
+                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Clique para enviar Imagem/Vídeo</span>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Caption Textarea */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Legenda (Opcional)
+                                </label>
+                                <textarea
+                                    className="w-full h-32 p-3 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm"
+                                    value={manualContent}
+                                    onChange={e => setManualContent(e.target.value)}
+                                    placeholder="Escreva a legenda da postagem aqui..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6">
+                            <Button variant="outline" onClick={() => { setIsCreatingManualPost(false); setManualPreview(null); setManualFile(null); setManualContent(''); }} className="dark:border-slate-600 dark:text-slate-300">Cancelar</Button>
+                            <Button onClick={handleSaveManualPost} disabled={savingManualPost} className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30">
+                                {savingManualPost ? 'Salvando...' : 'Salvar Postagem'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Edição de Post (Autogerados) */}
             {editingPost && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700">
