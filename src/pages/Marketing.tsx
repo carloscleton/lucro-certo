@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
@@ -38,6 +38,12 @@ export function Marketing() {
     const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
     const [editContent, setEditContent] = useState('');
     const [showInstructions, setShowInstructions] = useState(false);
+
+    // Campaign State
+    const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+    const [campaignTheme, setCampaignTheme] = useState('');
+    const [campaignCount, setCampaignCount] = useState<number>(3);
+    const [savingCampaign, setSavingCampaign] = useState(false);
 
     const formatWhatsAppMask = (value: string) => {
         let v = value.replace(/\D/g, '');
@@ -301,10 +307,49 @@ export function Marketing() {
             alert('A IA foi notificada e já deve ter gerado seu post! Confira o seu WhatsApp em instantes.');
             await fetchPosts();
         } catch (error: any) {
-            console.error('Error triggering manual cron', error);
-            alert('Falha ao acionar a Inteligência Artificial manualmente.');
+            console.error('Falha ao acionar webhook de geracao:', error);
+            alert('Erro ao tentar gerar postagem agora.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleSaveCampaign = async () => {
+        if (!campaignTheme) {
+            alert('Você precisa informar um tema para a campanha.');
+            return;
+        }
+        try {
+            setSavingCampaign(true);
+            const { data: session } = await supabase.auth.getSession();
+            const token = session.session?.access_token;
+
+            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-campaign`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    company_id: currentEntity.id,
+                    theme: campaignTheme,
+                    post_count: campaignCount
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro ao gerar campanha.');
+
+            alert(`Campanha criada e salva com sucesso! Foram gerados ${data.count || campaignCount} posts.`);
+            setIsCreatingCampaign(false);
+            setCampaignTheme('');
+            setCampaignCount(3);
+            await fetchPosts();
+        } catch (error: any) {
+            console.error('Erro ao gerar campanha:', error);
+            alert('Falha ao gerar os posts da campanha. ' + (error.message || ''));
+        } finally {
+            setSavingCampaign(false);
         }
     };
 
@@ -737,6 +782,13 @@ export function Marketing() {
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm whitespace-nowrap"
                             >
                                 🤖 Gerar Postagem IA Agora
+                            </Button>
+                            <Button
+                                onClick={() => setIsCreatingCampaign(true)}
+                                className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-700 hover:to-indigo-700 text-white text-sm whitespace-nowrap"
+                            >
+                                <Rocket size={16} className="mr-2 inline" />
+                                Lançar Campanha IA
                             </Button>
                         </div>
                     </div>
