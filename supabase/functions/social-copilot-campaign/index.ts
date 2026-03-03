@@ -58,17 +58,17 @@ O público-alvo é: "${audience}".
 
 Crie uma CAMPANHA com ${post_count} postagens separadas focadas estritamente no seguinte TEMA MESTRE: "${theme}".
 
-Retorne EXATAMENTE um arquivo JSON válido, que seja um Array de Objetos, onde cada objeto tenha 2 propriedades:
+Retorne EXATAMENTE um objeto JSON que contenha uma propriedade chamada "posts", que deve ser um Array de Objetos. Cada objeto dentro de "posts" deve ter 2 propriedades:
 1) "caption": A legenda da postagem (incluindo emojis e 5 hashtags no final, sem conversa fiada).
-2) "image_prompt": Uma sugestão curta em inglês (aprox 15-30 palavras) para desenhar a imagem dessa postagem. Deve ser profissional, "without text", "without letters", com estilo compatível com o nicho.
+2) "image_prompt": Uma sugestão curta em inglês (aprox 15-30 palavras) para desenhar a imagem. Deve ser profissional, "without text", "without letters".
 
 Exemplo do formato:
-[
-  { "caption": "Texto do post 1... #tag1", "image_prompt": "A modern abstract composition..." },
-  { "caption": "Texto do post 2... #tag2", "image_prompt": "A professional office environment..." }
-]
-
-Devolva APENAS o JSON e mais nada.
+{
+  "posts": [
+    { "caption": "Texto do post 1... #tag1", "image_prompt": "A modern abstract composition..." },
+    { "caption": "Texto do post 2... #tag2", "image_prompt": "A professional office environment..." }
+  ]
+}
 `;
 
     const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -81,34 +81,27 @@ Devolva APENAS o JSON e mais nada.
         model: 'gpt-4o',
         messages: [{ role: 'user', content: chatPrompt }],
         temperature: 0.7,
-        response_format: { type: "json_object" } // to force JSON if using wrapped response, but array needs array in object or careful parsing
+        response_format: { type: "json_object" }
       })
     })
 
-    // Fallback parsing strategy as direct array isn't supported in json_object top level
-    // We update the prompt or extract the JSON manually
     const chatData = await chatRes.json()
     if (chatData.error) throw new Error(chatData.error.message)
 
-    const responseContent = chatData.choices?.[0]?.message?.content || '[]'
+    console.log("GPT RAW RESP:", chatData.choices?.[0]?.message?.content);
+    const responseContent = chatData.choices?.[0]?.message?.content || '{}'
 
     let postsList = []
     try {
-      // Find array brackets if GPT wraps it
-      const startIdx = responseContent.indexOf('[');
-      const endIdx = responseContent.lastIndexOf(']') + 1;
-      const jsonStr = responseContent.substring(startIdx, endIdx);
-      postsList = JSON.parse(jsonStr)
-    } catch (parseError) {
-      // Se GPT devolver um objeto JSON { "posts": [ ... ] } ao invés da Array
-      try {
-        const parsedObj = JSON.parse(responseContent);
-        if (parsedObj.posts) postsList = parsedObj.posts;
-        else throw new Error("Could not find posts array");
-      } catch (innerError) {
-        console.error("GPT JSON falhou:", responseContent)
-        throw new Error('A IA não retornou os textos no formato esperado. Tente novamente.')
+      const parsedObj = JSON.parse(responseContent);
+      if (parsedObj.posts && Array.isArray(parsedObj.posts)) {
+        postsList = parsedObj.posts;
+      } else {
+        throw new Error("Could not find 'posts' array in JSON");
       }
+    } catch (parseError) {
+      console.error("GPT JSON falhou:", responseContent);
+      throw new Error('A IA não retornou os textos no formato esperado. Tente novamente.');
     }
 
     if (!Array.isArray(postsList) || postsList.length === 0) {
