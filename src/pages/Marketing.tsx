@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid, ChevronLeft, ChevronRight, FileText, Globe } from 'lucide-react';
+import { Sparkles, Save, Megaphone, Instagram, Facebook, Image as ImageIcon, UploadCloud, Unplug, Rocket, Video, User, Palette, Trash2, Calendar, LayoutGrid, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import type { SocialProfile, SocialPost } from '../types/marketing';
