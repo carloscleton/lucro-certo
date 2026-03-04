@@ -46,8 +46,8 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto. Não use título
     let script = '';
 
     if (aiKey) {
-      console.log(`[Diagnostic] Usando Gemini 1.5 Flash via v1 Endpoint.`);
-      const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${aiKey}`, {
+      console.log(`[Diagnostic] Usando Gemini 2.0 Flash via v1 Endpoint.`);
+      const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${aiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
