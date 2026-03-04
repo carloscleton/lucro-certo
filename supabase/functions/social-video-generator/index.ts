@@ -134,27 +134,36 @@ serve(async (req) => {
       console.log("GOOGLE_SERVICE_ACCOUNT_JSON não configurado, usando vídeo Fallback de teste.");
     }
 
+    let videoUrl = videoResult;
+
     // 5. Salvar o vídeo no Supabase Storage
+    try {
+      if (videoResult !== "https://www.w3schools.com/html/mov_bbb.mp4") {
+        const videoName = `video_${post_id}_${Date.now()}.mp4`
+        const res = await fetch(videoResult)
+        if (!res.ok) throw new Error(`Falha no fetch do vídeo: ${res.statusText}`)
+        const videoBlob = await res.blob()
 
-    const videoName = `video_${post_id}_${Date.now()}.mp4`
-    const videoBlob = await (await fetch(videoResult)).blob()
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('social_media_assets')
+          .upload(`${company_id}/${videoName}`, videoBlob, {
+            contentType: 'video/mp4',
+            upsert: true
+          })
 
-    const { data: uploadData, error: uploadErr } = await supabase.storage
-      .from('social_media_assets')
-      .upload(`${company_id}/${videoName}`, videoBlob, {
-        contentType: 'video/mp4',
-        upsert: true
-      })
+        if (uploadErr) throw uploadErr
 
-    if (uploadErr) throw uploadErr
+        const { data: publicUrlData } = supabase.storage
+          .from('social_media_assets')
+          .getPublicUrl(`${company_id}/${videoName}`)
 
-    const { data: publicUrlData } = supabase.storage
-      .from('social_media_assets')
-      .getPublicUrl(`${company_id}/${videoName}`)
+        videoUrl = publicUrlData.publicUrl
+      }
+    } catch (storageErr: any) {
+      console.error("Aviso: Falha ao salvar no Storage, manteremos a URL original:", storageErr.message);
+    }
 
-    const videoUrl = publicUrlData.publicUrl
-
-    // 6. Atualizar o Post com a URL do vídeo
+    // 6. Atualizar o Post com a URL final
     await supabase.from('social_posts')
       .update({ image_url: videoUrl, media_type: 'reels' })
       .eq('id', post_id)
