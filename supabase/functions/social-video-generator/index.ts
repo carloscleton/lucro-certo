@@ -61,18 +61,30 @@ serve(async (req) => {
       console.log("GOOGLE_SERVICE_ACCOUNT_JSON detectado. Iniciando autenticação...");
       const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON)
 
+      // 1. Fetch Post and Profile separately to avoid join issues
       const { data: post, error: postErr } = await supabase
         .from('social_posts')
-        .select('*, social_profiles(*)')
+        .select('*')
         .eq('id', post_id)
         .single()
 
       if (postErr || !post) {
         console.error("Erro ao buscar post no banco:", postErr);
-        throw new Error("Post não encontrado.");
+        throw new Error(`Post ${post_id} não encontrado.`);
       }
 
-      profile = post.social_profiles
+      const { data: profileData, error: profileErr } = await supabase
+        .from('social_profiles')
+        .select('*')
+        .eq('company_id', post.company_id)
+        .single()
+
+      if (profileErr || !profileData) {
+        console.error("Erro ao buscar perfil da empresa:", profileErr);
+        throw new Error("Perfil da empresa não encontrado.");
+      }
+
+      profile = profileData
       const script = post.content
 
       console.log(`[Diagnostic] Projeto Google: ${serviceAccount.project_id}`);
