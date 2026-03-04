@@ -32,7 +32,6 @@ import {
   DollarSign,
   Target,
   AlertCircle,
-  PlusCircle,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -1506,10 +1505,10 @@ export function Marketing() {
                           </div>
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${post.status === "pending"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : post.status === "posted"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-gray-100 text-gray-700"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : post.status === "posted"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-gray-100 text-gray-700"
                               }`}
                           >
                             {post.status.toUpperCase()}
@@ -1684,12 +1683,12 @@ export function Marketing() {
                                   );
                                 }}
                                 className={`text-[9px] p-2.5 rounded-2xl border leading-tight truncate cursor-pointer transition-all hover:scale-[1.04] active:scale-95 shadow-sm active:shadow-inner ${post.status === "approved"
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400"
-                                    : post.status === "posted"
-                                      ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400"
-                                      : post.status === "pending"
-                                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400"
-                                        : "bg-gray-50 text-gray-500 border-gray-100 dark:bg-slate-900 dark:border-slate-800"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400"
+                                  : post.status === "posted"
+                                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400"
+                                    : post.status === "pending"
+                                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400"
+                                      : "bg-gray-50 text-gray-500 border-gray-100 dark:bg-slate-900 dark:border-slate-800"
                                   }`}
                               >
                                 <div className="flex items-center gap-1.5">
