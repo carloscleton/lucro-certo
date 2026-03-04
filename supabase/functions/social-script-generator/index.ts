@@ -46,8 +46,8 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto. Não use título
     let script = '';
 
     if (aiKey) {
-      console.log(`[Diagnostic] Usando Gemini 2.0 Flash com AI Studio Key.`);
-      const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${aiKey}`, {
+      console.log(`[Diagnostic] Usando Gemini 1.5 Flash com AI Studio Key.`);
+      const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,7 +61,8 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto. Não use título
 
       if (!aiResponse.ok) {
         console.error(`[Diagnostic] Erro Gemini:`, JSON.stringify(aiData));
-        throw new Error(`Google AI Studio Error: ${aiData.error?.message || "Erro Desconhecido"}`);
+        const errorDetail = aiData.error?.message || JSON.stringify(aiData);
+        throw new Error(`Google AI Studio Error: ${errorDetail}`);
       }
 
       script = aiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro ao extrair texto da resposta do Gemini.';
