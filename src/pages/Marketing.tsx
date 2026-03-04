@@ -480,17 +480,29 @@ export function Marketing() {
     try {
       setIsFinalizingStudio(true);
 
-      const res = await supabase.functions.invoke('social-post-finalizer', {
-        body: {
-          company_id: currentEntity.id,
-          content: studioScript,
-        }
-      });
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
 
-      if (res.error) {
-        console.error("Function error details:", res.error);
-        const errorMessage = res.error instanceof Error ? res.error.message : JSON.stringify(res.error);
-        throw new Error(`Não foi possível finalizar o post: ${errorMessage}`);
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-post-finalizer`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            company_id: currentEntity.id,
+            content: studioScript,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Function error details:", errorData);
+        throw new Error(`Erro na API (${res.status}): ${errorData.error || "Erro desconhecido"}`);
       }
 
       setIsStudioOpen(false);
