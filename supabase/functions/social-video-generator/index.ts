@@ -124,12 +124,11 @@ serve(async (req) => {
       }
       console.log("Áudio gerado com sucesso pelo Google TTS.");
 
-      // 4. Vertex AI Veo 3.1 (Gerar Vídeo com Avatar)
+      // 4. Vertex AI Veo 3.1 (Gerar Vídeo com Avatar via LRO)
       const project = serviceAccount.project_id
       const location = "us-central1"
-      // Tentando o modelo mais provável na região us-central1
       const modelId = "veo-3.1-generate-001"
-      const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:predict`
+      const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:predictLongRunning`
 
       const brandInfo = profile?.brand_logo_url ? `with the company logo (${profile.brand_logo_url}) as a watermark` : '';
       const colorInfo = profile?.brand_primary_color ? `The color scheme of the scene should subtly incorporate the brand color ${profile.brand_primary_color}.` : '';
@@ -137,7 +136,7 @@ serve(async (req) => {
       const prompt = `A professional ${profile?.avatar_gender === 'male' ? 'man' : 'woman'} avatar in a ${profile?.avatar_style} setting, speaking naturally to the camera. High quality, realistic lip-sync, corporate social media video style. ${brandInfo} ${colorInfo}`;
 
       console.log(`[Diagnostic] Projeto: ${project} | Modelo: ${modelId} | Região: ${location}`);
-      console.log(`[Diagnostic] Prompt: ${prompt.slice(0, 100)}...`);
+      console.log(`[Diagnostic] Iniciando predictLongRunning para Veo 3.1...`);
 
       const veoRes = await fetch(endpoint, {
         method: "POST",
@@ -154,28 +153,62 @@ serve(async (req) => {
             }
           ],
           parameters: {
-            duration_seconds: 10,
+            duration_seconds: 6, // Reduzido para ser mais rápido
             sample_count: 1
           }
         })
       })
 
-      const veoData = await veoRes.json()
-      console.log(`[Diagnostic] Vertex AI Response Status: ${veoRes.status}`);
-
+      const operationData = await veoRes.json()
       if (!veoRes.ok) {
-        console.error("[Diagnostic] Erro Detalhado Google Vertex:", JSON.stringify(veoData));
-        const errMsg = veoData.error?.message || veoData[0]?.error?.message || "GOOGLE_AI_WITHOUT_DESCRIPTION";
-        throw new Error(`Erro na Vertex AI: ${errMsg}`);
+        console.error("[Diagnostic] Erro ao iniciar LRO no Vertex:", JSON.stringify(operationData));
+        throw new Error(`Vertex LRO Init Error: ${operationData.error?.message || "Erro desconhecido"}`);
       }
 
-      const receivedVideo = veoData.predictions?.[0]?.video_url || veoData.predictions?.[0]?.content
+      const operationName = operationData.name;
+      console.log(`[Diagnostic] Operação iniciada: ${operationName}. Aguardando conclusão...`);
+
+      // Polling Loop (máximo 45 segundos para evitar timeout do Supabase)
+      let done = false;
+      let pollingAttempts = 0;
+      const maxAttempts = 15; // 15 * 3s = 45s
+      let finalResponse = null;
+
+      while (!done && pollingAttempts < maxAttempts) {
+        pollingAttempts++;
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Espera 3s entre tentativas
+
+        console.log(`[Diagnostic] Tentativa de polling #${pollingAttempts}...`);
+        const pollRes = await fetch(`https://${location}-aiplatform.googleapis.com/v1/${operationName}`, {
+          headers: { "Authorization": `Bearer ${accessToken}` }
+        });
+
+        if (!pollRes.ok) {
+          console.warn(`[Diagnostic] Polling falhou (${pollRes.status}), tentando novamente...`);
+          continue;
+        }
+
+        const pollData = await pollRes.json();
+        if (pollData.done) {
+          done = true;
+          finalResponse = pollData;
+          console.log("[Diagnostic] Operação de vídeo concluída!");
+        }
+      }
+
+      if (!done || !finalResponse.response) {
+        throw new Error("A geração do vídeo demorou demais ou falhou. Tente novamente em alguns instantes.");
+      }
+
+      const videoResultData = finalResponse.response;
+      const receivedVideo = videoResultData.predictions?.[0]?.video_url || videoResultData.predictions?.[0]?.content || videoResultData.predictions?.[0]?.gcsUri;
+
       if (receivedVideo) {
         videoResult = receivedVideo;
-        console.log("URL do vídeo recebida do Google com sucesso.");
+        console.log("URL do vídeo recebida do LRO com sucesso.");
       } else {
-        console.error("[Diagnostic] Estrutura inesperada do Google (Sem Vídeo):", JSON.stringify(veoData));
-        throw new Error("A API do Google não retornou o campo de vídeo esperado.");
+        console.error("[Diagnostic] Estrutura inesperada do LRO (Sem vídeo no response):", JSON.stringify(finalResponse));
+        throw new Error("Não foi possível encontrar a URL do vídeo na resposta final do Google.");
       }
     } else {
       console.error("ERRO CRÍTICO: GOOGLE_SERVICE_ACCOUNT_JSON não configurado.");
