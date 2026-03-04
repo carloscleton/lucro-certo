@@ -127,7 +127,7 @@ serve(async (req) => {
       // 4. Vertex AI Veo 3.1 (Gerar Vídeo com Avatar via LRO)
       const project = serviceAccount.project_id
       const location = "us-central1"
-      const modelId = "veo-3.1-generate-001"
+      const modelId = "veo-3.1-fast-generate-preview"
       const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:predictLongRunning`
 
       const brandInfo = profile?.brand_logo_url ? `with the company logo (${profile.brand_logo_url}) as a watermark` : '';
@@ -153,7 +153,7 @@ serve(async (req) => {
             }
           ],
           parameters: {
-            duration_seconds: 6, // Reduzido para ser mais rápido
+            duration_seconds: 5, // Modelo FAST + 5s = Muito mais rápido
             sample_count: 1
           }
         })
@@ -168,15 +168,15 @@ serve(async (req) => {
       const operationName = operationData.name;
       console.log(`[Diagnostic] Operação iniciada: ${operationName}. Aguardando conclusão...`);
 
-      // Polling Loop (máximo 45 segundos para evitar timeout do Supabase)
+      // Polling Loop otimizado (50 segundos totais no máximo)
       let done = false;
       let pollingAttempts = 0;
-      const maxAttempts = 15; // 15 * 3s = 45s
+      const maxAttempts = 25; // 25 * 2s = 50s
       let finalResponse = null;
 
       while (!done && pollingAttempts < maxAttempts) {
         pollingAttempts++;
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Espera 3s entre tentativas
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 2s
 
         console.log(`[Diagnostic] Tentativa de polling #${pollingAttempts}...`);
         const pollRes = await fetch(`https://${location}-aiplatform.googleapis.com/v1/${operationName}`, {
