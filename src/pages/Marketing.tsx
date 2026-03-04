@@ -460,25 +460,13 @@ export function Marketing() {
     try {
       setIsGeneratingStudio(true);
       setIsStudioOpen(true);
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-script-generator`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ company_id: currentEntity.id }),
-        },
-      );
+      const res = await supabase.functions.invoke('social-script-generator', {
+        body: { company_id: currentEntity.id }
+      });
 
-      if (!res.ok)
-        throw new Error("Não foi possível gerar roteiro no momento.");
-      const data = await res.json();
-      setStudioScript(data.script || "");
+      if (res.error) throw new Error("Não foi possível gerar roteiro no momento.");
+      setStudioScript(res.data?.script || "");
     } catch (error: any) {
       console.error("Falha ao gerar roteiro:", error);
       alert("Erro ao tentar gerar o roteiro IA.");
@@ -491,25 +479,18 @@ export function Marketing() {
     if (!studioScript) return;
     try {
       setIsFinalizingStudio(true);
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-post-finalizer`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            company_id: currentEntity.id,
-            content: studioScript,
-          }),
-        },
-      );
+      const res = await supabase.functions.invoke('social-post-finalizer', {
+        body: {
+          company_id: currentEntity.id,
+          content: studioScript,
+        }
+      });
 
-      if (!res.ok) throw new Error("Não foi possível finalizar o post.");
+      if (res.error) {
+        console.error("Function error details:", res.error);
+        throw new Error("Não foi possível finalizar o post.");
+      }
 
       setIsStudioOpen(false);
       setStudioScript("");
