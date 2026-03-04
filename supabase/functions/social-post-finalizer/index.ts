@@ -94,23 +94,21 @@ serve(async (req) => {
     // 4. If Video Enabled, Trigger Video Generator
     if (profile.video_enabled && insertedPost) {
       try {
-        const videoRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ post_id: insertedPost.id, company_id: company_id })
+        const { data: videoData, error: videoErr } = await supabase.functions.invoke('social-video-generator', {
+          body: { post_id: insertedPost.id, company_id: company_id }
         });
-        const videoData = await videoRes.json();
-        if (videoData.videoUrl) {
+
+        if (videoErr) {
+          console.error('Erro ao invocar social-video-generator:', videoErr);
+          publicUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+        } else if (videoData?.videoUrl) {
           publicUrl = videoData.videoUrl;
         } else {
-          publicUrl = "https://www.w3schools.com/html/mov_bbb.mp4"; // Secure fallback if the inner JSON fails silently
+          publicUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
         }
       } catch (videoErr) {
-        console.error('Erro ao gerar vídeo no Studio:', videoErr);
-        publicUrl = "https://www.w3schools.com/html/mov_bbb.mp4"; // Guarantee fallback on exception
+        console.error('Exceção ao gerar vídeo no Studio:', videoErr);
+        publicUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
       }
 
       // Enforce the update here to fix the missing video in UI in all possible failure scenarios

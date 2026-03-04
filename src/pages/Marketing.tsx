@@ -489,7 +489,8 @@ export function Marketing() {
 
       if (res.error) {
         console.error("Function error details:", res.error);
-        throw new Error("Não foi possível finalizar o post.");
+        const errorMessage = res.error instanceof Error ? res.error.message : JSON.stringify(res.error);
+        throw new Error(`Não foi possível finalizar o post: ${errorMessage}`);
       }
 
       setIsStudioOpen(false);
