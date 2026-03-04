@@ -12,7 +12,9 @@ const GOOGLE_SERVICE_ACCOUNT_JSON = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')
 
 async function getAccessToken(serviceAccount: any) {
   const now = Math.floor(Date.now() / 1000)
-  const privateKey = await jose.importPKCS8(serviceAccount.private_key, 'RS256')
+  // Ensure private key has correct newline format
+  const formattedKey = serviceAccount.private_key.replace(/\\n/g, '\n')
+  const privateKey = await jose.importPKCS8(formattedKey, 'RS256')
 
   const jwt = await new jose.SignJWT({
     iss: serviceAccount.client_email,
@@ -56,6 +58,7 @@ serve(async (req) => {
     let profile = null;
 
     if (GOOGLE_SERVICE_ACCOUNT_JSON) {
+      console.log("GOOGLE_SERVICE_ACCOUNT_JSON detectado. Iniciando autenticação...");
       const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON)
 
       const { data: post, error: postErr } = await supabase
@@ -64,18 +67,30 @@ serve(async (req) => {
         .eq('id', post_id)
         .single()
 
-      if (postErr || !post) throw new Error("Post não encontrado.")
+      if (postErr || !post) {
+        console.error("Erro ao buscar post no banco:", postErr);
+        throw new Error("Post não encontrado.");
+      }
 
       profile = post.social_profiles
       const script = post.content
 
-      console.log(`Iniciando geração de vídeo para o post ${post_id}`)
+      console.log(`[Diagnostic] Projeto Google: ${serviceAccount.project_id}`);
+      console.log(`[Diagnostic] Gerando áudio para o roteiro (${script.length} caracteres)`);
 
       // 2. Obter Token do Google
-      const accessToken = await getAccessToken(serviceAccount)
+      let accessToken;
+      try {
+        accessToken = await getAccessToken(serviceAccount)
+        console.log("Token do Google obtido com sucesso.");
+      } catch (authErr: any) {
+        console.error("Erro na Autenticação Google (Verifique a Private Key):", authErr);
+        throw authErr;
+      }
 
       // 3. Google Cloud Text-to-Speech (Gerar Áudio)
       const voiceName = profile?.avatar_gender === 'female' ? 'pt-BR-Neural2-A' : 'pt-BR-Neural2-B'
+      console.log(`[Diagnostic] Chamando TTS com voz: ${voiceName}`);
 
       const ttsRes = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
         method: "POST",
@@ -91,18 +106,26 @@ serve(async (req) => {
       })
 
       const ttsData = await ttsRes.json()
-      if (!ttsData.audioContent) throw new Error("Falha ao gerar áudio TTS.")
+      if (!ttsData.audioContent) {
+        console.error("Erro no Google TTS. Resposta:", JSON.stringify(ttsData));
+        throw new Error(`Falha ao gerar áudio TTS: ${ttsData.error?.message || "Erro desconhecido"}`);
+      }
+      console.log("Áudio gerado com sucesso pelo Google TTS.");
 
       // 4. Vertex AI Veo 3.1 (Gerar Vídeo com Avatar)
       const project = serviceAccount.project_id
       const location = "us-central1"
-      const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/veo-3-1:predict`
+      // Tentando o modelo mais provável na região us-central1
+      const modelId = "veo-3.1-generate-001"
+      const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:predict`
 
       const brandInfo = profile?.brand_logo_url ? `with the company logo (${profile.brand_logo_url}) as a watermark` : '';
       const colorInfo = profile?.brand_primary_color ? `The color scheme of the scene should subtly incorporate the brand color ${profile.brand_primary_color}.` : '';
 
-      const prompt = `A professional ${profile?.avatar_gender === 'male' ? 'man' : 'woman'} avatar in a ${profile?.avatar_style} setting, speaking naturally to the camera. 
-      High quality, realistic lip-sync, corporate social media video style. ${brandInfo} ${colorInfo}`;
+      const prompt = `A professional ${profile?.avatar_gender === 'male' ? 'man' : 'woman'} avatar in a ${profile?.avatar_style} setting, speaking naturally to the camera. High quality, realistic lip-sync, corporate social media video style. ${brandInfo} ${colorInfo}`;
+
+      console.log(`[Diagnostic] Projeto: ${project} | Modelo: ${modelId} | Região: ${location}`);
+      console.log(`[Diagnostic] Prompt: ${prompt.slice(0, 100)}...`);
 
       const veoRes = await fetch(endpoint, {
         method: "POST",
@@ -126,12 +149,25 @@ serve(async (req) => {
       })
 
       const veoData = await veoRes.json()
-      console.log("Veo Response:", JSON.stringify(veoData).slice(0, 500))
+      console.log(`[Diagnostic] Vertex AI Response Status: ${veoRes.status}`);
+
+      if (!veoRes.ok) {
+        console.error("[Diagnostic] Erro Detalhado Google Vertex:", JSON.stringify(veoData));
+        const errMsg = veoData.error?.message || veoData[0]?.error?.message || "GOOGLE_AI_WITHOUT_DESCRIPTION";
+        throw new Error(`Erro na Vertex AI: ${errMsg}`);
+      }
 
       const receivedVideo = veoData.predictions?.[0]?.video_url || veoData.predictions?.[0]?.content
-      if (receivedVideo) videoResult = receivedVideo;
+      if (receivedVideo) {
+        videoResult = receivedVideo;
+        console.log("URL do vídeo recebida do Google com sucesso.");
+      } else {
+        console.error("[Diagnostic] Estrutura inesperada do Google (Sem Vídeo):", JSON.stringify(veoData));
+        throw new Error("A API do Google não retornou o campo de vídeo esperado.");
+      }
     } else {
-      console.log("GOOGLE_SERVICE_ACCOUNT_JSON não configurado, usando vídeo Fallback de teste.");
+      console.error("ERRO CRÍTICO: GOOGLE_SERVICE_ACCOUNT_JSON não configurado.");
+      throw new Error("SECRET_MISSING_GOOGLE_CREDENTIALS");
     }
 
     let videoUrl = videoResult;

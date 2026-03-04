@@ -94,21 +94,29 @@ serve(async (req) => {
     // 4. If Video Enabled, Trigger Video Generator
     if (profile.video_enabled && insertedPost) {
       try {
-        const { data: videoData, error: videoErr } = await supabase.functions.invoke('social-video-generator', {
-          body: { post_id: insertedPost.id, company_id: company_id }
+        const videoRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ post_id: insertedPost.id, company_id: company_id })
         });
 
-        if (videoErr) {
-          console.error('Erro ao invocar social-video-generator:', videoErr);
-          publicUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+        const videoData = await videoRes.json();
+
+        if (!videoRes.ok) {
+          console.error('Erro no social-video-generator:', videoData);
+          const errorMsg = videoData.error || `STATUS_${videoRes.status}_BODY_${JSON.stringify(videoData)}`;
+          throw new Error(`Erro na IA do Google: ${errorMsg}`);
         } else if (videoData?.videoUrl) {
           publicUrl = videoData.videoUrl;
         } else {
-          publicUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+          throw new Error("O gerador de vídeo não retornou uma URL válida.");
         }
-      } catch (videoErr) {
+      } catch (videoErr: any) {
         console.error('Exceção ao gerar vídeo no Studio:', videoErr);
-        publicUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+        throw new Error(videoErr.message || "Erro desconhecido na geração do vídeo");
       }
 
       // Enforce the update here to fix the missing video in UI in all possible failure scenarios
