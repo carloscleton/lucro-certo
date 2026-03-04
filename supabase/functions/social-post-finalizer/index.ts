@@ -73,8 +73,8 @@ serve(async (req) => {
       }
     }
 
-    // 4. Enviar WhatsApp (Payload Robusto)
-    if (profile.approval_whatsapp) {
+    // 4. Enviar WhatsApp (Apenas se for IMAGEM. Vídeos são notificados pelo gerador de vídeo quando prontos)
+    if (profile.approval_whatsapp && !profile.video_enabled) {
       const { data: instances } = await supabase
         .from('instances')
         .select('instance_name, evolution_instance_id')
@@ -85,16 +85,15 @@ serve(async (req) => {
       if (instances && instances.length > 0) {
         const instance = instances[0]
         const targetNumber = profile.approval_whatsapp.replace(/\D/g, '')
-        const messageText = `🎨 *STUDIO IA: NOVO POST!*\n\nSeu post foi criado e está aguardando aprovação:\n\n*Legenda:*\n${content}\n\n${profile.video_enabled ? "_O vídeo está sendo processado e aparecerá em instantes._" : ""}\n\nResponda *1* para aprovar!`
+        const messageText = `🎨 *STUDIO IA: NOVO POST!*\n\nSeu post de imagem foi criado e aguarda aprovação:\n\n*Legenda:*\n${content}\n\nResponda *1* para aprovar!`
 
         await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
           body: JSON.stringify({
             number: targetNumber,
-            options: { delay: 1200, presence: "composing" },
             text: messageText,
-            textMessage: { text: messageText } // Força ambos os formatos para garantir compatibilidade
+            textMessage: { text: messageText }
           })
         }).catch(e => console.error("Erro ao enviar WhatsApp:", e))
       }
