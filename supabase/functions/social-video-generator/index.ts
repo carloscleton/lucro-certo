@@ -168,17 +168,17 @@ serve(async (req) => {
       const operationName = operationData.name;
       console.log(`[Diagnostic] Operação iniciada: ${operationName}. Aguardando conclusão...`);
 
-      // Polling Loop otimizado (50 segundos totais no máximo)
+      // Polling Loop otimizado (30 segundos totais no máximo para garantir folga no timeout de 60s do servidor)
       let done = false;
       let pollingAttempts = 0;
-      const maxAttempts = 25; // 25 * 2s = 50s
+      const maxAttempts = 15; // 15 * 2s = 30s
       let finalResponse = null;
 
       while (!done && pollingAttempts < maxAttempts) {
         pollingAttempts++;
         await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 2s
 
-        console.log(`[Diagnostic] Tentativa de polling #${pollingAttempts}...`);
+        console.log(`[Diagnostic] Polling #${pollingAttempts} (T+${pollingAttempts * 2}s)...`);
         const pollRes = await fetch(`https://${location}-aiplatform.googleapis.com/v1/${operationName}`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
         });

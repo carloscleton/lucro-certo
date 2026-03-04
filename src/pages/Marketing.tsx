@@ -131,6 +131,7 @@ export function Marketing() {
   const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [executionTime, setExecutionTime] = useState(0);
 
   // Analytics State
   const [metrics, setMetrics] = useState<any>(null);
@@ -149,6 +150,25 @@ export function Marketing() {
     if (v.length > 3) formatted += ` ${v.slice(3, 7)}`;
     if (v.length > 7) formatted += `-${v.slice(7, 11)}`;
     return formatted;
+  };
+
+  useEffect(() => {
+    let interval: any;
+    if (isFinalizingStudio) {
+      setExecutionTime(0);
+      interval = setInterval(() => {
+        setExecutionTime((t) => t + 1);
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [isFinalizingStudio]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   useEffect(() => {
@@ -2492,10 +2512,15 @@ export function Marketing() {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-lg shadow-indigo-500/20 px-8"
               >
                 {isFinalizingStudio ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Gerando Postagem...
-                  </>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Gerando Postagem...</span>
+                    </div>
+                    <span className="text-[10px] opacity-70 mt-0.5 font-mono">
+                      Tempo Decorrido: {formatTime(executionTime)}
+                    </span>
+                  </div>
                 ) : (
                   <>
                     <Rocket size={18} />
