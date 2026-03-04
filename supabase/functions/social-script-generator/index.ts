@@ -30,7 +30,7 @@ serve(async (req) => {
 
     if (!profile) throw new Error("Perfil não encontrado.")
 
-    // 2. Generate Content with Gemini 2.0 Flash (AI Studio)
+    // 2. Prepare Prompt
     const { data: company } = await supabase.from('companies').select('trade_name').eq('id', company_id).single()
     const aiKey = Deno.env.get('GOOGLE_AI_STUDIO_KEY');
 
@@ -44,10 +44,14 @@ Se o modo vídeo estiver ativado, foque em um roteiro de locução impactante de
 Sem aspas e sem conversa filler, apenas o texto do post pronto. Não use títulos de seções.`;
 
     let script = '';
+    let usedAI = 'Gemini 1.5 Flash (v1beta)';
 
-    if (aiKey) {
-      console.log(`[Diagnostic] Usando Gemini 2.0 Flash via v1 Endpoint.`);
-      const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${aiKey}`, {
+    // 3. Try Gemini with fallback to OpenAI
+    try {
+      if (!aiKey) throw new Error("GOOGLE_AI_STUDIO_KEY_MISSING");
+
+      console.log(`[Diagnostic] Tentando Gemini...`);
+      const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -57,18 +61,18 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto. Não use título
       });
 
       const aiData = await aiResponse.json();
-      console.log(`[Diagnostic] Gemini Response Status: ${aiResponse.status}`);
 
       if (!aiResponse.ok) {
-        console.error(`[Diagnostic] Erro Gemini:`, JSON.stringify(aiData));
-        const errorDetail = aiData.error?.message || JSON.stringify(aiData);
-        throw new Error(`Google AI Studio Error: ${errorDetail}`);
+        throw new Error(aiData.error?.message || "Erro na Google AI Studio");
       }
 
-      script = aiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro ao extrair texto da resposta do Gemini.';
-      console.log(`[Diagnostic] Script gerado com sucesso.`);
-    } else {
-      const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      script = aiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro ao extrair texto do Gemini.';
+      console.log(`[Diagnostic] Script gerado pelo Gemini.`);
+    } catch (googleErr: any) {
+      console.warn(`[Diagnostic] Google falhou, usando Backup OpenAI:`, googleErr.message);
+      usedAI = 'GPT-4o-mini (Backup)';
+
+      const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,11 +84,12 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto. Não use título
           temperature: 0.7
         })
       });
-      const aiData = await aiResponse.json();
-      script = aiData.choices?.[0]?.message?.content || 'Erro ao gerar script.';
+
+      const openData = await openaiRes.json();
+      script = openData.choices?.[0]?.message?.content || 'Erro ao gerar script com Backup.';
     }
 
-    return new Response(JSON.stringify({ script }), {
+    return new Response(JSON.stringify({ script, model: usedAI }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200
     })
