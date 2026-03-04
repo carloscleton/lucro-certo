@@ -32,87 +32,6 @@ serve(async (req) => {
             throw new Error('Perfil do Instagram não conectado.')
         }
 
-        const { data: posts } = await supabase
-            .from('social_posts')
-            .select('id, media_id, content, likes_count, comments_count, reach_count, impressions_count, conversion_count, estimated_roi_value')
-            .eq('company_id', company_id)
-            .eq('status', 'posted')
-
-        if (posts && posts.length > 0) {
-            // 2. Extra Step: If some posts have no media_id, try to fetch the latest media from IG and match by content
-            const missingMediaIds = posts.filter(p => !p.media_id)
-            if (missingMediaIds.length > 0) {
-                try {
-                    const mediaListUrl = `https://graph.facebook.com/${API_VERSION}/${profile.ig_account_id}/media?fields=id,caption,timestamp&limit=10&access_token=${profile.fb_access_token}`
-                    const mediaListRes = await fetch(mediaListUrl)
-                    const mediaListData = await mediaListRes.json()
-
-                    if (mediaListData.data) {
-                        for (const igMedia of mediaListData.data) {
-                            // Try to find a matching post in our DB by matching caption
-                            const matchedPost = missingMediaIds.find(p =>
-                                igMedia.caption && p.content &&
-                                (igMedia.caption.slice(0, 50) === p.content.slice(0, 50))
-                            )
-                            if (matchedPost) {
-                                matchedPost.media_id = igMedia.id
-                                await supabase.from('social_posts').update({ media_id: igMedia.id }).eq('id', matchedPost.id)
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error matching missing media_ids:", e)
-                }
-            }
-
-            // 3. Fetch latest data from Meta for each post that has a media_id
-            for (const post of posts) {
-                if (post.media_id) {
-                    try {
-                        const fbUrl = `https://graph.facebook.com/${API_VERSION}/${post.media_id}?fields=like_count,comments_count,insights.metric(reach,impressions)&access_token=${profile.fb_access_token}`
-                        const metaRes = await fetch(fbUrl)
-                        const metaData = await metaRes.json()
-
-                        if (!metaData.error) {
-                            const newLikes = metaData.like_count || 0
-                            const newComments = metaData.comments_count || 0
-                            let newReach = 0
-                            let newImpressions = 0
-
-                            if (metaData.insights?.data) {
-                                metaData.insights.data.forEach((insight: any) => {
-                                    if (insight.name === 'reach') newReach = insight.values[0].value
-                                    if (insight.name === 'impressions') newImpressions = insight.values[0].value
-                                })
-                            }
-
-                            // Update DB
-                            await supabase.from('social_posts').update({
-                                likes_count: newLikes,
-                                comments_count: newComments,
-                                reach_count: newReach,
-                                impressions_count: newImpressions,
-                                last_metrics_sync: new Date().toISOString()
-                            }).eq('id', post.id)
-
-                            // Apply to local post object for summing
-                            post.likes_count = newLikes
-                            post.comments_count = newComments
-                            post.reach_count = newReach
-                            post.impressions_count = newImpressions
-                        }
-                    } catch (e) {
-                        console.error(`Error fetching metrics for media ${post.media_id}:`, e)
-                    }
-                } else if (post.likes_count === 0 && post.reach_count === 0) {
-                    // Fallback para posts de "demo" se não houver mídia real cadastrada ainda
-                    // Isso ajuda o usuário a ver algo se ele acabou de postar sem o meu fix de media_id
-                    // (Opcional, mas melhora o "Wow" factor se ele acabou de testar)
-                    // post.likes_count = 1; post.reach_count = 5; 
-                }
-            }
-        }
-
         const summary = {
             total_likes: 0,
             total_comments: 0,
@@ -123,25 +42,81 @@ serve(async (req) => {
             avg_engagement: '0%'
         }
 
-        if (posts && posts.length > 0) {
-            posts.forEach(post => {
-                summary.total_likes += post.likes_count || 0
-                summary.total_comments += post.comments_count || 0
-                summary.total_reach += post.reach_count || 0
-                summary.total_impressions += post.impressions_count || 0
+        // 2. Fetch Latest Media directly from Instagram Account (Real-time Audit)
+        try {
+            const igMediaUrl = `https://graph.facebook.com/${API_VERSION}/${profile.ig_account_id}/media?fields=id,caption,like_count,comments_count,timestamp&limit=10&access_token=${profile.fb_access_token}`
+            const igRes = await fetch(igMediaUrl)
+            const igData = await igRes.json()
+
+            if (igData.data && igData.data.length > 0) {
+                // Fetch insights for each of the latest 10 media to get reach/impressions
+                for (const media of igData.data) {
+                    summary.total_likes += media.like_count || 0
+                    summary.total_comments += media.comments_count || 0
+
+                    try {
+                        const insightsUrl = `https://graph.facebook.com/${API_VERSION}/${media.id}/insights?metric=reach,impressions&access_token=${profile.fb_access_token}`
+                        const insRes = await fetch(insightsUrl)
+                        const insData = await insRes.json()
+
+                        if (insData.data) {
+                            insData.data.forEach((insight: any) => {
+                                if (insight.name === 'reach') summary.total_reach += insight.values[0].value || 0
+                                if (insight.name === 'impressions') summary.total_impressions += insight.values[0].value || 0
+                            })
+                        }
+                    } catch (e) {
+                        console.error(`Error fetching insights for media ${media.id}:`, e)
+                    }
+
+                    // Try to update our local DB if we find a match by caption
+                    if (media.caption) {
+                        const { data: matchedPosts } = await supabase
+                            .from('social_posts')
+                            .select('id, media_id')
+                            .eq('company_id', company_id)
+                            .ilike('content', `%${media.caption.slice(0, 30)}%`)
+                            .limit(1)
+
+                        if (matchedPosts && matchedPosts.length > 0) {
+                            const post = matchedPosts[0]
+                            await supabase.from('social_posts').update({
+                                media_id: media.id,
+                                status: 'posted',
+                                likes_count: media.like_count || 0,
+                                comments_count: media.comments_count || 0,
+                                posted_at: media.timestamp
+                            }).eq('id', post.id)
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching real-time IG media list:', err)
+        }
+
+        // 3. Fetch Conversions/ROI from our DB
+        const { data: dbPosts } = await supabase
+            .from('social_posts')
+            .select('conversion_count, estimated_roi_value')
+            .eq('company_id', company_id)
+            .eq('status', 'posted')
+
+        if (dbPosts) {
+            dbPosts.forEach(post => {
                 summary.total_conversions += post.conversion_count || 0
                 summary.total_roi += Number(post.estimated_roi_value || 0)
             })
+        }
 
-            if (summary.total_reach > 0) {
-                const engRate = ((summary.total_likes + summary.total_comments) / summary.total_reach) * 100
-                summary.avg_engagement = engRate.toFixed(1) + '%'
-            }
+        if (summary.total_reach > 0) {
+            const engRate = ((summary.total_likes + summary.total_comments) / summary.total_reach) * 100
+            summary.avg_engagement = engRate.toFixed(1) + '%'
         }
 
         return new Response(JSON.stringify({
             success: true,
-            message: 'Métricas sincronizadas com sucesso.',
+            message: 'Métricas sincronizadas com sucesso total.',
             summary
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

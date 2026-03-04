@@ -51,6 +51,29 @@ async function runCopilotJobs(target_company_id?: string) {
       continue
     }
 
+    // --- NOVA LÓGICA DE FILTRO POR AGENDAMENTO ---
+    // Se não for um disparo manual (target_company_id), verificamos o piloto automático
+    if (!target_company_id) {
+      if (!profile.autopilot_enabled) {
+        console.log(`Empresa ${company.trade_name} ignorada - Piloto Automático desligado.`);
+        continue;
+      }
+
+      const today = new Date().getDay(); // 0 = Domingo, 1 = Segunda...
+      const freq = profile.autopilot_frequency || 'weekly';
+
+      let shouldRunToday = false;
+      if (freq === 'daily') shouldRunToday = true;
+      else if (freq === 'thrice_weekly') shouldRunToday = [1, 3, 5].includes(today); // Seg, Qua, Sex
+      else if (freq === 'weekly') shouldRunToday = (today === 1); // Apenas Segunda
+
+      if (!shouldRunToday) {
+        console.log(`Empresa ${company.trade_name} ignorada - Fora da frequência (${freq}) no dia ${today}.`);
+        continue;
+      }
+    }
+    // ---------------------------------------------
+
     // 3. Optional: Call OpenAI to generate content
     let generatedContent = '';
     let publicUrl = null;

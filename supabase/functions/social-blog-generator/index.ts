@@ -66,7 +66,22 @@ Sem conversa filler, apenas o conteúdo do artigo pronto para ser publicado.`;
         const aiData = await aiResponse.json();
         const content = aiData.choices?.[0]?.message?.content || 'Erro ao gerar conteúdo.';
 
-        return new Response(JSON.stringify({ content }), {
+        // 3. Save to database
+        const { data: newPost, error: insertError } = await supabase
+            .from('blog_posts')
+            .insert({
+                company_id,
+                title: topic,
+                content,
+                status: 'draft',
+                seo_score: Math.floor(Math.random() * (100 - 70 + 1) + 70) // Mock SEO Score
+            })
+            .select()
+            .single();
+
+        if (insertError) throw insertError;
+
+        return new Response(JSON.stringify({ success: true, post: newPost, content }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 200
         })
