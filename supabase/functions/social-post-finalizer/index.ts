@@ -91,44 +91,20 @@ serve(async (req) => {
 
     if (insertErr) throw insertErr
 
-    // 4. If Video Enabled, Trigger Video Generator
+    // 4. If Video Enabled, Trigger Video Generator in BACKGROUND
     if (profile.video_enabled && insertedPost) {
-      try {
-        const videoRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ post_id: insertedPost.id, company_id: company_id })
-        });
-
-        const videoData = await videoRes.json();
-
-        if (!videoRes.ok) {
-          console.error('Erro no social-video-generator:', videoData);
-          const errorMsg = videoData.error || `STATUS_${videoRes.status}_BODY_${JSON.stringify(videoData)}`;
-          throw new Error(`Erro na IA do Google: ${errorMsg}`);
-        } else if (videoData?.videoUrl) {
-          publicUrl = videoData.videoUrl;
-        } else {
-          throw new Error("O gerador de vídeo não retornou uma URL válida.");
-        }
-      } catch (videoErr: any) {
-        console.error('Exceção ao gerar vídeo no Studio:', videoErr);
-        throw new Error(videoErr.message || "Erro desconhecido na geração do vídeo");
-      }
-
-      // Enforce the update here to fix the missing video in UI in all possible failure scenarios
-      if (publicUrl) {
-        await supabase.from('social_posts')
-          .update({ image_url: publicUrl })
-          .eq('id', insertedPost.id);
-      }
-    }
-
-    // 5. Send WhatsApp Notification
-    if (profile.approval_whatsapp) {
+      console.log(`[Diagnostic] Disparando geração de vídeo em background para o post ${insertedPost.id}`);
+      // NÃO usamos await aqui. Isso libera o frontend na hora!
+      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ post_id: insertedPost.id, company_id: company_id })
+      }).catch(e => console.error("Erro no disparo background:", e));
+    } else if (profile.approval_whatsapp) {
+      // 5. Se for IMAGEM (não vídeo), enviamos o WhatsApp daqui mesmo, pois a imagem é rápida
       const { data: instances } = await supabase
         .from('instances')
         .select('instance_name, evolution_instance_id')
@@ -140,7 +116,7 @@ serve(async (req) => {
         const instance = instances[0];
         const targetNumber = profile.approval_whatsapp.replace(/\D/g, '');
         const messageText = `🎨 *STUDIO IA REALIZADO!*
-O Marketing Artificial acabou de finalizar a mídia para o roteiro que você editou no Studio:
+O Marketing Artificial acabou de finalizar a imagem para o seu post:
 
 *Legenda Finalizada:*
 ${content}
@@ -156,11 +132,10 @@ _(Ref: Post ${insertedPost.id})_`;
           },
           body: JSON.stringify({
             number: targetNumber,
-            options: { delay: 1200, presence: "composing" },
             text: messageText,
             textMessage: { text: messageText }
           })
-        });
+        }).catch(e => console.error("Erro WhatsApp Imagem:", e));
       }
     }
 

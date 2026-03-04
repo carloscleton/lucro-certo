@@ -7,12 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Configurações do Google Cloud
 const GOOGLE_SERVICE_ACCOUNT_JSON = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')
 
 async function getAccessToken(serviceAccount: any) {
   const now = Math.floor(Date.now() / 1000)
-  // Ensure private key has correct newline format
   const formattedKey = serviceAccount.private_key.replace(/\\n/g, '\n')
   const privateKey = await jose.importPKCS8(formattedKey, 'RS256')
 
@@ -41,224 +39,100 @@ async function getAccessToken(serviceAccount: any) {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const { post_id, company_id } = await req.json()
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    // 1. Fetch Post and Profile
+    const { data: post } = await supabase.from('social_posts').select('*').eq('id', post_id).single()
+    if (!post) throw new Error("Post não encontrado.")
 
-    let videoResult = "https://www.w3schools.com/html/mov_bbb.mp4"; // Placeholder rabbit video
+    const { data: profile } = await supabase.from('social_profiles').select('*').eq('company_id', company_id).single()
+    if (!profile) throw new Error("Perfil não encontrado.")
 
-    let profile = null;
+    if (!GOOGLE_SERVICE_ACCOUNT_JSON) throw new Error("GOOGLE_CREDENTIALS_MISSING")
+    const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON)
+    const accessToken = await getAccessToken(serviceAccount)
 
-    if (GOOGLE_SERVICE_ACCOUNT_JSON) {
-      console.log("GOOGLE_SERVICE_ACCOUNT_JSON detectado. Iniciando autenticação...");
-      const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON)
-
-      // 1. Fetch Post and Profile separately to avoid join issues
-      const { data: post, error: postErr } = await supabase
-        .from('social_posts')
-        .select('*')
-        .eq('id', post_id)
-        .single()
-
-      if (postErr || !post) {
-        console.error("Erro ao buscar post no banco:", postErr);
-        throw new Error(`Post ${post_id} não encontrado.`);
-      }
-
-      const { data: profileData, error: profileErr } = await supabase
-        .from('social_profiles')
-        .select('*')
-        .eq('company_id', post.company_id)
-        .single()
-
-      if (profileErr || !profileData) {
-        console.error("Erro ao buscar perfil da empresa:", profileErr);
-        throw new Error("Perfil da empresa não encontrado.");
-      }
-
-      profile = profileData
-      const script = post.content
-
-      console.log(`[Diagnostic] Projeto Google: ${serviceAccount.project_id}`);
-      console.log(`[Diagnostic] Gerando áudio para o roteiro (${script.length} caracteres)`);
-
-      // 2. Obter Token do Google
-      let accessToken;
-      try {
-        accessToken = await getAccessToken(serviceAccount)
-        console.log("Token do Google obtido com sucesso.");
-      } catch (authErr: any) {
-        console.error("Erro na Autenticação Google (Verifique a Private Key):", authErr);
-        throw authErr;
-      }
-
-      // 3. Google Cloud Text-to-Speech (Gerar Áudio)
-      const voiceName = profile?.avatar_gender === 'female' ? 'pt-BR-Neural2-A' : 'pt-BR-Neural2-B'
-      console.log(`[Diagnostic] Chamando TTS com voz: ${voiceName}`);
-
-      const ttsRes = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          input: { text: script },
-          voice: { languageCode: "pt-BR", name: voiceName },
-          audioConfig: { audioEncoding: "MP3" }
-        })
+    // 2. TTS
+    const voiceName = profile.avatar_gender === 'female' ? 'pt-BR-Neural2-A' : 'pt-BR-Neural2-B'
+    const ttsRes = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        input: { text: post.content },
+        voice: { languageCode: "pt-BR", name: voiceName },
+        audioConfig: { audioEncoding: "MP3" }
       })
+    })
+    const ttsData = await ttsRes.json()
+    if (!ttsData.audioContent) throw new Error("Falha no Google TTS")
 
-      const ttsData = await ttsRes.json()
-      if (!ttsData.audioContent) {
-        console.error("Erro no Google TTS. Resposta:", JSON.stringify(ttsData));
-        throw new Error(`Falha ao gerar áudio TTS: ${ttsData.error?.message || "Erro desconhecido"}`);
-      }
-      console.log("Áudio gerado com sucesso pelo Google TTS.");
+    // 3. Vertex AI Veo (Background Polling - 2 Minutos)
+    const project = serviceAccount.project_id
+    const location = "us-central1"
+    const modelId = "veo-3.1-fast-generate-preview"
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:predictLongRunning`
 
-      // 4. Vertex AI Veo 3.1 (Gerar Vídeo com Avatar via LRO)
-      const project = serviceAccount.project_id
-      const location = "us-central1"
-      const modelId = "veo-3.1-fast-generate-preview"
-      const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:predictLongRunning`
-
-      const brandInfo = profile?.brand_logo_url ? `with the company logo (${profile.brand_logo_url}) as a watermark` : '';
-      const colorInfo = profile?.brand_primary_color ? `The color scheme of the scene should subtly incorporate the brand color ${profile.brand_primary_color}.` : '';
-
-      const prompt = `A professional ${profile?.avatar_gender === 'male' ? 'man' : 'woman'} avatar in a ${profile?.avatar_style} setting, speaking naturally to the camera. High quality, realistic lip-sync, corporate social media video style. ${brandInfo} ${colorInfo}`;
-
-      console.log(`[Diagnostic] Projeto: ${project} | Modelo: ${modelId} | Região: ${location}`);
-      console.log(`[Diagnostic] Iniciando predictLongRunning para Veo 3.1...`);
-
-      const veoRes = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          instances: [
-            {
-              prompt: prompt,
-              audio_base64: ttsData.audioContent,
-              aspect_ratio: "9:16"
-            }
-          ],
-          parameters: {
-            duration_seconds: 5, // Modelo FAST + 5s = Muito mais rápido
-            sample_count: 1
-          }
-        })
+    const veoRes = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        instances: [{ prompt: `Professional avatar speaking naturally. Corporate style.`, audio_base64: ttsData.audioContent, aspect_ratio: "9:16" }],
+        parameters: { duration_seconds: 5, sample_count: 1 }
       })
+    })
 
-      const operationData = await veoRes.json()
-      if (!veoRes.ok) {
-        console.error("[Diagnostic] Erro ao iniciar LRO no Vertex:", JSON.stringify(operationData));
-        throw new Error(`Vertex LRO Init Error: ${operationData.error?.message || "Erro desconhecido"}`);
+    const opData = await veoRes.json()
+    if (!veoRes.ok) throw new Error(`Vertex Error: ${opData.error?.message}`)
+
+    const operationName = opData.name
+    let videoUrl = null
+    let done = false
+    let attempts = 0
+
+    while (!done && attempts < 60) {
+      attempts++
+      await new Promise(r => setTimeout(r, 2000))
+      console.log(`Polling background #${attempts}...`)
+      const pollRes = await fetch(`https://${location}-aiplatform.googleapis.com/v1/${operationName}`, {
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      })
+      const pollData = await pollRes.json()
+      if (pollData.done) {
+        done = true
+        videoUrl = pollData.response?.predictions?.[0]?.video_url || pollData.response?.predictions?.[0]?.gcsUri
       }
-
-      const operationName = operationData.name;
-      console.log(`[Diagnostic] Operação iniciada: ${operationName}. Aguardando conclusão...`);
-
-      // Polling Loop otimizado (30 segundos totais no máximo para garantir folga no timeout de 60s do servidor)
-      let done = false;
-      let pollingAttempts = 0;
-      const maxAttempts = 15; // 15 * 2s = 30s
-      let finalResponse = null;
-
-      while (!done && pollingAttempts < maxAttempts) {
-        pollingAttempts++;
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 2s
-
-        console.log(`[Diagnostic] Polling #${pollingAttempts} (T+${pollingAttempts * 2}s)...`);
-        const pollRes = await fetch(`https://${location}-aiplatform.googleapis.com/v1/${operationName}`, {
-          headers: { "Authorization": `Bearer ${accessToken}` }
-        });
-
-        if (!pollRes.ok) {
-          console.warn(`[Diagnostic] Polling falhou (${pollRes.status}), tentando novamente...`);
-          continue;
-        }
-
-        const pollData = await pollRes.json();
-        if (pollData.done) {
-          done = true;
-          finalResponse = pollData;
-          console.log("[Diagnostic] Operação de vídeo concluída!");
-        }
-      }
-
-      if (!done || !finalResponse.response) {
-        throw new Error("A geração do vídeo demorou demais ou falhou. Tente novamente em alguns instantes.");
-      }
-
-      const videoResultData = finalResponse.response;
-      const receivedVideo = videoResultData.predictions?.[0]?.video_url || videoResultData.predictions?.[0]?.content || videoResultData.predictions?.[0]?.gcsUri;
-
-      if (receivedVideo) {
-        videoResult = receivedVideo;
-        console.log("URL do vídeo recebida do LRO com sucesso.");
-      } else {
-        console.error("[Diagnostic] Estrutura inesperada do LRO (Sem vídeo no response):", JSON.stringify(finalResponse));
-        throw new Error("Não foi possível encontrar a URL do vídeo na resposta final do Google.");
-      }
-    } else {
-      console.error("ERRO CRÍTICO: GOOGLE_SERVICE_ACCOUNT_JSON não configurado.");
-      throw new Error("SECRET_MISSING_GOOGLE_CREDENTIALS");
     }
 
-    let videoUrl = videoResult;
+    if (!videoUrl) throw new Error("Timeout na geração do vídeo")
 
-    // 5. Salvar o vídeo no Supabase Storage
-    try {
-      if (videoResult !== "https://www.w3schools.com/html/mov_bbb.mp4") {
-        const videoName = `video_${post_id}_${Date.now()}.mp4`
-        const res = await fetch(videoResult)
-        if (!res.ok) throw new Error(`Falha no fetch do vídeo: ${res.statusText}`)
-        const videoBlob = await res.blob()
+    // 4. Update Database
+    await supabase.from('social_posts').update({ image_url: videoUrl, status: 'pending' }).eq('id', post_id)
 
-        const { data: uploadData, error: uploadErr } = await supabase.storage
-          .from('social_media_assets')
-          .upload(`${company_id}/${videoName}`, videoBlob, {
-            contentType: 'video/mp4',
-            upsert: true
-          })
+    // 5. WhatsApp Notification
+    if (profile.approval_whatsapp) {
+      const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
+      if (instances?.length) {
+        const instance = instances[0]
+        const EVO_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
+        const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
+        const msg = `🎥 *VÍDEO STUDIO IA FINALIZADO!*\n\nLegendado e pronto para aprovação:\n\n${post.content.slice(0, 500)}...\n\nResponda *1* para aprovar!`
 
-        if (uploadErr) throw uploadErr
-
-        const { data: publicUrlData } = supabase.storage
-          .from('social_media_assets')
-          .getPublicUrl(`${company_id}/${videoName}`)
-
-        videoUrl = publicUrlData.publicUrl
+        await fetch(`${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': EVO_KEY },
+          body: JSON.stringify({ number: profile.approval_whatsapp.replace(/\D/g, ''), text: msg })
+        })
       }
-    } catch (storageErr: any) {
-      console.error("Aviso: Falha ao salvar no Storage, manteremos a URL original:", storageErr.message);
     }
 
-    // 6. Atualizar o Post com a URL final
-    await supabase.from('social_posts')
-      .update({ image_url: videoUrl, media_type: 'reels' })
-      .eq('id', post_id)
+    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
 
-    return new Response(
-      JSON.stringify({ success: true, videoUrl }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    )
-
-  } catch (error: any) {
-    console.error("Erro no social-video-generator:", error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    )
+  } catch (err: any) {
+    console.error("Background Video Error:", err.message)
+    return new Response(JSON.stringify({ error: err.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 })
   }
 })
