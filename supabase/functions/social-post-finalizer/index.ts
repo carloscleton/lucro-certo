@@ -11,137 +11,71 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const { company_id, content } = await req.json()
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
-    // 1. Fetch Profile and Company
+    // 1. Buscar Perfil e Empresa
     const { data: profile } = await supabase.from('social_profiles').select('*').eq('company_id', company_id).single()
     const { data: company } = await supabase.from('companies').select('trade_name').eq('id', company_id).single()
+    if (!profile || !company) throw new Error("Perfil não encontrado.")
 
-    if (!profile || !company) throw new Error("Perfil ou empresa não encontrados.")
-
-    let publicUrl = null;
-
-    // 2. Decide if Video or Image
-    if (!profile.video_enabled) {
-      // Generate Image with DALL-E 3
-      const brandInfo = profile.brand_logo_url ? `Please ensure the overall aesthetic feels ready for a brand watermark.` : '';
-      const colorInfo = profile.brand_primary_color ? `The image should emphasize or subtly feature the brand color ${profile.brand_primary_color}.` : '';
-
-      const imagePrompt = `Crie uma fotografia profissional, ultra-realista e de alta qualidade (estilo raw photo), formato quadrado, sem letras e sem textos visíveis. 
-      A imagem deve ser natural e humanizada, retratando pessoas reais ou ambientes de trabalho autênticos sobre o nicho: ${profile.niche}. 
-      ${colorInfo} ${brandInfo}
-      Evite terminantemente ilustrações, 3D render, desenhos ou qualquer estilo futurista robótico. Público: ${profile.target_audience}.`;
-
-      const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'dall-e-3',
-          prompt: imagePrompt,
-          n: 1,
-          size: '1024x1024'
-        })
-      });
-
-      const imageData = await imageRes.json();
-      if (imageData.data && imageData.data.length > 0) {
-        const imageUrlOpenai = imageData.data[0].url;
-        const imgFetchRes = await fetch(imageUrlOpenai);
-        const imgBlob = await imgFetchRes.blob();
-
-        const fileName = `${company_id}/studio-${crypto.randomUUID()}.png`;
-        const { error: uploadError } = await supabase.storage
-          .from('social_media_assets')
-          .upload(fileName, imgBlob, { contentType: 'image/png' });
-
-        if (!uploadError) {
-          const { data: publicData } = supabase.storage
-            .from('social_media_assets')
-            .getPublicUrl(fileName);
-          publicUrl = publicData.publicUrl;
-        }
-      }
-    }
-
-    // 3. Save Post
+    // 2. Criar o Post no Banco primeiro (Garante que os dados fiquem salvos)
     const { data: insertedPost, error: insertErr } = await supabase
       .from('social_posts')
       .insert({
         company_id: company_id,
         content: content,
-        image_url: publicUrl,
         media_type: profile.video_enabled ? 'reels' : 'feed',
         status: 'pending'
       })
-      .select()
-      .single()
+      .select().single()
 
     if (insertErr) throw insertErr
 
-    // 4. If Video Enabled, Trigger Video Generator in BACKGROUND
-    if (profile.video_enabled && insertedPost) {
-      console.log(`[Diagnostic] Disparando geração de vídeo em background para o post ${insertedPost.id}`);
-      // NÃO usamos await aqui. Isso libera o frontend na hora!
-      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ post_id: insertedPost.id, company_id: company_id })
-      }).catch(e => console.error("Erro no disparo background:", e));
-    } else if (profile.approval_whatsapp) {
-      // 5. Se for IMAGEM (não vídeo), enviamos o WhatsApp daqui mesmo, pois a imagem é rápida
-      const { data: instances } = await supabase
-        .from('instances')
-        .select('instance_name, evolution_instance_id')
-        .eq('company_id', company_id)
-        .eq('status', 'connected')
-        .limit(1);
-
-      if (instances && instances.length > 0) {
-        const instance = instances[0];
-        const targetNumber = profile.approval_whatsapp.replace(/\D/g, '');
-        const messageText = `🎨 *STUDIO IA REALIZADO!*
-O Marketing Artificial acabou de finalizar a imagem para o seu post:
-
-*Legenda Finalizada:*
-${content}
-
-Deseja Aprovar? (Responda *1* para aprovar ou *NAO*)
-_(Ref: Post ${insertedPost.id})_`;
+    // 3. Enviar WhatsApp de Aprovação IMEDIATAMENTE
+    if (profile.approval_whatsapp) {
+      const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
+      if (instances?.length) {
+        const instance = instances[0]
+        const targetNumber = profile.approval_whatsapp.replace(/\D/g, '')
+        const msg = `🎨 *STUDIO IA: NOVO POST!*\n\nO roteiro que você editou foi salvo e está aguardando aprovação:\n\n${content}\n\nResponda *1* para aprovar!`
 
         await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': EVO_API_KEY
-          },
-          body: JSON.stringify({
-            number: targetNumber,
-            text: messageText,
-            textMessage: { text: messageText }
-          })
-        }).catch(e => console.error("Erro WhatsApp Imagem:", e));
+          headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+          body: JSON.stringify({ number: targetNumber, text: msg })
+        }).catch(e => console.error("Erro WhatsApp inicial:", e))
+      }
+    }
+
+    // 4. Se vídeo estiver ativo, disparar o gerador (agora vamos AWAIT mas com limite)
+    if (profile.video_enabled) {
+      console.log(`[Diagnostic] Iniciando geração de vídeo para o post ${insertedPost.id}`);
+      // Chamamos o gerador de vídeo. Se ele demorar/falhar, não vamos travar o retorno do sucesso para o usuário.
+      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: insertedPost.id, company_id: company_id })
+      }).catch(e => console.error("Erro background video:", e));
+    } else {
+      // Se for imagem, gerar agora (DALL-E é rápido, podemos esperar)
+      const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'dall-e-3', prompt: `Photography about ${profile.niche} for business Instagram. High quality. Public: ${profile.target_audience}.`, n: 1, size: '1024x1024' })
+      });
+      const imageData = await imageRes.json();
+      if (imageData.data?.[0]?.url) {
+        const imgUrl = imageData.data[0].url;
+        await supabase.from('social_posts').update({ image_url: imgUrl }).eq('id', insertedPost.id);
       }
     }
 
     return new Response(JSON.stringify({ success: true, post_id: insertedPost.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     })
 
   } catch (err: any) {
