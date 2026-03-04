@@ -461,15 +461,32 @@ export function Marketing() {
       setIsGeneratingStudio(true);
       setIsStudioOpen(true);
 
-      const res = await supabase.functions.invoke('social-script-generator', {
-        body: { company_id: currentEntity.id }
-      });
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
 
-      if (res.error) throw new Error("Não foi possível gerar roteiro no momento.");
-      setStudioScript(res.data?.script || "");
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-script-generator`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY!,
+          },
+          body: JSON.stringify({ company_id: currentEntity.id }),
+        }
+      );
+
+      const res = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(res.error || "Erro desconhecido na geração");
+      }
+
+      setStudioScript(res.script || "");
     } catch (error: any) {
       console.error("Falha ao gerar roteiro:", error);
-      alert("Erro ao tentar gerar o roteiro IA.");
+      alert(`Erro na IA do Google: ${error.message}`);
     } finally {
       setIsGeneratingStudio(false);
     }

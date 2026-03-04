@@ -57,7 +57,15 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto. Não use título
       });
 
       const aiData = await aiResponse.json();
-      script = aiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro ao gerar script com Gemini.';
+      console.log(`[Diagnostic] Gemini Response Status: ${aiResponse.status}`);
+
+      if (!aiResponse.ok) {
+        console.error(`[Diagnostic] Erro Gemini:`, JSON.stringify(aiData));
+        throw new Error(`Google AI Studio Error: ${aiData.error?.message || "Erro Desconhecido"}`);
+      }
+
+      script = aiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro ao extrair texto da resposta do Gemini.';
+      console.log(`[Diagnostic] Script gerado com sucesso.`);
     } else {
       const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
