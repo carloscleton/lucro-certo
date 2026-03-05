@@ -818,6 +818,10 @@ export function Marketing() {
       );
       return;
     }
+    if (manualMediaType === "feed" && !manualContent.trim()) {
+      alert("Para postagens no Feed (Instagram Feed), a legenda é obrigatória.");
+      return;
+    }
 
     try {
       setSavingManualPost(true);
