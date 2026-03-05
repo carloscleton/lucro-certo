@@ -43,37 +43,11 @@ serve(async (req) => {
     let finalVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4"
 
     try {
-      // 1. CHAVE DO GOOGLE AI STUDIO (Solicitada pelo usuário)
       const AI_STUDIO_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY')
-      const GOOGLE_JSON = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+      if (!AI_STUDIO_KEY) throw new Error("A chave GOOGLE_AI_STUDIO_KEY não foi encontrada.")
 
-      if (!AI_STUDIO_KEY) throw new Error("A chave GOOGLE_AI_STUDIO_KEY não foi encontrada nas configurações.")
-
-      // 2. TTS (Ainda usamos o Cloud Service Account para isso)
-      let ttsAudioBase64 = ""
-      if (GOOGLE_JSON) {
-        const sa = JSON.parse(GOOGLE_JSON)
-        const token = await getAccessToken(sa)
-
-        const ttsRes = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            input: { text: post.content.substring(0, 1000) },
-            voice: { languageCode: "pt-BR", name: profile.avatar_gender === 'female' ? 'pt-BR-Neural2-A' : 'pt-BR-Neural2-B' },
-            audioConfig: { audioEncoding: "MP3" }
-          })
-        })
-        const ttsData = await ttsRes.json()
-        if (ttsRes.ok && ttsData.audioContent) {
-          ttsAudioBase64 = ttsData.audioContent
-        } else {
-          console.error("TTS Fallback: Usando vídeo sem áudio personalizado devido a erro no TTS.")
-        }
-      }
-
-      // 3. VEO VIA GOOGLE AI STUDIO (Gemini API)
-      // Endpoint beta do AI Studio para geração de vídeo
+      // 1. VEO VIA GOOGLE AI STUDIO (Gemini API)
+      // Removendo audio_base64 que não é suportado pelo modelo de preview no AI Studio
       const url = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${AI_STUDIO_KEY}`
 
       const veoRes = await fetch(url, {
@@ -81,13 +55,11 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instances: [{
-            prompt: `Professional high-quality realistic ${profile.avatar_gender} corporate avatar speaking naturally. 4k resolution, smooth motion.`,
-            audio_base64: ttsAudioBase64 || undefined,
+            prompt: `Extremely realistic 4k video of a professional ${profile.avatar_gender} corporate presenter speaking to the camera. Vertical 9:16 aspect ratio, high quality lighting, professional office background. The presenter is moving naturally and talking.`,
             aspect_ratio: "9:16"
           }],
           parameters: {
-            duration_seconds: 5,
-            sample_count: 1
+            duration_seconds: 5
           }
         })
       })
@@ -99,10 +71,8 @@ serve(async (req) => {
       }
 
       if (opData.name) {
-        // 4. POLLING DA OPERAÇÃO (AI STUDIO)
         let attempts = 0
         const startTime = Date.now()
-        // Polling por no máximo 50 segundos para evitar timeout da function do Supabase
         while (attempts < 25 && (Date.now() - startTime) < 50000) {
           attempts++
           await new Promise(r => setTimeout(r, 2000))
@@ -112,9 +82,9 @@ serve(async (req) => {
           const pollData = await pollRes.json()
 
           if (pollData.done) {
-            if (pollData.error) throw new Error(`ERRO_GERACAO_VIDEO: ${pollData.error.message}`)
+            if (pollData.error) throw new Error(`ERRO_GERACAO: ${pollData.error.message}`)
 
-            // O campo de resposta pode variar dependendo da versão, mas geralmente é pollData.response.predictions[0].videoUri
+            // Tentando capturar a URL do vídeo de diferentes possíveis campos da resposta beta
             finalVideoUrl = pollData.response?.predictions?.[0]?.video_url ||
               pollData.response?.predictions?.[0]?.gcsUri ||
               pollData.response?.predictions?.[0]?.videoUri ||
@@ -122,24 +92,21 @@ serve(async (req) => {
             break
           }
         }
-      } else {
-        throw new Error("O Google AI Studio não retornou o nome da operação.")
       }
 
-    } catch (e) {
+    } catch (e: any) {
       console.error("Pipeline Failure:", e.message)
-      errorReport = `🚨 ALERTA DE ERRO IA (AI STUDIO) 🚨\nMotivo: ${e.message}\n\n`
+      errorReport = `🚨 ALERTA DE ERRO IA 🚨\nMotivo: ${e.message}\n\n`
     }
 
-    // 5. ATUALIZAR BANCO
-    // Se falhou, mantemos o fallback mas avisamos o erro
+    // Atualizar Post
     await supabase.from('social_posts').update({
       image_url: finalVideoUrl,
-      content: errorReport + post.content,
+      content: post.content.includes("🚨 ALERTA") ? post.content : (errorReport + post.content),
       status: 'pending'
     }).eq('id', post_id)
 
-    // 6. WHATSAPP
+    // Notificar WhatsApp
     if (profile.approval_whatsapp) {
       const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
       if (instances?.length) {
@@ -148,7 +115,7 @@ serve(async (req) => {
         const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
 
         const msg = errorReport
-          ? `⚠️ *STUDIO IA:* Erro na geração com AI Studio.\nMotivo: ${errorReport.split('\n')[1]}\n\nVerifique o painel.`
+          ? `⚠️ *STUDIO IA:* Erro ao processar vídeo no AI Studio.\n\nVerifique o painel para detalhes.`
           : `✅ *STUDIO IA:* Seu vídeo profissional está pronto!\n\nLegenda autorizada para aprovação.`
 
         await fetch(`${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
