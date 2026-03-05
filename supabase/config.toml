@@ -75,3 +75,8 @@ entrypoint = "./functions/social-post-finalizer/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/social-post-finalizer/*.html" ]
+[functions.social-post-publisher]
+enabled = true
+verify_jwt = false
+import_map = "./functions/social-post-publisher/deno.json"
+entrypoint = "./functions/social-post-publisher/index.ts"
