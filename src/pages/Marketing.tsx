@@ -74,7 +74,7 @@ export function Marketing() {
   const [manualContent, setManualContent] = useState("");
   const [manualMediaType, setManualMediaType] = useState<
     "feed" | "story" | "reels"
-  >("feed");
+  >("story");
   const [savingManualPost, setSavingManualPost] = useState(false);
   const [isGeneratingMagic, setIsGeneratingMagic] = useState(false);
   const [manualImagePrompt, setManualImagePrompt] = useState("");
@@ -748,6 +748,7 @@ export function Marketing() {
           body: JSON.stringify({
             company_id: currentEntity.id,
             mode: "suggest_prompt",
+            media_type: manualMediaType,
           }),
         },
       );
@@ -787,6 +788,7 @@ export function Marketing() {
             company_id: currentEntity.id,
             image_custom_prompt: manualImagePrompt,
             mode: "image",
+            media_type: manualMediaType,
           }),
         },
       );
@@ -2330,29 +2332,31 @@ export function Marketing() {
               </div>
 
               {/* Caption Textarea */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Legenda (Opcional)
-                  </label>
-                  <button
-                    onClick={handleGenerateMagic}
-                    disabled={isGeneratingMagic}
-                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <Sparkles size={14} />
-                    {isGeneratingMagic
-                      ? "Criando Mágica..."
-                      : "Varinha Mágica (IA)"}
-                  </button>
+              {manualMediaType !== "story" && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Legenda (Opcional)
+                    </label>
+                    <button
+                      onClick={handleGenerateMagic}
+                      disabled={isGeneratingMagic}
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <Sparkles size={14} />
+                      {isGeneratingMagic
+                        ? "Criando Mágica..."
+                        : "Varinha Mágica (IA)"}
+                    </button>
+                  </div>
+                  <textarea
+                    className="w-full h-32 p-3 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm"
+                    value={manualContent}
+                    onChange={(e) => setManualContent(e.target.value)}
+                    placeholder="Escreva a legenda da postagem aqui..."
+                  />
                 </div>
-                <textarea
-                  className="w-full h-32 p-3 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm"
-                  value={manualContent}
-                  onChange={(e) => setManualContent(e.target.value)}
-                  placeholder="Escreva a legenda da postagem aqui..."
-                />
-              </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center mt-6">
