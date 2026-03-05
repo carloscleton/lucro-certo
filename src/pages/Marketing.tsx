@@ -444,9 +444,14 @@ export function Marketing() {
   };
 
   const handlePublishNow = async (postId: string) => {
-    const isConfirmed = window.confirm(
-      "⚠️ ATENÇÃO: Esta postagem ainda está PENDENTE e pode não ter sido aprovada pelo cliente no WhatsApp.\n\nSe der continuídade, ela será postada IMEDIATAMENTE no Instagram.\n\nTem certeza que deseja forçar a publicação agora?",
-    );
+    const post = posts.find((p) => p.id === postId);
+    const isPending = post?.status === "pending";
+
+    const message = isPending
+      ? "⚠️ ATENÇÃO: Esta postagem ainda está PENDENTE e pode não ter sido aprovada pelo cliente no WhatsApp.\n\nSe der continuidade, ela será postada IMEDIATAMENTE no Instagram.\n\nTem certeza que deseja forçar a publicação agora?"
+      : "Esta postagem já foi APROVADA. Deseja publicá-la IMEDIATAMENTE no Instagram?";
+
+    const isConfirmed = window.confirm(message);
     if (!isConfirmed) return;
 
     try {
