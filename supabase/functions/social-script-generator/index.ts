@@ -32,47 +32,45 @@ Público-alvo: "${profile.target_audience}".
 Gere apenas o TEXTO FINAL (incluindo emojis) e pule duas linhas para colocar 5 hashtags estratégicas.
 Não use títulos como "Legenda" ou "Hashtags". Apenas o conteúdo pronto para postar.`
 
-    const aiKey = Deno.env.get('GOOGLE_AI_STUDIO_KEY')
+    const aiKey = Deno.env.get('GOOGLE_AI_STUDIO_KEY')?.trim()
+    const openaiKey = Deno.env.get('OPENAI_API_KEY')?.trim()
     let script = ''
     let errorLog = ''
 
-    // Tentar Gemini (AI Studio) - Prioritário
-    try {
-      if (!aiKey) throw new Error("Chave do Google AI Studio não configurada.")
+    // 2. TENTATIVA GOOGLE (Gemini) - Tenta múltiplos modelos se falhar
+    if (aiKey) {
+      const modelsToTry = [
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-pro"
+      ];
 
-      // Usando v1 e gemini-1.5-flash-latest para máxima compatibilidade
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${aiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      })
+      for (const model of modelsToTry) {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${aiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
 
-      const data = await res.json()
-      if (!res.ok) {
-        // Fallback para gemini-pro se o flash falhar
-        const fallbackRes = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${aiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const fallbackData = await fallbackRes.json();
-        if (!fallbackRes.ok) throw new Error(`Google AI erro: ${data.error?.message || JSON.stringify(data)}`);
-        script = fallbackData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      } else {
-        script = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+          const data = await res.json();
+          if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            script = data.candidates[0].content.parts[0].text;
+            break; // Sucesso!
+          } else {
+            errorLog += `[Erro ${model}: ${data.error?.message || 'Sem resposta'}]\n`;
+          }
+        } catch (e: any) {
+          errorLog += `[Falha interna ${model}: ${e.message}]\n`;
+        }
       }
-    } catch (e: any) {
-      errorLog += `[Erro Google: ${e.message}]\n`
+    } else {
+      errorLog += `[Google: Chave não configurada]\n`;
     }
 
-    // Fallback OpenAI se Gemini falhar ou retornar vazio
-    if (!script) {
+    // 3. TENTATIVA OPENAI (Backup de 2º nível)
+    if (!script && openaiKey) {
       try {
-        const openaiKey = Deno.env.get('OPENAI_API_KEY')
-        if (!openaiKey) throw new Error("Chave da OpenAI não configurada.")
-
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -83,19 +81,24 @@ Não use títulos como "Legenda" ou "Hashtags". Apenas o conteúdo pronto para p
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: prompt }]
           })
-        })
+        });
 
-        const data = await res.json()
-        if (!res.ok) throw new Error(`OpenAI erro: ${data.error?.message || JSON.stringify(data)}`)
-
-        script = data.choices?.[0]?.message?.content || ''
+        const data = await res.json();
+        if (res.ok && data.choices?.[0]?.message?.content) {
+          script = data.choices[0].message.content;
+        } else {
+          errorLog += `[Erro OpenAI: ${data.error?.message || 'Servidor indisponível'}]\n`;
+        }
       } catch (e: any) {
-        errorLog += `[Erro OpenAI: ${e.message}]\n`
+        errorLog += `[Falha interna OpenAI: ${e.message}]\n`;
       }
+    } else if (!openaiKey && !script) {
+      errorLog += `[OpenAI: Chave não configurada]\n`;
     }
 
+    // 4. RESULTADO FINAL
     if (!script) {
-      script = `⚠️ Falha total na geração do roteiro.\n\nRelatório Técnico:\n${errorLog}\n\nPor favor, verifique se suas chaves de API estão ativas e com saldo.`
+      script = `⚠️ Falha crítica na geração.\n\nRelatório de Diagnóstico:\n${errorLog}\n\n🔍 Sugestão: Verifique se suas chaves no Supabase Dashboard estão corretas e com faturamento ativo.`;
     }
 
     return new Response(JSON.stringify({ script }), {
