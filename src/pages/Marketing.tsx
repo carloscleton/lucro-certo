@@ -32,6 +32,8 @@ import {
   DollarSign,
   Target,
   AlertCircle,
+  Search,
+  X,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -1032,6 +1034,14 @@ export function Marketing() {
               Inteligência Artificial para Negócios
             </p>
           </div>
+          {profile?.video_enabled && (
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-100 dark:border-rose-900/50">
+              <Video size={16} className="text-rose-600" />
+              <span className="text-sm font-bold text-rose-700 dark:text-rose-400">
+                {profile?.daily_video_count || 0}/{profile?.daily_video_limit || 3} vídeos hoje
+              </span>
+            </div>
+          )}
         </div>
 
         {/* App Switcher */}
@@ -2183,7 +2193,7 @@ export function Marketing() {
             <div className="space-y-4">
               {/* Upload da Imagem */}
               <div
-                className="border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer relative overflow-hidden group/preview h-72"
+                className="border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer relative overflow-hidden group/preview h-[450px]"
               >
                 <input
                   type="file"
@@ -2648,8 +2658,7 @@ export function Marketing() {
                 onClick={() => setIsStudioOpen(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2"
               >
-                <Save size={20} className="rotate-45" />{" "}
-                {/* Close icon workaround if X not in imports */}
+                <X size={20} />
               </button>
             </div>
 
@@ -2744,7 +2753,7 @@ export function Marketing() {
                 onClick={() => setIsBlogModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 border border-gray-100 dark:border-slate-800 rounded-xl"
               >
-                <Save size={18} className="rotate-45" />
+                <X size={18} />
               </button>
             </div>
 
