@@ -7,9 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const { company_id } = await req.json()
@@ -18,88 +16,59 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // 1. Fetch profile and company
     const { data: profile } = await supabase.from('social_profiles').select('*').eq('company_id', company_id).single()
     const { data: company } = await supabase.from('companies').select('trade_name').eq('id', company_id).single()
 
-    if (!profile) throw new Error("Perfil da IA não encontrado. Salve o perfil primeiro.")
+    if (!profile) throw new Error("Perfil da IA não encontrado.")
 
     const prompt = `Crie uma postagem de Instagram para a empresa: "${company?.trade_name || 'Nossa Empresa'}".
-O nicho da empresa é: "${profile.niche}".
-Tom de voz: "${profile.tone}".
-Público-alvo: "${profile.target_audience}".
+Nicho: "${profile.niche}". Tom: "${profile.tone}".
 
-Gere apenas o TEXTO FINAL (incluindo emojis) e pule duas linhas para colocar 5 hashtags estratégicas.
-Não use títulos como "Legenda" ou "Hashtags". Apenas o conteúdo pronto para postar.`
+Gere apenas o TEXTO FINAL pronto para postar (incluindo emojis) e 5 hashtags ao final. Sem conversas.`
 
     const aiKey = Deno.env.get('GOOGLE_AI_STUDIO_KEY')?.trim()
-    const openaiKey = Deno.env.get('OPENAI_API_KEY')?.trim()
     let script = ''
-    let errorLog = ''
+    let logs = ''
 
-    // 2. TENTATIVA GOOGLE (Gemini) - Tenta múltiplos modelos se falhar
+    // Tentar Google v1 (Estável)
     if (aiKey) {
-      const modelsToTry = [
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-pro"
-      ];
-
-      for (const model of modelsToTry) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${aiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-          });
-
-          const data = await res.json();
-          if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-            script = data.candidates[0].content.parts[0].text;
-            break; // Sucesso!
-          } else {
-            errorLog += `[Erro ${model}: ${data.error?.message || 'Sem resposta'}]\n`;
-          }
-        } catch (e: any) {
-          errorLog += `[Falha interna ${model}: ${e.message}]\n`;
-        }
-      }
-    } else {
-      errorLog += `[Google: Chave não configurada]\n`;
-    }
-
-    // 3. TENTATIVA OPENAI (Backup de 2º nível)
-    if (!script && openaiKey) {
       try {
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${aiKey}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: prompt }]
-          })
-        });
-
-        const data = await res.json();
-        if (res.ok && data.choices?.[0]?.message?.content) {
-          script = data.choices[0].message.content;
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        })
+        const data = await res.json()
+        if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          script = data.candidates[0].content.parts[0].text
         } else {
-          errorLog += `[Erro OpenAI: ${data.error?.message || 'Servidor indisponível'}]\n`;
+          logs += `[G-v1: ${data.error?.message || 'Erro'}] `
         }
       } catch (e: any) {
-        errorLog += `[Falha interna OpenAI: ${e.message}]\n`;
+        logs += `[G-Internal: ${e.message}] `
       }
-    } else if (!openaiKey && !script) {
-      errorLog += `[OpenAI: Chave não configurada]\n`;
     }
 
-    // 4. RESULTADO FINAL
+    // Backup OpenAI 
     if (!script) {
-      script = `⚠️ Falha crítica na geração.\n\nRelatório de Diagnóstico:\n${errorLog}\n\n🔍 Sugestão: Verifique se suas chaves no Supabase Dashboard estão corretas e com faturamento ativo.`;
+      const openaiKey = Deno.env.get('OPENAI_API_KEY')?.trim()
+      if (openaiKey) {
+        try {
+          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+            body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: prompt }] })
+          })
+          const data = await res.json()
+          if (res.ok) script = data.choices?.[0]?.message?.content
+          else logs += `[O-v1: ${data.error?.message || 'Erro'}] `
+        } catch (e: any) {
+          logs += `[O-Internal: ${e.message}] `
+        }
+      }
     }
+
+    if (!script) script = `🚨 ERRO DE CONEXÃO 🚨\n\nMotivo: As IAs estão temporariamente indisponíveis.\nRelatório: ${logs}\n\nTente escrever o texto manualmente por enquanto.`
 
     return new Response(JSON.stringify({ script }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
