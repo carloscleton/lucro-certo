@@ -1282,6 +1282,15 @@ export function Marketing() {
                           </span>
                         </div>
 
+                        {videoEnabled && profile && (
+                          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900/50 px-4 py-2 rounded-xl border border-gray-100 dark:border-slate-800">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">
+                              Uso Diário (Free): <span className="text-gray-900 dark:text-white">{profile.daily_video_count || 0}</span> vídeos gerados hoje
+                            </span>
+                          </div>
+                        )}
+
                         <div className="flex items-center gap-3">
                           <button
                             type="button"

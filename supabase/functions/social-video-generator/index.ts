@@ -44,6 +44,16 @@ serve(async (req) => {
     const { data: post } = await supabase.from('social_posts').select('*').eq('id', post_id).single()
     const { data: profile } = await supabase.from('social_profiles').select('*').eq('company_id', company_id).single()
 
+    // --- CONTROLE DE USO DIÁRIO ---
+    const today = new Date().toISOString().split('T')[0];
+    let dailyCount = profile.daily_video_count || 0;
+
+    if (profile.last_video_date !== today) {
+      dailyCount = 0;
+      await supabase.from('social_profiles').update({ daily_video_count: 0, last_video_date: today }).eq('id', profile.id);
+    }
+    // ------------------------------
+
     let debugInfo = ""
     let finalVideoUrl = post?.image_url || "https://www.w3schools.com/html/mov_bbb.mp4"
 
@@ -119,6 +129,12 @@ serve(async (req) => {
         } else {
           throw new Error("Não foi possível gerar o vídeo inicial.");
         }
+
+        // Incrementa o uso diário se chegou até aqui com sucesso
+        await supabase.from('social_profiles')
+          .update({ daily_video_count: dailyCount + 1 })
+          .eq('id', profile.id);
+
       } catch (e: any) {
         if (e.message.includes("quota") || e.message.includes("429")) {
           debugInfo = `🚨 LIMITE DE VÍDEOS ALCANÇADO: Quota do Google esgotada por hoje.`

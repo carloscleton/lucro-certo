@@ -23,6 +23,8 @@ export interface SocialProfile {
     blog_autopilot_enabled?: boolean;
     blog_autopilot_frequency?: 'daily' | 'thrice_weekly' | 'weekly';
     language?: string;
+    daily_video_count?: number;
+    last_video_date?: string;
     best_posting_times?: string[];
     created_at: string;
     updated_at: string;
