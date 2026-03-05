@@ -22,6 +22,7 @@ export interface SocialProfile {
     autopilot_frequency?: 'daily' | 'thrice_weekly' | 'weekly';
     blog_autopilot_enabled?: boolean;
     blog_autopilot_frequency?: 'daily' | 'thrice_weekly' | 'weekly';
+    language?: string;
     best_posting_times?: string[];
     created_at: string;
     updated_at: string;

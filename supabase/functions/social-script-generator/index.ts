@@ -23,8 +23,9 @@ serve(async (req) => {
 
     const prompt = `Crie uma postagem de Instagram para a empresa: "${company?.trade_name || 'Nossa Empresa'}".
 Nicho: "${profile.niche}". Tom: "${profile.tone}".
+Idioma da Geração: ${profile.language || 'Português (Brasil)'}.
 
-Gere apenas o TEXTO FINAL pronto para postar (incluindo emojis) e 5 hashtags ao final. Sem conversas.`
+Gere apenas o TEXTO FINAL pronto para postar na língua solicitada (incluindo emojis) e 5 hashtags ao final no idioma correto. Sem conversas.`
 
     const aiKey = Deno.env.get('GOOGLE_AI_STUDIO_KEY')?.trim()
     let script = ''

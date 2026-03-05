@@ -99,6 +99,7 @@ export function Marketing() {
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [avatarGender, setAvatarGender] = useState("male");
   const [avatarStyle, setAvatarStyle] = useState("professional");
+  const [language, setLanguage] = useState("pt-BR");
 
   // Auto-Pilot State
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
@@ -237,6 +238,7 @@ export function Marketing() {
         setVideoEnabled(profileData.video_enabled || false);
         setAvatarGender(profileData.avatar_gender || "male");
         setAvatarStyle(profileData.avatar_style || "professional");
+        setLanguage(profileData.language || "pt-BR");
         setBrandLogo(
           profileData.brand_logo_url || currentEntity.logo_url || null,
         );
@@ -288,6 +290,7 @@ export function Marketing() {
             video_enabled: videoEnabled,
             avatar_gender: avatarGender,
             avatar_style: avatarStyle,
+            language: language,
             brand_logo_url: brandLogo,
             brand_primary_color: brandPrimaryColor,
             brand_secondary_color: brandSecondaryColor,
@@ -309,6 +312,7 @@ export function Marketing() {
           video_enabled: videoEnabled,
           avatar_gender: avatarGender,
           avatar_style: avatarStyle,
+          language: language,
           brand_logo_url: brandLogo,
           brand_primary_color: brandPrimaryColor,
           brand_secondary_color: brandSecondaryColor,
@@ -1020,6 +1024,20 @@ export function Marketing() {
                           className="h-14 rounded-2xl border-gray-100 dark:border-slate-800 focus:ring-rose-500 bg-gray-50/50 dark:bg-slate-900/50 font-medium shadow-inner"
                         />
                       </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1">
+                          Idioma de Geração
+                        </label>
+                        <select
+                          value={language}
+                          onChange={(e) => setLanguage(e.target.value)}
+                          className="w-full h-14 px-4 rounded-2xl border border-gray-100 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-gray-50/50 dark:bg-slate-900/50 font-medium shadow-inner"
+                        >
+                          <option value="pt-BR">Português (Brasil)</option>
+                          <option value="en-US">Inglês (EUA)</option>
+                          <option value="es-ES">Espanhol (Espanha)</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div className="space-y-6">
@@ -1200,52 +1218,50 @@ export function Marketing() {
                       </div>
                     </div>
 
-                    {videoEnabled && (
-                      <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1 flex items-center gap-1.5">
-                              <User size={12} /> Gênero do Avatar
-                            </label>
-                            <select
-                              className="w-full h-12 px-4 border border-gray-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all shadow-inner"
-                              value={avatarGender}
-                              onChange={(e) => setAvatarGender(e.target.value)}
-                            >
-                              <option value="male">
-                                Masculino (Apresentador)
-                              </option>
-                              <option value="female">
-                                Feminino (Apresentadora)
-                              </option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1">
-                              Estilo Visual
-                            </label>
-                            <select
-                              className="w-full h-12 px-4 border border-gray-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all shadow-inner"
-                              value={avatarStyle}
-                              onChange={(e) => setAvatarStyle(e.target.value)}
-                            >
-                              <option value="professional">
-                                Profissional / Corporativo
-                              </option>
-                              <option value="news">
-                                Notícias / Jornalístico
-                              </option>
-                              <option value="casual">
-                                Casual / Descontraído
-                              </option>
-                              <option value="educational">
-                                Educativo / Aula
-                              </option>
-                            </select>
-                          </div>
+                    <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-top-4 duration-500">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1 flex items-center gap-1.5">
+                            <User size={12} /> Gênero do Avatar (Apresentador)
+                          </label>
+                          <select
+                            className="w-full h-12 px-4 border border-gray-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all shadow-inner"
+                            value={avatarGender}
+                            onChange={(e) => setAvatarGender(e.target.value)}
+                          >
+                            <option value="male">
+                              Masculino
+                            </option>
+                            <option value="female">
+                              Feminino
+                            </option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1">
+                            Estilo Visual da IA
+                          </label>
+                          <select
+                            className="w-full h-12 px-4 border border-gray-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all shadow-inner"
+                            value={avatarStyle}
+                            onChange={(e) => setAvatarStyle(e.target.value)}
+                          >
+                            <option value="professional">
+                              Profissional / Corporativo
+                            </option>
+                            <option value="news">
+                              Notícias / Jornalístico
+                            </option>
+                            <option value="casual">
+                              Casual / Descontraído
+                            </option>
+                            <option value="educational">
+                              Educativo / Aula
+                            </option>
+                          </select>
                         </div>
                       </div>
-                    )}
+                    </div>
 
                     <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-gray-100 dark:border-slate-800 mt-8">
                       <div className="flex flex-wrap items-center gap-6">

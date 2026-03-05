@@ -79,7 +79,7 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instances: [{
-            prompt: `Cinematic professional video of a ${profile.avatar_gender} presenter speaking naturally to the camera. Vertical 4k, modern office background.`
+            prompt: `Cinematic professional video, 4k, vertical 9:16. A corporate ${profile.avatar_gender || 'male'} presenter, style ${profile.avatar_style || 'professional'}, is speaking naturally and confidently to the camera in ${profile.language || 'Portuguese'}. Modern office background, high quality lighting, realistic human motion.`
           }]
         })
       })
