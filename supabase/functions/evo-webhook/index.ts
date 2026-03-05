@@ -56,7 +56,7 @@ serve(async (req) => {
 
     if (allowKeywords.includes(text)) {
       newStatus = 'approved'
-      replyMsg = '✅ *Postagem APROVADA com sucesso!* 🚀\nEla já está na fila para ser publicada no seu Instagram/Meta em breve.'
+      replyMsg = '✅ *Postagem APROVADA!* 🚀\n\nSe o seu Instagram estiver conectado, ela será publicada automaticamente em instantes.\n\nCaso contrário, acesse o painel para postar manualmente.'
     } else if (blockKeywords.includes(text)) {
       newStatus = 'rejected'
       replyMsg = '❌ *Postagem DESCARTADA.* Nossa inteligência tentará gerar opções melhores no próximo ciclo.'
@@ -194,8 +194,20 @@ serve(async (req) => {
           const ig_account_id = profileInfo.ig_account_id
           const fb_access_token = profileInfo.fb_access_token
 
-          // 3.1 Criar container
-          const mediaUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media?image_url=${encodeURIComponent(post.image_url)}&caption=${encodeURIComponent(post.content)}&access_token=${fb_access_token}`
+          // 3.1 Criar container (Detectando se é vídeo ou imagem)
+          const isVideo = post.image_url?.toLowerCase().endsWith('.mp4') || post.image_url?.toLowerCase().endsWith('.mov') || post.media_type === 'reels';
+
+          let mediaUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media?access_token=${fb_access_token}&caption=${encodeURIComponent(post.content)}`;
+
+          if (isVideo) {
+            mediaUrl += `&media_type=REELS&video_url=${encodeURIComponent(post.image_url)}`;
+          } else {
+            mediaUrl += `&image_url=${encodeURIComponent(post.image_url)}`;
+            if (post.media_type === 'story') {
+              mediaUrl += `&media_type=STORIES`;
+            }
+          }
+
           const mediaRes = await fetch(mediaUrl, { method: 'POST' })
           const mediaData = await mediaRes.json()
 
@@ -207,7 +219,11 @@ serve(async (req) => {
 
             if (!publishData.error && publishData.id) {
               // Atualiza post para publicado
-              await supabase.from('social_posts').update({ status: 'posted' }).eq('id', post.id)
+              await supabase.from('social_posts').update({
+                status: 'posted',
+                posted_at: new Date().toISOString(),
+                media_id: publishData.id
+              }).eq('id', post.id)
               console.log('Sucesso! Publicado no IG com id:', publishData.id)
             } else {
               console.error('Erro na publicacao Media:', publishData.error)

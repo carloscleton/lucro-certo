@@ -1634,7 +1634,7 @@ export function Marketing() {
                             Excluir
                           </Button>
                         </div>
-                        {post.status === "pending" && (
+                        {(post.status === "pending" || post.status === "approved") && (
                           <Button
                             size="sm"
                             disabled={publishingId === post.id}
