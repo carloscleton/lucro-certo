@@ -138,6 +138,7 @@ export function Marketing() {
 
   // Analytics State
   const [metrics, setMetrics] = useState<any>(null);
+  const [showFullManualPreview, setShowFullManualPreview] = useState(false);
   const [syncingMetrics, setSyncingMetrics] = useState(false);
 
   const formatWhatsAppMask = (value: string) => {
@@ -2182,10 +2183,7 @@ export function Marketing() {
             <div className="space-y-4">
               {/* Upload da Imagem */}
               <div
-                className="border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer relative overflow-hidden"
-                onClick={() =>
-                  document.getElementById("manual-image-upload")?.click()
-                }
+                className="border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer relative overflow-hidden group/preview h-72"
               >
                 <input
                   type="file"
@@ -2193,7 +2191,7 @@ export function Marketing() {
                   className="hidden"
                   accept="image/*,video/*"
                   onChange={handleManualFileSelection}
-                  disabled={isGeneratingMagic}
+                  disabled={isGeneratingMagic || isGeneratingManualImage}
                 />
                 {isGeneratingMagic || isGeneratingManualImage ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 dark:bg-slate-900/90 z-10 backdrop-blur-sm">
@@ -2203,18 +2201,40 @@ export function Marketing() {
                     </p>
                   </div>
                 ) : manualPreview ? (
-                  <img
-                    src={manualPreview}
-                    alt="Preview"
-                    className="absolute inset-0 w-full h-full object-contain bg-black/5"
-                  />
+                  <div className="relative w-full h-full">
+                    <img
+                      src={manualPreview}
+                      alt="Preview"
+                      className="w-full h-full object-contain bg-black/5"
+                      onClick={() => setShowFullManualPreview(true)}
+                    />
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <button
+                        onClick={() => setShowFullManualPreview(true)}
+                        className="p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full shadow-lg text-gray-700 dark:text-gray-200 hover:scale-110 transition-all opacity-0 group-hover/preview:opacity-100"
+                        title="Ver em tamanho cheio"
+                      >
+                        <Search size={16} />
+                      </button>
+                      <button
+                        onClick={() => document.getElementById("manual-image-upload")?.click()}
+                        className="p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full shadow-lg text-gray-700 dark:text-gray-200 hover:scale-110 transition-all opacity-0 group-hover/preview:opacity-100"
+                        title="Trocar imagem"
+                      >
+                        <ImageIcon size={16} />
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <>
+                  <div
+                    className="w-full h-full flex flex-col items-center justify-center p-6"
+                    onClick={() => document.getElementById("manual-image-upload")?.click()}
+                  >
                     <ImageIcon size={32} className="text-gray-400 mb-2" />
                     <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                       Clique para enviar Imagem/Vídeo
                     </span>
-                  </>
+                  </div>
                 )}
               </div>
 
@@ -2319,6 +2339,29 @@ export function Marketing() {
           </div>
         </div>
       )}
+
+      {/* Lightbox para Preview Full */}
+      {showFullManualPreview && manualPreview && (
+        <div
+          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-md cursor-zoom-out"
+          onClick={() => setShowFullManualPreview(false)}
+        >
+          <div className="relative max-w-5xl w-full max-h-[90vh] animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={manualPreview}
+              alt="Full Preview"
+              className="w-full h-full object-contain rounded-xl shadow-2xl"
+            />
+            <button
+              className="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-md transition-all flex items-center gap-2 px-4 font-bold text-sm"
+              onClick={() => setShowFullManualPreview(false)}
+            >
+              <X size={20} /> Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
 
       {/* Modal de Edição de Post (Autogerados) */}
       {editingPost && (
