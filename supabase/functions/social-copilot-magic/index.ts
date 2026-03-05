@@ -100,8 +100,13 @@ O público-alvo é: "${audience}".
 
 ${userInstructions}
 
-Gere APENAS A LEGENDA da postagem (incluindo emojis) e termine pulando duas linhas e adicionando 5 hashtags estratégicas.
-Não coloque aspas no começo ou fim, nem conversa fiada. Retorne apenas o texto final para copiar e colar.`;
+REGRAS OBRIGATÓRIAS DE ENGAJAMENTO:
+1. PRIMEIRA LINHA: Comece com um GANCHO MENTAL poderoso que prenda a atenção em 1 segundo (use curiosidade, surpresa ou dor do público).
+2. CORPO: Texto envolvente com emojis estratégicos (não excessivos), máximo 5-8 linhas.
+3. CTA (CHAMADA PARA AÇÃO): Termine o texto com uma PERGUNTA que convide o leitor a comentar. Ex: "Comenta aqui 💬 se você também já passou por isso!" ou "Salva esse post e marca um amigo que precisa ver! 🔖"
+4. HASHTAGS: Pule duas linhas e adicione entre 8 e 12 hashtags estratégicas. Misture hashtags populares do nicho (alto volume) com hashtags de cauda longa (menor concorrência). Todas em português e sem espaços internos.
+5. NUNCA coloque aspas no começo ou fim. Retorne apenas o texto final pronto para copiar e colar.`;
+
 
       try {
         const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {

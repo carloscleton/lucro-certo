@@ -84,8 +84,12 @@ O nicho da empresa é: "${profile.niche}".
 O tom de voz deve ser: "${profile.tone}".
 O público-alvo é: "${profile.target_audience}".
 
-Gere apenas a LEGENDA (incluindo emojis) e pule duas linhas para colocar 5 hashtags estratégicas.
-Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
+REGRAS OBRIGATÓRIAS DE ENGAJAMENTO:
+1. PRIMEIRA LINHA: Comece com um GANCHO MENTAL poderoso que prenda a atenção em 1 segundo (use curiosidade, surpresa ou dor do público).
+2. CORPO: Texto envolvente com emojis estratégicos (não excessivos), máximo 5-8 linhas.
+3. CTA (CHAMADA PARA AÇÃO): Termine o texto com uma PERGUNTA que convide o leitor a comentar. Ex: "Comenta aqui 💬 se você também já passou por isso!" ou "Salva esse post e marca um amigo que precisa ver! 🔖"
+4. HASHTAGS: Pule duas linhas e adicione entre 8 e 12 hashtags estratégicas. Misture hashtags populares do nicho (alto volume) com hashtags de cauda longa (menor concorrência). Todas em português e sem espaços internos.
+5. NUNCA coloque aspas no começo ou fim. Retorne apenas o texto final pronto para copiar e colar.`;
 
       try {
         const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -97,18 +101,17 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7
+            temperature: 0.9
           })
         });
         const aiData = await aiResponse.json();
         generatedContent = aiData.choices?.[0]?.message?.content || 'Erro ao gerar legenda com API.';
 
-        // Gerar Imagem com DALL-E 3 com texto chamativo
-        const imagePrompt = `Crie uma arte profissional e impactante para Instagram sobre ${profile.niche}. 
-A imagem DEVE conter um título chamativo em português centralizado com tipografia moderna e legível. 
-O texto deve ser uma chamada de ação ou frase de impacto relacionada ao tema. 
-Estilo visual: Fotografia profissional humanizada de alta qualidade. Público: ${profile.target_audience}. 
-Gere o texto em português corretamente.`;
+        // Gerar Imagem com DALL-E 3 — fotografia hiper-realista, SEM texto
+        const imagePrompt = `Professional high-resolution hyper-realistic photography related to ${profile.niche}. 
+Visual style: Raw photo, DSLR, 8k resolution, natural lighting, authentic environment. NO ROBOTS, NO ILLUSTRATIONS, NO GRAPHICS, NO VECTOR. 
+CRITICAL RULE: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO QUOTES, NO FONTS ALLOWED ANYWHERE IN THE IMAGE. 
+The image must look like a real camera capture, completely textless. Clean and aesthetic for Instagram. Audience: ${profile.target_audience}. Square format 1:1.`;
 
         const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
