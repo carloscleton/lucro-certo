@@ -37,75 +37,81 @@ serve(async (req) => {
     const { data: post } = await supabase.from('social_posts').select('*').eq('id', post_id).single()
     const { data: profile } = await supabase.from('social_profiles').select('*').eq('company_id', company_id).single()
 
-    let diagnosticMsg = ""
-    let finalVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4" // Fallback do coelho (reserva)
+    let errorReport = ""
+    let finalVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4"
 
     try {
       const GOOGLE_JSON = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-      if (!GOOGLE_JSON) throw new Error("ERRO: Sua Chave do Google Cloud não foi encontrada no servidor.")
+      if (!GOOGLE_JSON) throw new Error("CHAVE_GOOGLE_AUSENTE")
 
       const sa = JSON.parse(GOOGLE_JSON)
       const token = await getAccessToken(sa)
 
-      // Tentativa de Geração (Bare Minimum para Diagnóstico)
       const modelId = "veo-3.1-fast-generate-preview"
       const location = "us-central1"
       const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${sa.project_id}/locations/${location}/publishers/google/models/${modelId}:predictLongRunning`
 
+      // 1. TTS
+      const ttsRes = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: { text: post.content.substring(0, 100) }, // Apenas um teste rápido
+          voice: { languageCode: "pt-BR", name: "pt-BR-Neural2-A" },
+          audioConfig: { audioEncoding: "MP3" }
+        })
+      })
+      const ttsData = await ttsRes.json()
+      if (!ttsRes.ok) throw new Error(`ERRO_TTS: ${JSON.stringify(ttsData)}`)
+
+      // 2. VEO
       const veoRes = await fetch(endpoint, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          instances: [{ prompt: `Realistic corporate professional avatar.`, aspect_ratio: "9:16" }],
+          instances: [{ prompt: `avatar professional.`, audio_base64: ttsData.audioContent, aspect_ratio: "9:16" }],
           parameters: { duration_seconds: 3 }
         })
       })
 
       const opData = await veoRes.json()
+      if (!veoRes.ok) throw new Error(`ERRO_GOOGLE_CLOUD: ${JSON.stringify(opData)}`)
 
-      if (!veoRes.ok) {
-        // AQUI ESTÁ A CHAVE: Se o Google der erro, vamos salvar o motivo!
-        diagnosticMsg = `\n\n⚠️ ERRO GOOGLE CLOUD: ${opData.error?.message || JSON.stringify(opData)}`
-        console.error("Google Cloud Refused:", opData)
-      } else {
-        // Se deu certo, continuamos o polling
-        let attempts = 0
-        while (attempts < 20) {
-          attempts++
-          await new Promise(r => setTimeout(r, 2000))
-          const poll = await fetch(`https://${location}-aiplatform.googleapis.com/v1/${opData.name}`, {
-            headers: { "Authorization": `Bearer ${token}` }
-          })
-          const pollData = await poll.json()
-          if (pollData.done && pollData.response?.predictions?.[0]?.video_url) {
-            finalVideoUrl = pollData.response.predictions[0].video_url
-            break
-          }
-          if (pollData.error) {
-            diagnosticMsg = `\n\n⚠️ O Google iniciou o vídeo mas falhou no meio: ${pollData.error.message}`
-            break
-          }
+      // 3. POLLING
+      let attempts = 0
+      while (attempts < 15) {
+        attempts++
+        await new Promise(r => setTimeout(r, 2000))
+        const poll = await fetch(`https://${location}-aiplatform.googleapis.com/v1/${opData.name}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        })
+        const pollData = await poll.json()
+        if (pollData.done && pollData.response?.predictions?.[0]?.video_url) {
+          finalVideoUrl = pollData.response.predictions[0].video_url
+          break
         }
+        if (pollData.error) throw new Error(`ERRO_LRO: ${JSON.stringify(pollData.error)}`)
       }
+
     } catch (e) {
-      diagnosticMsg = `\n\n⚠️ ERRO SISTEMA: ${e.message}`
+      errorReport = `🚨 ALERTA DE ERRO IA 🚨\nMotivo: ${e.message}\n\n------------------\n\n`
     }
 
-    // Atualizar o post com o vídeo informativo e a mensagem de erro no corpo para você ver
+    // Atualizar no banco COM O ERRO NO TOPO
     await supabase.from('social_posts').update({
       image_url: finalVideoUrl,
-      content: post.content + diagnosticMsg,
+      content: errorReport + post.content,
       status: 'pending'
     }).eq('id', post_id)
 
-    // Notificar WhatsApp
+    // Notificar WhatsApp de forma curta
     if (profile?.approval_whatsapp) {
       const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
       if (instances?.length) {
         const instance = instances[0]
         const EVO_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
         const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
-        const msg = `🎥 *STUDIO IA DIAGNÓSTICO:* ${diagnosticMsg ? '⚠️ ERRO DETECTADO' : '✅ VÍDEO PRONTO'}\n\nVerifique o painel para ver o relatório do erro.`
+        const msg = errorReport ? `⚠️ *IA MASTER: ERRO NO GOOGLE*\n\nLeia o relatório no topo da postagem no painel.` : `✅ *IA MASTER: VÍDEO PRONTO*`
 
         await fetch(`${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': EVO_KEY },
