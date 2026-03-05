@@ -1552,8 +1552,7 @@ export function Marketing() {
                               <video
                                 src={post.image_url}
                                 controls
-                                className="w-full h-auto object-cover max-h-64"
-                                poster="/video-placeholder.png"
+                                className="w-full h-auto object-cover max-h-64 bg-black"
                               />
                             ) : (
                               <img
