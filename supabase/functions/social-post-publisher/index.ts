@@ -90,7 +90,18 @@ serve(async (req) => {
               const instance = instances[0];
               const targetNumber = profile.approval_whatsapp.replace(/\D/g, '');
 
-              const messageText = `📸 *Nova Postagem Manual Criada!*\n\nUma postagem manual foi criada e está como *pendente* na fila da sua plataforma Web!\nPara publicá-la ou agendá-la no Instagram, acesse o painel.`;
+              const messageText = `📸 *Postagem Manual Criada!*
+Uma postagem manual acabou de ser salva e aguarda sua aprovação.
+
+*Legenda:*
+${content || '(Sem legenda descrita)'}
+
+Link da Imagem: ${image_url || '(Sem imagem gerada)'}
+
+Deseja Aprovar e Postar Agora no Instagram?
+Responda *1* para aprovar ou *NAO* para descartar.
+
+_(Ref: Post ${newPost.id})_`;
 
               const evoRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
                 method: 'POST',
