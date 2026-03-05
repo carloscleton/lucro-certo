@@ -28,7 +28,7 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not configured')
     }
 
-    // mode: 'full' (caption + image), 'caption' (only text), 'image' (only image)
+    // mode: 'full' (caption + image), 'caption' (only text), 'image' (only image), 'suggest_prompt' (only generates prompt text)
     const shouldGenCaption = mode === 'full' || mode === 'caption';
     const shouldGenImage = mode === 'full' || mode === 'image';
 
@@ -49,6 +49,22 @@ serve(async (req) => {
     const tone = profile?.tone || 'Profissional e Engajador'
     const audience = profile?.target_audience || 'Qualquer pessoa'
     const tradeName = company?.trade_name || 'Nossa Empresa'
+
+    if (mode === 'suggest_prompt') {
+      const suggestPromptStr = `
+Nicho da empresa: "${niche}". Público-alvo: "${audience}".
+Crie UM ÚNICO prompt descritivo (1-2 frases curtas) em português que descreva perfeitamente uma fotografia hiper-realista para uso no Instagram destas empresa. 
+Descreva apenas o que se vê na foto: luz, cenário, pessoas e objetos. Regra absoluta: Sem adicionar texto dentro da arte. Sem textos como 'A foto mostra'. Apenas a cena bruta.
+`;
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: suggestPromptStr }], temperature: 0.8 })
+      });
+      const data = await res.json();
+      const generatedSuggestion = data.choices?.[0]?.message?.content || 'Cenário profissional moderno e realista...';
+      return new Response(JSON.stringify({ success: true, prompt: generatedSuggestion }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     let generatedCaption = '';
     let publicUrl = null;

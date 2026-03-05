@@ -79,6 +79,7 @@ export function Marketing() {
   const [isGeneratingMagic, setIsGeneratingMagic] = useState(false);
   const [manualImagePrompt, setManualImagePrompt] = useState("");
   const [isGeneratingManualImage, setIsGeneratingManualImage] = useState(false);
+  const [isSuggestingPrompt, setIsSuggestingPrompt] = useState(false);
 
   const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -728,6 +729,39 @@ export function Marketing() {
       alert("Falha ao gerar o conteúdo mágico. Tente novamente.");
     } finally {
       setIsGeneratingMagic(false);
+    }
+  };
+
+  const handleSuggestImagePrompt = async () => {
+    try {
+      setIsSuggestingPrompt(true);
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-magic`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            company_id: currentEntity.id,
+            mode: "suggest_prompt",
+          }),
+        },
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao sugerir prompt.");
+
+      setManualImagePrompt(data.prompt);
+    } catch (error: any) {
+      console.error("Prompt suggestion error:", error);
+      alert("Falha ao usar a Varinha Mágica no prompt da imagem.");
+    } finally {
+      setIsSuggestingPrompt(false);
     }
   };
 
@@ -2252,13 +2286,23 @@ export function Marketing() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
                   <span>Prompt da Arte (IA)</span>
-                  <button
-                    onClick={handleGenerateAIImage}
-                    disabled={isGeneratingManualImage || !manualImagePrompt}
-                    className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-100 disabled:opacity-50 font-bold transition-colors"
-                  >
-                    {isGeneratingManualImage ? "Gerando..." : "🎨 Gerar Arte com IA"}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSuggestImagePrompt}
+                      disabled={isSuggestingPrompt || isGeneratingManualImage}
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <Sparkles size={14} />
+                      {isSuggestingPrompt ? "Lendo Nicho..." : "Varinha Mágica (IA)"}
+                    </button>
+                    <button
+                      onClick={handleGenerateAIImage}
+                      disabled={isGeneratingManualImage || !manualImagePrompt}
+                      className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-100 disabled:opacity-50 font-bold transition-colors"
+                    >
+                      {isGeneratingManualImage ? "Gerando..." : "🎨 Gerar Arte com IA"}
+                    </button>
+                  </div>
                 </label>
                 <textarea
                   className="w-full h-16 p-3 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-xs"
