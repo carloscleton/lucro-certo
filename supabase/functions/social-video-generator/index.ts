@@ -182,7 +182,7 @@ _(Ref: Post ${post_id})_`
       }
     }
 
-    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    return new Response(JSON.stringify({ success: true, videoUrl: finalVideoUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
 
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), { headers: corsHeaders, status: 500 })

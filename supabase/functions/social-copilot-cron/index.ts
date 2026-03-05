@@ -165,7 +165,7 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
     if (profile.video_enabled && insertedPost) {
       console.log(`Chamando gerador de vídeo para a empresa ${company.trade_name}...`);
       try {
-        const videoRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
@@ -173,13 +173,14 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
           },
           body: JSON.stringify({ post_id: insertedPost.id, company_id: company.id })
         });
-        const videoData = await videoRes.json();
-        if (videoData.videoUrl) {
-          insertedPost.image_url = videoData.videoUrl;
-          insertedPost.media_type = 'reels';
-        }
+
+        // O gerador de vídeo já envia o WhatsApp de aprovação.
+        // Pulamos o restante deste loop para esta empresa.
+        processedLogs.push({ company: company.trade_name, event: 'Delegated to Video Generator', post_id: insertedPost.id });
+        processed++;
+        continue;
       } catch (videoErr) {
-        console.error('Erro ao gerar vídeo, mantendo imagem estática:', videoErr);
+        console.error('Erro ao chamar gerador de vídeo:', videoErr);
       }
     }
 
@@ -225,7 +226,9 @@ _(Ref: Post ${insertedPost.id})_`;
 
       dispatchLog = `Attempting send to ${targetNumber} via instance ${instance.instance_name}`;
 
-      const response = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+      const endpoint = `${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,9 +236,9 @@ _(Ref: Post ${insertedPost.id})_`;
         },
         body: JSON.stringify({
           number: targetNumber,
-          options: { delay: 1200, presence: "composing" },
           text: messageText,
-          textMessage: { text: messageText } // Manter os dois para compatibilidade de versao evo
+          textMessage: { text: messageText },
+          options: { delay: 1200, presence: "composing" }
         })
       });
 
