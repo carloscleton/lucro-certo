@@ -113,10 +113,10 @@ Não coloque aspas no começo ou fim, nem conversa fiada. Retorne apenas o texto
         // Caso contrário, usamos o tópico ou nicho.
         let promptBase = image_custom_prompt || topic || ('Serviços de ' + niche);
 
-        const imagePrompt = `Professional high-resolution realistic photography of: ${promptBase}. 
-Visual style: Real photo, natural lighting, authentic environment. NO ROBOTS, NO ILLUSTRATIONS, NO 3D RENDER, NO CARTOON. 
-The image should look like a real camera capture. Clean and aesthetic for Instagram. Audience: ${audience}. 
-If there is text, it must be in Portuguese and correctly written. Square format 1:1.`;
+        const imagePrompt = `Professional high-resolution hyper-realistic photography of: ${promptBase}. 
+Visual style: Raw photo, DSLR, 8k resolution, natural lighting, authentic environment. NO ROBOTS, NO ILLUSTRATIONS, NO GRAPHICS, NO VECTOR. 
+CRITICAL RULE: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO QUOTES, NO FONTS ALLOWED ANYWHERE IN THE IMAGE. 
+The image must look like a real camera capture, completely textless. Clean and aesthetic for Instagram. Audience: ${audience}. Square format 1:1.`;
 
         const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
