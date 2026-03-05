@@ -125,6 +125,8 @@ O Marketing Artificial acabou de ler a foto que você enviou e montou esta legen
 *Legenda Sugerida:*
 ${generatedContent}
 
+Link da Imagem: ${image_url}
+
 Deseja Aprovar e Postar no Instagram? (Responda *1* para aprovar ou *NAO*)
 _(Ref: Post ${insertedPost.id})_`;
 
