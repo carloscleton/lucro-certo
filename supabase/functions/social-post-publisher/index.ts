@@ -33,7 +33,7 @@ serve(async (req) => {
     const action = body.action || 'publish'
 
     if (action === 'create_manual_post') {
-      const { company_id, content, image_url, media_type } = body
+      const { company_id, content, image_url, media_type, scheduled_for } = body
       if (!company_id) {
         return new Response(JSON.stringify({ error: 'company_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
@@ -56,7 +56,8 @@ serve(async (req) => {
         content: content || '',
         image_url,
         media_type: media_type || 'feed',
-        status: 'pending'
+        status: 'pending',
+        scheduled_for
       }).select().single()
 
       if (insertError) {
@@ -91,7 +92,7 @@ serve(async (req) => {
 
               const messageText = `📸 *Nova Postagem Manual Criada!*\n\nUma postagem manual foi criada e está como *pendente* na fila da sua plataforma Web!\nPara publicá-la ou agendá-la no Instagram, acesse o painel.`;
 
-              await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+              const evoRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -104,6 +105,9 @@ serve(async (req) => {
                   textMessage: { text: messageText }
                 })
               });
+
+              const evoText = await evoRes.text();
+              console.log("Evo API Response:", evoRes.status, evoText);
             }
           }
         } catch (evoErr) {
