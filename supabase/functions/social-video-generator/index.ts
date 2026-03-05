@@ -27,7 +27,8 @@ serve(async (req) => {
       if (!AI_STUDIO_KEY) throw new Error("A chave GOOGLE_AI_STUDIO_KEY não foi encontrada.")
 
       // VEO VIA GOOGLE AI STUDIO (Gemini API)
-      // Removi 'duration_seconds' pois o modelo de preview no AI Studio pode ter duração fixa ou não aceitar esse parâmetro agora.
+      // LIMPEZA TOTAL: Removendo todos os parâmetros extras para garantir aceitação.
+      // O formato (9:16) foi movido para dentro do prompt.
       const url = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${AI_STUDIO_KEY}`
 
       const veoRes = await fetch(url, {
@@ -35,11 +36,8 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instances: [{
-            prompt: `Cinematic 4k vertical video (9:16) of a professional corporate presenter, ${profile.avatar_gender}, speaking naturally to the camera in a modern office. High quality lighting and realistic motion.`
-          }],
-          parameters: {
-            aspect_ratio: "9:16"
-          }
+            prompt: `Professional high-quality cinematic video, vertical 9:16 portrait mode. A corporate professional ${profile.avatar_gender} presenter is speaking effectively to the camera. Modern office background, realistic human motion, 4k high definition.`
+          }]
         })
       })
 
@@ -84,7 +82,7 @@ serve(async (req) => {
       status: 'pending'
     }).eq('id', post_id)
 
-    // Notificar WhatsApp usando as chaves reais do .env
+    // Notificar WhatsApp
     if (profile.approval_whatsapp) {
       const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
       if (instances?.length) {
