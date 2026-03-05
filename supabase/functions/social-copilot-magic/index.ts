@@ -53,13 +53,15 @@ serve(async (req) => {
     if (mode === 'suggest_prompt') {
       const suggestPromptStr = `
 Nicho da empresa: "${niche}". Público-alvo: "${audience}".
-Crie UM ÚNICO prompt descritivo (1-2 frases curtas) em português que descreva perfeitamente uma fotografia hiper-realista para uso no Instagram destas empresa. 
-Descreva apenas o que se vê na foto: luz, cenário, pessoas e objetos. Regra absoluta: Sem adicionar texto dentro da arte. Sem textos como 'A foto mostra'. Apenas a cena bruta.
+Crie UM ÚNICO prompt descritivo (em português) que descreva perfeitamente uma fotografia hiper-realista para uma postagem de Instagram dessa empresa. 
+Seja extremamente criativo. Varie os cenários, situações, idades das pessoas e atividades diárias mostradas com base nesse nicho. Nunca sugira as mesmas descrições repetitivamente.
+Descreva APENAS o que se vê na foto de forma direta: luz, ambiente, móveis, pessoas em ação e objetos relevantes. 
+Regra absoluta: Sem adicionar texto dentro da arte. Sem textos como 'A foto mostra'. Apenas a cena visual bruta hiper-realista.
 `;
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
-        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: suggestPromptStr }], temperature: 0.8 })
+        body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: suggestPromptStr }], temperature: 1.2 })
       });
       const data = await res.json();
       const generatedSuggestion = data.choices?.[0]?.message?.content || 'Cenário profissional moderno e realista...';
