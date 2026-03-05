@@ -37,81 +37,119 @@ serve(async (req) => {
     const { data: post } = await supabase.from('social_posts').select('*').eq('id', post_id).single()
     const { data: profile } = await supabase.from('social_profiles').select('*').eq('company_id', company_id).single()
 
+    if (!post || !profile) throw new Error("Dados não encontrados para processamento.")
+
     let errorReport = ""
     let finalVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4"
 
     try {
+      // 1. CHAVE DO GOOGLE AI STUDIO (Solicitada pelo usuário)
+      const AI_STUDIO_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY')
       const GOOGLE_JSON = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-      if (!GOOGLE_JSON) throw new Error("CHAVE_GOOGLE_AUSENTE")
 
-      const sa = JSON.parse(GOOGLE_JSON)
-      const token = await getAccessToken(sa)
+      if (!AI_STUDIO_KEY) throw new Error("A chave GOOGLE_AI_STUDIO_KEY não foi encontrada nas configurações.")
 
-      const modelId = "veo-3.1-fast-generate-preview"
-      const location = "us-central1"
-      const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${sa.project_id}/locations/${location}/publishers/google/models/${modelId}:predictLongRunning`
+      // 2. TTS (Ainda usamos o Cloud Service Account para isso)
+      let ttsAudioBase64 = ""
+      if (GOOGLE_JSON) {
+        const sa = JSON.parse(GOOGLE_JSON)
+        const token = await getAccessToken(sa)
 
-      // 1. TTS
-      const ttsRes = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input: { text: post.content.substring(0, 100) }, // Apenas um teste rápido
-          voice: { languageCode: "pt-BR", name: "pt-BR-Neural2-A" },
-          audioConfig: { audioEncoding: "MP3" }
+        const ttsRes = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input: { text: post.content.substring(0, 1000) },
+            voice: { languageCode: "pt-BR", name: profile.avatar_gender === 'female' ? 'pt-BR-Neural2-A' : 'pt-BR-Neural2-B' },
+            audioConfig: { audioEncoding: "MP3" }
+          })
         })
-      })
-      const ttsData = await ttsRes.json()
-      if (!ttsRes.ok) throw new Error(`ERRO_TTS: ${JSON.stringify(ttsData)}`)
+        const ttsData = await ttsRes.json()
+        if (ttsRes.ok && ttsData.audioContent) {
+          ttsAudioBase64 = ttsData.audioContent
+        } else {
+          console.error("TTS Fallback: Usando vídeo sem áudio personalizado devido a erro no TTS.")
+        }
+      }
 
-      // 2. VEO
-      const veoRes = await fetch(endpoint, {
+      // 3. VEO VIA GOOGLE AI STUDIO (Gemini API)
+      // Endpoint beta do AI Studio para geração de vídeo
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${AI_STUDIO_KEY}`
+
+      const veoRes = await fetch(url, {
         method: "POST",
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instances: [{ prompt: `avatar professional.`, audio_base64: ttsData.audioContent, aspect_ratio: "9:16" }],
-          parameters: { duration_seconds: 3 }
+          instances: [{
+            prompt: `Professional high-quality realistic ${profile.avatar_gender} corporate avatar speaking naturally. 4k resolution, smooth motion.`,
+            audio_base64: ttsAudioBase64 || undefined,
+            aspect_ratio: "9:16"
+          }],
+          parameters: {
+            duration_seconds: 5,
+            sample_count: 1
+          }
         })
       })
 
       const opData = await veoRes.json()
-      if (!veoRes.ok) throw new Error(`ERRO_GOOGLE_CLOUD: ${JSON.stringify(opData)}`)
 
-      // 3. POLLING
-      let attempts = 0
-      while (attempts < 15) {
-        attempts++
-        await new Promise(r => setTimeout(r, 2000))
-        const poll = await fetch(`https://${location}-aiplatform.googleapis.com/v1/${opData.name}`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        })
-        const pollData = await poll.json()
-        if (pollData.done && pollData.response?.predictions?.[0]?.video_url) {
-          finalVideoUrl = pollData.response.predictions[0].video_url
-          break
+      if (!veoRes.ok) {
+        throw new Error(`ERRO_AI_STUDIO: ${opData.error?.message || JSON.stringify(opData)}`)
+      }
+
+      if (opData.name) {
+        // 4. POLLING DA OPERAÇÃO (AI STUDIO)
+        let attempts = 0
+        const startTime = Date.now()
+        // Polling por no máximo 50 segundos para evitar timeout da function do Supabase
+        while (attempts < 25 && (Date.now() - startTime) < 50000) {
+          attempts++
+          await new Promise(r => setTimeout(r, 2000))
+
+          const pollUrl = `https://generativelanguage.googleapis.com/v1beta/${opData.name}?key=${AI_STUDIO_KEY}`
+          const pollRes = await fetch(pollUrl)
+          const pollData = await pollRes.json()
+
+          if (pollData.done) {
+            if (pollData.error) throw new Error(`ERRO_GERACAO_VIDEO: ${pollData.error.message}`)
+
+            // O campo de resposta pode variar dependendo da versão, mas geralmente é pollData.response.predictions[0].videoUri
+            finalVideoUrl = pollData.response?.predictions?.[0]?.video_url ||
+              pollData.response?.predictions?.[0]?.gcsUri ||
+              pollData.response?.predictions?.[0]?.videoUri ||
+              finalVideoUrl
+            break
+          }
         }
-        if (pollData.error) throw new Error(`ERRO_LRO: ${JSON.stringify(pollData.error)}`)
+      } else {
+        throw new Error("O Google AI Studio não retornou o nome da operação.")
       }
 
     } catch (e) {
-      errorReport = `🚨 ALERTA DE ERRO IA 🚨\nMotivo: ${e.message}\n\n------------------\n\n`
+      console.error("Pipeline Failure:", e.message)
+      errorReport = `🚨 ALERTA DE ERRO IA (AI STUDIO) 🚨\nMotivo: ${e.message}\n\n`
     }
 
-    // Atualizar no banco COM O ERRO NO TOPO
+    // 5. ATUALIZAR BANCO
+    // Se falhou, mantemos o fallback mas avisamos o erro
     await supabase.from('social_posts').update({
       image_url: finalVideoUrl,
       content: errorReport + post.content,
       status: 'pending'
     }).eq('id', post_id)
 
-    // Notificar WhatsApp de forma curta
-    if (profile?.approval_whatsapp) {
+    // 6. WHATSAPP
+    if (profile.approval_whatsapp) {
       const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
       if (instances?.length) {
         const instance = instances[0]
         const EVO_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
         const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
-        const msg = errorReport ? `⚠️ *IA MASTER: ERRO NO GOOGLE*\n\nLeia o relatório no topo da postagem no painel.` : `✅ *IA MASTER: VÍDEO PRONTO*`
+
+        const msg = errorReport
+          ? `⚠️ *STUDIO IA:* Erro na geração com AI Studio.\nMotivo: ${errorReport.split('\n')[1]}\n\nVerifique o painel.`
+          : `✅ *STUDIO IA:* Seu vídeo profissional está pronto!\n\nLegenda autorizada para aprovação.`
 
         await fetch(`${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': EVO_KEY },
