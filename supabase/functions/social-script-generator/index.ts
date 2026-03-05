@@ -40,7 +40,8 @@ Não use títulos como "Legenda" ou "Hashtags". Apenas o conteúdo pronto para p
     try {
       if (!aiKey) throw new Error("Chave do Google AI Studio não configurada.")
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`, {
+      // Usando v1 e gemini-1.5-flash-latest para máxima compatibilidade
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${aiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -49,11 +50,21 @@ Não use títulos como "Legenda" ou "Hashtags". Apenas o conteúdo pronto para p
       })
 
       const data = await res.json()
-      if (!res.ok) throw new Error(`Google AI erro: ${data.error?.message || JSON.stringify(data)}`)
-
-      script = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      if (!res.ok) {
+        // Fallback para gemini-pro se o flash falhar
+        const fallbackRes = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${aiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const fallbackData = await fallbackRes.json();
+        if (!fallbackRes.ok) throw new Error(`Google AI erro: ${data.error?.message || JSON.stringify(data)}`);
+        script = fallbackData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } else {
+        script = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      }
     } catch (e: any) {
-      errorLog += `[Erro Gemini: ${e.message}]\n`
+      errorLog += `[Erro Google: ${e.message}]\n`
     }
 
     // Fallback OpenAI se Gemini falhar ou retornar vazio
