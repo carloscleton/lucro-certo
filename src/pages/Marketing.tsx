@@ -714,6 +714,7 @@ export function Marketing() {
           body: JSON.stringify({
             company_id: currentEntity.id,
             topic: manualContent,
+            mode: "caption",
           }),
         },
       );
@@ -722,8 +723,6 @@ export function Marketing() {
       if (!res.ok) throw new Error(data.error || "Erro ao gerar postagem.");
 
       setManualContent(data.caption);
-      setManualPreview(data.image_url);
-      setManualFile(null);
     } catch (error: any) {
       console.error("Magic gen error:", error);
       alert("Falha ao gerar o conteúdo mágico. Tente novamente.");
