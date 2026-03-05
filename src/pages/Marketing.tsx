@@ -75,6 +75,8 @@ export function Marketing() {
   >("feed");
   const [savingManualPost, setSavingManualPost] = useState(false);
   const [isGeneratingMagic, setIsGeneratingMagic] = useState(false);
+  const [manualImagePrompt, setManualImagePrompt] = useState("");
+  const [isGeneratingManualImage, setIsGeneratingManualImage] = useState(false);
 
   const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -725,6 +727,51 @@ export function Marketing() {
       setIsGeneratingMagic(false);
     }
   };
+
+  const handleGenerateAIImage = async () => {
+    if (!manualImagePrompt.trim()) {
+      alert("Por favor, descreva a imagem que deseja gerar.");
+      return;
+    }
+
+    try {
+      setIsGeneratingManualImage(true);
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-magic`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            company_id: currentEntity.id,
+            image_custom_prompt: manualImagePrompt,
+            mode: "image",
+          }),
+        },
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao gerar imagem.");
+
+      if (data.image_url) {
+        setManualPreview(data.image_url);
+        setManualFile(null);
+      } else {
+        throw new Error("A IA não retornou uma URL de imagem.");
+      }
+    } catch (error: any) {
+      console.error("Image gen error:", error);
+      alert("Falha ao gerar a arte com IA: " + error.message);
+    } finally {
+      setIsGeneratingManualImage(false);
+    }
+  };
+
 
   const handleSaveManualPost = async () => {
     if (!manualFile && !manualContent && !manualPreview) {
@@ -2148,11 +2195,11 @@ export function Marketing() {
                   onChange={handleManualFileSelection}
                   disabled={isGeneratingMagic}
                 />
-                {isGeneratingMagic ? (
+                {isGeneratingMagic || isGeneratingManualImage ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 dark:bg-slate-900/90 z-10 backdrop-blur-sm">
                     <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
                     <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
-                      Criando Imagem e Legenda...
+                      {isGeneratingMagic ? "Criando Mágica..." : "Desenhando com IA..."}
                     </p>
                   </div>
                 ) : manualPreview ? (
@@ -2169,6 +2216,26 @@ export function Marketing() {
                     </span>
                   </>
                 )}
+              </div>
+
+              {/* Prompt da Arte (IA) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                  <span>Prompt da Arte (IA)</span>
+                  <button
+                    onClick={handleGenerateAIImage}
+                    disabled={isGeneratingManualImage || !manualImagePrompt}
+                    className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-100 disabled:opacity-50 font-bold transition-colors"
+                  >
+                    {isGeneratingManualImage ? "Gerando..." : "🎨 Gerar Arte com IA"}
+                  </button>
+                </label>
+                <textarea
+                  className="w-full h-16 p-3 border border-gray-200 dark:border-slate-700 rounded-xl resize-none bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-xs"
+                  value={manualImagePrompt}
+                  onChange={(e) => setManualImagePrompt(e.target.value)}
+                  placeholder="Ex: Uma mesa de escritório moderna com um café e o logo da empresa..."
+                />
               </div>
 
               {/* Type Selector */}
@@ -2232,6 +2299,7 @@ export function Marketing() {
                     setManualPreview(null);
                     setManualFile(null);
                     setManualContent("");
+                    setManualImagePrompt("");
                     setManualMediaType("feed");
                     setSelectedDate(null);
                   }}
