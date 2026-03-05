@@ -2,8 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-const EVO_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://evo.idealzap.com.br'
-const EVO_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
+const EVO_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
+const EVO_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -61,7 +61,7 @@ Gere apenas o texto final da legenda, sem aspas, sem filler.`
             'Authorization': `Bearer ${OPENAI_API_KEY}`
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini', // gpt-4o-mini tem visão embutida!
+            model: 'gpt-4o-mini',
             messages: [
               {
                 role: 'user',
@@ -76,8 +76,7 @@ Gere apenas o texto final da legenda, sem aspas, sem filler.`
         });
 
         const aiData = await aiResponse.json();
-        console.log("OpenAI Vision Result:", JSON.stringify(aiData).slice(0, 300));
-        generatedContent = aiData.choices?.[0]?.message?.content || 'Conheça nossos produtos sensacionais! (Erro IA)';
+        generatedContent = aiData.choices?.[0]?.message?.content || 'Conheça nossos produtos sensacionais!';
       } catch (e) {
         console.error('Error with OpenAI Vision:', e);
         generatedContent = `🌟 Nós amamos entregar sempre o melhor! Confira esse clique especial da nossa rotina.\n\n#${profile.niche.replace(/\s/g, '')} #novidade`;
@@ -86,14 +85,14 @@ Gere apenas o texto final da legenda, sem aspas, sem filler.`
       generatedContent = `✨ Um clique especial preparado pela nossa equipe!\nFaça-nos uma visita.\n\n#marketing #sucesso`;
     }
 
-    // 3. Salvar
+    // 3. Salvar - CRITICAL: Posts de FOTO REAL devem ser 'feed', não 'reels'
     const { data: insertedPost, error: insertErr } = await supabase
       .from('social_posts')
       .insert({
         company_id: company_id,
         content: generatedContent,
         image_url: image_url,
-        media_type: profile.video_enabled ? 'reels' : 'feed',
+        media_type: 'feed', // Força feed para fotos reais
         status: 'pending'
       })
       .select()
@@ -101,32 +100,13 @@ Gere apenas o texto final da legenda, sem aspas, sem filler.`
 
     if (insertErr) {
       console.error('Erro ao salvar post:', insertErr)
+      throw insertErr
     }
 
-    // 3.1 Se o vídeo estiver habilitado, chama o gerador de vídeo
-    if (profile.video_enabled && insertedPost) {
-      console.log(`Chamando gerador de vídeo para a empresa ${company_id} via Vision...`);
-      try {
-        const videoRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/social-video-generator`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ post_id: insertedPost.id, company_id: company_id })
-        });
-        const videoData = await videoRes.json();
-        if (videoData.videoUrl) {
-          insertedPost.image_url = videoData.videoUrl;
-          insertedPost.media_type = 'reels';
-        }
-      } catch (videoErr) {
-        console.error('Erro ao gerar vídeo no Vision, mantendo imagem estática:', videoErr);
-      }
-    }
+    // NOTA: Ignoramos o gerador de vídeo aqui pois o usuário enviou uma foto REAL dele.
 
     // 4. Enviar mensagem via Zap!
-    if (profile.approval_whatsapp) {
+    if (profile.approval_whatsapp && insertedPost) {
       try {
         const { data: instances } = await supabase
           .from('instances')
@@ -139,30 +119,31 @@ Gere apenas o texto final da legenda, sem aspas, sem filler.`
           const instance = instances[0];
           const targetNumber = profile.approval_whatsapp.replace(/\D/g, '');
 
-          // Mensagem
           const messageText = `📸 *IA LEU A SUA FOTO!*
 O Marketing Artificial acabou de ler a foto que você enviou e montou esta legenda abaixo que combina com a sua imagem:
 
 *Legenda Sugerida:*
 ${generatedContent}
 
-Link da Imagem no Servidor: ${image_url}
+Deseja Aprovar e Postar no Instagram? (Responda *1* para aprovar ou *NAO*)
+_(Ref: Post ${insertedPost.id})_`;
 
-Deseja Aprovar? (Responda *1* para aprovar ou *NAO*)
-_(Ref: Post ${insertedPost?.id})_`;
+          // URL Corrigida (sem token redundante)
+          const endpoint = `${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`
 
-          await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+          await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
             body: JSON.stringify({
               number: targetNumber,
               text: messageText,
-              textMessage: { text: messageText }
+              textMessage: { text: messageText },
+              options: { delay: 1000, presence: "composing" }
             })
           });
         }
       } catch (evoErr) {
-        console.error('Erro Evolution:', evoErr);
+        console.error('Erro Evolution Vision:', evoErr);
       }
     }
 
