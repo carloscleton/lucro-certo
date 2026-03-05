@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { company_id, topic, image_custom_prompt, mode = 'full' } = await req.json()
+    const { company_id, topic, image_custom_prompt, mode = 'full', media_type = 'feed' } = await req.json()
 
     if (!company_id) {
       return new Response(JSON.stringify({ error: 'Company ID is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -137,11 +137,14 @@ REGRAS OBRIGATÓRIAS DE ENGAJAMENTO:
         // Se houver um prompt customizado de imagem, damos prioridade total a ele
         // Caso contrário, usamos o tópico ou nicho.
         let promptBase = image_custom_prompt || topic || ('Serviços de ' + niche);
+        const isStory = media_type === 'story';
+        const imageSize = isStory ? '1024x1792' : '1024x1024';
+        const formatHint = isStory ? 'Vertical portrait format 9:16, optimized for Instagram Stories.' : 'Square format 1:1.';
 
         const imagePrompt = `Professional high-resolution hyper-realistic photography of: ${promptBase}. 
 Visual style: Raw photo, DSLR, 8k resolution, natural lighting, authentic environment. NO ROBOTS, NO ILLUSTRATIONS, NO GRAPHICS, NO VECTOR. 
 CRITICAL RULE: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO QUOTES, NO FONTS ALLOWED ANYWHERE IN THE IMAGE. 
-The image must look like a real camera capture, completely textless. Clean and aesthetic for Instagram. Audience: ${audience}. Square format 1:1.`;
+The image must look like a real camera capture, completely textless. Clean and aesthetic for Instagram. Audience: ${audience}. ${formatHint}`;
 
         const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
@@ -153,7 +156,7 @@ The image must look like a real camera capture, completely textless. Clean and a
             model: 'dall-e-3',
             prompt: imagePrompt,
             n: 1,
-            size: '1024x1024'
+            size: imageSize
           })
         })
 
