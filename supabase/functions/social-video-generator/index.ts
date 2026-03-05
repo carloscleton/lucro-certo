@@ -48,18 +48,23 @@ serve(async (req) => {
     // --- CONTROLE DE USO DIÁRIO ---
     const today = new Date().toISOString().split('T')[0];
     let dailyCount = profile.daily_video_count || 0;
+    const dailyLimit = profile.daily_video_limit || 3;
 
     if (profile.last_video_date !== today) {
       dailyCount = 0;
       await supabase.from('social_profiles').update({ daily_video_count: 0, last_video_date: today }).eq('id', profile.id);
     }
-    // ------------------------------
 
     let debugInfo = ""
     let finalVideoUrl = post?.image_url || "https://www.w3schools.com/html/mov_bbb.mp4"
 
-    // SÓ GERA VÍDEO SE ESTIVER HABILITADO
-    if (profile?.video_enabled) {
+    if (dailyCount >= dailyLimit) {
+      debugInfo = `🚨 LIMITE DIÁRIO ATINGIDO: Você já gerou ${dailyLimit} vídeos hoje. Tente novamente amanhã!`;
+    }
+    // ------------------------------
+
+    // SÓ GERA VÍDEO SE ESTIVER HABILITADO E DENTRO DO LIMITE
+    if (profile?.video_enabled && !debugInfo) {
       try {
         const AI_STUDIO_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY')
         if (!AI_STUDIO_KEY) throw new Error("Chave AI Studio não encontrada.")
