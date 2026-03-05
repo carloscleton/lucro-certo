@@ -6,35 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Função para converter links do Google em links públicos de Download do AI Studio
-function fixGoogleLink(link: string, apiKey: string): string {
-  if (!link) return link;
-
-  // Se for um link gs://, precisamos converter para um link que o navegador consiga baixar.
-  // No AI Studio, links de vídeo gerados costumam precisar de uma chave de API ou ser baixados via stream.
-  // Testaremos a conversão para o link de download direto se disponível.
-  if (link.startsWith('gs://')) {
-    const parts = link.replace('gs://', '').split('/');
-    const bucket = parts[0];
-    const object = parts.slice(1).join('/');
-    // Nota: storage.googleapis.com só funciona se o bucket for público. 
-    // Como os arquivos do Google AI Studio são privados, tentaremos o link assinado ou o redirecionamento.
-    return `https://storage.googleapis.com/${bucket}/${object}`;
-  }
-
-  // Se o link já for HTTPS mas do Google, tentaremos garantir que ele tenha a chave de acesso se necessário
-  if (link.includes('generativelanguage.googleapis.com') && !link.includes('key=')) {
-    return `${link}${link.includes('?') ? '&' : '?'}key=${apiKey}`;
-  }
-
-  return link;
-}
-
 function findVideoLink(obj: any): string | null {
   if (!obj) return null;
   const str = JSON.stringify(obj);
-
-  // A ordem aqui importa: preferimos campos que costumam ter a URL de visualização
   const patterns = [
     /"video_url":\s*"([^"]+)"/,
     /"videoUri":\s*"([^"]+)"/,
@@ -46,12 +20,17 @@ function findVideoLink(obj: any): string | null {
 
   for (const pattern of patterns) {
     const match = str.match(pattern);
-    if (match && match[1]) return match[1];
+    if (match && match[1]) {
+      let link = match[1];
+      if (link.startsWith('gs://')) {
+        link = link.replace('gs://', 'https://storage.googleapis.com/');
+      }
+      return link;
+    }
   }
 
   const genericMatch = str.match(/"(https?:\/\/[^"]+\.(mp4|mov|webm)[^"]*)"/i);
   if (genericMatch) return genericMatch[1];
-
   return null;
 }
 
@@ -72,49 +51,81 @@ serve(async (req) => {
       const AI_STUDIO_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY')
       if (!AI_STUDIO_KEY) throw new Error("Chave AI Studio não encontrada.")
 
+      // 1. GERAÇÃO INICIAL (8 Segundos)
       const url = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${AI_STUDIO_KEY}`
-
       const veoRes = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instances: [{
-            prompt: `Cinematic professional video, 4k, vertical 9:16. A corporate ${profile.avatar_gender || 'male'} presenter, style ${profile.avatar_style || 'professional'}, is speaking naturally and confidently to the camera in ${profile.language || 'Portuguese'}. Modern office background, high quality lighting, realistic human motion.`
+            prompt: `Cinematic professional 4k vertical video (9:16) of a corporate ${profile.avatar_gender || 'male'} presenter, style ${profile.avatar_style || 'professional'}, speaking naturally and confidently to the camera in ${profile.language || 'Portuguese'}. Modern office background, high quality lighting.`
           }]
         })
       })
 
       const opData = await veoRes.json()
-      if (!veoRes.ok) throw new Error(`Google recusou: ${opData.error?.message}`)
+      if (!veoRes.ok) throw new Error(`Google recusou inicial: ${opData.error?.message}`)
 
+      let currentVideoLink = null;
       if (opData.name) {
         let attempts = 0
-        let success = false
         while (attempts < 45) {
           attempts++
           await new Promise(r => setTimeout(r, 2000))
           const pollRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${opData.name}?key=${AI_STUDIO_KEY}`)
           const pollData = await pollRes.json()
-
           if (pollData.done) {
-            const rawLink = findVideoLink(pollData.response);
-            if (rawLink) {
-              // APLICANDO A CORREÇÃO DE LINK PÚBLICO
-              finalVideoUrl = fixGoogleLink(rawLink, AI_STUDIO_KEY)
-              success = true
-              break
-            } else {
-              debugInfo = `🚨 GOOGLE OK, MAS LINK SUMIU: ${JSON.stringify(pollData.response).substring(0, 100)}`
-              break
-            }
+            currentVideoLink = findVideoLink(pollData.response);
+            break;
           }
         }
       }
+
+      // 2. EXTENSÃO (Opcional - Tentativa de +7s para chegar a 15s)
+      if (currentVideoLink) {
+        finalVideoUrl = currentVideoLink;
+
+        try {
+          const extensionPrompt = `The corporate ${profile.avatar_gender || 'male'} presenter continues their professional speech with natural gestures in the same modern office environment. Seamless transition.`;
+
+          const extendRes = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              instances: [{
+                prompt: extensionPrompt,
+                videoUri: currentVideoLink.replace('https://storage.googleapis.com/', 'gs://')
+              }]
+            })
+          })
+
+          const extendOp = await extendRes.json();
+          if (extendRes.ok && extendOp.name) {
+            let extAttempts = 0;
+            while (extAttempts < 45) {
+              extAttempts++;
+              await new Promise(r => setTimeout(r, 2000));
+              const pollExt = await fetch(`https://generativelanguage.googleapis.com/v1beta/${extendOp.name}?key=${AI_STUDIO_KEY}`);
+              const pollExtData = await pollExt.json();
+              if (pollExtData.done) {
+                const extLink = findVideoLink(pollExtData.response);
+                if (extLink) finalVideoUrl = extLink;
+                break;
+              }
+            }
+          }
+        } catch (extE) {
+          console.error("Erro na extensão:", extE);
+        }
+      } else {
+        throw new Error("Não foi possível gerar o vídeo inicial.");
+      }
+
     } catch (e: any) {
       debugInfo = `🚨 ERRO TÉCNICO: ${e.message}`
     }
 
-    // Se o link final ainda não é o que queremos, registramos o erro no texto
+    // Atualizar Post
     await supabase.from('social_posts').update({
       image_url: finalVideoUrl,
       content: post.content + (debugInfo ? `\n\n--- ${debugInfo}` : ""),
@@ -123,23 +134,47 @@ serve(async (req) => {
 
     // Notificar WhatsApp
     if (profile.approval_whatsapp) {
-      const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
+      const { data: instances } = await supabase.from('instances')
+        .select('instance_name, evolution_instance_id')
+        .eq('company_id', company_id)
+        .eq('status', 'connected')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
       if (instances?.length) {
         const instance = instances[0]
-        const EVO_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://evo.idealzap.com.br'
-        const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
+        const EVO_URL = Deno.env.get('EVOLUTION_API_URL')?.replace(/\/$/, '') || 'https://evo.idealzap.com.br'
+        const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY')
 
-        const msg = debugInfo
-          ? `⚠️ *STUDIO IA:* Erro ao liberar o vídeo.\n\nVerifique o painel.`
-          : `✅ *STUDIO IA:* Vídeo do avatar liberado para Play!\n\nVerifique o painel agora.`
+        if (!EVO_KEY) {
+          console.error("EVOLUTION_API_KEY não configurada.")
+        } else {
+          const msg = debugInfo
+            ? `⚠️ *STUDIO IA:* Houve um problema ao gerar seu vídeo.\n\nVerifique o painel.`
+            : `✅ *STUDIO IA:* Seu vídeo profissional (15s) está pronto!\n\nVerifique o painel para aprovar.`
 
-        await fetch(`${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': EVO_KEY },
-          body: JSON.stringify({ number: profile.approval_whatsapp.replace(/\D/g, ''), text: msg })
-        })
+          const number = profile.approval_whatsapp.replace(/\D/g, '')
+
+          const waRes = await fetch(`${EVO_URL}/message/sendText/${instance.instance_name}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': EVO_KEY
+            },
+            body: JSON.stringify({
+              number: number,
+              text: msg
+            })
+          })
+
+          const waData = await waRes.json()
+          if (!waRes.ok) console.error("Erro WhatsApp:", waData)
+        }
       }
     }
+
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), { headers: corsHeaders, status: 500 })
   }
