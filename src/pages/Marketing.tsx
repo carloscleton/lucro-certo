@@ -1264,7 +1264,24 @@ export function Marketing() {
                     </div>
 
                     <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-gray-100 dark:border-slate-800 mt-8">
-                      <div className="flex flex-wrap items-center gap-6">
+                      <div className="flex flex-wrap items-center gap-8">
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setVideoEnabled(!videoEnabled)
+                            }
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${videoEnabled ? "bg-rose-500" : "bg-gray-200 dark:bg-slate-700"}`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-all shadow-md ${videoEnabled ? "translate-x-6" : "translate-x-1"}`}
+                            />
+                          </button>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                            Geração de Vídeo (Avatar)
+                          </span>
+                        </div>
+
                         <div className="flex items-center gap-3">
                           <button
                             type="button"
@@ -1278,7 +1295,7 @@ export function Marketing() {
                             />
                           </button>
                           <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                            Postar em Vídeo
+                            Piloto Automático (Postagem Diária)
                           </span>
                         </div>
                       </div>

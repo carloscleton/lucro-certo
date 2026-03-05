@@ -122,7 +122,11 @@ serve(async (req) => {
       }
 
     } catch (e: any) {
-      debugInfo = `🚨 ERRO TÉCNICO: ${e.message}`
+      if (e.message.includes("quota") || e.message.includes("429")) {
+        debugInfo = `🚨 LIMITE DE VÍDEOS ATINGIDO: Seu bônus diário de vídeos no Google AI Studio acabou. Aguarde algumas horas para gerar novos avatares ou considere migrar para o plano pago em ai.google.dev.`
+      } else {
+        debugInfo = `🚨 ERRO TÉCNICO: ${e.message}`
+      }
     }
 
     // Atualizar Post
