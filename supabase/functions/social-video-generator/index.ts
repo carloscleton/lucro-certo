@@ -17,7 +17,7 @@ serve(async (req) => {
     const { data: post } = await supabase.from('social_posts').select('*').eq('id', post_id).single()
     const { data: profile } = await supabase.from('social_profiles').select('*').eq('company_id', company_id).single()
 
-    if (!post || !profile) throw new Error("Dados não encontrados para processamento.")
+    if (!post || !profile) throw new Error("Dados não encontrados.")
 
     let errorReport = ""
     let finalVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4"
@@ -27,7 +27,7 @@ serve(async (req) => {
       if (!AI_STUDIO_KEY) throw new Error("A chave GOOGLE_AI_STUDIO_KEY não foi encontrada.")
 
       // VEO VIA GOOGLE AI STUDIO (Gemini API)
-      // O aspect_ratio deve ficar dentro de 'parameters', não em 'instances'
+      // Removi 'duration_seconds' pois o modelo de preview no AI Studio pode ter duração fixa ou não aceitar esse parâmetro agora.
       const url = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${AI_STUDIO_KEY}`
 
       const veoRes = await fetch(url, {
@@ -35,11 +35,10 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instances: [{
-            prompt: `Highly detailed cinematic 4k video of a professional corporate presenter, ${profile.avatar_gender}, speaking directly to the camera with a friendly smile. Professional office background, vertical orientation, natural lighting. The person is talking and gesturing naturally.`
+            prompt: `Cinematic 4k vertical video (9:16) of a professional corporate presenter, ${profile.avatar_gender}, speaking naturally to the camera in a modern office. High quality lighting and realistic motion.`
           }],
           parameters: {
-            aspect_ratio: "9:16",
-            duration_seconds: 5
+            aspect_ratio: "9:16"
           }
         })
       })
@@ -53,7 +52,7 @@ serve(async (req) => {
       if (opData.name) {
         let attempts = 0
         const startTime = Date.now()
-        while (attempts < 25 && (Date.now() - startTime) < 50000) {
+        while (attempts < 30 && (Date.now() - startTime) < 55000) {
           attempts++
           await new Promise(r => setTimeout(r, 2000))
 
@@ -85,16 +84,16 @@ serve(async (req) => {
       status: 'pending'
     }).eq('id', post_id)
 
-    // Notificar WhatsApp
+    // Notificar WhatsApp usando as chaves reais do .env
     if (profile.approval_whatsapp) {
       const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
       if (instances?.length) {
         const instance = instances[0]
-        const EVO_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.idealzap.com.br'
-        const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
+        const EVO_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://evo.idealzap.com.br'
+        const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
 
         const msg = errorReport
-          ? `⚠️ *STUDIO IA:* Erro no AI Studio.\nMotivo: ${errorReport.split('\n')[1]}`
+          ? `⚠️ *STUDIO IA:* Erro de faturamento ou quota no AI Studio.\nMotivo: ${errorReport.split('\n')[1]}`
           : `✅ *STUDIO IA:* Seu vídeo profissional está pronto!\n\nVerifique o painel para aprovar.`
 
         await fetch(`${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
