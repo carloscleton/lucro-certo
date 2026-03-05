@@ -134,7 +134,13 @@ serve(async (req) => {
 
     if (mediaData.error) {
       console.error('Erro Meta (container):', mediaData.error)
-      throw new Error('Falha ao gerar preview da foto no Meta: ' + mediaData.error.message)
+      let customError = mediaData.error.message;
+
+      if (mediaData.error.message.includes("aspect ratio")) {
+        customError = "A proporção da imagem não é suportada pelo Instagram. \n\nPara o FEED, use imagens quadradas (1:1) ou verticais de até 4:5. \n\nPara REELS/STORY, use 9:16 vertical.";
+      }
+
+      throw new Error('Falha ao gerar preview da foto no Meta: ' + customError)
     }
 
     const creationId = mediaData.id
