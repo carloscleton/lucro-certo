@@ -68,6 +68,24 @@ Regra absoluta: Sem adicionar texto dentro da arte. Sem textos como 'A foto most
       return new Response(JSON.stringify({ success: true, prompt: generatedSuggestion }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    if (mode === 'suggest_blog_topic') {
+      const blogPromptStr = `
+Nicho da empresa: "${niche}". Público-alvo: "${audience}". Tom de voz: "${tone}".
+Sugira UM ÚNICO tema criativo e específico (em português) para um artigo de blog SEO dessa empresa.
+O tema deve ser curto (máximo 10 palavras), relevante para o público-alvo e otimizado para buscas do Google.
+Seja extremamente criativo e varie os assuntos a cada chamada. Nunca repita temas genéricos.
+Retorne APENAS o tema, sem aspas, sem explicações, sem numeração.
+`;
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: blogPromptStr }], temperature: 1.2 })
+      });
+      const data = await res.json();
+      const generatedTopic = data.choices?.[0]?.message?.content?.trim() || 'Dicas de gestão financeira para pequenas empresas';
+      return new Response(JSON.stringify({ success: true, prompt: generatedTopic }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     let generatedCaption = '';
     let publicUrl = null;
 

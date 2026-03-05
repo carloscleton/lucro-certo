@@ -133,6 +133,7 @@ export function Marketing() {
 
   // Blog App State
   const [blogTopic, setBlogTopic] = useState("");
+  const [isSuggestingBlogTopic, setIsSuggestingBlogTopic] = useState(false);
   const [blogContent, setBlogContent] = useState("");
   const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
@@ -926,6 +927,39 @@ export function Marketing() {
       alert("Falha ao gerar o artigo.");
     } finally {
       setIsGeneratingBlog(false);
+    }
+  };
+
+  const handleSuggestBlogTopic = async () => {
+    try {
+      setIsSuggestingBlogTopic(true);
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-magic`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            company_id: currentEntity.id,
+            mode: "suggest_blog_topic",
+          }),
+        },
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao sugerir tema.");
+
+      setBlogTopic(data.prompt);
+    } catch (error: any) {
+      console.error("Blog topic suggestion error:", error);
+      alert("Falha ao usar a Varinha Mágica para sugerir tema.");
+    } finally {
+      setIsSuggestingBlogTopic(false);
     }
   };
 
@@ -1957,14 +1991,23 @@ export function Marketing() {
                     />
                   </div>
                   <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                    <button
+                      onClick={handleSuggestBlogTopic}
+                      disabled={isSuggestingBlogTopic || isGeneratingBlog}
+                      className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold px-6 py-4 rounded-2xl shadow-lg border border-white/20 transition-all disabled:opacity-50"
+                    >
+                      <Sparkles size={18} />
+                      {isSuggestingBlogTopic ? "Pensando..." : "🪄 Varinha Mágica"}
+                    </button>
                     <Button
                       onClick={handleGenerateBlog}
                       disabled={!blogTopic || isGeneratingBlog}
-                      className="bg-white text-indigo-600 hover:bg-gray-50 font-black px-8 py-6 rounded-2xl shadow-lg shadow-black/20 text-md"
+                      className="bg-white hover:bg-gray-100 font-black px-8 py-6 rounded-2xl shadow-lg shadow-black/20 text-md"
+                      style={{ color: '#4f46e5' }}
                     >
                       {isGeneratingBlog
-                        ? "Gerando Mágica..."
-                        : "Escrever Artigo Agora"}
+                        ? "✍️ Gerando Mágica..."
+                        : "✍️ Escrever Artigo Agora"}
                     </Button>
                   </div>
                 </div>
