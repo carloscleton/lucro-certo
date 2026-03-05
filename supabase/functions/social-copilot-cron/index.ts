@@ -227,7 +227,7 @@ The image must look like a real camera capture, completely textless. Clean and a
 ${generatedContent}
 
 Deseja Aprovar e Postar Agora no Instagram?
-Responda *1* para aprovar ou *NAO* para descartar.
+Responda *1* para aprovar, *NAO* para descartar ou *VER* para revisar.
 
 _(Ref: Post ${insertedPost.id})_`;
 
