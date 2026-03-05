@@ -63,6 +63,54 @@ serve(async (req) => {
         throw new Error('Falha ao inserir post: ' + insertError.message)
       }
 
+      // 3. Notificar WhatsApp (Evolution API)
+      const EVO_API_URL = Deno.env.get('EVO_API_URL');
+      const EVO_API_KEY = Deno.env.get('EVO_API_KEY');
+
+      if (EVO_API_URL && EVO_API_KEY) {
+        try {
+          // Buscar profile para pegar o numero de whatsapp
+          const { data: profile } = await supabase
+            .from('social_profiles')
+            .select('approval_whatsapp')
+            .eq('company_id', company_id)
+            .single();
+
+          if (profile?.approval_whatsapp) {
+            // Buscar instancia da empresa
+            const { data: instances } = await supabase
+              .from('instances')
+              .select('instance_name, evolution_instance_id')
+              .eq('company_id', company_id)
+              .eq('status', 'connected')
+              .limit(1);
+
+            if (instances && instances.length > 0) {
+              const instance = instances[0];
+              const targetNumber = profile.approval_whatsapp.replace(/\D/g, '');
+
+              const messageText = `📸 *Nova Postagem Manual Criada!*\n\nUma postagem manual foi criada e está como *pendente* na fila da sua plataforma Web!\nPara publicá-la ou agendá-la no Instagram, acesse o painel.`;
+
+              await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': EVO_API_KEY
+                },
+                body: JSON.stringify({
+                  number: targetNumber,
+                  options: { delay: 1200, presence: "composing" },
+                  text: messageText,
+                  textMessage: { text: messageText }
+                })
+              });
+            }
+          }
+        } catch (evoErr) {
+          console.error("Erro ao notificar whatsapp sobre post manual:", evoErr);
+        }
+      }
+
       return new Response(JSON.stringify({ success: true, post: newPost }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
