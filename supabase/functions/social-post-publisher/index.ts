@@ -65,8 +65,8 @@ serve(async (req) => {
       }
 
       // 3. Notificar WhatsApp (Evolution API)
-      const EVO_API_URL = Deno.env.get('EVO_API_URL');
-      const EVO_API_KEY = Deno.env.get('EVO_API_KEY');
+      const EVO_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br';
+      const EVO_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto';
 
       if (EVO_API_URL && EVO_API_KEY) {
         try {
