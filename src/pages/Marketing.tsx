@@ -841,14 +841,47 @@ export function Marketing() {
 
     try {
       setUploadingImage(true);
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${currentEntity.id}/${Math.random()}.${fileExt}`;
+
+      // --- AJUSTE INTELIGENTE DE IMAGEM PARA INSTAGRAM ---
+      const processImage = async (file: File): Promise<Blob> => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d")!;
+
+              // Define o tamanho final para ser um quadrado perfeito (maior dimensão)
+              const size = Math.max(img.width, img.height);
+              canvas.width = size;
+              canvas.height = size;
+
+              // Preenche com branco
+              ctx.fillStyle = "white";
+              ctx.fillRect(0, 0, size, size);
+
+              // Centraliza a imagem original no canvas quadrado
+              const x = (size - img.width) / 2;
+              const y = (size - img.height) / 2;
+              ctx.drawImage(img, x, y);
+
+              canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.9);
+            };
+          };
+        });
+      };
+
+      const finalBlob = await processImage(file);
+      const fileName = `${currentEntity.id}/${Date.now()}.jpg`;
       const filePath = `${fileName}`;
 
-      // 1. Fazer upload da imagem pro Supabase Storage
+      // 1. Fazer upload da imagem processada
       const { error: uploadError } = await supabase.storage
         .from("social_media_assets")
-        .upload(filePath, file);
+        .upload(filePath, finalBlob, { contentType: "image/jpeg" });
 
       if (uploadError) throw uploadError;
 
