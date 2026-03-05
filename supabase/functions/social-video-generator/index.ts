@@ -6,6 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Função para buscar qualquer URL de vídeo no objeto de resposta
+function findVideoLink(obj: any): string | null {
+  if (!obj) return null;
+  const str = JSON.stringify(obj);
+
+  // Tenta encontrar URLs que terminam em formatos de vídeo ou URIs de armazenamento
+  const patterns = [
+    /"video_url":\s*"([^"]+)"/,
+    /"videoUri":\s*"([^"]+)"/,
+    /"gcsUri":\s*"([^"]+)"/,
+    /"fileUri":\s*"([^"]+)"/,
+    /"url":\s*"([^"]+)"/,
+    /"uri":\s*"([^"]+)"/
+  ];
+
+  for (const pattern of patterns) {
+    const match = str.match(pattern);
+    if (match && match[1]) return match[1];
+  }
+
+  // Fallback: Procura qualquer string que comece com http e tenha .mp4 ou similar
+  const genericMatch = str.match(/"(https?:\/\/[^"]+\.(mp4|mov|webm)[^"]*)"/i);
+  if (genericMatch) return genericMatch[1];
+
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -30,20 +57,19 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instances: [{
-            prompt: `Highly realistic professional ${profile.avatar_gender} corporate presenter. Speaking directly to camera, friendly, 4k, vertical studio lighting. The person is moving and talking naturally.`
+            prompt: `Highly realistic cinematic vertical video (9:16) of a professional corporate presenter, ${profile.avatar_gender}, speaking naturally and confidently to the camera. Modern professional office background, high quality lighting, smooth motions, 4k.`
           }]
         })
       })
 
       const opData = await veoRes.json()
-      if (!veoRes.ok) throw new Error(`Google recusou pedido: ${opData.error?.message}`)
+      if (!veoRes.ok) throw new Error(`Erro Inicial: ${opData.error?.message || JSON.stringify(opData)}`)
 
       if (opData.name) {
-        debugInfo = "[Aguardando Google desenhar o vídeo...]"
         let attempts = 0
         let success = false
 
-        while (attempts < 40) { // Aumentado para ~80 segundos total
+        while (attempts < 45) { // Espera até 90 segundos
           attempts++
           await new Promise(r => setTimeout(r, 2000))
 
@@ -51,32 +77,31 @@ serve(async (req) => {
           const pollData = await pollRes.json()
 
           if (pollData.done) {
-            if (pollData.error) throw new Error(`Erro na geração: ${pollData.error.message}`)
+            if (pollData.error) throw new Error(`Erro na Geração: ${pollData.error.message}`)
 
-            // BUSCA EXAUSTIVA PELO LINK DO VÍDEO
-            const predictions = pollData.response?.predictions || []
-            const firstPred = predictions[0] || {}
+            // BUSCA INTELIGENTE: Procura o link em qualquer lugar da resposta do Google
+            const foundLink = findVideoLink(pollData.response);
 
-            const foundUrl = firstPred.video_url || firstPred.gcsUri || firstPred.videoUri || firstPred.uri || firstPred.url
-
-            if (foundUrl) {
-              finalVideoUrl = foundUrl
+            if (foundLink) {
+              finalVideoUrl = foundLink
               success = true
-              debugInfo = "" // Limpa o debug se deu certo
+              debugInfo = ""
               break
             } else {
-              throw new Error("Google terminou mas não enviou o link do vídeo.")
+              // Se terminou e não achou link, mostra o que o Google mandou para investigarmos
+              debugInfo = `🚨 GOOGLE OK, MAS LINK SUMIU: ${JSON.stringify(pollData.response).substring(0, 100)}...`
+              break;
             }
           }
         }
 
-        if (!success && !debugInfo.includes("Erro")) {
-          debugInfo = "⚠️ O Google demorou demais (>80s). O vídeo pode aparecer no painel em instantes."
+        if (!success && !debugInfo) {
+          debugInfo = "⚠️ O Google demorou demais para finalizar o vídeo."
         }
       }
 
     } catch (e: any) {
-      debugInfo = `🚨 NOTA TÉCNICA: ${e.message}`
+      debugInfo = `🚨 ERRO TÉCNICO: ${e.message}`
     }
 
     // Atualizar Post
@@ -95,8 +120,8 @@ serve(async (req) => {
         const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
 
         const msg = debugInfo.includes("🚨")
-          ? `⚠️ *STUDIO IA:* Houve um problema no Google.\n\nVerifique o texto do post para detalhes.`
-          : `✅ *STUDIO IA:* Vídeo enviado ao servidor!\n\nSe o coelho aparecer, aguarde 30s e dê F5.`
+          ? `⚠️ *STUDIO IA:* Erro ao localizar vídeo profissional.\n\nVeja o relatório no painel.`
+          : `✅ *STUDIO IA:* Seu avatar profissional está pronto!\n\nVerifique o painel para aprovar.`
 
         await fetch(`${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': EVO_KEY },
