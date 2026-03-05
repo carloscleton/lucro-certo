@@ -7,26 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-async function getAccessToken(serviceAccount: any) {
-  const now = Math.floor(Date.now() / 1000)
-  const privateKey = await jose.importPKCS8(serviceAccount.private_key.replace(/\\n/g, '\n'), 'RS256')
-  const jwt = await new jose.SignJWT({
-    iss: serviceAccount.client_email,
-    sub: serviceAccount.client_email,
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now, exp: now + 3600,
-    scope: "https://www.googleapis.com/auth/cloud-platform"
-  }).setProtectedHeader({ alg: 'RS256' }).sign(privateKey)
-
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: jwt })
-  })
-  const data = await res.json()
-  return data.access_token
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -46,8 +26,8 @@ serve(async (req) => {
       const AI_STUDIO_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY')
       if (!AI_STUDIO_KEY) throw new Error("A chave GOOGLE_AI_STUDIO_KEY não foi encontrada.")
 
-      // 1. VEO VIA GOOGLE AI STUDIO (Gemini API)
-      // Removendo audio_base64 que não é suportado pelo modelo de preview no AI Studio
+      // VEO VIA GOOGLE AI STUDIO (Gemini API)
+      // O aspect_ratio deve ficar dentro de 'parameters', não em 'instances'
       const url = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${AI_STUDIO_KEY}`
 
       const veoRes = await fetch(url, {
@@ -55,10 +35,10 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instances: [{
-            prompt: `Extremely realistic 4k video of a professional ${profile.avatar_gender} corporate presenter speaking to the camera. Vertical 9:16 aspect ratio, high quality lighting, professional office background. The presenter is moving naturally and talking.`,
-            aspect_ratio: "9:16"
+            prompt: `Highly detailed cinematic 4k video of a professional corporate presenter, ${profile.avatar_gender}, speaking directly to the camera with a friendly smile. Professional office background, vertical orientation, natural lighting. The person is talking and gesturing naturally.`
           }],
           parameters: {
+            aspect_ratio: "9:16",
             duration_seconds: 5
           }
         })
@@ -84,7 +64,6 @@ serve(async (req) => {
           if (pollData.done) {
             if (pollData.error) throw new Error(`ERRO_GERACAO: ${pollData.error.message}`)
 
-            // Tentando capturar a URL do vídeo de diferentes possíveis campos da resposta beta
             finalVideoUrl = pollData.response?.predictions?.[0]?.video_url ||
               pollData.response?.predictions?.[0]?.gcsUri ||
               pollData.response?.predictions?.[0]?.videoUri ||
@@ -111,12 +90,12 @@ serve(async (req) => {
       const { data: instances } = await supabase.from('instances').select('instance_name, evolution_instance_id').eq('company_id', company_id).eq('status', 'connected').limit(1)
       if (instances?.length) {
         const instance = instances[0]
-        const EVO_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
+        const EVO_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.idealzap.com.br'
         const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
 
         const msg = errorReport
-          ? `⚠️ *STUDIO IA:* Erro ao processar vídeo no AI Studio.\n\nVerifique o painel para detalhes.`
-          : `✅ *STUDIO IA:* Seu vídeo profissional está pronto!\n\nLegenda autorizada para aprovação.`
+          ? `⚠️ *STUDIO IA:* Erro no AI Studio.\nMotivo: ${errorReport.split('\n')[1]}`
+          : `✅ *STUDIO IA:* Seu vídeo profissional está pronto!\n\nVerifique o painel para aprovar.`
 
         await fetch(`${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': EVO_KEY },
