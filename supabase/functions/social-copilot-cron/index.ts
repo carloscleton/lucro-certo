@@ -103,8 +103,12 @@ Sem aspas e sem conversa filler, apenas o texto do post pronto.`;
         const aiData = await aiResponse.json();
         generatedContent = aiData.choices?.[0]?.message?.content || 'Erro ao gerar legenda com API.';
 
-        // Gerar Imagem com DALL-E 3
-        const imagePrompt = `Crie uma fotografia profissional, ultra-realista e de alta qualidade (estilo raw photo), formato quadrado, sem letras e sem textos visíveis. A imagem deve ser natural e humanizada, retratando pessoas reais ou ambientes de trabalho autênticos sobre o nicho: ${profile.niche}. Evite terminantemente ilustrações, 3D render, desenhos ou qualquer estilo futurista robótico. Público: ${profile.target_audience}.`;
+        // Gerar Imagem com DALL-E 3 com texto chamativo
+        const imagePrompt = `Crie uma arte profissional e impactante para Instagram sobre ${profile.niche}. 
+A imagem DEVE conter um título chamativo em português centralizado com tipografia moderna e legível. 
+O texto deve ser uma chamada de ação ou frase de impacto relacionada ao tema. 
+Estilo visual: Fotografia profissional humanizada de alta qualidade. Público: ${profile.target_audience}. 
+Gere o texto em português corretamente.`;
 
         const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
@@ -226,7 +230,7 @@ _(Ref: Post ${insertedPost.id})_`;
 
       dispatchLog = `Attempting send to ${targetNumber} via instance ${instance.instance_name}`;
 
-      const endpoint = `${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`
+      const endpoint = `${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`
 
       const response = await fetch(endpoint, {
         method: 'POST',

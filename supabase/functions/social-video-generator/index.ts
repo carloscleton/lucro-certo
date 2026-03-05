@@ -43,6 +43,7 @@ serve(async (req) => {
 
     const { data: post } = await supabase.from('social_posts').select('*').eq('id', post_id).single()
     const { data: profile } = await supabase.from('social_profiles').select('*').eq('company_id', company_id).single()
+    const { data: company } = await supabase.from('companies').select('trade_name').eq('id', company_id).single()
 
     // --- CONTROLE DE USO DIÁRIO ---
     const today = new Date().toISOString().split('T')[0];
@@ -142,6 +143,38 @@ serve(async (req) => {
           debugInfo = `🚨 ERRO TÉCNICO VÍDEO: ${e.message}`
         }
       }
+    } else if (!post.image_url || post.image_url.includes('w3schools')) {
+      // GERA IMAGEM COM TEXTO SE VÍDEO ESTIVER DESLIGADO E NÃO TIVER IMAGEM VÁLIDA
+      try {
+        const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY');
+        if (OPENAI_KEY) {
+          const imagePrompt = `Crie uma arte profissional e impactante para Instagram da empresa ${company?.trade_name || 'Lucro Certo'}. 
+A imagem DEVE conter um título chamativo em português centralizado com tipografia moderna. 
+Assunto: ${post.content.substring(0, 150)}. 
+Estilo visual: Fotografia profissional humanizada. Público: ${profile.target_audience || 'Empreendedores'}. 
+Gere o texto em português corretamente.`;
+
+          const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${OPENAI_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'dall-e-3',
+              prompt: imagePrompt,
+              n: 1,
+              size: '1024x1024'
+            })
+          });
+          const imageData = await imageRes.json();
+          if (imageData.data && imageData.data.length > 0) {
+            finalVideoUrl = imageData.data[0].url;
+          }
+        }
+      } catch (imgErr) {
+        console.error("Erro ao gerar imagem de backup:", imgErr);
+      }
     }
 
     // Atualizar Post
@@ -163,14 +196,14 @@ serve(async (req) => {
       if (instances?.length) {
         const instance = instances[0]
         const EVO_URL = Deno.env.get('EVOLUTION_API_URL')?.replace(/\/$/, '') || 'https://evo.idealzap.com.br'
-        const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto' // Fallback para chave antiga se necessário
+        const EVO_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
 
         const msg = `🤖 Olá! O seu *Marketing IA* preparou o post solicitado.
 
 *Legenda:*
 ${post.content}
 
-${profile.video_enabled ? '🎥 O vídeo de 15s está pronto para revisão!' : '📝 O texto está pronto para revisão!'}
+${profile.video_enabled ? '🎥 O vídeo de 15s está pronto para revisão!' : '📝 A imagem com texto chamativo está pronta!'}
 
 Deseja Aprovar e Postar Agora?
 Responda *1* para aprovar ou *NAO* para descartar.
@@ -179,8 +212,8 @@ _(Ref: Post ${post_id})_`
 
         const targetNumber = profile.approval_whatsapp.replace(/\D/g, '')
 
-        // URL COM TOKEN (Caso seja v1) + HEADERS COM APIKEY
-        const endpoint = `${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`
+        // URL SEM TOKEN (Mais robusto para Evolution API v2)
+        const endpoint = `${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`
 
         await fetch(endpoint, {
           method: 'POST',

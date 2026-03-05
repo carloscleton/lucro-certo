@@ -89,10 +89,13 @@ Não coloque aspas no começo ou fim, nem conversa fiada. Retorne apenas o texto
       console.error('Falha ao gerar texto com ChatGPT:', chatErr);
     }
 
-    // 3. Generate Image with DALL-E 3 (com tolerância a falhas na OpenAI)
+    // 3. Generate Image with DALL-E 3 (com texto chamativo)
     let publicUrl = null;
     try {
-      const imagePrompt = `Crie uma imagem de alta qualidade, sem letras e sem palavras escritas, apropriada para o Instagram e Facebook. O estilo deve ser moderno, profissional e altamente estético. O foco e tema da imagem é: ${topic || ('Serviços excelentes sobre ' + niche)}. Faça algo abstrato mas ligado ao negócio se for muito difícil.`;
+      const imagePrompt = `Crie uma arte profissional e estética para Instagram sobre: ${topic || ('Serviços de ' + niche)}. 
+A imagem DEVE conter um pequeno texto ou título principal chamativo em português centralizado com tipografia moderna. 
+Estilo visual: moderno, limpo e profissional. Público: ${audience}. 
+Certifique-se de que o texto em português esteja escrito corretamente.`;
 
       const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
