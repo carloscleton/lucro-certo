@@ -350,9 +350,21 @@ export function Layout() {
                                     )}
                                     <div className="flex flex-col">
                                         <span className={styles.headerContextLabel}>{currentEntity.name}</span>
-                                        <span className={`${styles.headerContextType} ${currentEntity.type === 'personal' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-blue-600 bg-blue-50 dark:bg-blue-900/20'}`}>
-                                            {currentEntity.type === 'personal' ? t('layout.personal_context') : t('layout.company_context')}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`${styles.headerContextType} ${currentEntity.type === 'personal' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-blue-600 bg-blue-50 dark:bg-blue-900/20'}`}>
+                                                {currentEntity.type === 'personal' ? t('layout.personal_context') : t('layout.company_context')}
+                                            </span>
+                                            {currentEntity.type === 'personal' && (
+                                                <button
+                                                    onClick={() => navigate('/settings?tab=automations')}
+                                                    className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 px-2 py-0.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors whitespace-nowrap"
+                                                    title="Configurar WhatsApp Pessoal"
+                                                >
+                                                    <Settings size={10} />
+                                                    Configurar WhatsApp
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
