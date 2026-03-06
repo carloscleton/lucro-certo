@@ -28,6 +28,7 @@ export interface Entity {
     payments_module_enabled?: boolean;
     crm_module_enabled?: boolean;
     has_social_copilot?: boolean;
+    automations_module_enabled?: boolean;
 }
 
 interface EntityContextType {
@@ -86,7 +87,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         fiscal_module_enabled,
                         payments_module_enabled,
                         crm_module_enabled,
-                        has_social_copilot
+                        has_social_copilot,
+                        automations_module_enabled
                     ),
                     role,
                     status
@@ -120,7 +122,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     fiscal_module_enabled: item.company.fiscal_module_enabled,
                     payments_module_enabled: item.company.payments_module_enabled,
                     crm_module_enabled: item.company.crm_module_enabled,
-                    has_social_copilot: item.company.has_social_copilot
+                    has_social_copilot: item.company.has_social_copilot,
+                    automations_module_enabled: item.company.automations_module_enabled
                 }));
 
             // Always include Personal option with user's settings

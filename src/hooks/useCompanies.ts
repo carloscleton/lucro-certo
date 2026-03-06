@@ -33,6 +33,7 @@ export interface Company {
     payments_module_enabled?: boolean;
     crm_module_enabled?: boolean;
     has_social_copilot?: boolean;
+    automations_module_enabled?: boolean;
     tecnospeed_config?: any;
     zip_code?: string;
     street?: string;
