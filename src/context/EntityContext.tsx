@@ -14,6 +14,8 @@ export interface Entity {
     logo_url?: string;
     legal_name?: string;
     cnpj?: string;
+    cpf?: string;
+    entity_type?: 'PF' | 'PJ';
     street?: string;
     number?: string;
     complement?: string;
@@ -69,6 +71,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         trade_name,
                         legal_name,
                         cnpj,
+                        cpf,
+                        entity_type,
                         whatsapp_instance_limit,
                         logo_url,
                         street,
@@ -103,6 +107,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     logo_url: item.company.logo_url,
                     legal_name: item.company.legal_name,
                     cnpj: item.company.cnpj,
+                    cpf: item.company.cpf,
+                    entity_type: item.company.entity_type,
                     street: item.company.street,
                     number: item.company.number,
                     complement: item.company.complement,

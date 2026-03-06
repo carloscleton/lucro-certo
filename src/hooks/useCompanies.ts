@@ -7,6 +7,8 @@ export interface Company {
     trade_name: string; // Nome Fantasia
     legal_name: string; // Razão Social
     cnpj: string;
+    entity_type: 'PF' | 'PJ';
+    cpf?: string;
     user_id: string;
     logo_url?: string;
     settings?: {
@@ -25,6 +27,7 @@ export interface Company {
                 admin?: boolean;
             };
         };
+        allowed_entity_types?: string[];
     };
     fiscal_module_enabled?: boolean;
     payments_module_enabled?: boolean;
@@ -91,11 +94,13 @@ export function useCompanies() {
 
         let logoUrl = company.logo_url;
 
-        // 1. Create company first (we need ID for storage folder usually, though here we could generate UUID first but RPC handles creation)
+        // 1. Create company first
         const { data, error } = await supabase.rpc('create_company', {
             name_input: company.legal_name,
             trade_name_input: company.trade_name,
-            cnpj_input: company.cnpj,
+            cnpj_input: company.cnpj || '',
+            entity_type_input: company.entity_type || 'PJ',
+            cpf_input: company.cpf || null,
             email_input: '',
             phone_input: '',
             address_input: company.street ? `${company.street}, ${company.number}${company.complement ? ' - ' + company.complement : ''} - ${company.city}/${company.state}` : '',

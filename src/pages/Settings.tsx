@@ -761,6 +761,65 @@ export function Settings() {
                                     />
                                 </div>
 
+                                {/* Tipos de Conta Permitidos (PF / PJ) */}
+                                <div className="p-6 rounded-xl border-2 border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/20 dark:bg-indigo-900/10">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
+                                            <Building size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">Tipos de Conta Permitidos</h4>
+                                            <p className="text-sm text-gray-500">Defina se este cliente pode cadastrar contas como Pessoa Física, Jurídica ou Ambas.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-8 mt-2">
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div className="relative flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-6 h-6 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                    checked={(tempCompanyConfig.allowed_entity_types || ['PF', 'PJ']).includes('PF')}
+                                                    onChange={(e) => {
+                                                        const current = tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'];
+                                                        let next = [...current];
+                                                        if (e.target.checked) {
+                                                            if (!next.includes('PF')) next.push('PF');
+                                                        } else {
+                                                            if (next.length > 1) next = next.filter(t => t !== 'PF');
+                                                            else alert('Selecione ao menos um tipo de conta.');
+                                                        }
+                                                        setTempCompanyConfig({ ...tempCompanyConfig, allowed_entity_types: next });
+                                                    }}
+                                                />
+                                            </div>
+                                            <span className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-600">🧑 Pessoa Física (PF)</span>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div className="relative flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-6 h-6 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                    checked={(tempCompanyConfig.allowed_entity_types || ['PF', 'PJ']).includes('PJ')}
+                                                    onChange={(e) => {
+                                                        const current = tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'];
+                                                        let next = [...current];
+                                                        if (e.target.checked) {
+                                                            if (!next.includes('PJ')) next.push('PJ');
+                                                        } else {
+                                                            if (next.length > 1) next = next.filter(t => t !== 'PJ');
+                                                            else alert('Selecione ao menos um tipo de conta.');
+                                                        }
+                                                        setTempCompanyConfig({ ...tempCompanyConfig, allowed_entity_types: next });
+                                                    }}
+                                                />
+                                            </div>
+                                            <span className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-600">🏢 Pessoa Jurídica (PJ)</span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 {/* Subscription Plan (Monthly & Annual) */}
                                 <div className="p-6 rounded-xl border-2 border-blue-100 dark:border-blue-900/30 bg-blue-50/20 dark:bg-blue-900/10 space-y-6">
                                     <div className="flex items-center gap-4 mb-2">
@@ -953,6 +1012,7 @@ export function Settings() {
                                             !!tempCompanyConfig.payments_module_enabled,
                                             !!tempCompanyConfig.crm_module_enabled,
                                             !!tempCompanyConfig.has_social_copilot,
+                                            tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'],
                                             tempCompanyConfig.settings || {}
                                         );
                                         setSavingConfig(false);

@@ -32,6 +32,8 @@ export interface QuotePDFData {
         phone?: string;
         address?: string;
         cnpj?: string;
+        cpf?: string;
+        entity_type?: 'PF' | 'PJ';
     };
     subtotal: number;
     total: number;
@@ -100,7 +102,10 @@ export class PDFService {
                     doc.text(data.company.legal_name, 70, infoY);
                     infoY += 5;
                 }
-                if (data.company.cnpj) {
+                if (data.company.entity_type === 'PF' && data.company.cpf) {
+                    doc.text(`CPF: ${data.company.cpf}`, 70, infoY);
+                    infoY += 5;
+                } else if (data.company.cnpj) {
                     doc.text(`CNPJ: ${data.company.cnpj}`, 70, infoY);
                     infoY += 5;
                 }

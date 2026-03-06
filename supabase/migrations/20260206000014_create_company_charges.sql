@@ -23,27 +23,35 @@ CREATE TABLE IF NOT EXISTS public.company_charges (
 -- Enable RLS
 ALTER TABLE public.company_charges ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Charges viewable by company members"
-    ON public.company_charges FOR SELECT
-    USING (
+-- Policies (idempotent)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Charges viewable by company members' AND tablename = 'company_charges') THEN
+    CREATE POLICY "Charges viewable by company members"
+      ON public.company_charges FOR SELECT
+      USING (
         EXISTS (
-            SELECT 1 FROM public.company_members 
-            WHERE company_id = company_charges.company_id 
-            AND user_id = auth.uid()
+          SELECT 1 FROM public.company_members 
+          WHERE company_id = company_charges.company_id 
+          AND user_id = auth.uid()
         )
-    );
+      );
+  END IF;
+END $$;
 
-CREATE POLICY "Charges manageable by company admins/owners"
-    ON public.company_charges FOR ALL
-    USING (
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Charges manageable by company admins/owners' AND tablename = 'company_charges') THEN
+    CREATE POLICY "Charges manageable by company admins/owners"
+      ON public.company_charges FOR ALL
+      USING (
         EXISTS (
-            SELECT 1 FROM public.company_members 
-            WHERE company_id = company_charges.company_id 
-            AND user_id = auth.uid()
-            AND role = 'admin'
+          SELECT 1 FROM public.company_members 
+          WHERE company_id = company_charges.company_id 
+          AND user_id = auth.uid()
+          AND role = 'admin'
         )
-    );
+      );
+  END IF;
+END $$;
 
 -- Trigger for updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -54,6 +62,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_company_charges_updated_at ON public.company_charges;
 CREATE TRIGGER update_company_charges_updated_at
     BEFORE UPDATE ON public.company_charges
     FOR EACH ROW

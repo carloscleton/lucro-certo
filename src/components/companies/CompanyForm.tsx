@@ -19,6 +19,8 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [tradeName, setTradeName] = useState('');
     const [legalName, setLegalName] = useState('');
     const [cnpj, setCnpj] = useState('');
+    const [entityType, setEntityType] = useState<'PF' | 'PJ'>('PJ');
+    const [cpf, setCpf] = useState('');
 
     // Address fields
     const [zipCode, setZipCode] = useState('');
@@ -55,6 +57,8 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setCity(initialData.city || '');
             setState(initialData.state || '');
             setLogoUrl(initialData.logo_url || '');
+            setEntityType(initialData.entity_type || 'PJ');
+            setCpf(initialData.cpf || '');
             setLogoFile(null);
         } else {
             setTradeName('');
@@ -68,6 +72,8 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setCity('');
             setState('');
             setLogoUrl('');
+            setEntityType('PJ');
+            setCpf('');
             setLogoFile(null);
         }
     }, [initialData, isOpen]);
@@ -152,7 +158,9 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             await onSubmit({
                 trade_name: tradeName,
                 legal_name: legalName,
-                cnpj,
+                cnpj: entityType === 'PJ' ? cnpj : null,
+                cpf: entityType === 'PF' ? cpf : null,
+                entity_type: entityType,
                 zip_code: zipCode || null,
                 street: street || null,
                 number: number || null,
@@ -181,20 +189,45 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             maxWidth="max-w-2xl"
         >
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {/* Entity Type Selector */}
+                <div className="flex p-1 bg-gray-100 dark:bg-slate-800 rounded-xl w-fit mb-2">
+                    <button
+                        type="button"
+                        onClick={() => setEntityType('PJ')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${entityType === 'PJ'
+                            ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        🏢 Pessoa Jurídica (PJ)
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setEntityType('PF')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${entityType === 'PF'
+                            ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        🧑 Pessoa Física (PF)
+                    </button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
-                        label="Nome Fantasia *"
+                        label={entityType === 'PJ' ? "Nome Fantasia *" : "Apelido / Nome Curto *"}
                         value={tradeName}
                         onChange={e => setTradeName(e.target.value)}
                         required
-                        placeholder="Ex: Minha Loja"
+                        placeholder={entityType === 'PJ' ? "Ex: Minha Loja" : "Como quer ser chamado"}
                     />
 
                     <Input
-                        label="Razão Social"
+                        label={entityType === 'PJ' ? "Razão Social" : "Nome Completo *"}
                         value={legalName}
                         onChange={e => setLegalName(e.target.value)}
-                        placeholder="Ex: Minha Loja Ltda"
+                        required={entityType === 'PF'}
+                        placeholder={entityType === 'PJ' ? "Ex: Minha Loja Ltda" : "Seu nome completo"}
                     />
 
                     <div className="col-span-1 md:col-span-2">
@@ -236,12 +269,21 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                         </div>
                     </div>
 
-                    <Input
-                        label="CNPJ"
-                        value={cnpj}
-                        onChange={e => setCnpj(e.target.value)}
-                        placeholder="00.000.000/0000-00"
-                    />
+                    {entityType === 'PJ' ? (
+                        <Input
+                            label="CNPJ"
+                            value={cnpj}
+                            onChange={e => setCnpj(e.target.value)}
+                            placeholder="00.000.000/0000-00"
+                        />
+                    ) : (
+                        <Input
+                            label="CPF"
+                            value={cpf}
+                            onChange={e => setCpf(e.target.value)}
+                            placeholder="000.000.000-00"
+                        />
+                    )}
                 </div>
 
                 <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">

@@ -829,6 +829,10 @@ export function Quotes() {
                                                                         items: fullQuote.items || [],
                                                                         company: {
                                                                             name: companyData?.name || 'Empresa',
+                                                                            legal_name: companyData?.legal_name,
+                                                                            cnpj: companyData?.cnpj,
+                                                                            cpf: companyData?.cpf,
+                                                                            entity_type: companyData?.entity_type || 'PJ',
                                                                             email: companyData?.email,
                                                                             phone: companyData?.phone,
                                                                             address: companyData?.address

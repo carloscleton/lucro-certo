@@ -81,6 +81,8 @@ export function QuotePrint() {
                     name: currentEntity?.name || 'Minha Empresa',
                     legal_name: (currentEntity as any)?.legal_name,
                     cnpj: (currentEntity as any)?.cnpj,
+                    cpf: (currentEntity as any)?.cpf,
+                    entity_type: (currentEntity as any)?.entity_type || 'PJ',
                     logo_url: currentEntity?.logo_url,
                     email: user?.email || '',
                     address: currentEntity?.type === 'company'
@@ -147,6 +149,9 @@ export function QuotePrint() {
                             />
                         ) : null}
                         <h2 className="text-xl font-semibold text-gray-800">{currentEntity?.name || 'Sua Empresa'}</h2>
+                        <p className="text-sm text-gray-600">
+                            {currentEntity?.entity_type === 'PF' ? `CPF: ${currentEntity?.cpf || '-'}` : `CNPJ: ${currentEntity?.cnpj || '-'}`}
+                        </p>
                         <p className="text-sm text-gray-600">{user?.email}</p>
                         {/* Address placeholders if available in future */}
                         <p className="text-sm text-gray-600 mt-1">Data: {new Date(quote.created_at).toLocaleDateString()}</p>
