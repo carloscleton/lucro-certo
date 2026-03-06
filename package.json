@@ -30,7 +30,7 @@
     "react-is": "^19.2.4",
     "react-joyride": "^2.9.3",
     "react-router-dom": "^7.13.0",
-    "react-to-print": "^2.14.15",
+    "react-to-print": "^3.3.0",
     "recharts": "^3.7.0",
     "stripe": "^20.4.0"
   },

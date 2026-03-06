@@ -55,7 +55,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     const reportRef = useRef<HTMLDivElement>(null);
 
     const handlePrint = useReactToPrint({
-        content: () => reportRef.current,
+        contentRef: reportRef,
         documentTitle: `Relatorio_${type}_${startDate}_${endDate}`,
     });
 
