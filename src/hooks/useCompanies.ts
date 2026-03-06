@@ -42,6 +42,7 @@ export interface Company {
     neighborhood?: string;
     city?: string;
     state?: string;
+    phone?: string;
 }
 
 export function useCompanies() {
@@ -103,7 +104,7 @@ export function useCompanies() {
             entity_type_input: company.entity_type || 'PJ',
             cpf_input: company.cpf || null,
             email_input: '',
-            phone_input: '',
+            phone_input: company.phone || '',
             address_input: company.street ? `${company.street}, ${company.number}${company.complement ? ' - ' + company.complement : ''} - ${company.city}/${company.state}` : '',
             zip_code_input: company.zip_code || null,
             street_input: company.street || null,

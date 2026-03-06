@@ -20,6 +20,7 @@ export interface UserSettings {
     automation_overdue_time?: string; // HH:mm
     automation_overdue_prompt?: string;
     automation_overdue_template?: string;
+    automation_whatsapp_number?: string;
 }
 
 export function useSettings() {
@@ -91,7 +92,8 @@ export function useSettings() {
                         automation_overdue_reminders: s.automation_overdue_reminders ?? false,
                         automation_overdue_time: s.automation_overdue_time ?? '10:00',
                         automation_overdue_prompt: s.automation_overdue_prompt ?? '',
-                        automation_overdue_template: s.automation_overdue_template ?? ''
+                        automation_overdue_template: s.automation_overdue_template ?? '',
+                        automation_whatsapp_number: s.automation_whatsapp_number ?? ''
                     });
                 } else {
                     setSettings({
@@ -131,7 +133,8 @@ export function useSettings() {
                         automation_overdue_reminders: data.automation_overdue_reminders ?? false,
                         automation_overdue_time: data.automation_overdue_time ?? '10:00',
                         automation_overdue_prompt: data.automation_overdue_prompt ?? '',
-                        automation_overdue_template: data.automation_overdue_template ?? ''
+                        automation_overdue_template: data.automation_overdue_template ?? '',
+                        automation_whatsapp_number: data.automation_whatsapp_number ?? ''
                     });
                 } else {
                     setSettings({
@@ -223,7 +226,8 @@ export function useSettings() {
                     automation_overdue_reminders: personalData.automation_overdue_reminders,
                     automation_overdue_time: personalData.automation_overdue_time,
                     automation_overdue_prompt: personalData.automation_overdue_prompt,
-                    automation_overdue_template: personalData.automation_overdue_template
+                    automation_overdue_template: personalData.automation_overdue_template,
+                    automation_whatsapp_number: personalData.automation_whatsapp_number
                 };
                 return await updateSettings(newSettings);
             }

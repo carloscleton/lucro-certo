@@ -312,7 +312,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             const anonKey = (supabase as any).supabaseAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
             const { data, error } = await supabase.functions.invoke('financial-reminders', {
-                body: { company_id: currentEntity.id, days: 7 },
+                body: { company_id: currentEntity.id, days: 7, is_manual: true },
                 headers: {
                     'apikey': anonKey,
                     // If no session, we still send apikey. If session, we send Bearer token.

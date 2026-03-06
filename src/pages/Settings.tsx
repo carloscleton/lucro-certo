@@ -51,6 +51,7 @@ export function Settings() {
     const [autoOverdueTime, setAutoOverdueTime] = useState('10:00');
     const [autoOverduePrompt, setAutoOverduePrompt] = useState('');
     const [autoOverdueTemplate, setAutoOverdueTemplate] = useState('');
+    const [automationWhatsAppNumber, setAutomationWhatsAppNumber] = useState('');
     const [waConnected, setWaConnected] = useState(false);
     const [generatingMagic, setGeneratingMagic] = useState<string | null>(null);
 
@@ -179,6 +180,7 @@ export function Settings() {
             setAutoOverdueTime(settings.automation_overdue_time || '10:00');
             setAutoOverduePrompt(settings.automation_overdue_prompt || '');
             setAutoOverdueTemplate(settings.automation_overdue_template || '');
+            setAutomationWhatsAppNumber(settings.automation_whatsapp_number || '');
         }
     }, [settings, loading]);
 
@@ -200,7 +202,8 @@ export function Settings() {
             automation_overdue_reminders: autoOverdue,
             automation_overdue_time: autoOverdueTime,
             automation_overdue_prompt: autoOverduePrompt,
-            automation_overdue_template: autoOverdueTemplate
+            automation_overdue_template: autoOverdueTemplate,
+            automation_whatsapp_number: automationWhatsAppNumber
         });
         setSaving(false);
         if (error) {
@@ -738,6 +741,22 @@ export function Settings() {
                                 <p className="text-sm font-medium">As automações estão desativadas porque não há um WhatsApp conectado. Vá na aba "WhatsApp API" para conectar.</p>
                             </div>
                         )}
+
+                        <div className="p-4 bg-gray-50 dark:bg-slate-700/30 rounded-xl border border-gray-100 dark:border-slate-700 mb-6">
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                                <MessageSquare size={16} className="text-blue-600" />
+                                Contato para Lembretes Administrativos
+                            </h4>
+                            <div className="max-w-md">
+                                <Input
+                                    label="WhatsApp para Receber Relatórios"
+                                    value={automationWhatsAppNumber}
+                                    onChange={(e) => setAutomationWhatsAppNumber(e.target.value)}
+                                    placeholder="55 (00) 0 0000-0000"
+                                    helpText="Este número receberá o Resumo Financeiro Diário e alertas do sistema."
+                                />
+                            </div>
+                        </div>
 
                         <div className="space-y-4">
                             {/* Financeiro */}

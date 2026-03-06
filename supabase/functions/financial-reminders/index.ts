@@ -36,21 +36,29 @@ serve(async (req) => {
     }
 
     try {
-        const { company_id, days = 7 } = await req.json()
+        const { company_id, days = 7, is_manual = false } = await req.json()
 
         if (!company_id) {
             throw new Error('company_id is required')
         }
 
-        // Delay randômico para evitar disparos em massa simultâneos
-        const bootDelay = Math.floor(Math.random() * (30000 - 1000 + 1) + 1000);
-        await sleep(bootDelay);
+        if (!is_manual) {
+            // Delay randômico para evitar disparos em massa simultâneos apenas no automático
+            const bootDelay = Math.floor(Math.random() * (30000 - 1000 + 1) + 1000);
+            await sleep(bootDelay);
+        }
 
-        const { data: company } = await supabase.from('companies').select('trade_name').eq('id', company_id).single()
+        const { data: company } = await supabase.from('companies').select('trade_name, phone, settings').eq('id', company_id).single()
         const { data: profile } = await supabase.from('social_profiles').select('approval_whatsapp').eq('company_id', company_id).single()
 
-        if (!profile?.approval_whatsapp) {
-            return new Response(JSON.stringify({ error: 'Número de WhatsApp não configurado no Social Copilot.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        // Hierarquia de número para envio:
+        // 1. Configuração específica de automação
+        // 2. Telefone da empresa
+        // 3. Telefone do Social Copilot (fallback legado)
+        const rawNumber = (company?.settings as any)?.automation_whatsapp_number || company?.phone || profile?.approval_whatsapp
+
+        if (!rawNumber) {
+            return new Response(JSON.stringify({ error: 'Nenhum número de WhatsApp configurado para receber notificações. Configure o WhatsApp da Empresa ou o número nas Automações.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
         const today = new Date().toISOString().split('T')[0]
@@ -121,7 +129,7 @@ serve(async (req) => {
             message += `Acesse seu painel para ver os detalhes: lucrocerto.idealzap.com.br 🚀`;
         }
 
-        const targetNumber = profile.approval_whatsapp.replace(/\D/g, '')
+        const targetNumber = rawNumber.replace(/\D/g, '')
         const success = await sendWhatsApp(instanceName, targetNumber, message)
 
         return new Response(JSON.stringify({ success, message: success ? 'Resumo financeiro enviado!' : 'Erro Evolution API.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

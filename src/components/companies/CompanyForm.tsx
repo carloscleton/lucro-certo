@@ -33,6 +33,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [logoUrl, setLogoUrl] = useState('');
     const [logoFile, setLogoFile] = useState<File | null>(null);
 
+    const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
 
@@ -59,6 +60,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setLogoUrl(initialData.logo_url || '');
             setEntityType(initialData.entity_type || 'PJ');
             setCpf(initialData.cpf || '');
+            setPhone(initialData.phone || '');
             setLogoFile(null);
         } else {
             setTradeName('');
@@ -74,6 +76,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setLogoUrl('');
             setEntityType('PJ');
             setCpf('');
+            setPhone('');
             setLogoFile(null);
         }
     }, [initialData, isOpen]);
@@ -161,6 +164,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 cnpj: entityType === 'PJ' ? cnpj : null,
                 cpf: entityType === 'PF' ? cpf : null,
                 entity_type: entityType,
+                phone: phone,
                 zip_code: zipCode || null,
                 street: street || null,
                 number: number || null,
@@ -284,6 +288,14 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                             placeholder="000.000.000-00"
                         />
                     )}
+
+                    <Input
+                        label="WhatsApp da Empresa (Para notificações)"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        placeholder="55 (00) 0 0000-0000"
+                        helpText="Número para receber resumos e alertas"
+                    />
                 </div>
 
                 <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
