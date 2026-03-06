@@ -92,14 +92,14 @@ export function Settings() {
             .eq('company_id', currentEntity.id)
             .eq('status', 'connected')
             .limit(1);
-        setWaConnected(data && data.length > 0);
+        setWaConnected(!!data && data.length > 0);
     };
 
     const handleMagic = async (type: 'financial' | 'birthday' | 'overdue', prompt: string) => {
         if (!prompt) return alert('Por favor, digite um prompt para a vara mágica.');
         setGeneratingMagic(type);
         try {
-            const { data, error } = await supabase.functions.invoke('social-copilot-magic', {
+            const { data } = await supabase.functions.invoke('social-copilot-magic', {
                 body: {
                     company_id: currentEntity.id,
                     mode: 'automation_template',
