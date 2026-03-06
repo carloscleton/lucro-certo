@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, MessageSquare } from 'lucide-react';
+import { Plus, Search, MessageSquare, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useReactToPrint } from 'react-to-print';
+import { FinancialReport } from '../components/transactions/FinancialReport';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../context/NotificationContext';
 import { Tooltip } from '../components/ui/Tooltip';
@@ -50,6 +52,12 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     const [settlingTransaction, setSettlingTransaction] = useState<Transaction | null>(null);
     const { notify } = useNotification();
     const [sendingSummary, setSendingSummary] = useState(false);
+    const reportRef = useRef<HTMLDivElement>(null);
+
+    const handlePrint = useReactToPrint({
+        content: () => reportRef.current,
+        documentTitle: `Relatorio_${type}_${startDate}_${endDate}`,
+    });
 
     // Calculate start/end dates from month string
     const getMonthRange = (monthStr: string) => {
@@ -378,6 +386,14 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     <div className="flex gap-2 ml-auto md:ml-0">
                         <Button
                             variant="outline"
+                            onClick={() => handlePrint()}
+                            className="border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                        >
+                            <FileText size={18} className="mr-2" />
+                            PDF
+                        </Button>
+                        <Button
+                            variant="outline"
                             onClick={handleSendSummary}
                             isLoading={sendingSummary}
                             className="border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
@@ -449,12 +465,25 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             />
 
             <TransactionForm
-                type={type}
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                type={type}
+                initialData={editingTransaction as any}
                 onSubmit={handleSubmit}
-                initialData={editingTransaction}
             />
+
+            <div style={{ display: 'none' }}>
+                <FinancialReport
+                    ref={reportRef}
+                    transactions={filteredTransactions}
+                    type={type}
+                    title={title}
+                    startDate={startDate}
+                    endDate={endDate}
+                    entityName={currentEntity?.name || ''}
+                    logoUrl={currentEntity?.logo_url}
+                />
+            </div>
 
             {settlingTransaction && (
                 <SettleModal
