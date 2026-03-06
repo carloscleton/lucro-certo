@@ -9,8 +9,11 @@ export interface UserSettings {
     service_commission_rate: number;
     product_commission_rate: number;
     automation_financial_reminders?: boolean;
+    automation_financial_time?: string; // HH:mm
     automation_birthday_reminders?: boolean;
+    automation_birthday_time?: string; // HH:mm
     automation_overdue_reminders?: boolean;
+    automation_overdue_time?: string; // HH:mm
 }
 
 export function useSettings() {
@@ -23,8 +26,11 @@ export function useSettings() {
         service_commission_rate: 0,
         product_commission_rate: 0,
         automation_financial_reminders: false,
+        automation_financial_time: '08:00',
         automation_birthday_reminders: false,
-        automation_overdue_reminders: false
+        automation_birthday_time: '09:00',
+        automation_overdue_reminders: false,
+        automation_overdue_time: '10:00'
     });
     const [loading, setLoading] = useState(true);
 
@@ -38,8 +44,11 @@ export function useSettings() {
                 service_commission_rate: 0,
                 product_commission_rate: 0,
                 automation_financial_reminders: false,
+                automation_financial_time: '08:00',
                 automation_birthday_reminders: false,
-                automation_overdue_reminders: false
+                automation_birthday_time: '09:00',
+                automation_overdue_reminders: false,
+                automation_overdue_time: '10:00'
             });
         }
     }, [user, currentEntity]);
@@ -66,8 +75,11 @@ export function useSettings() {
                         service_commission_rate: s.service_commission_rate ?? 0,
                         product_commission_rate: s.product_commission_rate ?? 0,
                         automation_financial_reminders: s.automation_financial_reminders ?? false,
+                        automation_financial_time: s.automation_financial_time ?? '08:00',
                         automation_birthday_reminders: s.automation_birthday_reminders ?? false,
-                        automation_overdue_reminders: s.automation_overdue_reminders ?? false
+                        automation_birthday_time: s.automation_birthday_time ?? '09:00',
+                        automation_overdue_reminders: s.automation_overdue_reminders ?? false,
+                        automation_overdue_time: s.automation_overdue_time ?? '10:00'
                     });
                 } else {
                     setSettings({
@@ -76,8 +88,11 @@ export function useSettings() {
                         service_commission_rate: 0,
                         product_commission_rate: 0,
                         automation_financial_reminders: false,
+                        automation_financial_time: '08:00',
                         automation_birthday_reminders: false,
-                        automation_overdue_reminders: false
+                        automation_birthday_time: '09:00',
+                        automation_overdue_reminders: false,
+                        automation_overdue_time: '10:00'
                     });
                 }
             } else {
@@ -94,8 +109,11 @@ export function useSettings() {
                         service_commission_rate: data.service_commission_rate ?? 0,
                         product_commission_rate: data.product_commission_rate ?? 0,
                         automation_financial_reminders: data.automation_financial_reminders ?? false,
+                        automation_financial_time: data.automation_financial_time ?? '08:00',
                         automation_birthday_reminders: data.automation_birthday_reminders ?? false,
-                        automation_overdue_reminders: data.automation_overdue_reminders ?? false
+                        automation_birthday_time: data.automation_birthday_time ?? '09:00',
+                        automation_overdue_reminders: data.automation_overdue_reminders ?? false,
+                        automation_overdue_time: data.automation_overdue_time ?? '10:00'
                     });
                 } else {
                     setSettings({
@@ -104,8 +122,11 @@ export function useSettings() {
                         service_commission_rate: 0,
                         product_commission_rate: 0,
                         automation_financial_reminders: false,
+                        automation_financial_time: '08:00',
                         automation_birthday_reminders: false,
-                        automation_overdue_reminders: false
+                        automation_birthday_time: '09:00',
+                        automation_overdue_reminders: false,
+                        automation_overdue_time: '10:00'
                     });
                     if (!error || error.code === 'PGRST116') {
                         await supabase.from('user_settings').insert([{ user_id: user!.id }]);
@@ -137,6 +158,7 @@ export function useSettings() {
                     .eq('id', currentEntity.id);
 
                 if (error) throw error;
+                await fetchSettings(); // Refresh to ensure state is sync
             } else {
                 const { error } = await supabase
                     .from('user_settings')
@@ -144,6 +166,7 @@ export function useSettings() {
                     .eq('user_id', user!.id);
 
                 if (error) throw error;
+                await fetchSettings();
             }
 
             setSettings(prev => ({ ...prev, ...newSettings }));
@@ -172,8 +195,11 @@ export function useSettings() {
                     service_commission_rate: personalData.service_commission_rate,
                     product_commission_rate: personalData.product_commission_rate,
                     automation_financial_reminders: personalData.automation_financial_reminders,
+                    automation_financial_time: personalData.automation_financial_time,
                     automation_birthday_reminders: personalData.automation_birthday_reminders,
-                    automation_overdue_reminders: personalData.automation_overdue_reminders
+                    automation_birthday_time: personalData.automation_birthday_time,
+                    automation_overdue_reminders: personalData.automation_overdue_reminders,
+                    automation_overdue_time: personalData.automation_overdue_time
                 };
                 return await updateSettings(newSettings);
             }

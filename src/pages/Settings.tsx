@@ -39,8 +39,11 @@ export function Settings() {
     const [serviceCommissionRate, setServiceCommissionRate] = useState(0);
     const [productCommissionRate, setProductCommissionRate] = useState(0);
     const [autoFinancial, setAutoFinancial] = useState(false);
+    const [autoFinancialTime, setAutoFinancialTime] = useState('08:00');
     const [autoBirthday, setAutoBirthday] = useState(false);
+    const [autoBirthdayTime, setAutoBirthdayTime] = useState('09:00');
     const [autoOverdue, setAutoOverdue] = useState(false);
+    const [autoOverdueTime, setAutoOverdueTime] = useState('10:00');
 
     // Company Settings State
 
@@ -78,8 +81,11 @@ export function Settings() {
             setServiceCommissionRate(settings.service_commission_rate || 0);
             setProductCommissionRate(settings.product_commission_rate || 0);
             setAutoFinancial(settings.automation_financial_reminders || false);
+            setAutoFinancialTime(settings.automation_financial_time || '08:00');
             setAutoBirthday(settings.automation_birthday_reminders || false);
+            setAutoBirthdayTime(settings.automation_birthday_time || '09:00');
             setAutoOverdue(settings.automation_overdue_reminders || false);
+            setAutoOverdueTime(settings.automation_overdue_time || '10:00');
         }
     }, [settings, loading]);
 
@@ -91,8 +97,11 @@ export function Settings() {
             service_commission_rate: serviceCommissionRate,
             product_commission_rate: productCommissionRate,
             automation_financial_reminders: autoFinancial,
+            automation_financial_time: autoFinancialTime,
             automation_birthday_reminders: autoBirthday,
-            automation_overdue_reminders: autoOverdue
+            automation_birthday_time: autoBirthdayTime,
+            automation_overdue_reminders: autoOverdue,
+            automation_overdue_time: autoOverdueTime
         });
         setSaving(false);
         if (error) {
@@ -625,10 +634,21 @@ export function Settings() {
                                     <h4 className="font-bold text-gray-900 dark:text-white">Resumo Financeiro Diário</h4>
                                     <p className="text-sm text-gray-500">Receba no seu WhatsApp um resumo diário de todas as contas a pagar e receber do dia atual e atrasos.</p>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" className="sr-only peer" checked={autoFinancial} onChange={(e) => setAutoFinancial(e.target.checked)} />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                </label>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex flex-col items-center">
+                                        <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
+                                        <input
+                                            type="time"
+                                            value={autoFinancialTime}
+                                            onChange={(e) => setAutoFinancialTime(e.target.value)}
+                                            className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                        />
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" className="sr-only peer" checked={autoFinancial} onChange={(e) => setAutoFinancial(e.target.checked)} />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
                             </div>
 
                             <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -636,10 +656,21 @@ export function Settings() {
                                     <h4 className="font-bold text-gray-900 dark:text-white">Lembrete de Aniversário</h4>
                                     <p className="text-sm text-gray-500">Enviar mensagem automática de felicitação para clientes no dia do aniversário.</p>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" className="sr-only peer" checked={autoBirthday} onChange={(e) => setAutoBirthday(e.target.checked)} />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                </label>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex flex-col items-center">
+                                        <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
+                                        <input
+                                            type="time"
+                                            value={autoBirthdayTime}
+                                            onChange={(e) => setAutoBirthdayTime(e.target.value)}
+                                            className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                        />
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" className="sr-only peer" checked={autoBirthday} onChange={(e) => setAutoBirthday(e.target.checked)} />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
                             </div>
 
                             <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -647,10 +678,21 @@ export function Settings() {
                                     <h4 className="font-bold text-gray-900 dark:text-white">Aviso de Pagamento Atrasado</h4>
                                     <p className="text-sm text-gray-500">Notificar o cliente automaticamente via WhatsApp quando uma fatura estiver com mais de 3 dias de atraso.</p>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" className="sr-only peer" checked={autoOverdue} onChange={(e) => setAutoOverdue(e.target.checked)} />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                </label>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex flex-col items-center">
+                                        <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
+                                        <input
+                                            type="time"
+                                            value={autoOverdueTime}
+                                            onChange={(e) => setAutoOverdueTime(e.target.value)}
+                                            className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                        />
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" className="sr-only peer" checked={autoOverdue} onChange={(e) => setAutoOverdue(e.target.checked)} />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 

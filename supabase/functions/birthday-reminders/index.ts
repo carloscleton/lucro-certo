@@ -13,6 +13,8 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function sendWhatsApp(instanceName: string, targetNumber: string, text: string) {
     const response = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
         method: 'POST',
@@ -32,37 +34,30 @@ serve(async (req) => {
     }
 
     try {
+        const { company_id } = await req.json()
         const today = new Date()
         const currentMonth = today.getMonth() + 1
         const currentDay = today.getDate()
 
         console.log(`--- Iniciando Lembretes de Aniversário (${currentDay}/${currentMonth}) ---`)
 
-        // 1. Buscar empresas que habilitaram automação de aniversário
+        // 1. Buscar empresas que habilitaram automação de aniversário (ou filtrar por id se passado)
         const { data: companies, error: compError } = await supabase
             .from('companies')
             .select('id, trade_name, settings')
+            .is('settings->automation_birthday_reminders', true)
 
         if (compError) throw compError
 
-        const activeCompanies = companies?.filter(c => (c.settings as any)?.automation_birthday_reminders === true) || []
+        const activeCompanies = company_id
+            ? companies?.filter(c => c.id === company_id)
+            : companies || []
 
         const overallResults = []
 
         for (const comp of activeCompanies) {
             console.log(`Processando aniversário para: ${comp.trade_name}`)
 
-            // 2. Buscar contatos da empresa que fazem aniversário hoje
-            // Usamos extract para pegar apenas dia e mês
-            const { data: birthdayContacts, error: contactError } = await supabase
-                .from('contacts')
-                .select('*')
-                .eq('user_id', (await supabase.from('company_members').select('user_id').eq('company_id', comp.id).eq('role', 'owner').single()).data?.user_id)
-            // Nota: A estrutura de 'user_id' nos contatos pode variar, mas assumimos que o dono da empresa é quem criou.
-            // Melhoria: Filtrar por empresa se houvesse company_id nos contatos. 
-            // Como o sistema usa user_id, vamos buscar os contatos dos membros da empresa.
-
-            // Correção: Buscar todos os contatos vinculados aos membros dessa empresa
             const { data: members } = await supabase.from('company_members').select('user_id').eq('company_id', comp.id)
             const userIds = members?.map(m => m.user_id) || []
 
@@ -75,18 +70,32 @@ serve(async (req) => {
             const todaysBirthdays = allContacts?.filter(c => {
                 if (!c.birthday) return false
                 const b = new Date(c.birthday)
-                return (b.getUTCMonth() + 1) === currentMonth && b.getUTCDate() === currentDay
+                // Usar getUTCDate para evitar problemas de fuso no banco
+                const bDate = new Date(c.birthday + 'T00:00:00Z');
+                return (bDate.getUTCMonth() + 1) === currentMonth && bDate.getUTCDate() === currentDay
             }) || []
 
-            if (todaysBirthdays.length === 0) continue
+            if (todaysBirthdays.length === 0) {
+                console.log(`Nenhum aniversariante hoje na empresa ${comp.trade_name}`)
+                continue
+            }
+
+            console.log(`${todaysBirthdays.length} aniversariante(s) na empresa ${comp.trade_name}`)
 
             // 3. Buscar instância conectada
             const { data: waInstances } = await supabase.from('instances').select('instance_name').eq('company_id', comp.id).eq('status', 'connected').limit(1)
             const instanceName = waInstances?.[0]?.instance_name
-            if (!instanceName) continue
+            if (!instanceName) {
+                console.warn(`Empresa ${comp.trade_name} sem instância conectada para envio de aniversário.`)
+                continue
+            }
 
             for (const contact of todaysBirthdays) {
                 if (!contact.phone) continue
+
+                // Delay randômico entre 5 e 20 segundos para evitar bans em envios em massa
+                const delayMillis = Math.floor(Math.random() * (20000 - 5000 + 1) + 5000);
+                await sleep(delayMillis);
 
                 const message = `🎈 *PARABÉNS!* 🥳\n\nOlá, *${contact.name}*!\n\nTudo bem? Hoje é o seu dia e a equipe da *${comp.trade_name}* não poderia deixar passar em branco!\n\nDesejamos a você muita saúde, paz, felicidades e sucesso em sua jornada. Que este novo ano de vida seja repleto de conquistas!\n\nUm grande abraço e aproveite muito o seu dia! 🎉🥂`
 
@@ -94,6 +103,7 @@ serve(async (req) => {
                 if (targetNumber.length >= 10) {
                     const success = await sendWhatsApp(instanceName, targetNumber, message)
                     overallResults.push({ company: comp.trade_name, contact: contact.name, success })
+                    console.log(`Mensagem de aniversário enviada para ${contact.name}: ${success ? 'SUCESSO' : 'ERRO'}`)
                 }
             }
         }
@@ -105,6 +115,7 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     } catch (error: any) {
+        console.error('Erro aniversário:', error.message)
         return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 })

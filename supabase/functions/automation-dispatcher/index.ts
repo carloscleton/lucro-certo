@@ -16,10 +16,20 @@ serve(async (req) => {
     }
 
     try {
-        console.log('--- Iniciando Despachante de Automações ---')
+        // Pegar a hora atual no fuso de Brasília (UTC-3)
+        const formatter = new Intl.DateTimeFormat('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        })
 
-        // 1. Buscar todas as empresas que habilitaram o resumo financeiro nas configurações
-        // Filtramos pelo campo JSONB 'settings'
+        const currentTime = formatter.format(new Date())
+        const currentHour = currentTime.split(':')[0] // Ex: "08"
+
+        console.log(`--- Dispatcher Automático: Verificando hora ${currentHour}:00 ---`)
+
+        // 1. Buscar todas as empresas
         const { data: companies, error: compError } = await supabase
             .from('companies')
             .select('id, trade_name, settings')
@@ -27,39 +37,47 @@ serve(async (req) => {
 
         if (compError) throw compError
 
-        const activeCompanies = companies?.filter(c => (c.settings as any)?.automation_financial_reminders === true) || []
-
-        console.log(`Encontradas ${activeCompanies.length} empresas com resumo financeiro ativo.`)
-
         const results = []
 
-        // 2. Para cada empresa ativa, disparar a função de lembrete
-        for (const comp of activeCompanies) {
-            console.log(`Disparando para: ${comp.trade_name} (${comp.id})`)
+        for (const comp of companies) {
+            const settings = comp.settings as any
 
-            try {
-                // Chamamos a função 'financial-reminders' internamente para cada empresa
-                const { data, error } = await supabase.functions.invoke('financial-reminders', {
-                    body: { company_id: comp.id, days: 7 }
-                })
+            // Verificação 1: Resumo Financeiro
+            if (settings.automation_financial_reminders === true) {
+                const setTime = settings.automation_financial_time || '08:00'
+                const setHour = setTime.split(':')[0]
 
-                results.push({
-                    company: comp.trade_name,
-                    success: !error,
-                    message: data?.message || error?.message || 'Processado'
-                })
-            } catch (err) {
-                console.error(`Erro ao disparar para ${comp.trade_name}:`, err)
-                results.push({ company: comp.trade_name, success: false, error: err.message })
+                if (setHour === currentHour) {
+                    console.log(`[FINANCEIRO] Disparando para: ${comp.trade_name}`)
+                    await supabase.functions.invoke('financial-reminders', {
+                        body: { company_id: comp.id, days: 7 }
+                    })
+                    results.push(`${comp.trade_name}: Financeiro enviado`)
+                }
+            }
+
+            // Verificação 2: Aniversários
+            if (settings.automation_birthday_reminders === true) {
+                const setTime = settings.automation_birthday_time || '09:00'
+                const setHour = setTime.split(':')[0]
+
+                if (setHour === currentHour) {
+                    console.log(`[ANIVERSÁRIO] Disparando para: ${comp.trade_name}`)
+                    // Nota: A função birthday-reminders precisa ser atualizada para aceitar um company_id opcional 
+                    // ou enviamos para todas mas ela filtraria. Vamos simplificar passando o id se possível.
+                    await supabase.functions.invoke('birthday-reminders', {
+                        body: { company_id: comp.id }
+                    })
+                    results.push(`${comp.trade_name}: Aniversários enviado`)
+                }
             }
         }
 
         return new Response(JSON.stringify({
-            processed: activeCompanies.length,
+            time: currentTime,
+            processed: results.length,
             details: results
-        }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     } catch (error: any) {
         console.error('Erro no Dispatcher:', error)

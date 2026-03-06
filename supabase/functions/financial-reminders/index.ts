@@ -13,6 +13,8 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function sendWhatsApp(instanceName: string, targetNumber: string, text: string) {
     const response = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
         method: 'POST',
@@ -38,6 +40,10 @@ serve(async (req) => {
             throw new Error('company_id is required')
         }
 
+        // Delay randômico para evitar disparos em massa simultâneos
+        const bootDelay = Math.floor(Math.random() * (30000 - 1000 + 1) + 1000);
+        await sleep(bootDelay);
+
         const { data: company } = await supabase.from('companies').select('trade_name').eq('id', company_id).single()
         const { data: profile } = await supabase.from('social_profiles').select('approval_whatsapp').eq('company_id', company_id).single()
 
@@ -50,7 +56,6 @@ serve(async (req) => {
         futureDate.setDate(futureDate.getDate() + days);
         const futureStr = futureDate.toISOString().split('T')[0]
 
-        // Fetch both Expenses and Incomes (excluding paid ones)
         const { data: transactions, error: transError } = await supabase
             .from('transactions')
             .select('*, contact:contacts(name)')
@@ -67,7 +72,7 @@ serve(async (req) => {
         }
 
         const { data: waInstances } = await supabase.from('instances').select('instance_name').eq('company_id', company_id).eq('status', 'connected').limit(1)
-        const instanceName = waInstances?.[0]?.instance_name || 'LucroCerto' // Default if none found (fallback)
+        const instanceName = waInstances?.[0]?.instance_name || 'LucroCerto'
 
         const payables = transactions.filter(t => t.type === 'expense')
         const receivables = transactions.filter(t => t.type === 'income')
@@ -77,34 +82,23 @@ serve(async (req) => {
         if (payables.length > 0) {
             const overdue = payables.filter(t => t.date < today)
             const upcoming = payables.filter(t => t.date >= today)
-
             message += `💸 *CONTAS A PAGAR:*\n`
-            if (overdue.length > 0) {
-                message += `🔴 *Vencidas:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-            }
-            if (upcoming.length > 0) {
-                message += `🗓️ *Próximos ${days} dias:* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-            }
+            if (overdue.length > 0) message += `🔴 *Vencidas:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+            if (upcoming.length > 0) message += `🗓️ *Próximos ${days} dias:* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
             message += `\n`
         }
 
         if (receivables.length > 0) {
             const overdue = receivables.filter(t => t.date < today)
             const upcoming = receivables.filter(t => t.date >= today)
-
             message += `📈 *CONTAS A RECEBER:*\n`
-            if (overdue.length > 0) {
-                message += `🔴 *Em atraso:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-            }
-            if (upcoming.length > 0) {
-                message += `🗓️ *A receber (7 dias):* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-            }
+            if (overdue.length > 0) message += `🔴 *Em atraso:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+            if (upcoming.length > 0) message += `🗓️ *A receber (${days} dias):* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
             message += `\n`
         }
 
         const totalPay = payables.reduce((s, t) => s + t.amount, 0)
         const totalRec = receivables.reduce((s, t) => s + t.amount, 0)
-
         message += `📊 *SALDO PREVISTO:* R$ ${(totalRec - totalPay).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n`
         message += `Acesse seu painel para ver os detalhes: lucrocerto.idealzap.com.br 🚀`
 
