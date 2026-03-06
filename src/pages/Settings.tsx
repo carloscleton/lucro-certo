@@ -61,6 +61,32 @@ export function Settings() {
     const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
     const [inviting, setInviting] = useState(false);
 
+    const financialSuggestions = [
+        "Mande o resumo do dia destacando o saldo previsto e deseje um ótimo trabalho.",
+        "Crie um resumo financeiro formal e direto focado nos vencimentos de hoje.",
+        "Seja motivador! Mostre o saldo positivo e incentive a equipe a bater metas.",
+        "Resumo focado apenas em contas a receber para controle de fluxo de caixa."
+    ];
+
+    const birthdaySuggestions = [
+        "Dê parabéns de forma carinhosa e ofereça um cupom de 10% de desconto.",
+        "Mande uma mensagem festiva e pergunte se o cliente vai comemorar conosco.",
+        "Seja profissional e envie uma mensagem de parabéns em nome de toda a equipe.",
+        "Deseje um feliz aniversário e ofereça um brinde especial na próxima compra."
+    ];
+
+    const overdueSuggestions = [
+        "Lembre o cliente sobre a fatura pendente de forma cordial e ofereça ajuda.",
+        "Seja direto sobre o atraso da fatura mas mantenha o tom profissional e amigável.",
+        "Mande um aviso de cobrança suave e disponibilize o link para segunda via.",
+        "Crie uma mensagem de lembrete de pagamento reforçando os benefícios do serviço."
+    ];
+
+    const getRandomSuggestion = (type: 'financial' | 'birthday' | 'overdue') => {
+        const list = type === 'financial' ? financialSuggestions : type === 'birthday' ? birthdaySuggestions : overdueSuggestions;
+        return list[Math.floor(Math.random() * list.length)];
+    };
+
     const [activeTab, setActiveTab] = useState<'quotes' | 'financial' | 'team' | 'webhooks' | 'whatsapp' | 'fiscal' | 'payments' | 'admin' | 'automations'>('quotes');
     const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices'>('users');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
@@ -732,8 +758,8 @@ export function Settings() {
                                                     className="h-9 text-sm"
                                                 />
                                                 <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
-                                                    onClick={() => setAutoFinancialPrompt("Mande o resumo do dia destacando o saldo previsto e deseje um ótimo trabalho.")}>
-                                                    ✨ Sugestão: "Mande o resumo do dia destacando o saldo previsto..."
+                                                    onClick={() => setAutoFinancialPrompt(getRandomSuggestion('financial'))}>
+                                                    ✨ Outra sugestão? Clique aqui para alternar.
                                                 </p>
                                             </div>
                                             <Button size="sm" onClick={() => handleMagic('financial', autoFinancialPrompt)} isLoading={generatingMagic === 'financial'} variant="outline" className="h-9">
@@ -791,8 +817,8 @@ export function Settings() {
                                                     className="h-9 text-sm"
                                                 />
                                                 <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
-                                                    onClick={() => setAutoBirthdayPrompt("Dê parabéns de forma carinhosa e ofereça um cupom de 10% de desconto.")}>
-                                                    ✨ Sugestão: "Dê parabéns de forma carinhosa e ofereça um cupom..."
+                                                    onClick={() => setAutoBirthdayPrompt(getRandomSuggestion('birthday'))}>
+                                                    ✨ Outra sugestão? Clique aqui para alternar.
                                                 </p>
                                             </div>
                                             <Button size="sm" onClick={() => handleMagic('birthday', autoBirthdayPrompt)} isLoading={generatingMagic === 'birthday'} variant="outline" className="h-9">
@@ -850,8 +876,8 @@ export function Settings() {
                                                     className="h-9 text-sm"
                                                 />
                                                 <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
-                                                    onClick={() => setAutoOverduePrompt("Lembre o cliente sobre a fatura pendente de forma cordial e ofereça ajuda.")}>
-                                                    ✨ Sugestão: "Lembre o cliente sobre a fatura pendente de forma cordial..."
+                                                    onClick={() => setAutoOverduePrompt(getRandomSuggestion('overdue'))}>
+                                                    ✨ Outra sugestão? Clique aqui para alternar.
                                                 </p>
                                             </div>
                                             <Button size="sm" onClick={() => handleMagic('overdue', autoOverduePrompt)} isLoading={generatingMagic === 'overdue'} variant="outline" className="h-9">
