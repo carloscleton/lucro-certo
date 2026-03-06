@@ -61,7 +61,7 @@ serve(async (req) => {
 
         const { data: invoices, error: invError } = await supabase
             .from('transactions')
-            .select('*, contact:contacts(name, phone)')
+            .select('*, contact:contacts(name, phone, whatsapp)')
             .eq('company_id', company_id)
             .eq('type', 'income')
             .eq('status', 'pending')
@@ -88,7 +88,8 @@ serve(async (req) => {
         // 4. Send reminders with delays to avoid ban (Staggered)
         let count = 0;
         for (const inv of invoices) {
-            if (inv.contact?.phone) {
+            const rawNumber = inv.contact?.whatsapp || inv.contact?.phone;
+            if (rawNumber) {
                 const humanDelay = Math.floor(Math.random() * (50000 - 20000 + 1) + 20000); // 20-50s
                 await sleep(humanDelay);
 
@@ -105,7 +106,7 @@ serve(async (req) => {
 
                 message += " " + randomEmojis[Math.floor(Math.random() * randomEmojis.length)];
 
-                const targetNumber = inv.contact.phone.replace(/\D/g, '')
+                const targetNumber = rawNumber.replace(/\D/g, '')
                 if (targetNumber.length >= 10) {
                     await sendWhatsApp(instanceName, targetNumber, message)
                     count++;

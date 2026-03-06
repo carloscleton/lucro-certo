@@ -20,6 +20,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [type, setType] = useState<'client' | 'supplier'>('client');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [whatsapp, setWhatsapp] = useState('');
     const [taxId, setTaxId] = useState('');
     const [birthday, setBirthday] = useState('');
 
@@ -49,6 +50,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setType(initialData.type);
             setEmail(initialData.email || '');
             setPhone(initialData.phone || '');
+            setWhatsapp(initialData.whatsapp || '');
             setTaxId(initialData.tax_id || '');
             setBirthday(initialData.birthday || '');
             setZipCode(initialData.zip_code || '');
@@ -63,6 +65,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setType('client');
             setEmail('');
             setPhone('');
+            setWhatsapp('');
             setTaxId('');
             setBirthday('');
             setZipCode('');
@@ -158,11 +161,17 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 formattedPhone = '55' + formattedPhone;
             }
 
+            let formattedWhatsapp = whatsapp ? whatsapp.replace(/\D/g, '') : ''; // Remove non-digits
+            if (formattedWhatsapp && !formattedWhatsapp.startsWith('55')) {
+                formattedWhatsapp = '55' + formattedWhatsapp;
+            }
+
             await onSubmit({
                 name,
                 type,
                 email: email || null,
                 phone: formattedPhone || null,
+                whatsapp: formattedWhatsapp || null,
                 tax_id: taxId || null,
                 zip_code: zipCode || null,
                 street: street || null,
@@ -221,10 +230,18 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     />
 
                     <Input
-                        label="Telefone / WhatsApp"
+                        label="Telefone Comercial"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
                         placeholder="(00) 00000-0000"
+                    />
+
+                    <Input
+                        label="WhatsApp p/ Automação"
+                        value={whatsapp}
+                        onChange={e => setWhatsapp(e.target.value)}
+                        placeholder="(00) 0 0000-0000"
+                        helpText="Número usado para envio de lembretes automáticos."
                     />
 
                     <Input

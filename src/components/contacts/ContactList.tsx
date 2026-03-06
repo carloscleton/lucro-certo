@@ -59,7 +59,8 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                 <td className="px-4 py-3 hidden md:table-cell text-gray-500 dark:text-gray-400">
                                     <div className="flex flex-col text-xs">
                                         {contact.email && <span>{contact.email}</span>}
-                                        {contact.phone && <span>{contact.phone}</span>}
+                                        {contact.phone && <span>Tel: {contact.phone}</span>}
+                                        {contact.whatsapp && <span>WA: {contact.whatsapp}</span>}
                                     </div>
                                 </td>
                                 <td className="px-4 py-3 text-right">

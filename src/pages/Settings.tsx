@@ -392,9 +392,9 @@ export function Settings() {
                         return currentEntity.type === 'company' && currentCompany?.payments_module_enabled;
                     }
 
-                    // Show Automations tab only if enabled for company
+                    // Show Automations tab only if enabled for company or if personal
                     if (tab.key === 'automations') {
-                        return currentEntity.type === 'company' && currentCompany?.automations_module_enabled;
+                        return currentEntity.type === 'personal' || (currentEntity.type === 'company' && currentCompany?.automations_module_enabled);
                     }
 
                     // Hide company-specific tabs in personal context

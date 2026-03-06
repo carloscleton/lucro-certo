@@ -8,6 +8,7 @@ export interface Contact {
     type: 'client' | 'supplier';
     email?: string;
     phone?: string;
+    whatsapp?: string;
     tax_id?: string;
     zip_code?: string;
     street?: string;

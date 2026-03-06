@@ -90,7 +90,8 @@ serve(async (req) => {
             if (!instanceName) continue
 
             for (const contact of todaysBirthdays) {
-                if (!contact.phone) continue
+                const rawNumber = contact.whatsapp || contact.phone;
+                if (!rawNumber) continue
 
                 // Delay Humano real: entre 20 e 50 segundos entre um contato e outro
                 const humanDelay = Math.floor(Math.random() * (50000 - 20000 + 1) + 20000);
@@ -110,7 +111,7 @@ serve(async (req) => {
 
                 message += " " + randomEmojis[Math.floor(Math.random() * randomEmojis.length)];
 
-                const targetNumber = contact.phone.replace(/\D/g, '')
+                const targetNumber = rawNumber.replace(/\D/g, '')
                 if (targetNumber.length >= 10) {
                     await sendWhatsApp(instanceName, targetNumber, message)
                 }
