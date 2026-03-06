@@ -357,6 +357,7 @@
         "mark_received": "Marcar como Recebido",
         "mark_pending": "Marcar como Pendente",
         "view_quote": "Ver Orçamento",
+        "send_summary_whatsapp": "Resumo WhatsApp",
         "confirm_delete": "Tem certeza que deseja excluir esta transação?"
     },
     "categories": {

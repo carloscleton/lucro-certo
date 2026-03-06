@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../lib/supabase';
+import { useNotification } from '../context/NotificationContext';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useTransactions } from '../hooks/useTransactions';
 import type { Transaction } from '../hooks/useTransactions';
@@ -29,6 +31,8 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     const [settlingTransaction, setSettlingTransaction] = useState<Transaction | null>(null);
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'late'>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const { notify } = useNotification();
+    const [sendingSummary, setSendingSummary] = useState(false);
 
     // Initial State: Current Month
     const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -260,6 +264,26 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         navigate(`/quotes/${quoteId}/print`);
     };
 
+    const handleSendSummary = async () => {
+        if (!currentEntity.id) return;
+        setSendingSummary(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('financial-reminders', {
+                body: { company_id: currentEntity.id, days: 7 }
+            });
+
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+
+            notify('success', data.message || 'Resumo enviado com sucesso!', 'WhatsApp');
+        } catch (err: any) {
+            console.error('Error sending financial summary:', err);
+            notify('error', err.message || 'Falha ao enviar resumo.', 'Erro');
+        } finally {
+            setSendingSummary(false);
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-gray-500">{t('common.loading')}</div>;
     if (error) return <div className="p-8 text-center text-red-500">{t('common.error')}: {error}</div>;
 
@@ -315,10 +339,23 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                         </div>
                     </div>
 
-                    <Button onClick={handleAddStart} className="ml-auto md:ml-0">
-                        <Plus size={20} className="mr-2" />
-                        {t('transactions.new_transaction')}
-                    </Button>
+                    <div className="flex gap-2 ml-auto md:ml-0">
+                        {type === 'expense' && (
+                            <Button
+                                variant="outline"
+                                onClick={handleSendSummary}
+                                isLoading={sendingSummary}
+                                className="border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                            >
+                                <MessageSquare size={18} className="mr-2" />
+                                {t('transactions.send_summary_whatsapp')}
+                            </Button>
+                        )}
+                        <Button onClick={handleAddStart}>
+                            <Plus size={20} className="mr-2" />
+                            {t('transactions.new_transaction')}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
