@@ -304,15 +304,22 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     };
 
     const handleSendSummary = async () => {
-        if (!currentEntity.id) return;
+        if (!currentEntity.id && currentEntity.type !== 'personal') return;
         setSendingSummary(true);
         try {
             // Get current session token to be sure
             const { data: { session } } = await supabase.auth.getSession();
             const anonKey = (supabase as any).supabaseAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+            const payload: any = { days: 7, is_manual: true, type: currentEntity.type };
+            if (currentEntity.type === 'personal') {
+                payload.user_id = user?.id;
+            } else {
+                payload.company_id = currentEntity.id;
+            }
+
             const { data, error } = await supabase.functions.invoke('financial-reminders', {
-                body: { company_id: currentEntity.id, days: 7, is_manual: true },
+                body: payload,
                 headers: {
                     'apikey': anonKey,
                     // If no session, we still send apikey. If session, we send Bearer token.
