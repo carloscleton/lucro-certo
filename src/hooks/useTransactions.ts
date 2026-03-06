@@ -43,13 +43,20 @@ export interface Transaction {
 export function useTransactions(type: TransactionType) {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
 
     const fetchTransactions = useCallback(async () => {
         if (!user) return;
-        setLoading(true);
+
+        if (transactions.length === 0) {
+            setLoading(true);
+        } else {
+            setIsRefreshing(true);
+        }
+
         setError(null); // Reset error on new fetch
         try {
             let query = supabase
@@ -72,6 +79,7 @@ export function useTransactions(type: TransactionType) {
             setError(err.message);
         } finally {
             setLoading(false);
+            setIsRefreshing(false);
         }
     }, [user, type, currentEntity]);
 
@@ -313,6 +321,7 @@ export function useTransactions(type: TransactionType) {
     return {
         transactions,
         loading,
+        isRefreshing,
         error,
         addTransaction,
         updateTransaction,

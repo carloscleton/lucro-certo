@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
@@ -25,17 +25,31 @@ interface TransactionPageProps {
 function TransactionPage({ type, title }: TransactionPageProps) {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { transactions, loading, error, addTransaction, updateTransaction, deleteTransaction } = useTransactions(type);
+    const { transactions, loading, isRefreshing, error, addTransaction, updateTransaction, deleteTransaction } = useTransactions(type);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Filters from URL or Defaults
+    const statusFilter = (searchParams.get('status') || 'all') as any;
+    const searchQuery = searchParams.get('q') || '';
+    const initialStartDate = searchParams.get('start') || new Date().toISOString().slice(0, 7) + '-01';
+
+    // Get last day of month if not provided
+    const getDefaultEndDate = () => {
+        const now = new Date();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        return `${now.toISOString().slice(0, 7)}-${String(lastDay).padStart(2, '0')}`;
+    };
+    const initialEndDate = searchParams.get('end') || getDefaultEndDate();
+
+    const [startDate, setStartDate] = useState(initialStartDate);
+    const [endDate, setEndDate] = useState(initialEndDate);
+    const [monthFilter, setMonthFilter] = useState(initialStartDate.slice(0, 7));
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [settlingTransaction, setSettlingTransaction] = useState<Transaction | null>(null);
-    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'late'>('all');
-    const [searchQuery, setSearchQuery] = useState('');
     const { notify } = useNotification();
     const [sendingSummary, setSendingSummary] = useState(false);
-
-    // Initial State: Current Month
-    const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
     // Calculate start/end dates from month string
     const getMonthRange = (monthStr: string) => {
@@ -46,9 +60,15 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         return { start, end };
     };
 
-    const initialRange = getMonthRange(new Date().toISOString().slice(0, 7));
-    const [startDate, setStartDate] = useState(initialRange.start);
-    const [endDate, setEndDate] = useState(initialRange.end);
+
+    const updateFilters = (newFilters: any) => {
+        const params = new URLSearchParams(searchParams);
+        Object.entries(newFilters).forEach(([key, val]) => {
+            if (val) params.set(key, val as string);
+            else params.delete(key);
+        });
+        setSearchParams(params);
+    };
 
     const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -57,17 +77,28 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             const { start, end } = getMonthRange(value);
             setStartDate(start);
             setEndDate(end);
+            updateFilters({ start, end });
         }
     };
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setStartDate(e.target.value);
         setMonthFilter(''); // Clear month selection if manual date is picked
+        updateFilters({ start: e.target.value });
     };
 
     const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEndDate(e.target.value);
         setMonthFilter(''); // Clear month selection if manual date is picked
+        updateFilters({ end: e.target.value });
+    };
+
+    const handleStatusFilterChange = (val: string) => {
+        updateFilters({ status: val === 'all' ? null : val });
+    };
+
+    const handleSearchChange = (val: string) => {
+        updateFilters({ q: val || null });
     };
 
     // Helper to check if date is in range
@@ -284,7 +315,12 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500">{t('common.loading')}</div>;
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="text-gray-500 animate-pulse">{t('common.loading')}</p>
+        </div>
+    );
     if (error) return <div className="p-8 text-center text-red-500">{t('common.error')}: {error}</div>;
 
     const formatCurrency = (value: number) =>
@@ -370,7 +406,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     ].filter(t => t.key === 'all' || t.count > 0).map(tab => (
                         <button
                             key={tab.key}
-                            onClick={() => setStatusFilter(tab.key)}
+                            onClick={() => handleStatusFilterChange(tab.key)}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${statusFilter === tab.key
                                 ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -392,9 +428,14 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                         type="text"
                         placeholder={t('common.search')}
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => handleSearchChange(e.target.value)}
                         className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    {isRefreshing && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                        </div>
+                    )}
                 </div>
             </div>
 

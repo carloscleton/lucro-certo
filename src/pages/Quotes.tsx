@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket } from 'lucide-react';
+import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useQuotes, type Quote } from '../hooks/useQuotes';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/ui/Input';
 import { Tooltip } from '../components/ui/Tooltip';
 
@@ -24,7 +24,10 @@ import { PDFService } from '../services/pdfService';
 export function Quotes() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { quotes, loading, deleteQuote, updateQuoteStatus, approveQuote, resetQuotePayment, scheduleFollowUp } = useQuotes();
+    const { quotes, isRefreshing, deleteQuote, updateQuoteStatus, approveQuote, resetQuotePayment, scheduleFollowUp } = useQuotes();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchQuery, setSearchQuery] = useState('');
+
     const { createCharge, charges } = useCharges();
     const { gateways } = usePaymentGateways();
     const { notify } = useNotification();
@@ -160,12 +163,22 @@ export function Quotes() {
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrow = getLocalDateISO(tomorrowDate);
 
-    const [startDate, setStartDate] = useState(today);
-    const [endDate, setEndDate] = useState(tomorrow);
-    const [showAll, setShowAll] = useState(() => {
-        const saved = sessionStorage.getItem('quotes_show_all');
-        return saved === 'true';
-    });
+    const initialStartDate = searchParams.get('start') || today;
+    const initialEndDate = searchParams.get('end') || tomorrow;
+    const initialShowAll = searchParams.get('all') === 'true';
+
+    const [startDate, setStartDate] = useState(initialStartDate);
+    const [endDate, setEndDate] = useState(initialEndDate);
+    const [showAll, setShowAll] = useState(initialShowAll);
+
+    const updateFilters = (newFilters: any) => {
+        const params = new URLSearchParams(searchParams);
+        Object.entries(newFilters).forEach(([key, val]) => {
+            if (val !== null && val !== undefined) params.set(key, val.toString());
+            else params.delete(key);
+        });
+        setSearchParams(params);
+    };
 
     // Persist showAll state
     useEffect(() => {
@@ -502,17 +515,27 @@ export function Quotes() {
     );
 
     const filteredQuotes = useMemo(() => {
+        let result = quotes;
+
         if (viewMode === 'recovery') {
-            return quotes.filter(quote => quote.status === 'rejected' && quote.follow_up_date);
+            result = result.filter(quote => quote.status === 'rejected' && quote.follow_up_date);
+        } else if (!showAll) {
+            result = result.filter(quote => {
+                const quoteDate = new Date(quote.created_at).toISOString().split('T')[0];
+                return quoteDate >= startDate && quoteDate <= endDate;
+            });
         }
 
-        if (showAll) return quotes;
-        return quotes.filter(quote => {
-            // If filtering by date, we exclude those that surely not match, but usually we filter by created_at
-            const quoteDate = new Date(quote.created_at).toISOString().split('T')[0];
-            return quoteDate >= startDate && quoteDate <= endDate;
-        });
-    }, [quotes, startDate, endDate, showAll, viewMode]);
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(quote =>
+                quote.title.toLowerCase().includes(q) ||
+                quote.contact?.name.toLowerCase().includes(q)
+            );
+        }
+
+        return result;
+    }, [quotes, startDate, endDate, showAll, viewMode, searchQuery]);
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -584,27 +607,32 @@ export function Quotes() {
                 </div>
             </div>
 
-            {/* View Mode Toggle */}
-            <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-4">
-                <button
-                    onClick={() => setViewMode('default')}
-                    className={`pb-2 px-4 text-sm font-medium transition-colors border-b-2 ${viewMode === 'default'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    Todos os Orçamentos
-                </button>
-                <button
-                    onClick={() => setViewMode('recovery')}
-                    className={`pb-2 px-4 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${viewMode === 'recovery'
-                        ? 'border-orange-500 text-orange-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    <CalendarClock size={16} />
-                    Recuperação
-                </button>
+            {/* Search and Toggle Row */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
+                <div className="relative flex-1 md:max-w-md">
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Input
+                        type="text"
+                        placeholder="Pesquisar orçamentos por título ou cliente..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
+                <div className="flex bg-gray-100 dark:bg-slate-700 p-1 rounded-lg self-start">
+                    <button
+                        onClick={() => setViewMode('default')}
+                        className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'default' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500'}`}
+                    >
+                        Propostas Ativas
+                    </button>
+                    <button
+                        onClick={() => setViewMode('recovery')}
+                        className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'recovery' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500'}`}
+                    >
+                        Fluxo de Recuperação
+                    </button>
+                </div>
             </div>
 
             {/* Filter Bar */}
@@ -621,6 +649,7 @@ export function Quotes() {
                                     onChange={(e) => {
                                         setStartDate(e.target.value);
                                         setShowAll(false);
+                                        updateFilters({ start: e.target.value, all: false });
                                     }}
                                     className="pl-10"
                                     disabled={showAll}
@@ -637,6 +666,7 @@ export function Quotes() {
                                     onChange={(e) => {
                                         setEndDate(e.target.value);
                                         setShowAll(false);
+                                        updateFilters({ end: e.target.value, all: false });
                                     }}
                                     className="pl-10"
                                     disabled={showAll}
@@ -649,7 +679,10 @@ export function Quotes() {
                             type="checkbox"
                             id="showAll"
                             checked={showAll}
-                            onChange={(e) => setShowAll(e.target.checked)}
+                            onChange={(e) => {
+                                setShowAll(e.target.checked);
+                                updateFilters({ all: e.target.checked });
+                            }}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <label htmlFor="showAll" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
@@ -659,9 +692,14 @@ export function Quotes() {
                 </div>
             )}
 
-            {loading ? (
-                <div className="text-center py-10 text-gray-500">Carregando...</div>
-            ) : filteredQuotes.length === 0 ? (
+            {isRefreshing && (
+                <div className="flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Atualizando orçamentos...
+                </div>
+            )}
+
+            {filteredQuotes.length === 0 ? (
                 <div className="text-center py-10 bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700">
                     <FileText size={48} className="mx-auto text-gray-400 mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhum orçamento encontrado</h3>

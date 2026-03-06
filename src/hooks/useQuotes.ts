@@ -65,11 +65,19 @@ export interface Quote {
 export function useQuotes() {
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
 
     const fetchQuotes = async () => {
         if (!user) return;
+
+        if (quotes.length === 0) {
+            setLoading(true);
+        } else {
+            setIsRefreshing(true);
+        }
+
         try {
             let query = supabase
                 .from('quotes')
@@ -124,6 +132,7 @@ export function useQuotes() {
             console.error('Error fetching quotes:', error);
         } finally {
             setLoading(false);
+            setIsRefreshing(false);
         }
     };
 
@@ -630,5 +639,5 @@ export function useQuotes() {
         await fetchQuotes();
     };
 
-    return { quotes, loading, getQuote, createQuote, updateQuote, updateQuoteStatus, approveQuote, deleteQuote, resetQuotePayment, scheduleFollowUp, refresh: fetchQuotes };
+    return { quotes, loading, isRefreshing, getQuote, createQuote, updateQuote, updateQuoteStatus, approveQuote, deleteQuote, resetQuotePayment, scheduleFollowUp, refresh: fetchQuotes };
 }

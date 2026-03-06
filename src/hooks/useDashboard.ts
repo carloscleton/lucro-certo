@@ -55,12 +55,21 @@ export function useDashboard(startDate: string, endDate: string) {
     });
     const [previousPeriod, setPreviousPeriod] = useState<{ income: number; expense: number }>({ income: 0, expense: 0 });
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
 
     const fetchMetrics = useCallback(async () => {
         if (!user) return;
-        setLoading(true);
+
+        // Only show full loader if we have NO data yet
+        const hasData = metrics.income !== 0 || metrics.expense !== 0 || metrics.balance !== 0;
+        if (!hasData) {
+            setLoading(true);
+        } else {
+            setIsRefreshing(true);
+        }
+
         const start = startDate;
         const end = endDate;
         const today = new Date().toISOString().split('T')[0];
@@ -303,6 +312,7 @@ export function useDashboard(startDate: string, endDate: string) {
             console.error("Dashboard Error:", err);
         } finally {
             setLoading(false);
+            setIsRefreshing(false);
         }
     }, [user, currentEntity.id, currentEntity.type, startDate, endDate]);
 
@@ -320,6 +330,7 @@ export function useDashboard(startDate: string, endDate: string) {
         contextMetrics,
         previousPeriod,
         loading,
+        isRefreshing,
         refresh: fetchMetrics
     };
 }

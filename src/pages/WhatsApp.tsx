@@ -42,7 +42,7 @@ interface Instance {
 
 export function WhatsApp() {
     const { user, session } = useAuth();
-    const { currentEntity } = useEntity();
+    const { currentEntity, refresh: refreshEntity } = useEntity();
     const { notify } = useNotification();
     const [instances, setInstances] = useState<Instance[]>([]);
     const [loading, setLoading] = useState(true);
@@ -383,7 +383,10 @@ export function WhatsApp() {
 
             notify('success', `Limite da empresa atualizado para ${newLimitValue} instâncias.`, 'Limite Atualizado');
             // We need to refresh the entity to get the new limit
-            setTimeout(() => window.location.reload(), 1500);
+            await refreshEntity();
+            setTimeout(() => {
+                // No need to reload, the state will update
+            }, 100);
         } catch (error: any) {
             console.error('Erro ao atualizar limite:', error);
             notify('error', error.message || 'Erro ao atualizar limite.', 'Erro');

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -87,7 +88,18 @@ export function Settings() {
         return list[Math.floor(Math.random() * list.length)];
     };
 
-    const [activeTab, setActiveTab] = useState<'quotes' | 'financial' | 'team' | 'webhooks' | 'whatsapp' | 'fiscal' | 'payments' | 'admin' | 'automations'>('quotes');
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const activeTab = useMemo(() => {
+        const tab = searchParams.get('tab');
+        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations'];
+        return (tab && validTabs.includes(tab)) ? (tab as any) : 'quotes';
+    }, [searchParams]);
+
+    const setActiveTab = (tab: string) => {
+        setSearchParams({ tab });
+    };
+
     const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices'>('users');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
     const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
@@ -96,6 +108,7 @@ export function Settings() {
     const [invoiceData, setInvoiceData] = useState({ amount: '', description: '' });
     const [generatingInvoice, setGeneratingInvoice] = useState(false);
     const [selectedUserForConfig, setSelectedUserForConfig] = useState<any | null>(null);
+    const [editingAutomation, setEditingAutomation] = useState<'financial' | 'birthday' | 'overdue' | null>(null);
 
     // Update local state when company settings load
     useEffect(() => {
@@ -735,6 +748,15 @@ export function Settings() {
                                         <p className="text-sm text-gray-500">Receba no seu WhatsApp um resumo diário de todas as contas a pagar e receber do dia atual e atrasos.</p>
                                     </div>
                                     <div className="flex items-center gap-4">
+                                        {autoFinancial && waConnected && (
+                                            <button
+                                                onClick={() => setEditingAutomation('financial')}
+                                                className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                                            >
+                                                <Edit size={16} />
+                                                Configurar Mensagem
+                                            </button>
+                                        )}
                                         <div className="flex flex-col items-center">
                                             <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
                                             <input
@@ -751,39 +773,6 @@ export function Settings() {
                                         </label>
                                     </div>
                                 </div>
-                                {autoFinancial && (
-                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
-                                        <div className="flex items-end gap-2">
-                                            <div className="flex-1">
-                                                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Prompt da Vara Mágica (O que quer destacar?)</label>
-                                                <Input
-                                                    value={autoFinancialPrompt}
-                                                    onChange={(e) => setAutoFinancialPrompt(e.target.value)}
-                                                    placeholder="Ex: Foque no saldo previsto e seja motivador..."
-                                                    className="h-9 text-sm"
-                                                />
-                                                <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
-                                                    onClick={() => setAutoFinancialPrompt(getRandomSuggestion('financial'))}>
-                                                    ✨ Outra sugestão? Clique aqui para alternar.
-                                                </p>
-                                            </div>
-                                            <Button size="sm" onClick={() => handleMagic('financial', autoFinancialPrompt)} isLoading={generatingMagic === 'financial'} variant="outline" className="h-9">
-                                                <Sparkles size={14} className="mr-2" />
-                                                Vara Mágica
-                                            </Button>
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Modelo da Mensagem (Customizado)</label>
-                                            <textarea
-                                                value={autoFinancialTemplate}
-                                                onChange={(e) => setAutoFinancialTemplate(e.target.value)}
-                                                placeholder="Deixe em branco para usar o padrão do sistema..."
-                                                className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg p-2 dark:bg-slate-900 dark:text-white"
-                                                rows={3}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Aniversário */}
@@ -794,6 +783,15 @@ export function Settings() {
                                         <p className="text-sm text-gray-500">Enviar mensagem automática de felicitação para clientes no dia do aniversário.</p>
                                     </div>
                                     <div className="flex items-center gap-4">
+                                        {autoBirthday && waConnected && (
+                                            <button
+                                                onClick={() => setEditingAutomation('birthday')}
+                                                className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                                            >
+                                                <Edit size={16} />
+                                                Configurar Mensagem
+                                            </button>
+                                        )}
                                         <div className="flex flex-col items-center">
                                             <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
                                             <input
@@ -810,39 +808,6 @@ export function Settings() {
                                         </label>
                                     </div>
                                 </div>
-                                {autoBirthday && (
-                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
-                                        <div className="flex items-end gap-2">
-                                            <div className="flex-1">
-                                                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Prompt da Vara Mágica (O que quer destacar?)</label>
-                                                <Input
-                                                    value={autoBirthdayPrompt}
-                                                    onChange={(e) => setAutoBirthdayPrompt(e.target.value)}
-                                                    placeholder="Ex: Seja carinhoso e ofereça um cupom de 10%..."
-                                                    className="h-9 text-sm"
-                                                />
-                                                <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
-                                                    onClick={() => setAutoBirthdayPrompt(getRandomSuggestion('birthday'))}>
-                                                    ✨ Outra sugestão? Clique aqui para alternar.
-                                                </p>
-                                            </div>
-                                            <Button size="sm" onClick={() => handleMagic('birthday', autoBirthdayPrompt)} isLoading={generatingMagic === 'birthday'} variant="outline" className="h-9">
-                                                <Sparkles size={14} className="mr-2" />
-                                                Vara Mágica
-                                            </Button>
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Modelo da Mensagem (Customizado)</label>
-                                            <textarea
-                                                value={autoBirthdayTemplate}
-                                                onChange={(e) => setAutoBirthdayTemplate(e.target.value)}
-                                                placeholder="Deixe em branco para usar o padrão do sistema..."
-                                                className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg p-2 dark:bg-slate-900 dark:text-white"
-                                                rows={3}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Pagamento Atrasado */}
@@ -853,6 +818,15 @@ export function Settings() {
                                         <p className="text-sm text-gray-500">Notificar o cliente automaticamente via WhatsApp quando uma fatura estiver com mais de 3 dias de atraso.</p>
                                     </div>
                                     <div className="flex items-center gap-4">
+                                        {autoOverdue && waConnected && (
+                                            <button
+                                                onClick={() => setEditingAutomation('overdue')}
+                                                className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                                            >
+                                                <Edit size={16} />
+                                                Configurar Mensagem
+                                            </button>
+                                        )}
                                         <div className="flex flex-col items-center">
                                             <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
                                             <input
@@ -869,39 +843,6 @@ export function Settings() {
                                         </label>
                                     </div>
                                 </div>
-                                {autoOverdue && (
-                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
-                                        <div className="flex items-end gap-2">
-                                            <div className="flex-1">
-                                                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Prompt da Vara Mágica (O que quer destacar?)</label>
-                                                <Input
-                                                    value={autoOverduePrompt}
-                                                    onChange={(e) => setAutoOverduePrompt(e.target.value)}
-                                                    placeholder="Ex: Seja cordial mas firme no aviso..."
-                                                    className="h-9 text-sm"
-                                                />
-                                                <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
-                                                    onClick={() => setAutoOverduePrompt(getRandomSuggestion('overdue'))}>
-                                                    ✨ Outra sugestão? Clique aqui para alternar.
-                                                </p>
-                                            </div>
-                                            <Button size="sm" onClick={() => handleMagic('overdue', autoOverduePrompt)} isLoading={generatingMagic === 'overdue'} variant="outline" className="h-9">
-                                                <Sparkles size={14} className="mr-2" />
-                                                Vara Mágica
-                                            </Button>
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Modelo da Mensagem (Customizado)</label>
-                                            <textarea
-                                                value={autoOverdueTemplate}
-                                                onChange={(e) => setAutoOverdueTemplate(e.target.value)}
-                                                placeholder="Deixe em branco para usar o padrão do sistema..."
-                                                className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg p-2 dark:bg-slate-900 dark:text-white"
-                                                rows={3}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
@@ -1963,6 +1904,105 @@ export function Settings() {
                     </div>
                 )
             }
+
+            {/* Modal de Edição de Automações */}
+            {editingAutomation && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-xl shadow-2xl border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Edit className="text-blue-600" size={20} />
+                                {editingAutomation === 'financial' && 'Configurar Resumo Financeiro'}
+                                {editingAutomation === 'birthday' && 'Configurar Lembrete de Aniversário'}
+                                {editingAutomation === 'overdue' && 'Configurar Aviso de Vencimento'}
+                            </h2>
+                            <button onClick={() => setEditingAutomation(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="space-y-4">
+                                <div className="flex items-end gap-2">
+                                    <div className="flex-1">
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                                            Prompt da Vara Mágica (O que quer destacar?)
+                                        </label>
+                                        <Input
+                                            value={
+                                                editingAutomation === 'financial' ? autoFinancialPrompt :
+                                                    editingAutomation === 'birthday' ? autoBirthdayPrompt :
+                                                        autoOverduePrompt
+                                            }
+                                            onChange={(e) => {
+                                                if (editingAutomation === 'financial') setAutoFinancialPrompt(e.target.value);
+                                                if (editingAutomation === 'birthday') setAutoBirthdayPrompt(e.target.value);
+                                                if (editingAutomation === 'overdue') setAutoOverduePrompt(e.target.value);
+                                            }}
+                                            placeholder="Ex: Foque no saldo previsto e seja motivador..."
+                                            className="h-10"
+                                        />
+                                        <p className="text-xs text-blue-500 mt-2 cursor-pointer hover:underline font-medium flex items-center gap-1"
+                                            onClick={() => {
+                                                const suggestion = getRandomSuggestion(editingAutomation!);
+                                                if (editingAutomation === 'financial') setAutoFinancialPrompt(suggestion);
+                                                if (editingAutomation === 'birthday') setAutoBirthdayPrompt(suggestion);
+                                                if (editingAutomation === 'overdue') setAutoOverduePrompt(suggestion);
+                                            }}>
+                                            <Sparkles size={12} />
+                                            Outra sugestão? Clique aqui para alternar.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        onClick={() => handleMagic(editingAutomation!,
+                                            editingAutomation === 'financial' ? autoFinancialPrompt :
+                                                editingAutomation === 'birthday' ? autoBirthdayPrompt :
+                                                    autoOverduePrompt
+                                        )}
+                                        isLoading={generatingMagic === editingAutomation}
+                                        variant="outline"
+                                        className="h-10"
+                                    >
+                                        <Sparkles size={16} className="mr-2" />
+                                        Vara Mágica
+                                    </Button>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                                        Modelo da Mensagem (Customizado)
+                                    </label>
+                                    <p className="text-[10px] text-gray-500 mb-2">Use {'{name}'} para o nome do cliente e {'{amount}'} para valores.</p>
+                                    <textarea
+                                        value={
+                                            editingAutomation === 'financial' ? autoFinancialTemplate :
+                                                editingAutomation === 'birthday' ? autoBirthdayTemplate :
+                                                    autoOverdueTemplate
+                                        }
+                                        onChange={(e) => {
+                                            if (editingAutomation === 'financial') setAutoFinancialTemplate(e.target.value);
+                                            if (editingAutomation === 'birthday') setAutoBirthdayTemplate(e.target.value);
+                                            if (editingAutomation === 'overdue') setAutoOverdueTemplate(e.target.value);
+                                        }}
+                                        placeholder="Deixe em branco para usar o padrão do sistema..."
+                                        className="w-full text-sm border border-gray-200 dark:border-slate-700 rounded-xl p-4 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        rows={6}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <Button
+                                    variant="primary"
+                                    className="w-full h-12 text-md font-bold"
+                                    onClick={() => setEditingAutomation(null)}
+                                >
+                                    Confirmar Edição
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }
