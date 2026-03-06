@@ -80,3 +80,18 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/social-post-publisher/deno.json"
 entrypoint = "./functions/social-post-publisher/index.ts"
+
+[functions.financial-reminders]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/financial-reminders/index.ts"
+
+[functions.overdue-reminders]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/overdue-reminders/index.ts"
+
+[functions.birthday-reminders]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/birthday-reminders/index.ts"
