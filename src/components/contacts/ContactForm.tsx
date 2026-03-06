@@ -6,6 +6,7 @@ import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import type { Contact } from '../../hooks/useContacts';
+import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
 
 interface ContactFormProps {
     isOpen: boolean;
@@ -49,8 +50,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setName(initialData.name);
             setType(initialData.type);
             setEmail(initialData.email || '');
-            setPhone(initialData.phone || '');
-            setWhatsapp(initialData.whatsapp || '');
+            setPhone(formatPhoneFromDB(initialData.phone));
+            setWhatsapp(formatPhoneFromDB(initialData.whatsapp));
             setTaxId(initialData.tax_id || '');
             setBirthday(initialData.birthday || '');
             setZipCode(initialData.zip_code || '');
@@ -155,23 +156,16 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         e.preventDefault();
         setLoading(true);
         try {
-            // Format phone number: add "55" if not present
-            let formattedPhone = phone ? phone.replace(/\D/g, '') : ''; // Remove non-digits
-            if (formattedPhone && !formattedPhone.startsWith('55')) {
-                formattedPhone = '55' + formattedPhone;
-            }
-
-            let formattedWhatsapp = whatsapp ? whatsapp.replace(/\D/g, '') : ''; // Remove non-digits
-            if (formattedWhatsapp && !formattedWhatsapp.startsWith('55')) {
-                formattedWhatsapp = '55' + formattedWhatsapp;
-            }
+            // Format phone numbers before saving
+            const finalPhone = cleanPhoneNumber(phone);
+            const finalWhatsapp = cleanPhoneNumber(whatsapp);
 
             await onSubmit({
                 name,
                 type,
                 email: email || null,
-                phone: formattedPhone || null,
-                whatsapp: formattedWhatsapp || null,
+                phone: finalPhone || null,
+                whatsapp: finalWhatsapp || null,
                 tax_id: taxId || null,
                 zip_code: zipCode || null,
                 street: street || null,
@@ -232,14 +226,14 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     <Input
                         label="Telefone Comercial"
                         value={phone}
-                        onChange={e => setPhone(e.target.value)}
+                        onChange={e => setPhone(formatPhoneInput(e.target.value))}
                         placeholder="(00) 00000-0000"
                     />
 
                     <Input
                         label="WhatsApp p/ Automação"
                         value={whatsapp}
-                        onChange={e => setWhatsapp(e.target.value)}
+                        onChange={e => setWhatsapp(formatPhoneInput(e.target.value))}
                         placeholder="(00) 0 0000-0000"
                         helpText="Número usado para envio de lembretes automáticos."
                     />

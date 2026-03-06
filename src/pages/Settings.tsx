@@ -19,6 +19,7 @@ import { FiscalSettings } from '../components/settings/FiscalSettings';
 import { PaymentSettings } from '../components/settings/PaymentSettings';
 import { useCharges } from '../hooks/useCharges';
 import { useAuth } from '../context/AuthContext';
+import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/phoneUtils';
 
 export function Settings() {
     const { t } = useTranslation();
@@ -180,7 +181,7 @@ export function Settings() {
             setAutoOverdueTime(settings.automation_overdue_time || '10:00');
             setAutoOverduePrompt(settings.automation_overdue_prompt || '');
             setAutoOverdueTemplate(settings.automation_overdue_template || '');
-            setAutomationWhatsAppNumber(settings.automation_whatsapp_number || '');
+            setAutomationWhatsAppNumber(formatPhoneFromDB(settings.automation_whatsapp_number));
         }
     }, [settings, loading]);
 
@@ -203,7 +204,7 @@ export function Settings() {
             automation_overdue_time: autoOverdueTime,
             automation_overdue_prompt: autoOverduePrompt,
             automation_overdue_template: autoOverdueTemplate,
-            automation_whatsapp_number: automationWhatsAppNumber
+            automation_whatsapp_number: cleanPhoneNumber(automationWhatsAppNumber) || undefined
         });
         setSaving(false);
         if (error) {
@@ -751,8 +752,8 @@ export function Settings() {
                                 <Input
                                     label="WhatsApp para Receber Relatórios"
                                     value={automationWhatsAppNumber}
-                                    onChange={(e) => setAutomationWhatsAppNumber(e.target.value)}
-                                    placeholder="55 (00) 0 0000-0000"
+                                    onChange={(e) => setAutomationWhatsAppNumber(formatPhoneInput(e.target.value))}
+                                    placeholder="(11) 99999-9999"
                                     helpText="Este número receberá o Resumo Financeiro Diário e alertas do sistema."
                                 />
                             </div>

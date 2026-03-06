@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal';
 import { Building2, Search, MapPin, Upload } from 'lucide-react';
 import type { Company } from '../../hooks/useCompanies';
 import { useNotification } from '../../context/NotificationContext';
+import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
 
 interface CompanyFormProps {
     isOpen: boolean;
@@ -60,7 +61,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setLogoUrl(initialData.logo_url || '');
             setEntityType(initialData.entity_type || 'PJ');
             setCpf(initialData.cpf || '');
-            setPhone(initialData.phone || '');
+            setPhone(formatPhoneFromDB(initialData.phone));
             setLogoFile(null);
         } else {
             setTradeName('');
@@ -164,7 +165,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 cnpj: entityType === 'PJ' ? cnpj : null,
                 cpf: entityType === 'PF' ? cpf : null,
                 entity_type: entityType,
-                phone: phone,
+                phone: cleanPhoneNumber(phone),
                 zip_code: zipCode || null,
                 street: street || null,
                 number: number || null,
@@ -292,8 +293,8 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                     <Input
                         label="WhatsApp da Empresa (Para notificações)"
                         value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        placeholder="55 (00) 0 0000-0000"
+                        onChange={e => setPhone(formatPhoneInput(e.target.value))}
+                        placeholder="(00) 0 0000-0000"
                         helpText="Número para receber resumos e alertas"
                     />
                 </div>
