@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -38,6 +38,9 @@ export function Settings() {
     const [commissionRate, setCommissionRate] = useState(0);
     const [serviceCommissionRate, setServiceCommissionRate] = useState(0);
     const [productCommissionRate, setProductCommissionRate] = useState(0);
+    const [autoFinancial, setAutoFinancial] = useState(false);
+    const [autoBirthday, setAutoBirthday] = useState(false);
+    const [autoOverdue, setAutoOverdue] = useState(false);
 
     // Company Settings State
 
@@ -47,7 +50,7 @@ export function Settings() {
     const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
     const [inviting, setInviting] = useState(false);
 
-    const [activeTab, setActiveTab] = useState<'quotes' | 'financial' | 'team' | 'webhooks' | 'whatsapp' | 'fiscal' | 'payments' | 'admin'>('quotes');
+    const [activeTab, setActiveTab] = useState<'quotes' | 'financial' | 'team' | 'webhooks' | 'whatsapp' | 'fiscal' | 'payments' | 'admin' | 'automations'>('quotes');
     const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices'>('users');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
     const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
@@ -74,6 +77,9 @@ export function Settings() {
             setCommissionRate(settings.commission_rate || 0);
             setServiceCommissionRate(settings.service_commission_rate || 0);
             setProductCommissionRate(settings.product_commission_rate || 0);
+            setAutoFinancial(settings.automation_financial_reminders || false);
+            setAutoBirthday(settings.automation_birthday_reminders || false);
+            setAutoOverdue(settings.automation_overdue_reminders || false);
         }
     }, [settings, loading]);
 
@@ -83,7 +89,10 @@ export function Settings() {
             quote_validity_days: quoteValidity,
             commission_rate: commissionRate,
             service_commission_rate: serviceCommissionRate,
-            product_commission_rate: productCommissionRate
+            product_commission_rate: productCommissionRate,
+            automation_financial_reminders: autoFinancial,
+            automation_birthday_reminders: autoBirthday,
+            automation_overdue_reminders: autoOverdue
         });
         setSaving(false);
         if (error) {
@@ -256,6 +265,7 @@ export function Settings() {
                     { key: 'webhooks', label: t('settings.tab_webhooks'), icon: SettingsIcon, color: 'purple' },
                     { key: 'whatsapp', label: t('settings.tab_whatsapp'), icon: MessageSquare, color: 'green' },
                     { key: 'payments', label: t('settings.tab_payments'), icon: CreditCard, color: 'emerald' },
+                    { key: 'automations', label: 'Automações', icon: Sparkles, color: 'blue' },
                     { key: 'fiscal', label: t('settings.tab_fiscal'), icon: FileText, color: 'indigo' },
                     ...(isAdmin ? [{ key: 'admin', label: t('settings.tab_admin'), icon: Shield, color: 'purple' }] : [])
                 ].filter(tab => {
@@ -594,6 +604,62 @@ export function Settings() {
                                 </div>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {activeTab === 'automations' && (
+                    <div className="space-y-6">
+                        <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <Sparkles className="text-blue-600 mt-1" size={24} />
+                            <div>
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Central de Automações e Lembretes</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    Configure o envio automático de mensagens e avisos para você e seus clientes.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div>
+                                    <h4 className="font-bold text-gray-900 dark:text-white">Resumo Financeiro Diário</h4>
+                                    <p className="text-sm text-gray-500">Receba no seu WhatsApp um resumo diário de todas as contas a pagar e receber do dia atual e atrasos.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" className="sr-only peer" checked={autoFinancial} onChange={(e) => setAutoFinancial(e.target.checked)} />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div>
+                                    <h4 className="font-bold text-gray-900 dark:text-white">Lembrete de Aniversário</h4>
+                                    <p className="text-sm text-gray-500">Enviar mensagem automática de felicitação para clientes no dia do aniversário.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" className="sr-only peer" checked={autoBirthday} onChange={(e) => setAutoBirthday(e.target.checked)} />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div>
+                                    <h4 className="font-bold text-gray-900 dark:text-white">Aviso de Pagamento Atrasado</h4>
+                                    <p className="text-sm text-gray-500">Notificar o cliente automaticamente via WhatsApp quando uma fatura estiver com mais de 3 dias de atraso.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" className="sr-only peer" checked={autoOverdue} onChange={(e) => setAutoOverdue(e.target.checked)} />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex justify-end">
+                            <Button onClick={handleSave} isLoading={saving}>
+                                <Save size={18} className="mr-2" />
+                                {t('settings.save_settings')}
+                            </Button>
+                        </div>
                     </div>
                 )}
 

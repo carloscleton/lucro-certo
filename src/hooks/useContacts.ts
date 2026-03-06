@@ -16,6 +16,7 @@ export interface Contact {
     neighborhood?: string;
     city?: string;
     state?: string;
+    birthday?: string | null;
     user_id: string;
 }
 

@@ -228,6 +228,14 @@ export const SETTINGS_TABS: TabDefinition[] = [
         color: 'emerald',
         desc: 'Chaves de API e Gateways',
         defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'automations',
+        label: 'Automações',
+        icon: Sparkles,
+        color: 'blue',
+        desc: 'Lembretes e avisos automáticos',
+        defaultPermissions: { admin: true, member: false }
     }
     // Admin tab is special, handled separately usually, but good to list if needed
 ];

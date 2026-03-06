@@ -340,17 +340,15 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     </div>
 
                     <div className="flex gap-2 ml-auto md:ml-0">
-                        {type === 'expense' && (
-                            <Button
-                                variant="outline"
-                                onClick={handleSendSummary}
-                                isLoading={sendingSummary}
-                                className="border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                            >
-                                <MessageSquare size={18} className="mr-2" />
-                                {t('transactions.send_summary_whatsapp')}
-                            </Button>
-                        )}
+                        <Button
+                            variant="outline"
+                            onClick={handleSendSummary}
+                            isLoading={sendingSummary}
+                            className="border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                        >
+                            <MessageSquare size={18} className="mr-2" />
+                            {t('transactions.send_summary_whatsapp')}
+                        </Button>
                         <Button onClick={handleAddStart}>
                             <Plus size={20} className="mr-2" />
                             {t('transactions.new_transaction')}

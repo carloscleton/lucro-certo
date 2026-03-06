@@ -14,7 +14,6 @@ const corsHeaders = {
 }
 
 async function sendWhatsApp(instanceName: string, targetNumber: string, text: string) {
-    // Evolution v2 uses /message/sendText
     const response = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
@@ -39,7 +38,6 @@ serve(async (req) => {
             throw new Error('company_id is required')
         }
 
-        // 1. Get Company and Social Profile (for whatsapp number)
         const { data: company } = await supabase.from('companies').select('trade_name').eq('id', company_id).single()
         const { data: profile } = await supabase.from('social_profiles').select('approval_whatsapp').eq('company_id', company_id).single()
 
@@ -47,18 +45,18 @@ serve(async (req) => {
             return new Response(JSON.stringify({ error: 'Número de WhatsApp não configurado no Social Copilot.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
-        // 2. Get Pending/Late Transactions (Expense)
         const today = new Date().toISOString().split('T')[0]
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + days);
         const futureStr = futureDate.toISOString().split('T')[0]
 
+        // Fetch both Expenses and Incomes (excluding paid ones)
         const { data: transactions, error: transError } = await supabase
             .from('transactions')
             .select('*, contact:contacts(name)')
             .eq('company_id', company_id)
-            .eq('type', 'expense')
             .neq('status', 'paid')
+            .neq('status', 'received')
             .lte('date', futureStr)
             .order('date', { ascending: true })
 
@@ -68,52 +66,52 @@ serve(async (req) => {
             return new Response(JSON.stringify({ success: true, message: 'Nenhum compromisso financeiro pendente encontrado.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
-        // 3. Find a connected WhatsApp instance
-        const { data: waInstances } = await supabase
-            .from('instances')
-            .select('instance_name')
-            .eq('company_id', company_id)
-            .eq('status', 'connected')
-            .limit(1)
+        const { data: waInstances } = await supabase.from('instances').select('instance_name').eq('company_id', company_id).eq('status', 'connected').limit(1)
+        const instanceName = waInstances?.[0]?.instance_name || 'LucroCerto' // Default if none found (fallback)
 
-        const instanceName = waInstances?.[0]?.instance_name
-        if (!instanceName) {
-            return new Response(JSON.stringify({ error: 'Nenhuma instância de WhatsApp conectada encontrada.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        }
+        const payables = transactions.filter(t => t.type === 'expense')
+        const receivables = transactions.filter(t => t.type === 'income')
 
-        // 4. Format Message
-        const overdue = transactions.filter(t => t.date < today)
-        const upcoming = transactions.filter(t => t.date >= today)
+        let message = `💰 *Resumo Financeiro Lucro Certo*\n🏢 *${company?.trade_name || 'Sua Empresa'}*\n\n`
 
-        let message = `💰 *Resumo de Compromissos Financeiros*\n🏢 *${company?.trade_name || 'Empresa'}*\n\nOlá! Aqui está o resumo das suas contas a pagar para que você tenha o controle total do seu caixa:\n\n`
+        if (payables.length > 0) {
+            const overdue = payables.filter(t => t.date < today)
+            const upcoming = payables.filter(t => t.date >= today)
 
-        if (overdue.length > 0) {
-            message += `🔴 *VENCIDOS (Atrasados):*\n`
-            overdue.forEach(t => {
-                const dateStr = new Date(t.date).toLocaleDateString('pt-BR')
-                message += `- ${t.description} (${t.contact?.name || 'Geral'}): *R$ ${t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}* - Venceu em ${dateStr}\n`
-            })
+            message += `💸 *CONTAS A PAGAR:*\n`
+            if (overdue.length > 0) {
+                message += `🔴 *Vencidas:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+            }
+            if (upcoming.length > 0) {
+                message += `🗓️ *Próximos ${days} dias:* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+            }
             message += `\n`
         }
 
-        if (upcoming.length > 0) {
-            message += `🗓️ *PRÓXIMOS ${days} DIAS:*\n`
-            upcoming.forEach(t => {
-                const dateStr = new Date(t.date).toLocaleDateString('pt-BR')
-                message += `- ${t.description} (${t.contact?.name || 'Geral'}): *R$ ${t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}* - Vence em ${dateStr}\n`
-            })
+        if (receivables.length > 0) {
+            const overdue = receivables.filter(t => t.date < today)
+            const upcoming = receivables.filter(t => t.date >= today)
+
+            message += `📈 *CONTAS A RECEBER:*\n`
+            if (overdue.length > 0) {
+                message += `🔴 *Em atraso:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+            }
+            if (upcoming.length > 0) {
+                message += `🗓️ *A receber (7 dias):* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+            }
             message += `\n`
         }
 
-        const total = transactions.reduce((sum, t) => sum + t.amount, 0)
-        message += `📊 *Total Pendente:* R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n`
-        message += `Acesse seu painel *Lucro Certo* para realizar os pagamentos e manter seu fluxo de caixa em dia! 🚀`
+        const totalPay = payables.reduce((s, t) => s + t.amount, 0)
+        const totalRec = receivables.reduce((s, t) => s + t.amount, 0)
 
-        // 5. Send WhatsApp
+        message += `📊 *SALDO PREVISTO:* R$ ${(totalRec - totalPay).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n`
+        message += `Acesse seu painel para ver os detalhes: lucrocerto.idealzap.com.br 🚀`
+
         const targetNumber = profile.approval_whatsapp.replace(/\D/g, '')
         const success = await sendWhatsApp(instanceName, targetNumber, message)
 
-        return new Response(JSON.stringify({ success, message: success ? 'Resumo enviado com sucesso!' : 'Erro ao enviar mensagem via Evolution API.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ success, message: success ? 'Resumo financeiro enviado!' : 'Erro Evolution API.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     } catch (error: any) {
         return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

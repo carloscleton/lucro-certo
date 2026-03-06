@@ -8,6 +8,9 @@ export interface UserSettings {
     commission_rate: number;
     service_commission_rate: number;
     product_commission_rate: number;
+    automation_financial_reminders?: boolean;
+    automation_birthday_reminders?: boolean;
+    automation_overdue_reminders?: boolean;
 }
 
 export function useSettings() {
@@ -18,7 +21,10 @@ export function useSettings() {
         quote_validity_days: 7,
         commission_rate: 0,
         service_commission_rate: 0,
-        product_commission_rate: 0
+        product_commission_rate: 0,
+        automation_financial_reminders: false,
+        automation_birthday_reminders: false,
+        automation_overdue_reminders: false
     });
     const [loading, setLoading] = useState(true);
 
@@ -26,12 +32,14 @@ export function useSettings() {
         if (user && currentEntity) {
             fetchSettings();
         } else {
-            // Reset to defaults on logout
             setSettings({
                 quote_validity_days: 7,
                 commission_rate: 0,
                 service_commission_rate: 0,
-                product_commission_rate: 0
+                product_commission_rate: 0,
+                automation_financial_reminders: false,
+                automation_birthday_reminders: false,
+                automation_overdue_reminders: false
             });
         }
     }, [user, currentEntity]);
@@ -40,7 +48,6 @@ export function useSettings() {
         setLoading(true);
         try {
             if (currentEntity.type === 'company') {
-                // 1. Fetch Company Settings
                 const { data, error } = await supabase
                     .from('companies')
                     .select('settings')
@@ -51,27 +58,29 @@ export function useSettings() {
                     console.error('Error fetching company settings:', error);
                 }
 
-
                 if (data?.settings && Object.keys(data.settings).length > 0) {
                     const s = data.settings;
                     setSettings({
                         quote_validity_days: s.quote_validity_days ?? 7,
                         commission_rate: s.commission_rate ?? 0,
                         service_commission_rate: s.service_commission_rate ?? 0,
-                        product_commission_rate: s.product_commission_rate ?? 0
+                        product_commission_rate: s.product_commission_rate ?? 0,
+                        automation_financial_reminders: s.automation_financial_reminders ?? false,
+                        automation_birthday_reminders: s.automation_birthday_reminders ?? false,
+                        automation_overdue_reminders: s.automation_overdue_reminders ?? false
                     });
                 } else {
-                    // Default values if company has no settings (or RLS blocked reading)
                     setSettings({
                         quote_validity_days: 7,
                         commission_rate: 0,
                         service_commission_rate: 0,
-                        product_commission_rate: 0
+                        product_commission_rate: 0,
+                        automation_financial_reminders: false,
+                        automation_birthday_reminders: false,
+                        automation_overdue_reminders: false
                     });
                 }
             } else {
-                // 2. Fetch Personal Settings
-
                 const { data, error } = await supabase
                     .from('user_settings')
                     .select('*')
@@ -83,18 +92,21 @@ export function useSettings() {
                         quote_validity_days: data.quote_validity_days ?? 7,
                         commission_rate: data.commission_rate ?? 0,
                         service_commission_rate: data.service_commission_rate ?? 0,
-                        product_commission_rate: data.product_commission_rate ?? 0
+                        product_commission_rate: data.product_commission_rate ?? 0,
+                        automation_financial_reminders: data.automation_financial_reminders ?? false,
+                        automation_birthday_reminders: data.automation_birthday_reminders ?? false,
+                        automation_overdue_reminders: data.automation_overdue_reminders ?? false
                     });
                 } else {
-                    // Default personal settings
                     setSettings({
                         quote_validity_days: 7,
                         commission_rate: 0,
                         service_commission_rate: 0,
-                        product_commission_rate: 0
+                        product_commission_rate: 0,
+                        automation_financial_reminders: false,
+                        automation_birthday_reminders: false,
+                        automation_overdue_reminders: false
                     });
-
-                    // Auto-create personal record if missing (only for personal context)
                     if (!error || error.code === 'PGRST116') {
                         await supabase.from('user_settings').insert([{ user_id: user!.id }]);
                     }
@@ -110,7 +122,6 @@ export function useSettings() {
     const updateSettings = async (newSettings: Partial<UserSettings>) => {
         try {
             if (currentEntity.type === 'company') {
-                // Merge with existing settings in JSONB
                 const { data: currentData } = await supabase
                     .from('companies')
                     .select('settings')
@@ -127,7 +138,6 @@ export function useSettings() {
 
                 if (error) throw error;
             } else {
-                // Personal context - update user_settings
                 const { error } = await supabase
                     .from('user_settings')
                     .update(newSettings)
@@ -146,7 +156,6 @@ export function useSettings() {
 
     const clonePersonalSettings = async () => {
         if (currentEntity.type !== 'company') return { error: 'Not in company context' };
-
         try {
             const { data: personalData, error: personalError } = await supabase
                 .from('user_settings')
@@ -161,7 +170,10 @@ export function useSettings() {
                     quote_validity_days: personalData.quote_validity_days,
                     commission_rate: personalData.commission_rate,
                     service_commission_rate: personalData.service_commission_rate,
-                    product_commission_rate: personalData.product_commission_rate
+                    product_commission_rate: personalData.product_commission_rate,
+                    automation_financial_reminders: personalData.automation_financial_reminders,
+                    automation_birthday_reminders: personalData.automation_birthday_reminders,
+                    automation_overdue_reminders: personalData.automation_overdue_reminders
                 };
                 return await updateSettings(newSettings);
             }
@@ -172,10 +184,5 @@ export function useSettings() {
         }
     };
 
-    return {
-        settings,
-        loading,
-        updateSettings,
-        clonePersonalSettings
-    };
+    return { settings, loading, updateSettings, clonePersonalSettings };
 }

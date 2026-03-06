@@ -21,6 +21,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [taxId, setTaxId] = useState('');
+    const [birthday, setBirthday] = useState('');
 
     // Address fields
     const [zipCode, setZipCode] = useState('');
@@ -49,6 +50,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setEmail(initialData.email || '');
             setPhone(initialData.phone || '');
             setTaxId(initialData.tax_id || '');
+            setBirthday(initialData.birthday || '');
             setZipCode(initialData.zip_code || '');
             setStreet(initialData.street || '');
             setNumber(initialData.number || '');
@@ -62,6 +64,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setEmail('');
             setPhone('');
             setTaxId('');
+            setBirthday('');
             setZipCode('');
             setStreet('');
             setNumber('');
@@ -168,6 +171,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 neighborhood: neighborhood || null,
                 city: city || null,
                 state: state || null,
+                birthday: birthday || null,
             });
             onClose();
         } catch (error) {
@@ -228,6 +232,13 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         value={taxId}
                         onChange={e => setTaxId(e.target.value)}
                         placeholder="000.000.000-00"
+                    />
+
+                    <Input
+                        label="Data de Nascimento"
+                        type="date"
+                        value={birthday}
+                        onChange={e => setBirthday(e.target.value)}
                     />
                 </div>
 
