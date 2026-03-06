@@ -731,6 +731,10 @@ export function Settings() {
                                                     placeholder="Ex: Foque no saldo previsto e seja motivador..."
                                                     className="h-9 text-sm"
                                                 />
+                                                <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
+                                                    onClick={() => setAutoFinancialPrompt("Mande o resumo do dia destacando o saldo previsto e deseje um ótimo trabalho.")}>
+                                                    ✨ Sugestão: "Mande o resumo do dia destacando o saldo previsto..."
+                                                </p>
                                             </div>
                                             <Button size="sm" onClick={() => handleMagic('financial', autoFinancialPrompt)} isLoading={generatingMagic === 'financial'} variant="outline" className="h-9">
                                                 <Sparkles size={14} className="mr-2" />
@@ -786,6 +790,10 @@ export function Settings() {
                                                     placeholder="Ex: Seja carinhoso e ofereça um cupom de 10%..."
                                                     className="h-9 text-sm"
                                                 />
+                                                <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
+                                                    onClick={() => setAutoBirthdayPrompt("Dê parabéns de forma carinhosa e ofereça um cupom de 10% de desconto.")}>
+                                                    ✨ Sugestão: "Dê parabéns de forma carinhosa e ofereça um cupom..."
+                                                </p>
                                             </div>
                                             <Button size="sm" onClick={() => handleMagic('birthday', autoBirthdayPrompt)} isLoading={generatingMagic === 'birthday'} variant="outline" className="h-9">
                                                 <Sparkles size={14} className="mr-2" />
@@ -841,6 +849,10 @@ export function Settings() {
                                                     placeholder="Ex: Seja cordial mas firme no aviso..."
                                                     className="h-9 text-sm"
                                                 />
+                                                <p className="text-[10px] text-gray-400 mt-1 cursor-pointer hover:text-blue-500 transition-colors"
+                                                    onClick={() => setAutoOverduePrompt("Lembre o cliente sobre a fatura pendente de forma cordial e ofereça ajuda.")}>
+                                                    ✨ Sugestão: "Lembre o cliente sobre a fatura pendente de forma cordial..."
+                                                </p>
                                             </div>
                                             <Button size="sm" onClick={() => handleMagic('overdue', autoOverduePrompt)} isLoading={generatingMagic === 'overdue'} variant="outline" className="h-9">
                                                 <Sparkles size={14} className="mr-2" />
