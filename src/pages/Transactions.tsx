@@ -307,11 +307,23 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         if (!currentEntity.id) return;
         setSendingSummary(true);
         try {
+            // Get current session token to be sure
+            const { data: { session } } = await supabase.auth.getSession();
+            const anonKey = (supabase as any).supabaseAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
+
             const { data, error } = await supabase.functions.invoke('financial-reminders', {
-                body: { company_id: currentEntity.id, days: 7 }
+                body: { company_id: currentEntity.id, days: 7 },
+                headers: {
+                    'apikey': anonKey,
+                    // If no session, we still send apikey. If session, we send Bearer token.
+                    ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                }
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error('FunctionsHttpError:', error);
+                throw error;
+            }
             if (data?.error) throw new Error(data.error);
 
             notify('success', data.message || 'Resumo enviado com sucesso!', 'WhatsApp');
