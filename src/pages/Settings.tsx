@@ -40,10 +40,18 @@ export function Settings() {
     const [productCommissionRate, setProductCommissionRate] = useState(0);
     const [autoFinancial, setAutoFinancial] = useState(false);
     const [autoFinancialTime, setAutoFinancialTime] = useState('08:00');
+    const [autoFinancialPrompt, setAutoFinancialPrompt] = useState('');
+    const [autoFinancialTemplate, setAutoFinancialTemplate] = useState('');
     const [autoBirthday, setAutoBirthday] = useState(false);
     const [autoBirthdayTime, setAutoBirthdayTime] = useState('09:00');
+    const [autoBirthdayPrompt, setAutoBirthdayPrompt] = useState('');
+    const [autoBirthdayTemplate, setAutoBirthdayTemplate] = useState('');
     const [autoOverdue, setAutoOverdue] = useState(false);
     const [autoOverdueTime, setAutoOverdueTime] = useState('10:00');
+    const [autoOverduePrompt, setAutoOverduePrompt] = useState('');
+    const [autoOverdueTemplate, setAutoOverdueTemplate] = useState('');
+    const [waConnected, setWaConnected] = useState(false);
+    const [generatingMagic, setGeneratingMagic] = useState<string | null>(null);
 
     // Company Settings State
 
@@ -71,6 +79,48 @@ export function Settings() {
     // Listen for online users only if admin
     usePresence(isAdmin);
 
+    useEffect(() => {
+        if (currentEntity?.id && currentEntity.type === 'company') {
+            checkWAConnection();
+        }
+    }, [currentEntity]);
+
+    const checkWAConnection = async () => {
+        const { data } = await supabase
+            .from('instances')
+            .select('status')
+            .eq('company_id', currentEntity.id)
+            .eq('status', 'connected')
+            .limit(1);
+        setWaConnected(data && data.length > 0);
+    };
+
+    const handleMagic = async (type: 'financial' | 'birthday' | 'overdue', prompt: string) => {
+        if (!prompt) return alert('Por favor, digite um prompt para a vara mágica.');
+        setGeneratingMagic(type);
+        try {
+            const { data, error } = await supabase.functions.invoke('social-copilot-magic', {
+                body: {
+                    company_id: currentEntity.id,
+                    mode: 'automation_template',
+                    topic: prompt
+                }
+            });
+
+            if (data?.template) {
+                if (type === 'financial') setAutoFinancialTemplate(data.template);
+                if (type === 'birthday') setAutoBirthdayTemplate(data.template);
+                if (type === 'overdue') setAutoOverdueTemplate(data.template);
+            } else {
+                alert('Erro ao gerar template com IA.');
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setGeneratingMagic(null);
+        }
+    };
+
     // Removed global email restriction to allow team management for all users
     // Admin tab is still protected by isAdmin check
 
@@ -78,14 +128,18 @@ export function Settings() {
         if (!loading) {
             setQuoteValidity(settings.quote_validity_days || 7);
             setCommissionRate(settings.commission_rate || 0);
-            setServiceCommissionRate(settings.service_commission_rate || 0);
-            setProductCommissionRate(settings.product_commission_rate || 0);
-            setAutoFinancial(settings.automation_financial_reminders || false);
+            setAutoFinancial(!!settings.automation_financial_reminders);
             setAutoFinancialTime(settings.automation_financial_time || '08:00');
-            setAutoBirthday(settings.automation_birthday_reminders || false);
+            setAutoFinancialPrompt(settings.automation_financial_prompt || '');
+            setAutoFinancialTemplate(settings.automation_financial_template || '');
+            setAutoBirthday(!!settings.automation_birthday_reminders);
             setAutoBirthdayTime(settings.automation_birthday_time || '09:00');
-            setAutoOverdue(settings.automation_overdue_reminders || false);
+            setAutoBirthdayPrompt(settings.automation_birthday_prompt || '');
+            setAutoBirthdayTemplate(settings.automation_birthday_template || '');
+            setAutoOverdue(!!settings.automation_overdue_reminders);
             setAutoOverdueTime(settings.automation_overdue_time || '10:00');
+            setAutoOverduePrompt(settings.automation_overdue_prompt || '');
+            setAutoOverdueTemplate(settings.automation_overdue_template || '');
         }
     }, [settings, loading]);
 
@@ -98,10 +152,16 @@ export function Settings() {
             product_commission_rate: productCommissionRate,
             automation_financial_reminders: autoFinancial,
             automation_financial_time: autoFinancialTime,
+            automation_financial_prompt: autoFinancialPrompt,
+            automation_financial_template: autoFinancialTemplate,
             automation_birthday_reminders: autoBirthday,
             automation_birthday_time: autoBirthdayTime,
+            automation_birthday_prompt: autoBirthdayPrompt,
+            automation_birthday_template: autoBirthdayTemplate,
             automation_overdue_reminders: autoOverdue,
-            automation_overdue_time: autoOverdueTime
+            automation_overdue_time: autoOverdueTime,
+            automation_overdue_prompt: autoOverduePrompt,
+            automation_overdue_template: autoOverdueTemplate
         });
         setSaving(false);
         if (error) {
@@ -628,71 +688,177 @@ export function Settings() {
                             </div>
                         </div>
 
+                        {!waConnected && (
+                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-3 text-amber-700 dark:text-amber-400 mb-4">
+                                <Shield size={18} />
+                                <p className="text-sm font-medium">As automações estão desativadas porque não há um WhatsApp conectado. Vá na aba "WhatsApp API" para conectar.</p>
+                            </div>
+                        )}
+
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div>
-                                    <h4 className="font-bold text-gray-900 dark:text-white">Resumo Financeiro Diário</h4>
-                                    <p className="text-sm text-gray-500">Receba no seu WhatsApp um resumo diário de todas as contas a pagar e receber do dia atual e atrasos.</p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex flex-col items-center">
-                                        <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
-                                        <input
-                                            type="time"
-                                            value={autoFinancialTime}
-                                            onChange={(e) => setAutoFinancialTime(e.target.value)}
-                                            className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                                        />
+                            {/* Financeiro */}
+                            <div className="p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 dark:text-white">Resumo Financeiro Diário</h4>
+                                        <p className="text-sm text-gray-500">Receba no seu WhatsApp um resumo diário de todas as contas a pagar e receber do dia atual e atrasos.</p>
                                     </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" checked={autoFinancial} onChange={(e) => setAutoFinancial(e.target.checked)} />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                    </label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col items-center">
+                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
+                                            <input
+                                                type="time"
+                                                value={autoFinancialTime}
+                                                disabled={!waConnected}
+                                                onChange={(e) => setAutoFinancialTime(e.target.value)}
+                                                className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white disabled:opacity-50"
+                                            />
+                                        </div>
+                                        <label className={`relative inline-flex items-center ${!waConnected ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                            <input type="checkbox" className="sr-only peer" checked={autoFinancial} onChange={(e) => setAutoFinancial(e.target.checked)} disabled={!waConnected} />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
                                 </div>
+                                {autoFinancial && (
+                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
+                                        <div className="flex items-end gap-2">
+                                            <div className="flex-1">
+                                                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Prompt da Vara Mágica (O que quer destacar?)</label>
+                                                <Input
+                                                    value={autoFinancialPrompt}
+                                                    onChange={(e) => setAutoFinancialPrompt(e.target.value)}
+                                                    placeholder="Ex: Foque no saldo previsto e seja motivador..."
+                                                    className="h-9 text-sm"
+                                                />
+                                            </div>
+                                            <Button size="sm" onClick={() => handleMagic('financial', autoFinancialPrompt)} isLoading={generatingMagic === 'financial'} variant="outline" className="h-9">
+                                                <Sparkles size={14} className="mr-2" />
+                                                Vara Mágica
+                                            </Button>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Modelo da Mensagem (Customizado)</label>
+                                            <textarea
+                                                value={autoFinancialTemplate}
+                                                onChange={(e) => setAutoFinancialTemplate(e.target.value)}
+                                                placeholder="Deixe em branco para usar o padrão do sistema..."
+                                                className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg p-2 dark:bg-slate-900 dark:text-white"
+                                                rows={3}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div>
-                                    <h4 className="font-bold text-gray-900 dark:text-white">Lembrete de Aniversário</h4>
-                                    <p className="text-sm text-gray-500">Enviar mensagem automática de felicitação para clientes no dia do aniversário.</p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex flex-col items-center">
-                                        <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
-                                        <input
-                                            type="time"
-                                            value={autoBirthdayTime}
-                                            onChange={(e) => setAutoBirthdayTime(e.target.value)}
-                                            className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                                        />
+                            {/* Aniversário */}
+                            <div className="p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 dark:text-white">Lembrete de Aniversário</h4>
+                                        <p className="text-sm text-gray-500">Enviar mensagem automática de felicitação para clientes no dia do aniversário.</p>
                                     </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" checked={autoBirthday} onChange={(e) => setAutoBirthday(e.target.checked)} />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                    </label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col items-center">
+                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
+                                            <input
+                                                type="time"
+                                                value={autoBirthdayTime}
+                                                disabled={!waConnected}
+                                                onChange={(e) => setAutoBirthdayTime(e.target.value)}
+                                                className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white disabled:opacity-50"
+                                            />
+                                        </div>
+                                        <label className={`relative inline-flex items-center ${!waConnected ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                            <input type="checkbox" className="sr-only peer" checked={autoBirthday} onChange={(e) => setAutoBirthday(e.target.checked)} disabled={!waConnected} />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
                                 </div>
+                                {autoBirthday && (
+                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
+                                        <div className="flex items-end gap-2">
+                                            <div className="flex-1">
+                                                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Prompt da Vara Mágica (O que quer destacar?)</label>
+                                                <Input
+                                                    value={autoBirthdayPrompt}
+                                                    onChange={(e) => setAutoBirthdayPrompt(e.target.value)}
+                                                    placeholder="Ex: Seja carinhoso e ofereça um cupom de 10%..."
+                                                    className="h-9 text-sm"
+                                                />
+                                            </div>
+                                            <Button size="sm" onClick={() => handleMagic('birthday', autoBirthdayPrompt)} isLoading={generatingMagic === 'birthday'} variant="outline" className="h-9">
+                                                <Sparkles size={14} className="mr-2" />
+                                                Vara Mágica
+                                            </Button>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Modelo da Mensagem (Customizado)</label>
+                                            <textarea
+                                                value={autoBirthdayTemplate}
+                                                onChange={(e) => setAutoBirthdayTemplate(e.target.value)}
+                                                placeholder="Deixe em branco para usar o padrão do sistema..."
+                                                className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg p-2 dark:bg-slate-900 dark:text-white"
+                                                rows={3}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div>
-                                    <h4 className="font-bold text-gray-900 dark:text-white">Aviso de Pagamento Atrasado</h4>
-                                    <p className="text-sm text-gray-500">Notificar o cliente automaticamente via WhatsApp quando uma fatura estiver com mais de 3 dias de atraso.</p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex flex-col items-center">
-                                        <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
-                                        <input
-                                            type="time"
-                                            value={autoOverdueTime}
-                                            onChange={(e) => setAutoOverdueTime(e.target.value)}
-                                            className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                                        />
+                            {/* Pagamento Atrasado */}
+                            <div className="p-4 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 dark:text-white">Aviso de Pagamento Atrasado</h4>
+                                        <p className="text-sm text-gray-500">Notificar o cliente automaticamente via WhatsApp quando uma fatura estiver com mais de 3 dias de atraso.</p>
                                     </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" checked={autoOverdue} onChange={(e) => setAutoOverdue(e.target.checked)} />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                    </label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col items-center">
+                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Horário</label>
+                                            <input
+                                                type="time"
+                                                value={autoOverdueTime}
+                                                disabled={!waConnected}
+                                                onChange={(e) => setAutoOverdueTime(e.target.value)}
+                                                className="text-xs border rounded p-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white disabled:opacity-50"
+                                            />
+                                        </div>
+                                        <label className={`relative inline-flex items-center ${!waConnected ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                            <input type="checkbox" className="sr-only peer" checked={autoOverdue} onChange={(e) => setAutoOverdue(e.target.checked)} disabled={!waConnected} />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
                                 </div>
+                                {autoOverdue && (
+                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
+                                        <div className="flex items-end gap-2">
+                                            <div className="flex-1">
+                                                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Prompt da Vara Mágica (O que quer destacar?)</label>
+                                                <Input
+                                                    value={autoOverduePrompt}
+                                                    onChange={(e) => setAutoOverduePrompt(e.target.value)}
+                                                    placeholder="Ex: Seja cordial mas firme no aviso..."
+                                                    className="h-9 text-sm"
+                                                />
+                                            </div>
+                                            <Button size="sm" onClick={() => handleMagic('overdue', autoOverduePrompt)} isLoading={generatingMagic === 'overdue'} variant="outline" className="h-9">
+                                                <Sparkles size={14} className="mr-2" />
+                                                Vara Mágica
+                                            </Button>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-gray-400 uppercase font-bold mb-1">Modelo da Mensagem (Customizado)</label>
+                                            <textarea
+                                                value={autoOverdueTemplate}
+                                                onChange={(e) => setAutoOverdueTemplate(e.target.value)}
+                                                placeholder="Deixe em branco para usar o padrão do sistema..."
+                                                className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg p-2 dark:bg-slate-900 dark:text-white"
+                                                rows={3}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

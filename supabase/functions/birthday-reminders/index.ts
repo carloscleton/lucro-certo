@@ -15,13 +15,23 @@ const corsHeaders = {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const birthdayTemplates = [
+    "🎈 *PARABÉNS!* 🥳\n\nOlá, *{name}*!\n\nTudo bem? Hoje é o seu dia e a equipe da *{company}* não poderia deixar passar em branco! Desejamos a você muita saúde, paz e felicidades. 🎉🥂",
+    "⭐ *DIA DE FESTA!* 🎂\n\nOi, *{name}*! Passando em nome da *{company}* para te desejar um aniversário incrível! Que este seu novo ciclo seja repleto de conquistas e alegrias. Aproveite muito o seu dia! 🎊🎁",
+    "🎁 *FELIZ ANIVERSÁRIO!* 🎈\n\nGrande *{name}*! A equipe da *{company}* deseja a você um dia fantástico! Que seu ano seja maravilhoso e cheio de boas surpresas. Parabéns! 🥂✨"
+];
+
+const randomEmojis = ["✨", "🥂", "🎉", "🔥", "🚀", "🎊", "🎂", "🎈"];
+
 async function sendWhatsApp(instanceName: string, targetNumber: string, text: string) {
+    const typingTime = Math.floor(Math.random() * (5000 - 2000 + 1) + 2000); // Digitando entre 2 e 5 segundos
+
     const response = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
         body: JSON.stringify({
             number: targetNumber,
-            options: { delay: 1200, presence: "composing" },
+            options: { delay: typingTime, presence: "composing" },
             textMessage: { text }
         })
     })
@@ -39,9 +49,8 @@ serve(async (req) => {
         const currentMonth = today.getMonth() + 1
         const currentDay = today.getDate()
 
-        console.log(`--- Iniciando Lembretes de Aniversário (${currentDay}/${currentMonth}) ---`)
+        console.log(`--- [STEALTH MODE] Lembrete de Aniversário (${currentDay}/${currentMonth}) ---`)
 
-        // 1. Buscar empresas que habilitaram automação de aniversário (ou filtrar por id se passado)
         const { data: companies, error: compError } = await supabase
             .from('companies')
             .select('id, trade_name, settings')
@@ -53,10 +62,9 @@ serve(async (req) => {
             ? companies?.filter(c => c.id === company_id)
             : companies || []
 
-        const overallResults = []
-
         for (const comp of activeCompanies) {
-            console.log(`Processando aniversário para: ${comp.trade_name}`)
+            // Delay de Jitter inicial entre empresas (1 a 10 segundos)
+            await sleep(Math.floor(Math.random() * 10000));
 
             const { data: members } = await supabase.from('company_members').select('user_id').eq('company_id', comp.id)
             const userIds = members?.map(m => m.user_id) || []
@@ -69,53 +77,47 @@ serve(async (req) => {
 
             const todaysBirthdays = allContacts?.filter(c => {
                 if (!c.birthday) return false
-                const b = new Date(c.birthday)
-                // Usar getUTCDate para evitar problemas de fuso no banco
                 const bDate = new Date(c.birthday + 'T00:00:00Z');
                 return (bDate.getUTCMonth() + 1) === currentMonth && bDate.getUTCDate() === currentDay
             }) || []
 
-            if (todaysBirthdays.length === 0) {
-                console.log(`Nenhum aniversariante hoje na empresa ${comp.trade_name}`)
-                continue
-            }
+            if (todaysBirthdays.length === 0) continue
 
-            console.log(`${todaysBirthdays.length} aniversariante(s) na empresa ${comp.trade_name}`)
-
-            // 3. Buscar instância conectada
             const { data: waInstances } = await supabase.from('instances').select('instance_name').eq('company_id', comp.id).eq('status', 'connected').limit(1)
             const instanceName = waInstances?.[0]?.instance_name
-            if (!instanceName) {
-                console.warn(`Empresa ${comp.trade_name} sem instância conectada para envio de aniversário.`)
-                continue
-            }
+            if (!instanceName) continue
 
             for (const contact of todaysBirthdays) {
                 if (!contact.phone) continue
 
-                // Delay randômico entre 5 e 20 segundos para evitar bans em envios em massa
-                const delayMillis = Math.floor(Math.random() * (20000 - 5000 + 1) + 5000);
-                await sleep(delayMillis);
+                // Delay Humano real: entre 20 e 50 segundos entre um contato e outro
+                const humanDelay = Math.floor(Math.random() * (50000 - 20000 + 1) + 20000);
+                await sleep(humanDelay);
 
-                const message = `🎈 *PARABÉNS!* 🥳\n\nOlá, *${contact.name}*!\n\nTudo bem? Hoje é o seu dia e a equipe da *${comp.trade_name}* não poderia deixar passar em branco!\n\nDesejamos a você muita saúde, paz, felicidades e sucesso em sua jornada. Que este novo ano de vida seja repleto de conquistas!\n\nUm grande abraço e aproveite muito o seu dia! 🎉🥂`
+                // Escolhe um modelo aleatório e adiciona um emoji aleatório no final
+                let message = '';
+                const customTemplate = comp.settings?.automation_birthday_template;
+
+                if (customTemplate) {
+                    message = customTemplate.replace('{name}', contact.name.split(' ')[0]);
+                } else {
+                    message = birthdayTemplates[Math.floor(Math.random() * birthdayTemplates.length)];
+                    message = message.replace('{name}', contact.name.split(' ')[0])
+                        .replace('{company}', comp.trade_name || 'nossa equipe');
+                }
+
+                message += " " + randomEmojis[Math.floor(Math.random() * randomEmojis.length)];
 
                 const targetNumber = contact.phone.replace(/\D/g, '')
                 if (targetNumber.length >= 10) {
-                    const success = await sendWhatsApp(instanceName, targetNumber, message)
-                    overallResults.push({ company: comp.trade_name, contact: contact.name, success })
-                    console.log(`Mensagem de aniversário enviada para ${contact.name}: ${success ? 'SUCESSO' : 'ERRO'}`)
+                    await sendWhatsApp(instanceName, targetNumber, message)
                 }
             }
         }
 
-        return new Response(JSON.stringify({
-            processed: activeCompanies.length,
-            sentCount: overallResults.length,
-            details: overallResults
-        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     } catch (error: any) {
-        console.error('Erro aniversário:', error.message)
         return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 })

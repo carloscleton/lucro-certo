@@ -63,12 +63,24 @@ serve(async (req) => {
 
                 if (setHour === currentHour) {
                     console.log(`[ANIVERSÁRIO] Disparando para: ${comp.trade_name}`)
-                    // Nota: A função birthday-reminders precisa ser atualizada para aceitar um company_id opcional 
-                    // ou enviamos para todas mas ela filtraria. Vamos simplificar passando o id se possível.
                     await supabase.functions.invoke('birthday-reminders', {
                         body: { company_id: comp.id }
                     })
                     results.push(`${comp.trade_name}: Aniversários enviado`)
+                }
+            }
+
+            // Verificação 3: Pagamentos Atrasados
+            if (settings.automation_overdue_reminders === true) {
+                const setTime = settings.automation_overdue_time || '10:00'
+                const setHour = setTime.split(':')[0]
+
+                if (setHour === currentHour) {
+                    console.log(`[ATRASO] Disparando para: ${comp.trade_name}`)
+                    await supabase.functions.invoke('overdue-reminders', {
+                        body: { company_id: comp.id }
+                    })
+                    results.push(`${comp.trade_name}: Atrasos enviado`)
                 }
             }
         }

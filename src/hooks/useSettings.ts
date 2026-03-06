@@ -10,10 +10,16 @@ export interface UserSettings {
     product_commission_rate: number;
     automation_financial_reminders?: boolean;
     automation_financial_time?: string; // HH:mm
+    automation_financial_prompt?: string;
+    automation_financial_template?: string;
     automation_birthday_reminders?: boolean;
     automation_birthday_time?: string; // HH:mm
+    automation_birthday_prompt?: string;
+    automation_birthday_template?: string;
     automation_overdue_reminders?: boolean;
     automation_overdue_time?: string; // HH:mm
+    automation_overdue_prompt?: string;
+    automation_overdue_template?: string;
 }
 
 export function useSettings() {
@@ -76,10 +82,16 @@ export function useSettings() {
                         product_commission_rate: s.product_commission_rate ?? 0,
                         automation_financial_reminders: s.automation_financial_reminders ?? false,
                         automation_financial_time: s.automation_financial_time ?? '08:00',
+                        automation_financial_prompt: s.automation_financial_prompt ?? '',
+                        automation_financial_template: s.automation_financial_template ?? '',
                         automation_birthday_reminders: s.automation_birthday_reminders ?? false,
                         automation_birthday_time: s.automation_birthday_time ?? '09:00',
+                        automation_birthday_prompt: s.automation_birthday_prompt ?? '',
+                        automation_birthday_template: s.automation_birthday_template ?? '',
                         automation_overdue_reminders: s.automation_overdue_reminders ?? false,
-                        automation_overdue_time: s.automation_overdue_time ?? '10:00'
+                        automation_overdue_time: s.automation_overdue_time ?? '10:00',
+                        automation_overdue_prompt: s.automation_overdue_prompt ?? '',
+                        automation_overdue_template: s.automation_overdue_template ?? ''
                     });
                 } else {
                     setSettings({
@@ -110,10 +122,16 @@ export function useSettings() {
                         product_commission_rate: data.product_commission_rate ?? 0,
                         automation_financial_reminders: data.automation_financial_reminders ?? false,
                         automation_financial_time: data.automation_financial_time ?? '08:00',
+                        automation_financial_prompt: data.automation_financial_prompt ?? '',
+                        automation_financial_template: data.automation_financial_template ?? '',
                         automation_birthday_reminders: data.automation_birthday_reminders ?? false,
                         automation_birthday_time: data.automation_birthday_time ?? '09:00',
+                        automation_birthday_prompt: data.automation_birthday_prompt ?? '',
+                        automation_birthday_template: data.automation_birthday_template ?? '',
                         automation_overdue_reminders: data.automation_overdue_reminders ?? false,
-                        automation_overdue_time: data.automation_overdue_time ?? '10:00'
+                        automation_overdue_time: data.automation_overdue_time ?? '10:00',
+                        automation_overdue_prompt: data.automation_overdue_prompt ?? '',
+                        automation_overdue_template: data.automation_overdue_template ?? ''
                     });
                 } else {
                     setSettings({
@@ -196,10 +214,16 @@ export function useSettings() {
                     product_commission_rate: personalData.product_commission_rate,
                     automation_financial_reminders: personalData.automation_financial_reminders,
                     automation_financial_time: personalData.automation_financial_time,
+                    automation_financial_prompt: personalData.automation_financial_prompt,
+                    automation_financial_template: personalData.automation_financial_template,
                     automation_birthday_reminders: personalData.automation_birthday_reminders,
                     automation_birthday_time: personalData.automation_birthday_time,
+                    automation_birthday_prompt: personalData.automation_birthday_prompt,
+                    automation_birthday_template: personalData.automation_birthday_template,
                     automation_overdue_reminders: personalData.automation_overdue_reminders,
-                    automation_overdue_time: personalData.automation_overdue_time
+                    automation_overdue_time: personalData.automation_overdue_time,
+                    automation_overdue_prompt: personalData.automation_overdue_prompt,
+                    automation_overdue_template: personalData.automation_overdue_template
                 };
                 return await updateSettings(newSettings);
             }

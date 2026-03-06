@@ -77,30 +77,47 @@ serve(async (req) => {
         const payables = transactions.filter(t => t.type === 'expense')
         const receivables = transactions.filter(t => t.type === 'income')
 
-        let message = `💰 *Resumo Financeiro Lucro Certo*\n🏢 *${company?.trade_name || 'Sua Empresa'}*\n\n`
-
-        if (payables.length > 0) {
-            const overdue = payables.filter(t => t.date < today)
-            const upcoming = payables.filter(t => t.date >= today)
-            message += `💸 *CONTAS A PAGAR:*\n`
-            if (overdue.length > 0) message += `🔴 *Vencidas:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-            if (upcoming.length > 0) message += `🗓️ *Próximos ${days} dias:* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-            message += `\n`
-        }
-
-        if (receivables.length > 0) {
-            const overdue = receivables.filter(t => t.date < today)
-            const upcoming = receivables.filter(t => t.date >= today)
-            message += `📈 *CONTAS A RECEBER:*\n`
-            if (overdue.length > 0) message += `🔴 *Em atraso:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-            if (upcoming.length > 0) message += `🗓️ *A receber (${days} dias):* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-            message += `\n`
-        }
-
         const totalPay = payables.reduce((s, t) => s + t.amount, 0)
         const totalRec = receivables.reduce((s, t) => s + t.amount, 0)
-        message += `📊 *SALDO PREVISTO:* R$ ${(totalRec - totalPay).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n`
-        message += `Acesse seu painel para ver os detalhes: lucrocerto.idealzap.com.br 🚀`
+        const balance = (totalRec - totalPay).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+        const summaryText = `💰 *Resumo Financeiro*\n\n` +
+            (payables.length > 0 ? `💸 *A PAGAR:* R$ ${totalPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` : '') +
+            (receivables.length > 0 ? `📈 *A RECEBER:* R$ ${totalRec.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` : '') +
+            `📊 *SALDO:* R$ ${balance}`;
+
+        // Get company settings for custom template
+        const { data: compSettings } = await supabase.from('companies').select('settings').eq('id', company_id).single();
+        const customTemplate = compSettings?.settings?.automation_financial_template;
+
+        let message: string; // Declare message here
+
+        if (customTemplate) {
+            message = customTemplate
+                .replace('{summary}', summaryText)
+                .replace('{trade_name}', company?.trade_name || '')
+                .replace('{balance}', balance);
+        } else {
+            message = `💰 *Resumo Financeiro Lucro Certo*\n🏢 *${company?.trade_name || 'Sua Empresa'}*\n\n`;
+            if (payables.length > 0) {
+                const overdue = payables.filter(t => t.date < today)
+                const upcoming = payables.filter(t => t.date >= today)
+                message += `💸 *CONTAS A PAGAR:*\n`
+                if (overdue.length > 0) message += `🔴 *Vencidas:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                if (upcoming.length > 0) message += `🗓️ *Próximos ${days} dias:* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                message += `\n`
+            }
+            if (receivables.length > 0) {
+                const overdue = receivables.filter(t => t.date < today)
+                const upcoming = receivables.filter(t => t.date >= today)
+                message += `📈 *CONTAS A RECEBER:*\n`
+                if (overdue.length > 0) message += `🔴 *Em atraso:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                if (upcoming.length > 0) message += `🗓️ *A receber (${days} dias):* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                message += `\n`
+            }
+            message += `📊 *SALDO PREVISTO:* R$ ${balance}\n\n`;
+            message += `Acesse seu painel para ver os detalhes: lucrocerto.idealzap.com.br 🚀`;
+        }
 
         const targetNumber = profile.approval_whatsapp.replace(/\D/g, '')
         const success = await sendWhatsApp(instanceName, targetNumber, message)

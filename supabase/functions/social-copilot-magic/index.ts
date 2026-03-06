@@ -86,6 +86,35 @@ Retorne APENAS o tema, sem aspas, sem explicações, sem numeração.
       return new Response(JSON.stringify({ success: true, prompt: generatedTopic }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    if (mode === 'automation_template') {
+      const t = topic || 'parabenizar o cliente';
+      const automationPromptStr = `
+Você é um consultor de marketing para a empresa "${tradeName}".
+Nicho: "${niche}". Público: "${audience}". Tom de voz: "${tone}".
+
+Crie um modelo de mensagem de WhatsApp curto, envolvente e profissional para a seguinte automação: "${t}".
+
+REGRAS:
+1. Comece com uma saudação calorosa.
+2. Seja objetivo mas amigável.
+3. Use variáveis no formato {name} para o nome do cliente.
+4. Use emojis de forma moderada e profissional.
+5. Termine com o nome da empresa: "${tradeName}".
+6. NÃO use aspas no início ou fim.
+7. O texto deve estar pronto para ser enviado via WhatsApp.
+
+Retorne APENAS o texto da mensagem.
+`;
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: automationPromptStr }], temperature: 0.7 })
+      });
+      const data = await res.json();
+      const generatedTemplate = data.choices?.[0]?.message?.content?.trim() || 'Olá {name}, parabéns pelo seu dia!';
+      return new Response(JSON.stringify({ success: true, template: generatedTemplate }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     let generatedCaption = '';
     let publicUrl = null;
 
