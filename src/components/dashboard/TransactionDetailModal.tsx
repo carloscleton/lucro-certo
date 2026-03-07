@@ -1,4 +1,4 @@
-import { ListFilter, Coffee } from 'lucide-react';
+import { ListFilter, Coffee, Repeat } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,6 +15,10 @@ interface Transaction {
     description: string;
     category?: any;
     date: string;
+    is_recurring?: boolean;
+    recurrence_group_id?: string;
+    installment_number?: number;
+    recurring_count?: number;
 }
 
 const getCategoryName = (category: any): string => {
@@ -135,6 +139,12 @@ export function TransactionDetailModal({
                                                             {transaction.status === 'received' ? 'Recebido' :
                                                                 transaction.status === 'paid' ? 'Pago' : 'Pendente'}
                                                         </span>
+                                                        {(transaction.is_recurring || transaction.recurrence_group_id) && (
+                                                            <span className="text-[10px] px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-full font-bold flex items-center gap-1">
+                                                                <Repeat className="w-2.5 h-2.5" />
+                                                                Recorrente {transaction.installment_number && transaction.recurring_count ? `(${transaction.installment_number}/${transaction.recurring_count})` : ''}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="text-right">

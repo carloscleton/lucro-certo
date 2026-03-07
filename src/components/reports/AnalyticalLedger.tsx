@@ -134,7 +134,12 @@ export function AnalyticalLedger({ startDate, endDate }: AnalyticalLedgerProps) 
                                                         <td className="px-3 py-2">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="font-medium text-gray-900 dark:text-white">{item.description}</span>
-                                                                {item.is_recurring && <Repeat className="w-3 h-3 text-emerald-500" aria-label="Recorrente" />}
+                                                                {(item.is_recurring || item.recurrence_group_id) && (
+                                                                    <span className="flex items-center gap-1 text-[9px] text-blue-500 font-bold bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full">
+                                                                        <Repeat className="w-2.5 h-2.5" />
+                                                                        {item.installment_number && item.recurring_count ? `${item.installment_number}/${item.recurring_count}` : 'Recorrente'}
+                                                                    </span>
+                                                                )}
                                                                 {item.status === 'pending' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-label="Pendente" />}
                                                             </div>
                                                         </td>
