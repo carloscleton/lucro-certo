@@ -127,11 +127,15 @@ export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLed
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                                                {group.items.sort((a, b) => b.date.localeCompare(a.date)).map((item) => (
+                                                {[...group.items].sort((a, b) => b.date.localeCompare(a.date)).map((item) => (
                                                     <tr
                                                         key={item.id}
-                                                        onClick={() => onSelect?.(item)}
-                                                        className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group/row"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            onSelect?.(item);
+                                                        }}
+                                                        className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group/row"
                                                     >
                                                         <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                                             {formatBrazilianDate(new Date(item.date + 'T12:00:00'))}
