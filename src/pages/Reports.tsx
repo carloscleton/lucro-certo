@@ -6,6 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, L
 import { PartyPopper, Wallet, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { formatDateString } from '../utils/dateUtils';
+import { AnalyticalLedger } from '../components/reports/AnalyticalLedger';
 
 export function Reports() {
     const { t: tr } = useTranslation();
@@ -576,6 +577,9 @@ export function Reports() {
                     )}
                 </div>
             </div>
+
+            {/* Razão Analítico (Consultas Detalhadas) */}
+            <AnalyticalLedger startDate={startDate} endDate={endDate} />
         </div>
     );
 }
