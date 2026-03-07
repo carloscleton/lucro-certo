@@ -7,12 +7,16 @@ import { PartyPopper, Wallet, TrendingUp, PieChart as PieChartIcon } from 'lucid
 import { Tooltip } from '../components/ui/Tooltip';
 import { formatDateString } from '../utils/dateUtils';
 import { AnalyticalLedger } from '../components/reports/AnalyticalLedger';
+import { TransactionForm } from '../components/transactions/TransactionForm';
 
 export function Reports() {
     const { t: tr } = useTranslation();
-    const { transactions: expenses } = useTransactions('expense');
-    const { transactions: income } = useTransactions('income');
+    const { transactions: expenses, updateTransaction: updateExpense } = useTransactions('expense');
+    const { transactions: income, updateTransaction: updateIncome } = useTransactions('income');
     const { categories } = useCategories();
+
+    const [editingTransaction, setEditingTransaction] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [isMounted, setIsMounted] = useState(false);
     useEffect(() => {
@@ -579,7 +583,33 @@ export function Reports() {
             </div>
 
             {/* Razão Analítico (Consultas Detalhadas) */}
-            <AnalyticalLedger startDate={startDate} endDate={endDate} />
+            <AnalyticalLedger
+                startDate={startDate}
+                endDate={endDate}
+                onSelect={(tr) => {
+                    setEditingTransaction(tr);
+                    setIsModalOpen(true);
+                }}
+            />
+
+            {editingTransaction && (
+                <TransactionForm
+                    isOpen={isModalOpen}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        setEditingTransaction(null);
+                    }}
+                    type={editingTransaction.type}
+                    initialData={editingTransaction}
+                    onSubmit={async (data) => {
+                        if (editingTransaction.type === 'expense') {
+                            await updateExpense(editingTransaction.id, data);
+                        } else {
+                            await updateIncome(editingTransaction.id, data);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
