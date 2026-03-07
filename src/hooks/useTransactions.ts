@@ -91,7 +91,7 @@ export function useTransactions(type: TransactionType) {
         if (!user) return;
         console.log('[useTransactions] addTransaction v1.1', transaction);
         try {
-            const { overrides, propagate, is_recurring, frequency, ...rawData } = transaction as any;
+            const { overrides, propagate, is_recurring, frequency, recurring_count, ...rawData } = transaction as any;
 
             // Whitelist of columns actually in the database
             const dbSchema = [
@@ -122,7 +122,8 @@ export function useTransactions(type: TransactionType) {
             }];
 
             if (is_recurring && frequency) {
-                const nextDates = calculateNextDates(transaction.date, frequency, 12);
+                const totalCount = (recurring_count && recurring_count > 1) ? (recurring_count - 1) : 11;
+                const nextDates = calculateNextDates(transaction.date, frequency, totalCount);
                 nextDates.forEach((dateObj, index) => {
                     const installmentIdx = index + 2;
                     const override = overrides?.[installmentIdx];

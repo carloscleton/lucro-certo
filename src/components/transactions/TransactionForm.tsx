@@ -35,6 +35,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [isRecurring, setIsRecurring] = useState(false);
     const [isVariableAmount, setIsVariableAmount] = useState(false);
     const [frequency, setFrequency] = useState('monthly');
+    const [recurringCount, setRecurringCount] = useState(12);
     const [file, setFile] = useState<File | null>(null);
     const [dealId, setDealId] = useState('');
     const [loading, setLoading] = useState(false);
@@ -85,6 +86,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setIsRecurring(false);
             setIsVariableAmount(false);
             setFrequency('monthly');
+            setRecurringCount(12);
             setDealId('');
             setOverrides({});
             setEditingInstallment(null);
@@ -159,6 +161,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 is_recurring: isRecurring,
                 is_variable_amount: isRecurring ? isVariableAmount : false,
                 frequency: isRecurring ? frequency : null,
+                recurring_count: isRecurring ? recurringCount : undefined,
                 attachment_url: attachmentUrl,
                 attachment_path: attachmentPath,
                 deal_id: dealId || null,
@@ -428,16 +431,31 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                         {isRecurring && (
                             <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-200">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Frequência da Repetição</label>
-                                <select
-                                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
-                                    value={frequency}
-                                    onChange={e => setFrequency(e.target.value)}
-                                >
-                                    <option value="weekly">Semanal</option>
-                                    <option value="monthly">Mensal</option>
-                                    <option value="yearly">Anual</option>
-                                </select>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Frequência da Repetição</label>
+                                        <select
+                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
+                                            value={frequency}
+                                            onChange={e => setFrequency(e.target.value)}
+                                        >
+                                            <option value="weekly">Semanal</option>
+                                            <option value="monthly">Mensal</option>
+                                            <option value="yearly">Anual</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nº de Repetições</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={120}
+                                            value={recurringCount}
+                                            onChange={e => setRecurringCount(Math.max(1, Math.min(120, parseInt(e.target.value) || 1)))}
+                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600 text-center font-bold"
+                                        />
+                                    </div>
+                                </div>
                                 {date && (
                                     <>
                                         <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium italic">
@@ -449,10 +467,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                         {/* Preview of next recurring dates */}
                                         <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                                             <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 mb-2 uppercase tracking-wide">
-                                                📅 Próximas 12 Datas
+                                                📅 Próximas {recurringCount} Datas
                                             </p>
                                             <div className="flex overflow-x-auto gap-2 pb-2 snap-x scrollbar-thin scrollbar-thumb-emerald-200 dark:scrollbar-thumb-emerald-800">
-                                                {calculateNextDates(date, frequency, 12).map((nextDate, index) => {
+                                                {calculateNextDates(date, frequency, recurringCount).map((nextDate, index) => {
                                                     const installmentIdx = (initialData?.installment_number || 1) + index + 1;
                                                     const currentOverride = overrides[installmentIdx];
                                                     const isEditing = editingInstallment === installmentIdx;
