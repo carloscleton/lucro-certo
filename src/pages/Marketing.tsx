@@ -62,7 +62,6 @@ export function Marketing() {
   const [tone, setTone] = useState("");
   const [audience, setAudience] = useState("");
   const [approvalWhatsapp, setApprovalWhatsapp] = useState("");
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [hasWhatsappConnection, setHasWhatsappConnection] = useState(true);
   const [connectingMeta, setConnectingMeta] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
@@ -977,88 +976,6 @@ export function Marketing() {
     }
   };
 
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || currentEntity.type !== "company") return;
-
-    try {
-      setUploadingImage(true);
-
-      // --- AJUSTE INTELIGENTE DE IMAGEM PARA INSTAGRAM ---
-      const processImage = async (file: File): Promise<Blob> => {
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-              const canvas = document.createElement("canvas");
-              const ctx = canvas.getContext("2d")!;
-
-              // Define o tamanho final para ser um quadrado perfeito (maior dimensão)
-              const size = Math.max(img.width, img.height);
-              canvas.width = size;
-              canvas.height = size;
-
-              // Preenche com branco
-              ctx.fillStyle = "white";
-              ctx.fillRect(0, 0, size, size);
-
-              // Centraliza a imagem original no canvas quadrado
-              const x = (size - img.width) / 2;
-              const y = (size - img.height) / 2;
-              ctx.drawImage(img, x, y);
-
-              canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.9);
-            };
-          };
-        });
-      };
-
-      const finalBlob = await processImage(file);
-      const fileName = `${currentEntity.id}/${Date.now()}.jpg`;
-      const filePath = `${fileName}`;
-
-      // 1. Fazer upload da imagem processada
-      const { error: uploadError } = await supabase.storage
-        .from("social_media_assets")
-        .upload(filePath, finalBlob, { contentType: "image/jpeg" });
-
-      if (uploadError) throw uploadError;
-
-      // 2. Pegar a URL pública
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("social_media_assets").getPublicUrl(filePath);
-
-      console.log("Imagem enviada com sucesso: ", publicUrl);
-
-      // Invocar a inteligência!
-      const { error: visionError } = await supabase.functions.invoke(
-        "social-copilot-vision",
-        {
-          body: { company_id: currentEntity.id, image_url: publicUrl },
-        },
-      );
-
-      if (visionError) throw visionError;
-
-      alert(
-        "Tudo Certo! A IA leu sua foto e já enviou a postagem para aprovação no seu WhatsApp!",
-      );
-
-      // Recarregar posts
-      await fetchPosts();
-    } catch (error: any) {
-      console.error("Erro no upload da imagem:", error);
-      alert("Falha ao enviar e gerar a partir da foto.");
-    } finally {
-      setUploadingImage(false);
-      // Reset input
-      e.target.value = "";
-    }
-  };
 
   const fetchMetrics = async () => {
     setSyncingMetrics(true);
@@ -1662,25 +1579,21 @@ export function Marketing() {
                       id="image-upload"
                       className="hidden"
                       accept="image/*"
-                      onChange={handleUploadImage}
-                      disabled={uploadingImage}
+                      onChange={(e) => {
+                        handleManualFileSelection(e);
+                        setIsCreatingManualPost(true);
+                        e.target.value = "";
+                      }}
                     />
                     <Button
                       onClick={() =>
                         document.getElementById("image-upload")?.click()
                       }
-                      disabled={uploadingImage}
                       variant="outline"
                       className="h-12 border-indigo-100 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 text-xs font-bold px-6 rounded-2xl transition-all hover:scale-[1.02]"
                     >
-                      {uploadingImage ? (
-                        <UploadCloud size={16} className="animate-pulse mr-2" />
-                      ) : (
-                        <ImageIcon size={16} className="mr-2" />
-                      )}
-                      {uploadingImage
-                        ? "Lendo a Foto..."
-                        : "Enviar Foto Real e Gerar"}
+                      <ImageIcon size={16} className="mr-2" />
+                      Criar a partir de Foto
                     </Button>
                   </div>
                   <Button
@@ -1698,7 +1611,7 @@ export function Marketing() {
                 <div className="flex flex-wrap items-center gap-3">
                   <Button
                     onClick={handleGenerateStudio}
-                    disabled={saving || uploadingImage}
+                    disabled={saving}
                     className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-6 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all hover:scale-[1.02] active:scale-95"
                   >
                     🎬 Modo Studio (Gerar Roteiro)
