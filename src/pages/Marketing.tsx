@@ -751,6 +751,19 @@ export function Marketing() {
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
 
+      // Se tiver uma imagem selecionada, converte para base64 e manda para a IA ler
+      let image_base64: string | undefined = undefined;
+      if (manualFile && manualFile.type.startsWith("image/")) {
+        const buffer = await manualFile.arrayBuffer();
+        const base64String = btoa(
+          new Uint8Array(buffer).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ""
+          )
+        );
+        image_base64 = `data:${manualFile.type};base64,${base64String}`;
+      }
+
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-magic`,
         {
@@ -763,6 +776,7 @@ export function Marketing() {
             company_id: currentEntity.id,
             mode: "suggest_prompt",
             media_type: manualMediaType,
+            image_base64: image_base64,
           }),
         },
       );

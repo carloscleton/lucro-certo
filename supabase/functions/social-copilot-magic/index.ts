@@ -51,8 +51,33 @@ serve(async (req) => {
     const tradeName = company?.trade_name || 'Nossa Empresa'
 
     if (mode === 'suggest_prompt') {
-      const suggestPromptStr = `
-Você é um Diretor de Arte visionário trabalhando para a empresa "${tradeName}".
+      let suggestMessages: any[];
+
+      if (image_base64) {
+        // Modo Vision: lê a imagem real e cria um prompt coerente com ela
+        const visionPromptStr = `Você é um Diretor de Arte especialista em fotografia profissional para redes sociais.
+A empresa se chama "${tradeName}", atua no nicho "${niche}" e tem o tom de marca "${tone}".
+
+Olhe com atenção a imagem fornecida. Crie UM ÚNICO prompt de geração de imagem em português (2-3 frases) que descreva uma NOVA cena fotográfica profissional com temática e contexto COERENTE com o que está nessa imagem.
+
+REGRAS ABSOLUTAS:
+1. Use a imagem como inspiração de tema/contexto, não copie exatamente.
+2. Descreva uma NOVA fotografia hiper-realista que representaria bem a empresa no Instagram.
+3. Especifique iluminação (ex: golden hour, luz dramática de estúdio), ângulo cinematográfico e detalhes visuais ricos.
+4. NUNCA sugira texto, palavras, letreiros, logos ou fontes dentro da imagem. Apenas cena visual.
+5. Retorne APENAS o texto do prompt, sem explicações.`;
+        suggestMessages = [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: visionPromptStr },
+              { type: 'image_url', image_url: { url: image_base64 } }
+            ]
+          }
+        ];
+      } else {
+        // Modo criativo: sem imagem, gera baseado no nicho/tom
+        const suggestPromptStr = `Você é um Diretor de Arte visionário trabalhando para a empresa "${tradeName}".
 Nicho: "${niche}". Tom da marca: "${tone}". Público-alvo: "${audience}".
 
 Crie UM ÚNICO prompt detalhado (em português, aprox. 2-3 frases) projetado para gerar uma fotografia hiper-realista para o Instagram.
@@ -63,12 +88,14 @@ REGRAS OBRIGATÓRIAS:
 1. Vá direto ao ponto. Comece a descrição imediatamente sem introduções como "A imagem mostra" ou "Uma foto de".
 2. Foque estritamente no que é visual.
 3. Regra absoluta de IA: NUNCA sugira colocar texto, palavras, letreiros, logos ou fontes dentro da imagem. Apenas a cena bruta visual realista.
-4. Entregue apenas o texto do prompt e nada mais.
-`;
+4. Entregue apenas o texto do prompt e nada mais.`;
+        suggestMessages = [{ role: 'user', content: suggestPromptStr }];
+      }
+
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
-        body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: suggestPromptStr }], temperature: 1.2 })
+        body: JSON.stringify({ model: 'gpt-4o', messages: suggestMessages, temperature: 1.1, max_tokens: 300 })
       });
       const data = await res.json();
       const generatedSuggestion = data.choices?.[0]?.message?.content || 'Cenário profissional moderno e realista...';
