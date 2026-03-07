@@ -218,7 +218,24 @@ _(Ref: Post ${post_id})_`
         const targetNumber = profile.approval_whatsapp.replace(/\D/g, '')
 
         // URL SEM TOKEN (Mais robusto para Evolution API v2)
-        const endpoint = `${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`
+        let endpoint = `${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`;
+        let payload: any = {
+          number: targetNumber,
+          options: { delay: 1000, presence: "composing" }
+        };
+
+        if (finalVideoUrl) {
+          endpoint = `${EVO_URL}/message/sendMedia/${encodeURIComponent(instance.instance_name)}`;
+          const isVideo = finalVideoUrl.toLowerCase().includes('.mp4') || finalVideoUrl.toLowerCase().includes('.mov') || finalVideoUrl.toLowerCase().includes('.webm');
+          payload.mediaMessage = {
+            mediatype: isVideo ? "video" : "image",
+            caption: msg,
+            media: finalVideoUrl
+          };
+        } else {
+          payload.text = msg;
+          payload.textMessage = { text: msg };
+        }
 
         await fetch(endpoint, {
           method: 'POST',
@@ -226,13 +243,8 @@ _(Ref: Post ${post_id})_`
             'Content-Type': 'application/json',
             'apikey': EVO_KEY
           },
-          body: JSON.stringify({
-            number: targetNumber,
-            text: msg,
-            textMessage: { text: msg }, // Compatibilidade V1/V2
-            options: { delay: 1000, presence: "composing" }
-          })
-        }).catch(err => console.error("Erro fetch WhatsApp:", err))
+          body: JSON.stringify(payload)
+        }).catch(err => console.error("Erro fetch WhatsApp:", err));
       }
     }
 

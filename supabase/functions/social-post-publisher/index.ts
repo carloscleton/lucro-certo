@@ -96,25 +96,37 @@ Uma postagem manual acabou de ser salva e aguarda sua aprovação.
 *Legenda:*
 ${content || '(Sem legenda descrita)'}
 
-Link da Imagem: ${image_url || '(Sem imagem gerada)'}
-
 Deseja Aprovar e Postar Agora no Instagram?
 Responda *1* para aprovar, *NAO* para descartar ou *VER* para revisar.
 
 _(Ref: Post ${newPost.id})_`;
 
-              const evoRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`, {
+              let apiPath = `/message/sendText/${encodeURIComponent(instance.instance_name)}`;
+              let payload: any = {
+                number: targetNumber,
+                options: { delay: 1200, presence: "composing" },
+              };
+
+              if (image_url) {
+                apiPath = `/message/sendMedia/${encodeURIComponent(instance.instance_name)}`;
+                const isVideo = image_url.toLowerCase().includes('.mp4') || image_url.toLowerCase().includes('.mov');
+                payload.mediaMessage = {
+                  mediatype: isVideo ? "video" : "image",
+                  caption: messageText,
+                  media: image_url
+                };
+              } else {
+                payload.text = messageText;
+                payload.textMessage = { text: messageText };
+              }
+
+              const evoRes = await fetch(`${EVO_API_URL}${apiPath}`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'apikey': EVO_API_KEY
                 },
-                body: JSON.stringify({
-                  number: targetNumber,
-                  options: { delay: 1200, presence: "composing" },
-                  text: messageText,
-                  textMessage: { text: messageText }
-                })
+                body: JSON.stringify(payload)
               });
 
               const evoText = await evoRes.text();

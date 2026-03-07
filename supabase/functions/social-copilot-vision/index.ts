@@ -125,23 +125,32 @@ O Marketing Artificial acabou de ler a foto que você enviou e montou esta legen
 *Legenda Sugerida:*
 ${generatedContent}
 
-Link da Imagem: ${image_url}
-
 Deseja Aprovar e Postar no Instagram? (Responda *1* para aprovar ou *NAO*)
 _(Ref: Post ${insertedPost.id})_`;
 
-          // URL Corrigida (sem token redundante)
-          const endpoint = `${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`
+          let endpoint = `${EVO_API_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`;
+          let payload: any = {
+            number: targetNumber,
+            options: { delay: 1000, presence: "composing" }
+          };
+
+          if (image_url) {
+            endpoint = `${EVO_API_URL}/message/sendMedia/${encodeURIComponent(instance.instance_name)}`;
+            const isVideo = image_url.toLowerCase().includes('.mp4') || image_url.toLowerCase().includes('.mov');
+            payload.mediaMessage = {
+              mediatype: isVideo ? "video" : "image",
+              caption: messageText,
+              media: image_url
+            };
+          } else {
+            payload.text = messageText;
+            payload.textMessage = { text: messageText };
+          }
 
           await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
-            body: JSON.stringify({
-              number: targetNumber,
-              text: messageText,
-              textMessage: { text: messageText },
-              options: { delay: 1000, presence: "composing" }
-            })
+            body: JSON.stringify(payload)
           });
         }
       } catch (evoErr) {
