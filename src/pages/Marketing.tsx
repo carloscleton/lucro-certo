@@ -704,6 +704,19 @@ export function Marketing() {
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
 
+      let image_base64 = undefined;
+      // Se selecionou um arquivo e for imagem (verificando o tipo), enviamos a foto real
+      if (manualFile && manualFile.type.startsWith("image/")) {
+        const buffer = await manualFile.arrayBuffer();
+        const base64String = btoa(
+          new Uint8Array(buffer).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ""
+          )
+        );
+        image_base64 = `data:${manualFile.type};base64,${base64String}`;
+      }
+
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-magic`,
         {
@@ -716,6 +729,7 @@ export function Marketing() {
             company_id: currentEntity.id,
             topic: manualContent,
             mode: "caption",
+            image_base64: image_base64,
           }),
         },
       );
@@ -1021,26 +1035,14 @@ export function Marketing() {
       console.log("Imagem enviada com sucesso: ", publicUrl);
 
       // Invocar a inteligência!
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
-
-      const visionRes = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-vision`,
+      const { error: visionError } = await supabase.functions.invoke(
+        "social-copilot-vision",
         {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({ company_id: currentEntity.id, image_url: publicUrl }),
-        }
+          body: { company_id: currentEntity.id, image_url: publicUrl },
+        },
       );
 
-      if (!visionRes.ok) {
-        const errData = await visionRes.json().catch(() => ({}));
-        throw new Error(errData.error || "Erro ao invocar a inteligência da visão");
-      }
+      if (visionError) throw visionError;
 
       alert(
         "Tudo Certo! A IA leu sua foto e já enviou a postagem para aprovação no seu WhatsApp!",

@@ -95,3 +95,8 @@ entrypoint = "./functions/overdue-reminders/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/birthday-reminders/index.ts"
+
+[functions.social-copilot-vision]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/social-copilot-vision/index.ts"

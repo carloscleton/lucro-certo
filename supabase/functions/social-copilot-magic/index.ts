@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { company_id, topic, image_custom_prompt, mode = 'full', media_type = 'feed' } = await req.json()
+    const { company_id, topic, image_custom_prompt, mode = 'full', media_type = 'feed', image_base64 } = await req.json()
 
     if (!company_id) {
       return new Response(JSON.stringify({ error: 'Company ID is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -145,6 +145,35 @@ REGRAS OBRIGATÓRIAS DE ENGAJAMENTO:
 
 
       try {
+        let aiMessages: any[] = [{ role: 'user', content: chatPrompt }];
+
+        if (image_base64) {
+          const userContext = topic ? `Foque neste assunto/tema que o usuário pediu a seguir: "${topic}"` : 'Você precisa basear a legenda estritamente na imagem anexada.';
+          const chatPromptVision = `
+Você é o criador de conteúdo estrela da empresa "${tradeName}".
+O nicho da empresa é: "${niche}". Tom de voz: "${tone}". Público-alvo: "${audience}".
+
+${userContext}
+
+Eu estou anexando a foto real do post. OLHE A IMAGEM E GERE A LEGENDA.
+REGRAS OBRIGATÓRIAS DE ENGAJAMENTO:
+1. PRIMEIRA LINHA: Comece com um GANCHO MENTAL poderoso.
+2. CORPO: Texto envolvente de 4-6 linhas baseando-se no que está de fato visível na imagem enviada.
+3. CTA: Uma pergunta final para comentários.
+4. HASHTAGS: Pule duas linhas e adicione 8 a 12 hashtags.
+Retorne apenas o texto final.`;
+
+          aiMessages = [
+            {
+              role: 'user',
+              content: [
+                { type: "text", text: chatPromptVision },
+                { type: "image_url", image_url: { url: image_base64 } }
+              ]
+            }
+          ];
+        }
+
         const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -153,8 +182,9 @@ REGRAS OBRIGATÓRIAS DE ENGAJAMENTO:
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: chatPrompt }],
-            temperature: 0.7
+            messages: aiMessages,
+            temperature: 0.7,
+            max_tokens: 500
           })
         })
 
