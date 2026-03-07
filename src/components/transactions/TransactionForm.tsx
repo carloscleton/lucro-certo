@@ -71,6 +71,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setIsRecurring(!!initialData.recurrence_group_id);
             setIsVariableAmount((initialData as any).is_variable_amount || false);
             setFrequency(initialData.frequency || 'monthly');
+            setRecurringCount((initialData as any).recurring_count || 12);
             setDealId(initialData.deal_id || '');
         } else {
             // New transaction - load saved preference

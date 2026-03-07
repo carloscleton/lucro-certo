@@ -99,7 +99,7 @@ export function useTransactions(type: TransactionType) {
                 'company_id', 'contact_id', 'attachment_url', 'attachment_path',
                 'payment_method', 'payment_date', 'interest', 'penalty',
                 'paid_amount', 'quote_id', 'deal_id', 'is_variable_amount',
-                'recurrence_group_id', 'installment_number'
+                'recurrence_group_id', 'installment_number', 'recurring_count'
             ];
 
             const cleanTransaction: any = {};
@@ -118,12 +118,13 @@ export function useTransactions(type: TransactionType) {
                 user_id: userId,
                 company_id: companyId,
                 recurrence_group_id: recurrenceGroupId,
-                installment_number: is_recurring ? 1 : null
+                installment_number: is_recurring ? 1 : null,
+                recurring_count: is_recurring ? recurring_count : null
             }];
 
             if (is_recurring && frequency) {
-                const totalCount = (recurring_count && recurring_count > 1) ? (recurring_count - 1) : 11;
-                const nextDates = calculateNextDates(transaction.date, frequency, totalCount);
+                const totalCountNum = (recurring_count && recurring_count > 1) ? recurring_count : 12;
+                const nextDates = calculateNextDates(transaction.date, frequency, totalCountNum - 1);
                 nextDates.forEach((dateObj, index) => {
                     const installmentIdx = index + 2;
                     const override = overrides?.[installmentIdx];
@@ -136,7 +137,8 @@ export function useTransactions(type: TransactionType) {
                         company_id: companyId,
                         recurrence_group_id: recurrenceGroupId,
                         installment_number: installmentIdx,
-                        status: 'pending' // Future ones are always pending
+                        status: 'pending', // Future ones are always pending
+                        recurring_count: totalCountNum
                     });
                 });
             }
@@ -162,7 +164,7 @@ export function useTransactions(type: TransactionType) {
     const updateTransaction = async (id: string, updates: Partial<Transaction> & { propagate?: boolean }) => {
         console.log('[useTransactions] updateTransaction v1.1', updates);
         try {
-            const { propagate, overrides, is_recurring, frequency, ...rawData } = updates as any;
+            const { propagate, overrides, is_recurring, frequency, recurring_count, ...rawData } = updates as any;
 
             // Whitelist of columns actually in the database
             const dbSchema = [
@@ -170,7 +172,7 @@ export function useTransactions(type: TransactionType) {
                 'company_id', 'contact_id', 'attachment_url', 'attachment_path',
                 'payment_method', 'payment_date', 'interest', 'penalty',
                 'paid_amount', 'quote_id', 'deal_id', 'is_variable_amount',
-                'recurrence_group_id', 'installment_number'
+                'recurrence_group_id', 'installment_number', 'recurring_count'
             ];
 
             const cleanUpdates: any = {};
@@ -208,6 +210,7 @@ export function useTransactions(type: TransactionType) {
                 if (cleanUpdates.company_id !== undefined) propagationPayload.company_id = cleanUpdates.company_id;
                 if (cleanUpdates.contact_id !== undefined) propagationPayload.contact_id = cleanUpdates.contact_id;
                 if (cleanUpdates.is_variable_amount !== undefined) propagationPayload.is_variable_amount = cleanUpdates.is_variable_amount;
+                if (cleanUpdates.recurring_count !== undefined) propagationPayload.recurring_count = cleanUpdates.recurring_count;
 
                 if (Object.keys(propagationPayload).length > 0) {
                     const { error: propError } = await supabase
