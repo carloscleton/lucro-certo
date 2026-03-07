@@ -1021,14 +1021,26 @@ export function Marketing() {
       console.log("Imagem enviada com sucesso: ", publicUrl);
 
       // Invocar a inteligência!
-      const { error: visionError } = await supabase.functions.invoke(
-        "social-copilot-vision",
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+
+      const visionRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-vision`,
         {
-          body: { company_id: currentEntity.id, image_url: publicUrl },
-        },
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY!,
+          },
+          body: JSON.stringify({ company_id: currentEntity.id, image_url: publicUrl }),
+        }
       );
 
-      if (visionError) throw visionError;
+      if (!visionRes.ok) {
+        const errData = await visionRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro ao invocar a inteligência da visão");
+      }
 
       alert(
         "Tudo Certo! A IA leu sua foto e já enviou a postagem para aprovação no seu WhatsApp!",
