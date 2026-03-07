@@ -52,11 +52,18 @@ serve(async (req) => {
 
     if (mode === 'suggest_prompt') {
       const suggestPromptStr = `
-Nicho da empresa: "${niche}". Público-alvo: "${audience}".
-Crie UM ÚNICO prompt descritivo (em português) que descreva perfeitamente uma fotografia hiper-realista para uma postagem de Instagram dessa empresa. 
-Seja extremamente criativo. Varie os cenários, situações, idades das pessoas e atividades diárias mostradas com base nesse nicho. Nunca sugira as mesmas descrições repetitivamente.
-Descreva APENAS o que se vê na foto de forma direta: luz, ambiente, móveis, pessoas em ação e objetos relevantes. 
-Regra absoluta: Sem adicionar texto dentro da arte. Sem textos como 'A foto mostra'. Apenas a cena visual bruta hiper-realista.
+Você é um Diretor de Arte visionário trabalhando para a empresa "${tradeName}".
+Nicho: "${niche}". Tom da marca: "${tone}". Público-alvo: "${audience}".
+
+Crie UM ÚNICO prompt detalhado (em português, aprox. 2-3 frases) projetado para gerar uma fotografia hiper-realista para o Instagram.
+SEJA SURPREENDENTE, DINÂMICO E EXTREMAMENTE CRIATIVO. Fuja de cenários engessados ou repetitivos.
+Inove nas situações do dia a dia que conectem o público ao nicho. Especifique iluminação (ex: golden hour, luz de estúdio dramática, neon suave), ângulos cinematográficos, expressões faciais profundas e texturas do ambiente.
+
+REGRAS OBRIGATÓRIAS:
+1. Vá direto ao ponto. Comece a descrição imediatamente sem introduções como "A imagem mostra" ou "Uma foto de".
+2. Foque estritamente no que é visual.
+3. Regra absoluta de IA: NUNCA sugira colocar texto, palavras, letreiros, logos ou fontes dentro da imagem. Apenas a cena bruta visual realista.
+4. Entregue apenas o texto do prompt e nada mais.
 `;
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
