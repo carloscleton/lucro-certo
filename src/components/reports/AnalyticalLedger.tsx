@@ -131,11 +131,7 @@ export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLed
                                                 {[...group.items].sort((a, b) => b.date.localeCompare(a.date)).map((item) => (
                                                     <tr
                                                         key={item.id}
-                                                        onClick={() => {
-                                                            // Só dispara se não clicou em nada específico dentro da linha
-                                                            onSelect?.(item);
-                                                        }}
-                                                        className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group/row relative"
+                                                        className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors group/row border-b border-gray-50 dark:border-slate-800 last:border-0"
                                                     >
                                                         <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                                             {formatBrazilianDate(new Date(item.date + 'T12:00:00'))}
