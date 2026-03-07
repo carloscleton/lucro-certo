@@ -124,15 +124,18 @@ export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLed
                                                     <th className="px-3 py-2 font-semibold">Descrição</th>
                                                     <th className="px-3 py-2 font-semibold text-center">Tipo</th>
                                                     <th className="px-3 py-2 font-semibold text-right">Valor</th>
+                                                    <th className="px-3 py-2 font-semibold text-center w-10"></th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                                                 {[...group.items].sort((a, b) => b.date.localeCompare(a.date)).map((item) => (
                                                     <tr
                                                         key={item.id}
-                                                        onClick={() => onSelect?.(item)}
-                                                        className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group/row"
-                                                        title="Ver detalhes"
+                                                        onClick={() => {
+                                                            // Só dispara se não clicou em nada específico dentro da linha
+                                                            onSelect?.(item);
+                                                        }}
+                                                        className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group/row relative"
                                                     >
                                                         <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                                             {formatBrazilianDate(new Date(item.date + 'T12:00:00'))}
@@ -158,6 +161,20 @@ export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLed
                                                         </td>
                                                         <td className={`px-3 py-2 text-right font-bold ${item.type === 'expense' ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount)}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center">
+                                                            <div className="flex items-center justify-center">
+                                                                <button
+                                                                    className="p-1 px-2 text-[10px] font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        onSelect?.(item);
+                                                                    }}
+                                                                >
+                                                                    VER
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}

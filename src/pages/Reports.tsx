@@ -592,27 +592,25 @@ export function Reports() {
                 }}
             />
 
-            {isModalOpen && (
-                <TransactionForm
-                    key={editingTransaction?.id || 'new'}
-                    isOpen={isModalOpen}
-                    onClose={() => {
-                        setIsModalOpen(false);
-                        setEditingTransaction(null);
-                    }}
-                    type={editingTransaction?.type || 'expense'}
-                    initialData={editingTransaction}
-                    onSubmit={async (data) => {
-                        if (editingTransaction?.type === 'expense') {
-                            await updateExpense(editingTransaction.id, data);
-                        } else if (editingTransaction?.type === 'income') {
-                            await updateIncome(editingTransaction.id, data);
-                        }
-                        setIsModalOpen(false);
-                        setEditingTransaction(null);
-                    }}
-                />
-            )}
+            <TransactionForm
+                key={editingTransaction?.id || 'new-modal'}
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingTransaction(null);
+                }}
+                type={editingTransaction?.type || 'expense'}
+                initialData={editingTransaction}
+                onSubmit={async (data) => {
+                    if (editingTransaction?.type === 'expense') {
+                        await updateExpense(editingTransaction.id, data);
+                    } else if (editingTransaction?.type === 'income') {
+                        await updateIncome(editingTransaction.id, data);
+                    }
+                    setIsModalOpen(false);
+                    setEditingTransaction(null);
+                }}
+            />
         </div>
     );
 }
