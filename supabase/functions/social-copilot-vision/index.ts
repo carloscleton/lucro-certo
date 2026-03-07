@@ -137,11 +137,9 @@ _(Ref: Post ${insertedPost.id})_`;
           if (image_url) {
             endpoint = `${EVO_API_URL}/message/sendMedia/${encodeURIComponent(instance.instance_name)}`;
             const isVideo = image_url.toLowerCase().includes('.mp4') || image_url.toLowerCase().includes('.mov');
-            payload.mediaMessage = {
-              mediatype: isVideo ? "video" : "image",
-              caption: messageText,
-              media: image_url
-            };
+            payload.mediatype = isVideo ? "video" : "image";
+            payload.caption = messageText;
+            payload.media = image_url;
           } else {
             payload.text = messageText;
             payload.textMessage = { text: messageText };
