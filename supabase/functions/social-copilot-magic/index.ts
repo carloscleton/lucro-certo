@@ -54,24 +54,24 @@ serve(async (req) => {
       let suggestMessages: any[];
 
       if (image_base64) {
-        // Modo Vision: lê a imagem real e cria um prompt coerente com ela
-        const visionPromptStr = `Você é um Diretor de Arte especialista em fotografia profissional para redes sociais.
-A empresa se chama "${tradeName}", atua no nicho "${niche}" e tem o tom de marca "${tone}".
+        // Modo Vision: analisa o que está VISUALMENTE na imagem e propõe uma cena inspirada nela
+        const visionPromptStr = `Você é um Diretor de Arte especialista em criação de prompts para geração de imagens com IA (DALL-E, Midjourney).
 
-Olhe com atenção a imagem fornecida. Crie UM ÚNICO prompt de geração de imagem em português (2-3 frases) que descreva uma NOVA cena fotográfica profissional com temática e contexto COERENTE com o que está nessa imagem.
+TAREFA: Analise a imagem fornecida com atenção e crie UM ÚNICO prompt em português (2-3 frases) para gerar uma NOVA imagem fotorealista para o Instagram, que seja visualmente inspirada e coerente com o tema, estética e setor que você VÊ na imagem.
 
-REGRAS ABSOLUTAS:
-1. Use a imagem como inspiração de tema/contexto, não copie exatamente.
-2. Descreva uma NOVA fotografia hiper-realista que representaria bem a empresa no Instagram.
-3. Especifique iluminação (ex: golden hour, luz dramática de estúdio), ângulo cinematográfico e detalhes visuais ricos.
-4. NUNCA sugira texto, palavras, letreiros, logos ou fontes dentro da imagem. Apenas cena visual.
-5. Retorne APENAS o texto do prompt, sem explicações.`;
+INSTRUÇÕES CRÍTICAS:
+- Sua base é O QUE VOCÊ VÊ na imagem: o setor/contexto (ex: médico, tecnologia, alimentação), as cores, o ambiente, o estilo.
+- Crie uma NOVA cena fotográfica (não reproduza a imagem exatamente).
+- Seja rico em detalhes visuais: iluminação específica (ex: luz suave de estúdio, golden hour, luz azulada de neon), ângulo da câmera, texturas e expressões.
+- REGRA ABSOLUTA: JAMAIS inclua textos, palavras, letreiros, logos, números ou fontes na imagem sugerida. Apenas elementos visuais puros.
+- Retorne APENAS o texto do prompt, sem introduções, sem explicações.`;
+
         suggestMessages = [
           {
             role: 'user',
             content: [
-              { type: 'text', text: visionPromptStr },
-              { type: 'image_url', image_url: { url: image_base64 } }
+              { type: 'image_url', image_url: { url: image_base64 } },
+              { type: 'text', text: visionPromptStr }
             ]
           }
         ];
