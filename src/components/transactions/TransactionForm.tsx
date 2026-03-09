@@ -808,10 +808,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             />
 
                             {(() => {
-                                // Try to find marked Pix first (prioritizes 100% fidelity), then fallback to loose numeric/EMV regex
+                                // Try to find marked Pix first (prioritizes 100% fidelity), then fallback to loose numeric/EMV/URL regex
                                 const markedPixMatch = notes.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
-                                const loosePixMatch = notes.replace(/\s+/g, '').match(/000201[a-zA-Z0-9]*?6304[a-fA-F0-9]{4}/);
-                                const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (loosePixMatch ? loosePixMatch[0] : null);
+
+                                // Enhanced Pix regex: Handles both standard EMV (000201...) and Pix URL format
+                                const pixRegex = /(?:000201[\s\S]*?6304[a-fA-F0-9]{4})|(?:https:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,100})/i;
+                                const loosePixMatch = notes.match(pixRegex);
+
+                                const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (loosePixMatch ? loosePixMatch[0].replace(/\s+/g, '') : null);
 
                                 // Try to find marked Barcode first, then fallback to loose numeric regex (Boleto format)
                                 const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
