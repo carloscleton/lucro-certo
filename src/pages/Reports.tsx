@@ -586,8 +586,8 @@ export function Reports() {
             <AnalyticalLedger
                 startDate={startDate}
                 endDate={endDate}
-                onSelect={(tr) => {
-                    setEditingTransaction(tr);
+                onSelect={(transaction) => {
+                    setEditingTransaction(transaction);
                     setIsModalOpen(true);
                 }}
             />

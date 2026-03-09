@@ -1,6 +1,5 @@
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { CalendarClock, AlertCircle } from 'lucide-react';
+import { formatDateString } from '../../utils/dateUtils';
 
 interface PendingListProps {
     transactions: any[];
@@ -23,7 +22,8 @@ export function PendingList({ transactions }: PendingListProps) {
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Contas Pendentes (Mês)</h3>
             <div className="space-y-3">
                 {transactions.map(t => {
-                    const isOverdue = new Date(t.date) < new Date(new Date().setHours(0, 0, 0, 0));
+                    const today = new Date().toISOString().split('T')[0];
+                    const isOverdue = t.date < today;
                     return (
                         <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                             <div className="flex items-center gap-3">
@@ -40,7 +40,7 @@ export function PendingList({ transactions }: PendingListProps) {
                                         )}
                                     </div>
                                     <p className={`text-xs ${isOverdue ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
-                                        Vence: {format(new Date(t.date), 'dd/MM/yyyy', { locale: ptBR })}
+                                        Vence: {formatDateString(t.date)}
                                     </p>
                                 </div>
                             </div>

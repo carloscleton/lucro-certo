@@ -231,7 +231,7 @@ export function useDashboard(startDate: string, endDate: string) {
             });
 
             const chart = Array.from(daysMap.entries()).map(([date, val]) => ({
-                name: format(new Date(date), 'dd/MM'),
+                name: format(new Date(date + 'T12:00:00'), 'dd/MM'),
                 income: val.income,
                 expense: val.expense
             }));

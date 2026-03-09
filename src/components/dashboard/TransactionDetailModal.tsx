@@ -125,7 +125,7 @@ export function TransactionDetailModal({
                                                     </p>
                                                     <div className="flex items-center gap-3 mt-1.5">
                                                         <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                                            {format(new Date(transaction.date), "dd 'de' MMMM", { locale: ptBR })}
+                                                            {format(new Date(transaction.date + 'T12:00:00'), "dd 'de' MMMM", { locale: ptBR })}
                                                         </span>
                                                         {transaction.category && (
                                                             <span className="text-[10px] px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full font-medium">

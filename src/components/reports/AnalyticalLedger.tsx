@@ -131,14 +131,17 @@ export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLed
                                                 {[...group.items].sort((a, b) => b.date.localeCompare(a.date)).map((item) => (
                                                     <tr
                                                         key={item.id}
-                                                        className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors group/row border-b border-gray-50 dark:border-slate-800 last:border-0"
+                                                        className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors group/row border-b border-gray-50 dark:border-slate-800 last:border-0 cursor-pointer"
+                                                        onClick={() => onSelect?.(item)}
                                                     >
                                                         <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                                             {formatBrazilianDate(new Date(item.date + 'T12:00:00'))}
                                                         </td>
                                                         <td className="px-3 py-2">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="font-medium text-gray-900 dark:text-white group-hover/row:text-emerald-600 transition-colors">{item.description}</span>
+                                                                <span className="font-medium text-gray-900 dark:text-white group-hover/row:text-emerald-600 transition-colors">
+                                                                    {item.description}
+                                                                </span>
                                                                 {(item.is_recurring || item.recurrence_group_id) && (
                                                                     <span className="flex items-center gap-1 text-[9px] text-blue-500 font-bold bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full">
                                                                         <Repeat className="w-2.5 h-2.5" />
