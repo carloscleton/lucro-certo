@@ -178,7 +178,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const content = await page.getTextContent();
-                    const pageText = content.items.map((item: any) => item.str).join(' ');
+
+                    // Sort items by visual position (top-to-bottom, left-to-right)
+                    // pdf.js transform: [scaleX, skewY, skewX, scaleY, translateX, translateY]
+                    const sortedItems = content.items.sort((a: any, b: any) => {
+                        if (Math.abs(b.transform[5] - a.transform[5]) > 5) {
+                            return b.transform[5] - a.transform[5]; // Top to bottom
+                        }
+                        return a.transform[4] - b.transform[4]; // Left to right
+                    });
+
+                    const pageText = sortedItems.map((item: any) => item.str).join(' ');
                     extractedText += pageText + '\n';
 
                     // Attempt to locate QR codes in the PDF by rendering the page to a canvas
