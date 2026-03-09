@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { Receipt, TrendingUp, Paperclip, Repeat, Plus } from 'lucide-react';
+import QRCode from 'react-qr-code';
+import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
 import { ContactForm } from '../contacts/ContactForm';
 import { Button } from '../ui/Button';
@@ -681,6 +683,39 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
                             />
+
+                            {(() => {
+                                const pixMatch = notes.match(/000201[a-zA-Z0-9]{40,}/);
+                                const rawDigits = notes.replace(/[^\d]/g, '');
+                                const barcodeMatch = rawDigits.match(/\d{44,48}/);
+                                const pixCodeToRender = pixMatch ? pixMatch[0] : null;
+                                const barcodeToRender = barcodeMatch ? barcodeMatch[0] : null;
+
+                                if (!pixCodeToRender && !barcodeToRender) return null;
+
+                                return (
+                                    <div className="mt-2 p-3 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 rounded-xl flex flex-col gap-4 animate-in fade-in duration-500">
+                                        {pixCodeToRender && (
+                                            <div className="flex flex-col items-center">
+                                                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase">QR Code Pix para Pagamento</p>
+                                                <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                                                    <QRCode value={pixCodeToRender} size={150} />
+                                                </div>
+                                                <p className="text-[9px] text-gray-400 mt-2 break-all px-4 text-center select-all">{pixCodeToRender}</p>
+                                            </div>
+                                        )}
+                                        {barcodeToRender && (
+                                            <div className={`flex flex-col items-center ${pixCodeToRender ? 'border-t border-gray-100 dark:border-slate-700 pt-3 mt-1' : ''}`}>
+                                                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase">Código de Barras</p>
+                                                <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                                                    <Barcode value={barcodeToRender} width={1.8} height={50} displayValue={false} background="#ffffff" lineColor="#000000" margin={0} />
+                                                </div>
+                                                <p className="text-[11px] font-mono text-gray-700 dark:text-gray-300 mt-2 tracking-widest select-all">{barcodeToRender}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         {/* File Preview */}
