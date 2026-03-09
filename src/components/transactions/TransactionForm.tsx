@@ -808,12 +808,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             />
 
                             {(() => {
-                                // Try to find marked Pix first (prioritizes 100% fidelity), then fallback to regex
-                                const markedPix = notes.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
-                                const loosePix = notes.replace(/\s+/g, '').match(/000201[A-Z0-9]*?6304[A-F0-9]{4}/i);
-                                const pixCodeToRender = markedPix ? markedPix[1].trim() : (loosePix ? loosePix[0] : null);
+                                // Try to find marked Pix first (prioritizes 100% fidelity), then fallback to loose numeric/EMV regex
+                                const markedPixMatch = notes.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
+                                const loosePixMatch = notes.replace(/\s+/g, '').match(/000201[a-zA-Z0-9]*?6304[a-fA-F0-9]{4}/);
+                                const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (loosePixMatch ? loosePixMatch[0] : null);
 
-                                // Try to find marked Barcode first, then fallback to loose numeric regex
+                                // Try to find marked Barcode first, then fallback to loose numeric regex (Boleto format)
                                 const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
                                 const rawBarcodeMatch = notes.match(/(?:\d[.\-\s]*){44,55}\d/);
                                 const barcodeToRender = markedBarcode ? markedBarcode[1].trim() : (rawBarcodeMatch ? rawBarcodeMatch[0].replace(/[^\d]/g, '') : null);

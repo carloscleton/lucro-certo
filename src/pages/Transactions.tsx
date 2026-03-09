@@ -484,6 +484,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             />
 
             <TransactionForm
+                key={editingTransaction?.id || 'new-modal'}
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 type={type}
