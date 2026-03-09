@@ -168,7 +168,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 const arrayBuffer = await fileToAnalyze.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-                const jsQRLib = (await import('jsqr')).default;
+                const ZXing = await import('@zxing/browser');
+                const codeReader = new ZXing.BrowserQRCodeReader();
 
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
@@ -188,17 +189,20 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                                 await page.render({ canvasContext: context, viewport: viewport }).promise;
 
-                                // Capture the first page image for OpenAI Vision API just in case jsQR fails
+                                // Capture the first page image for OpenAI Vision API just in case ZXing fails
                                 if (i === 1 && scale === 1.5) {
                                     pdfFirstPageImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
                                 }
 
-                                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                                const code = jsQRLib(imageData.data, imageData.width, imageData.height);
-                                if (code && code.data && code.data.length > 10) {
-                                    console.log(`QR Code PIX encontrado na página: ${i} (Escala: ${scale})`);
-                                    extractedText += `\n[CÓDIGO PIX DETECTADO VIA QR CODE]:\n${code.data}\n`;
-                                    break;
+                                try {
+                                    const result = await codeReader.decodeFromCanvas(canvas);
+                                    if (result && result.getText() && result.getText().length > 10) {
+                                        console.log(`QR Code PIX encontrado na página: ${i} (Escala: ${scale}) via ZXing`);
+                                        extractedText += `\n[CÓDIGO PIX DETECTADO VIA QR CODE]:\n${result.getText()}\n`;
+                                        break; // Found it, stop scaling
+                                    }
+                                } catch (decodeErr) {
+                                    // ZXing throws if it can't find a code, which is expected for most scales/pages
                                 }
                             }
                         } catch (e) {
