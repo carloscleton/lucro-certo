@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Copy, Search } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
 import { ContactForm } from '../contacts/ContactForm';
@@ -795,7 +796,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 // Pix Copia e Cola always starts with 000201 and ends with ID 63, length 04, and a 4-hex CRC16 checksum.
                                 const sanitizedNotes = notes.replace(/\s+/g, '');
                                 const pixMatch = sanitizedNotes.match(/000201.*?6304[A-Fa-f0-9]{4}/);
-                                const rawBarcodeMatch = notes.match(/(?:\d[.\-\s]*){43,47}\d/);
+
+                                // Improved Barcode match: look for sequences with dots/spaces often found in BOLETOS/DARFS
+                                const rawBarcodeMatch = notes.match(/(?:\d[.\-\s]*){46,55}\d/);
                                 const barcodeToRender = rawBarcodeMatch ? rawBarcodeMatch[0].replace(/[^\d]/g, '') : null;
                                 const pixCodeToRender = pixMatch ? pixMatch[0] : null;
 
@@ -806,6 +809,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                         {pixCodeToRender && (
                                             <div className="flex flex-col items-center">
                                                 <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase text-center">Pix Copia e Cola Encontrado!</p>
+                                                <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 mb-2">
+                                                    <QRCode value={pixCodeToRender} size={150} />
+                                                </div>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
