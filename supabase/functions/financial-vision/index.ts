@@ -8,8 +8,12 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+    // Handle CORS preflight
     if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
+        return new Response(null, {
+            status: 204,
+            headers: corsHeaders
+        })
     }
 
     try {
@@ -30,12 +34,12 @@ Se for um Pix, foque no Valor, Data e Nome do Favorecido/Pagador.
 
 Responda APENAS um JSON válido no seguinte formato:
 {
-  "description": "Uma descrição curta e clara (ex: Pagamento de Energia - ENEL)",
-  "amount": 123.45, (apenas número, sem R$)
-  "date": "YYYY-MM-DD", (data de vencimento ou da transação)
-  "category_suggestion": "nome da categoria (ex: Alimentação, Energia, Impostos)",
-  "contact_suggestion": "Nome da Empresa ou Pessoa na nota/comprovante",
-  "is_payment_qr": boolean (verdadeiro se detectou um QR code de Pix para pagamento)
+  "description": "Uma descrição curta e clara",
+  "amount": 123.45,
+  "date": "YYYY-MM-DD",
+  "category_suggestion": "nome da categoria",
+  "contact_suggestion": "Nome da Empresa ou Pessoa",
+  "notes_suggestion": "observações extras se houver"
 }
 
 Regras:

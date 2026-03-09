@@ -629,7 +629,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 mb-3 animate-in fade-in duration-300">
                                 <div className="flex justify-between items-center mb-2">
                                     <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Visualização do Documento</p>
-                                    {file && (file.type.startsWith('image/') || file.type === 'application/pdf') && (
+                                    {file && (file.type.startsWith('image/')) && (
                                         <Button
                                             type="button"
                                             variant="outline"
@@ -639,7 +639,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                             className="h-7 text-[10px] border-emerald-200 text-emerald-600 dark:border-emerald-900 bg-white"
                                         >
                                             <TrendingUp className="w-3 h-3 mr-1" />
-                                            ANALISAR COM IA
+                                            ANALISAR IMAGEM (IA)
                                         </Button>
                                     )}
                                 </div>
