@@ -170,17 +170,21 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             const publicUrl = urlData.publicUrl;
 
             // Call the vision function
-            const { data } = await supabase.functions.invoke('financial-vision', {
+            const { data, error: invokeError } = await supabase.functions.invoke('financial-vision', {
                 body: { image_url: publicUrl, type }
             });
 
-            if (data) {
+            if (invokeError) throw new Error(invokeError.message || 'Erro ao chamar função de IA');
+
+            if (data && !data.error) {
                 if (data.description) setDescription(data.description);
                 if (data.amount) setAmount(data.amount.toString());
                 if (data.date) setDate(data.date);
                 if (data.notes_suggestion) setNotes(prev => prev ? `${prev}\n${data.notes_suggestion}` : data.notes_suggestion);
 
                 notify('success', 'Documento analisado com sucesso!', 'IA Financeira');
+            } else if (data?.error) {
+                throw new Error(data.error);
             }
 
             // Clean up temp file (optional, but good practice)
@@ -188,7 +192,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
         } catch (err: any) {
             console.error('Error analyzing document:', err);
-            notify('error', 'Falha ao analisar documento.', 'Erro');
+            notify('error', err.message || 'Falha ao analisar documento.', 'Erro na IA analisando Arquivo');
         } finally {
             setIsAnalyzing(false);
         }
