@@ -1,4 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import pdfParse from 'npm:pdf-parse@1.1.1'
+import { Buffer } from "node:buffer"
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 
@@ -25,9 +27,9 @@ serve(async (req) => {
 
         console.log(`Analisando Documento Financeiro com IA. Tipo: ${type || 'não informado'}`)
 
-        const prompt = `
+        const promptText = `
 Aja como um contador especialista e assistente financeiro. 
-Sua tarefa é ler a imagem anexada (que pode ser uma nota fiscal, boleto, cupom fiscal ou comprovante de pix) e extrair os dados estruturados para um lançamento no sistema de gestão.
+Sua tarefa é ler os dados extraídos do documento anexado (que pode ser uma nota fiscal, boleto, cupom fiscal ou comprovante de pix) e extrair os dados estruturados para um lançamento no sistema de gestão.
 
 IMPORTANTE: Se for um boleto ou nota, foque no Valor Total, Vencimento e Nome do Emissor.
 Se for um Pix, foque no Valor, Data e Nome do Favorecido/Pagador.
@@ -52,6 +54,32 @@ Regras:
             return new Response(JSON.stringify({ error: "Configuração de IA ausente (OPENAI_API_KEY)" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })
         }
 
+        let messagesContent: any[] = [];
+
+        // Check if it's a PDF
+        if (image_url.toLowerCase().split('?')[0].endsWith('.pdf')) {
+            console.log("Arquivo é um PDF, extraindo texto...");
+            const pdfResponse = await fetch(image_url);
+            const arrayBuffer = await pdfResponse.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const pdfData = await pdfParse(buffer);
+            const extractedText = pdfData.text;
+
+            console.log("Texto extraído com sucesso!");
+
+            messagesContent = [
+                { type: "text", text: promptText },
+                { type: "text", text: `CONTEÚDO DO DOCUMENTO PDF:\n${extractedText.substring(0, 4000)}` }
+            ];
+        } else {
+            // It's an image
+            console.log("Arquivo é uma imagem, usando Vision API...");
+            messagesContent = [
+                { type: "text", text: promptText },
+                { type: "image_url", image_url: { url: image_url } }
+            ];
+        }
+
         const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -64,10 +92,7 @@ Regras:
                 messages: [
                     {
                         role: 'user',
-                        content: [
-                            { type: "text", text: prompt },
-                            { type: "image_url", image_url: { url: image_url } }
-                        ]
+                        content: messagesContent
                     }
                 ],
                 max_tokens: 500
