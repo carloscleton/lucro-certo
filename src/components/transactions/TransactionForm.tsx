@@ -42,6 +42,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [file, setFile] = useState<File | null>(null);
     const [dealId, setDealId] = useState('');
     const [notes, setNotes] = useState('');
+    const [removedAttachment, setRemovedAttachment] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -82,6 +83,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setRecurringCount((initialData as any).recurring_count || 12);
             setDealId(initialData.deal_id || '');
             setNotes(initialData.notes || '');
+            setRemovedAttachment(false);
+            setFile(null);
         } else {
             // New transaction - load saved preference
             const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
@@ -101,6 +104,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setNotes('');
             setOverrides({});
             setEditingInstallment(null);
+            setRemovedAttachment(false);
+            setFile(null);
         }
     }, [initialData, isOpen, type]);
 
@@ -281,8 +286,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         e.preventDefault();
         setLoading(true);
         try {
-            let attachmentUrl = initialData?.attachment_url;
-            let attachmentPath = initialData?.attachment_path;
+            let attachmentUrl = removedAttachment ? null : initialData?.attachment_url;
+            let attachmentPath = removedAttachment ? null : initialData?.attachment_path;
+
+            // Delete old file from storage if it was removed
+            if (removedAttachment && initialData?.attachment_path) {
+                try {
+                    await supabase.storage.from('attachments').remove([initialData.attachment_path]);
+                } catch (err) {
+                    console.log("Aviso: Falha ao deletar arquivo antigo", err);
+                }
+            }
 
             if (file) {
                 const fileExt = file.name.split('.').pop();
@@ -813,13 +827,16 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                             type="button"
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setFile(null)}
+                                            onClick={() => {
+                                                setFile(null);
+                                                setNotes('');
+                                            }}
                                             className="text-red-500 hover:text-red-600 text-[10px]"
                                         >
                                             Remover Arquivo
                                         </Button>
                                     </div>
-                                ) : initialData?.attachment_url && (
+                                ) : (initialData?.attachment_url && !removedAttachment) && (
                                     <div className="flex flex-col items-center gap-3">
                                         {initialData.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)/i) || initialData.attachment_url.includes('image') ? (
                                             <div className="relative w-full max-h-80 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600 shadow-sm">
@@ -857,6 +874,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 </div>
                                             </div>
                                         )}
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                setRemovedAttachment(true);
+                                                setNotes('');
+                                            }}
+                                            className="text-red-500 hover:text-red-600 text-[10px]"
+                                        >
+                                            Remover Arquivo do Sistema
+                                        </Button>
                                     </div>
                                 )}
                             </div>
