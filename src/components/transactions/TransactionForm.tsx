@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Receipt, TrendingUp, Paperclip, Repeat, Plus } from 'lucide-react';
+import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Copy, Check } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
@@ -158,6 +158,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         setIsAnalyzing(true);
         try {
             let extractedText = '';
+            let pdfFirstPageImageBase64: string | null = null;
 
             // Se for PDF, extrai texto localmente antes de invocar
             if (fileToAnalyze.type === 'application/pdf' || fileToAnalyze.name.toLowerCase().endsWith('.pdf')) {
@@ -186,6 +187,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 canvas.width = viewport.width;
 
                                 await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                                // Capture the first page image for OpenAI Vision API just in case jsQR fails
+                                if (i === 1 && scale === 1.5) {
+                                    pdfFirstPageImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                                }
 
                                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
                                 const code = jsQRLib(imageData.data, imageData.width, imageData.height);
@@ -229,6 +235,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             const payload: any = { type };
             if (extractedText) {
                 payload.text_content = extractedText;
+                // Add the visual image of the first page so Vision AI can also detect QR Codes visually!
+                if (pdfFirstPageImageBase64) {
+                    payload.image_url = pdfFirstPageImageBase64;
+                }
             } else {
                 payload.image_url = publicUrl;
             }
@@ -708,19 +718,41 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                         {pixCodeToRender && (
                                             <div className="flex flex-col items-center">
                                                 <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase">QR Code Pix para Pagamento</p>
-                                                <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                                                <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 mb-2">
                                                     <QRCode value={pixCodeToRender} size={150} />
                                                 </div>
-                                                <p className="text-[9px] text-gray-400 mt-2 break-all px-4 text-center select-all">{pixCodeToRender}</p>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-[10px] h-7 w-full max-w-[200px]"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(pixCodeToRender.trim());
+                                                        notify('success', 'Pix Copia e Cola copiado para a área de transferência!', 'Copiado');
+                                                    }}
+                                                >
+                                                    <Copy className="w-3 h-3 mr-1" /> Copiar Código Pix
+                                                </Button>
                                             </div>
                                         )}
                                         {barcodeToRender && (
                                             <div className={`flex flex-col items-center ${pixCodeToRender ? 'border-t border-gray-100 dark:border-slate-700 pt-3 mt-1' : ''}`}>
                                                 <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase">Código de Barras</p>
-                                                <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
-                                                    <Barcode value={barcodeToRender} width={1.8} height={50} displayValue={false} background="#ffffff" lineColor="#000000" margin={0} />
+                                                <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100 mb-2 flex justify-center w-full overflow-hidden">
+                                                    <Barcode value={barcodeToRender} width={1.5} height={50} displayValue={false} background="#ffffff" lineColor="#000000" margin={0} />
                                                 </div>
-                                                <p className="text-[11px] font-mono text-gray-700 dark:text-gray-300 mt-2 tracking-widest select-all">{barcodeToRender}</p>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-[10px] h-7 w-full max-w-[200px]"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(barcodeToRender.trim());
+                                                        notify('success', 'Código de barras copiado para a área de transferência!', 'Copiado');
+                                                    }}
+                                                >
+                                                    <Copy className="w-3 h-3 mr-1" /> Copiar Código de Barras
+                                                </Button>
                                             </div>
                                         )}
                                     </div>
