@@ -216,11 +216,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                         const foundText = result.data;
                                         console.log(`QR Code encontrado na página: ${i} (Escala: ${scale}) via QrScanner`);
 
-                                        // Check if it looks like a Pix payload or URL, otherwise it's likely a Barcode
+                                        // Use a very specific marker for local extraction to avoid IA/Regex confusion later
                                         if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
-                                            extractedText += `\n[CÓDIGO PIX DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                            extractedText += `\n>>>>PIX_DATA<<<<${foundText}>>>>END_PIX<<<<\n`;
                                         } else {
-                                            extractedText += `\n[CÓDIGO QR DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                            extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
                                         }
                                         break; // Found it, stop scaling
                                     }
@@ -255,10 +255,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         if (result && result.data && result.data.length > 10) {
                             const foundText = result.data;
                             if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
-                                extractedText += `\n[CÓDIGO PIX DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                extractedText += `\n>>>>PIX_DATA<<<<${foundText}>>>>END_PIX<<<<\n`;
                                 console.log("QR Code PIX encontrado na imagem via QrScanner");
                             } else {
-                                extractedText += `\n[CÓDIGO QR DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
                                 console.log("Código QR encontrado na imagem via QrScanner");
                             }
                         }
@@ -310,12 +310,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 if (data.notes_suggestion) {
                     let finalNotes = data.notes_suggestion;
 
-                    // Failsafe: se a extração local pegou um código PIX ou Boleto perfeitamente mas a IA omitiu ou alterou.
+                    // Failsafe: se a extração local pegou um código PIX perfeitamente mas a IA omitiu ou alterou.
                     if (extractedText) {
-                        const sanitizedExtractedText = extractedText.replace(/\s+/g, '');
-                        const localPix = sanitizedExtractedText.match(/000201.*?6304[A-Fa-f0-9]{4}/);
-                        if (localPix && !finalNotes.replace(/\s+/g, '').includes(localPix[0])) {
-                            finalNotes = `CÓDIGO PIX COPIA E COLA:\n${localPix[0]}\n\n` + finalNotes;
+                        const localPixMatch = extractedText.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
+                        if (localPixMatch && !finalNotes.includes(localPixMatch[1])) {
+                            finalNotes = `**PIX COPIA E COLA:**\n${localPixMatch[1]}\n\n` + finalNotes;
                         }
                     }
 
@@ -793,14 +792,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             />
 
                             {(() => {
-                                // Pix Copia e Cola always starts with 000201 and ends with ID 63, length 04, and a 4-hex CRC16 checksum.
-                                const sanitizedNotes = notes.replace(/\s+/g, '');
-                                const pixMatch = sanitizedNotes.match(/000201.*?6304[A-Fa-f0-9]{4}/);
+                                // Try to find marked Pix first (prioritizes 100% fidelity), then fallback to regex
+                                const markedPix = notes.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
+                                const loosePix = notes.replace(/\s+/g, '').match(/000201[A-Z0-9]*?6304[A-F0-9]{4}/i);
+                                const pixCodeToRender = markedPix ? markedPix[1].trim() : (loosePix ? loosePix[0] : null);
 
-                                // Improved Barcode match: look for sequences with dots/spaces often found in BOLETOS/DARFS
-                                const rawBarcodeMatch = notes.match(/(?:\d[.\-\s]*){46,55}\d/);
+                                // Try to find Barcode in notes
+                                const rawBarcodeMatch = notes.match(/(?:\d[.\-\s]*){44,55}\d/);
                                 const barcodeToRender = rawBarcodeMatch ? rawBarcodeMatch[0].replace(/[^\d]/g, '') : null;
-                                const pixCodeToRender = pixMatch ? pixMatch[0] : null;
 
                                 if (!pixCodeToRender && !barcodeToRender) return null;
 
