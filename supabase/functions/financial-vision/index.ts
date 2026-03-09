@@ -106,7 +106,7 @@ Regras:
         return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 })
 
     } catch (err: any) {
-        console.error(err)
-        return new Response(JSON.stringify({ error: String(err?.message) }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 })
+        console.error("Full error:", err, err.stack)
+        return new Response(JSON.stringify({ error: err?.message || String(err), stack: err?.stack }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 })
     }
 })
