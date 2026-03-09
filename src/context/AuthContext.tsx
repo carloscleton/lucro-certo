@@ -83,18 +83,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
             if (data) {
+                if (data.status === 'blocked') {
+                    await supabase.auth.signOut();
+                    return;
+                }
                 let companyId: string | undefined;
                 try {
-                    // Fetch company_id
+                    // Fetch company_id and status
                     const { data: memberData } = await supabase
                         .from('company_members')
-                        .select('company_id')
+                        .select('company_id, company:companies(status)')
                         .eq('user_id', userId)
                         .eq('status', 'active')
                         .limit(1)
                         .maybeSingle();
 
-                    if (memberData) companyId = memberData.company_id;
+                    if (memberData) {
+                        companyId = memberData.company_id;
+                        const companyStatus = (memberData as any)?.company?.status;
+                        if (companyStatus === 'blocked' && data.email !== 'carloscleton.nat@gmail.com') {
+                            await supabase.auth.signOut();
+                            return;
+                        }
+                    }
                 } catch (memberErr) {
                     console.error('Error fetching company membership:', memberErr);
                 }

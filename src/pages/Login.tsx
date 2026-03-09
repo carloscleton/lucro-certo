@@ -139,11 +139,47 @@ export function Login() {
                 setIsSignUp(false);
                 setError(null);
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data: authData, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
                 if (error) throw error;
+
+                if (authData?.user) {
+                    // Check profile status immediately
+                    const { data: profileData } = await supabase
+                        .from('profiles')
+                        .select('status')
+                        .eq('id', authData.user.id)
+                        .maybeSingle();
+
+                    if (profileData?.status === 'blocked') {
+                        await supabase.auth.signOut();
+                        setShowBannedModal(true);
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Check if company is blocked (Primary company)
+                    const { data: membershipData } = await supabase
+                        .from('company_members')
+                        .select('company:companies(status)')
+                        .eq('user_id', authData.user.id)
+                        .eq('status', 'active')
+                        .limit(1)
+                        .maybeSingle();
+
+                    const castedMembership = membershipData as any;
+                    if (castedMembership?.company?.status === 'blocked') {
+                        // For company block, we also prevent immediate entry if it's the only/primary context
+                        // This matches "não precisa nem chegar abrir o sistema"
+                        await supabase.auth.signOut();
+                        setShowBannedModal(true);
+                        setLoading(false);
+                        return;
+                    }
+                }
+
                 navigate('/');
             }
         } catch (err: any) {
