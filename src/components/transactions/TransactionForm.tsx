@@ -818,10 +818,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 // We check for: 1. Marked data, 2. EMV 000201 pattern, 3. Pix URL
                                 const markedPixMatch = notes.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
 
+                                // Clean notes for matching (removes spaces/newlines that break regex)
+                                const cleanNotes = notes.replace(/\s+/g, '');
                                 const pixRegex = /(?:000201[a-zA-Z0-9]{100,500}?6304[a-fA-F0-9]{4})|(?:000201[a-zA-Z0-9]{50,})|(?:https:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150})/i;
-                                const loosePixMatch = notes.match(pixRegex);
+                                const loosePixMatch = cleanNotes.match(pixRegex);
 
-                                const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (loosePixMatch ? loosePixMatch[0].replace(/\s+/g, '') : null);
+                                const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (loosePixMatch ? loosePixMatch[0] : null);
 
                                 // Try to find marked Barcode first, then fallback to loose numeric regex (Boleto format)
                                 const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
