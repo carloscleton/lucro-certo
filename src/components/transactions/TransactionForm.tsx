@@ -174,19 +174,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 const arrayBuffer = await fileToAnalyze.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-                const ZXing = await import('@zxing/browser');
-                const ZXingLib = await import('@zxing/library');
-
-                const hints = new Map();
-                hints.set(ZXingLib.DecodeHintType.TRY_HARDER, true);
-                hints.set(ZXingLib.DecodeHintType.POSSIBLE_FORMATS, [
-                    ZXingLib.BarcodeFormat.QR_CODE,
-                    ZXingLib.BarcodeFormat.ITF,
-                    ZXingLib.BarcodeFormat.CODE_128,
-                    ZXingLib.BarcodeFormat.DATA_MATRIX
-                ]);
-
-                const codeReader = new ZXing.BrowserMultiFormatReader(hints);
+                const QrScanner = (await import('qr-scanner')).default;
 
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
@@ -203,30 +191,31 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             if (context) {
                                 canvas.height = viewport.height;
                                 canvas.width = viewport.width;
+                                context.imageSmoothingEnabled = false; // CRUCIAL for QR code sharpness
 
                                 await page.render({ canvasContext: context, viewport: viewport }).promise;
 
-                                // Capture the first page image for OpenAI Vision API just in case ZXing fails
+                                // Capture the first page image for OpenAI Vision API just in case local scan fails
                                 if (i === 1 && scale === 1.5) {
                                     pdfFirstPageImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
                                 }
 
                                 try {
-                                    const result = await codeReader.decodeFromCanvas(canvas);
-                                    if (result && result.getText() && result.getText().length > 10) {
-                                        const foundText = result.getText();
-                                        console.log(`Código encontrado na página: ${i} (Escala: ${scale}) Formato: ${result.getBarcodeFormat()} via ZXing`);
+                                    const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
+                                    if (result && result.data && result.data.length > 10) {
+                                        const foundText = result.data;
+                                        console.log(`QR Code encontrado na página: ${i} (Escala: ${scale}) via QrScanner`);
 
                                         // Check if it looks like a Pix payload or URL, otherwise it's likely a Barcode
                                         if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
                                             extractedText += `\n[CÓDIGO PIX DETECTADO VIA IMAGEM]:\n${foundText}\n`;
                                         } else {
-                                            extractedText += `\n[CÓDIGO DE BARRAS DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                            extractedText += `\n[CÓDIGO QR DETECTADO VIA IMAGEM]:\n${foundText}\n`;
                                         }
                                         break; // Found it, stop scaling
                                     }
                                 } catch (decodeErr) {
-                                    // ZXing throws if it can't find a code, which is expected for most scales/pages
+                                    // qr-scanner throws if it can't find a code, which is expected for most scales/pages
                                 }
                             }
                         } catch (e) {
@@ -246,19 +235,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             } else if (fileToAnalyze.type.startsWith('image/')) {
                 // If it's a regular image, try to scan for QR Code locally as OpenAI Vision struggles with it
                 try {
-                    const ZXing = await import('@zxing/browser');
-                    const ZXingLib = await import('@zxing/library');
-
-                    const hints = new Map();
-                    hints.set(ZXingLib.DecodeHintType.TRY_HARDER, true);
-                    hints.set(ZXingLib.DecodeHintType.POSSIBLE_FORMATS, [
-                        ZXingLib.BarcodeFormat.QR_CODE,
-                        ZXingLib.BarcodeFormat.ITF,
-                        ZXingLib.BarcodeFormat.CODE_128,
-                        ZXingLib.BarcodeFormat.DATA_MATRIX
-                    ]);
-
-                    const codeReader = new ZXing.BrowserMultiFormatReader(hints);
+                    const QrScanner = (await import('qr-scanner')).default;
                     const objectUrl = URL.createObjectURL(fileToAnalyze);
                     const HTMLImageElement = document.createElement('img');
                     HTMLImageElement.src = objectUrl;
@@ -269,19 +246,19 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     });
 
                     try {
-                        const result = await codeReader.decodeFromImageElement(HTMLImageElement);
-                        if (result && result.getText() && result.getText().length > 10) {
-                            const foundText = result.getText();
+                        const result = await QrScanner.scanImage(HTMLImageElement, { returnDetailedScanResult: true });
+                        if (result && result.data && result.data.length > 10) {
+                            const foundText = result.data;
                             if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
                                 extractedText += `\n[CÓDIGO PIX DETECTADO VIA IMAGEM]:\n${foundText}\n`;
-                                console.log("QR Code PIX encontrado na imagem via ZXing");
+                                console.log("QR Code PIX encontrado na imagem via QrScanner");
                             } else {
-                                extractedText += `\n[CÓDIGO DE BARRAS DETECTADO VIA IMAGEM]:\n${foundText}\n`;
-                                console.log("Código de Barras encontrado na imagem via ZXing");
+                                extractedText += `\n[CÓDIGO QR DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                console.log("Código QR encontrado na imagem via QrScanner");
                             }
                         }
                     } catch (decodeErr) {
-                        // ZXing throws if it can't find a code, which is expected for most images
+                        // qr-scanner throws if it can't find a code, which is expected for most images
                     }
                     URL.revokeObjectURL(objectUrl);
                 } catch (e) {
@@ -325,7 +302,24 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 if (data.description) setDescription(data.description);
                 if (data.amount) setAmount(data.amount.toString());
                 if (data.date) setDate(data.date);
-                if (data.notes_suggestion) setNotes(prev => prev ? `${prev}\n${data.notes_suggestion}` : data.notes_suggestion);
+                if (data.notes_suggestion) {
+                    let finalNotes = data.notes_suggestion;
+
+                    // Failsafe: se a extração local pegou um código PIX ou Boleto perfeitamente mas a IA omitiu ou alterou.
+                    if (extractedText) {
+                        const localPix = extractedText.match(/000201\S{40,}/);
+                        if (localPix && !finalNotes.includes(localPix[0])) {
+                            finalNotes = `CÓDIGO PIX COPIA E COLA:\n${localPix[0]}\n\n` + finalNotes;
+                        }
+
+                        const localBarcode = extractedText.match(/\d{44,48}/);
+                        if (localBarcode && !finalNotes.includes(localBarcode[0])) {
+                            finalNotes = `CÓDIGO DE BARRAS / LINHA DIGITÁVEL:\n${localBarcode[0]}\n\n` + finalNotes;
+                        }
+                    }
+
+                    setNotes(prev => prev ? `${prev}\n${finalNotes}` : finalNotes);
+                }
 
                 notify('success', 'Documento analisado com sucesso!', 'IA Financeira');
             } else if (data?.error) {
