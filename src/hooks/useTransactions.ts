@@ -278,12 +278,37 @@ export function useTransactions(type: TransactionType) {
             // Get transaction details first to check status and quote link
             const { data: transaction } = await supabase
                 .from('transactions')
-                .select('quote_id, status, recurrence_group_id, date')
+                .select('quote_id, status, recurrence_group_id, date, attachment_path')
                 .eq('id', id)
                 .maybeSingle();
 
             // The UI (Transactions.tsx) now handles permission checks (admin/owner/member_can_delete)
             // before calling this function. We removed the hardcoded superadmin lock here.
+
+            // NEW: Delete associated attachment from storage if it's not being used by other installments
+            if (transaction?.attachment_path) {
+                try {
+                    // Check if this file is used by any OTHER transaction
+                    const { count } = await supabase
+                        .from('transactions')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('attachment_path', transaction.attachment_path)
+                        .neq('id', id);
+
+                    // If scope is 'all', or 'future' (and it's the only one left after logic), or count is 0
+                    // BUT for simplicity and safety, we delete if count is 0 (it shouldn't be yet) 
+                    // OR if we are deleting 'all' records
+                    if (scope === 'all' || (count === 0)) {
+                        await supabase.storage.from('attachments').remove([transaction.attachment_path]);
+                        console.log(`Deleted attachment from storage: ${transaction.attachment_path}`);
+                    } else if (scope === 'single' && count === 0) {
+                        await supabase.storage.from('attachments').remove([transaction.attachment_path]);
+                    }
+                    // For 'future' or 'single' when others exist, we keep it to avoid breaking them.
+                } catch (err) {
+                    console.warn('Aviso: Falha ao gerenciar anexo no Storage', err);
+                }
+            }
 
             let query = supabase.from('transactions').delete();
 
