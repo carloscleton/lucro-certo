@@ -805,10 +805,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                     <div className="mt-2 p-3 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 rounded-xl flex flex-col gap-4 animate-in fade-in duration-500">
                                         {pixCodeToRender && (
                                             <div className="flex flex-col items-center">
-                                                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase">QR Code Pix para Pagamento</p>
-                                                <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 mb-2">
-                                                    <QRCode value={pixCodeToRender} size={150} />
-                                                </div>
+                                                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase text-center">Pix Copia e Cola Encontrado!</p>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
