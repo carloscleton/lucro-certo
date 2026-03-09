@@ -37,6 +37,7 @@ export interface Transaction {
     contact?: { name: string };
     category?: { name: string };
     profile?: { full_name: string };
+    notes?: string;
     created_at: string;
 }
 
@@ -99,7 +100,7 @@ export function useTransactions(type: TransactionType) {
                 'company_id', 'contact_id', 'attachment_url', 'attachment_path',
                 'payment_method', 'payment_date', 'interest', 'penalty',
                 'paid_amount', 'quote_id', 'deal_id', 'is_variable_amount',
-                'recurrence_group_id', 'installment_number', 'recurring_count'
+                'recurrence_group_id', 'installment_number', 'recurring_count', 'notes'
             ];
 
             const cleanTransaction: any = {};
@@ -172,7 +173,7 @@ export function useTransactions(type: TransactionType) {
                 'company_id', 'contact_id', 'attachment_url', 'attachment_path',
                 'payment_method', 'payment_date', 'interest', 'penalty',
                 'paid_amount', 'quote_id', 'deal_id', 'is_variable_amount',
-                'recurrence_group_id', 'installment_number', 'recurring_count'
+                'recurrence_group_id', 'installment_number', 'recurring_count', 'notes'
             ];
 
             const cleanUpdates: any = {};

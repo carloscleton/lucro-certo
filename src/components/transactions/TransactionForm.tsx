@@ -38,6 +38,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [recurringCount, setRecurringCount] = useState(12);
     const [file, setFile] = useState<File | null>(null);
     const [dealId, setDealId] = useState('');
+    const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
     const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
@@ -73,6 +74,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setFrequency(initialData.frequency || 'monthly');
             setRecurringCount((initialData as any).recurring_count || 12);
             setDealId(initialData.deal_id || '');
+            setNotes(initialData.notes || '');
         } else {
             // New transaction - load saved preference
             const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
@@ -89,6 +91,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setFrequency('monthly');
             setRecurringCount(12);
             setDealId('');
+            setNotes('');
             setOverrides({});
             setEditingInstallment(null);
         }
@@ -167,7 +170,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 attachment_path: attachmentPath,
                 deal_id: dealId || null,
                 overrides: Object.keys(overrides).length > 0 ? overrides : undefined,
-                propagate: propagateChanges
+                propagate: propagateChanges,
+                notes: notes
             });
             onClose();
         } catch (error) {
@@ -543,33 +547,115 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         )}
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                             <Paperclip className="w-4 h-4" /> Anexo / Comprovante
                         </label>
+
+                        {/* Summary / Notes Field */}
+                        <div className="flex flex-col gap-1.5 mb-3">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Resumo / Observações do Documento</label>
+                            <textarea
+                                className="flex min-h-[80px] w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600 resize-none"
+                                placeholder="Descreva o que é este anexo ou adicione observações importantes..."
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                            />
+                        </div>
+
+                        {/* File Preview */}
+                        {(file || initialData?.attachment_url) && (
+                            <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 mb-3 animate-in fade-in duration-300">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Visualização do Documento</p>
+
+                                {file ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        {file.type.startsWith('image/') ? (
+                                            <div className="relative w-full max-h-64 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600">
+                                                <img
+                                                    src={URL.createObjectURL(file)}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-3 p-3 w-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                                                <Paperclip className="w-8 h-8 text-emerald-500" />
+                                                <div className="flex-1 overflow-hidden">
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{file.name}</p>
+                                                    <p className="text-[10px] text-gray-500">{(file.size / 1024).toFixed(1)} KB - PDF / Documento</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setFile(null)}
+                                            className="text-red-500 hover:text-red-600 text-[10px]"
+                                        >
+                                            Remover Arquivo
+                                        </Button>
+                                    </div>
+                                ) : initialData?.attachment_url && (
+                                    <div className="flex flex-col items-center gap-3">
+                                        {initialData.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)/i) || initialData.attachment_url.includes('image') ? (
+                                            <div className="relative w-full max-h-80 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600 shadow-sm">
+                                                <img
+                                                    src={initialData.attachment_url}
+                                                    alt="Anexo"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                                <a
+                                                    href={initialData.attachment_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                                                    title="Ver em tela cheia"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col w-full gap-2">
+                                                <div className="flex items-center gap-3 p-3 w-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                                                    <Paperclip className="w-8 h-8 text-emerald-500" />
+                                                    <div className="flex-1 overflow-hidden">
+                                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Documento Vinculado</p>
+                                                        <p className="text-[10px] text-gray-500">PDF / Comprovante de Pagamento</p>
+                                                    </div>
+                                                    <a
+                                                        href={initialData.attachment_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold rounded-lg transition-colors"
+                                                    >
+                                                        ABRIR / PAGAR
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="flex items-center justify-center w-full">
-                            <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 transition-all">
+                            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 transition-all">
                                 <div className="flex flex-col items-center justify-center pt-2 pb-3">
                                     <p className="mb-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                        <span className="font-semibold">Clique para anexar</span> ou arraste o arquivo
+                                        <span className="font-semibold">{file ? 'Trocar arquivo' : 'Clique para anexar'}</span> ou arraste
                                     </p>
-                                    <p className="text-[10px] text-gray-400 dark:text-gray-500">PDF, PNG, JPG (Máx. 5MB)</p>
+                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-bold">PDF, PNG, JPG (Máx. 5MB)</p>
                                 </div>
                                 <input
                                     type="file"
                                     className="hidden"
                                     onChange={e => setFile(e.target.files?.[0] || null)}
+                                    accept=".pdf,.png,.jpg,.jpeg,.webp"
                                 />
                             </label>
                         </div>
-                        {file && (
-                            <p className="text-xs text-emerald-600 font-medium mt-1 uppercase">Arquivo selecionado: {file.name}</p>
-                        )}
-                        {initialData?.attachment_url && !file && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Anexo atual: <a href={initialData.attachment_url} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline font-bold">Ver Comprovante</a>
-                            </p>
-                        )}
                     </div>
 
                     <div className="flex justify-end gap-3 mt-2">

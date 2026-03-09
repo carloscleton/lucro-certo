@@ -107,6 +107,11 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                                             <span className="truncate">{t.description}</span>
                                         </Tooltip>
                                         <div className="flex items-center gap-1 shrink-0">
+                                            {t.notes && (
+                                                <Tooltip content={`Observação: ${t.notes}`}>
+                                                    <FileText size={11} className="text-gray-400" />
+                                                </Tooltip>
+                                            )}
                                             {t.is_recurring && (
                                                 <Tooltip content={`Recorrente (${{ weekly: 'Semanal', monthly: 'Mensal', yearly: 'Anual' }[t.frequency || 'monthly']}) ${t.installment_number ? `- Part #${t.installment_number}` : ''}`}>
                                                     <Repeat size={11} className="text-emerald-500" />
