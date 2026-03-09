@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Copy } from 'lucide-react';
+import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Copy, Search } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
@@ -61,6 +61,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [showContactModal, setShowContactModal] = useState(false);
     const [pendingCategoryName, setPendingCategoryName] = useState<string | null>(null);
+    const [showNotesModal, setShowNotesModal] = useState(false);
 
     const isCRMEnabled = currentEntity.type === 'company' &&
         companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
@@ -698,9 +699,21 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             <Paperclip className="w-4 h-4" /> Anexo / Comprovante
                         </label>
 
-                        {/* Summary / Notes Field */}
                         <div className="flex flex-col gap-1.5 mb-3">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Resumo / Observações do Documento</label>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex justify-between items-center w-full">
+                                <span>Resumo / Observações do Documento</span>
+                                {notes.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNotesModal(true)}
+                                        className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md"
+                                        title="Ver Observação Completa em Lupa"
+                                    >
+                                        <Search className="w-3 h-3" />
+                                        <span className="text-[10px] font-bold">LUPA</span>
+                                    </button>
+                                )}
+                            </label>
                             <textarea
                                 className="flex min-h-[80px] w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600 resize-none"
                                 placeholder="Descreva o que é este anexo ou adicione observações importantes..."
@@ -893,6 +906,25 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 onClose={() => setShowContactModal(false)}
                 onSubmit={handleContactCreated}
             />
+            <Modal
+                isOpen={showNotesModal}
+                onClose={() => setShowNotesModal(false)}
+                title="Observação Completa"
+                icon={Search}
+            >
+                <div className="p-4">
+                    <textarea
+                        readOnly
+                        className="w-full h-[60vh] rounded-lg border border-gray-300 bg-gray-50/50 dark:bg-slate-800/50 p-4 text-sm text-[var(--color-text-main)] focus:outline-none dark:border-slate-600 resize-none font-mono leading-relaxed"
+                        value={notes}
+                    />
+                    <div className="flex justify-end mt-4">
+                        <Button type="button" onClick={() => setShowNotesModal(false)} className="px-6">
+                            Fechar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </>
     );
 }
