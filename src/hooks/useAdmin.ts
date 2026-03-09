@@ -17,8 +17,8 @@ export interface AdminUser {
     created_at: string;
     quotes_count: number;
     transactions_count: number;
-    banned_until?: string | null;
     max_companies: number;
+    status: string;
 }
 
 export interface AdminCompany {
@@ -43,6 +43,7 @@ export interface AdminCompany {
     has_social_copilot?: boolean;
     automations_module_enabled?: boolean;
     allowed_entity_types?: string[];
+    status: string;
 }
 
 export function useAdmin() {
@@ -173,6 +174,33 @@ export function useAdmin() {
         }
     };
 
+    const toggleCompanyStatus = async (companyId: string, shouldBlock: boolean) => {
+        if (!isAdmin) return { error: 'Unauthorized' };
+
+        // Optimistic Update
+        const previousList = [...companiesList];
+        setCompaniesList(companiesList.map(c =>
+            c.id === companyId
+                ? { ...c, status: shouldBlock ? 'blocked' : 'active' }
+                : c
+        ));
+
+        try {
+            const { error } = await supabase.rpc('admin_toggle_company_status', {
+                target_company_id: companyId,
+                should_block: shouldBlock
+            });
+
+            if (error) throw error;
+            await fetchAdminData(true);
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error toggling company status:', err);
+            setCompaniesList(previousList);
+            return { error: err.message };
+        }
+    };
+
     const updateUserLimit = async (userId: string, newLimit: number) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
@@ -229,6 +257,7 @@ export function useAdmin() {
         error,
         deleteUser,
         toggleUserBan,
+        toggleCompanyStatus,
         updateUserLimit,
         updateUserConfig,
         updateCompanyConfig,

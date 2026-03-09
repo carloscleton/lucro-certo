@@ -1590,16 +1590,16 @@ export function Settings() {
                                                 </tr>
                                             ) : (
                                                 usersList.map((u) => {
-                                                    const isBanned = u.banned_until && new Date(u.banned_until) > new Date();
+                                                    const isBlocked = u.status === 'blocked';
                                                     return (
                                                         <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                                                             <td className="px-4 py-3">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className={`p-2 rounded-full ${isBanned ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                                    <div className={`p-2 rounded-full ${isBlocked ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                                                                         <Users size={16} />
                                                                     </div>
                                                                     <div>
-                                                                        <div className={`font-medium ${isBanned ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{u.full_name || 'Sem nome'}</div>
+                                                                        <div className={`font-medium ${isBlocked ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{u.full_name || 'Sem nome'}</div>
                                                                         <div className="text-xs text-gray-500">{u.email}</div>
                                                                     </div>
                                                                 </div>
@@ -1630,8 +1630,8 @@ export function Settings() {
                                                                     <input
                                                                         type="checkbox"
                                                                         className="sr-only peer"
-                                                                        checked={!isBanned}
-                                                                        onChange={() => toggleUserBan(u.id, !isBanned)}
+                                                                        checked={!isBlocked}
+                                                                        onChange={() => toggleUserBan(u.id, !isBlocked)}
                                                                     />
                                                                     <div className="w-11 h-6 bg-red-500 peer-focus:outline-none rounded-full peer dark:bg-red-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                                                                 </label>
@@ -1669,6 +1669,7 @@ export function Settings() {
                                                 <th className="px-5 py-4 text-center">Plano / Licença</th>
                                                 <th className="px-5 py-4 text-center">Faturamento</th>
                                                 <th className="px-5 py-4 text-center">Sua Comissão</th>
+                                                <th className="px-5 py-4 text-center">Status</th>
                                                 <th className="px-5 py-4 text-right">Ações</th>
                                             </tr>
                                         </thead>
@@ -1738,6 +1739,18 @@ export function Settings() {
                                                                     <span className="text-[9px] text-purple-600 dark:text-purple-400 font-medium">{c.settings.product_commission_rate}% Produtos</span>
                                                                 )}
                                                             </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer scale-75">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only peer"
+                                                                    checked={c.status !== 'blocked'}
+                                                                    //@ts-ignore
+                                                                    onChange={() => toggleCompanyStatus(c.id, c.status !== 'blocked')}
+                                                                />
+                                                                <div className="w-11 h-6 bg-red-500 peer-focus:outline-none rounded-full peer dark:bg-red-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                                                            </label>
                                                         </td>
                                                         <td className="px-2 py-4 text-right">
                                                             <div className="flex items-center justify-end gap-1.5">
