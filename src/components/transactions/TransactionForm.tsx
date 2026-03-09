@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Copy, Search } from 'lucide-react';
-import QRCode from 'react-qr-code';
 import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
 import { ContactForm } from '../contacts/ContactForm';
