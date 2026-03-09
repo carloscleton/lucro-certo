@@ -820,7 +820,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                                 // Clean notes for matching (removes spaces/newlines that break regex)
                                 const cleanNotes = notes.replace(/\s+/g, '');
-                                const pixRegex = /(?:000201[a-zA-Z0-9]{100,500}?6304[a-fA-F0-9]{4})|(?:000201[a-zA-Z0-9]{50,})|(?:https:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150})/i;
+                                // Loosened lengths to catch GT/DAS codes which can be shorter or vary
+                                const pixRegex = /(?:000201[a-zA-Z0-9]{25,1000}?6304[a-fA-F0-9]{4})|(?:000201[a-zA-Z0-9]{25,})|(?:https:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150})/i;
                                 const loosePixMatch = cleanNotes.match(pixRegex);
 
                                 const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (loosePixMatch ? loosePixMatch[0] : null);
@@ -909,6 +910,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{file.name}</p>
                                                     <p className="text-[10px] text-gray-500">{(file.size / 1024).toFixed(1)} KB - PDF / Documento</p>
                                                 </div>
+                                                <a
+                                                    href={URL.createObjectURL(file)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold rounded-lg transition-colors"
+                                                >
+                                                    ABRIR / CONFERIR
+                                                </a>
                                             </div>
                                         )}
                                         <Button
