@@ -233,7 +233,15 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         }
                     }
 
-                    // Allow AI to handle Barcode reading, as removing all non-digits from a page causes false matches on CNPJs + dates combined.
+                    // Local Barcode Extraction via Regex (DARF/Boleto formats)
+                    // Look for 44-48 numbers that might have dots/spaces
+                    const pageBarcodeMatch = pageText.match(/(?:\d[.\-\s]*){44,55}\d/);
+                    if (pageBarcodeMatch) {
+                        const cleanBarcode = pageBarcodeMatch[0].replace(/[^\d]/g, '');
+                        if (cleanBarcode.length >= 44 && cleanBarcode.length <= 48) {
+                            extractedText += `\n>>>>BARCODE_DATA<<<<${cleanBarcode}>>>>END_BARCODE<<<<\n`;
+                        }
+                    }
 
                     if (i >= 5) break;
                 }
@@ -310,11 +318,19 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 if (data.notes_suggestion) {
                     let finalNotes = data.notes_suggestion;
 
-                    // Failsafe: se a extração local pegou um código PIX perfeitamente mas a IA omitiu ou alterou.
+                    // Failsafe: se a extração local pegou dados perfeitamente mas a IA omitiu ou alterou.
                     if (extractedText) {
                         const localPixMatch = extractedText.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
                         if (localPixMatch && !finalNotes.includes(localPixMatch[1])) {
-                            finalNotes = `**PIX COPIA E COLA:**\n${localPixMatch[1]}\n\n` + finalNotes;
+                            // Prepend with markers so the UI always finds the high-fidelity version
+                            const wrappedPix = `>>>>PIX_DATA<<<<${localPixMatch[1]}>>>>END_PIX<<<<`;
+                            finalNotes = `**PIX COPIA E COLA:**\n${wrappedPix}\n\n` + finalNotes;
+                        }
+
+                        const localBarcodeMatch = extractedText.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
+                        if (localBarcodeMatch && !finalNotes.includes(localBarcodeMatch[1])) {
+                            const wrappedBarcode = `>>>>BARCODE_DATA<<<<${localBarcodeMatch[1]}>>>>END_BARCODE<<<<`;
+                            finalNotes = `**CÓDIGO DE BARRAS:**\n${wrappedBarcode}\n\n` + finalNotes;
                         }
                     }
 
@@ -797,9 +813,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 const loosePix = notes.replace(/\s+/g, '').match(/000201[A-Z0-9]*?6304[A-F0-9]{4}/i);
                                 const pixCodeToRender = markedPix ? markedPix[1].trim() : (loosePix ? loosePix[0] : null);
 
-                                // Try to find Barcode in notes
+                                // Try to find marked Barcode first, then fallback to loose numeric regex
+                                const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
                                 const rawBarcodeMatch = notes.match(/(?:\d[.\-\s]*){44,55}\d/);
-                                const barcodeToRender = rawBarcodeMatch ? rawBarcodeMatch[0].replace(/[^\d]/g, '') : null;
+                                const barcodeToRender = markedBarcode ? markedBarcode[1].trim() : (rawBarcodeMatch ? rawBarcodeMatch[0].replace(/[^\d]/g, '') : null);
 
                                 if (!pixCodeToRender && !barcodeToRender) return null;
 
