@@ -175,7 +175,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
                 const ZXing = await import('@zxing/browser');
-                const codeReader = new ZXing.BrowserQRCodeReader();
+                const ZXingLib = await import('@zxing/library');
+
+                const hints = new Map();
+                hints.set(ZXingLib.DecodeHintType.TRY_HARDER, true);
+                hints.set(ZXingLib.DecodeHintType.POSSIBLE_FORMATS, [
+                    ZXingLib.BarcodeFormat.QR_CODE,
+                    ZXingLib.BarcodeFormat.ITF,
+                    ZXingLib.BarcodeFormat.CODE_128,
+                    ZXingLib.BarcodeFormat.DATA_MATRIX
+                ]);
+
+                const codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
@@ -203,8 +214,15 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 try {
                                     const result = await codeReader.decodeFromCanvas(canvas);
                                     if (result && result.getText() && result.getText().length > 10) {
-                                        console.log(`QR Code PIX encontrado na página: ${i} (Escala: ${scale}) via ZXing`);
-                                        extractedText += `\n[CÓDIGO PIX DETECTADO VIA QR CODE]:\n${result.getText()}\n`;
+                                        const foundText = result.getText();
+                                        console.log(`Código encontrado na página: ${i} (Escala: ${scale}) Formato: ${result.getBarcodeFormat()} via ZXing`);
+
+                                        // Check if it looks like a Pix payload or URL, otherwise it's likely a Barcode
+                                        if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
+                                            extractedText += `\n[CÓDIGO PIX DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                        } else {
+                                            extractedText += `\n[CÓDIGO DE BARRAS DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                        }
                                         break; // Found it, stop scaling
                                     }
                                 } catch (decodeErr) {
@@ -212,7 +230,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 }
                             }
                         } catch (e) {
-                            console.log("Aviso: Falha ao varrer QR Code na página PDF", e);
+                            console.log("Aviso: Falha ao varrer Código Visual na página PDF", e);
                         }
                     }
 
@@ -229,7 +247,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 // If it's a regular image, try to scan for QR Code locally as OpenAI Vision struggles with it
                 try {
                     const ZXing = await import('@zxing/browser');
-                    const codeReader = new ZXing.BrowserQRCodeReader();
+                    const ZXingLib = await import('@zxing/library');
+
+                    const hints = new Map();
+                    hints.set(ZXingLib.DecodeHintType.TRY_HARDER, true);
+                    hints.set(ZXingLib.DecodeHintType.POSSIBLE_FORMATS, [
+                        ZXingLib.BarcodeFormat.QR_CODE,
+                        ZXingLib.BarcodeFormat.ITF,
+                        ZXingLib.BarcodeFormat.CODE_128,
+                        ZXingLib.BarcodeFormat.DATA_MATRIX
+                    ]);
+
+                    const codeReader = new ZXing.BrowserMultiFormatReader(hints);
                     const objectUrl = URL.createObjectURL(fileToAnalyze);
                     const HTMLImageElement = document.createElement('img');
                     HTMLImageElement.src = objectUrl;
@@ -242,8 +271,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     try {
                         const result = await codeReader.decodeFromImageElement(HTMLImageElement);
                         if (result && result.getText() && result.getText().length > 10) {
-                            extractedText += `\n[CÓDIGO PIX DETECTADO VIA QR CODE]:\n${result.getText()}\n`;
-                            console.log("QR Code PIX encontrado na imagem via ZXing");
+                            const foundText = result.getText();
+                            if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
+                                extractedText += `\n[CÓDIGO PIX DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                console.log("QR Code PIX encontrado na imagem via ZXing");
+                            } else {
+                                extractedText += `\n[CÓDIGO DE BARRAS DETECTADO VIA IMAGEM]:\n${foundText}\n`;
+                                console.log("Código de Barras encontrado na imagem via ZXing");
+                            }
                         }
                     } catch (decodeErr) {
                         // ZXing throws if it can't find a code, which is expected for most images
