@@ -65,20 +65,17 @@ Regras:
             return new Response(JSON.stringify({ error: "Configuração de IA ausente (OPENAI_API_KEY)" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })
         }
 
-        let messagesContent: any[] = [];
+        let messagesContent: any[] = [{ type: "text", text: promptText }];
 
         if (text_content) {
-            console.log("Processando conteúdo de texto (PDF)...");
-            messagesContent = [
-                { type: "text", text: promptText },
-                { type: "text", text: `CONTEÚDO DO DOCUMENTO:\n${text_content.substring(0, 4000)}` }
-            ];
-        } else {
-            console.log("Arquivo é uma imagem, usando Vision API...");
-            messagesContent = [
-                { type: "text", text: promptText },
-                { type: "image_url", image_url: { url: image_url } }
-            ];
+            console.log("Processando conteúdo de texto extraído...");
+            messagesContent.push({ type: "text", text: `CONTEÚDO DO DOCUMENTO (TEXTOS/BARRAS/PIX):\n${text_content.substring(0, 5000)}` });
+        }
+
+        // Apenas envie a URL da imagem para a IA se NÃO for um PDF (A IA Vision só aceita imagens)
+        if (image_url && !image_url.toLowerCase().split('?')[0].endsWith('.pdf')) {
+            console.log("Arquivo de imagem detectado, acionando Vision API...");
+            messagesContent.push({ type: "image_url", image_url: { url: image_url } });
         }
 
         const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
