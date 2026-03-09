@@ -709,7 +709,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             />
 
                             {(() => {
-                                const pixMatch = notes.match(/000201[a-zA-Z0-9]{40,}/);
+                                const pixMatch = notes.match(/000201\S{40,}/);
                                 const rawDigits = notes.replace(/[^\d]/g, '');
                                 const barcodeMatch = rawDigits.match(/\d{44,48}/);
                                 const pixCodeToRender = pixMatch ? pixMatch[0] : null;
