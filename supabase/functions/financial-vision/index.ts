@@ -61,7 +61,8 @@ Regras:
 1. Data formatada ISO YYYY-MM-DD.
 2. Amount formatado como número DECIMAL APENAS (float), EX: 377.83 (use ponto, não vírgula. Sem "R$").
 3. Se faltar algum campo do JSON que não seja texto, responda null.
-4. Responda ESTRITAMENTE o JSON VÁLIDO sem marcadores Markdown extras, para não quebrar a decodificação.`
+4. Responda ESTRITAMENTE o JSON VÁLIDO sem marcadores Markdown extras.
+5. PRESERVE OS MARCADORES: Se você encontrar dados entre >>>> e <<<< no conteúdo, você DEVE mantê-los EXATAMENTE como estão dentro do campo "notes_suggestion".`
 
         if (!OPENAI_API_KEY) {
             return new Response(JSON.stringify({ error: "Configuração de IA ausente (OPENAI_API_KEY)" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })

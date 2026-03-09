@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { FormEvent } from 'react';
 import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Copy, Search } from 'lucide-react';
 import QRCode from 'react-qr-code';
@@ -42,12 +43,24 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [file, setFile] = useState<File | null>(null);
     const [dealId, setDealId] = useState('');
     const [notes, setNotes] = useState('');
-    const [removedAttachment, setRemovedAttachment] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [loading, setLoading] = useState(false);
     const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
     const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
+    const [removedAttachment, setRemovedAttachment] = useState(false);
+
+    // Optimized memory for local file preview
+    const fileUrl = useMemo(() => {
+        if (!file) return null;
+        try {
+            return URL.createObjectURL(file);
+        } catch (e) {
+            return null;
+        }
+    }, [file]);
+
+    const { t } = useTranslation();
     const [propagateChanges, setPropagateChanges] = useState(() => localStorage.getItem('propagatePref') === 'true');
     const [dbInstallments, setDbInstallments] = useState<Record<number, { amount: number; date: string }>>({});
 
@@ -243,9 +256,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         }
                     }
 
-                    // Failsafe: Text-based Pix Extraction (Sometimes visual scan fails but text is there)
-                    const textPixMatch = pageText.replace(/\s+/g, '').match(/000201[a-zA-Z0-9]*?6304[a-fA-F0-9]{4}/i);
+                    // Failsafe: Text-based Pix Extraction (Handles EMV and URL formats)
+                    // Sometimes visual scan fails but text is there
+                    const cleanText = pageText.replace(/\s+/g, '');
+                    const textPixMatch = cleanText.match(/000201[a-zA-Z0-9]*?6304[a-fA-F0-9]{4}/i) ||
+                        cleanText.match(/https?:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150}/i);
+
                     if (textPixMatch && !extractedText.includes('>>>>PIX_DATA<<<<')) {
+                        console.log("[DEBUG] Pix encontrado via extração de texto no PDF");
                         extractedText += `\n>>>>PIX_DATA<<<<${textPixMatch[0]}>>>>END_PIX<<<<\n`;
                     }
 
@@ -324,10 +342,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 if (data.notes_suggestion) {
                     let finalNotes = data.notes_suggestion;
 
+                    console.log("[DEBUG] Document Extracted Text Length:", extractedText?.length || 0);
+
                     // Failsafe: se a extração local pegou dados perfeitamente mas a IA omitiu ou alterou.
                     if (extractedText) {
                         const localPixMatch = extractedText.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
                         if (localPixMatch && !finalNotes.includes(localPixMatch[1])) {
+                            console.log("[DEBUG] Failsafe: Re-injecting Pix Data");
                             // Prepend with markers so the UI always finds the high-fidelity version
                             const wrappedPix = `>>>>PIX_DATA<<<<${localPixMatch[1]}>>>>END_PIX<<<<`;
                             finalNotes = `**PIX COPIA E COLA:**\n${wrappedPix}\n\n` + finalNotes;
@@ -335,6 +356,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                         const localBarcodeMatch = extractedText.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
                         if (localBarcodeMatch && !finalNotes.includes(localBarcodeMatch[1])) {
+                            console.log("[DEBUG] Failsafe: Re-injecting Barcode Data");
                             const wrappedBarcode = `>>>>BARCODE_DATA<<<<${localBarcodeMatch[1]}>>>>END_BARCODE<<<<`;
                             finalNotes = `**CÓDIGO DE BARRAS:**\n${wrappedBarcode}\n\n` + finalNotes;
                         }
@@ -493,7 +515,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 <button
                                     type="button"
                                     onClick={() => setShowCategoryModal(true)}
-                                    className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+                                    className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors shrink-0"
                                 >
                                     <Plus className="w-3 h-3" /> Nova
                                 </button>
@@ -562,7 +584,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 <button
                                     type="button"
                                     onClick={() => setShowContactModal(true)}
-                                    className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+                                    className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors shrink-0"
                                 >
                                     <Plus className="w-3 h-3" /> Novo
                                 </button>
@@ -798,7 +820,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                     <button
                                         type="button"
                                         onClick={() => setShowNotesModal(true)}
-                                        className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md"
+                                        className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md shrink-0"
                                         title="Ver Observação Completa em Lupa"
                                     >
                                         <Search className="w-3 h-3" />
@@ -820,11 +842,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                                 // Clean notes for matching (removes spaces/newlines that break regex)
                                 const cleanNotes = notes.replace(/\s+/g, '');
-                                // Loosened lengths to catch GT/DAS codes which can be shorter or vary
-                                const pixRegex = /(?:000201[a-zA-Z0-9]{25,1000}?6304[a-fA-F0-9]{4})|(?:000201[a-zA-Z0-9]{25,})|(?:https:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150})/i;
-                                const loosePixMatch = cleanNotes.match(pixRegex);
 
-                                const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (loosePixMatch ? loosePixMatch[0] : null);
+                                // Robust Pix patterns:
+                                // A. Standard Pix (000201...) with variable length (DAS/GT can be 70-500 chars)
+                                // B. Pix short codes or URLs
+                                const emvPattern = /000201[a-zA-Z0-9]{20,800}6304[a-fA-F0-9]{4}/;
+                                const loosePattern = /000201[a-zA-Z0-9]{50,}/;
+                                const urlPattern = /https?:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150}/;
+
+                                const match = cleanNotes.match(emvPattern) || cleanNotes.match(loosePattern) || cleanNotes.match(urlPattern);
+
+                                const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (match ? match[0] : null);
 
                                 // Try to find marked Barcode first, then fallback to loose numeric regex (Boleto format)
                                 const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
@@ -911,10 +939,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     <p className="text-[10px] text-gray-500">{(file.size / 1024).toFixed(1)} KB - PDF / Documento</p>
                                                 </div>
                                                 <a
-                                                    href={URL.createObjectURL(file)}
+                                                    href={fileUrl || '#'}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold rounded-lg transition-colors"
+                                                    style={{ minWidth: '120px' }}
+                                                    className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-[10px] font-bold rounded-lg transition-colors flex-shrink-0 text-center"
                                                 >
                                                     ABRIR / CONFERIR
                                                 </a>
