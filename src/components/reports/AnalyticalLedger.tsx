@@ -3,8 +3,9 @@ import { useTransactions } from '../../hooks/useTransactions';
 import { useCategories } from '../../hooks/useCategories';
 import { useContacts } from '../../hooks/useContacts';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Tag, Building2, Repeat, Receipt } from 'lucide-react';
+import { ChevronDown, ChevronRight, Tag, Building2, Repeat, Receipt, FileText, Paperclip } from 'lucide-react';
 import { formatBrazilianDate } from '../../utils/dateUtils';
+import { Tooltip } from '../ui/Tooltip';
 
 interface AnalyticalLedgerProps {
     startDate: string;
@@ -149,6 +150,16 @@ export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLed
                                                                     </span>
                                                                 )}
                                                                 {item.status === 'pending' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-label="Pendente" />}
+                                                                {item.notes && (
+                                                                    <Tooltip content={`Obs: ${item.notes}`}>
+                                                                        <FileText className="w-3 h-3 text-gray-400" />
+                                                                    </Tooltip>
+                                                                )}
+                                                                {item.attachment_url && (
+                                                                    <Tooltip content="Possui anexo">
+                                                                        <Paperclip className="w-3 h-3 text-emerald-500" />
+                                                                    </Tooltip>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2 text-center">

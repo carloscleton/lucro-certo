@@ -14,6 +14,7 @@ import { useCRM } from '../../hooks/useCRM';
 import { useEntity } from '../../context/EntityContext';
 import { supabase } from '../../lib/supabase';
 import { calculateNextDates, formatBrazilianDate } from '../../utils/dateUtils';
+import { useNotification } from '../../context/NotificationContext';
 
 interface TransactionFormProps {
     type: TransactionType;
@@ -39,6 +40,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [file, setFile] = useState<File | null>(null);
     const [dealId, setDealId] = useState('');
     const [notes, setNotes] = useState('');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [loading, setLoading] = useState(false);
     const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
     const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
@@ -50,6 +53,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const { contacts, addContact } = useContacts();
     const { deals } = useCRM();
     const { currentEntity } = useEntity();
+    const { notify } = useNotification();
 
     // Quick-add modal states
     const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -130,6 +134,63 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         }
     }, [isOpen, initialData]);
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0] || null;
+        setFile(selectedFile);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const droppedFile = e.dataTransfer.files?.[0] || null;
+        if (droppedFile) setFile(droppedFile);
+    };
+
+    const analyzeDocument = async () => {
+        if (!file) return;
+
+        setIsAnalyzing(true);
+        try {
+            // First, upload to a temporary location to get a URL for the IA
+            const fileExt = file.name.split('.').pop();
+            const fileName = `temp_${Math.random()}.${fileExt}`;
+            const filePath = `analysis/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('attachments')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(filePath);
+            const publicUrl = urlData.publicUrl;
+
+            // Call the vision function
+            const { data } = await supabase.functions.invoke('financial-vision', {
+                body: { image_url: publicUrl, type }
+            });
+
+            if (data) {
+                if (data.description) setDescription(data.description);
+                if (data.amount) setAmount(data.amount.toString());
+                if (data.date) setDate(data.date);
+                if (data.notes_suggestion) setNotes(prev => prev ? `${prev}\n${data.notes_suggestion}` : data.notes_suggestion);
+
+                notify('success', 'Documento analisado com sucesso!', 'IA Financeira');
+            }
+
+            // Clean up temp file (optional, but good practice)
+            await supabase.storage.from('attachments').remove([filePath]);
+
+        } catch (err: any) {
+            console.error('Error analyzing document:', err);
+            notify('error', 'Falha ao analisar documento.', 'Erro');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -139,7 +200,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
             if (file) {
                 const fileExt = file.name.split('.').pop();
-                const fileName = `${Math.random()}.${fileExt}`;
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
                 const filePath = `${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
@@ -566,7 +627,22 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         {/* File Preview */}
                         {(file || initialData?.attachment_url) && (
                             <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 mb-3 animate-in fade-in duration-300">
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Visualização do Documento</p>
+                                <div className="flex justify-between items-center mb-2">
+                                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Visualização do Documento</p>
+                                    {file && (file.type.startsWith('image/') || file.type === 'application/pdf') && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={analyzeDocument}
+                                            isLoading={isAnalyzing}
+                                            className="h-7 text-[10px] border-emerald-200 text-emerald-600 dark:border-emerald-900 bg-white"
+                                        >
+                                            <TrendingUp className="w-3 h-3 mr-1" />
+                                            ANALISAR COM IA
+                                        </Button>
+                                    )}
+                                </div>
 
                                 {file ? (
                                     <div className="flex flex-col items-center gap-2">
@@ -641,7 +717,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         )}
 
                         <div className="flex items-center justify-center w-full">
-                            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 transition-all">
+                            <label
+                                className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-all ${isDragging ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-300 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500'}`}
+                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                onDragLeave={() => setIsDragging(false)}
+                                onDrop={handleDrop}
+                            >
                                 <div className="flex flex-col items-center justify-center pt-2 pb-3">
                                     <p className="mb-0.5 text-xs text-gray-500 dark:text-gray-400">
                                         <span className="font-semibold">{file ? 'Trocar arquivo' : 'Clique para anexar'}</span> ou arraste
@@ -651,7 +732,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 <input
                                     type="file"
                                     className="hidden"
-                                    onChange={e => setFile(e.target.files?.[0] || null)}
+                                    onChange={handleFileChange}
                                     accept=".pdf,.png,.jpg,.jpeg,.webp"
                                 />
                             </label>
