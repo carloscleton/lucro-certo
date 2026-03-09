@@ -307,7 +307,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                     // Failsafe: se a extração local pegou um código PIX ou Boleto perfeitamente mas a IA omitiu ou alterou.
                     if (extractedText) {
-                        const localPix = extractedText.match(/000201\S{40,}/);
+                        const localPix = extractedText.match(/000201\S*?6304[A-Fa-f0-9]{4}/);
                         if (localPix && !finalNotes.includes(localPix[0])) {
                             finalNotes = `CÓDIGO PIX COPIA E COLA:\n${localPix[0]}\n\n` + finalNotes;
                         }
@@ -792,7 +792,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             />
 
                             {(() => {
-                                const pixMatch = notes.match(/000201\S{40,}/);
+                                // Pix Copia e Cola always starts with 000201 and ends with ID 63, length 04, and a 4-hex CRC16 checksum.
+                                const pixMatch = notes.match(/000201\S*?6304[A-Fa-f0-9]{4}/);
                                 const rawDigits = notes.replace(/[^\d]/g, '');
                                 const barcodeMatch = rawDigits.match(/\d{44,48}/);
                                 const pixCodeToRender = pixMatch ? pixMatch[0] : null;
