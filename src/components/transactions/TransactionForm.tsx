@@ -176,25 +176,35 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     extractedText += pageText + '\n';
 
                     // Attempt to locate QR codes in the PDF by rendering the page to a canvas
-                    try {
-                        const viewport = page.getViewport({ scale: 1.5 });
-                        const canvas = document.createElement("canvas");
-                        const context = canvas.getContext("2d", { willReadFrequently: true });
-                        if (context) {
-                            canvas.height = viewport.height;
-                            canvas.width = viewport.width;
+                    for (const scale of [1.5, 2.5, 3.5]) {
+                        try {
+                            const viewport = page.getViewport({ scale });
+                            const canvas = document.createElement("canvas");
+                            const context = canvas.getContext("2d", { willReadFrequently: true });
+                            if (context) {
+                                canvas.height = viewport.height;
+                                canvas.width = viewport.width;
 
-                            await page.render({ canvasContext: context, viewport: viewport }).promise;
+                                await page.render({ canvasContext: context, viewport: viewport }).promise;
 
-                            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                            const code = jsQRLib(imageData.data, imageData.width, imageData.height);
-                            if (code && code.data && code.data.length > 10) {
-                                console.log("QR Code PIX encontrado na página:", i);
-                                extractedText += `\n[CÓDIGO PIX DETECTADO VIA QR CODE]:\n${code.data}\n`;
+                                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                                const code = jsQRLib(imageData.data, imageData.width, imageData.height);
+                                if (code && code.data && code.data.length > 10) {
+                                    console.log(`QR Code PIX encontrado na página: ${i} (Escala: ${scale})`);
+                                    extractedText += `\n[CÓDIGO PIX DETECTADO VIA QR CODE]:\n${code.data}\n`;
+                                    break;
+                                }
                             }
+                        } catch (e) {
+                            console.log("Aviso: Falha ao varrer QR Code na página PDF", e);
                         }
-                    } catch (e) {
-                        console.log("Aviso: Falha ao varrer QR Code na página PDF", e);
+                    }
+
+                    // Local Barcode Extraction via Regex (DARF/Boleto formats)
+                    const rawNumbers = pageText.replace(/[^\d]/g, '');
+                    const barcodeMatches = rawNumbers.match(/\d{44,48}/g);
+                    if (barcodeMatches) {
+                        extractedText += `\n[CÓDIGO DE BARRAS DETECTADO]:\n${barcodeMatches[0]}\n`;
                     }
 
                     if (i >= 5) break;
