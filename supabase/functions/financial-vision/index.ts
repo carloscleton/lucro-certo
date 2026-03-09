@@ -1,6 +1,4 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import pdfParse from 'npm:pdf-parse@1.1.1'
-import { Buffer } from "node:buffer"
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 
@@ -19,10 +17,10 @@ serve(async (req) => {
     }
 
     try {
-        const { image_url, type } = await req.json()
+        const { image_url, text_content, type } = await req.json()
 
-        if (!image_url) {
-            return new Response(JSON.stringify({ error: "image_url obrigatório." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+        if (!image_url && !text_content) {
+            return new Response(JSON.stringify({ error: "É necessário enviar imagem ou texto do documento." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
         }
 
         console.log(`Analisando Documento Financeiro com IA. Tipo: ${type || 'não informado'}`)
@@ -33,6 +31,7 @@ Sua tarefa é ler os dados extraídos do documento anexado (que pode ser uma not
 
 IMPORTANTE: Se for um boleto ou nota, foque no Valor Total, Vencimento e Nome do Emissor.
 Se for um Pix, foque no Valor, Data e Nome do Favorecido/Pagador.
+Se encontrar algum detalhe sobre a chave pix "Copia e Cola" ou dados de recebimento extraia para as observações.
 
 Responda APENAS um JSON válido no seguinte formato:
 {
@@ -56,23 +55,13 @@ Regras:
 
         let messagesContent: any[] = [];
 
-        // Check if it's a PDF
-        if (image_url.toLowerCase().split('?')[0].endsWith('.pdf')) {
-            console.log("Arquivo é um PDF, extraindo texto...");
-            const pdfResponse = await fetch(image_url);
-            const arrayBuffer = await pdfResponse.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            const pdfData = await pdfParse(buffer);
-            const extractedText = pdfData.text;
-
-            console.log("Texto extraído com sucesso!");
-
+        if (text_content) {
+            console.log("Processando conteúdo de texto (PDF)...");
             messagesContent = [
                 { type: "text", text: promptText },
-                { type: "text", text: `CONTEÚDO DO DOCUMENTO PDF:\n${extractedText.substring(0, 4000)}` }
+                { type: "text", text: `CONTEÚDO DO DOCUMENTO:\n${text_content.substring(0, 4000)}` }
             ];
         } else {
-            // It's an image
             console.log("Arquivo é uma imagem, usando Vision API...");
             messagesContent = [
                 { type: "text", text: promptText },

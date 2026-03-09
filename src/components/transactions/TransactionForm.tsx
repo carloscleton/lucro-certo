@@ -155,8 +155,28 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const analyzeDocument = async (fileToAnalyze: File) => {
         setIsAnalyzing(true);
         try {
+            let extractedText = '';
+
+            // Se for PDF, extrai texto localmente antes de invocar
+            if (fileToAnalyze.type === 'application/pdf' || fileToAnalyze.name.toLowerCase().endsWith('.pdf')) {
+                const pdfjsLib = await import('pdfjs-dist');
+                pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+                const arrayBuffer = await fileToAnalyze.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    const pageText = content.items.map((item: any) => item.str).join(' ');
+                    extractedText += pageText + '\n';
+
+                    if (i >= 5) break;
+                }
+            }
+
             // First, upload to a temporary location to get a URL for the IA
-            const fileExt = fileToAnalyze.name.split('.').pop();
+            const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
             const fileName = `temp_${Math.random()}.${fileExt}`;
             const filePath = `analysis/${fileName}`;
 
@@ -170,8 +190,15 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             const publicUrl = urlData.publicUrl;
 
             // Call the vision function
+            const payload: any = { type };
+            if (extractedText) {
+                payload.text_content = extractedText;
+            } else {
+                payload.image_url = publicUrl;
+            }
+
             const { data, error: invokeError } = await supabase.functions.invoke('financial-vision', {
-                body: { image_url: publicUrl, type }
+                body: payload
             });
 
             if (invokeError) throw new Error(invokeError.message || 'Erro ao chamar função de IA');
