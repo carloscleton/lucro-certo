@@ -225,6 +225,33 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                     if (i >= 5) break;
                 }
+            } else if (fileToAnalyze.type.startsWith('image/')) {
+                // If it's a regular image, try to scan for QR Code locally as OpenAI Vision struggles with it
+                try {
+                    const ZXing = await import('@zxing/browser');
+                    const codeReader = new ZXing.BrowserQRCodeReader();
+                    const objectUrl = URL.createObjectURL(fileToAnalyze);
+                    const HTMLImageElement = document.createElement('img');
+                    HTMLImageElement.src = objectUrl;
+
+                    await new Promise(resolve => {
+                        HTMLImageElement.onload = resolve;
+                        HTMLImageElement.onerror = resolve; // Continue on error
+                    });
+
+                    try {
+                        const result = await codeReader.decodeFromImageElement(HTMLImageElement);
+                        if (result && result.getText() && result.getText().length > 10) {
+                            extractedText += `\n[CÓDIGO PIX DETECTADO VIA QR CODE]:\n${result.getText()}\n`;
+                            console.log("QR Code PIX encontrado na imagem via ZXing");
+                        }
+                    } catch (decodeErr) {
+                        // ZXing throws if it can't find a code, which is expected for most images
+                    }
+                    URL.revokeObjectURL(objectUrl);
+                } catch (e) {
+                    console.log("Aviso: Falha ao varrer QR Code na imagem", e);
+                }
             }
 
             // First, upload to a temporary location to get a URL for the IA
