@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+// Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit } from 'lucide-react';
@@ -24,7 +25,8 @@ import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/
 export function Settings() {
     const { t } = useTranslation();
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
-    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, updateUserConfig, updateCompanyConfig } = useAdmin();
+    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, toggleCompanyBlock, updateUserConfig, updateCompanyConfig } = useAdmin();
+    console.log('Admin UI initialized with toggleCompanyBlock:', !!toggleCompanyBlock);
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies } = useCompanies();
@@ -1746,8 +1748,7 @@ export function Settings() {
                                                                     type="checkbox"
                                                                     className="sr-only peer"
                                                                     checked={c.status !== 'blocked'}
-                                                                    //@ts-ignore
-                                                                    onChange={() => toggleCompanyStatus(c.id, c.status !== 'blocked')}
+                                                                    onChange={() => toggleCompanyBlock(c.id, c.status !== 'blocked')}
                                                                 />
                                                                 <div className="w-11 h-6 bg-red-500 peer-focus:outline-none rounded-full peer dark:bg-red-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                                                             </label>

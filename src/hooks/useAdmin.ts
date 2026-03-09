@@ -174,7 +174,8 @@ export function useAdmin() {
         }
     };
 
-    const toggleCompanyStatus = async (companyId: string, shouldBlock: boolean) => {
+    const toggleCompanyBlock = async (companyId: string, shouldBlock: boolean) => {
+        console.log('toggleCompanyBlock called:', { companyId, shouldBlock });
         if (!isAdmin) return { error: 'Unauthorized' };
 
         // Optimistic Update
@@ -257,7 +258,7 @@ export function useAdmin() {
         error,
         deleteUser,
         toggleUserBan,
-        toggleCompanyStatus,
+        toggleCompanyBlock,
         updateUserLimit,
         updateUserConfig,
         updateCompanyConfig,
