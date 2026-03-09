@@ -344,21 +344,25 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                     console.log("[DEBUG] Document Extracted Text Length:", extractedText?.length || 0);
 
-                    // Failsafe: se a extração local pegou dados perfeitamente mas a IA omitiu ou alterou.
+                    // Enforcer: Garantir que os marcadores estejam presentes se os dados foram encontrados localmente.
+                    // Isso blinda os dados contra espaços que a IA possa adicionar no meio dos códigos.
                     if (extractedText) {
                         const localPixMatch = extractedText.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
-                        if (localPixMatch && !finalNotes.includes(localPixMatch[1])) {
-                            console.log("[DEBUG] Failsafe: Re-injecting Pix Data");
-                            // Prepend with markers so the UI always finds the high-fidelity version
+                        if (localPixMatch) {
                             const wrappedPix = `>>>>PIX_DATA<<<<${localPixMatch[1]}>>>>END_PIX<<<<`;
-                            finalNotes = `**PIX COPIA E COLA:**\n${wrappedPix}\n\n` + finalNotes;
+                            if (!finalNotes.includes(wrappedPix)) {
+                                console.log("[DEBUG] Enforcing Pix Markers");
+                                finalNotes = `**PIX COPIA E COLA:**\n${wrappedPix}\n\n` + finalNotes;
+                            }
                         }
 
                         const localBarcodeMatch = extractedText.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
-                        if (localBarcodeMatch && !finalNotes.includes(localBarcodeMatch[1])) {
-                            console.log("[DEBUG] Failsafe: Re-injecting Barcode Data");
+                        if (localBarcodeMatch) {
                             const wrappedBarcode = `>>>>BARCODE_DATA<<<<${localBarcodeMatch[1]}>>>>END_BARCODE<<<<`;
-                            finalNotes = `**CÓDIGO DE BARRAS:**\n${wrappedBarcode}\n\n` + finalNotes;
+                            if (!finalNotes.includes(wrappedBarcode)) {
+                                console.log("[DEBUG] Enforcing Barcode Markers");
+                                finalNotes = `**CÓDIGO DE BARRAS:**\n${wrappedBarcode}\n\n` + finalNotes;
+                            }
                         }
                     }
 
