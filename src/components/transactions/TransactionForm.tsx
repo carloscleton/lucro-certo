@@ -222,12 +222,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         }
                     }
 
-                    // Local Barcode Extraction via Regex (DARF/Boleto formats)
-                    const rawNumbers = pageText.replace(/[^\d]/g, '');
-                    const barcodeMatches = rawNumbers.match(/\d{44,48}/g);
-                    if (barcodeMatches) {
-                        extractedText += `\n[CÓDIGO DE BARRAS DETECTADO]:\n${barcodeMatches[0]}\n`;
-                    }
+                    // Allow AI to handle Barcode reading, as removing all non-digits from a page causes false matches on CNPJs + dates combined.
 
                     if (i >= 5) break;
                 }
@@ -310,12 +305,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         const localPix = sanitizedExtractedText.match(/000201.*?6304[A-Fa-f0-9]{4}/);
                         if (localPix && !finalNotes.replace(/\s+/g, '').includes(localPix[0])) {
                             finalNotes = `CÓDIGO PIX COPIA E COLA:\n${localPix[0]}\n\n` + finalNotes;
-                        }
-
-                        const rawDigitsExtracted = extractedText.replace(/[^\d]/g, '');
-                        const localBarcode = rawDigitsExtracted.match(/\d{44,48}/);
-                        if (localBarcode && !finalNotes.replace(/[^\d]/g, '').includes(localBarcode[0])) {
-                            finalNotes = `CÓDIGO DE BARRAS / LINHA DIGITÁVEL:\n${localBarcode[0]}\n\n` + finalNotes;
                         }
                     }
 
@@ -796,10 +785,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 // Pix Copia e Cola always starts with 000201 and ends with ID 63, length 04, and a 4-hex CRC16 checksum.
                                 const sanitizedNotes = notes.replace(/\s+/g, '');
                                 const pixMatch = sanitizedNotes.match(/000201.*?6304[A-Fa-f0-9]{4}/);
-                                const rawDigits = notes.replace(/[^\d]/g, '');
-                                const barcodeMatch = rawDigits.match(/\d{44,48}/);
+                                const rawBarcodeMatch = notes.match(/(?:\d[.\-\s]*){43,47}\d/);
+                                const barcodeToRender = rawBarcodeMatch ? rawBarcodeMatch[0].replace(/[^\d]/g, '') : null;
                                 const pixCodeToRender = pixMatch ? pixMatch[0] : null;
-                                const barcodeToRender = barcodeMatch ? barcodeMatch[0] : null;
 
                                 if (!pixCodeToRender && !barcodeToRender) return null;
 

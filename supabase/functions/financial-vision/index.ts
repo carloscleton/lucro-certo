@@ -32,18 +32,20 @@ Sua tarefa é ler os dados extraídos do documento anexado (que pode ser uma not
 IMPORTANTE:
 1. Identifique o Valor Total exato, Data de Vencimento/Pagamento, e Nome do Emissor/Favorecido.
 2. O campo "notes_suggestion" DEVE ser usado como um relatório detalhado! Nele, você deve colocar TUDO que houver de útil no documento (CNPJ do emissor, número de referência, período de apuração, número do documento, código da receita, observações originais, etc).
-3. CRÍTICO PARA PAGAMENTOS: Se o documento for pagável (boleto com linha digitável, DARF com código de barras, QR Code traduzido para Pix Copia e Cola), você DEVE extrair e colocar o CÓDIGO DE BARRAS (linha digitável numérica) ou o CÓDIGO PIX de forma BEM DESTACADA no início do campo "notes_suggestion".
+3. CRÍTICO PARA PAGAMENTOS: Se o documento for pagável (boleto com linha digitável, DARF com código de barras, código PIX), você DEVE extrair O CÓDIGO LITERALMENTE IDÊNTICO AO ARQUIVO original. Não abrevie.
 
-Modelos para o "notes_suggestion":
-CÓDIGO PARA PAGAMENTO (Boleto/Pix): [inserir código aqui]
------------------------------------------
-DETALHES COMPLETOS DO DOCUMENTO:
-- Emissor/Recebedor: [nome] (CNPJ: [cnpj])
-- Número do Documento / Referência: [numero]
-- Detalhes (Período, Código de Receita, etc): [dados]
-- Tributos/Taxas Originais (Multas, Juros se aplicável): [valores]
+Modelos para o "notes_suggestion" (Use este template exato se aplicável, substituindo [ ] por informações. Embeleze usando Markdown):
+**CÓDIGO PARA PAGAMENTO**
+[Inserir Código Pix ou Linha Digitável do Barcode de forma cristalina. Exatamente igual ao original]
 
-Se não houver código de pagamento, pule a primeira linha e foque no detalhamento. Não invente dados que não estejam no documento.
+**RESUMO DO DOCUMENTO**
+🏢 **Emissor/Recebedor:** [Nome] (CNPJ: [CNPJ se houver])
+📄 **Número / Referência:** [Número]
+📆 **Período / Apuração:** [Dados]
+📊 **Código da Receita / Classificação:** [Dados]
+💰 **Valores Extras:** [Multas, Juros se aplicável]
+
+Se não houver código de pagamento, omita o primeiro bloco e foque no detalhamento. Não invente dados que não estejam no documento.
 
 Responda APENAS um JSON válido no seguinte formato:
 {
