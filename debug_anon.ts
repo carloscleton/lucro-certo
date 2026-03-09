@@ -5,17 +5,20 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 async function debugTables() {
-    console.log('--- Debugando Tabelas ---');
-    const { data: companies, error: compErr } = await supabase.from('companies').select('*');
-    console.log('Empresas:', companies?.length || 0);
-    if (compErr) console.error('Erro Empresas:', compErr);
+    console.log('--- Debugando Colunas ---');
+    const { data: companies, error: compErr } = await supabase.from('companies').select('*').limit(1);
+    if (companies && companies.length > 0) {
+        console.log('Colunas Empresas:', Object.keys(companies[0]));
+    } else {
+        console.log('Nenhuma empresa encontrada ou erro:', compErr);
+    }
 
-    const { data: members, error: membErr } = await supabase.from('company_members').select('*');
-    console.log('Membros:', members?.length || 0);
-    if (membErr) console.error('Erro Membros:', membErr);
-
-    const { data: instances, error: instErr } = await supabase.from('instances').select('*');
-    console.log('Instâncias:', instances?.length || 0);
+    const { data: profiles, error: profErr } = await supabase.from('profiles').select('*').limit(1);
+    if (profiles && profiles.length > 0) {
+        console.log('Colunas Perfis:', Object.keys(profiles[0]));
+    } else {
+        console.log('Nenhum perfil encontrado ou erro:', profErr);
+    }
 }
 
 debugTables();

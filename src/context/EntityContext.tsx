@@ -29,6 +29,7 @@ export interface Entity {
     crm_module_enabled?: boolean;
     has_social_copilot?: boolean;
     automations_module_enabled?: boolean;
+    status?: string;
 }
 
 interface EntityContextType {
@@ -40,7 +41,7 @@ interface EntityContextType {
 }
 
 const EntityContext = createContext<EntityContextType>({
-    currentEntity: { type: 'personal', name: 'Pessoal' },
+    currentEntity: { type: 'personal', name: 'Pessoal', status: 'active' },
     availableEntities: [],
     switchEntity: () => { },
     refresh: async () => { },
@@ -50,14 +51,14 @@ const EntityContext = createContext<EntityContextType>({
 const STORAGE_KEY = 'lucro-certo:selected-entity';
 
 export function EntityProvider({ children }: { children: ReactNode }) {
-    const { user } = useAuth();
-    const [currentEntity, setCurrentEntity] = useState<Entity>({ type: 'personal', name: 'Pessoal' });
+    const { user, profile } = useAuth();
+    const [currentEntity, setCurrentEntity] = useState<Entity>({ type: 'personal', name: 'Pessoal', status: 'active' });
     const [availableEntities, setAvailableEntities] = useState<Entity[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchCompanies = async () => {
         if (!user) {
-            setAvailableEntities([{ type: 'personal', name: 'Pessoal' }]);
+            setAvailableEntities([{ type: 'personal', name: 'Pessoal', status: 'active' }]);
             setIsLoading(false);
             return;
         }
@@ -88,7 +89,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         payments_module_enabled,
                         crm_module_enabled,
                         has_social_copilot,
-                        automations_module_enabled
+                        automations_module_enabled,
+                        status
                     ),
                     role,
                     status
@@ -123,14 +125,16 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     payments_module_enabled: item.company.payments_module_enabled,
                     crm_module_enabled: item.company.crm_module_enabled,
                     has_social_copilot: item.company.has_social_copilot,
-                    automations_module_enabled: item.company.automations_module_enabled
+                    automations_module_enabled: item.company.automations_module_enabled,
+                    status: item.company.status
                 }));
 
             // Always include Personal option with user's settings
             const personalOption: Entity = {
                 type: 'personal',
                 name: 'Pessoal',
-                settings: user ? (await supabase.from('profiles').select('settings').eq('id', user.id).maybeSingle()).data?.settings : {}
+                status: profile?.status || 'active',
+                settings: profile?.settings || {}
             };
             const allEntities = [personalOption, ...companies];
             setAvailableEntities(allEntities);
@@ -178,8 +182,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             fetchCompanies();
         } else {
             // Se deslogar, reseta TUDO imediatamente
-            setCurrentEntity({ type: 'personal', name: 'Pessoal' });
-            setAvailableEntities([{ type: 'personal', name: 'Pessoal' }]);
+            setCurrentEntity({ type: 'personal', name: 'Pessoal', status: 'active' });
+            setAvailableEntities([{ type: 'personal', name: 'Pessoal', status: 'active' }]);
             localStorage.removeItem(STORAGE_KEY);
             setIsLoading(false);
         }
