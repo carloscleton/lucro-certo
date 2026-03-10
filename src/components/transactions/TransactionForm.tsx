@@ -45,8 +45,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [overrides] = useState<Record<number, { amount?: number; date?: string }>>({});
-
     const [removedAttachment, setRemovedAttachment] = useState(false);
+    const [showEmbeddedPreview, setShowEmbeddedPreview] = useState(false);
 
     // Optimized memory for local file preview
     const fileUrl = useMemo(() => {
@@ -282,9 +282,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 let finalNotes = data.notes_suggestion || '';
                 let paymentBlock = '';
                 if (extractedText) {
-                    const localPixMatch = extractedText.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
+                    const localPixMatch = extractedText.match(/>+PIX_DATA<+([\s\S]*?)>+END_PIX<+/);
                     if (localPixMatch) paymentBlock += `>>>>PIX_DATA<<<<${localPixMatch[1].trim()}>>>>END_PIX<<<<\n`;
-                    const localBarcodeMatch = extractedText.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
+                    const localBarcodeMatch = extractedText.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
                     if (localBarcodeMatch) paymentBlock += `>>>>BARCODE_DATA<<<<${localBarcodeMatch[1].trim()}>>>>END_BARCODE<<<<\n`;
                 }
                 if (paymentBlock) finalNotes = paymentBlock + "\n" + finalNotes;
@@ -525,16 +525,42 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                     <div className="flex flex-col items-center gap-2">
                                         <p className="text-xs font-bold truncate w-full text-center">{file.name}</p>
                                         <div className="flex gap-3">
-                                            {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200">ABRIR DOCUMENTO</a>}
-                                            <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setFile(null); setNotes(''); }}>Remover</Button>
+                                            <Button type="button" variant="outline" size="sm" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200" onClick={() => setShowEmbeddedPreview(!showEmbeddedPreview)}>
+                                                {showEmbeddedPreview ? 'FECHAR PREVIEW' : 'VER NO SITE'}
+                                            </Button>
+                                            <a href={fileUrl || '#'} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">ABRIR NOVA ABA</a>
+                                            <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setFile(null); setNotes(''); setShowEmbeddedPreview(false); }}>Remover</Button>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center gap-2">
                                         <p className="text-xs font-bold text-center">Arquivo Vinculado</p>
                                         <div className="flex gap-3">
-                                            <a href={initialData?.attachment_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200">ABRIR DOCUMENTO</a>
-                                            <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setRemovedAttachment(true); setNotes(''); }}>Remover</Button>
+                                            <Button type="button" variant="outline" size="sm" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200" onClick={() => setShowEmbeddedPreview(!showEmbeddedPreview)}>
+                                                {showEmbeddedPreview ? 'FECHAR PREVIEW' : 'VER NO SITE'}
+                                            </Button>
+                                            <a href={initialData?.attachment_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">ABRIR NOVA ABA</a>
+                                            <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setRemovedAttachment(true); setNotes(''); setShowEmbeddedPreview(false); }}>Remover</Button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {showEmbeddedPreview && (fileUrl || initialData?.attachment_url) && (
+                                    <div className="mt-4 border-t pt-4 animate-in fade-in zoom-in duration-300">
+                                        <div className="relative w-full aspect-[4/3] bg-white rounded-lg overflow-hidden border">
+                                            {(file?.type === 'application/pdf' || (initialData?.attachment_url?.toLowerCase().includes('.pdf'))) ? (
+                                                <iframe
+                                                    src={`${fileUrl || initialData?.attachment_url}#toolbar=0&navpanes=0`}
+                                                    className="w-full h-full border-none"
+                                                    title="Document Preview"
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={fileUrl || initialData?.attachment_url}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            )}
                                         </div>
                                     </div>
                                 )}
