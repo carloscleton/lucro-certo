@@ -860,7 +860,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                                 // Try to find marked Barcode first, then fallback to loose numeric regex (Boleto format)
                                 const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
-                                const rawBarcodeMatch = notes.match(/(?:\d[.\-\s]*){44,55}\d/);
+
+                                // Robust Barcode pattern: 44 to 55 digits, allows common separators
+                                const barcodeRegex = /(?:\d[.\-\s]*){44,55}\d/;
+                                const rawBarcodeMatch = notes.match(barcodeRegex);
+
                                 const barcodeToRender = markedBarcode ? markedBarcode[1].trim() : (rawBarcodeMatch ? rawBarcodeMatch[0].replace(/[^\d]/g, '') : null);
 
                                 if (!pixCodeToRender && !barcodeToRender) return null;
