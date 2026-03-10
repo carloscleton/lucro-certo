@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { FormEvent } from 'react';
 import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search } from 'lucide-react';
 import QRCode from 'react-qr-code';
@@ -47,6 +47,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [overrides] = useState<Record<number, { amount?: number; date?: string }>>({});
 
     const [removedAttachment, setRemovedAttachment] = useState(false);
+
+    // Optimized memory for local file preview
+    const fileUrl = useMemo(() => {
+        if (!file) return null;
+        try {
+            return URL.createObjectURL(file);
+        } catch (e) {
+            console.debug(e);
+            return null;
+        }
+    }, [file]);
 
     const [propagateChanges] = useState(() => localStorage.getItem('propagatePref') === 'true');
     const [dbInstallments, setDbInstallments] = useState<Record<number, { amount: number; date: string }>>({});
@@ -480,8 +491,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             </label>
                             <textarea className="flex min-h-[80px] w-full rounded-lg border px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Descrição ou dados extraídos..." />
                             {(() => {
-                                const pixMarker = notes.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
-                                const barcodeMarker = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
+                                const pixMarker = notes.match(/>+PIX_DATA<+([\s\S]*?)>+END_PIX<+/);
+                                const barcodeMarker = notes.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
                                 const pixCode = pixMarker ? pixMarker[1].trim() : null;
                                 const barcodeCode = barcodeMarker ? barcodeMarker[1].trim() : null;
                                 if (!pixCode && !barcodeCode) return null;
@@ -513,13 +524,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 {file ? (
                                     <div className="flex flex-col items-center gap-2">
                                         <p className="text-xs font-bold truncate w-full text-center">{file.name}</p>
-                                        <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setFile(null); setNotes(''); }}>Remover</Button>
+                                        <div className="flex gap-3">
+                                            {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200">ABRIR DOCUMENTO</a>}
+                                            <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setFile(null); setNotes(''); }}>Remover</Button>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center gap-2">
                                         <p className="text-xs font-bold text-center">Arquivo Vinculado</p>
-                                        <a href={initialData?.attachment_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-600">VER ARQUIVO</a>
-                                        <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setRemovedAttachment(true); setNotes(''); }}>Remover</Button>
+                                        <div className="flex gap-3">
+                                            <a href={initialData?.attachment_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200">ABRIR DOCUMENTO</a>
+                                            <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setRemovedAttachment(true); setNotes(''); }}>Remover</Button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
