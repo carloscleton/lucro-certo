@@ -130,8 +130,12 @@ export function useTransactions(type: TransactionType) {
                     const installmentIdx = index + 2;
                     const override = overrides?.[installmentIdx];
 
+                    // IMPORTANT: Attachments and Notes are only for the FIRST (current) record
+                    // Future recurring entries should be "clean"
+                    const { attachment_url, attachment_path, notes, ...recurringBasics } = cleanTransaction;
+
                     entriesToInsert.push({
-                        ...cleanTransaction,
+                        ...recurringBasics,
                         amount: override?.amount ?? cleanTransaction.amount,
                         date: override?.date ?? dateObj.toISOString().split('T')[0],
                         user_id: userId,
@@ -212,6 +216,12 @@ export function useTransactions(type: TransactionType) {
                 if (cleanUpdates.contact_id !== undefined) propagationPayload.contact_id = cleanUpdates.contact_id;
                 if (cleanUpdates.is_variable_amount !== undefined) propagationPayload.is_variable_amount = cleanUpdates.is_variable_amount;
                 if (cleanUpdates.recurring_count !== undefined) propagationPayload.recurring_count = cleanUpdates.recurring_count;
+
+                // Explicitly ensure we DON'T propagate attachments/notes to future ones if they were updated
+                // as the user wants them only for the specific record.
+                delete propagationPayload.attachment_url;
+                delete propagationPayload.attachment_path;
+                delete propagationPayload.notes;
 
                 if (Object.keys(propagationPayload).length > 0) {
                     const { error: propError } = await supabase
