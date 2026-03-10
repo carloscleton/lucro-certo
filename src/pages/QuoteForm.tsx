@@ -15,6 +15,7 @@ import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { useCRM } from '../hooks/useCRM';
 import { Tooltip } from '../components/ui/Tooltip';
+import { useAutoSave } from '../hooks/useAutoSave';
 
 export function QuoteForm() {
     const { id } = useParams();
@@ -59,6 +60,21 @@ export function QuoteForm() {
     const [newClientTaxId, setNewClientTaxId] = useState('');
     const [addingClient, setAddingClient] = useState(false);
 
+    const [discount, setDiscount] = useState(0);
+    const [discountType, setDiscountType] = useState<'amount' | 'percentage'>('amount');
+
+    const { clearCache } = useAutoSave(
+        'quote_form',
+        { title, contactId, validUntil, notes, discount, discountType, items },
+        {
+            title: setTitle, contactId: setContactId, validUntil: setValidUntil,
+            notes: setNotes, discount: setDiscount, discountType: setDiscountType as any,
+            items: setItems
+        },
+        id === 'new',
+        true
+    );
+
     useEffect(() => {
         if (settingsLoading) return;
 
@@ -88,8 +104,6 @@ export function QuoteForm() {
     }, [id, settingsLoading]); // Removed settings and items from dependencies
 
     // State for discount
-    const [discount, setDiscount] = useState(0);
-    const [discountType, setDiscountType] = useState<'amount' | 'percentage'>('amount');
 
     const loadQuote = async (quoteId: string) => {
         console.log('🔍 Loading quote with ID:', quoteId);
@@ -333,6 +347,7 @@ export function QuoteForm() {
             } else {
                 await createQuote(quoteData, items);
             }
+            clearCache();
             navigate('/quotes');
         } catch (error) {
             console.error(error);

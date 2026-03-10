@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal';
 import { Tag } from 'lucide-react';
 import type { Category } from '../../hooks/useCategories';
 import { useCompanies } from '../../hooks/useCompanies';
+import { useAutoSave } from '../../hooks/useAutoSave';
 
 interface CategoryFormProps {
     isOpen: boolean;
@@ -36,6 +37,14 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
         }
     }, [initialData, isOpen]);
 
+    const { clearCache } = useAutoSave(
+        'category_form',
+        { name, type, companyId, budgetLimit },
+        { name: setName, type: setType, companyId: setCompanyId, budgetLimit: setBudgetLimit },
+        !initialData,
+        isOpen
+    );
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -54,6 +63,7 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
             }
 
             await onSubmit(data);
+            clearCache();
             onClose();
         } catch (error: any) {
             console.error('CategoryForm Error:', error);

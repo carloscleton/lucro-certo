@@ -8,6 +8,7 @@ import { Modal } from '../ui/Modal';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useEntity } from '../../context/EntityContext';
 import type { Product } from '../../hooks/useProducts';
+import { useAutoSave } from '../../hooks/useAutoSave';
 
 interface ProductFormProps {
     isOpen: boolean;
@@ -60,6 +61,18 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
         }
     }, [initialData, isOpen]);
 
+    const { clearCache } = useAutoSave(
+        'product_form',
+        { name, description, subDescription, price, unit, showInPdf, ncm, cest, origem, costPrice },
+        {
+            name: setName, description: setDescription, subDescription: setSubDescription,
+            price: setPrice, unit: setUnit, showInPdf: setShowInPdf, ncm: setNcm,
+            cest: setCest, origem: setOrigem, costPrice: setCostPrice
+        },
+        !initialData,
+        isOpen
+    );
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -76,6 +89,7 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
                 origem: parseInt(origem) || 0,
                 preco_custo: parseFloat(costPrice) || 0,
             });
+            clearCache();
             onClose();
         } catch (error) {
             console.error(error);

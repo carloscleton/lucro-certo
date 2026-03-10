@@ -7,6 +7,7 @@ import { Building2, Search, MapPin, Upload } from 'lucide-react';
 import type { Company } from '../../hooks/useCompanies';
 import { useNotification } from '../../context/NotificationContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
+import { useAutoSave } from '../../hooks/useAutoSave';
 
 interface CompanyFormProps {
     isOpen: boolean;
@@ -81,6 +82,19 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setLogoFile(null);
         }
     }, [initialData, isOpen]);
+
+    const { clearCache } = useAutoSave(
+        'company_form',
+        { tradeName, legalName, cnpj, entityType, cpf, zipCode, street, number, complement, neighborhood, city, state, phone },
+        {
+            tradeName: setTradeName, legalName: setLegalName, cnpj: setCnpj, entityType: setEntityType as any,
+            cpf: setCpf, zipCode: setZipCode, street: setStreet, number: setNumber,
+            complement: setComplement, neighborhood: setNeighborhood, city: setCity,
+            state: setState, phone: setPhone
+        },
+        !initialData,
+        isOpen
+    );
 
     // Auto-CEP search when 8 digits are reached
     useEffect(() => {
@@ -176,6 +190,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 logo_url: logoUrl || null,
                 logo_file: logoFile,
             });
+            clearCache();
             onClose();
         } catch (error) {
             console.error(error);

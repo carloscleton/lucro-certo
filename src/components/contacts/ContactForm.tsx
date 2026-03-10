@@ -7,6 +7,7 @@ import { Modal } from '../ui/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import type { Contact } from '../../hooks/useContacts';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
+import { useAutoSave } from '../../hooks/useAutoSave';
 
 interface ContactFormProps {
     isOpen: boolean;
@@ -78,6 +79,19 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setState('');
         }
     }, [initialData, isOpen]);
+
+    const { clearCache } = useAutoSave(
+        'contact_form',
+        { name, type, email, phone, whatsapp, taxId, birthday, zipCode, street, number, complement, neighborhood, city, state },
+        {
+            name: setName, type: setType as any, email: setEmail, phone: setPhone, whatsapp: setWhatsapp,
+            taxId: setTaxId, birthday: setBirthday, zipCode: setZipCode, street: setStreet,
+            number: setNumber, complement: setComplement, neighborhood: setNeighborhood,
+            city: setCity, state: setState
+        },
+        !initialData,
+        isOpen
+    );
 
     // Auto-CEP search when 8 digits are reached
     useEffect(() => {
@@ -176,6 +190,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 state: state || null,
                 birthday: birthday || null,
             });
+            clearCache();
             onClose();
         } catch (error) {
             console.error(error);

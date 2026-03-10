@@ -8,6 +8,7 @@ import { Modal } from '../ui/Modal';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useEntity } from '../../context/EntityContext';
 import type { Service } from '../../hooks/useServices';
+import { useAutoSave } from '../../hooks/useAutoSave';
 
 interface ServiceFormProps {
     isOpen: boolean;
@@ -51,6 +52,18 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
         }
     }, [initialData, isOpen]);
 
+    const { clearCache } = useAutoSave(
+        'service_form',
+        { name, description, price, unit, showInPdf, munCode, lcItem },
+        {
+            name: setName, description: setDescription, price: setPrice,
+            unit: setUnit, showInPdf: setShowInPdf, munCode: setMunCode,
+            lcItem: setLcItem
+        },
+        !initialData,
+        isOpen
+    );
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -64,6 +77,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
                 codigo_servico_municipal: munCode,
                 item_lista_servico: lcItem,
             });
+            clearCache();
             onClose();
         } catch (error) {
             console.error(error);

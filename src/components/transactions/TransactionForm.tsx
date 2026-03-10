@@ -14,6 +14,7 @@ import { useCategories } from '../../hooks/useCategories';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useContacts } from '../../hooks/useContacts';
 import { useEntity } from '../../context/EntityContext';
+import { useAutoSave } from '../../hooks/useAutoSave';
 
 
 import { supabase } from '../../lib/supabase';
@@ -116,6 +117,20 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setFile(null);
         }
     }, [initialData, isOpen, type]);
+
+    // Global persistence for Transaction Form
+    const { clearCache } = useAutoSave(
+        `transaction_${type}`,
+        { description, amount, date, status, categoryId, companyId, contactId, isRecurring, isVariableAmount, frequency, recurringCount, dealId, notes },
+        {
+            description: setDescription, amount: setAmount, date: setDate, status: setStatus,
+            categoryId: setCategoryId, companyId: setCompanyId, contactId: setContactId,
+            isRecurring: setIsRecurring, isVariableAmount: setIsVariableAmount,
+            frequency: setFrequency, recurringCount: setRecurringCount, dealId: setDealId, notes: setNotes
+        },
+        !initialData, // only for NEW transactions
+        isOpen
+    );
 
     // Save preferences
     useEffect(() => {
@@ -343,6 +358,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 propagate: propagateChanges,
                 notes: notes
             });
+            clearCache();
             onClose();
         } catch (error) {
             console.error(error);
