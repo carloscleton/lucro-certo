@@ -13,6 +13,7 @@ import type { Transaction, TransactionType } from '../../hooks/useTransactions';
 import { useCategories } from '../../hooks/useCategories';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useContacts } from '../../hooks/useContacts';
+import { useEntity } from '../../context/EntityContext';
 
 
 import { supabase } from '../../lib/supabase';
@@ -65,6 +66,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const { categories, addCategory } = useCategories();
     const { companies } = useCompanies();
     const { contacts, addContact } = useContacts();
+    const { currentEntity } = useEntity();
 
     const { notify } = useNotification();
 
@@ -93,15 +95,16 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setRemovedAttachment(false);
             setFile(null);
         } else {
-            // New transaction - load saved preference
+            // New transaction - prioritize current context, fallback to saved preference
             const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
+            const defaultCompanyId = currentEntity.type === 'company' ? currentEntity.id : '';
 
             setDescription('');
             setAmount('');
             setDate(new Date().toISOString().split('T')[0]);
             setStatus('pending');
             setCategoryId('');
-            setCompanyId(savedCompanyId);
+            setCompanyId(defaultCompanyId || savedCompanyId);
             setContactId('');
             setIsRecurring(false);
             setIsVariableAmount(false);
