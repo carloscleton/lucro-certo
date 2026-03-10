@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo } from 'react';
 import type { FormEvent } from 'react';
-import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search } from 'lucide-react';
+import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search, Eye, EyeOff, ExternalLink, Trash2, FileText, Copy } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
@@ -522,19 +522,45 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 const barcodeCode = barcodeMarker ? barcodeMarker[1].trim() : null;
                                 if (!pixCode && !barcodeCode) return null;
                                 return (
-                                    <div className="mt-2 p-3 bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl flex flex-col gap-6">
+                                    <div className="mt-2 p-4 bg-white dark:bg-slate-800 border border-emerald-500/30 rounded-2xl flex flex-col gap-8 shadow-lg shadow-emerald-500/5 overflow-hidden animate-in zoom-in-95 duration-300">
                                         {pixCode && (
                                             <div className="flex flex-col items-center">
-                                                <p className="text-[10px] font-bold text-emerald-600 mb-2 uppercase tracking-wider">Pagamento via PIX</p>
-                                                <div className="p-2 bg-white rounded-lg shadow-sm border mb-2"><QRCode value={pixCode} size={150} /></div>
-                                                <Button type="button" size="sm" className="w-full text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(pixCode); notify('success', 'Chave PIX copiada!'); }}>COPIAR CHAVE PIX</Button>
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                    <p className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Pagamento Instantâneo PIX</p>
+                                                </div>
+                                                <div className="p-3 bg-white rounded-2xl shadow-inner border border-emerald-100 dark:border-slate-700 mb-4 ring-8 ring-emerald-50 dark:ring-emerald-900/10">
+                                                    <QRCode value={pixCode} size={160} />
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    size="md"
+                                                    className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-600/20 py-3 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(pixCode); notify('success', 'Chave PIX copiada!'); }}
+                                                >
+                                                    <Copy size={16} />
+                                                    COPIAR CHAVE PIX
+                                                </Button>
                                             </div>
                                         )}
                                         {barcodeCode && (
-                                            <div className="flex flex-col items-center pt-6 border-t border-gray-100 dark:border-slate-700">
-                                                <p className="text-[10px] font-bold text-blue-600 mb-2 uppercase tracking-wider">Código de Barras</p>
-                                                <div className="bg-white p-2 rounded-lg shadow-sm mb-2 w-full overflow-hidden flex justify-center"><Barcode value={barcodeCode} width={1.8} height={50} displayValue={false} /></div>
-                                                <Button type="button" size="sm" className="w-full text-[10px] bg-blue-600 hover:bg-blue-700 text-white" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(barcodeCode); notify('success', 'Código de barras copiado!'); }}>COPIAR CÓDIGO DO BOLETO</Button>
+                                            <div className="flex flex-col items-center pt-8 border-t border-gray-100 dark:border-slate-700">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                                    <p className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Boleto Bancário</p>
+                                                </div>
+                                                <div className="bg-white p-4 rounded-xl shadow-inner border border-blue-50 dark:border-slate-700 mb-4 w-full overflow-hidden flex justify-center ring-4 ring-blue-50 dark:ring-blue-900/10">
+                                                    <Barcode value={barcodeCode} width={1.8} height={50} displayValue={false} />
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    size="md"
+                                                    className="w-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-600/20 py-3 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(barcodeCode); notify('success', 'Código de barras copiado!'); }}
+                                                >
+                                                    <Copy size={16} />
+                                                    COPIAR CÓDIGO DO BOLETO
+                                                </Button>
                                             </div>
                                         )}
                                     </div>
@@ -549,25 +575,83 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                     {isAnalyzing && <div className="text-[10px] text-emerald-600 font-bold animate-pulse">ANALISANDO...</div>}
                                 </div>
                                 {file ? (
-                                    <div className="flex flex-col items-center gap-2">
-                                        <p className="text-xs font-bold truncate w-full text-center">{file.name}</p>
-                                        <div className="flex gap-3">
-                                            <Button type="button" variant="outline" size="sm" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200" onClick={() => setShowEmbeddedPreview(!showEmbeddedPreview)}>
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 w-full shadow-sm">
+                                            <FileText size={16} className="text-emerald-500" />
+                                            <p className="text-xs font-bold truncate flex-1 text-gray-700 dark:text-gray-300">{file.name}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-full">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1 text-[10px] font-bold h-9 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 transition-all active:scale-95"
+                                                onClick={() => setShowEmbeddedPreview(!showEmbeddedPreview)}
+                                            >
+                                                {showEmbeddedPreview ? <EyeOff size={14} className="mr-1.5" /> : <Eye size={14} className="mr-1.5" />}
                                                 {showEmbeddedPreview ? 'FECHAR PREVIEW' : 'VER NO SITE'}
                                             </Button>
-                                            <a href={fileUrl || '#'} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">ABRIR NOVA ABA</a>
-                                            <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setFile(null); setNotes(''); setShowEmbeddedPreview(false); }}>Remover</Button>
+
+                                            <a
+                                                href={fileUrl || '#'}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="flex items-center justify-center h-9 px-3 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all active:scale-95 whitespace-nowrap"
+                                            >
+                                                <ExternalLink size={14} className="mr-1.5" />
+                                                ABRIR ABA
+                                            </a>
+
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
+                                                onClick={() => { setFile(null); setNotes(''); setShowEmbeddedPreview(false); }}
+                                                title="Remover"
+                                            >
+                                                <Trash2 size={16} />
+                                            </Button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center gap-2">
-                                        <p className="text-xs font-bold text-center">Arquivo Vinculado</p>
-                                        <div className="flex gap-3">
-                                            <Button type="button" variant="outline" size="sm" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200" onClick={() => setShowEmbeddedPreview(!showEmbeddedPreview)}>
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 w-full shadow-sm">
+                                            <Paperclip size={16} className="text-blue-500" />
+                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Documento Vinculado</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-full">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1 text-[10px] font-bold h-9 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 transition-all active:scale-95"
+                                                onClick={() => setShowEmbeddedPreview(!showEmbeddedPreview)}
+                                            >
+                                                {showEmbeddedPreview ? <EyeOff size={14} className="mr-1.5" /> : <Eye size={14} className="mr-1.5" />}
                                                 {showEmbeddedPreview ? 'FECHAR PREVIEW' : 'VER NO SITE'}
                                             </Button>
-                                            <a href={initialData?.attachment_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">ABRIR NOVA ABA</a>
-                                            <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setRemovedAttachment(true); setNotes(''); setShowEmbeddedPreview(false); }}>Remover</Button>
+
+                                            <a
+                                                href={initialData?.attachment_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="flex items-center justify-center h-9 px-3 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all active:scale-95 whitespace-nowrap"
+                                            >
+                                                <ExternalLink size={14} className="mr-1.5" />
+                                                ABRIR ABA
+                                            </a>
+
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
+                                                onClick={() => { setRemovedAttachment(true); setNotes(''); setShowEmbeddedPreview(false); }}
+                                                title="Remover"
+                                            >
+                                                <Trash2 size={16} />
+                                            </Button>
                                         </div>
                                     </div>
                                 )}
@@ -606,8 +690,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     </div>
 
                     <div className="flex justify-end gap-3 mt-4">
-                        <Button type="button" variant="outline" onClick={handleClose} className="px-6 h-9 text-sm">Cancelar</Button>
-                        <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm text-white">
+                        <Button type="button" variant="outline" onClick={handleClose} className="px-6 h-9 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-slate-700 transition-all active:scale-95">Cancelar</Button>
+                        <Button
+                            type="submit"
+                            isLoading={loading}
+                            className="bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all hover:scale-[1.02] active:scale-95 border-none font-bold"
+                        >
                             {initialData ? 'Salvar Alterações' : 'Processar Lançamento'}
                         </Button>
                     </div>
