@@ -500,17 +500,19 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 const barcodeCode = barcodeMarker ? barcodeMarker[1].trim() : null;
                                 if (!pixCode && !barcodeCode) return null;
                                 return (
-                                    <div className="mt-2 p-3 bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl flex flex-col gap-4">
+                                    <div className="mt-2 p-3 bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl flex flex-col gap-6">
                                         {pixCode && (
                                             <div className="flex flex-col items-center">
+                                                <p className="text-[10px] font-bold text-emerald-600 mb-2 uppercase tracking-wider">Pagamento via PIX</p>
                                                 <div className="p-2 bg-white rounded-lg shadow-sm border mb-2"><QRCode value={pixCode} size={150} /></div>
-                                                <Button size="sm" className="w-full text-[10px]" onClick={() => { navigator.clipboard.writeText(pixCode); notify('success', 'Copiado!'); }}>COPIAR PIX</Button>
+                                                <Button type="button" size="sm" className="w-full text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(pixCode); notify('success', 'Chave PIX copiada!'); }}>COPIAR CHAVE PIX</Button>
                                             </div>
                                         )}
                                         {barcodeCode && (
-                                            <div className="flex flex-col items-center border-t pt-4">
+                                            <div className="flex flex-col items-center pt-6 border-t border-gray-100 dark:border-slate-700">
+                                                <p className="text-[10px] font-bold text-blue-600 mb-2 uppercase tracking-wider">Código de Barras</p>
                                                 <div className="bg-white p-2 rounded-lg shadow-sm mb-2 w-full overflow-hidden flex justify-center"><Barcode value={barcodeCode} width={1.8} height={50} displayValue={false} /></div>
-                                                <Button size="sm" className="w-full text-[10px]" onClick={() => { navigator.clipboard.writeText(barcodeCode); notify('success', 'Copiado!'); }}>COPIAR BOLETO</Button>
+                                                <Button type="button" size="sm" className="w-full text-[10px] bg-blue-600 hover:bg-blue-700 text-white" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(barcodeCode); notify('success', 'Código de barras copiado!'); }}>COPIAR CÓDIGO DO BOLETO</Button>
                                             </div>
                                         )}
                                     </div>
