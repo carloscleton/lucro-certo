@@ -246,16 +246,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         }
                     }
 
-                    // Local Barcode Extraction via Regex (DARF/Boleto formats)
-                    // Look for 44-55 characters that are mostly digits with spaces/dots
-                    const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,65}/g);
+                    // Local Barcode Extraction via Regex (DARF/Boleto/GPS formats)
+                    // We look for any sequence of 40-70 chars that is mostly of digits
+                    const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,75}/g);
                     if (potentialBarcodeMatch) {
                         for (const possible of potentialBarcodeMatch) {
-                            const clean = possible.trim().replace(/[^\d]/g, '');
+                            const clean = possible.replace(/[^\d]/g, '');
+                            // Brazilian barcodes for Boletos/DAS/GPS are usually 47/48 or 44 digits
                             if (clean.length >= 44 && clean.length <= 48) {
-                                console.log("[DEBUG] Barcode encontrado via extração de texto local (PDF)");
+                                console.log("[DEBUG] Barcode encontrado localmente:", clean);
                                 extractedText += `\n>>>>BARCODE_DATA<<<<${clean}>>>>END_BARCODE<<<<\n`;
-                                break; // Found one, that's enough for now
+                                break;
                             }
                         }
                     }
@@ -877,10 +878,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 // Try to find marked Barcode first, then fallback to loose numeric regex (Boleto format)
                                 const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
 
-                                // Detection in cleaned notes (removes spaces that break regular regex)
-                                // We filter out the Pix code itself from the clean notes for this check to avoid false positives
-                                const barcodeNotesClean = cleanNotes.replace(/000201[a-zA-Z0-9]{50,}/, '');
-                                const rawBarcodeMatch = barcodeNotesClean.match(/\d{44,55}/);
+                                // To find barcode without confusion: 
+                                // 1. Identify Pix if it exists 2. Remove Pix from the search area 3. Find 44-48 numbers
+                                let searchArea = cleanNotes;
+                                if (pixCodeToRender) {
+                                    searchArea = searchArea.split(pixCodeToRender.replace(/\s+/g, '')).join('');
+                                }
+                                const rawBarcodeMatch = searchArea.match(/\d{44,48}/);
 
                                 const barcodeToRender = markedBarcode ? markedBarcode[1].trim() : (rawBarcodeMatch ? rawBarcodeMatch[0] : null);
 
@@ -957,18 +961,19 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 />
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-3 p-3 w-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
-                                                <Paperclip className="w-8 h-8 text-emerald-500" />
-                                                <div className="flex-1 overflow-hidden">
-                                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{file.name}</p>
-                                                    <p className="text-[10px] text-gray-500">{(file.size / 1024).toFixed(1)} KB - PDF / Documento</p>
+                                            <div className="flex flex-col sm:flex-row items-center gap-3 p-3 w-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                                                <div className="flex flex-1 items-center gap-3 min-w-0 w-full">
+                                                    <Paperclip className="w-8 h-8 text-emerald-500 shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{file.name}</p>
+                                                        <p className="text-[10px] text-gray-500">{(file.size / 1024).toFixed(1)} KB - PDF / Documento</p>
+                                                    </div>
                                                 </div>
                                                 <a
                                                     href={fileUrl || '#'}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    style={{ minWidth: '120px' }}
-                                                    className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-[10px] font-bold rounded-lg transition-colors flex-shrink-0 text-center"
+                                                    className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors flex-shrink-0 text-center"
                                                 >
                                                     ABRIR / CONFERIR
                                                 </a>
