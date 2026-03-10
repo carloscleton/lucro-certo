@@ -64,6 +64,11 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
         isOpen
     );
 
+    const handleClose = () => {
+        clearCache();
+        onClose();
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -89,7 +94,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             title={initialData ? 'Editar Serviço' : 'Novo Serviço'}
             subtitle={initialData ? 'Atualize as informações do serviço cadastrado' : 'Cadastre um novo serviço no sistema'}
             icon={Wrench}
@@ -168,7 +173,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6">
-                    <Button type="button" variant="outline" onClick={onClose} className="px-8">
+                    <Button type="button" variant="outline" onClick={handleClose} className="px-8">
                         Cancelar
                     </Button>
                     <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-8">

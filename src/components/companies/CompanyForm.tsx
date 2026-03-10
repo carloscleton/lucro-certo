@@ -96,6 +96,11 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
         isOpen
     );
 
+    const handleClose = () => {
+        clearCache();
+        onClose();
+    };
+
     // Auto-CEP search when 8 digits are reached
     useEffect(() => {
         const cleanCep = zipCode.replace(/\D/g, '');
@@ -202,7 +207,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             title={initialData ? 'Editar Empresa' : 'Nova Empresa'}
             subtitle={initialData ? 'Atualize os dados da sua organização' : 'Cadastre uma nova empresa no sistema'}
             icon={Building2}
@@ -437,7 +442,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 </div>
 
                 <div className="flex justify-end gap-3 mt-8">
-                    <Button type="button" variant="outline" onClick={onClose} className="px-8">
+                    <Button type="button" variant="outline" onClick={handleClose} className="px-8">
                         Cancelar
                     </Button>
                     <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-8">

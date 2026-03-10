@@ -132,6 +132,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         isOpen
     );
 
+    const handleClose = () => {
+        clearCache();
+        onClose();
+    };
+
     // Save preferences
     useEffect(() => {
         if (!initialData && companyId !== undefined) {
@@ -390,12 +395,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         }
     }, [categories, pendingCategoryName, type]);
 
+
     return (
         <>
             <Modal
                 isOpen={isOpen}
-                onClose={onClose}
-                title={initialData ? (isExpense ? 'Editar Despesa' : 'Editar Receita') : (isExpense ? 'Nova Despesa' : 'Nova Receita')}
+                onClose={handleClose}
+                title={initialData ? (type === 'expense' ? 'Editar Despesa' : 'Editar Receita') : (type === 'expense' ? 'Nova Despesa' : 'Nova Receita')}
                 subtitle={initialData ? 'Atualize os dados deste lançamento financeiro' : `Registre um novo fluxo de ${isExpense ? 'saída' : 'entrada'} no seu caixa`}
                 icon={isExpense ? Receipt : TrendingUp}
                 maxWidth="max-w-2xl"
@@ -600,7 +606,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     </div>
 
                     <div className="flex justify-end gap-3 mt-4">
-                        <Button type="button" variant="outline" onClick={onClose} className="px-6 h-9 text-sm">Cancelar</Button>
+                        <Button type="button" variant="outline" onClick={handleClose} className="px-6 h-9 text-sm">Cancelar</Button>
                         <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm text-white">
                             {initialData ? 'Salvar Alterações' : 'Processar Lançamento'}
                         </Button>

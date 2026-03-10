@@ -93,6 +93,11 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         isOpen
     );
 
+    const handleClose = () => {
+        clearCache();
+        onClose();
+    };
+
     // Auto-CEP search when 8 digits are reached
     useEffect(() => {
         const cleanCep = zipCode.replace(/\D/g, '');
@@ -202,7 +207,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             title={initialData ? 'Editar Contato' : 'Novo Contato'}
             subtitle={initialData ? 'Atualize os dados do seu cliente ou fornecedor' : 'Cadastre um novo cliente ou fornecedor na sua agenda'}
             icon={UserPlus}
@@ -390,7 +395,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 </div>
 
                 <div className="flex justify-end gap-3 mt-8">
-                    <Button type="button" variant="outline" onClick={onClose} className="px-8">
+                    <Button type="button" variant="outline" onClick={handleClose} className="px-8">
                         Cancelar
                     </Button>
                     <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-8">

@@ -45,6 +45,11 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
         isOpen
     );
 
+    const handleClose = () => {
+        clearCache();
+        onClose();
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -76,7 +81,7 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             title={initialData ? 'Editar Categoria' : 'Nova Categoria'}
             subtitle={initialData ? 'Atualize as configurações da categoria' : 'Crie uma nova categoria para organizar suas finanças'}
             icon={Tag}
@@ -137,7 +142,7 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
                 )}
 
                 <div className="flex justify-end gap-3 mt-6">
-                    <Button type="button" variant="outline" onClick={onClose} className="px-8">
+                    <Button type="button" variant="outline" onClick={handleClose} className="px-8">
                         Cancelar
                     </Button>
                     <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-8">

@@ -75,6 +75,11 @@ export function QuoteForm() {
         true
     );
 
+    const handleBack = () => {
+        if (id === 'new') clearCache();
+        navigate('/quotes');
+    };
+
     useEffect(() => {
         if (settingsLoading) return;
 
@@ -361,7 +366,7 @@ export function QuoteForm() {
         <div className="space-y-6 max-w-5xl mx-auto pb-20">
             {/* ... Header ... */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => navigate('/quotes')}>
+                <Button variant="ghost" onClick={handleBack}>
                     <ArrowLeft size={20} />
                 </Button>
                 <div>

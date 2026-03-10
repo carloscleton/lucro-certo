@@ -73,6 +73,11 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
         isOpen
     );
 
+    const handleClose = () => {
+        clearCache();
+        onClose();
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -101,7 +106,7 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             title={initialData ? 'Editar Produto' : 'Novo Produto'}
             subtitle={initialData ? 'Atualize as informações do produto' : 'Cadastre um novo produto no catálogo'}
             icon={Package}
@@ -214,7 +219,7 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6">
-                    <Button type="button" variant="outline" onClick={onClose} className="px-8">
+                    <Button type="button" variant="outline" onClick={handleClose} className="px-8">
                         Cancelar
                     </Button>
                     <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-8">
