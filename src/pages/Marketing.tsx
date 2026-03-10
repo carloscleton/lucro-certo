@@ -104,6 +104,8 @@ export function Marketing() {
   const [avatarGender, setAvatarGender] = useState("male");
   const [avatarStyle, setAvatarStyle] = useState("professional");
   const [language, setLanguage] = useState("pt-BR");
+  const [videoEngine, setVideoEngine] = useState("google");
+  const [videoModel, setVideoModel] = useState("kling-v1-6");
 
   // Auto-Pilot State
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
@@ -250,6 +252,8 @@ export function Marketing() {
         );
         setBrandPrimaryColor(profileData.brand_primary_color || "#4f46e5");
         setBrandSecondaryColor(profileData.brand_secondary_color || "#f43f5e");
+        setVideoEngine(profileData.video_engine || "google");
+        setVideoModel(profileData.video_model || "kling-v1-6");
         setAutopilotEnabled(profileData.autopilot_enabled || false);
         setAutopilotFrequency(
           profileData.autopilot_frequency || "thrice_weekly",
@@ -300,6 +304,8 @@ export function Marketing() {
             brand_logo_url: brandLogo,
             brand_primary_color: brandPrimaryColor,
             brand_secondary_color: brandSecondaryColor,
+            video_engine: videoEngine,
+            video_model: videoModel,
             autopilot_enabled: autopilotEnabled,
             autopilot_frequency: autopilotFrequency,
             blog_autopilot_enabled: blogAutopilotEnabled,
@@ -322,6 +328,8 @@ export function Marketing() {
           brand_logo_url: brandLogo,
           brand_primary_color: brandPrimaryColor,
           brand_secondary_color: brandSecondaryColor,
+          video_engine: videoEngine,
+          video_model: videoModel,
           autopilot_enabled: autopilotEnabled,
           autopilot_frequency: autopilotFrequency,
           blog_autopilot_enabled: blogAutopilotEnabled,
@@ -1333,24 +1341,54 @@ export function Marketing() {
                     </div>
 
                     <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-top-4 duration-500">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div>
                           <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1 flex items-center gap-1.5">
-                            <User size={12} /> Gênero do Avatar (Apresentador)
+                            <Zap size={12} className="text-amber-500" /> Motor de Vídeo IA
+                          </label>
+                          <select
+                            className="w-full h-12 px-4 border border-gray-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all shadow-inner"
+                            value={videoEngine}
+                            onChange={(e) => setVideoEngine(e.target.value)}
+                          >
+                            <option value="google">Google Veo (Grátis)</option>
+                            <option value="pollo">Pollo AI (Premium)</option>
+                          </select>
+                        </div>
+
+                        {videoEngine === 'pollo' && (
+                          <div className="animate-in zoom-in-95 duration-200">
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1">
+                              Modelo de Geração
+                            </label>
+                            <select
+                              className="w-full h-12 px-4 border border-rose-100 dark:border-rose-900/30 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all shadow-inner ring-1 ring-rose-500/10"
+                              value={videoModel}
+                              onChange={(e) => setVideoModel(e.target.value)}
+                            >
+                              <option value="kling-v1-6">Kling AI v1.6 (Realista)</option>
+                              <option value="kling-v1-5">Kling AI v1.5</option>
+                              <option value="runway-gen3">Runway Gen-3 Alpha</option>
+                              <option value="luma-dream-machine">Luma Dream Machine</option>
+                              <option value="hailuo-v1">Hailuo Mini-V1</option>
+                            </select>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1 flex items-center gap-1.5">
+                            <User size={12} /> Gênero do Avatar
                           </label>
                           <select
                             className="w-full h-12 px-4 border border-gray-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all shadow-inner"
                             value={avatarGender}
                             onChange={(e) => setAvatarGender(e.target.value)}
                           >
-                            <option value="male">
-                              Masculino
-                            </option>
-                            <option value="female">
-                              Feminino
-                            </option>
+                            <option value="male">Masculino</option>
+                            <option value="female">Feminino</option>
                           </select>
                         </div>
+
                         <div>
                           <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 px-1">
                             Estilo Visual da IA
@@ -1360,18 +1398,10 @@ export function Marketing() {
                             value={avatarStyle}
                             onChange={(e) => setAvatarStyle(e.target.value)}
                           >
-                            <option value="professional">
-                              Profissional / Corporativo
-                            </option>
-                            <option value="news">
-                              Notícias / Jornalístico
-                            </option>
-                            <option value="casual">
-                              Casual / Descontraído
-                            </option>
-                            <option value="educational">
-                              Educativo / Aula
-                            </option>
+                            <option value="professional">Profissional / Corporativo</option>
+                            <option value="news">Notícias / Jornalístico</option>
+                            <option value="casual">Casual / Descontraído</option>
+                            <option value="educational">Educativo / Aula</option>
                           </select>
                         </div>
                       </div>

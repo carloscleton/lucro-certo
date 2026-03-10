@@ -63,87 +63,95 @@ serve(async (req) => {
     }
     // ------------------------------
 
-    // SÓ GERA VÍDEO SE ESTIVER HABILITADO E DENTRO DO LIMITE
+    // GERAÇÃO DE VÍDEO
     if (profile?.video_enabled && !debugInfo) {
       try {
-        const AI_STUDIO_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY')
-        if (!AI_STUDIO_KEY) throw new Error("Chave AI Studio não encontrada.")
+        const engine = profile.video_engine || 'google';
+        const model = profile.video_model || 'kling-v1-6';
 
-        // 1. GERAÇÃO INICIAL (8 Segundos)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${AI_STUDIO_KEY}`
-        const veoRes = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            instances: [{
-              prompt: `Cinematic professional 4k vertical video (9:16) of a corporate ${profile.avatar_gender || 'male'} presenter, style ${profile.avatar_style || 'professional'}, speaking naturally and confidently to the camera in ${profile.language || 'Portuguese'}. Modern office background, high quality lighting.`
-            }]
-          })
-        })
+        if (engine === 'pollo') {
+          // --- ENGINE POLLO AI ---
+          const POLLO_KEY = Deno.env.get('POLLO_API_KEY');
+          if (!POLLO_KEY) throw new Error("Chave Pollo AI não configurada nas secrets do Supabase.");
 
-        const opData = await veoRes.json()
-        if (!veoRes.ok) throw new Error(`Google recusou inicial: ${opData.error?.message}`)
-
-        let currentVideoLink = null;
-        if (opData.name) {
-          let attempts = 0
-          while (attempts < 45) {
-            attempts++
-            await new Promise(r => setTimeout(r, 2000))
-            const pollRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${opData.name}?key=${AI_STUDIO_KEY}`)
-            const pollData = await pollRes.json()
-            if (pollData.done) {
-              currentVideoLink = findVideoLink(pollData.response);
-              break;
-            }
-          }
-        }
-
-        // 2. EXTENSÃO (Opcional - +7s)
-        if (currentVideoLink) {
-          finalVideoUrl = currentVideoLink;
-          try {
-            const extensionPrompt = `The corporate ${profile.avatar_gender || 'male'} presenter continues their professional speech with natural gestures in the same modern office environment. Seamless transition.`;
-            const extendRes = await fetch(url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                instances: [{
-                  prompt: extensionPrompt,
-                  videoUri: currentVideoLink.replace('https://storage.googleapis.com/', 'gs://')
-                }]
-              })
+          const polloRes = await fetch(`https://api.pollo.ai/v1/${model}/generation-video`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${POLLO_KEY}`
+            },
+            body: JSON.stringify({
+              prompt: `Cinematic professional 4k vertical video (9:16) of a corporate ${profile.avatar_gender || 'male'} presenter, style ${profile.avatar_style || 'professional'}, speaking naturally and confidently to the camera in ${profile.language || 'Portuguese'}. Modern office background, high quality lighting.`,
+              aspect_ratio: "9:16"
             })
-            const extendOp = await extendRes.json();
-            if (extendRes.ok && extendOp.name) {
-              let extAttempts = 0;
-              while (extAttempts < 45) {
-                extAttempts++;
-                await new Promise(r => setTimeout(r, 2000));
-                const pollExt = await fetch(`https://generativelanguage.googleapis.com/v1beta/${extendOp.name}?key=${AI_STUDIO_KEY}`);
-                const pollExtData = await pollExt.json();
-                if (pollExtData.done) {
-                  const extLink = findVideoLink(pollExtData.response);
-                  if (extLink) finalVideoUrl = extLink;
-                  break;
-                }
-              }
+          });
+
+          const polloData = await polloRes.json();
+          if (!polloRes.ok) throw new Error(`Pollo AI recusou: ${polloData.message || JSON.stringify(polloData)}`);
+
+          const taskId = polloData.data?.task_id;
+          if (!taskId) throw new Error("Pollo AI não retornou Task ID.");
+
+          // Polling Pollo
+          let attempts = 0;
+          while (attempts < 60) {
+            attempts++;
+            await new Promise(r => setTimeout(r, 5000)); // Espera 5s entre consultas
+            const statusRes = await fetch(`https://api.pollo.ai/v1/task/get?task_id=${taskId}`, {
+              headers: { "Authorization": `Bearer ${POLLO_KEY}` }
+            });
+            const statusData = await statusRes.json();
+
+            if (statusData.data?.status === 'succeed') {
+              finalVideoUrl = statusData.data.video_url;
+              break;
+            } else if (statusData.data?.status === 'failed') {
+              throw new Error(`Pollo AI falhou na geração: ${statusData.data.reason || 'Erro desconhecido'}`);
             }
-          } catch (extE) {
-            console.error("Erro na extensão:", extE);
           }
         } else {
-          throw new Error("Não foi possível gerar o vídeo inicial.");
+          // --- ENGINE GOOGLE VEO (DEFAULT) ---
+          const AI_STUDIO_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY')
+          if (!AI_STUDIO_KEY) throw new Error("Chave AI Studio não encontrada.")
+
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${AI_STUDIO_KEY}`
+          const veoRes = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              instances: [{
+                prompt: `Cinematic professional 4k vertical video (9:16) of a corporate ${profile.avatar_gender || 'male'} presenter, style ${profile.avatar_style || 'professional'}, speaking naturally and confidently to the camera in ${profile.language || 'Portuguese'}. Modern office background, high quality lighting.`
+              }]
+            })
+          })
+
+          const opData = await veoRes.json()
+          if (!veoRes.ok) throw new Error(`Google recusou inicial: ${opData.error?.message}`)
+
+          if (opData.name) {
+            let attempts = 0
+            while (attempts < 45) {
+              attempts++
+              await new Promise(r => setTimeout(r, 2000))
+              const pollRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${opData.name}?key=${AI_STUDIO_KEY}`)
+              const pollData = await pollRes.json()
+              if (pollData.done) {
+                const link = findVideoLink(pollData.response);
+                if (link) finalVideoUrl = link;
+                break;
+              }
+            }
+          }
         }
 
-        // Incrementa o uso diário se chegou até aqui com sucesso
+        // Incrementa o uso diário
         await supabase.from('social_profiles')
           .update({ daily_video_count: dailyCount + 1 })
           .eq('id', profile.id);
 
       } catch (e: any) {
         if (e.message.includes("quota") || e.message.includes("429")) {
-          debugInfo = `🚨 LIMITE DE VÍDEOS ALCANÇADO: Quota do Google esgotada por hoje.`
+          debugInfo = `🚨 LIMITE DE VÍDEOS ALCANÇADO: Quota do provedor esgotada.`
         } else {
           debugInfo = `🚨 ERRO TÉCNICO VÍDEO: ${e.message}`
         }
@@ -189,7 +197,7 @@ Gere o texto em português corretamente.`;
       status: 'pending'
     }).eq('id', post_id)
 
-    // Notificar WhatsApp (COMPATIBILIDADE TOTAL COM EVOLUTION API)
+    // Notificar WhatsApp
     if (profile?.approval_whatsapp) {
       const { data: instances } = await supabase.from('instances')
         .select('*')
@@ -208,7 +216,7 @@ Gere o texto em português corretamente.`;
 *Legenda:*
 ${post.content}
 
-${profile.video_enabled ? '🎥 O vídeo de 15s está pronto para revisão!' : '📝 A imagem com texto chamativo está pronta!'}
+${profile.video_enabled ? '🎥 O vídeo está pronto para revisão!' : '📝 A imagem com texto chamativo está pronta!'}
 
 Deseja Aprovar e Postar Agora?
 Responda *1* para aprovar ou *NAO* para descartar.
@@ -217,7 +225,6 @@ _(Ref: Post ${post_id})_`
 
         const targetNumber = profile.approval_whatsapp.replace(/\D/g, '')
 
-        // URL SEM TOKEN (Mais robusto para Evolution API v2)
         let endpoint = `${EVO_URL}/message/sendText/${encodeURIComponent(instance.instance_name)}`;
         let payload: any = {
           number: targetNumber,

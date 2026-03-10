@@ -27,7 +27,6 @@ interface TransactionFormProps {
     initialData?: Transaction | null;
 }
 
-
 export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }: TransactionFormProps) {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
@@ -179,7 +178,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             let extractedText = '';
             let pdfFirstPageImageBase64: string | null = null;
 
-            // Se for PDF, extrai texto localmente antes de invocar
             if (fileToAnalyze.type === 'application/pdf' || fileToAnalyze.name.toLowerCase().endsWith('.pdf')) {
                 const pdfjsLib = await import('pdfjs-dist');
                 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -192,20 +190,16 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const content = await page.getTextContent();
-
-                    // Sort items by visual position (top-to-bottom, left-to-right)
-                    // pdf.js transform: [scaleX, skewY, skewX, scaleY, translateX, translateY]
                     const sortedItems = content.items.sort((a: any, b: any) => {
                         if (Math.abs(b.transform[5] - a.transform[5]) > 5) {
-                            return b.transform[5] - a.transform[5]; // Top to bottom
+                            return b.transform[5] - a.transform[5];
                         }
-                        return a.transform[4] - b.transform[4]; // Left to right
+                        return a.transform[4] - b.transform[4];
                     });
 
                     const pageText = sortedItems.map((item: any) => item.str).join(' ');
                     extractedText += pageText + '\n';
 
-                    // Attempt to locate QR codes in the PDF by rendering the page to a canvas
                     for (const scale of [1.5, 2.5, 3.5]) {
                         try {
                             const viewport = page.getViewport({ scale });
@@ -214,194 +208,113 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             if (context) {
                                 canvas.height = viewport.height;
                                 canvas.width = viewport.width;
-                                context.imageSmoothingEnabled = false; // CRUCIAL for QR code sharpness
-
+                                context.imageSmoothingEnabled = false;
                                 await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-                                // Capture the first page image for OpenAI Vision API just in case local scan fails
                                 if (i === 1 && scale === 1.5) {
                                     pdfFirstPageImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
                                 }
-
                                 try {
                                     const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
                                     if (result && result.data && result.data.length > 10) {
                                         const foundText = result.data;
-                                        console.log(`QR Code encontrado na página: ${i} (Escala: ${scale}) via QrScanner`);
-
-                                        // Use a very specific marker for local extraction to avoid IA/Regex confusion later
                                         if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
                                             extractedText += `\n>>>>PIX_DATA<<<<${foundText}>>>>END_PIX<<<<\n`;
                                         } else {
                                             extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
                                         }
-                                        break; // Found it, stop scaling
+                                        break;
                                     }
-                                } catch (decodeErr) {
-                                    // qr-scanner throws if it can't find a code, which is expected for most scales/pages
-                                }
+                                } catch (decodeErr) { }
                             }
-                        } catch (e) {
-                            console.log("Aviso: Falha ao varrer Código Visual na página PDF", e);
-                        }
+                        } catch (e) { }
                     }
 
-                    // Local Barcode Extraction via Regex (DARF/Boleto/GPS formats)
-                    // We look for any sequence of 40-70 chars that is mostly of digits
                     const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,75}/g);
                     if (potentialBarcodeMatch) {
                         for (const possible of potentialBarcodeMatch) {
                             const clean = possible.replace(/[^\d]/g, '');
-                            // Brazilian barcodes for Boletos/DAS/GPS are usually 47/48 or 44 digits
                             if (clean.length >= 44 && clean.length <= 48) {
-                                console.log("[DEBUG] Barcode encontrado localmente:", clean);
                                 extractedText += `\n>>>>BARCODE_DATA<<<<${clean}>>>>END_BARCODE<<<<\n`;
                                 break;
                             }
                         }
                     }
 
-                    // Failsafe: Text-based Pix Extraction (Handles EMV and URL formats)
-                    // Sometimes visual scan fails but text is there
                     const cleanText = pageText.replace(/\s+/g, '');
                     const textPixMatch = cleanText.match(/000201[a-zA-Z0-9]*?6304[a-fA-F0-9]{4}/i) ||
                         cleanText.match(/https?:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150}/i);
-
                     if (textPixMatch && !extractedText.includes('>>>>PIX_DATA<<<<')) {
-                        console.log("[DEBUG] Pix encontrado via extração de texto no PDF");
                         extractedText += `\n>>>>PIX_DATA<<<<${textPixMatch[0]}>>>>END_PIX<<<<\n`;
                     }
-
                     if (i >= 5) break;
                 }
             } else if (fileToAnalyze.type.startsWith('image/')) {
-                // If it's a regular image, try to scan for QR Code locally as OpenAI Vision struggles with it
                 try {
                     const QrScanner = (await import('qr-scanner')).default;
                     const objectUrl = URL.createObjectURL(fileToAnalyze);
                     const HTMLImageElement = document.createElement('img');
                     HTMLImageElement.src = objectUrl;
-
-                    await new Promise(resolve => {
-                        HTMLImageElement.onload = resolve;
-                        HTMLImageElement.onerror = resolve; // Continue on error
-                    });
-
+                    await new Promise(resolve => { HTMLImageElement.onload = resolve; HTMLImageElement.onerror = resolve; });
                     try {
                         const result = await QrScanner.scanImage(HTMLImageElement, { returnDetailedScanResult: true });
                         if (result && result.data && result.data.length > 10) {
                             const foundText = result.data;
                             if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
                                 extractedText += `\n>>>>PIX_DATA<<<<${foundText}>>>>END_PIX<<<<\n`;
-                                console.log("QR Code PIX encontrado na imagem via QrScanner");
                             } else {
                                 extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
-                                console.log("Código QR encontrado na imagem via QrScanner");
                             }
                         }
-                    } catch (decodeErr) {
-                        // qr-scanner throws if it can't find a code, which is expected for most images
-                    }
+                    } catch (decodeErr) { }
                     URL.revokeObjectURL(objectUrl);
-                } catch (e) {
-                    console.log("Aviso: Falha ao varrer QR Code na imagem", e);
-                }
+                } catch (e) { }
             }
 
-            // First, upload to a temporary location to get a URL for the IA
             const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
             const fileName = `temp_${Math.random()}.${fileExt}`;
             const filePath = `analysis/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('attachments')
-                .upload(filePath, fileToAnalyze);
-
+            const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, fileToAnalyze);
             if (uploadError) throw uploadError;
 
             const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(filePath);
             const publicUrl = urlData.publicUrl;
 
-            // Call the vision function
             const payload: any = { type };
             if (extractedText) {
                 payload.text_content = extractedText;
-                // Add the visual image of the first page so Vision AI can also detect QR Codes visually!
-                if (pdfFirstPageImageBase64) {
-                    payload.image_url = pdfFirstPageImageBase64;
-                }
+                if (pdfFirstPageImageBase64) payload.image_url = pdfFirstPageImageBase64;
             } else {
                 payload.image_url = publicUrl;
             }
 
-            const { data, error: invokeError } = await supabase.functions.invoke('financial-vision', {
-                body: payload
-            });
-
+            const { data, error: invokeError } = await supabase.functions.invoke('financial-vision', { body: payload });
             if (invokeError) throw new Error(invokeError.message || 'Erro ao chamar função de IA');
 
             if (data && !data.error) {
                 if (data.description) setDescription(data.description);
                 if (data.amount) setAmount(data.amount.toString());
                 if (data.date) setDate(data.date);
-                if (data.notes_suggestion) {
-                    let finalNotes = data.notes_suggestion;
-
-                    console.log("[DEBUG] Document Extracted Text Length:", extractedText?.length || 0);
-
-                    // Enforcer: Garantir que os marcadores estejam presentes se os dados foram encontrados localmente.
-                    // Isso blinda os dados contra espaços que a IA possa adicionar no meio dos códigos.
-                    if (extractedText) {
-                        const localPixMatch = extractedText.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
-                        if (localPixMatch) {
-                            const wrappedPix = `>>>>PIX_DATA<<<<${localPixMatch[1]}>>>>END_PIX<<<<`;
-                            if (!finalNotes.includes(wrappedPix)) {
-                                console.log("[DEBUG] Enforcing Pix Markers at the top");
-                                finalNotes = `**PIX COPIA E COLA:**\n${wrappedPix}\n\n` + finalNotes;
-                            }
-                        }
-
-                        const localBarcodeMatch = extractedText.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
-                        if (localBarcodeMatch) {
-                            const wrappedBarcode = `>>>>BARCODE_DATA<<<<${localBarcodeMatch[1]}>>>>END_BARCODE<<<<`;
-                            if (!finalNotes.includes(wrappedBarcode)) {
-                                console.log("[DEBUG] Enforcing Barcode Markers at the top");
-                                finalNotes = `**CÓDIGO DE BARRAS:**\n${wrappedBarcode}\n\n` + finalNotes;
-                            }
-                        }
-                    }
-
-                    // Check if the AI returned a barcode even without markers (loose match)
-                    if (!finalNotes.includes('>>>>BARCODE_DATA<<<<')) {
-                        const aiBarcodeMatch = finalNotes.match(/(?:\d[.\-\s]*){44,55}\d/);
-                        if (aiBarcodeMatch) {
-                            const cleanAI = aiBarcodeMatch[0].replace(/[^\d]/g, '');
-                            if (cleanAI.length >= 44 && cleanAI.length <= 48) {
-                                console.log("[DEBUG] Wrapping AI detected Barcode with markers");
-                                finalNotes = finalNotes.replace(aiBarcodeMatch[0], `>>>>BARCODE_DATA<<<<${cleanAI}>>>>END_BARCODE<<<<`);
-                            }
-                        }
-                    }
-
-                    setNotes(prev => prev ? `${prev}\n${finalNotes}` : finalNotes);
+                let finalNotes = data.notes_suggestion || '';
+                let paymentBlock = '';
+                if (extractedText) {
+                    const localPixMatch = extractedText.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
+                    if (localPixMatch) paymentBlock += `>>>>PIX_DATA<<<<${localPixMatch[1].trim()}>>>>END_PIX<<<<\n`;
+                    const localBarcodeMatch = extractedText.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
+                    if (localBarcodeMatch) paymentBlock += `>>>>BARCODE_DATA<<<<${localBarcodeMatch[1].trim()}>>>>END_BARCODE<<<<\n`;
                 }
-
+                if (paymentBlock) finalNotes = paymentBlock + "\n" + finalNotes;
+                setNotes(prev => prev ? `${prev}\n${finalNotes}` : finalNotes);
                 notify('success', 'Documento analisado com sucesso!', 'IA Financeira');
-            } else if (data?.error) {
-                throw new Error(data.error);
-            }
+            } else if (data && data.error) throw new Error(data.error);
 
-            // Clean up temp file (optional, but good practice)
-            await supabase.storage.from('attachments').remove([filePath]);
-
+            try { await supabase.storage.from('attachments').remove([filePath]); } catch (e) { }
         } catch (err: any) {
             console.error('Error analyzing document:', err);
-            notify('error', err.message || 'Falha ao analisar documento.', 'Erro na IA analisando Arquivo');
+            notify('error', err.message || 'Falha ao analisar documento.', 'Erro na IA');
         } finally {
             setIsAnalyzing(false);
         }
     };
-
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -409,32 +322,19 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         try {
             let attachmentUrl = removedAttachment ? null : initialData?.attachment_url;
             let attachmentPath = removedAttachment ? null : initialData?.attachment_path;
-
-            // Delete old file from storage if it was removed
             if (removedAttachment && initialData?.attachment_path) {
-                try {
-                    await supabase.storage.from('attachments').remove([initialData.attachment_path]);
-                } catch (err) {
-                    console.log("Aviso: Falha ao deletar arquivo antigo", err);
-                }
+                try { await supabase.storage.from('attachments').remove([initialData.attachment_path]); } catch (err) { }
             }
-
             if (file) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
                 const filePath = `${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('attachments')
-                    .upload(filePath, file);
-
+                const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, file);
                 if (uploadError) throw uploadError;
-
                 const { data } = supabase.storage.from('attachments').getPublicUrl(filePath);
                 attachmentUrl = data.publicUrl;
                 attachmentPath = filePath;
             }
-
             await onSubmit({
                 description,
                 amount: parseFloat(amount),
@@ -464,22 +364,16 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     };
 
     const isExpense = type === 'expense';
-
-    // Chamado pelo CategoryForm após salvar — auto-seleciona a categoria criada
     const handleCategoryCreated = async (data: any) => {
         await addCategory(data);
         setPendingCategoryName(data.name);
         setShowCategoryModal(false);
     };
-
-    // Chamado pelo ContactForm após salvar — auto-seleciona o contato criado
     const handleContactCreated = async (data: any) => {
         const newContact = await addContact(data);
         if (newContact) setContactId(newContact.id);
         setShowContactModal(false);
     };
-
-    // Auto-select newly created category after the list refreshes
     useEffect(() => {
         if (pendingCategoryName && categories.length > 0) {
             const match = categories.find(c => c.name === pendingCategoryName && c.type === type);
@@ -488,7 +382,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 setPendingCategoryName(null);
             }
         }
-    }, [categories, pendingCategoryName]);
+    }, [categories, pendingCategoryName, type]);
 
     return (
         <>
@@ -503,168 +397,44 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="md:col-span-2">
-                            <Input
-                                label="Descrição"
-                                value={description}
-                                onChange={e => setDescription(e.target.value)}
-                                required
-                                placeholder="Ex: Aluguel, Venda de Produto..."
-                            />
+                            <Input label="Descrição" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Ex: Aluguel..." />
                         </div>
-
-                        <Input
-                            label="Valor (R$)"
-                            type="number"
-                            step="0.01"
-                            value={amount}
-                            onChange={e => setAmount(e.target.value)}
-                            required
-                            placeholder="0,00"
-                        />
-
-                        <Input
-                            label="Data do Lançamento"
-                            type="date"
-                            value={date}
-                            onChange={e => setDate(e.target.value)}
-                            required
-                        />
-
+                        <Input label="Valor (R$)" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required placeholder="0,00" />
+                        <Input label="Data" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
                                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCategoryModal(true)}
-                                    className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors shrink-0"
-                                >
-                                    <Plus className="w-3 h-3" /> Nova
-                                </button>
+                                <button type="button" onClick={() => setShowCategoryModal(true)} className="text-xs text-emerald-600 font-semibold"><Plus className="w-3 h-3 inline mr-1" /> Nova</button>
                             </div>
-                            <select
-                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
-                                value={categoryId}
-                                onChange={e => setCategoryId(e.target.value)}
-                                required
-                            >
-                                <option value="">Selecione uma categoria</option>
-                                {categories
-                                    .filter(c => c.type === type)
-                                    .map(category => (
-                                        <option key={category.id} value={category.id}>
-                                            {category.name}
-                                        </option>
-                                    ))
-                                }
-                                {initialData?.category_id && !categories.some(c => c.id === initialData.category_id) && (
-                                    <option key={`fallback-${initialData.category_id}`} value={initialData.category_id}>
-                                        {(initialData as any).category?.name || 'Categoria Original'} (Outro Perfil)
-                                    </option>
-                                )}
+                            <select className="h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm" value={categoryId} onChange={e => setCategoryId(e.target.value)} required>
+                                <option value="">Selecione...</option>
+                                {categories.filter(c => c.type === type).map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
                             </select>
-                            {categories.filter(c => c.type === type).length === 0 && !initialData?.category_id && (
-                                <p className="text-[10px] text-red-500 font-medium">Cadastre categorias de {isExpense ? 'Despesa' : 'Receita'} primeiro.</p>
-                            )}
                         </div>
-
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Forma de Pagamento / Status</label>
-                            <select
-                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
-                                value={status}
-                                onChange={e => setStatus(e.target.value)}
-                            >
-                                <option value="pending">Pendente (Não concialiado)</option>
-                                <option value={isExpense ? 'paid' : 'received'}>
-                                    {isExpense ? 'Confirmado (Pago)' : 'Confirmado (Recebido)'}
-                                </option>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                            <select className="h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm" value={status} onChange={e => setStatus(e.target.value)}>
+                                <option value="pending">Pendente</option>
+                                <option value={isExpense ? 'paid' : 'received'}>{isExpense ? 'Confirmado (Pago)' : 'Confirmado (Recebido)'}</option>
                             </select>
                         </div>
-
                         <div className="flex flex-col gap-1.5">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Empresa / Conta</label>
-                            <select
-                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
-                                value={companyId}
-                                onChange={e => setCompanyId(e.target.value)}
-                            >
-                                <option value="">Pessoal (Individual)</option>
-                                {companies.map(company => (
-                                    <option key={company.id} value={company.id}>
-                                        {company.trade_name}
-                                    </option>
-                                ))}
+                            <select className="h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm" value={companyId} onChange={e => setCompanyId(e.target.value)}>
+                                <option value="">Pessoal</option>
+                                {companies.map(company => <option key={company.id} value={company.id}>{company.trade_name}</option>)}
                             </select>
                         </div>
-
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    {isExpense ? 'Fornecedor' : 'Cliente'}
-                                </label>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowContactModal(true)}
-                                    className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors shrink-0"
-                                >
-                                    <Plus className="w-3 h-3" /> Novo
-                                </button>
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{isExpense ? 'Fornecedor' : 'Cliente'}</label>
+                                <button type="button" onClick={() => setShowContactModal(true)} className="text-xs text-emerald-600 font-semibold"><Plus className="w-3 h-3 inline mr-1" /> Novo</button>
                             </div>
-                            <select
-                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
-                                value={contactId}
-                                onChange={e => setContactId(e.target.value)}
-                            >
-                                <option value="">Selecione um contato (Opcional)</option>
-                                {contacts
-                                    .filter(c => c.type === (isExpense ? 'supplier' : 'client'))
-                                    .map(contact => (
-                                        <option key={contact.id} value={contact.id}>
-                                            {contact.name}
-                                        </option>
-                                    ))
-                                }
+                            <select className="h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm" value={contactId} onChange={e => setContactId(e.target.value)}>
+                                <option value="">Selecione...</option>
+                                {contacts.filter(c => c.type === (isExpense ? 'supplier' : 'client')).map(contact => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
                             </select>
                         </div>
-
-                        {isCRMEnabled && !isExpense && (
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Negócio (CRM)</label>
-                                <select
-                                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
-                                    value={dealId}
-                                    onChange={e => {
-                                        const selectedId = e.target.value;
-                                        setDealId(selectedId);
-
-                                        if (selectedId) {
-                                            const deal = deals.find(d => d.id === selectedId);
-                                            if (deal) {
-                                                // Auto-populate contact
-                                                if (deal.contact_id) {
-                                                    setContactId(deal.contact_id);
-                                                }
-                                                // Auto-populate description if empty
-                                                if (!description || description.trim() === '') {
-                                                    setDescription(`Ref: ${deal.title}`);
-                                                }
-                                                // Auto-populate amount if empty
-                                                if (!amount || parseFloat(amount) === 0) {
-                                                    setAmount(deal.value.toString());
-                                                }
-                                            }
-                                        }
-                                    }}
-                                >
-                                    <option value="">Nenhum negócio associado</option>
-                                    {deals.filter(d => d.status === 'active').map(deal => (
-                                        <option key={deal.id} value={deal.id}>
-                                            {deal.title}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
                     </div>
 
                     <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 space-y-3">
@@ -673,263 +443,84 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 <Repeat className="w-4 h-4 text-emerald-600" />
                                 <span className="text-sm font-bold text-gray-900 dark:text-white">Lançamento Recorrente</span>
                             </div>
-                            <input
-                                type="checkbox"
-                                checked={isRecurring}
-                                onChange={e => {
-                                    setIsRecurring(e.target.checked);
-                                    if (!e.target.checked) setIsVariableAmount(false);
-                                }}
-                                className="w-5 h-5 text-emerald-600 rounded-md border-gray-300 focus:ring-emerald-500 dark:bg-slate-700 dark:border-slate-600"
-                            />
+                            <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} className="w-5 h-5" />
                         </div>
-
                         {isRecurring && (
-                            <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-slate-700 animate-in slide-in-from-top-1 duration-200">
+                            <div className="flex flex-col gap-2 pt-2 border-t">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <TrendingUp className="w-4 h-4 text-blue-600" />
-                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Valor Variável (Estimado)</span>
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        checked={isVariableAmount}
-                                        onChange={e => setIsVariableAmount(e.target.checked)}
-                                        className="w-5 h-5 text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600"
-                                    />
+                                    <span className="text-xs font-semibold">Valor Variável?</span>
+                                    <input type="checkbox" checked={isVariableAmount} onChange={e => setIsVariableAmount(e.target.checked)} className="w-5 h-5" />
                                 </div>
-
-                                {initialData?.recurrence_group_id && (
-                                    <div className="flex items-center justify-between py-1 px-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg">
-                                        <div className="flex items-center gap-2">
-                                            <Repeat className="w-3.5 h-3.5 text-amber-600" />
-                                            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">Propagar alteração para os próximos meses?</span>
-                                        </div>
-                                        <input
-                                            type="checkbox"
-                                            checked={propagateChanges}
-                                            onChange={e => setPropagateChanges(e.target.checked)}
-                                            className="w-5 h-5 text-amber-600 rounded-md border-amber-300 focus:ring-amber-500 dark:bg-slate-700 dark:border-slate-600"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {isRecurring && (
-                            <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-200">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Frequência da Repetição</label>
-                                        <select
-                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
-                                            value={frequency}
-                                            onChange={e => setFrequency(e.target.value)}
-                                        >
-                                            <option value="weekly">Semanal</option>
-                                            <option value="monthly">Mensal</option>
-                                            <option value="yearly">Anual</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nº de Repetições</label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            max={120}
-                                            value={recurringCount}
-                                            onChange={e => setRecurringCount(Math.max(1, Math.min(120, parseInt(e.target.value) || 1)))}
-                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600 text-center font-bold"
-                                        />
-                                    </div>
-                                </div>
-                                {date && (
-                                    <>
-                                        <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium italic">
-                                            {frequency === 'monthly' && `* Este lançamento se repetirá todo dia ${date.split('-')[2]} de cada mês.`}
-                                            {frequency === 'weekly' && `* Este lançamento se repetirá no mesmo dia da semana.`}
-                                            {frequency === 'yearly' && `* Este lançamento se repetirá todo ano em ${date.split('-')[2]}/${date.split('-')[1]}.`}
-                                        </p>
-
-                                        {/* Preview of next recurring dates */}
-                                        <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                            <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 mb-2 uppercase tracking-wide">
-                                                📅 Próximas {recurringCount} Datas
-                                            </p>
-                                            <div className="flex overflow-x-auto gap-2 pb-2 snap-x scrollbar-thin scrollbar-thumb-emerald-200 dark:scrollbar-thumb-emerald-800">
-                                                {calculateNextDates(date, frequency, recurringCount).map((nextDate, index) => {
-                                                    const installmentIdx = (initialData?.installment_number || 1) + index + 1;
-                                                    const currentOverride = overrides[installmentIdx];
-                                                    const isEditing = editingInstallment === installmentIdx;
-
-                                                    // Source data prioritizes Overrides (unsaved) > Database (real) > Projection (fallback)
-                                                    const realData = dbInstallments[installmentIdx];
-                                                    const displayDate = currentOverride?.date || realData?.date || nextDate.toISOString().split('T')[0];
-                                                    const displayAmount = currentOverride?.amount !== undefined
-                                                        ? currentOverride.amount
-                                                        : (realData?.amount ?? parseFloat(amount || '0'));
-
-                                                    return (
-                                                        <div
-                                                            key={index}
-                                                            onClick={() => setEditingInstallment(isEditing ? null : installmentIdx)}
-                                                            className={`flex-none w-28 snap-start flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 rounded-md border transition-all cursor-pointer group ${isEditing ? 'ring-2 ring-emerald-500 border-emerald-500' : 'border-emerald-100 dark:border-emerald-800/50 hover:border-emerald-400 shadow-sm'}`}
-                                                        >
-                                                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                                #{installmentIdx}
-                                                            </span>
-
-                                                            {isEditing ? (
-                                                                <div className="flex flex-col gap-1 mt-1 w-full" onClick={e => e.stopPropagation()}>
-                                                                    <input
-                                                                        type="number"
-                                                                        step="0.01"
-                                                                        placeholder="Valor"
-                                                                        className="w-full text-[10px] p-1 border rounded bg-gray-50 dark:bg-slate-700 dark:border-slate-600 text-center focus:ring-1 focus:ring-emerald-500 outline-none"
-                                                                        value={currentOverride?.amount ?? ''}
-                                                                        onChange={e => {
-                                                                            const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
-                                                                            setOverrides(prev => ({
-                                                                                ...prev,
-                                                                                [installmentIdx]: { ...prev[installmentIdx], amount: val }
-                                                                            }));
-                                                                        }}
-                                                                        autoFocus
-                                                                    />
-                                                                    <input
-                                                                        type="date"
-                                                                        className="w-full text-[9px] p-0.5 border rounded bg-gray-50 dark:bg-slate-700 dark:border-slate-600 text-center focus:ring-1 focus:ring-emerald-500 outline-none"
-                                                                        value={displayDate}
-                                                                        onChange={e => {
-                                                                            setOverrides(prev => ({
-                                                                                ...prev,
-                                                                                [installmentIdx]: { ...prev[installmentIdx], date: e.target.value }
-                                                                            }));
-                                                                        }}
-                                                                    />
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <span className={`text-[10px] font-bold mt-0.5 ${currentOverride?.amount !== undefined ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-                                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}
-                                                                    </span>
-                                                                    <span className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                                                        {formatBrazilianDate(new Date(displayDate + 'T12:00:00'))}
-                                                                    </span>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
                             </div>
                         )}
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                            <Paperclip className="w-4 h-4" /> Anexo / Comprovante
-                        </label>
-
-                        <div className="flex flex-col gap-1.5 mb-3">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex justify-between items-center w-full">
-                                <span>Resumo / Observações do Documento</span>
-                                {notes.length > 0 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowNotesModal(true)}
-                                        className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md shrink-0"
-                                        title="Ver Observação Completa em Lupa"
-                                    >
-                                        <Search className="w-3 h-3" />
-                                        <span className="text-[10px] font-bold">LUPA</span>
-                                    </button>
-                                )}
-                            </label>
-                            <textarea
-                                className="flex min-h-[80px] w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600 resize-none"
-                                placeholder="Descreva o que é este anexo ou adicione observações importantes..."
-                                value={notes}
-                                onChange={e => setNotes(e.target.value)}
-                            />
-
-                            {(() => {
-                                // Enhanced Pix regex: Handles standard EMV, URLs, and loosely extracted codes
-                                // We check for: 1. Marked data, 2. EMV 000201 pattern, 3. Pix URL
-                                const markedPixMatch = notes.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
-
-                                // Clean notes for matching (removes spaces/newlines that break regex)
-                                const cleanNotes = notes.replace(/\s+/g, '');
-
-                                // Robust Pix patterns:
-                                // A. Standard Pix (000201...) with variable length (DAS/GT can be 70-500 chars)
-                                // B. Pix short codes or URLs
-                                const emvPattern = /000201[a-zA-Z0-9]{20,800}6304[a-fA-F0-9]{4}/;
-                                const loosePattern = /000201[a-zA-Z0-9]{50,}/;
-                                const urlPattern = /https?:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150}/;
-
-                                const match = cleanNotes.match(emvPattern) || cleanNotes.match(loosePattern) || cleanNotes.match(urlPattern);
-
-                                const pixCodeToRender = markedPixMatch ? markedPixMatch[1].trim() : (match ? match[0] : null);
-
-                                // Try to find marked Barcode first, then fallback to loose numeric regex (Boleto format)
-                                const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
-
-                                // To find barcode without confusion: 
-                                // 1. Identify Pix if it exists 2. Remove Pix from the search area 3. Find 44-48 numbers
-                                let searchArea = cleanNotes;
-                                if (pixCodeToRender) {
-                                    searchArea = searchArea.split(pixCodeToRender.replace(/\s+/g, '')).join('');
-                                }
-                                const rawBarcodeMatch = searchArea.match(/\d{44,48}/);
-
-                                const barcodeToRender = markedBarcode ? markedBarcode[1].trim() : (rawBarcodeMatch ? rawBarcodeMatch[0] : null);
-
-                                if (!pixCodeToRender && !barcodeToRender) return null;
-
-                                return (
-                                    <div className="mt-2 p-3 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 rounded-xl flex flex-col gap-4 animate-in fade-in duration-500">
-                                        {pixCodeToRender && (
-                                            <div className="flex flex-col items-center">
-                                                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase text-center">Pix Copia e Cola Encontrado!</p>
-                                                <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 mb-2">
-                                                    <QRCode value={pixCodeToRender} size={150} />
+                    {isRecurring && (
+                        <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold">Frequência</label>
+                                    <select className="h-10 rounded-lg border px-3" value={frequency} onChange={e => setFrequency(e.target.value)}>
+                                        <option value="weekly">Semanal</option>
+                                        <option value="monthly">Mensal</option>
+                                        <option value="yearly">Anual</option>
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold">Nº Repetições</label>
+                                    <input type="number" min={1} value={recurringCount} onChange={e => setRecurringCount(parseInt(e.target.value) || 1)} className="h-10 rounded-lg border px-3" />
+                                </div>
+                            </div>
+                            {date && (
+                                <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200">
+                                    <p className="text-[10px] font-bold uppercase mb-2">Próximas Datas</p>
+                                    <div className="flex overflow-x-auto gap-2 pb-2">
+                                        {calculateNextDates(date, frequency, recurringCount).map((nextDate, index) => {
+                                            const installmentIdx = (initialData?.installment_number || 1) + index + 1;
+                                            const currentOverride = overrides[installmentIdx];
+                                            const realData = dbInstallments[installmentIdx];
+                                            const displayDate = currentOverride?.date || realData?.date || nextDate.toISOString().split('T')[0];
+                                            const displayAmount = currentOverride?.amount !== undefined ? currentOverride.amount : (realData?.amount ?? parseFloat(amount || '0'));
+                                            return (
+                                                <div key={index} className="flex-none w-28 p-2 bg-white dark:bg-slate-800 rounded-md border border-emerald-100 flex flex-col items-center">
+                                                    <span className="text-[10px] font-semibold text-emerald-600">#{installmentIdx}</span>
+                                                    <span className="text-[10px] font-bold mt-0.5">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}</span>
+                                                    <span className="text-[9px] text-gray-500">{formatBrazilianDate(new Date(displayDate + 'T12:00:00'))}</span>
                                                 </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-[10px] h-7 w-full max-w-[200px]"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(pixCodeToRender.trim());
-                                                        notify('success', 'Pix Copia e Cola copiado para a área de transferência!', 'Copiado');
-                                                    }}
-                                                >
-                                                    <Copy className="w-3 h-3 mr-1" /> Copiar Código Pix
-                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="space-y-3">
+                        <label className="text-sm font-medium flex items-center gap-2"><Paperclip className="w-4 h-4" /> Anexo / Comprovante</label>
+                        <div className="flex flex-col gap-1.5 mb-3">
+                            <label className="text-xs font-semibold text-gray-500 uppercase flex justify-between items-center w-full">
+                                <span>Observações / Documento</span>
+                                {notes.length > 0 && <button type="button" onClick={() => setShowNotesModal(true)} className="text-emerald-600 font-bold text-[10px]"><Search className="w-3 h-3 inline mr-1" /> LUPA</button>}
+                            </label>
+                            <textarea className="flex min-h-[80px] w-full rounded-lg border px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Descrição ou dados extraídos..." />
+                            {(() => {
+                                const pixMarker = notes.match(/>>>>PIX_DATA<<<<([\s\S]*?)>>>>END_PIX<<<</);
+                                const barcodeMarker = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
+                                const pixCode = pixMarker ? pixMarker[1].trim() : null;
+                                const barcodeCode = barcodeMarker ? barcodeMarker[1].trim() : null;
+                                if (!pixCode && !barcodeCode) return null;
+                                return (
+                                    <div className="mt-2 p-3 bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl flex flex-col gap-4">
+                                        {pixCode && (
+                                            <div className="flex flex-col items-center">
+                                                <div className="p-2 bg-white rounded-lg shadow-sm border mb-2"><QRCode value={pixCode} size={150} /></div>
+                                                <Button size="sm" className="w-full text-[10px]" onClick={() => { navigator.clipboard.writeText(pixCode); notify('success', 'Copiado!'); }}>COPIAR PIX</Button>
                                             </div>
                                         )}
-                                        {barcodeToRender && (
-                                            <div className={`flex flex-col items-center ${pixCodeToRender ? 'border-t border-gray-100 dark:border-slate-700 pt-3 mt-1' : ''}`}>
-                                                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase">Código de Barras</p>
-                                                <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100 mb-2 flex justify-center w-full overflow-hidden">
-                                                    <Barcode value={barcodeToRender} width={1.5} height={50} displayValue={false} background="#ffffff" lineColor="#000000" margin={0} />
-                                                </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-[10px] h-7 w-full max-w-[200px]"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(barcodeToRender.trim());
-                                                        notify('success', 'Código de barras copiado para a área de transferência!', 'Copiado');
-                                                    }}
-                                                >
-                                                    <Copy className="w-3 h-3 mr-1" /> Copiar Código de Barras
-                                                </Button>
+                                        {barcodeCode && (
+                                            <div className="flex flex-col items-center border-t pt-4">
+                                                <div className="bg-white p-2 rounded-lg shadow-sm mb-2 w-full overflow-hidden flex justify-center"><Barcode value={barcodeCode} width={1.8} height={50} displayValue={false} /></div>
+                                                <Button size="sm" className="w-full text-[10px]" onClick={() => { navigator.clipboard.writeText(barcodeCode); notify('success', 'Copiado!'); }}>COPIAR BOLETO</Button>
                                             </div>
                                         )}
                                     </div>
@@ -937,176 +528,54 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             })()}
                         </div>
 
-                        {/* File Preview */}
-                        {(file || initialData?.attachment_url) && (
-                            <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 mb-3 animate-in fade-in duration-300">
+                        {(file || (initialData?.attachment_url && !removedAttachment)) && (
+                            <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border mb-3">
                                 <div className="flex justify-between items-center mb-2">
-                                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Visualização do Documento</p>
-                                    {isAnalyzing && (
-                                        <div className="flex items-center text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded">
-                                            <TrendingUp className="w-3 h-3 mr-1 animate-pulse" />
-                                            ANALISANDO COM IA...
-                                        </div>
-                                    )}
+                                    <p className="text-[10px] font-bold uppercase">Visualização</p>
+                                    {isAnalyzing && <div className="text-[10px] text-emerald-600 font-bold animate-pulse">ANALISANDO...</div>}
                                 </div>
-
                                 {file ? (
                                     <div className="flex flex-col items-center gap-2">
-                                        {file.type.startsWith('image/') ? (
-                                            <div className="relative w-full max-h-64 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600">
-                                                <img
-                                                    src={URL.createObjectURL(file)}
-                                                    alt="Preview"
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col sm:flex-row items-center gap-3 p-3 w-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
-                                                <div className="flex flex-1 items-center gap-3 min-w-0 w-full">
-                                                    <Paperclip className="w-8 h-8 text-emerald-500 shrink-0" />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{file.name}</p>
-                                                        <p className="text-[10px] text-gray-500">{(file.size / 1024).toFixed(1)} KB - PDF / Documento</p>
-                                                    </div>
-                                                </div>
-                                                <a
-                                                    href={fileUrl || '#'}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors flex-shrink-0 text-center"
-                                                >
-                                                    ABRIR / CONFERIR
-                                                </a>
-                                            </div>
-                                        )}
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                                setFile(null);
-                                                setNotes('');
-                                            }}
-                                            className="text-red-500 hover:text-red-600 text-[10px]"
-                                        >
-                                            Remover Arquivo
-                                        </Button>
+                                        <p className="text-xs font-bold truncate w-full text-center">{file.name}</p>
+                                        <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setFile(null); setNotes(''); }}>Remover</Button>
                                     </div>
-                                ) : (initialData?.attachment_url && !removedAttachment) && (
-                                    <div className="flex flex-col items-center gap-3">
-                                        {initialData.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)/i) || initialData.attachment_url.includes('image') ? (
-                                            <div className="relative w-full max-h-80 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600 shadow-sm">
-                                                <img
-                                                    src={initialData.attachment_url}
-                                                    alt="Anexo"
-                                                    className="w-full h-full object-contain"
-                                                />
-                                                <a
-                                                    href={initialData.attachment_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-                                                    title="Ver em tela cheia"
-                                                >
-                                                    <Plus className="w-4 h-4" />
-                                                </a>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col w-full gap-2">
-                                                <div className="flex items-center gap-3 p-3 w-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
-                                                    <Paperclip className="w-8 h-8 text-emerald-500" />
-                                                    <div className="flex-1 overflow-hidden">
-                                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Documento Vinculado</p>
-                                                        <p className="text-[10px] text-gray-500">PDF / Comprovante de Pagamento</p>
-                                                    </div>
-                                                    <a
-                                                        href={initialData.attachment_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold rounded-lg transition-colors"
-                                                    >
-                                                        ABRIR / PAGAR
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                                setRemovedAttachment(true);
-                                                setNotes('');
-                                            }}
-                                            className="text-red-500 hover:text-red-600 text-[10px]"
-                                        >
-                                            Remover Arquivo do Sistema
-                                        </Button>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <p className="text-xs font-bold text-center">Arquivo Vinculado</p>
+                                        <a href={initialData?.attachment_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-600">VER ARQUIVO</a>
+                                        <Button variant="ghost" size="sm" className="text-red-500 text-[10px]" onClick={() => { setRemovedAttachment(true); setNotes(''); }}>Remover</Button>
                                     </div>
                                 )}
                             </div>
                         )}
 
                         <div className="flex items-center justify-center w-full">
-                            <label
-                                className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-all ${isDragging ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-300 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500'}`}
-                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                                onDragLeave={() => setIsDragging(false)}
-                                onDrop={handleDrop}
-                            >
-                                <div className="flex flex-col items-center justify-center pt-2 pb-3">
-                                    <p className="mb-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                        <span className="font-semibold">{file ? 'Trocar arquivo' : 'Clique para anexar'}</span> ou arraste
-                                    </p>
-                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-bold">PDF, PNG, JPG (Máx. 5MB)</p>
+                            <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:bg-slate-700">
+                                <div className="flex flex-col items-center justify-center pt-2">
+                                    <p className="text-xs text-gray-500"><span className="font-semibold">Clique para anexar</span></p>
+                                    <p className="text-[10px] text-gray-400 font-bold">PDF, PNG, JPG (5MB)</p>
                                 </div>
-                                <input
-                                    type="file"
-                                    className="hidden"
-                                    onChange={handleFileChange}
-                                    accept=".pdf,.png,.jpg,.jpeg,.webp"
-                                />
+                                <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.webp" />
                             </label>
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-2">
-                        <Button type="button" variant="outline" onClick={onClose} className="px-6 h-9 text-sm">
-                            Cancelar
-                        </Button>
-                        <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm shadow-lg shadow-emerald-500/20">
+                    <div className="flex justify-end gap-3 mt-4">
+                        <Button type="button" variant="outline" onClick={onClose} className="px-6 h-9 text-sm">Cancelar</Button>
+                        <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm text-white">
                             {initialData ? 'Salvar Alterações' : 'Processar Lançamento'}
                         </Button>
                     </div>
                 </form>
             </Modal>
-            {/* Modais auxiliares de cadastro rápido */}
-            <CategoryForm
-                isOpen={showCategoryModal}
-                onClose={() => setShowCategoryModal(false)}
-                onSubmit={handleCategoryCreated}
-            />
-            <ContactForm
-                isOpen={showContactModal}
-                onClose={() => setShowContactModal(false)}
-                onSubmit={handleContactCreated}
-            />
-            <Modal
-                isOpen={showNotesModal}
-                onClose={() => setShowNotesModal(false)}
-                title="Observação Completa"
-                icon={Search}
-            >
+
+            <CategoryForm isOpen={showCategoryModal} onClose={() => setShowCategoryModal(false)} onSubmit={handleCategoryCreated} />
+            <ContactForm isOpen={showContactModal} onClose={() => setShowContactModal(false)} onSubmit={handleContactCreated} />
+            <Modal isOpen={showNotesModal} onClose={() => setShowNotesModal(false)} title="Observação Completa" icon={Search}>
                 <div className="p-4">
-                    <textarea
-                        readOnly
-                        className="w-full h-[60vh] rounded-lg border border-gray-300 bg-gray-50/50 dark:bg-slate-800/50 p-4 text-sm text-[var(--color-text-main)] focus:outline-none dark:border-slate-600 resize-none font-mono leading-relaxed"
-                        value={notes}
-                    />
+                    <textarea readOnly className="w-full h-[60vh] rounded-lg border p-4 text-sm font-mono" value={notes} />
                     <div className="flex justify-end mt-4">
-                        <Button type="button" onClick={() => setShowNotesModal(false)} className="px-6">
-                            Fechar
-                        </Button>
+                        <Button type="button" onClick={() => setShowNotesModal(false)} className="px-6">Fechar</Button>
                     </div>
                 </div>
             </Modal>

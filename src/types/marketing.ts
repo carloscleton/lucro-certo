@@ -26,6 +26,8 @@ export interface SocialProfile {
     daily_video_count?: number;
     daily_video_limit?: number;
     last_video_date?: string;
+    video_engine?: string;
+    video_model?: string;
     best_posting_times?: string[];
     created_at: string;
     updated_at: string;
