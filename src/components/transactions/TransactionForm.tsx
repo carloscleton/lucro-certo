@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search } from 'lucide-react';
@@ -197,9 +198,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                         }
                                         break;
                                     }
-                                } catch (decodeErr) { }
+                                } catch (decodeErr) { console.debug(decodeErr); }
                             }
-                        } catch (e) { }
+                        } catch (e) { console.debug(e); }
                     }
 
                     const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,75}/g);
@@ -238,9 +239,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
                             }
                         }
-                    } catch (decodeErr) { }
+                    } catch (decodeErr) { console.debug(decodeErr); }
                     URL.revokeObjectURL(objectUrl);
-                } catch (e) { }
+                } catch (e) { console.debug(e); }
             }
 
             const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
@@ -280,7 +281,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 notify('success', 'Documento analisado com sucesso!', 'IA Financeira');
             } else if (data && data.error) throw new Error(data.error);
 
-            try { await supabase.storage.from('attachments').remove([filePath]); } catch (e) { }
+            try { await supabase.storage.from('attachments').remove([filePath]); } catch (e) { console.debug(e); }
         } catch (err: any) {
             console.error('Error analyzing document:', err);
             notify('error', err.message || 'Falha ao analisar documento.', 'Erro na IA');
@@ -296,7 +297,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             let attachmentUrl = removedAttachment ? null : initialData?.attachment_url;
             let attachmentPath = removedAttachment ? null : initialData?.attachment_path;
             if (removedAttachment && initialData?.attachment_path) {
-                try { await supabase.storage.from('attachments').remove([initialData.attachment_path]); } catch (err) { }
+                try { await supabase.storage.from('attachments').remove([initialData.attachment_path]); } catch (err) { console.debug(err); }
             }
             if (file) {
                 const fileExt = file.name.split('.').pop();
@@ -337,6 +338,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     };
 
     const isExpense = type === 'expense';
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const handleCategoryCreated = async (data: any) => {
         await addCategory(data);
         setPendingCategoryName(data.name);
@@ -347,6 +349,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         if (newContact) setContactId(newContact.id);
         setShowContactModal(false);
     };
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     useEffect(() => {
         if (pendingCategoryName && categories.length > 0) {
             const match = categories.find(c => c.name === pendingCategoryName && c.type === type);

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect, useCallback } from "react";
 
 import { supabase } from "../lib/supabase";
 import { useEntity } from "../context/EntityContext";
@@ -268,6 +269,7 @@ export function Marketing() {
       setLoading(false);
     }
   };
+
 
   const fetchPosts = async () => {
     const { data } = await supabase
@@ -999,7 +1001,7 @@ export function Marketing() {
   };
 
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     setSyncingMetrics(true);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -1015,13 +1017,13 @@ export function Marketing() {
     } finally {
       setSyncingMetrics(false);
     }
-  };
+  }, [currentEntity.id]);
 
   useEffect(() => {
     if (activeApp === "analytics" && !metrics) {
       fetchMetrics();
     }
-  }, [activeApp]);
+  }, [activeApp, metrics, fetchMetrics]);
 
   if (currentEntity.type !== "company") {
     return (
