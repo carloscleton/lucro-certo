@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo } from 'react';
 import type { FormEvent } from 'react';
-import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search, Eye, EyeOff, ExternalLink, Trash2, FileText, Copy } from 'lucide-react';
+import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search, Eye, EyeOff, Trash2, FileText, Copy } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
