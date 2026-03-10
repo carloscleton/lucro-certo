@@ -18,6 +18,7 @@ import { useAutoSave } from '../../hooks/useAutoSave';
 
 
 import { supabase } from '../../lib/supabase';
+import { r2Storage } from '../../lib/r2';
 import { calculateNextDates, formatBrazilianDate } from '../../utils/dateUtils';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -281,11 +282,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
             const fileName = `temp_${Math.random()}.${fileExt}`;
             const filePath = `analysis/${fileName}`;
-            const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, fileToAnalyze);
-            if (uploadError) throw uploadError;
 
-            const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(filePath);
-            const publicUrl = urlData.publicUrl;
+            // Use R2 instead of Supabase
+            const { publicUrl } = await r2Storage.upload(fileToAnalyze, filePath);
 
             const payload: any = { type };
             if (extractedText) {
@@ -315,7 +314,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 notify('success', 'Documento analisado com sucesso!', 'IA Financeira');
             } else if (data && data.error) throw new Error(data.error);
 
-            try { await supabase.storage.from('attachments').remove([filePath]); } catch (e) { console.debug(e); }
+            // Cleanup can be handled by R2 lifecycle policy
         } catch (err: any) {
             console.error('Error analyzing document:', err);
             notify('error', err.message || 'Falha ao analisar documento.', 'Erro na IA');
@@ -336,11 +335,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             if (file) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-                const filePath = `${fileName}`;
-                const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, file);
-                if (uploadError) throw uploadError;
-                const { data } = supabase.storage.from('attachments').getPublicUrl(filePath);
-                attachmentUrl = data.publicUrl;
+                const filePath = `attachments/${fileName}`;
+
+                const { publicUrl } = await r2Storage.upload(file, filePath);
+                attachmentUrl = publicUrl;
                 attachmentPath = filePath;
             }
             await onSubmit({

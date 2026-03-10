@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { calculateNextDates } from '../utils/dateUtils';
+import { r2Storage } from '../lib/r2';
 
 export type TransactionType = 'expense' | 'income';
 export type TransactionStatus = 'pending' | 'paid' | 'received' | 'late';
@@ -309,10 +310,10 @@ export function useTransactions(type: TransactionType) {
                     // BUT for simplicity and safety, we delete if count is 0 (it shouldn't be yet) 
                     // OR if we are deleting 'all' records
                     if (scope === 'all' || (count === 0)) {
-                        await supabase.storage.from('attachments').remove([transaction.attachment_path]);
-                        console.log(`Deleted attachment from storage: ${transaction.attachment_path}`);
+                        await r2Storage.delete(transaction.attachment_path);
+                        console.log(`Deleted attachment from R2: ${transaction.attachment_path}`);
                     } else if (scope === 'single' && count === 0) {
-                        await supabase.storage.from('attachments').remove([transaction.attachment_path]);
+                        await r2Storage.delete(transaction.attachment_path);
                     }
                     // For 'future' or 'single' when others exist, we keep it to avoid breaking them.
                 } catch (err) {

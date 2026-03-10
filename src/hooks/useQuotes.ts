@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { webhookService } from '../services/webhookService';
+import { r2Storage } from '../lib/r2';
 
 export interface QuoteItem {
     id?: string;
@@ -608,21 +609,15 @@ export function useQuotes() {
 
             // If we have a company ID, we can try to list and delete
             if (companyId) {
-                const { data: files } = await supabase.storage
-                    .from('orcamento-quote-pdfs')
-                    .list(companyId, { search: id });
+                const prefix = `quote_pdfs/${companyId}/`;
+                const files = await r2Storage.list(prefix);
+                const filesToRemove = files
+                    .filter(f => f.Key.includes(id))
+                    .map(f => f.Key);
 
-                if (files && files.length > 0) {
-                    const filesToRemove = files.map(f => `${companyId}/${f.name}`);
-                    console.log('🗑️ Deleting quote PDFs:', filesToRemove);
-
-                    const { error: storageError } = await supabase.storage
-                        .from('orcamento-quote-pdfs')
-                        .remove(filesToRemove);
-
-                    if (storageError) {
-                        console.error('Error deleting PDFs from storage:', storageError);
-                    }
+                if (filesToRemove.length > 0) {
+                    console.log('🗑️ Deleting quote PDFs from R2:', filesToRemove);
+                    await r2Storage.deleteMultiple(filesToRemove);
                 }
             }
         } catch (storageErr) {

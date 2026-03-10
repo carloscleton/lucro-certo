@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { supabase } from '../lib/supabase';
+import { r2Storage } from '../lib/r2';
 
 export interface QuotePDFData {
     quote: {
@@ -261,43 +261,31 @@ export class PDFService {
         quoteId: string,
         companyId: string
     ): Promise<string> {
+        const prefix = `quote_pdfs/${companyId}/`;
+
         // 1. List existing files for this quote to delete them
-        // we search for files containing the quoteId in the company folder
-        const { data: existingFiles } = await supabase.storage
-            .from('orcamento-quote-pdfs')
-            .list(companyId, {
-                search: quoteId
-            });
+        try {
+            const existingFiles = await r2Storage.list(prefix);
+            const filesToRemove = existingFiles
+                .filter(f => f.Key.includes(quoteId))
+                .map(f => f.Key);
 
-        if (existingFiles && existingFiles.length > 0) {
-            const filesToRemove = existingFiles.map(f => `${companyId}/${f.name}`);
-            await supabase.storage
-                .from('orcamento-quote-pdfs')
-                .remove(filesToRemove);
+            if (filesToRemove.length > 0) {
+                await r2Storage.deleteMultiple(filesToRemove);
+            }
+        } catch (e) {
+            console.error('Error during old PDF cleanup:', e);
         }
 
-        // 2. Upload new file with timestamp to avoid caching
+        // 2. Upload new file with timestamp
         const timestamp = Date.now();
-        const fileName = `${companyId}/${quoteId}_${timestamp}.pdf`;
+        const fileName = `${quoteId}_${timestamp}.pdf`;
+        const filePath = `${prefix}${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-            .from('orcamento-quote-pdfs')
-            .upload(fileName, pdfBlob, {
-                contentType: 'application/pdf',
-                upsert: true
-            });
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        const { publicUrl } = await r2Storage.upload(file, filePath);
 
-        if (uploadError) {
-            console.error('Error uploading PDF:', uploadError);
-            throw uploadError;
-        }
-
-        // Get public URL
-        const { data } = supabase.storage
-            .from('orcamento-quote-pdfs')
-            .getPublicUrl(fileName);
-
-        return data.publicUrl;
+        return publicUrl;
     }
 
     /**

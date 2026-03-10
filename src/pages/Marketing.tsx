@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { useEntity } from "../context/EntityContext";
 import { useAuth } from "../context/AuthContext";
+import { r2Storage } from "../lib/r2";
 import {
   Sparkles,
   Save,
@@ -665,12 +666,16 @@ export function Marketing() {
         if (!url) return;
         try {
           const urlParts = url.split("/social_media_assets/");
-          if (urlParts.length > 1) {
-            const filePath = urlParts[1].split('?')[0]; // Remove query params
-            console.log("Removendo ativo do disco:", filePath);
-            await supabase.storage
-              .from("social_media_assets")
-              .remove([filePath]);
+          if (urlParts.length > 1 || url.includes("social_media_assets/")) {
+            // Find path after bucket name or specific prefix
+            let filePath = "";
+            if (url.includes("social_media_assets/")) {
+              filePath = url.split("social_media_assets/")[1].split('?')[0];
+            } else {
+              filePath = urlParts[1].split('?')[0];
+            }
+            console.log("Removendo ativo do disco (R2):", filePath);
+            await r2Storage.delete(`social_media_assets/${filePath}`);
           }
         } catch (storageError) {
           console.error("Erro ignorado ao excluir mídia do storage:", storageError);
@@ -865,16 +870,10 @@ export function Marketing() {
       if (manualFile) {
         const fileExt = manualFile.name.split(".").pop();
         const fileName = `${currentEntity.id}/${Math.random()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from("social_media_assets")
-          .upload(fileName, manualFile);
+        const filePath = `social_media_assets/${fileName}`;
 
-        if (uploadError) throw uploadError;
-
-        const { data } = supabase.storage
-          .from("social_media_assets")
-          .getPublicUrl(fileName);
-        publicUrl = data.publicUrl;
+        const { publicUrl: uploadedUrl } = await r2Storage.upload(manualFile, filePath);
+        publicUrl = uploadedUrl;
       } else if (manualPreview && manualPreview.startsWith("http")) {
         publicUrl = manualPreview;
       }

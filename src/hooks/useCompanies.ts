@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { r2Storage } from '../lib/r2';
 
 export interface Company {
     id: string;
@@ -74,21 +75,10 @@ export function useCompanies() {
     const uploadLogo = async (companyId: string, file: File) => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${companyId}/${Date.now()}.${fileExt}`;
+        const filePath = `logos/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-            .from('company-logos')
-            .upload(fileName, file);
-
-        if (uploadError) {
-            console.error('Error uploading logo:', uploadError);
-            throw uploadError;
-        }
-
-        const { data } = supabase.storage
-            .from('company-logos')
-            .getPublicUrl(fileName);
-
-        return data.publicUrl;
+        const { publicUrl } = await r2Storage.upload(file, filePath);
+        return publicUrl;
     };
 
     const addCompany = async (company: Omit<Company, 'id' | 'user_id'> & { logo_file?: File }) => {
@@ -155,15 +145,11 @@ export function useCompanies() {
             try {
                 // 1. Cleanup: Remove OLD images from this company's folder to prevent accumulation
                 // We list all files in the company's folder and delete them
-                const { data: existingFiles } = await supabase.storage
-                    .from('company-logos')
-                    .list(id);
+                const existingFiles = await r2Storage.list(`logos/${id}/`);
 
                 if (existingFiles && existingFiles.length > 0) {
-                    const filesToRemove = existingFiles.map(f => `${id}/${f.name}`);
-                    await supabase.storage
-                        .from('company-logos')
-                        .remove(filesToRemove);
+                    const filesToRemove = existingFiles.map(f => f.Key);
+                    await r2Storage.deleteMultiple(filesToRemove);
                 }
 
                 logoUrl = await uploadLogo(id, updates.logo_file);
