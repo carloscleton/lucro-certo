@@ -247,12 +247,16 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     }
 
                     // Local Barcode Extraction via Regex (DARF/Boleto formats)
-                    // Look for 44-48 numbers that might have dots/spaces
-                    const pageBarcodeMatch = pageText.match(/(?:\d[.\-\s]*){44,55}\d/);
-                    if (pageBarcodeMatch) {
-                        const cleanBarcode = pageBarcodeMatch[0].replace(/[^\d]/g, '');
-                        if (cleanBarcode.length >= 44 && cleanBarcode.length <= 48) {
-                            extractedText += `\n>>>>BARCODE_DATA<<<<${cleanBarcode}>>>>END_BARCODE<<<<\n`;
+                    // Look for 44-55 characters that are mostly digits with spaces/dots
+                    const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,65}/g);
+                    if (potentialBarcodeMatch) {
+                        for (const possible of potentialBarcodeMatch) {
+                            const clean = possible.trim().replace(/[^\d]/g, '');
+                            if (clean.length >= 44 && clean.length <= 48) {
+                                console.log("[DEBUG] Barcode encontrado via extração de texto local (PDF)");
+                                extractedText += `\n>>>>BARCODE_DATA<<<<${clean}>>>>END_BARCODE<<<<\n`;
+                                break; // Found one, that's enough for now
+                            }
                         }
                     }
 
@@ -351,7 +355,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         if (localPixMatch) {
                             const wrappedPix = `>>>>PIX_DATA<<<<${localPixMatch[1]}>>>>END_PIX<<<<`;
                             if (!finalNotes.includes(wrappedPix)) {
-                                console.log("[DEBUG] Enforcing Pix Markers");
+                                console.log("[DEBUG] Enforcing Pix Markers at the top");
                                 finalNotes = `**PIX COPIA E COLA:**\n${wrappedPix}\n\n` + finalNotes;
                             }
                         }
@@ -360,8 +364,20 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         if (localBarcodeMatch) {
                             const wrappedBarcode = `>>>>BARCODE_DATA<<<<${localBarcodeMatch[1]}>>>>END_BARCODE<<<<`;
                             if (!finalNotes.includes(wrappedBarcode)) {
-                                console.log("[DEBUG] Enforcing Barcode Markers");
+                                console.log("[DEBUG] Enforcing Barcode Markers at the top");
                                 finalNotes = `**CÓDIGO DE BARRAS:**\n${wrappedBarcode}\n\n` + finalNotes;
+                            }
+                        }
+                    }
+
+                    // Check if the AI returned a barcode even without markers (loose match)
+                    if (!finalNotes.includes('>>>>BARCODE_DATA<<<<')) {
+                        const aiBarcodeMatch = finalNotes.match(/(?:\d[.\-\s]*){44,55}\d/);
+                        if (aiBarcodeMatch) {
+                            const cleanAI = aiBarcodeMatch[0].replace(/[^\d]/g, '');
+                            if (cleanAI.length >= 44 && cleanAI.length <= 48) {
+                                console.log("[DEBUG] Wrapping AI detected Barcode with markers");
+                                finalNotes = finalNotes.replace(aiBarcodeMatch[0], `>>>>BARCODE_DATA<<<<${cleanAI}>>>>END_BARCODE<<<<`);
                             }
                         }
                     }
@@ -861,11 +877,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 // Try to find marked Barcode first, then fallback to loose numeric regex (Boleto format)
                                 const markedBarcode = notes.match(/>>>>BARCODE_DATA<<<<([\s\S]*?)>>>>END_BARCODE<<<</);
 
-                                // Robust Barcode pattern: 44 to 55 digits, allows common separators
-                                const barcodeRegex = /(?:\d[.\-\s]*){44,55}\d/;
-                                const rawBarcodeMatch = notes.match(barcodeRegex);
+                                // Detection in cleaned notes (removes spaces that break regular regex)
+                                // We filter out the Pix code itself from the clean notes for this check to avoid false positives
+                                const barcodeNotesClean = cleanNotes.replace(/000201[a-zA-Z0-9]{50,}/, '');
+                                const rawBarcodeMatch = barcodeNotesClean.match(/\d{44,55}/);
 
-                                const barcodeToRender = markedBarcode ? markedBarcode[1].trim() : (rawBarcodeMatch ? rawBarcodeMatch[0].replace(/[^\d]/g, '') : null);
+                                const barcodeToRender = markedBarcode ? markedBarcode[1].trim() : (rawBarcodeMatch ? rawBarcodeMatch[0] : null);
 
                                 if (!pixCodeToRender && !barcodeToRender) return null;
 
