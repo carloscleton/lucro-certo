@@ -592,16 +592,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 {showEmbeddedPreview ? 'FECHAR PREVIEW' : 'VER NO SITE'}
                                             </Button>
 
-                                            <a
-                                                href={fileUrl || '#'}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center justify-center h-9 px-3 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all active:scale-95 whitespace-nowrap"
-                                            >
-                                                <ExternalLink size={14} className="mr-1.5" />
-                                                ABRIR ABA
-                                            </a>
-
                                             <Button
                                                 type="button"
                                                 variant="ghost"
@@ -631,16 +621,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 {showEmbeddedPreview ? <EyeOff size={14} className="mr-1.5" /> : <Eye size={14} className="mr-1.5" />}
                                                 {showEmbeddedPreview ? 'FECHAR PREVIEW' : 'VER NO SITE'}
                                             </Button>
-
-                                            <a
-                                                href={initialData?.attachment_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center justify-center h-9 px-3 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all active:scale-95 whitespace-nowrap"
-                                            >
-                                                <ExternalLink size={14} className="mr-1.5" />
-                                                ABRIR ABA
-                                            </a>
 
                                             <Button
                                                 type="button"
