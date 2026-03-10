@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Copy, Search } from 'lucide-react';
+import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
@@ -13,8 +12,8 @@ import type { Transaction, TransactionType } from '../../hooks/useTransactions';
 import { useCategories } from '../../hooks/useCategories';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useContacts } from '../../hooks/useContacts';
-import { useCRM } from '../../hooks/useCRM';
-import { useEntity } from '../../context/EntityContext';
+
+
 import { supabase } from '../../lib/supabase';
 import { calculateNextDates, formatBrazilianDate } from '../../utils/dateUtils';
 import { useNotification } from '../../context/NotificationContext';
@@ -43,31 +42,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [dealId, setDealId] = useState('');
     const [notes, setNotes] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
-    const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
+    const [overrides] = useState<Record<number, { amount?: number; date?: string }>>({});
+
     const [removedAttachment, setRemovedAttachment] = useState(false);
 
-    // Optimized memory for local file preview
-    const fileUrl = useMemo(() => {
-        if (!file) return null;
-        try {
-            return URL.createObjectURL(file);
-        } catch (e) {
-            return null;
-        }
-    }, [file]);
-
-    const { t } = useTranslation();
-    const [propagateChanges, setPropagateChanges] = useState(() => localStorage.getItem('propagatePref') === 'true');
+    const [propagateChanges] = useState(() => localStorage.getItem('propagatePref') === 'true');
     const [dbInstallments, setDbInstallments] = useState<Record<number, { amount: number; date: string }>>({});
 
     const { categories, addCategory } = useCategories();
     const { companies } = useCompanies();
     const { contacts, addContact } = useContacts();
-    const { deals } = useCRM();
-    const { currentEntity } = useEntity();
+
     const { notify } = useNotification();
 
     // Quick-add modal states
@@ -75,9 +61,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [showContactModal, setShowContactModal] = useState(false);
     const [pendingCategoryName, setPendingCategoryName] = useState<string | null>(null);
     const [showNotesModal, setShowNotesModal] = useState(false);
-
-    const isCRMEnabled = currentEntity.type === 'company' &&
-        companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
 
     // Load saved company preference for this transaction type
     useEffect(() => {
@@ -114,8 +97,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setRecurringCount(12);
             setDealId('');
             setNotes('');
-            setOverrides({});
-            setEditingInstallment(null);
             setRemovedAttachment(false);
             setFile(null);
         }
@@ -162,15 +143,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         }
     };
 
-    const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-        const droppedFile = e.dataTransfer.files?.[0] || null;
-        if (droppedFile) {
-            setFile(droppedFile);
-            await analyzeDocument(droppedFile);
-        }
-    };
+
 
     const analyzeDocument = async (fileToAnalyze: File) => {
         setIsAnalyzing(true);
