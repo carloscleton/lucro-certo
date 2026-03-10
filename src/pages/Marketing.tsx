@@ -193,12 +193,9 @@ export function Marketing() {
         });
       };
       (function (d, s, id) {
-        var js,
-          fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) {
-          return;
-        }
-        js = d.createElement(s) as HTMLScriptElement;
+        if (d.getElementById(id)) return;
+        const js = d.createElement(s) as HTMLScriptElement;
+        const fjs = d.getElementsByTagName(s)[0];
         js.id = id;
         js.src = "https://connect.facebook.net/pt_BR/sdk.js";
         fjs?.parentNode?.insertBefore(js, fjs);
@@ -669,7 +666,7 @@ export function Marketing() {
         try {
           const urlParts = url.split("/social_media_assets/");
           if (urlParts.length > 1) {
-            let filePath = urlParts[1].split('?')[0]; // Remove query params
+            const filePath = urlParts[1].split('?')[0]; // Remove query params
             console.log("Removendo ativo do disco:", filePath);
             await supabase.storage
               .from("social_media_assets")
