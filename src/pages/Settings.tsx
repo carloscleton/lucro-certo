@@ -1011,6 +1011,24 @@ export function Settings() {
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
                                             <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.lead_radar_module')}</h4>
+                                                <p className="text-xs text-gray-500">{t('settings.lead_radar_module_desc')}</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={!!tempCompanyConfig.has_lead_radar}
+                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_lead_radar: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-violet-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-violet-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                        <div className="flex items-center justify-between">
+                                            <div>
                                                 <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.data_deletion')}</h4>
                                                 <p className="text-xs text-gray-500">{t('settings.data_deletion_desc')}</p>
                                             </div>
@@ -1311,6 +1329,7 @@ export function Settings() {
                                             !!tempCompanyConfig.crm_module_enabled,
                                             !!tempCompanyConfig.has_social_copilot,
                                             !!tempCompanyConfig.automations_module_enabled,
+                                            !!tempCompanyConfig.has_lead_radar,
                                             tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'],
                                             tempCompanyConfig.settings || {}
                                         );

@@ -93,6 +93,17 @@ export function Layout() {
             return currentEntity.type === 'company' && hasPermission;
         }
 
+        // Lead Radar Module Check
+        if (item.key === 'lead_radar') {
+            const currentCompany = availableEntities.find(c => c.id === currentEntity.id);
+            const isLeadRadarEnabled = currentCompany?.has_lead_radar;
+            if (!isLeadRadarEnabled) return false;
+            if (userRole === 'owner') return true;
+
+            const hasPermission = getModulePermission(item.key, userRole as 'admin' | 'member', settings);
+            return currentEntity.type === 'company' && hasPermission;
+        }
+
         if (currentEntity.type === 'company' && userRole) {
             // Owner/SystemAdmin see everything by default
             if (userRole === 'owner' || isSystemAdmin) return true;

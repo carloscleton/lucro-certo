@@ -29,6 +29,7 @@ export interface Entity {
     crm_module_enabled?: boolean;
     has_social_copilot?: boolean;
     automations_module_enabled?: boolean;
+    has_lead_radar?: boolean;
     status?: string;
 }
 
@@ -90,6 +91,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         crm_module_enabled,
                         has_social_copilot,
                         automations_module_enabled,
+                        has_lead_radar,
                         status
                     ),
                     role,
@@ -126,6 +128,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     crm_module_enabled: item.company.crm_module_enabled,
                     has_social_copilot: item.company.has_social_copilot,
                     automations_module_enabled: item.company.automations_module_enabled,
+                    has_lead_radar: item.company.has_lead_radar,
                     status: item.company.status
                 }));
 

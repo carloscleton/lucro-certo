@@ -42,6 +42,7 @@ export interface AdminCompany {
     license_expires_at?: string;
     has_social_copilot?: boolean;
     automations_module_enabled?: boolean;
+    has_lead_radar?: boolean;
     allowed_entity_types?: string[];
     status: string;
 }
@@ -103,7 +104,7 @@ export function useAdmin() {
             if (!silent) setLoading(false);
         }
     };
-    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, allowedTypes: string[], settings?: any) => {
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, allowedTypes: string[], settings?: any) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
         console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, allowedTypes, settings });
@@ -116,6 +117,7 @@ export function useAdmin() {
                 crm_enabled: crm,
                 marketing_enabled: marketing,
                 automations_enabled: automations,
+                lead_radar_enabled: leadRadar,
                 allowed_types: allowedTypes,
                 settings_input: settings
             });

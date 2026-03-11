@@ -276,6 +276,8 @@
         "payments_module_desc": "Habilita links de pagamento e checkout",
         "crm_module": "Módulo CRM",
         "crm_module_desc": "Habilita Funil de Vendas e Negócios",
+        "lead_radar_module": "Módulo Radar de Leads",
+        "lead_radar_module_desc": "Mineração e abordagem automática de clientes com IA",
         "data_deletion": "Exclusão de Dados",
         "data_deletion_desc": "Membros podem excluir registros",
         "platform_fee": "Taxa da Plataforma (Sua Comissão)",
