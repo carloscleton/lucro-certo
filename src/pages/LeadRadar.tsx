@@ -12,11 +12,11 @@ import {
     Trash2,
     Plus,
     Save,
-    Sparkles,
     AlertCircle,
     BrainCircuit,
     Info,
-    User
+    User,
+    Wand2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
@@ -190,6 +190,24 @@ export function LeadRadar() {
         }
     };
 
+    const generateFieldMagic = async (field: string) => {
+        try {
+            const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
+                body: {
+                    input: `Empresa: ${currentEntity.name}. Gere apenas o ${field} de forma criativa e profissional.`,
+                    mode: 'field_only'
+                }
+            });
+
+            if (error) throw error;
+            if (data) {
+                setSettings({ ...settings, [field]: data[field] });
+            }
+        } catch (e) {
+            console.error('Magic Field Error:', e);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
@@ -239,7 +257,7 @@ export function LeadRadar() {
                         onClick={() => setShowMagicModal(true)}
                         className="border-violet-200 dark:border-violet-800 text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20"
                     >
-                        <Sparkles size={18} className="mr-2" />
+                        <Wand2 size={18} className="mr-2" />
                         {t('lead_radar.ai_magic', 'IA Magia')}
                     </Button>
                     <Button
@@ -374,7 +392,16 @@ export function LeadRadar() {
                                 </h3>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('lead_radar.agent_name', 'Nome do Agente')}</label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('lead_radar.agent_name', 'Nome do Agente')}</label>
+                                        <button
+                                            onClick={() => generateFieldMagic('agent_name')}
+                                            className="text-violet-500 hover:text-violet-600 transition-colors p-1"
+                                            title="Gerar nome com IA"
+                                        >
+                                            <Wand2 size={14} />
+                                        </button>
+                                    </div>
                                     <Input
                                         value={settings.agent_name}
                                         onChange={(e) => setSettings({ ...settings, agent_name: e.target.value })}
@@ -383,7 +410,16 @@ export function LeadRadar() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('lead_radar.business_niche', 'Nicho de Atuação')}</label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('lead_radar.business_niche', 'Nicho de Atuação')}</label>
+                                        <button
+                                            onClick={() => generateFieldMagic('business_niche')}
+                                            className="text-violet-500 hover:text-violet-600 transition-colors p-1"
+                                            title="Gerar nicho com IA"
+                                        >
+                                            <Wand2 size={14} />
+                                        </button>
+                                    </div>
                                     <Input
                                         value={settings.business_niche}
                                         onChange={(e) => setSettings({ ...settings, business_niche: e.target.value })}
@@ -411,7 +447,16 @@ export function LeadRadar() {
                                     {t('lead_radar.business_description', 'Conhecimento da Empresa')}
                                 </h3>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">O que o robô deve saber?</label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">O que o robô deve saber?</label>
+                                        <button
+                                            onClick={() => generateFieldMagic('business_description')}
+                                            className="text-violet-500 hover:text-violet-600 transition-colors p-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+                                        >
+                                            <Wand2 size={14} />
+                                            Gerar com IA
+                                        </button>
+                                    </div>
                                     <textarea
                                         value={settings.business_description}
                                         onChange={(e) => setSettings({ ...settings, business_description: e.target.value })}
@@ -505,7 +550,7 @@ export function LeadRadar() {
                                 <X size={20} />
                             </button>
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Sparkles size={24} />
+                                <Wand2 size={24} />
                                 {t('lead_radar.ai_magic', 'IA Magia de Configuração')}
                             </h3>
                             <p className="text-white/80 text-sm mt-2">{t('lead_radar.ai_magic_desc', 'Cole o site ou uma breve descrição da empresa e eu farei o trabalho pesado para você.')}</p>

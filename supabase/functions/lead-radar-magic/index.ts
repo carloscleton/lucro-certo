@@ -13,13 +13,30 @@ serve(async (req) => {
     }
 
     try {
-        const { input } = await req.json()
+        const { input, mode } = await req.json()
 
         if (!input) {
             return new Response(JSON.stringify({ error: 'Input text is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
-        const prompt = `
+        let prompt = "";
+        if (mode === 'field_only') {
+            prompt = `
+        Você é um copywriter de elite especialista em IA. 
+        O usuário quer gerar uma sugestão criativa para um campo específico das configurações de um Agente de Vendas.
+        
+        CONTEXTO/SOLICITAÇÃO: "${input}"
+
+        REGRAS:
+        1. Se o campo solicitado for "agent_name", sugira um nome curto e cativante para um robô assistente.
+        2. Se for "business_niche", sugira um nicho de mercado profissional e focado.
+        3. Se for "business_description", escreva um parágrafo envolvente sobre o que a empresa faz e como o robô deve abordar os clientes.
+        
+        Retorne APENAS um JSON com o campo solicitado preenchido.
+        Exemplo: { "agent_name": "Dr. Zap" } ou { "business_description": "..." }
+      `;
+        } else {
+            prompt = `
       Você é um especialista em estruturação de empresas e IA.
       Com base na descrição ou URL fornecida a seguir, extraia as seguintes informações para configurar um Agente de Vendas:
       
@@ -43,6 +60,7 @@ serve(async (req) => {
         ]
       }
     `;
+        }
 
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
