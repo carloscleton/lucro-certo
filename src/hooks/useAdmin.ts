@@ -51,6 +51,7 @@ export function useAdmin() {
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [usersList, setUsersList] = useState<AdminUser[]>([]);
     const [companiesList, setCompaniesList] = useState<AdminCompany[]>([]);
+    const [appSettings, setAppSettings] = useState<{ storage_provider: 'supabase' | 'r2' } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +84,17 @@ export function useAdmin() {
 
             if (companiesError) throw companiesError;
             setCompaniesList(companiesData || []);
+
+            // Fetch App Settings
+            const { data: settingsData, error: settingsError } = await supabase
+                .from('app_settings')
+                .select('storage_provider')
+                .eq('id', 1)
+                .maybeSingle();
+
+            if (!settingsError && settingsData) {
+                setAppSettings(settingsData as any);
+            }
 
         } catch (err: any) {
             console.error('Error fetching admin data:', err);
@@ -238,6 +250,26 @@ export function useAdmin() {
         }
     };
 
+    const updateAppSettings = async (newSettings: { storage_provider: 'supabase' | 'r2' }) => {
+        if (!isAdmin) return { error: 'Unauthorized' };
+
+        try {
+            const { error } = await supabase
+                .from('app_settings')
+                .update(newSettings)
+                .eq('id', 1);
+
+            if (error) throw error;
+
+            setAppSettings(newSettings);
+            // We might want to clear the storage service cache here if possible
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error updating app settings:', err);
+            return { error: err.message };
+        }
+    };
+
     useEffect(() => {
         if (isAdmin) {
             fetchAdminData();
@@ -262,6 +294,8 @@ export function useAdmin() {
         updateUserLimit,
         updateUserConfig,
         updateCompanyConfig,
+        updateAppSettings,
+        appSettings,
         refresh: fetchAdminData
     };
 }

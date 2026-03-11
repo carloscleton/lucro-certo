@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { webhookService } from '../services/webhookService';
-import { r2Storage } from '../lib/r2';
+import { storageService } from '../lib/storageService';
 
 export interface QuoteItem {
     id?: string;
@@ -609,15 +609,15 @@ export function useQuotes() {
 
             // If we have a company ID, we can try to list and delete
             if (companyId) {
-                const prefix = `quote_pdfs/${companyId}/`;
-                const files = await r2Storage.list(prefix);
+                const folder = `${companyId}/`;
+                const files = await storageService.list('orcamento-quote-pdfs', folder);
                 const filesToRemove = files
-                    .filter(f => f.Key.includes(id))
-                    .map(f => f.Key);
+                    .filter(f => f.name.includes(id))
+                    .map(f => `${folder}${f.name}`);
 
                 if (filesToRemove.length > 0) {
-                    console.log('🗑️ Deleting quote PDFs from R2:', filesToRemove);
-                    await r2Storage.deleteMultiple(filesToRemove);
+                    console.log('🗑️ Deleting quote PDFs via storageService:', filesToRemove);
+                    await storageService.deleteMultiple('orcamento-quote-pdfs', filesToRemove);
                 }
             }
         } catch (storageErr) {

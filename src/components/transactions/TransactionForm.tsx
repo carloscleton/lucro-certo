@@ -18,7 +18,7 @@ import { useAutoSave } from '../../hooks/useAutoSave';
 
 
 import { supabase } from '../../lib/supabase';
-import { r2Storage } from '../../lib/r2';
+import { storageService } from '../../lib/storageService';
 import { calculateNextDates, formatBrazilianDate } from '../../utils/dateUtils';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -283,8 +283,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             const fileName = `temp_${Math.random()}.${fileExt}`;
             const filePath = `analysis/${fileName}`;
 
-            // Use R2 instead of Supabase
-            const { publicUrl } = await r2Storage.upload(fileToAnalyze, filePath);
+            // Use unified storage service
+            const { publicUrl } = await storageService.upload(fileToAnalyze, 'attachments', filePath);
 
             const payload: any = { type };
             if (extractedText) {
@@ -337,7 +337,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
                 const filePath = `attachments/${fileName}`;
 
-                const { publicUrl } = await r2Storage.upload(file, filePath);
+                const { publicUrl } = await storageService.upload(file, 'attachments', filePath);
                 attachmentUrl = publicUrl;
                 attachmentPath = filePath;
             }

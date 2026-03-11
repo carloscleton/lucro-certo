@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { r2Storage } from '../lib/r2';
+import { storageService } from '../lib/storageService';
 
 export interface QuotePDFData {
     quote: {
@@ -261,17 +261,17 @@ export class PDFService {
         quoteId: string,
         companyId: string
     ): Promise<string> {
-        const prefix = `quote_pdfs/${companyId}/`;
+        const folder = `${companyId}/`;
 
         // 1. List existing files for this quote to delete them
         try {
-            const existingFiles = await r2Storage.list(prefix);
+            const existingFiles = await storageService.list('orcamento-quote-pdfs', folder);
             const filesToRemove = existingFiles
-                .filter(f => f.Key.includes(quoteId))
-                .map(f => f.Key);
+                .filter(f => f.name.includes(quoteId))
+                .map(f => `${folder}${f.name}`);
 
             if (filesToRemove.length > 0) {
-                await r2Storage.deleteMultiple(filesToRemove);
+                await storageService.deleteMultiple('orcamento-quote-pdfs', filesToRemove);
             }
         } catch (e) {
             console.error('Error during old PDF cleanup:', e);
@@ -280,10 +280,9 @@ export class PDFService {
         // 2. Upload new file with timestamp
         const timestamp = Date.now();
         const fileName = `${quoteId}_${timestamp}.pdf`;
-        const filePath = `${prefix}${fileName}`;
+        const path = `${folder}${fileName}`;
 
-        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-        const { publicUrl } = await r2Storage.upload(file, filePath);
+        const { publicUrl } = await storageService.upload(pdfBlob, 'orcamento-quote-pdfs', path);
 
         return publicUrl;
     }

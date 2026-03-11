@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { useEntity } from "../context/EntityContext";
 import { useAuth } from "../context/AuthContext";
-import { r2Storage } from "../lib/r2";
+import { storageService } from "../lib/storageService";
 import {
   Sparkles,
   Save,
@@ -674,8 +674,8 @@ export function Marketing() {
             } else {
               filePath = urlParts[1].split('?')[0];
             }
-            console.log("Removendo ativo do disco (R2):", filePath);
-            await r2Storage.delete(`social_media_assets/${filePath}`);
+            console.log("Removendo ativo via storageService:", filePath);
+            await storageService.delete('social_media_assets', filePath);
           }
         } catch (storageError) {
           console.error("Erro ignorado ao excluir mídia do storage:", storageError);
@@ -870,9 +870,8 @@ export function Marketing() {
       if (manualFile) {
         const fileExt = manualFile.name.split(".").pop();
         const fileName = `${currentEntity.id}/${Math.random()}.${fileExt}`;
-        const filePath = `social_media_assets/${fileName}`;
 
-        const { publicUrl: uploadedUrl } = await r2Storage.upload(manualFile, filePath);
+        const { publicUrl: uploadedUrl } = await storageService.upload(manualFile, 'social_media_assets', fileName);
         publicUrl = uploadedUrl;
       } else if (manualPreview && manualPreview.startsWith("http")) {
         publicUrl = manualPreview;

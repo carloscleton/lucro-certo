@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { r2Storage } from '../lib/r2';
+import { storageService } from '../lib/storageService';
 
 export interface Company {
     id: string;
@@ -77,7 +77,7 @@ export function useCompanies() {
         const fileName = `${companyId}/${Date.now()}.${fileExt}`;
         const filePath = `logos/${fileName}`;
 
-        const { publicUrl } = await r2Storage.upload(file, filePath);
+        const { publicUrl } = await storageService.upload(file, 'company-logos', filePath);
         return publicUrl;
     };
 
@@ -145,11 +145,11 @@ export function useCompanies() {
             try {
                 // 1. Cleanup: Remove OLD images from this company's folder to prevent accumulation
                 // We list all files in the company's folder and delete them
-                const existingFiles = await r2Storage.list(`logos/${id}/`);
+                const existingFiles = await storageService.list('company-logos', `logos/${id}/`);
 
                 if (existingFiles && existingFiles.length > 0) {
-                    const filesToRemove = existingFiles.map(f => f.Key);
-                    await r2Storage.deleteMultiple(filesToRemove);
+                    const filesToRemove = existingFiles.map(f => `logos/${id}/${f.name}`);
+                    await storageService.deleteMultiple('company-logos', filesToRemove);
                 }
 
                 logoUrl = await uploadLogo(id, updates.logo_file);

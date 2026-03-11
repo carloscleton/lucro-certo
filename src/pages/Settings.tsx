@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, UploadCloud } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -25,7 +25,7 @@ import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/
 export function Settings() {
     const { t } = useTranslation();
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
-    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, toggleCompanyBlock, updateUserConfig, updateCompanyConfig } = useAdmin();
+    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, toggleCompanyBlock, updateUserConfig, updateCompanyConfig, updateAppSettings, appSettings } = useAdmin();
     console.log('Admin UI initialized with toggleCompanyBlock:', !!toggleCompanyBlock);
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity, refresh: refreshEntity } = useEntity();
@@ -104,7 +104,7 @@ export function Settings() {
         setSearchParams({ tab });
     };
 
-    const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices'>('users');
+    const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system'>('users');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
     const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
     const [savingConfig, setSavingConfig] = useState(false);
@@ -1544,6 +1544,7 @@ export function Settings() {
                                 { id: 'users', label: 'Usuários', icon: Users },
                                 { id: 'companies', label: 'Empresas', icon: Building },
                                 { id: 'invoices', label: 'Faturas de Cobrança', icon: CreditCard },
+                                { id: 'system', label: 'Sistema', icon: SettingsIcon },
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
@@ -1869,6 +1870,47 @@ export function Settings() {
                                             )}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {adminSubTab === 'system' && (
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Configurações Globais do Sistema</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="p-6 rounded-xl border-2 border-orange-100 dark:border-orange-900/30 bg-orange-50/20 dark:bg-orange-900/10">
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
+                                                <Shield size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Provedor de Armazenamento</h4>
+                                                <p className="text-sm text-gray-500">Escolha onde os arquivos do sistema serão armazenados.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 mt-4">
+                                            <button
+                                                onClick={() => updateAppSettings({ storage_provider: 'supabase' })}
+                                                className={`p-4 rounded-xl border-2 transition-all text-left flex flex-col gap-2 ${appSettings?.storage_provider === 'supabase'
+                                                    ? 'border-orange-500 bg-white dark:bg-slate-800 shadow-md ring-2 ring-orange-100'
+                                                    : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/30 hover:border-gray-300'}`}
+                                            >
+                                                <span className="font-bold text-gray-900 dark:text-white">Supabase Storage</span>
+                                                <span className="text-xs text-gray-500">Padrão do sistema, integrado nativamente.</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => updateAppSettings({ storage_provider: 'r2' })}
+                                                className={`p-4 rounded-xl border-2 transition-all text-left flex flex-col gap-2 ${appSettings?.storage_provider === 'r2'
+                                                    ? 'border-orange-500 bg-white dark:bg-slate-800 shadow-md ring-2 ring-orange-100'
+                                                    : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/30 hover:border-gray-300'}`}
+                                            >
+                                                <span className="font-bold text-gray-900 dark:text-white">Cloudflare R2</span>
+                                                <span className="text-xs text-gray-500">Alternativa de baixo custo compatível com S3.</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
