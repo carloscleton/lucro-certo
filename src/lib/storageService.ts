@@ -3,7 +3,7 @@ import { r2Storage } from './r2';
 
 export type StorageProvider = 'supabase' | 'r2';
 
-let cachedProvider: StorageProvider | null = null;
+// Provedor em cache removido temporariamente para evitar erro de variável não lida
 
 export const storageService = {
     /**
