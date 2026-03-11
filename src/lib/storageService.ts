@@ -18,7 +18,7 @@ export const storageService = {
      * Clear the cached provider to force a fresh fetch
      */
     async clearCache() {
-        cachedProvider = null;
+        // Cache desativado enquanto o provedor está fixo no Supabase
     },
 
     /**
