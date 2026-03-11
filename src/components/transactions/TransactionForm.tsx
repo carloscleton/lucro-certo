@@ -50,6 +50,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [overrides] = useState<Record<number, { amount?: number; date?: string }>>({});
     const [removedAttachment, setRemovedAttachment] = useState(false);
     const [showEmbeddedPreview, setShowEmbeddedPreview] = useState(false);
+    const [tempAttachmentUrl, setTempAttachmentUrl] = useState('');
+    const [tempAttachmentPath, setTempAttachmentPath] = useState('');
+    const [tempAttachmentName, setTempAttachmentName] = useState('');
 
     // Optimized memory for local file preview
     const fileUrl = useMemo(() => {
@@ -116,18 +119,28 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setNotes('');
             setRemovedAttachment(false);
             setFile(null);
+            setTempAttachmentUrl('');
+            setTempAttachmentPath('');
+            setTempAttachmentName('');
         }
     }, [initialData, isOpen, type]);
 
     // Global persistence for Transaction Form
     const { clearCache } = useAutoSave(
         `transaction_${type}`,
-        { description, amount, date, status, categoryId, companyId, contactId, isRecurring, isVariableAmount, frequency, recurringCount, dealId, notes },
+        {
+            description, amount, date, status, categoryId, companyId, contactId,
+            isRecurring, isVariableAmount, frequency, recurringCount, dealId, notes,
+            tempAttachmentUrl, tempAttachmentPath, tempAttachmentName
+        },
         {
             description: setDescription, amount: setAmount, date: setDate, status: setStatus,
             categoryId: setCategoryId, companyId: setCompanyId, contactId: setContactId,
             isRecurring: setIsRecurring, isVariableAmount: setIsVariableAmount,
-            frequency: setFrequency, recurringCount: setRecurringCount, dealId: setDealId, notes: setNotes
+            frequency: setFrequency, recurringCount: setRecurringCount, dealId: setDealId, notes: setNotes,
+            tempAttachmentUrl: setTempAttachmentUrl,
+            tempAttachmentPath: setTempAttachmentPath,
+            tempAttachmentName: setTempAttachmentName
         },
         !initialData, // only for NEW transactions
         isOpen
@@ -173,8 +186,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0] || null;
-        setFile(selectedFile);
         if (selectedFile) {
+            setFile(selectedFile);
+            setTempAttachmentName(selectedFile.name);
             await analyzeDocument(selectedFile);
         }
     };
@@ -280,11 +294,15 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             }
 
             const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
-            const fileName = `temp_${Math.random()}.${fileExt}`;
-            const filePath = `analysis/${fileName}`;
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+            const filePath = `attachments/temp/${fileName}`;
 
             // Use unified storage service
             const { publicUrl } = await storageService.upload(fileToAnalyze, 'attachments', filePath);
+
+            // Persist for autosave
+            setTempAttachmentUrl(publicUrl);
+            setTempAttachmentPath(filePath);
 
             const payload: any = { type };
             if (extractedText) {
@@ -327,12 +345,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         e.preventDefault();
         setLoading(true);
         try {
-            let attachmentUrl = removedAttachment ? null : initialData?.attachment_url;
-            let attachmentPath = removedAttachment ? null : initialData?.attachment_path;
-            if (removedAttachment && initialData?.attachment_path) {
-                try { await supabase.storage.from('attachments').remove([initialData.attachment_path]); } catch (err) { console.debug(err); }
+            let attachmentUrl = removedAttachment ? null : (tempAttachmentUrl || initialData?.attachment_url);
+            let attachmentPath = removedAttachment ? null : (tempAttachmentPath || initialData?.attachment_path);
+
+            if (removedAttachment && (initialData?.attachment_path || tempAttachmentPath)) {
+                try {
+                    const pathToRemove = tempAttachmentPath || initialData?.attachment_path;
+                    if (pathToRemove) await supabase.storage.from('attachments').remove([pathToRemove]);
+                } catch (err) { console.debug(err); }
             }
-            if (file) {
+
+            // Se o arquivo foi trocado e ainda não foi upado pela análise (improvável mas possível)
+            if (file && !tempAttachmentUrl) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
                 const filePath = `attachments/${fileName}`;
@@ -566,17 +590,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             })()}
                         </div>
 
-                        {(file || (initialData?.attachment_url && !removedAttachment)) && (
+                        {(file || tempAttachmentUrl || (initialData?.attachment_url && !removedAttachment)) && (
                             <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border mb-3">
                                 <div className="flex justify-between items-center mb-2">
                                     <p className="text-[10px] font-bold uppercase">Visualização</p>
                                     {isAnalyzing && <div className="text-[10px] text-emerald-600 font-bold animate-pulse">ANALISANDO...</div>}
                                 </div>
-                                {file ? (
+                                {(file || tempAttachmentUrl) ? (
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 w-full shadow-sm">
                                             <FileText size={16} className="text-emerald-500" />
-                                            <p className="text-xs font-bold truncate flex-1 text-gray-700 dark:text-gray-300">{file.name}</p>
+                                            <p className="text-xs font-bold truncate flex-1 text-gray-700 dark:text-gray-300">{file?.name || tempAttachmentName}</p>
                                         </div>
                                         <div className="flex items-center gap-2 w-full">
                                             <Button
@@ -595,7 +619,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
-                                                onClick={() => { setFile(null); setNotes(''); setShowEmbeddedPreview(false); }}
+                                                onClick={() => {
+                                                    setFile(null);
+                                                    setTempAttachmentUrl('');
+                                                    setTempAttachmentPath('');
+                                                    setTempAttachmentName('');
+                                                    setNotes('');
+                                                    setShowEmbeddedPreview(false);
+                                                }}
                                                 title="Remover"
                                             >
                                                 <Trash2 size={16} />
@@ -634,18 +665,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                     </div>
                                 )}
 
-                                {showEmbeddedPreview && (fileUrl || initialData?.attachment_url) && (
+                                {showEmbeddedPreview && (fileUrl || tempAttachmentUrl || initialData?.attachment_url) && (
                                     <div className="mt-4 border-t pt-4 animate-in fade-in zoom-in duration-300">
                                         <div className="relative w-full aspect-[4/3] bg-white rounded-lg overflow-hidden border">
-                                            {(file?.type === 'application/pdf' || (initialData?.attachment_url?.toLowerCase().includes('.pdf'))) ? (
+                                            {(file?.type === 'application/pdf' || (tempAttachmentUrl?.toLowerCase().includes('.pdf')) || (initialData?.attachment_url?.toLowerCase().includes('.pdf'))) ? (
                                                 <iframe
-                                                    src={`${fileUrl || initialData?.attachment_url}#toolbar=0&navpanes=0`}
+                                                    src={`${fileUrl || tempAttachmentUrl || initialData?.attachment_url}#toolbar=0&navpanes=0`}
                                                     className="w-full h-full border-none"
                                                     title="Document Preview"
                                                 />
                                             ) : (
                                                 <img
-                                                    src={fileUrl || initialData?.attachment_url}
+                                                    src={fileUrl || tempAttachmentUrl || initialData?.attachment_url}
                                                     alt="Preview"
                                                     className="w-full h-full object-contain"
                                                 />
