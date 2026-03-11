@@ -14,7 +14,8 @@ import {
     Lock,
     MessageSquare,
     CreditCard,
-    Sparkles
+    Sparkles,
+    Target
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -169,6 +170,14 @@ export const APP_MODULES: ModuleDefinition[] = [
         path: '/marketing',
         desc: 'Geração automática de postagens',
         defaultPermissions: { admin: true, member: true }
+    },
+    {
+        key: 'lead_radar',
+        label: 'Radar de Leads',
+        icon: Target,
+        path: '/lead-radar',
+        desc: 'Mineração e abordagem automática de clientes',
+        defaultPermissions: { admin: true, member: false }
     }
 ];
 

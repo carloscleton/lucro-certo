@@ -88,6 +88,7 @@
         "whatsapp": "WhatsApp (Uso)",
         "payments": "Pagamentos (Módulo)",
         "crm": "CRM / Funil",
+        "lead_radar": "Radar de Leads",
         "administrative": "Administrativo",
         "logout": "Sair"
     },
@@ -106,7 +107,8 @@
         "settings": "Sistema e preferências",
         "whatsapp": "Envio de mensagens e chat",
         "payments": "Gestão de cobranças e links",
-        "crm": "Gestão de leads e funil de vendas"
+        "crm": "Gestão de leads e funil de vendas",
+        "lead_radar": "Mineração e abordagem automática de clientes"
     },
     "layout": {
         "current_environment": "Ambiente Atual",
@@ -600,5 +602,36 @@
         "ia_error_generic": "Desculpe, tive um problema ao conectar com o serviço de IA. Verifique se o Webhook está ativo.",
         "you": "Você",
         "ai_fallback": "Entendido! Como posso ajudar mais?"
+    },
+    "lead_radar": {
+        "title": "Radar de Leads",
+        "subtitle": "Encontre clientes qualificados e converta automaticamente com IA.",
+        "settings": "Configurações do Agente",
+        "agent_status": "Status do Agente",
+        "activate_agent": "Ativar Agente de Vendas",
+        "deactivate_agent": "Desativar Agente",
+        "agent_identity": "Identidade do Agente",
+        "agent_name": "Nome do Agente",
+        "agent_name_placeholder": "Ex: Assistente de Vendas do Laboratório",
+        "business_niche": "Nicho de Atuação",
+        "business_niche_placeholder": "Ex: Análises Clínicas, Reformas, etc.",
+        "business_description": "Conhecimento da Empresa",
+        "business_description_placeholder": "Descreva o que sua empresa faz, seus diferenciais e como o robô deve vender.",
+        "services_catalog": "Catálogo de Serviços e Preços",
+        "add_service": "Adicionar Serviço",
+        "service_name": "Nome do Serviço",
+        "service_price": "Preço (Opcional)",
+        "service_notes": "Observações (Ex: Jejum, Prazo)",
+        "auto_approach": "Abordagem Automática",
+        "auto_approach_desc": "O robô enviará a primeira mensagem assim que encontrar um lead qualificado.",
+        "save_success": "Configurações do Radar salvas com sucesso!",
+        "ai_magic": "Gerar com IA Magia",
+        "ai_magic_desc": "Cole o link do seu site ou um texto sobre sua empresa e a IA configurará tudo para você.",
+        "daily_leads": "Leads de Hoje",
+        "view_leads": "Ver Leads Encontrados",
+        "no_leads": "Nenhum lead encontrado hoje ainda. O robô está trabalhando!",
+        "stats_found": "Leads Minerados",
+        "stats_approached": "Abordagens Feitas",
+        "stats_converted": "Conversões/Agendamentos"
     }
 }

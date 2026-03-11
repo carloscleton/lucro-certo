@@ -149,6 +149,7 @@ export function Layout() {
         payments: '#2563eb', // blue-600
         crm: '#f59e0b',      // amber-500
         marketing: '#f43f5e', // rose-500
+        lead_radar: '#8b5cf6', // violet-500
     };
 
     return (
