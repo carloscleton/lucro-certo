@@ -219,7 +219,7 @@ export function LeadRadar() {
                         variant="outline"
                         onClick={async () => {
                             try {
-                                const { data, error } = await supabase.functions.invoke('lead-radar-miner', {
+                                const { error } = await supabase.functions.invoke('lead-radar-miner', {
                                     body: { company_id: currentEntity.id }
                                 });
                                 if (error) throw error;
