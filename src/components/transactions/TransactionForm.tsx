@@ -198,86 +198,94 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const analyzeDocument = async (fileToAnalyze: File) => {
         setIsAnalyzing(true);
         try {
+            // 1. Instant Upload for Persistence (Autosave)
+            const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+            const filePath = `attachments/temp/${fileName}`;
+
+            // Use unified storage service
+            const { publicUrl } = await storageService.upload(fileToAnalyze, 'attachments', filePath);
+
+            // Persist for autosave immediately
+            setTempAttachmentUrl(publicUrl);
+            setTempAttachmentPath(filePath);
+
             let extractedText = '';
             let pdfFirstPageImageBase64: string | null = null;
 
-            if (fileToAnalyze.type === 'application/pdf' || fileToAnalyze.name.toLowerCase().endsWith('.pdf')) {
-                const pdfjsLib = await import('pdfjs-dist');
-                // @ts-ignore - PDF.js v5 worker configuration
-                const { PDFWorker } = await import('pdfjs-dist/legacy/build/pdf.worker.mjs');
-                pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-                    'pdfjs-dist/legacy/build/pdf.worker.mjs',
-                    import.meta.url
-                ).toString();
+            // 2. OCR Analysis (Optional - if it fails, the IA can still use the image/url)
+            try {
+                if (fileToAnalyze.type === 'application/pdf' || fileToAnalyze.name.toLowerCase().endsWith('.pdf')) {
+                    const pdfjsLib = await import('pdfjs-dist');
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-                const arrayBuffer = await fileToAnalyze.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const arrayBuffer = await fileToAnalyze.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-                const QrScanner = (await import('qr-scanner')).default;
+                    const QrScanner = (await import('qr-scanner')).default;
 
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    const sortedItems = content.items.sort((a: any, b: any) => {
-                        if (Math.abs(b.transform[5] - a.transform[5]) > 5) {
-                            return b.transform[5] - a.transform[5];
-                        }
-                        return a.transform[4] - b.transform[4];
-                    });
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+                        const sortedItems = content.items.sort((a: any, b: any) => {
+                            if (Math.abs(b.transform[5] - a.transform[5]) > 5) {
+                                return b.transform[5] - a.transform[5];
+                            }
+                            return a.transform[4] - b.transform[4];
+                        });
 
-                    const pageText = sortedItems.map((item: any) => item.str).join(' ');
-                    extractedText += pageText + '\n';
+                        const pageText = sortedItems.map((item: any) => item.str).join(' ');
+                        extractedText += pageText + '\n';
 
-                    for (const scale of [1.5, 2.5, 3.5]) {
-                        try {
-                            const viewport = page.getViewport({ scale });
-                            const canvas = document.createElement("canvas");
-                            const context = canvas.getContext("2d", { willReadFrequently: true });
-                            if (context) {
-                                canvas.height = viewport.height;
-                                canvas.width = viewport.width;
-                                context.imageSmoothingEnabled = false;
-                                await (page as any).render({ canvasContext: context, viewport: viewport }).promise;
-                                if (i === 1 && scale === 1.5) {
-                                    pdfFirstPageImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                                }
-                                try {
-                                    const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
-                                    if (result && result.data && result.data.length > 10) {
-                                        const foundText = result.data;
-                                        if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
-                                            extractedText += `\n>>>>PIX_DATA<<<<${foundText}>>>>END_PIX<<<<\n`;
-                                        } else {
-                                            extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
-                                        }
-                                        break;
+                        for (const scale of [1.5, 2.5, 3.5]) {
+                            try {
+                                const viewport = page.getViewport({ scale });
+                                const canvas = document.createElement("canvas");
+                                const context = canvas.getContext("2d", { willReadFrequently: true });
+                                if (context) {
+                                    canvas.height = viewport.height;
+                                    canvas.width = viewport.width;
+                                    context.imageSmoothingEnabled = false;
+                                    await (page as any).render({ canvasContext: context, viewport: viewport }).promise;
+                                    if (i === 1 && scale === 1.5) {
+                                        pdfFirstPageImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
                                     }
-                                } catch (decodeErr) { console.debug(decodeErr); }
-                            }
-                        } catch (e) { console.debug(e); }
-                    }
+                                    try {
+                                        const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
+                                        if (result && result.data && result.data.length > 10) {
+                                            const foundText = result.data;
+                                            if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
+                                                extractedText += `\n>>>>PIX_DATA<<<<${foundText}>>>>END_PIX<<<<\n`;
+                                            } else {
+                                                extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
+                                            }
+                                            break;
+                                        }
+                                    } catch (decodeErr) { console.debug(decodeErr); }
+                                }
+                            } catch (e) { console.debug(e); }
+                        }
 
-                    const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,75}/g);
-                    if (potentialBarcodeMatch) {
-                        for (const possible of potentialBarcodeMatch) {
-                            const clean = possible.replace(/[^\d]/g, '');
-                            if (clean.length >= 44 && clean.length <= 48) {
-                                extractedText += `\n>>>>BARCODE_DATA<<<<${clean}>>>>END_BARCODE<<<<\n`;
-                                break;
+                        const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,75}/g);
+                        if (potentialBarcodeMatch) {
+                            for (const possible of potentialBarcodeMatch) {
+                                const clean = possible.replace(/[^\d]/g, '');
+                                if (clean.length >= 44 && clean.length <= 48) {
+                                    extractedText += `\n>>>>BARCODE_DATA<<<<${clean}>>>>END_BARCODE<<<<\n`;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    const cleanText = pageText.replace(/\s+/g, '');
-                    const textPixMatch = cleanText.match(/000201[a-zA-Z0-9]*?6304[a-fA-F0-9]{4}/i) ||
-                        cleanText.match(/https?:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150}/i);
-                    if (textPixMatch && !extractedText.includes('>>>>PIX_DATA<<<<')) {
-                        extractedText += `\n>>>>PIX_DATA<<<<${textPixMatch[0]}>>>>END_PIX<<<<\n`;
+                        const cleanText = pageText.replace(/\s+/g, '');
+                        const textPixMatch = cleanText.match(/000201[a-zA-Z0-9]*?6304[a-fA-F0-9]{4}/i) ||
+                            cleanText.match(/https?:\/\/[\w.-]*pix[\s\S]*?qr[\s\S]*?[a-zA-Z0-9]{10,150}/i);
+                        if (textPixMatch && !extractedText.includes('>>>>PIX_DATA<<<<')) {
+                            extractedText += `\n>>>>PIX_DATA<<<<${textPixMatch[0]}>>>>END_PIX<<<<\n`;
+                        }
+                        if (i >= 5) break;
                     }
-                    if (i >= 5) break;
-                }
-            } else if (fileToAnalyze.type.startsWith('image/')) {
-                try {
+                } else if (fileToAnalyze.type.startsWith('image/')) {
                     const QrScanner = (await import('qr-scanner')).default;
                     const objectUrl = URL.createObjectURL(fileToAnalyze);
                     const HTMLImageElement = document.createElement('img');
@@ -295,19 +303,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         }
                     } catch (decodeErr) { console.debug(decodeErr); }
                     URL.revokeObjectURL(objectUrl);
-                } catch (e) { console.debug(e); }
+                }
+            } catch (ocrErr) {
+                console.warn('OCR error ignored, fallback to IA vision:', ocrErr);
             }
 
-            const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-            const filePath = `attachments/temp/${fileName}`;
-
-            // Use unified storage service
-            const { publicUrl } = await storageService.upload(fileToAnalyze, 'attachments', filePath);
-
-            // Persist for autosave
-            setTempAttachmentUrl(publicUrl);
-            setTempAttachmentPath(filePath);
+            // 3. IA Processing (Financial Vision)
 
             const payload: any = { type };
             if (extractedText) {
