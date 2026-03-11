@@ -232,7 +232,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 canvas.height = viewport.height;
                                 canvas.width = viewport.width;
                                 context.imageSmoothingEnabled = false;
-                                await page.render({ canvasContext: context, viewport: viewport }).promise;
+                                await (page as any).render({ canvasContext: context, viewport: viewport }).promise;
                                 if (i === 1 && scale === 1.5) {
                                     pdfFirstPageImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
                                 }
