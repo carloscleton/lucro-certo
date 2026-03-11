@@ -203,7 +203,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
             if (fileToAnalyze.type === 'application/pdf' || fileToAnalyze.name.toLowerCase().endsWith('.pdf')) {
                 const pdfjsLib = await import('pdfjs-dist');
-                pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+                // @ts-ignore - PDF.js v5 worker configuration
+                const { PDFWorker } = await import('pdfjs-dist/legacy/build/pdf.worker.mjs');
+                pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+                    'pdfjs-dist/legacy/build/pdf.worker.mjs',
+                    import.meta.url
+                ).toString();
 
                 const arrayBuffer = await fileToAnalyze.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
