@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
     Target,
     Zap,
+    BarChart3,
     Rocket,
     Search,
     CheckCircle2,
