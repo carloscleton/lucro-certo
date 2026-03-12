@@ -281,6 +281,14 @@ export function LeadRadar() {
                                     return;
                                 }
 
+                                // 2. Verificar se as chaves de API foram configuradas
+                                const isMissingAPI = !settings.serper_api_key && !settings.searchapi_api_key;
+                                if (isMissingAPI) {
+                                    alert("Ei! Para o Radar funcionar, você precisa configurar sua API Key na aba 'Configuração API'. É rapidinho e garantimos que você use seus próprios créditos.");
+                                    setActiveTab('api');
+                                    return;
+                                }
+
                                 setIsMining(true);
 
                                 // 2. Se o agente estiver offline, ativa ele automaticamente antes de minerar
