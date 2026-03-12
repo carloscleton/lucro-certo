@@ -74,6 +74,11 @@ async function fetchSocials(query: string, location: string, apiKey?: string) {
                     let cleanName = item.title.split(/•|\||-|:|\u2013/)[0].trim()
                     if (cleanName.length < 3) cleanName = item.title.trim()
 
+                    // Extração de E-mail via Regex
+                    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+                    const emailMatch = (item.snippet || "").match(emailRegex);
+                    const foundEmail = emailMatch ? emailMatch[0].toLowerCase() : null;
+
                     results.push({
                         platform: target.platform,
                         name: cleanName,
@@ -81,6 +86,7 @@ async function fetchSocials(query: string, location: string, apiKey?: string) {
                         external_url: item.link,
                         location: location,
                         contact_number: null,
+                        email: foundEmail,
                         metadata: { source: 'serper_social_optimized' }
                     })
                 })
@@ -141,6 +147,7 @@ async function runRadarMining(target_company_id?: string) {
                 description: raw.description,
                 external_url: raw.external_url,
                 location: raw.location,
+                email: raw.email,
                 score: score,
                 ai_summary: `IA detectou alta relevância para "${niche}" nesta plataforma (${raw.platform}).`,
                 metadata: { ...raw.metadata, contact_number: raw.contact_number },
