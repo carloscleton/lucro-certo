@@ -773,77 +773,125 @@ export function LeadRadar() {
             {selectedLead && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-700">
-                        <div className="p-6 bg-violet-600 text-white flex justify-between items-center">
+                        <div className="p-6 bg-gradient-to-r from-violet-600 to-indigo-600 text-white flex justify-between items-center">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <User size={24} />
-                                Detalhes do Lead
+                                <Target size={24} />
+                                Detalhes da Oportunidade
                             </h3>
                             <button onClick={() => setSelectedLead(null)} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-6">
                                 <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome / Perfil</label>
-                                    <p className="text-lg font-bold text-gray-900 dark:text-white">{selectedLead.name}</p>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Plataforma</label>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                        <ExternalLink size={14} className="text-violet-500" />
-                                        {selectedLead.platform}
-                                    </p>
-                                </div>
-                                {selectedLead.contact_number && (
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Contato</label>
-                                        <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                            <Phone size={14} className="text-violet-500" />
-                                            {selectedLead.contact_number}
-                                        </p>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Empresa / Perfil</label>
+                                    <p className="text-xl font-black text-gray-900 dark:text-white leading-tight">{selectedLead.name}</p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-[10px] bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 px-2 py-0.5 rounded-full font-bold border border-violet-100 dark:border-violet-800 uppercase">
+                                            {selectedLead.platform}
+                                        </span>
+                                        <span className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-100 dark:border-emerald-800 uppercase">
+                                            {selectedLead.status}
+                                        </span>
                                     </div>
-                                )}
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Localização</label>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                        <MapPin size={14} className="text-violet-500" />
-                                        {selectedLead.location || 'Não especificado'}
-                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Informações de Contato</label>
+
+                                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600">
+                                        <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-violet-600">
+                                            <MapPin size={18} />
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Endereço</p>
+                                            <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{selectedLead.location || 'Não informado'}</p>
+                                        </div>
+                                    </div>
+
+                                    {selectedLead.contact_number && (
+                                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600">
+                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-emerald-600">
+                                                <Phone size={18} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase">WhatsApp / Telefone</p>
+                                                <p className="text-sm text-gray-700 dark:text-gray-300 font-bold">{selectedLead.contact_number}</p>
+                                            </div>
+                                            <div className="ml-auto flex gap-2">
+                                                <a
+                                                    href={`https://wa.me/${selectedLead.contact_number.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.name}! Vim através do Radar de Leads.`)}`}
+                                                    target="_blank"
+                                                    className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
+                                                >
+                                                    <MessageSquare size={16} />
+                                                </a>
+                                                <a
+                                                    href={`tel:${selectedLead.contact_number}`}
+                                                    className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                                                >
+                                                    <Phone size={16} />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="p-4 bg-violet-50 dark:bg-violet-900/20 rounded-2xl border border-violet-100 dark:border-violet-900/30">
-                                    <label className="text-[10px] font-bold text-violet-500 uppercase tracking-wider block mb-1">Análise da IA (Score: {selectedLead.score})</label>
-                                    <p className="text-xs text-violet-900 dark:text-violet-200 leading-relaxed italic">
-                                        {selectedLead.ai_summary || 'Aguardando análise detalhada...'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mensagem Capturada / Bio</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl mt-1 border border-gray-100 dark:border-slate-600">
-                                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic">"{selectedLead.description || 'Sem descrição capturada.'}"</p>
+                            <div className="space-y-6">
+                                <div className="p-5 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 rounded-3xl border border-violet-100 dark:border-violet-800 relative overflow-hidden">
+                                    <Zap className="absolute -right-4 -top-4 text-violet-200/50 dark:text-violet-700/20" size={100} />
+                                    <div className="relative">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-[10px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest">Análise do Robô</label>
+                                            <span className="text-xl font-black text-violet-700 dark:text-violet-300">{selectedLead.score}%</span>
+                                        </div>
+                                        <p className="text-xs text-violet-900/80 dark:text-violet-200/80 leading-relaxed font-medium italic mb-4">
+                                            "{selectedLead.ai_summary || 'Lead qualificado com alto potencial de conversão baseado no nicho.'}"
+                                        </p>
+                                        <div className="w-full bg-violet-200 dark:bg-violet-800 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-violet-600 h-full rounded-full" style={{ width: `${selectedLead.score}%` }}></div>
+                                        </div>
                                     </div>
                                 </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Mensagem Capturada / Bio</label>
+                                    <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600 min-h-[80px]">
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic">
+                                            "{selectedLead.description || 'Sem descrição capturada.'}"
+                                        </p>
+                                    </div>
+                                </div>
+
                                 {selectedLead.external_url && (
                                     <a
                                         href={selectedLead.external_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 text-xs text-violet-600 hover:underline font-bold"
+                                        className="inline-flex items-center gap-2 text-xs text-violet-600 dark:text-violet-400 hover:underline font-bold"
                                     >
                                         <ExternalLink size={14} />
-                                        Acessar perfil/post original
+                                        Ver postagem/site original
                                     </a>
                                 )}
                             </div>
                         </div>
-                        <div className="p-4 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                            <Button variant="outline" onClick={() => setSelectedLead(null)}>Fechar</Button>
-                            <Button className="bg-violet-600 hover:bg-violet-700 text-white">
+                        <div className="p-6 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-700">
+                            <Button variant="outline" onClick={() => setSelectedLead(null)} className="rounded-xl">Fechar</Button>
+                            <Button
+                                onClick={() => {
+                                    if (selectedLead.contact_number) {
+                                        window.open(`https://wa.me/${selectedLead.contact_number.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.name}! Vi seu perfil e gostaria de conversar sobre parcerias.`)}`, '_blank');
+                                    } else {
+                                        alert("Este lead não possui um número de WhatsApp capturado.");
+                                    }
+                                }}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 dark:shadow-none rounded-xl"
+                            >
                                 <MessageSquare size={18} className="mr-2" />
-                                Chamar agora
+                                Chamar no WhatsApp
                             </Button>
                         </div>
                     </div>
