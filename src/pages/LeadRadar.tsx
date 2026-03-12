@@ -314,11 +314,16 @@ export function LeadRadar() {
 
                                 setIsMining(true);
 
-                                // 2. Se o agente estiver offline, ativa ele automaticamente antes de minerar
+                                // 2. Limpa os leads antigos dessa empresa para garantir resultados frescos
+                                await supabase.from('radar_leads').delete().eq('company_id', currentEntity.id);
+
+                                // 3. Se o agente estiver offline, ativa ele automaticamente antes de minerar
                                 if (!settings.is_active) {
                                     const confirmActive = confirm("O Agente está OFFLINE. Gostaria de ATIVÁ-LO e iniciar a mineração agora?");
                                     if (!confirmActive) {
                                         setIsMining(false);
+                                        // Busca os leads de volta se cancelou (embora o delete já tenha acontecido)
+                                        fetchLeads();
                                         return;
                                     }
 
