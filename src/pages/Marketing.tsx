@@ -198,7 +198,13 @@ export function Marketing() {
         const js = d.createElement(s) as HTMLScriptElement;
         const fjs = d.getElementsByTagName(s)[0];
         js.id = id;
+        js.async = true;
+        js.defer = true;
+        js.crossOrigin = "anonymous";
         js.src = "https://connect.facebook.net/pt_BR/sdk.js";
+        js.onerror = () => {
+          console.warn("Facebook SDK: Falha ao carregar. AdBlocker ou bloqueio de rede detectado.");
+        };
         fjs?.parentNode?.insertBefore(js, fjs);
       })(document, "script", "facebook-jssdk");
     }
