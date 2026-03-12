@@ -41,6 +41,7 @@ interface AISettings {
     target_location: string;
     serper_api_key?: string;
     searchapi_api_key?: string;
+    mining_frequency: 'manual' | 'daily' | 'interval';
 }
 
 export function LeadRadar() {
@@ -64,6 +65,7 @@ export function LeadRadar() {
         auto_approach: false,
         daily_lead_quota: 50,
         target_location: '',
+        mining_frequency: 'manual',
         serper_api_key: '',
         searchapi_api_key: ''
     });
@@ -610,6 +612,32 @@ export function LeadRadar() {
                                     >
                                         <div className="w-4 h-4 bg-white rounded-full shadow-sm"></div>
                                     </button>
+                                </div>
+
+                                <div className="space-y-3 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Zap size={16} className="text-amber-500" />
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Agenda de Mineração</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {[
+                                            { id: 'manual', label: 'Manual (Apenas quando eu clicar)', icon: Rocket },
+                                            { id: 'daily', label: 'Diário (Todo dia às 03:00)', icon: CheckCircle2 },
+                                            { id: 'interval', label: 'Intervalo (A cada 5 horas)', icon: Zap }
+                                        ].map((opt) => (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => setSettings({ ...settings, mining_frequency: opt.id as any })}
+                                                className={`flex items-center gap-3 p-3 rounded-xl border text-sm transition-all ${settings.mining_frequency === opt.id
+                                                        ? 'bg-violet-600 border-violet-600 text-white shadow-md'
+                                                        : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-violet-200'
+                                                    }`}
+                                            >
+                                                <opt.icon size={16} />
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
