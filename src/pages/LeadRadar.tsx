@@ -751,7 +751,14 @@ export function LeadRadar() {
                                             Motor Principal: Serper.dev
                                         </h4>
                                         <div className="flex gap-2">
-                                            <span className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-bold">VER NO PAINEL</span>
+                                            <a
+                                                href="https://serper.dev/dashboard"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[10px] bg-gray-100 text-gray-400 hover:bg-gray-200 px-2 py-0.5 rounded-full font-bold transition-colors cursor-pointer"
+                                            >
+                                                VER NO PAINEL
+                                            </a>
                                             <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">RECOMENDADO</span>
                                         </div>
                                     </div>
