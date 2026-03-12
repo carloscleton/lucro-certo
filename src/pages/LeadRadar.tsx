@@ -32,6 +32,7 @@ interface AISettings {
     is_active: boolean;
     auto_approach: boolean;
     daily_lead_quota: number;
+    target_location: string;
 }
 
 export function LeadRadar() {
@@ -53,7 +54,8 @@ export function LeadRadar() {
         services_catalog: [],
         is_active: false,
         auto_approach: false,
-        daily_lead_quota: 50
+        daily_lead_quota: 50,
+        target_location: ''
     });
 
     const [magicInput, setMagicInput] = useState('');
@@ -237,17 +239,39 @@ export function LeadRadar() {
                         variant="outline"
                         onClick={async () => {
                             try {
+                                // Se o agente estiver offline, ativa ele automaticamente antes de minerar
+                                if (!settings.is_active) {
+                                    const confirmActive = confirm("O Agente está OFFLINE. Gostaria de ATIVÁ-LO e iniciar a mineração agora?");
+                                    if (!confirmActive) return;
+
+                                    setSaving(true);
+                                    const { error: updateError } = await supabase
+                                        .from('company_ai_settings')
+                                        .upsert({
+                                            company_id: currentEntity.id,
+                                            ...settings,
+                                            is_active: true
+                                        }, { onConflict: 'company_id' });
+
+                                    if (updateError) throw updateError;
+                                    setSettings(prev => ({ ...prev, is_active: true }));
+                                    setSaving(false);
+                                }
+
                                 const { error } = await supabase.functions.invoke('lead-radar-miner', {
                                     body: { company_id: currentEntity.id }
                                 });
                                 if (error) throw error;
-                                alert('A prospecção foi iniciada em segundo plano!');
+                                alert('O Agente foi ativado e a prospecção iniciada com sucesso!');
                                 fetchLeads();
                             } catch (e) {
-                                alert('Erro ao iniciar mineração.');
+                                console.error('Mining/Activation Error:', e);
+                                alert('Erro ao iniciar mineração ou ativar agente.');
+                                setSaving(false);
                             }
                         }}
                         className="border-amber-200 dark:border-amber-800 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                        isLoading={saving}
                     >
                         <Rocket size={18} className="mr-2" />
                         Minerar Agora
@@ -464,7 +488,20 @@ export function LeadRadar() {
                                         placeholder={t('lead_radar.business_description_placeholder', 'Descreva seus diferenciais, horário de funcionamento, etc.')}
                                     />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                            <Target size={16} className="text-violet-500" />
+                                            {t('lead_radar.target_location', 'Região de Atuação')}
+                                        </label>
+                                        <Input
+                                            placeholder="Ex: Natal, RN ou Brasil"
+                                            value={settings.target_location}
+                                            onChange={(e) => setSettings({ ...settings, target_location: e.target.value })}
+                                        />
+                                        <p className="text-[10px] text-gray-500 italic">Onde o robô deve focar as buscas de novos clientes.</p>
+                                    </div>
+
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex justify-between">
                                         Quota Diária de Leads
                                         <span className="text-violet-600 font-bold">{settings.daily_lead_quota}</span>

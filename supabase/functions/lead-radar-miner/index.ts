@@ -40,7 +40,7 @@ async function runRadarMining(target_company_id?: string) {
 
     for (const agent of activeAgents) {
         const company = agent.companies
-        console.log(`Minerando para: ${company.trade_name}`)
+        console.log(`Minerando para: ${company.trade_name} em ${agent.target_location || 'Brasil'}`)
 
         // 2. Simulated Lead Generation (Phase 1)
         // In a real scenario, this would call Serper.dev, Instagram Scraper, etc.
@@ -62,6 +62,9 @@ async function runRadarMining(target_company_id?: string) {
         ]
 
         for (const rawLead of mockLeads) {
+            // Ajusta a localização do mock para bater com a escolha do usuário para teste visual
+            rawLead.location = agent.target_location || 'Brasil';
+
             // 3. Qualify with AI
             const qualificationPrompt = `
         Analise este lead para a empresa "${company.trade_name}".
