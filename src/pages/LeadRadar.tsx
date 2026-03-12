@@ -148,6 +148,26 @@ export function LeadRadar() {
         }
     };
 
+    const handleDeleteAllLeads = async () => {
+        if (!window.confirm('ATENÇÃO: Isso apagará TODOS os seus leads minerados permanentemente. Deseja continuar?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('radar_leads')
+                .delete()
+                .eq('company_id', currentEntity.id);
+
+            if (error) throw error;
+
+            setLeads([]);
+            setStats({ found: 0, approached: 0, converted: 0 });
+            alert('Todos os leads foram excluídos com sucesso.');
+        } catch (error) {
+            console.error('Error deleting all leads:', error);
+            alert('Erro ao excluir todos os leads.');
+        }
+    };
+
     const handleSave = async () => {
         try {
             setSaving(true);
@@ -432,6 +452,17 @@ export function LeadRadar() {
                                     Leads Qualificados em Tempo Real
                                 </h3>
                                 <div className="flex items-center gap-2">
+                                    {leads.length > 0 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            onClick={handleDeleteAllLeads}
+                                        >
+                                            <Trash2 size={16} className="mr-1" />
+                                            Limpar Tudo
+                                        </Button>
+                                    )}
                                     <Button variant="ghost" size="sm" className="text-violet-600">
                                         {t('lead_radar.view_leads', 'Ver Todos')}
                                     </Button>
@@ -790,8 +821,10 @@ export function LeadRadar() {
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mensagem Capturada</label>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">"{selectedLead.description}"</p>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mensagem Capturada / Bio</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl mt-1 border border-gray-100 dark:border-slate-600">
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic">"{selectedLead.description || 'Sem descrição capturada.'}"</p>
+                                    </div>
                                 </div>
                                 {selectedLead.external_url && (
                                     <a
