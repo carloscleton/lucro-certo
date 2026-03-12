@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
     Target,
     Zap,
-    BarChart3,
     Rocket,
     Search,
     CheckCircle2,
@@ -12,13 +11,11 @@ import {
     Trash2,
     Plus,
     Save,
-    AlertCircle,
     BrainCircuit,
     Info,
     User,
     Wand2,
     X,
-    ChevronRight,
     Briefcase
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
