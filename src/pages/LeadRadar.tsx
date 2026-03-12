@@ -92,28 +92,20 @@ export function LeadRadar() {
     }, [settings.serper_api_key, settings.searchapi_api_key]);
 
     const fetchAPICredits = async () => {
-        // Serper Credits
-        if (settings.serper_api_key) {
-            try {
-                const res = await fetch('https://google.serper.dev/credits', {
-                    headers: { 'X-API-KEY': settings.serper_api_key }
+        if (!currentEntity.id) return;
+        try {
+            const { data, error } = await supabase.functions.invoke('lead-radar-miner', {
+                body: { company_id: currentEntity.id, action: 'get-credits' }
+            });
+            if (error) throw error;
+            if (data) {
+                setApiCredits({
+                    serper: null, // Indisponível via API pública
+                    searchapi: data.searchapi
                 });
-                const data = await res.json();
-                if (data.credits !== undefined) {
-                    setApiCredits(prev => ({ ...prev, serper: data.credits }));
-                }
-            } catch (e) { console.error('Error fetching Serper credits:', e); }
-        }
-
-        // SearchApi Credits
-        if (settings.searchapi_api_key) {
-            try {
-                const res = await fetch(`https://www.searchapi.io/api/v1/account?api_key=${settings.searchapi_api_key}`);
-                const data = await res.json();
-                if (data.credits_remaining !== undefined) {
-                    setApiCredits(prev => ({ ...prev, searchapi: data.credits_remaining }));
-                }
-            } catch (e) { console.error('Error fetching SearchApi credits:', e); }
+            }
+        } catch (e) {
+            console.error('Error fetching API credits through proxy:', e);
         }
     };
 
@@ -759,11 +751,7 @@ export function LeadRadar() {
                                             Motor Principal: Serper.dev
                                         </h4>
                                         <div className="flex gap-2">
-                                            {apiCredits.serper !== null && (
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${apiCredits.serper > 100 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                                    {apiCredits.serper} CRÉDITOS
-                                                </span>
-                                            )}
+                                            <span className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-bold">VER NO PAINEL</span>
                                             <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">RECOMENDADO</span>
                                         </div>
                                     </div>

@@ -181,7 +181,25 @@ async function runRadarMining(target_company_id?: string) {
 serve(async (req: any) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
     try {
-        const { company_id } = await req.json().catch(() => ({}))
+        const body = await req.json().catch(() => ({}))
+        const { company_id, action } = body
+
+        // Rota de Créditos (Proxy para evitar CORS)
+        if (action === 'get-credits') {
+            const { data: agent } = await supabase.from('company_ai_settings').select('searchapi_api_key').eq('company_id', company_id).single()
+            let searchapi = null
+
+            if (agent?.searchapi_api_key) {
+                try {
+                    const res = await fetch(`https://www.searchapi.io/api/v1/me?api_key=${agent.searchapi_api_key}`)
+                    const data = await res.json()
+                    searchapi = data.credits_remaining !== undefined ? data.credits_remaining : null
+                } catch { }
+            }
+            return new Response(JSON.stringify({ serper: null, searchapi }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+        }
+
+        // Rota Principal de Mineração
         const res = await runRadarMining(company_id)
         return new Response(JSON.stringify(res), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     } catch (e: any) {
