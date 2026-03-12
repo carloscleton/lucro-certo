@@ -61,8 +61,8 @@ async function fetchSocials(query: string, location: string, apiKey?: string) {
                 method: 'POST',
                 headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    q: `site:${target.site} "${query}" "${location}"`,
-                    num: 5,
+                    q: `site:${target.site} ${query} ${location}`,
+                    num: 15,
                     hl: 'pt-br',
                     gl: 'br'
                 })
@@ -71,14 +71,17 @@ async function fetchSocials(query: string, location: string, apiKey?: string) {
 
             if (data.organic) {
                 data.organic.forEach((item: any) => {
+                    let cleanName = item.title.split(/•|\||-|:|\u2013/)[0].trim()
+                    if (cleanName.length < 3) cleanName = item.title.trim()
+
                     results.push({
                         platform: target.platform,
-                        name: item.title.split('•')[0].split('|')[0].trim(),
+                        name: cleanName,
                         description: item.snippet || `Perfil detectado no ${target.platform}`,
                         external_url: item.link,
                         location: location,
-                        contact_number: null, // Scrapping de tel em rede social é complexo/impreciso via search
-                        metadata: { source: 'serper_social' }
+                        contact_number: null,
+                        metadata: { source: 'serper_social_optimized' }
                     })
                 })
             }
