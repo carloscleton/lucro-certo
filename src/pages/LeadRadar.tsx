@@ -37,6 +37,8 @@ interface AISettings {
     auto_approach: boolean;
     daily_lead_quota: number;
     target_location: string;
+    serper_api_key?: string;
+    searchapi_api_key?: string;
 }
 
 export function LeadRadar() {
@@ -46,7 +48,7 @@ export function LeadRadar() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [isMagicLoading, setIsMagicLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'stats' | 'config' | 'catalog'>('stats');
+    const [activeTab, setActiveTab] = useState<'stats' | 'config' | 'catalog' | 'api'>('stats');
     const [leads, setLeads] = useState<any[]>([]);
     const [stats, setStats] = useState({ found: 0, approached: 0, converted: 0 });
 
@@ -59,7 +61,9 @@ export function LeadRadar() {
         is_active: false,
         auto_approach: false,
         daily_lead_quota: 50,
-        target_location: ''
+        target_location: '',
+        serper_api_key: '',
+        searchapi_api_key: ''
     });
 
     const [magicInput, setMagicInput] = useState('');
@@ -403,6 +407,12 @@ export function LeadRadar() {
                         icon={Rocket}
                         label={t('lead_radar.services_catalog', 'Catálogo')}
                     />
+                    <TabButton
+                        active={activeTab === 'api'}
+                        onClick={() => setActiveTab('api')}
+                        icon={Zap}
+                        label="Configuração API"
+                    />
                 </div>
 
                 <div className="p-6">
@@ -614,6 +624,66 @@ export function LeadRadar() {
                                         <p className="text-gray-500 text-sm">Seu catálogo está vazio. Adicione itens para a IA saber o que oferecer.</p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'api' && (
+                        <div className="space-y-6 animate-in fade-in duration-300">
+                            <div className="p-6 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-3xl space-y-4">
+                                <h3 className="font-bold text-amber-800 dark:text-amber-400 flex items-center gap-2">
+                                    <Info size={20} />
+                                    Como configurar suas chaves de busca?
+                                </h3>
+                                <div className="text-sm text-amber-900/70 dark:text-amber-300/70 space-y-2 leading-relaxed">
+                                    <p>Para o Radar de Leads encontrar clientes reais, ele precisa de créditos em motores de busca. Siga o passo a passo:</p>
+                                    <ol className="list-decimal list-inside space-y-2 ml-2">
+                                        <li>Crie uma conta gratuita no <strong><a href="https://serper.dev" target="_blank" className="underline font-bold">Serper.dev</a></strong> (Você ganha 2.500 buscas grátis).</li>
+                                        <li>Crie uma conta no <strong><a href="https://www.searchapi.io" target="_blank" className="underline font-bold">SearchApi.io</a></strong> (Plano B caso a primeira acabe).</li>
+                                        <li>Copie as <strong>API Keys</strong> dos painéis dessas plataformas e cole nos campos abaixo.</li>
+                                        <li>Clique em <strong>Salvar</strong> no topo da página.</li>
+                                    </ol>
+                                    <p className="mt-4 font-bold text-amber-800 dark:text-amber-400 inline-flex items-center gap-2">
+                                        <Zap size={14} />
+                                        Dica: O sistema prioriza o Serper.dev por ser mais rápido.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="p-6 bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <Rocket size={18} className="text-blue-500" />
+                                            Motor Principal: Serper.dev
+                                        </h4>
+                                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">RECOMENDADO</span>
+                                    </div>
+                                    <Input
+                                        placeholder="Cole sua API Key do Serper aqui"
+                                        value={settings.serper_api_key}
+                                        type="password"
+                                        onChange={(e) => setSettings({ ...settings, serper_api_key: e.target.value })}
+                                    />
+                                    <p className="text-[10px] text-gray-400">Usado para buscas rápidas no Google Maps e Instagram.</p>
+                                </div>
+
+                                <div className="p-6 bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <Zap size={18} className="text-violet-500" />
+                                            Motor Secundário: SearchApi
+                                        </h4>
+                                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">BACKUP</span>
+                                    </div>
+                                    <Input
+                                        placeholder="Cole sua API Key do SearchApi aqui"
+                                        value={settings.searchapi_api_key}
+                                        type="password"
+                                        onChange={(e) => setSettings({ ...settings, searchapi_api_key: e.target.value })}
+                                    />
+                                    <p className="text-[10px] text-gray-400">Usado automaticamente caso o motor principal fique indisponível.</p>
+                                </div>
                             </div>
                         </div>
                     )}
