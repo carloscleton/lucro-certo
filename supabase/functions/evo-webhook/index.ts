@@ -8,6 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 const EVO_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
 const EVO_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
+const MASTER_OPENAI_KEY = Deno.env.get('OPENAI_API_KEY')
 
 const API_VERSION = 'v19.0'
 
@@ -133,10 +134,10 @@ serve(async (req) => {
             console.log(`Conversão Detectada: Lead ${leadMatch.name} respondeu!`)
           }
 
-          // Se o ChatBot estiver ligado e houver chave OpenAI
+          // Se o ChatBot estiver ligado e houver uma chave (da empresa ou mestre)
           const msgObj = data.message
           const userMessage = msgObj?.conversation || msgObj?.extendedTextMessage?.text || ''
-          const openaiKey = aiSettings.openai_api_key
+          const openaiKey = aiSettings.openai_api_key || MASTER_OPENAI_KEY
 
           if (aiSettings.chat_enabled && openaiKey && userMessage) {
             console.log(`ChatBot ativado para lead ${leadMatch.name}. Respondendo...`)
