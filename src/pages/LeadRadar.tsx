@@ -44,6 +44,8 @@ interface AISettings {
     mining_frequency: 'manual' | 'daily' | 'interval';
     mining_hour?: number;
     mining_interval_hours?: number;
+    chat_enabled: boolean;
+    openai_api_key?: string;
 }
 
 export function LeadRadar() {
@@ -70,6 +72,8 @@ export function LeadRadar() {
         mining_frequency: 'manual',
         mining_hour: 3,
         mining_interval_hours: 5,
+        chat_enabled: false,
+        openai_api_key: '',
         serper_api_key: '',
         searchapi_api_key: ''
     });
@@ -618,6 +622,22 @@ export function LeadRadar() {
                                     </button>
                                 </div>
 
+                                <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600 flex items-center justify-between">
+                                    <div className="flex gap-3">
+                                        <MessageSquare className="text-violet-500 shrink-0" size={20} />
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white">Atendimento Automático (ChatBot)</p>
+                                            <p className="text-xs text-gray-500">IA responde dúvidas dos leads sozinha</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setSettings({ ...settings, chat_enabled: !settings.chat_enabled })}
+                                        className={`w-12 h-6 rounded-full transition-colors flex items-center p-1 ${settings.chat_enabled ? 'bg-violet-600 justify-end' : 'bg-gray-300 justify-start'}`}
+                                    >
+                                        <div className="w-4 h-4 bg-white rounded-full shadow-sm"></div>
+                                    </button>
+                                </div>
+
                                 <div className="space-y-3 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Zap size={16} className="text-amber-500" />
@@ -648,8 +668,8 @@ export function LeadRadar() {
                                                 <button
                                                     onClick={() => setSettings({ ...settings, mining_frequency: opt.id as any })}
                                                     className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm transition-all ${settings.mining_frequency === opt.id
-                                                            ? 'bg-violet-600 border-violet-600 text-white shadow-md'
-                                                            : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-violet-200'
+                                                        ? 'bg-violet-600 border-violet-600 text-white shadow-md'
+                                                        : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-violet-200'
                                                         }`}
                                                 >
                                                     <div className="flex items-center gap-3">
@@ -878,6 +898,26 @@ export function LeadRadar() {
                                         onChange={(e) => setSettings({ ...settings, searchapi_api_key: e.target.value })}
                                     />
                                     <p className="text-[10px] text-gray-400">Usado automaticamente caso o motor principal fique indisponível.</p>
+                                </div>
+
+                                <div className="p-6 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-bold text-white flex items-center gap-2">
+                                            <BrainCircuit size={18} className="text-emerald-400" />
+                                            Cérebro IA: OpenAI (GPT-4)
+                                        </h4>
+                                        <div className="flex gap-2">
+                                            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">ESSENCIAL PARA CHAT</span>
+                                        </div>
+                                    </div>
+                                    <Input
+                                        placeholder="Cole sua OpenAI API Key aqui"
+                                        value={settings.openai_api_key}
+                                        type="password"
+                                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                                        onChange={(e) => setSettings({ ...settings, openai_api_key: e.target.value })}
+                                    />
+                                    <p className="text-[10px] text-slate-500">Necessário para que o robô consiga conversar e responder perguntas.</p>
                                 </div>
                             </div>
                         </div>

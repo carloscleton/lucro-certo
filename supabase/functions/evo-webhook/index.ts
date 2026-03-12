@@ -105,25 +105,87 @@ serve(async (req) => {
 
     const companyId = instanceInfo?.company_id
 
-    // 3. LOGICA LEAD RADAR: Detectar resposta de lead prospectado
+    // 3. LOGICA LEAD RADAR: Atendimento Automático & Conversão
     if (companyId) {
-      const { data: leadMatch } = await supabase
-        .from('radar_leads')
-        .select('id, name')
+      // Buscar configurações de IA da empresa
+      const { data: aiSettings } = await supabase
+        .from('company_ai_settings')
+        .select('*')
         .eq('company_id', companyId)
-        .eq('status', 'approached')
-        .filter('metadata->>contact_number', 'eq', senderPhone)
-        .limit(1)
         .maybeSingle()
 
-      if (leadMatch) {
-        await supabase.from('radar_leads').update({
-          status: 'converted',
-          updated_at: new Date().toISOString()
-        }).eq('id', leadMatch.id)
+      if (aiSettings) {
+        const { data: leadMatch } = await supabase
+          .from('radar_leads')
+          .select('*')
+          .eq('company_id', companyId)
+          .filter('metadata->>contact_number', 'eq', senderPhone)
+          .limit(1)
+          .maybeSingle()
 
-        console.log(`Conversão Detectada: Lead ${leadMatch.name} de empresa ${companyId} respondeu!`)
-        // O usuário verá no contador de 'Conversões/Agendamentos'
+        if (leadMatch) {
+          // Se o lead respondeu, marcar como convertido (primeira resposta)
+          if (leadMatch.status === 'approached') {
+            await supabase.from('radar_leads').update({
+              status: 'converted',
+              updated_at: new Date().toISOString()
+            }).eq('id', leadMatch.id)
+            console.log(`Conversão Detectada: Lead ${leadMatch.name} respondeu!`)
+          }
+
+          // Se o ChatBot estiver ligado e houver chave OpenAI
+          const msgObj = data.message
+          const userMessage = msgObj?.conversation || msgObj?.extendedTextMessage?.text || ''
+          const openaiKey = aiSettings.openai_api_key
+
+          if (aiSettings.chat_enabled && openaiKey && userMessage) {
+            console.log(`ChatBot ativado para lead ${leadMatch.name}. Respondendo...`)
+
+            const systemPrompt = `Você é ${aiSettings.agent_name}, assistente virtual da empresa especializada em ${aiSettings.business_niche}.
+              Seu objetivo é ser prestativo, educado e converter o lead em cliente.
+              
+              CONHECIMENTO DA EMPRESA:
+              "${aiSettings.business_description}"
+              
+              NOSSO CATÁLOGO DE SERVIÇOS/PRODUTOS:
+              ${JSON.stringify(aiSettings.services_catalog)}
+              
+              REGRAS:
+              1. Use as informações acima para responder.
+              2. Seja breve e direto (máximo 2 parágrafos).
+              3. Se perguntarem algo que você não sabe, peça para aguardar um atendente humano.
+              4. Não invente preços que não estão no catálogo.
+              5. Use emojis moderadamente.`;
+
+            try {
+              const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${openaiKey}`
+                },
+                body: JSON.stringify({
+                  model: 'gpt-4-turbo-preview',
+                  messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userMessage }
+                  ],
+                  temperature: 0.7
+                })
+              })
+
+              const aiData = await aiRes.json()
+              const botReply = aiData.choices?.[0]?.message?.content
+
+              if (botReply) {
+                await sendWhatsApp(instance, senderPhone, botReply)
+                console.log(`ChatBot respondeu ao lead ${leadMatch.name}`)
+              }
+            } catch (err) {
+              console.error('Erro no ChatBot OpenAI:', err)
+            }
+          }
+        }
       }
     }
 
