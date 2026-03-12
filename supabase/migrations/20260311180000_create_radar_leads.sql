@@ -75,7 +75,7 @@ USING (
     EXISTS (
         SELECT 1 FROM public.profiles p
         WHERE p.id = auth.uid()
-        AND p.user_type = 'admin'
+        AND p.user_type = 'super_admin'
     )
 );
 
@@ -88,6 +88,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_radar_leads_updated_at ON public.radar_leads;
 CREATE TRIGGER update_radar_leads_updated_at
     BEFORE UPDATE ON public.radar_leads
     FOR EACH ROW

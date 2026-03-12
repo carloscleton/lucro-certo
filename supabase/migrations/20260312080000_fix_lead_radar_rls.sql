@@ -2,7 +2,7 @@
 -- Date: 2026-03-12
 
 -- 1. Fix company_ai_settings policies
-DROP POLICY IF EXISTS "Admins can update company_ai_settings" ON public.company_ai_settings;
+DROP POLICY IF EXISTS "Admins and Owners can update company_ai_settings" ON public.company_ai_settings;
 CREATE POLICY "Admins and Owners can update company_ai_settings"
 ON public.company_ai_settings
 FOR UPDATE

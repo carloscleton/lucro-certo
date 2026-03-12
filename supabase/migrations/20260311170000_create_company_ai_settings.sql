@@ -23,6 +23,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_company_ai_settings_updated_at ON public.company_ai_settings;
 CREATE TRIGGER update_company_ai_settings_updated_at
     BEFORE UPDATE ON public.company_ai_settings
     FOR EACH ROW
@@ -31,8 +32,8 @@ CREATE TRIGGER update_company_ai_settings_updated_at
 -- Enable RLS
 ALTER TABLE public.company_ai_settings ENABLE ROW LEVEL SECURITY;
 
--- Policies for company_ai_settings
 -- 1. Active members can view their company's AI settings
+DROP POLICY IF EXISTS "Active members can view company_ai_settings" ON public.company_ai_settings;
 CREATE POLICY "Active members can view company_ai_settings"
 ON public.company_ai_settings
 FOR SELECT
@@ -47,6 +48,7 @@ USING (
 );
 
 -- 2. Admins can update their company's AI settings
+DROP POLICY IF EXISTS "Admins can update company_ai_settings" ON public.company_ai_settings;
 CREATE POLICY "Admins can update company_ai_settings"
 ON public.company_ai_settings
 FOR UPDATE
@@ -62,6 +64,7 @@ USING (
 );
 
 -- 3. Super admins can do everything
+DROP POLICY IF EXISTS "Super admins can manage company_ai_settings" ON public.company_ai_settings;
 CREATE POLICY "Super admins can manage company_ai_settings"
 ON public.company_ai_settings
 FOR ALL
@@ -70,6 +73,6 @@ USING (
     EXISTS (
         SELECT 1 FROM public.profiles p
         WHERE p.id = auth.uid()
-        AND p.role = 'super_admin'
+        AND p.user_type = 'super_admin'
     )
 );
