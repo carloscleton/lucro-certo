@@ -29,15 +29,23 @@ async function fetchMaps(query: string, location: string, apiKey?: string) {
         const data = await res.json()
         if (data.error) return []
 
-        return (data.places || []).map((item: any) => ({
-            platform: 'google_maps',
-            name: item.title,
-            description: `Empresa local em ${item.address}. Avaliação: ${item.rating || 'N/A'}.`,
-            external_url: item.website || item.link || `https://www.google.com/maps/search/${encodeURIComponent(item.title)}`,
-            location: item.address,
-            contact_number: item.phoneNumber ? item.phoneNumber.replace(/\D/g, '') : null,
-            metadata: { source: 'serper_maps' }
-        }))
+        // Filtrar para evitar que a própria cidade apareça como "empresa"
+        return (data.places || [])
+            .filter((item: any) => {
+                const titleLower = item.title.toLowerCase().trim()
+                const locLower = location.toLowerCase().trim()
+                // Se o título for exatamente igual à cidade pesquisada, é um resultado geográfico, não uma empresa
+                return titleLower !== locLower && item.address
+            })
+            .map((item: any) => ({
+                platform: 'google_maps',
+                name: item.title,
+                description: item.category ? `${item.category}. Localizado em ${item.address}.` : `Empresa local em ${item.address}. Avaliação: ${item.rating || 'N/A'}.`,
+                external_url: item.website || item.link || `https://www.google.com/maps/search/${encodeURIComponent(item.title)}`,
+                location: item.address,
+                contact_number: item.phoneNumber ? item.phoneNumber.replace(/\D/g, '') : null,
+                metadata: { source: 'serper_maps', category: item.category, rating: item.rating }
+            }))
     } catch { return [] }
 }
 
@@ -109,7 +117,7 @@ async function runRadarMining(target_company_id?: string) {
 
     for (const agent of agents) {
         const niche = agent.business_niche
-        const loc = agent.target_location || 'Brasil'
+        const rawLoc = agent.target_location || 'Brasil'
         const apiKey = agent.serper_api_key || agent.searchapi_api_key
 
         if (!apiKey) {
@@ -117,59 +125,61 @@ async function runRadarMining(target_company_id?: string) {
             continue
         }
 
-        console.log(`[RADAR] Iniciando busca para ${agent.companies.trade_name} - Nicho: ${niche} em ${loc}`)
+        // Suporte a múltiplas cidades separadas por vírgula
+        const locations = rawLoc.split(',').map(l => l.trim()).filter(l => l.length > 0)
 
-        // Camada 1: Google Maps
-        const mapsLeads = await fetchMaps(niche, loc, apiKey)
-        console.log(`[RADAR] Google Maps retornou ${mapsLeads?.length || 0} leads.`)
+        for (const loc of locations) {
+            console.log(`[RADAR] Iniciando busca para ${agent.companies.trade_name} - Nicho: ${niche} em ${loc}`)
 
-        // Camada 2: Redes Sociais (Discovery)
-        const socialLeads = await fetchSocials(niche, loc, apiKey)
-        console.log(`[RADAR] Redes Sociais retornaram ${socialLeads?.length || 0} leads.`)
+            // Camada 1: Google Maps
+            const mapsLeads = await fetchMaps(niche, loc, apiKey)
+            console.log(`[RADAR] Google Maps retornou ${mapsLeads?.length || 0} leads para ${loc}.`)
 
-        const allRawLeads = [...(mapsLeads || []), ...(socialLeads || [])]
+            // Camada 2: Redes Sociais (Discovery)
+            const socialLeads = await fetchSocials(niche, loc, apiKey)
+            console.log(`[RADAR] Redes Sociais retornaram ${socialLeads?.length || 0} leads para ${loc}.`)
 
-        if (allRawLeads.length === 0) {
-            logs.push({ company: agent.companies.trade_name, status: 'warning', message: 'Nenhum lead encontrado em nenhuma plataforma.' })
-            continue
-        }
+            const allRawLeads = [...(mapsLeads || []), ...(socialLeads || [])]
 
-        for (const raw of allRawLeads) {
-            const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
-            if (ext) continue
+            if (allRawLeads.length === 0) continue
 
-            const score = Math.floor(Math.random() * 20) + 75
+            for (const raw of allRawLeads) {
+                const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
+                if (ext) continue
 
-            const { data: newL } = await supabase.from('radar_leads').insert({
-                company_id: agent.company_id,
-                platform: raw.platform,
-                name: raw.name,
-                description: raw.description,
-                external_url: raw.external_url,
-                location: raw.location,
-                email: raw.email,
-                score: score,
-                ai_summary: `IA detectou alta relevância para "${niche}" nesta plataforma (${raw.platform}).`,
-                metadata: { ...raw.metadata, contact_number: raw.contact_number },
-                status: 'pending'
-            }).select().single()
+                const score = Math.floor(Math.random() * 20) + 75
 
-            // Abordagem automática apenas para Quem tem Número (Maps)
-            if (agent.auto_approach && newL && raw.contact_number) {
-                const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
-                if (inst?.length) {
-                    const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
-                    const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies.trade_name} e trabalhamos com ${niche}. Podemos conversar?`
-                    fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
-                        body: JSON.stringify({ number: num, text: msg })
-                    }).then(() => {
-                        supabase.from('radar_leads').update({ status: 'approached', last_approach_at: new Date().toISOString() }).eq('id', newL.id).then(() => { })
-                    }).catch(e => console.error(e))
+                const { data: newL } = await supabase.from('radar_leads').insert({
+                    company_id: agent.company_id,
+                    platform: raw.platform,
+                    name: raw.name,
+                    description: raw.description,
+                    external_url: raw.external_url,
+                    location: raw.location,
+                    email: raw.email,
+                    score: score,
+                    ai_summary: `IA detectou alta relevância para "${niche}" nesta plataforma (${raw.platform}).`,
+                    metadata: { ...raw.metadata, contact_number: raw.contact_number },
+                    status: 'pending'
+                }).select().single()
+
+                // Abordagem automática apenas para Quem tem Número (Maps)
+                if (agent.auto_approach && newL && raw.contact_number) {
+                    const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
+                    if (inst?.length) {
+                        const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
+                        const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies.trade_name} e trabalhamos com ${niche}. Podemos conversar?`
+                        fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+                            body: JSON.stringify({ number: num, text: msg })
+                        }).then(() => {
+                            supabase.from('radar_leads').update({ status: 'approached', last_approach_at: new Date().toISOString() }).eq('id', newL.id).then(() => { })
+                        }).catch(e => console.error(e))
+                    }
                 }
+                leadsFoundTotal++
             }
-            leadsFoundTotal++
         }
         processedCount++
         logs.push({ company: agent.companies.trade_name, status: 'success', leads_added: leadsFoundTotal })
