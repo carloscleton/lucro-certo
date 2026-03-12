@@ -125,6 +125,26 @@ async function runRadarMining(target_company_id?: string) {
             continue
         }
 
+        // --- NOVA LÓGICA DE FILTRO POR AGENDAMENTO ---
+        if (!target_company_id) {
+            const freq = agent.mining_frequency || 'manual'
+            if (freq === 'manual') continue
+
+            const now = new Date()
+            const lastRun = agent.last_mining_at ? new Date(agent.last_mining_at) : null
+            const hoursSinceLastRun = lastRun ? (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60) : 999
+
+            if (freq === 'daily') {
+                const hour = now.getUTCHours() - 3 // Ajuste para BRT (UTC-3)
+                // Se não forem 03:00 e não passou pelo menos 20h da última run, ignora
+                if (hour !== 3 && hoursSinceLastRun < 20) continue
+            } else if (freq === 'interval') {
+                // Se não passaram 5 horas da última execução, ignora
+                if (hoursSinceLastRun < 5) continue
+            }
+        }
+        // ---------------------------------------------
+
         // Suporte a múltiplas cidades separadas por vírgula
         const locations = rawLoc.split(',').map(l => l.trim()).filter(l => l.length > 0)
 
@@ -181,6 +201,10 @@ async function runRadarMining(target_company_id?: string) {
                 leadsFoundTotal++
             }
         }
+
+        // Atualiza horário da última mineração
+        await supabase.from('company_ai_settings').update({ last_mining_at: new Date().toISOString() }).eq('company_id', agent.company_id)
+
         processedCount++
         logs.push({ company: agent.companies.trade_name, status: 'success', leads_added: leadsFoundTotal })
     }
