@@ -8,7 +8,6 @@ import {
     Search,
     CheckCircle2,
     MessageSquare,
-    Users,
     Trash2,
     Plus,
     Save,
@@ -20,7 +19,8 @@ import {
     Briefcase,
     Phone,
     ExternalLink,
-    MapPin
+    MapPin,
+    Instagram
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
@@ -65,6 +65,7 @@ export function LeadRadar() {
     const [magicInput, setMagicInput] = useState('');
     const [showMagicModal, setShowMagicModal] = useState(false);
     const [selectedLead, setSelectedLead] = useState<any>(null);
+    const [isMining, setIsMining] = useState(false);
 
     useEffect(() => {
         if (currentEntity.id) {
@@ -276,12 +277,16 @@ export function LeadRadar() {
                                     return;
                                 }
 
+                                setIsMining(true);
+
                                 // 2. Se o agente estiver offline, ativa ele automaticamente antes de minerar
                                 if (!settings.is_active) {
                                     const confirmActive = confirm("O Agente está OFFLINE. Gostaria de ATIVÁ-LO e iniciar a mineração agora?");
-                                    if (!confirmActive) return;
+                                    if (!confirmActive) {
+                                        setIsMining(false);
+                                        return;
+                                    }
 
-                                    setSaving(true);
                                     const { error: updateError } = await supabase
                                         .from('company_ai_settings')
                                         .upsert({
@@ -292,26 +297,27 @@ export function LeadRadar() {
 
                                     if (updateError) throw updateError;
                                     setSettings(prev => ({ ...prev, is_active: true }));
-                                    setSaving(false);
                                 }
 
                                 const { error } = await supabase.functions.invoke('lead-radar-miner', {
                                     body: { company_id: currentEntity.id }
                                 });
+
                                 if (error) throw error;
-                                alert('O Agente foi ativado e a prospecção iniciada com sucesso!');
+                                alert('A prospecção inteligente foi concluída com sucesso!');
                                 fetchLeads();
                             } catch (e) {
                                 console.error('Mining/Activation Error:', e);
                                 alert('Erro ao iniciar mineração ou ativar agente.');
-                                setSaving(false);
+                            } finally {
+                                setIsMining(false);
                             }
                         }}
                         className="border-amber-200 dark:border-amber-800 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                        isLoading={saving}
+                        isLoading={isMining}
                     >
                         <Rocket size={18} className="mr-2" />
-                        Minerar Agora
+                        {isMining ? 'Minerando...' : 'Minerar Agora'}
                     </Button>
                     <Button
                         variant="outline"
@@ -780,8 +786,8 @@ function LeadItem({ name, source, text, status, isPJ, onDelete, onClick }: any) 
             className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-violet-200 dark:hover:border-violet-900/30 transition-colors group cursor-pointer"
         >
             <div className="flex items-center gap-4 overflow-hidden">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isPJ ? 'bg-blue-100 text-blue-600' : 'bg-violet-100 text-violet-600'}`}>
-                    {isPJ ? <Briefcase size={18} /> : <Users size={18} />}
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isPJ ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'}`}>
+                    {isPJ ? <Briefcase size={18} /> : <Instagram size={18} />}
                 </div>
                 <div className="overflow-hidden">
                     <div className="flex items-center gap-2">
