@@ -900,24 +900,37 @@ export function LeadRadar() {
                                     <p className="text-[10px] text-gray-400">Usado automaticamente caso o motor principal fique indisponível.</p>
                                 </div>
 
-                                <div className="p-6 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl space-y-4">
-                                    <div className="flex items-center justify-between">
+                                <div className="p-6 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl border border-emerald-500/30 shadow-xl shadow-emerald-500/10 space-y-4 relative overflow-hidden group">
+                                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
+                                    <div className="flex items-center justify-between relative z-10">
                                         <h4 className="font-bold text-white flex items-center gap-2">
-                                            <BrainCircuit size={18} className="text-emerald-400" />
+                                            <BrainCircuit size={18} className="text-emerald-200" />
                                             Cérebro IA: OpenAI (GPT-4)
                                         </h4>
                                         <div className="flex gap-2">
-                                            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">ESSENCIAL PARA CHAT</span>
+                                            <a
+                                                href="https://platform.openai.com/api-keys"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[10px] bg-white/20 text-white hover:bg-white/30 px-2 py-0.5 rounded-full font-bold transition-colors cursor-pointer border border-white/10 backdrop-blur-sm"
+                                            >
+                                                COLOCAR CRÉDITOS
+                                            </a>
+                                            <span className="text-[10px] bg-emerald-400 text-emerald-900 px-2 py-0.5 rounded-full font-bold">ESSENCIAL</span>
                                         </div>
                                     </div>
-                                    <Input
-                                        placeholder="Cole sua OpenAI API Key aqui"
-                                        value={settings.openai_api_key}
-                                        type="password"
-                                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
-                                        onChange={(e) => setSettings({ ...settings, openai_api_key: e.target.value })}
-                                    />
-                                    <p className="text-[10px] text-slate-500">Necessário para que o robô consiga conversar e responder perguntas.</p>
+                                    <div className="relative z-10">
+                                        <Input
+                                            placeholder="Cole sua OpenAI API Key aqui"
+                                            value={settings.openai_api_key}
+                                            type="password"
+                                            className="bg-white/10 border-white/20 text-white placeholder:text-emerald-200/50 focus:border-white/40"
+                                            onChange={(e) => setSettings({ ...settings, openai_api_key: e.target.value })}
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-emerald-100/70 relative z-10">
+                                        Necessário para o robô conversar. Recomendamos usar sua própria chave para maior controle e estabilidade.
+                                    </p>
                                 </div>
                             </div>
                         </div>
