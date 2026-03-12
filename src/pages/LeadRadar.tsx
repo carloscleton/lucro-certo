@@ -20,7 +20,9 @@ import {
     Phone,
     ExternalLink,
     MapPin,
-    Instagram
+    Instagram,
+    Facebook,
+    Linkedin
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
@@ -493,6 +495,7 @@ export function LeadRadar() {
                                                 source={lead.location || 'Brasil'}
                                                 text={lead.description}
                                                 status={lead.status}
+                                                platform={lead.platform}
                                                 isPJ={lead.platform === 'google_maps'}
                                                 onClick={() => setSelectedLead(lead)}
                                                 onDelete={(e: React.MouseEvent) => handleDeleteLead(e, lead.id)}
@@ -963,15 +966,32 @@ function TabButton({ active, onClick, icon: Icon, label }: any) {
     );
 }
 
-function LeadItem({ name, source, text, status, isPJ, onDelete, onClick }: any) {
+function LeadItem({ name, source, text, status, platform, onDelete, onClick }: any) {
+    const getPlatformIcon = () => {
+        switch (platform) {
+            case 'google_maps':
+                return { icon: Briefcase, color: 'bg-blue-100 text-blue-600' };
+            case 'instagram':
+                return { icon: Instagram, color: 'bg-pink-100 text-pink-600' };
+            case 'facebook':
+                return { icon: Facebook, color: 'bg-blue-50 text-blue-700' };
+            case 'linkedin':
+                return { icon: Linkedin, color: 'bg-indigo-100 text-indigo-700' };
+            default:
+                return { icon: Target, color: 'bg-gray-100 text-gray-600' };
+        }
+    };
+
+    const { icon: PlatformIcon, color } = getPlatformIcon();
+
     return (
         <div
             onClick={onClick}
             className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-violet-200 dark:hover:border-violet-900/30 transition-colors group cursor-pointer"
         >
             <div className="flex items-center gap-4 overflow-hidden">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isPJ ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'}`}>
-                    {isPJ ? <Briefcase size={18} /> : <Instagram size={18} />}
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${color}`}>
+                    <PlatformIcon size={18} />
                 </div>
                 <div className="overflow-hidden">
                     <div className="flex items-center gap-2">

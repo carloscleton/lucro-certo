@@ -1,8 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Configurações de Infraestrutura (IA e WhatsApp permanecem globais por ora)
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
+// Configurações de Infraestrutura
 const EVO_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://api.wpadm.com.br'
 const EVO_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'lucrocerto'
 
@@ -17,11 +16,10 @@ const corsHeaders = {
 }
 
 /**
- * Busca no Google Maps usando a chave INDIVIDUAL do cliente via Serper.dev
+ * Busca no Google Maps (PJ/Local)
  */
-async function fetchFromSerper(query: string, location: string, apiKey?: string) {
-    if (!apiKey) return null // NUNCA usar chave global
-
+async function fetchMaps(query: string, location: string, apiKey?: string) {
+    if (!apiKey) return []
     try {
         const res = await fetch('https://google.serper.dev/maps', {
             method: 'POST',
@@ -29,57 +27,64 @@ async function fetchFromSerper(query: string, location: string, apiKey?: string)
             body: JSON.stringify({ q: `${query} em ${location}`, hl: 'pt-br', gl: 'br' })
         })
         const data = await res.json()
-
-        // Verifica erro de crédito ou chave inválida
-        if (data.error) {
-            console.error(`Erro Serper [${apiKey.substring(0, 5)}...]:`, data.error)
-            return null
-        }
+        if (data.error) return []
 
         return (data.places || []).map((item: any) => ({
             platform: 'google_maps',
             name: item.title,
-            description: `Empresa em ${item.address}. Avaliação: ${item.rating || 'N/A'}.`,
+            description: `Empresa local em ${item.address}. Avaliação: ${item.rating || 'N/A'}.`,
             external_url: item.website || item.link || `https://www.google.com/maps/search/${encodeURIComponent(item.title)}`,
             location: item.address,
             contact_number: item.phoneNumber ? item.phoneNumber.replace(/\D/g, '') : null,
-            metadata: { source: 'serper_client_key' }
+            metadata: { source: 'serper_maps' }
         }))
-    } catch (e) {
-        console.error('Erro de rede Serper:', e)
-        return null
-    }
+    } catch { return [] }
 }
 
 /**
- * Busca no Google Maps usando a chave INDIVIDUAL do cliente via SearchApi.io
+ * Busca em Redes Sociais via Google Search (Instagram, Facebook, LinkedIn)
  */
-async function fetchFromSearchApi(query: string, location: string, apiKey?: string) {
-    if (!apiKey) return null // NUNCA usar chave global
+async function fetchSocials(query: string, location: string, apiKey?: string) {
+    if (!apiKey) return []
+    const results: any[] = []
 
-    try {
-        const url = `https://www.searchapi.io/api/v1/search?engine=google_maps&q=${encodeURIComponent(query + ' em ' + location)}&api_key=${apiKey}`
-        const res = await fetch(url)
-        const data = await res.json()
+    // Alvos sociais
+    const targets = [
+        { site: 'instagram.com', platform: 'instagram' },
+        { site: 'facebook.com', platform: 'facebook' },
+        { site: 'linkedin.com/company', platform: 'linkedin' }
+    ]
 
-        if (data.error) {
-            console.error(`Erro SearchApi [${apiKey.substring(0, 5)}...]:`, data.error)
-            return null
-        }
+    for (const target of targets) {
+        try {
+            const res = await fetch('https://google.serper.dev/search', {
+                method: 'POST',
+                headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    q: `site:${target.site} "${query}" "${location}"`,
+                    num: 5,
+                    hl: 'pt-br',
+                    gl: 'br'
+                })
+            })
+            const data = await res.json()
 
-        return (data.items || []).map((item: any) => ({
-            platform: 'google_maps',
-            name: item.title,
-            description: item.description || `Empresa em ${item.address}`,
-            external_url: item.website || item.link,
-            location: item.address,
-            contact_number: item.phone ? item.phone.replace(/\D/g, '') : null,
-            metadata: { source: 'searchapi_client_key' }
-        }))
-    } catch (e) {
-        console.error('Erro de rede SearchApi:', e)
-        return null
+            if (data.organic) {
+                data.organic.forEach((item: any) => {
+                    results.push({
+                        platform: target.platform,
+                        name: item.title.split('•')[0].split('|')[0].trim(),
+                        description: item.snippet || `Perfil detectado no ${target.platform}`,
+                        external_url: item.link,
+                        location: location,
+                        contact_number: null, // Scrapping de tel em rede social é complexo/impreciso via search
+                        metadata: { source: 'serper_social' }
+                    })
+                })
+            }
+        } catch (e) { console.error(`Erro ao buscar ${target.platform}:`, e) }
     }
+    return results
 }
 
 async function runRadarMining(target_company_id?: string) {
@@ -91,49 +96,30 @@ async function runRadarMining(target_company_id?: string) {
     if (target_company_id) query = query.eq('company_id', target_company_id)
 
     const { data: agents } = await query
-    if (!agents || agents.length === 0) return { error: 'Nenhum agente configurado ou ativo.' }
+    if (!agents?.length) return { error: 'Nenhum agente ativo.' }
 
     for (const agent of agents) {
         const niche = agent.business_niche
         const loc = agent.target_location || 'Brasil'
+        const apiKey = agent.serper_api_key || agent.searchapi_api_key
 
-        // Bloqueio de Segurança: Se não tem chave, não minera.
-        if (!agent.serper_api_key && !agent.searchapi_api_key) {
-            logs.push({
-                company: agent.companies.trade_name,
-                status: 'error',
-                message: 'Chaves de API ausentes. O cliente deve configurar no painel.'
-            })
+        if (!apiKey) {
+            logs.push({ company: agent.companies.trade_name, error: 'Sem chave API' })
             continue
         }
 
-        let rawLeads = null
+        // Camada 1: Google Maps
+        const mapsLeads = await fetchMaps(niche, loc, apiKey)
 
-        // 1. Tenta Serper do Cliente
-        if (agent.serper_api_key) {
-            rawLeads = await fetchFromSerper(niche, loc, agent.serper_api_key)
-        }
+        // Camada 2: Redes Sociais (Discovery)
+        const socialLeads = await fetchSocials(niche, loc, apiKey)
 
-        // 2. Fallback para SearchApi do Cliente (se a primeira falhar ou não existir)
-        if (!rawLeads && agent.searchapi_api_key) {
-            rawLeads = await fetchFromSearchApi(niche, loc, agent.searchapi_api_key)
-        }
+        const allRawLeads = [...mapsLeads, ...socialLeads]
 
-        if (!rawLeads || rawLeads.length === 0) {
-            logs.push({
-                company: agent.companies.trade_name,
-                status: 'warning',
-                message: 'Nenhum lead encontrado ou créditos esgotados nas chaves do cliente.'
-            })
-            continue
-        }
-
-        for (const raw of rawLeads) {
-            // Evita duplicatas para a mesma empresa
+        for (const raw of allRawLeads) {
             const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
             if (ext) continue
 
-            // Score randômico para simular validação (pode ser expandido com Gemini)
             const score = Math.floor(Math.random() * 20) + 75
 
             const { data: newL } = await supabase.from('radar_leads').insert({
@@ -144,25 +130,24 @@ async function runRadarMining(target_company_id?: string) {
                 external_url: raw.external_url,
                 location: raw.location,
                 score: score,
-                ai_summary: `Oportunidade detectada em ${loc} no segmento de ${niche}.`,
+                ai_summary: `IA detectou alta relevância para "${niche}" nesta plataforma (${raw.platform}).`,
                 metadata: { ...raw.metadata, contact_number: raw.contact_number },
                 status: 'pending'
             }).select().single()
 
-            // Abordagem Automática (se o cliente ativou e tem instância conectada)
+            // Abordagem automática apenas para Quem tem Número (Maps)
             if (agent.auto_approach && newL && raw.contact_number) {
                 const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
                 if (inst?.length) {
                     const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
-                    const msg = `Olá! Sou da ${agent.companies.trade_name}. Vimos sua atividade em ${raw.location} e achamos que podemos ajudar com ${niche}. Podemos conversar?`
-
+                    const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies.trade_name} e trabalhamos com ${niche}. Podemos conversar?`
                     fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
                         body: JSON.stringify({ number: num, text: msg })
                     }).then(() => {
                         supabase.from('radar_leads').update({ status: 'approached', last_approach_at: new Date().toISOString() }).eq('id', newL.id).then(() => { })
-                    }).catch(e => console.error('Erro envio Zap:', e))
+                    }).catch(e => console.error(e))
                 }
             }
             leadsFoundTotal++
@@ -170,12 +155,7 @@ async function runRadarMining(target_company_id?: string) {
         processedCount++
     }
 
-    return {
-        status: 'completed',
-        agents_processed: processedCount,
-        total_leads_found: leadsFoundTotal,
-        logs
-    }
+    return { status: 'completed', agents_processed: processedCount, total_leads_found: leadsFoundTotal }
 }
 
 serve(async (req: any) => {
