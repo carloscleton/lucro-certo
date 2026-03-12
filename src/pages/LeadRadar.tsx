@@ -73,6 +73,10 @@ export function LeadRadar() {
     const [selectedLead, setSelectedLead] = useState<any>(null);
     const [isMining, setIsMining] = useState(false);
     const [leadFilter, setLeadFilter] = useState<'all' | 'approached' | 'converted'>('all');
+    const [apiCredits, setApiCredits] = useState<{ serper: number | null, searchapi: number | null }>({
+        serper: null,
+        searchapi: null
+    });
 
     useEffect(() => {
         if (currentEntity.id) {
@@ -80,6 +84,38 @@ export function LeadRadar() {
             fetchLeads();
         }
     }, [currentEntity.id]);
+
+    useEffect(() => {
+        if (settings.serper_api_key || settings.searchapi_api_key) {
+            fetchAPICredits();
+        }
+    }, [settings.serper_api_key, settings.searchapi_api_key]);
+
+    const fetchAPICredits = async () => {
+        // Serper Credits
+        if (settings.serper_api_key) {
+            try {
+                const res = await fetch('https://google.serper.dev/credits', {
+                    headers: { 'X-API-KEY': settings.serper_api_key }
+                });
+                const data = await res.json();
+                if (data.credits !== undefined) {
+                    setApiCredits(prev => ({ ...prev, serper: data.credits }));
+                }
+            } catch (e) { console.error('Error fetching Serper credits:', e); }
+        }
+
+        // SearchApi Credits
+        if (settings.searchapi_api_key) {
+            try {
+                const res = await fetch(`https://www.searchapi.io/api/v1/account?api_key=${settings.searchapi_api_key}`);
+                const data = await res.json();
+                if (data.credits_remaining !== undefined) {
+                    setApiCredits(prev => ({ ...prev, searchapi: data.credits_remaining }));
+                }
+            } catch (e) { console.error('Error fetching SearchApi credits:', e); }
+        }
+    };
 
     const fetchSettings = async () => {
         try {
@@ -185,6 +221,7 @@ export function LeadRadar() {
 
             if (error) throw error;
             alert(t('lead_radar.save_success', 'Configurações do Radar salvas com sucesso!'));
+            fetchAPICredits();
         } catch (error) {
             console.error('Error saving AI settings:', error);
             alert('Erro ao salvar as configurações.');
@@ -721,7 +758,14 @@ export function LeadRadar() {
                                             <Rocket size={18} className="text-blue-500" />
                                             Motor Principal: Serper.dev
                                         </h4>
-                                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">RECOMENDADO</span>
+                                        <div className="flex gap-2">
+                                            {apiCredits.serper !== null && (
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${apiCredits.serper > 100 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                                    {apiCredits.serper} CRÉDITOS
+                                                </span>
+                                            )}
+                                            <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">RECOMENDADO</span>
+                                        </div>
                                     </div>
                                     <Input
                                         placeholder="Cole sua API Key do Serper aqui"
@@ -738,7 +782,14 @@ export function LeadRadar() {
                                             <Zap size={18} className="text-violet-500" />
                                             Motor Secundário: SearchApi
                                         </h4>
-                                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">BACKUP</span>
+                                        <div className="flex gap-2">
+                                            {apiCredits.searchapi !== null && (
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${apiCredits.searchapi > 50 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                                    {apiCredits.searchapi} CRÉDITOS
+                                                </span>
+                                            )}
+                                            <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">BACKUP</span>
+                                        </div>
                                     </div>
                                     <Input
                                         placeholder="Cole sua API Key do SearchApi aqui"
