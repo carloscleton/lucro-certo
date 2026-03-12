@@ -70,6 +70,7 @@ export function LeadRadar() {
     const [showMagicModal, setShowMagicModal] = useState(false);
     const [selectedLead, setSelectedLead] = useState<any>(null);
     const [isMining, setIsMining] = useState(false);
+    const [leadFilter, setLeadFilter] = useState<'all' | 'approached' | 'converted'>('all');
 
     useEffect(() => {
         if (currentEntity.id) {
@@ -371,13 +372,15 @@ export function LeadRadar() {
             </header>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
-                    title={t('lead_radar.stats_found', 'Leads Minerados')}
+                    title={t('lead_radar.stats_leads_found', 'Leads Minerados')}
                     value={stats.found.toString()}
-                    icon={Search}
+                    icon={Target}
                     color="blue"
                     trend="+12% hoje"
+                    active={leadFilter === 'all'}
+                    onClick={() => setLeadFilter('all')}
                 />
                 <StatCard
                     title={t('lead_radar.stats_approached', 'Abordagens Feitas')}
@@ -385,17 +388,21 @@ export function LeadRadar() {
                     icon={MessageSquare}
                     color="violet"
                     trend="Automático"
+                    active={leadFilter === 'approached'}
+                    onClick={() => setLeadFilter('approached')}
                 />
                 <StatCard
-                    title={t('lead_radar.stats_converted', 'Conversões/Agendamentos')}
+                    title={t('lead_radar.stats_converted', 'Conversões / Vendas')}
                     value={stats.converted.toString()}
                     icon={CheckCircle2}
                     color="emerald"
                     trend={`R$ ${(stats.converted * 125).toLocaleString('pt-BR')},00`}
+                    active={leadFilter === 'converted'}
+                    onClick={() => setLeadFilter('converted')}
                 />
                 <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('lead_radar.agent_status', 'Status do Agente')}</span>
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Status da IA</span>
                         <div className={`w-3 h-3 rounded-full ${settings.is_active ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -403,11 +410,11 @@ export function LeadRadar() {
                             size="sm"
                             variant={settings.is_active ? 'outline' : 'primary'}
                             onClick={() => setSettings({ ...settings, is_active: !settings.is_active })}
-                            className={settings.is_active ? 'text-red-500 border-red-200 hover:bg-red-50' : 'bg-green-600 hover:bg-green-700'}
+                            className={settings.is_active ? 'text-red-500 border-red-200 hover:bg-red-50 py-1' : 'bg-green-600 hover:bg-green-700 py-1'}
                         >
-                            {settings.is_active ? t('lead_radar.deactivate_agent', 'Desativar') : t('lead_radar.activate_agent', 'Ativar')}
+                            {settings.is_active ? 'Desativar Robô' : 'Ativar Robô'}
                         </Button>
-                        <span className="text-xs font-semibold text-gray-400">
+                        <span className="text-[10px] font-black text-gray-400">
                             {settings.is_active ? 'ONLINE' : 'OFFLINE'}
                         </span>
                     </div>
@@ -470,18 +477,26 @@ export function LeadRadar() {
                             </div>
 
                             <div className="space-y-3">
-                                {leads.slice(0, 10).map(lead => (
-                                    <LeadItem
-                                        key={lead.id}
-                                        name={`${lead.name} (${lead.platform})`}
-                                        source={lead.location || 'Brasil'}
-                                        text={lead.description}
-                                        status={lead.status}
-                                        isPJ={lead.platform === 'google_maps'}
-                                        onClick={() => setSelectedLead(lead)}
-                                        onDelete={(e: React.MouseEvent) => handleDeleteLead(e, lead.id)}
-                                    />
-                                ))}
+                                {leads
+                                    .filter(l => {
+                                        if (leadFilter === 'all') return true;
+                                        if (leadFilter === 'approached') return l.status === 'approached';
+                                        if (leadFilter === 'converted') return l.status === 'converted';
+                                        return true;
+                                    })
+                                    .slice(0, 50)
+                                    .map(lead => (
+                                        <LeadItem
+                                            key={lead.id}
+                                            name={`${lead.name} (${lead.platform})`}
+                                            source={lead.location || 'Brasil'}
+                                            text={lead.description}
+                                            status={lead.status}
+                                            isPJ={lead.platform === 'google_maps'}
+                                            onClick={() => setSelectedLead(lead)}
+                                            onDelete={(e: React.MouseEvent) => handleDeleteLead(e, lead.id)}
+                                        />
+                                    ))}
                                 {leads.length === 0 && (
                                     <div className="text-center py-10">
                                         <p className="text-gray-500 text-sm">{t('lead_radar.no_leads', 'Nenhum lead encontrado hoje ainda. O robô está trabalhando!')}</p>
@@ -901,7 +916,7 @@ export function LeadRadar() {
     );
 }
 
-function StatCard({ title, value, icon: Icon, color, trend }: any) {
+function StatCard({ title, value, icon: Icon, color, trend, active, onClick }: any) {
     const colors: any = {
         blue: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30',
         violet: 'text-violet-600 bg-violet-100 dark:bg-violet-900/30',
@@ -909,12 +924,20 @@ function StatCard({ title, value, icon: Icon, color, trend }: any) {
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02] cursor-default">
+        <div
+            onClick={onClick}
+            className={`p-5 rounded-3xl border shadow-sm transition-all cursor-pointer ${active
+                    ? 'bg-white dark:bg-slate-800 border-violet-500 ring-2 ring-violet-500/20 scale-[1.02]'
+                    : 'bg-white/60 dark:bg-slate-800/60 border-gray-100 dark:border-slate-700 hover:scale-[1.02] hover:bg-white dark:hover:bg-slate-800'
+                }`}
+        >
             <div className="flex items-center justify-between mb-3">
                 <div className={`p-2 rounded-xl ${colors[color] || colors.blue}`}>
                     <Icon size={20} />
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">{trend}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color === 'emerald' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                    {trend}
+                </span>
             </div>
             <p className="text-2xl font-black text-gray-900 dark:text-white leading-none">{value}</p>
             <p className="text-xs font-semibold text-gray-400 mt-1 uppercase tracking-wider">{title}</p>
@@ -957,14 +980,17 @@ function LeadItem({ name, source, text, status, isPJ, onDelete, onClick }: any) 
                 </div>
             </div>
             <div className="flex items-center gap-4">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${status === 'abordado' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                    {status === 'abordado' ? 'ABORDADO' : 'PENDENTE'}
+                <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${status === 'converted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                        status === 'approached' ? 'bg-violet-50 text-violet-600 border-violet-100' :
+                            'bg-amber-50 text-amber-600 border-amber-100'
+                    }`}>
+                    {status === 'converted' ? 'CONVERTIDO' : status === 'approached' ? 'ABORDADO' : 'PENDENTE'}
                 </span>
                 <button
                     onClick={onDelete}
                     className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                 >
-                    <X size={18} />
+                    <Trash2 size={18} />
                 </button>
             </div>
         </div>
