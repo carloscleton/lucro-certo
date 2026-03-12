@@ -127,7 +127,16 @@ export function LeadRadar() {
         try {
             const { error } = await supabase.from('radar_leads').delete().eq('id', id);
             if (error) throw error;
-            setLeads(prev => prev.filter(l => l.id !== id));
+
+            setLeads(prev => {
+                const newLeads = prev.filter(l => l.id !== id);
+                // Atualiza stats
+                const found = newLeads.length;
+                const approached = newLeads.filter(l => l.status === 'approached' || l.status === 'converted').length;
+                const converted = newLeads.filter(l => l.status === 'converted').length;
+                setStats({ found, approached, converted });
+                return newLeads;
+            });
         } catch (error) {
             console.error('Error deleting lead:', error);
             alert('Erro ao excluir o lead.');
