@@ -16,7 +16,10 @@ import {
     BrainCircuit,
     Info,
     User,
-    Wand2
+    Wand2,
+    X,
+    ChevronRight,
+    Briefcase
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
@@ -112,6 +115,20 @@ export function LeadRadar() {
             }
         } catch (error) {
             console.error('Error fetching leads:', error);
+        }
+    };
+
+    const handleDeleteLead = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!window.confirm('Tem certeza que deseja excluir este lead permanentemente?')) return;
+
+        try {
+            const { error } = await supabase.from('radar_leads').delete().eq('id', id);
+            if (error) throw error;
+            setLeads(prev => prev.filter(l => l.id !== id));
+        } catch (error) {
+            console.error('Error deleting lead:', error);
+            alert('Erro ao excluir o lead.');
         }
     };
 
@@ -239,7 +256,16 @@ export function LeadRadar() {
                         variant="outline"
                         onClick={async () => {
                             try {
-                                // Se o agente estiver offline, ativa ele automaticamente antes de minerar
+                                // 1. Verificar se a configuração básica foi feita
+                                const isMissingConfig = !settings.agent_name || !settings.business_niche || !settings.business_description || !settings.target_location;
+
+                                if (isMissingConfig) {
+                                    alert("Por favor, preencha as Configurações do Agente (Nome, Nicho, Descrição e Região) e clique em SALVAR antes de minerar.");
+                                    setActiveTab('config');
+                                    return;
+                                }
+
+                                // 2. Se o agente estiver offline, ativa ele automaticamente antes de minerar
                                 if (!settings.is_active) {
                                     const confirmActive = confirm("O Agente está OFFLINE. Gostaria de ATIVÁ-LO e iniciar a mineração agora?");
                                     if (!confirmActive) return;
@@ -386,6 +412,7 @@ export function LeadRadar() {
                                         text={lead.description}
                                         status={lead.status}
                                         isPJ={lead.platform === 'google_maps'}
+                                        onDelete={(e: React.MouseEvent) => handleDeleteLead(e, lead.id)}
                                     />
                                 ))}
                                 {leads.length === 0 && (
@@ -655,9 +682,9 @@ function TabButton({ active, onClick, icon: Icon, label }: any) {
     );
 }
 
-function LeadItem({ name, source, text, status, isPJ }: any) {
+function LeadItem({ name, source, text, status, isPJ, onDelete }: any) {
     return (
-        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-violet-200 dark:hover:border-violet-900/30 transition-colors group cursor-pointer">
+        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-violet-200 dark:hover:border-violet-900/30 transition-colors group">
             <div className="flex items-center gap-4 overflow-hidden">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isPJ ? 'bg-blue-100 text-blue-600' : 'bg-violet-100 text-violet-600'}`}>
                     {isPJ ? <Briefcase size={18} /> : <Users size={18} />}
@@ -674,12 +701,15 @@ function LeadItem({ name, source, text, status, isPJ }: any) {
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${status === 'abordado' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                     {status === 'abordado' ? 'ABORDADO' : 'PENDENTE'}
                 </span>
-                <ChevronRight size={16} className="text-gray-300 group-hover:text-violet-500 transition-colors" />
+                <button
+                    onClick={onDelete}
+                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                >
+                    <X size={18} />
+                </button>
             </div>
         </div>
     );
 }
 
-function Briefcase(props: any) { return <Users {...props} />; }
-function X(props: any) { return <AlertCircle {...props} />; }
-function ChevronRight(props: any) { return <Plus {...props} style={{ transform: 'rotate(-45deg)' }} />; }
+
