@@ -47,17 +47,19 @@ async function runRadarMining(target_company_id?: string) {
         const mockLeads = [
             {
                 platform: 'instagram',
-                name: 'Ana Souza',
-                description: 'Alguém recomenda um laboratório de exames rápido no centro?',
-                external_url: 'https://instagram.com/p/mock1',
-                location: 'São Paulo, SP'
+                name: 'Roberto Silva',
+                description: 'Alguém indica uma empresa de TI em Natal para configurar rede e servidor?',
+                external_url: 'https://instagram.com/p/it_prospect_1',
+                location: agent.target_location || 'Brasil',
+                contact_number: '5584999991234'
             },
             {
                 platform: 'google_maps',
-                name: 'Clínica Bem Estar',
-                description: 'Perfil de empresa local sem atualizações recentes de serviços.',
-                external_url: 'https://maps.google.com/mock2',
-                location: 'São Paulo, SP'
+                name: 'Contabilidade Freitas',
+                description: 'Escritório em crescimento precisando de suporte mensal para computadores e backup.',
+                external_url: 'https://maps.google.com/contab_freitas',
+                location: agent.target_location || 'Brasil',
+                contact_number: '558432221234'
             }
         ]
 

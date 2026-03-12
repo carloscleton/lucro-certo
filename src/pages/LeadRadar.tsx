@@ -17,7 +17,11 @@ import {
     User,
     Wand2,
     X,
-    Briefcase
+    ChevronRight,
+    Briefcase,
+    Phone,
+    ExternalLink,
+    MapPin
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
@@ -61,6 +65,7 @@ export function LeadRadar() {
 
     const [magicInput, setMagicInput] = useState('');
     const [showMagicModal, setShowMagicModal] = useState(false);
+    const [selectedLead, setSelectedLead] = useState<any>(null);
 
     useEffect(() => {
         if (currentEntity.id) {
@@ -402,7 +407,7 @@ export function LeadRadar() {
                             </div>
 
                             <div className="space-y-3">
-                                {leads.slice(0, 5).map(lead => (
+                                {leads.slice(0, 10).map(lead => (
                                     <LeadItem
                                         key={lead.id}
                                         name={`${lead.name} (${lead.platform})`}
@@ -410,6 +415,7 @@ export function LeadRadar() {
                                         text={lead.description}
                                         status={lead.status}
                                         isPJ={lead.platform === 'google_maps'}
+                                        onClick={() => setSelectedLead(lead)}
                                         onDelete={(e: React.MouseEvent) => handleDeleteLead(e, lead.id)}
                                     />
                                 ))}
@@ -639,6 +645,85 @@ export function LeadRadar() {
                     </div>
                 </div>
             )}
+
+            {/* Lead Detail Modal */}
+            {selectedLead && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-700">
+                        <div className="p-6 bg-violet-600 text-white flex justify-between items-center">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <User size={24} />
+                                Detalhes do Lead
+                            </h3>
+                            <button onClick={() => setSelectedLead(null)} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome / Perfil</label>
+                                    <p className="text-lg font-bold text-gray-900 dark:text-white">{selectedLead.name}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Plataforma</label>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                                        <ExternalLink size={14} className="text-violet-500" />
+                                        {selectedLead.platform}
+                                    </p>
+                                </div>
+                                {selectedLead.contact_number && (
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Contato</label>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                                            <Phone size={14} className="text-violet-500" />
+                                            {selectedLead.contact_number}
+                                        </p>
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Localização</label>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                                        <MapPin size={14} className="text-violet-500" />
+                                        {selectedLead.location || 'Não especificado'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="p-4 bg-violet-50 dark:bg-violet-900/20 rounded-2xl border border-violet-100 dark:border-violet-900/30">
+                                    <label className="text-[10px] font-bold text-violet-500 uppercase tracking-wider block mb-1">Análise da IA (Score: {selectedLead.score})</label>
+                                    <p className="text-xs text-violet-900 dark:text-violet-200 leading-relaxed italic">
+                                        {selectedLead.ai_summary || 'Aguardando análise detalhada...'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mensagem Capturada</label>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">"{selectedLead.description}"</p>
+                                </div>
+                                {selectedLead.external_url && (
+                                    <a
+                                        href={selectedLead.external_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 text-xs text-violet-600 hover:underline font-bold"
+                                    >
+                                        <ExternalLink size={14} />
+                                        Acessar perfil/post original
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                        <div className="p-4 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setSelectedLead(null)}>Fechar</Button>
+                            <Button className="bg-violet-600 hover:bg-violet-700 text-white">
+                                <MessageSquare size={18} className="mr-2" />
+                                Chamar agora
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -680,9 +765,12 @@ function TabButton({ active, onClick, icon: Icon, label }: any) {
     );
 }
 
-function LeadItem({ name, source, text, status, isPJ, onDelete }: any) {
+function LeadItem({ name, source, text, status, isPJ, onDelete, onClick }: any) {
     return (
-        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-violet-200 dark:hover:border-violet-900/30 transition-colors group">
+        <div
+            onClick={onClick}
+            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-violet-200 dark:hover:border-violet-900/30 transition-colors group cursor-pointer"
+        >
             <div className="flex items-center gap-4 overflow-hidden">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isPJ ? 'bg-blue-100 text-blue-600' : 'bg-violet-100 text-violet-600'}`}>
                     {isPJ ? <Briefcase size={18} /> : <Users size={18} />}
