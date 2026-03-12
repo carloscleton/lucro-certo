@@ -54,7 +54,6 @@ export function LeadRadar() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [isMagicLoading, setIsMagicLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'stats' | 'config' | 'catalog' | 'api'>('stats');
     const [leads, setLeads] = useState<any[]>([]);
     const [stats, setStats] = useState({ found: 0, approached: 0, converted: 0 });
@@ -78,8 +77,6 @@ export function LeadRadar() {
         searchapi_api_key: ''
     });
 
-    const [magicInput, setMagicInput] = useState('');
-    const [showMagicModal, setShowMagicModal] = useState(false);
     const [selectedLead, setSelectedLead] = useState<any>(null);
     const [isMining, setIsMining] = useState(false);
     const [leadFilter, setLeadFilter] = useState<'all' | 'approached' | 'converted'>('all');
@@ -255,37 +252,6 @@ export function LeadRadar() {
         setSettings({ ...settings, services_catalog: newCatalog });
     };
 
-    const runAIMagic = async () => {
-        if (!magicInput) return;
-        setIsMagicLoading(true);
-        try {
-            const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
-                body: { input: magicInput }
-            });
-
-            if (error) throw error;
-
-            if (data) {
-                setSettings({
-                    ...settings,
-                    agent_name: data.agent_name || settings.agent_name,
-                    business_niche: data.business_niche || settings.business_niche,
-                    business_description: data.business_description || settings.business_description,
-                    services_catalog: Array.isArray(data.services_catalog) ? data.services_catalog : settings.services_catalog
-                });
-
-                setShowMagicModal(false);
-                setMagicInput('');
-                setActiveTab('config');
-                alert('A IA preencheu os campos com base na sua descrição!');
-            }
-        } catch (error) {
-            console.error('Error in AI Magic:', error);
-            alert('Erro ao processar com IA. Verifique sua conexão.');
-        } finally {
-            setIsMagicLoading(false);
-        }
-    };
 
     const generateFieldMagic = async (field: string) => {
         try {
@@ -397,14 +363,6 @@ export function LeadRadar() {
                     >
                         <Rocket size={18} className="mr-2" />
                         {isMining ? 'Minerando...' : 'Minerar Agora'}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={() => setShowMagicModal(true)}
-                        className="border-violet-200 dark:border-violet-800 text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20"
-                    >
-                        <Wand2 size={18} className="mr-2" />
-                        {t('lead_radar.ai_magic', 'IA Magia')}
                     </Button>
                     <Button
                         onClick={handleSave}
@@ -938,45 +896,6 @@ export function LeadRadar() {
                 </div>
             </div>
 
-            {/* AI Magic Modal */}
-            {showMagicModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-700">
-                        <div className="p-6 bg-gradient-to-br from-violet-600 to-indigo-700 text-white relative">
-                            <button
-                                onClick={() => setShowMagicModal(false)}
-                                className="absolute top-4 right-4 p-1 hover:bg-white/10 rounded-lg transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                            <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Wand2 size={24} />
-                                {t('lead_radar.ai_magic', 'IA Magia de Configuração')}
-                            </h3>
-                            <p className="text-white/80 text-sm mt-2">{t('lead_radar.ai_magic_desc', 'Cole o site ou uma breve descrição da empresa e eu farei o trabalho pesado para você.')}</p>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <textarea
-                                value={magicInput}
-                                onChange={(e) => setMagicInput(e.target.value)}
-                                placeholder="Ex: Somos uma clínica dentária no centro de São Paulo. Fazemos limpeza, clareamento e implantes. Atendemos de seg a sex das 08h às 18h."
-                                className="w-full h-40 p-4 bg-gray-50 dark:bg-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-violet-500 transition-all dark:text-white dark:border-slate-600"
-                            />
-                            <div className="flex justify-end gap-3">
-                                <Button variant="ghost" onClick={() => setShowMagicModal(false)}>Cancelar</Button>
-                                <Button
-                                    onClick={runAIMagic}
-                                    isLoading={isMagicLoading}
-                                    className="bg-violet-600 hover:bg-violet-700 text-white"
-                                >
-                                    <Zap size={18} className="mr-2" />
-                                    Processar com IA
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Lead Detail Modal */}
             {selectedLead && (
