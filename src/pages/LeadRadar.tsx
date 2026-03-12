@@ -476,32 +476,34 @@ export function LeadRadar() {
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                {leads
-                                    .filter(l => {
-                                        if (leadFilter === 'all') return true;
-                                        if (leadFilter === 'approached') return l.status === 'approached';
-                                        if (leadFilter === 'converted') return l.status === 'converted';
-                                        return true;
-                                    })
-                                    .slice(0, 50)
-                                    .map(lead => (
-                                        <LeadItem
-                                            key={lead.id}
-                                            name={`${lead.name} (${lead.platform})`}
-                                            source={lead.location || 'Brasil'}
-                                            text={lead.description}
-                                            status={lead.status}
-                                            isPJ={lead.platform === 'google_maps'}
-                                            onClick={() => setSelectedLead(lead)}
-                                            onDelete={(e: React.MouseEvent) => handleDeleteLead(e, lead.id)}
-                                        />
-                                    ))}
-                                {leads.length === 0 && (
-                                    <div className="text-center py-10">
-                                        <p className="text-gray-500 text-sm">{t('lead_radar.no_leads', 'Nenhum lead encontrado hoje ainda. O robô está trabalhando!')}</p>
-                                    </div>
-                                )}
+                            <div className="max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="space-y-3">
+                                    {leads
+                                        .filter(l => {
+                                            if (leadFilter === 'all') return true;
+                                            if (leadFilter === 'approached') return l.status === 'approached';
+                                            if (leadFilter === 'converted') return l.status === 'converted';
+                                            return true;
+                                        })
+                                        .slice(0, 50)
+                                        .map(lead => (
+                                            <LeadItem
+                                                key={lead.id}
+                                                name={`${lead.name} (${lead.platform})`}
+                                                source={lead.location || 'Brasil'}
+                                                text={lead.description}
+                                                status={lead.status}
+                                                isPJ={lead.platform === 'google_maps'}
+                                                onClick={() => setSelectedLead(lead)}
+                                                onDelete={(e: React.MouseEvent) => handleDeleteLead(e, lead.id)}
+                                            />
+                                        ))}
+                                    {leads.length === 0 && (
+                                        <div className="text-center py-10">
+                                            <p className="text-gray-500 text-sm">{t('lead_radar.no_leads', 'Nenhum lead encontrado hoje ainda. O robô está trabalhando!')}</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl border border-amber-100 dark:border-amber-800/30 flex gap-4 mt-8">
@@ -927,8 +929,8 @@ function StatCard({ title, value, icon: Icon, color, trend, active, onClick }: a
         <div
             onClick={onClick}
             className={`p-5 rounded-3xl border shadow-sm transition-all cursor-pointer ${active
-                    ? 'bg-white dark:bg-slate-800 border-violet-500 ring-2 ring-violet-500/20 scale-[1.02]'
-                    : 'bg-white/60 dark:bg-slate-800/60 border-gray-100 dark:border-slate-700 hover:scale-[1.02] hover:bg-white dark:hover:bg-slate-800'
+                ? 'bg-white dark:bg-slate-800 border-violet-500 ring-2 ring-violet-500/20 scale-[1.02]'
+                : 'bg-white/60 dark:bg-slate-800/60 border-gray-100 dark:border-slate-700 hover:scale-[1.02] hover:bg-white dark:hover:bg-slate-800'
                 }`}
         >
             <div className="flex items-center justify-between mb-3">
@@ -981,8 +983,8 @@ function LeadItem({ name, source, text, status, isPJ, onDelete, onClick }: any) 
             </div>
             <div className="flex items-center gap-4">
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${status === 'converted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                        status === 'approached' ? 'bg-violet-50 text-violet-600 border-violet-100' :
-                            'bg-amber-50 text-amber-600 border-amber-100'
+                    status === 'approached' ? 'bg-violet-50 text-violet-600 border-violet-100' :
+                        'bg-amber-50 text-amber-600 border-amber-100'
                     }`}>
                     {status === 'converted' ? 'CONVERTIDO' : status === 'approached' ? 'ABORDADO' : 'PENDENTE'}
                 </span>
