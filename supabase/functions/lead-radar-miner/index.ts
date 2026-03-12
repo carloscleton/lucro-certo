@@ -111,13 +111,22 @@ async function runRadarMining(target_company_id?: string) {
             continue
         }
 
+        console.log(`[RADAR] Iniciando busca para ${agent.companies.trade_name} - Nicho: ${niche} em ${loc}`)
+
         // Camada 1: Google Maps
         const mapsLeads = await fetchMaps(niche, loc, apiKey)
+        console.log(`[RADAR] Google Maps retornou ${mapsLeads?.length || 0} leads.`)
 
         // Camada 2: Redes Sociais (Discovery)
         const socialLeads = await fetchSocials(niche, loc, apiKey)
+        console.log(`[RADAR] Redes Sociais retornaram ${socialLeads?.length || 0} leads.`)
 
-        const allRawLeads = [...mapsLeads, ...socialLeads]
+        const allRawLeads = [...(mapsLeads || []), ...(socialLeads || [])]
+
+        if (allRawLeads.length === 0) {
+            logs.push({ company: agent.companies.trade_name, status: 'warning', message: 'Nenhum lead encontrado em nenhuma plataforma.' })
+            continue
+        }
 
         for (const raw of allRawLeads) {
             const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
@@ -156,9 +165,10 @@ async function runRadarMining(target_company_id?: string) {
             leadsFoundTotal++
         }
         processedCount++
+        logs.push({ company: agent.companies.trade_name, status: 'success', leads_added: leadsFoundTotal })
     }
 
-    return { status: 'completed', agents_processed: processedCount, total_leads_found: leadsFoundTotal }
+    return { status: 'completed', agents_processed: processedCount, total_leads_found: leadsFoundTotal, logs }
 }
 
 serve(async (req: any) => {
