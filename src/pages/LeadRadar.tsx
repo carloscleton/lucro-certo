@@ -17,7 +17,6 @@ import {
     User,
     Wand2,
     X,
-    ChevronRight,
     Briefcase,
     Phone,
     ExternalLink,
