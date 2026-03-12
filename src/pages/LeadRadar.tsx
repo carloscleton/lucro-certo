@@ -42,6 +42,8 @@ interface AISettings {
     serper_api_key?: string;
     searchapi_api_key?: string;
     mining_frequency: 'manual' | 'daily' | 'interval';
+    mining_hour?: number;
+    mining_interval_hours?: number;
 }
 
 export function LeadRadar() {
@@ -66,6 +68,8 @@ export function LeadRadar() {
         daily_lead_quota: 50,
         target_location: '',
         mining_frequency: 'manual',
+        mining_hour: 3,
+        mining_interval_hours: 5,
         serper_api_key: '',
         searchapi_api_key: ''
     });
@@ -621,21 +625,74 @@ export function LeadRadar() {
                                     </div>
                                     <div className="grid grid-cols-1 gap-2">
                                         {[
-                                            { id: 'manual', label: 'Manual (Apenas quando eu clicar)', icon: Rocket },
-                                            { id: 'daily', label: 'Diário (Todo dia às 03:00)', icon: CheckCircle2 },
-                                            { id: 'interval', label: 'Intervalo (A cada 5 horas)', icon: Zap }
+                                            {
+                                                id: 'manual',
+                                                label: 'Manual',
+                                                desc: 'Apenas quando eu clicar no botão',
+                                                icon: Rocket
+                                            },
+                                            {
+                                                id: 'daily',
+                                                label: 'Diário',
+                                                desc: `Todo dia às ${settings.mining_hour || 3}:00`,
+                                                icon: CheckCircle2
+                                            },
+                                            {
+                                                id: 'interval',
+                                                label: 'Intervalo',
+                                                desc: `A cada ${settings.mining_interval_hours || 5} horas`,
+                                                icon: Zap
+                                            }
                                         ].map((opt) => (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => setSettings({ ...settings, mining_frequency: opt.id as any })}
-                                                className={`flex items-center gap-3 p-3 rounded-xl border text-sm transition-all ${settings.mining_frequency === opt.id
-                                                        ? 'bg-violet-600 border-violet-600 text-white shadow-md'
-                                                        : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-violet-200'
-                                                    }`}
-                                            >
-                                                <opt.icon size={16} />
-                                                {opt.label}
-                                            </button>
+                                            <div key={opt.id} className="space-y-2">
+                                                <button
+                                                    onClick={() => setSettings({ ...settings, mining_frequency: opt.id as any })}
+                                                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm transition-all ${settings.mining_frequency === opt.id
+                                                            ? 'bg-violet-600 border-violet-600 text-white shadow-md'
+                                                            : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-violet-200'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <opt.icon size={16} />
+                                                        <div className="text-left">
+                                                            <p className="font-bold">{opt.label}</p>
+                                                            <p className={`text-[10px] ${settings.mining_frequency === opt.id ? 'text-violet-200' : 'text-gray-400'}`}>{opt.desc}</p>
+                                                        </div>
+                                                    </div>
+                                                    {settings.mining_frequency === opt.id && <CheckCircle2 size={16} />}
+                                                </button>
+
+                                                {/* Controles Dinâmicos */}
+                                                {settings.mining_frequency === 'daily' && opt.id === 'daily' && (
+                                                    <div className="flex items-center gap-2 pl-3 animate-in slide-in-from-top-1 duration-200">
+                                                        <p className="text-[10px] text-gray-400">Qual horário?</p>
+                                                        <select
+                                                            value={settings.mining_hour}
+                                                            onChange={(e) => setSettings({ ...settings, mining_hour: parseInt(e.target.value) })}
+                                                            className="text-[10px] font-bold bg-white dark:bg-slate-800 border-none outline-none dark:text-white"
+                                                        >
+                                                            {Array.from({ length: 24 }).map((_, i) => (
+                                                                <option key={i} value={i}>{i.toString().padStart(2, '0')}:00</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+
+                                                {settings.mining_frequency === 'interval' && opt.id === 'interval' && (
+                                                    <div className="flex items-center gap-2 pl-3 animate-in slide-in-from-top-1 duration-200">
+                                                        <p className="text-[10px] text-gray-400">A cada quantas horas?</p>
+                                                        <select
+                                                            value={settings.mining_interval_hours}
+                                                            onChange={(e) => setSettings({ ...settings, mining_interval_hours: parseInt(e.target.value) })}
+                                                            className="text-[10px] font-bold bg-white dark:bg-slate-800 border-none outline-none dark:text-white"
+                                                        >
+                                                            {[1, 2, 3, 4, 5, 6, 8, 12, 24].map((h) => (
+                                                                <option key={h} value={h}>{h} {h === 1 ? 'hora' : 'horas'}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
                                         ))}
                                     </div>
                                 </div>

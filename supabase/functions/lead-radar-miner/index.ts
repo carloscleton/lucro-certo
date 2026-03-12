@@ -134,13 +134,16 @@ async function runRadarMining(target_company_id?: string) {
             const lastRun = agent.last_mining_at ? new Date(agent.last_mining_at) : null
             const hoursSinceLastRun = lastRun ? (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60) : 999
 
+            const targetHour = agent.mining_hour ?? 3
+            const targetInterval = agent.mining_interval_hours ?? 5
+
             if (freq === 'daily') {
                 const hour = now.getUTCHours() - 3 // Ajuste para BRT (UTC-3)
-                // Se não forem 03:00 e não passou pelo menos 20h da última run, ignora
-                if (hour !== 3 && hoursSinceLastRun < 20) continue
+                // Se não for a hora marcada e não passou pelo menos 20h da última run, ignora
+                if (hour !== targetHour && hoursSinceLastRun < 20) continue
             } else if (freq === 'interval') {
-                // Se não passaram 5 horas da última execução, ignora
-                if (hoursSinceLastRun < 5) continue
+                // Se não passou o intervalo marcado, ignora
+                if (hoursSinceLastRun < targetInterval) continue
             }
         }
         // ---------------------------------------------
