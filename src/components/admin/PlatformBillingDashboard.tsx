@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Users,
     AlertTriangle,
@@ -10,8 +10,10 @@ import {
     RefreshCw,
     CheckCircle,
     Zap as ZapIcon,
-    Wand2
+    Wand2,
+    Save
 } from 'lucide-react';
+import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
 import { Input } from '../ui/Input';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +38,35 @@ export function PlatformBillingDashboard() {
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'past_due' | 'trial'>('all');
     const [isGeneratingWhatsApp, setIsGeneratingWhatsApp] = useState(false);
     const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [localKeys, setLocalKeys] = useState<Record<string, string>>({});
+
+    // Sync local keys when appSettings loads
+    useEffect(() => {
+        if (appSettings) {
+            setLocalKeys({
+                platform_asaas_api_key: appSettings.platform_asaas_api_key || '',
+                platform_asaas_wallet_id: appSettings.platform_asaas_wallet_id || '',
+                platform_stripe_api_key: appSettings.platform_stripe_api_key || '',
+                platform_stripe_publishable_key: appSettings.platform_stripe_publishable_key || '',
+                platform_mercadopago_api_key: appSettings.platform_mercadopago_api_key || '',
+                platform_mercadopago_public_key: appSettings.platform_mercadopago_public_key || '',
+            });
+        }
+    }, [appSettings]);
+
+    const handleSaveSettings = async (settingsToSave?: any) => {
+        setSaving(true);
+        const finalSettings = settingsToSave || localKeys;
+        const { error } = await updateAppSettings(finalSettings);
+        setSaving(false);
+        if (error) {
+            alert('Erro ao salvar: ' + error);
+        } else {
+            // refresh data
+            refresh();
+        }
+    };
 
     const handleMagicTemplate = async (type: 'whatsapp' | 'email') => {
         const setGenerating = type === 'whatsapp' ? setIsGeneratingWhatsApp : setIsGeneratingEmail;
@@ -180,7 +211,7 @@ export function PlatformBillingDashboard() {
                                 <div className="mb-4 p-1 bg-gray-100 dark:bg-slate-900 rounded-xl flex items-center justify-between">
                                     <div className="flex bg-white dark:bg-slate-700 rounded-lg p-0.5 shadow-sm">
                                         <button
-                                            onClick={() => updateAppSettings({ platform_billing_sandbox: true })}
+                                            onClick={() => handleSaveSettings({ platform_billing_sandbox: true })}
                                             className={`px-3 py-1.5 text-[10px] font-bold rounded-md transition-all ${appSettings?.platform_billing_sandbox
                                                 ? 'bg-amber-500 text-white shadow-sm'
                                                 : 'text-gray-500 hover:text-gray-700'
@@ -189,7 +220,7 @@ export function PlatformBillingDashboard() {
                                             Sandbox
                                         </button>
                                         <button
-                                            onClick={() => updateAppSettings({ platform_billing_sandbox: false })}
+                                            onClick={() => handleSaveSettings({ platform_billing_sandbox: false })}
                                             className={`px-3 py-1.5 text-[10px] font-bold rounded-md transition-all ${!appSettings?.platform_billing_sandbox
                                                 ? 'bg-emerald-600 text-white shadow-sm'
                                                 : 'text-gray-500 hover:text-gray-700'
@@ -209,14 +240,14 @@ export function PlatformBillingDashboard() {
                                     <Input
                                         label="API Key Asaas"
                                         type="password"
-                                        value={appSettings?.platform_asaas_api_key || ''}
-                                        onChange={(e) => updateAppSettings({ platform_asaas_api_key: e.target.value })}
+                                        value={localKeys.platform_asaas_api_key || ''}
+                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_asaas_api_key: e.target.value })}
                                         placeholder="Chave secreta..."
                                     />
                                     <Input
                                         label="Wallet ID (Opcional)"
-                                        value={appSettings?.platform_asaas_wallet_id || ''}
-                                        onChange={(e) => updateAppSettings({ platform_asaas_wallet_id: e.target.value })}
+                                        value={localKeys.platform_asaas_wallet_id || ''}
+                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_asaas_wallet_id: e.target.value })}
                                         placeholder="Identificador da carteira..."
                                     />
                                 </div>
@@ -226,15 +257,15 @@ export function PlatformBillingDashboard() {
                                 <div className="space-y-4">
                                     <Input
                                         label="Public Key Stripe"
-                                        value={appSettings?.platform_stripe_publishable_key || ''}
-                                        onChange={(e) => updateAppSettings({ platform_stripe_publishable_key: e.target.value })}
+                                        value={localKeys.platform_stripe_publishable_key || ''}
+                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_stripe_publishable_key: e.target.value })}
                                         placeholder="pk_live_..."
                                     />
                                     <Input
                                         label="Secret Key Stripe"
                                         type="password"
-                                        value={appSettings?.platform_stripe_api_key || ''}
-                                        onChange={(e) => updateAppSettings({ platform_stripe_api_key: e.target.value })}
+                                        value={localKeys.platform_stripe_api_key || ''}
+                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_stripe_api_key: e.target.value })}
                                         placeholder="sk_live_..."
                                     />
                                 </div>
@@ -244,19 +275,28 @@ export function PlatformBillingDashboard() {
                                 <div className="space-y-4">
                                     <Input
                                         label="Public Key MP"
-                                        value={appSettings?.platform_mercadopago_public_key || ''}
-                                        onChange={(e) => updateAppSettings({ platform_mercadopago_public_key: e.target.value })}
+                                        value={localKeys.platform_mercadopago_public_key || ''}
+                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_mercadopago_public_key: e.target.value })}
                                         placeholder="APP_USR-..."
                                     />
                                     <Input
                                         label="Access Token MP"
                                         type="password"
-                                        value={appSettings?.platform_mercadopago_api_key || ''}
-                                        onChange={(e) => updateAppSettings({ platform_mercadopago_api_key: e.target.value })}
+                                        value={localKeys.platform_mercadopago_api_key || ''}
+                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_mercadopago_api_key: e.target.value })}
                                         placeholder="APP_USR-..."
                                     />
                                 </div>
                             )}
+
+                            <Button
+                                onClick={() => handleSaveSettings()}
+                                isLoading={saving}
+                                className="mt-4 w-full"
+                            >
+                                <Save size={18} className="mr-2" />
+                                Salvar Configuração de Pay
+                            </Button>
 
                             <div className="pt-4 border-t border-gray-100 dark:border-slate-700 space-y-4">
                                 <div className="flex items-center gap-2 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100/50 dark:border-blue-900/30">

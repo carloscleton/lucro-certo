@@ -32,26 +32,20 @@ export function AdminBICharts({ data }: Props) {
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Revenue & Commission Chart */}
+            {/* Transaction Status Distribution Chart */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
                         <TrendingUp size={20} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white">Desempenho Financeiro (6 Meses)</h3>
-                        <p className="text-xs text-gray-500">Receita total vs. Comissões da Plataforma</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white">Volume de Transações (6 Meses)</h3>
+                        <p className="text-xs text-gray-500">Pagos vs. Em Aberto vs. Vencidos</p>
                     </div>
                 </div>
                 <div className="h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={data.revenue_series}>
-                            <defs>
-                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
+                        <LineChart data={data.revenue_series}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                             <XAxis
                                 dataKey="month"
@@ -63,31 +57,37 @@ export function AdminBICharts({ data }: Props) {
                                 axisLine={false}
                                 tickLine={false}
                                 tick={{ fontSize: 10, fill: '#64748b' }}
-                                tickFormatter={(value) => `R$ ${value}`}
                             />
                             <Tooltip
                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                             />
                             <Legend verticalAlign="top" align="right" iconType="circle" />
-                            <Area
+                            <Line
                                 type="monotone"
-                                dataKey="revenue"
-                                name="Receita Total"
-                                stroke="#3b82f6"
-                                fillOpacity={1}
-                                fill="url(#colorRevenue)"
-                                strokeWidth={3}
-                            />
-                            <Area
-                                type="monotone"
-                                dataKey="commission"
-                                name="Comissão Plataforma"
+                                dataKey="paid_count"
+                                name="Pagos"
                                 stroke="#10b981"
-                                fill="transparent"
+                                strokeWidth={4}
+                                dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="pending_count"
+                                name="Em Aberto"
+                                stroke="#3b82f6"
                                 strokeWidth={3}
                                 strokeDasharray="5 5"
+                                dot={{ r: 3, fill: '#3b82f6' }}
                             />
-                        </AreaChart>
+                            <Line
+                                type="monotone"
+                                dataKey="overdue_count"
+                                name="Vencidos"
+                                stroke="#ef4444"
+                                strokeWidth={2}
+                                dot={{ r: 3, fill: '#ef4444' }}
+                            />
+                        </LineChart>
                     </ResponsiveContainer>
                 </div>
             </div>

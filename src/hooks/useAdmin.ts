@@ -350,19 +350,24 @@ export function useAdmin() {
     }>) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
+        console.log('Updating App Settings:', newSettings);
+
         try {
             const { error } = await supabase
                 .from('app_settings')
-                .update(newSettings)
-                .eq('id', 1);
+                .upsert({ id: 1, ...newSettings })
+                .select();
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase Update Error:', error);
+                throw error;
+            }
 
             setAppSettings(prev => prev ? { ...prev, ...newSettings } : newSettings as any);
             return { error: null };
         } catch (err: any) {
             console.error('Error updating app settings:', err);
-            return { error: err.message };
+            return { error: err.message || 'Falha ao salvar configurações no banco de dados' };
         }
     };
 
