@@ -10,8 +10,10 @@ import {
     RefreshCw,
     CheckCircle,
     Ban,
-    Zap as ZapIcon
+    Zap as ZapIcon,
+    Wand2
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +34,29 @@ export function PlatformBillingDashboard() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'past_due' | 'trial'>('all');
+    const [isGeneratingWhatsApp, setIsGeneratingWhatsApp] = useState(false);
+    const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+
+    const handleMagicTemplate = async (type: 'whatsapp' | 'email') => {
+        const setGenerating = type === 'whatsapp' ? setIsGeneratingWhatsApp : setIsGeneratingEmail;
+        setGenerating(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
+                body: {
+                    input: `Empresa: Lucro Certo. Gere um template profissional de ${type === 'whatsapp' ? 'WhatsApp' : 'E-mail HTML'} para cobrança de mensalidade próxima do vencimento. Use um tom amigável e educado. Use obrigatoriamente as variáveis: {company_name}, {due_date}, {days}, {value}, {payment_link}.`,
+                    mode: 'field_only'
+                }
+            });
+            if (error) throw error;
+            if (data?.text) {
+                updateAppSettings({ [type === 'whatsapp' ? 'billing_whatsapp_template' : 'billing_email_template']: data.text });
+            }
+        } catch (error) {
+            console.error('Magic error:', error);
+        } finally {
+            setGenerating(false);
+        }
+    };
 
     // Stats calc
     const stats = {
@@ -191,16 +216,18 @@ export function PlatformBillingDashboard() {
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Instância WhatsApp Emissora</label>
-                                        <Input
-                                            value={appSettings?.platform_whatsapp_instance || ''}
-                                            onChange={(e) => updateAppSettings({ platform_whatsapp_instance: e.target.value })}
-                                            placeholder="Ex: MainAdmin"
-                                            className="text-[11px]"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Template WhatsApp</label>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Template WhatsApp</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleMagicTemplate('whatsapp')}
+                                                disabled={isGeneratingWhatsApp}
+                                                className="text-blue-600 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-colors"
+                                                title="Gerar com IA"
+                                            >
+                                                {isGeneratingWhatsApp ? <RefreshCw size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                                            </button>
+                                        </div>
                                         <textarea
                                             value={appSettings?.billing_whatsapp_template || ''}
                                             onChange={(e) => updateAppSettings({ billing_whatsapp_template: e.target.value })}
@@ -209,7 +236,18 @@ export function PlatformBillingDashboard() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Template E-mail (HTML)</label>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Template E-mail (HTML)</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleMagicTemplate('email')}
+                                                disabled={isGeneratingEmail}
+                                                className="text-blue-600 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-colors"
+                                                title="Gerar com IA"
+                                            >
+                                                {isGeneratingEmail ? <RefreshCw size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                                            </button>
+                                        </div>
                                         <textarea
                                             value={appSettings?.billing_email_template || ''}
                                             onChange={(e) => updateAppSettings({ billing_email_template: e.target.value })}
