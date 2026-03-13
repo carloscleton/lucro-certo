@@ -100,3 +100,8 @@ entrypoint = "./functions/birthday-reminders/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/social-copilot-vision/index.ts"
+
+[functions.platform-billing-cron]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/platform-billing-cron/index.ts"
