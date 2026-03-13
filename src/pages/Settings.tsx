@@ -98,7 +98,7 @@ export function Settings() {
 
     const activeTab = useMemo(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations'];
+        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing'];
         return (tab && validTabs.includes(tab)) ? (tab as any) : 'quotes';
     }, [searchParams]);
 
@@ -383,7 +383,11 @@ export function Settings() {
                     { key: 'payments', label: t('settings.tab_payments'), icon: CreditCard, color: 'emerald' },
                     { key: 'automations', label: 'Automações', icon: Sparkles, color: 'blue' },
                     { key: 'fiscal', label: t('settings.tab_fiscal'), icon: FileText, color: 'indigo' },
-                    ...(isAdmin ? [{ key: 'admin', label: t('settings.tab_admin'), icon: Shield, color: 'purple' }] : [])
+                    { key: 'subscription', label: 'Plano e Assinatura', icon: CreditCard, color: 'blue' },
+                    ...(isAdmin ? [
+                        { key: 'platform_billing', label: 'Gestão da Plataforma', icon: DollarSign, color: 'emerald' },
+                        { key: 'admin', label: t('settings.tab_admin'), icon: Shield, color: 'purple' }
+                    ] : [])
                 ].filter(tab => {
                     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
