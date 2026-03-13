@@ -15,7 +15,8 @@ import {
     MessageSquare,
     CreditCard,
     Sparkles,
-    Target
+    Target,
+    Rocket
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -158,7 +159,7 @@ export const APP_MODULES: ModuleDefinition[] = [
     {
         key: 'crm',
         label: 'CRM / Funil',
-        icon: Users,
+        icon: Rocket,
         path: '/dashboard/crm',
         desc: 'Gestão de leads e funil de vendas',
         defaultPermissions: { admin: true, member: true }

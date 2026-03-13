@@ -21,7 +21,12 @@ interface Props {
 }
 
 export function AdminBICharts({ data }: Props) {
-    if (!data) return null;
+    if (!data) return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-pulse">
+            <div className="bg-white dark:bg-slate-800 h-64 rounded-3xl border border-gray-100 dark:border-slate-700" />
+            <div className="bg-white dark:bg-slate-800 h-64 rounded-3xl border border-gray-100 dark:border-slate-700" />
+        </div>
+    );
 
     const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 

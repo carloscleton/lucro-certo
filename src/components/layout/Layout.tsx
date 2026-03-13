@@ -15,7 +15,8 @@ import {
     Bell,
     Users,
     AlertTriangle,
-    ShieldAlert
+    ShieldAlert,
+    Rocket
 } from 'lucide-react';
 import logoFull from '../../assets/logo-full.png';
 import styles from './Layout.module.css';
@@ -67,50 +68,43 @@ export function Layout() {
 
     // Filter Logic
     const displayedNavItems = APP_MODULES.filter(item => {
-        // Exclude items that are managed in the Administrative Submenu below (only in company view)
+        // Exclude items that are managed in the Administrative Submenu below
         const isManagementItem = ['commissions', 'settings'].includes(item.key);
         if (currentEntity.type === 'company' && isManagementItem) return false;
 
+        // Owner/SystemAdmin see absolute everything if it is "hard-enabled" on the company record
+        const isSuper = userRole === 'owner' || isSystemAdmin;
+
         // CRM Module Check
         if (item.key === 'crm') {
-            const currentCompany = availableEntities.find(c => c.id === currentEntity.id);
-            const isCRMEnabled = currentCompany?.crm_module_enabled;
-            if (!isCRMEnabled) return false;
-            if (userRole === 'owner') return true;
-
-            const hasPermission = getModulePermission(item.key, userRole as 'admin' | 'member', settings);
-            return currentEntity.type === 'company' && hasPermission;
+            const isEnabled = !!currentEntity?.crm_module_enabled;
+            if (!isEnabled) return false;
+            if (isSuper) return true;
+            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
 
         // Marketing Module Check
         if (item.key === 'marketing') {
-            const currentCompany = availableEntities.find(c => c.id === currentEntity.id);
-            const isMarketingEnabled = currentCompany?.has_social_copilot;
-            if (!isMarketingEnabled) return false;
-            if (userRole === 'owner') return true;
-
-            const hasPermission = getModulePermission(item.key, userRole as 'admin' | 'member', settings);
-            return currentEntity.type === 'company' && hasPermission;
+            const isEnabled = !!currentEntity?.has_social_copilot;
+            if (!isEnabled) return false;
+            if (isSuper) return true;
+            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
 
         // Lead Radar Module Check
         if (item.key === 'lead_radar') {
-            const currentCompany = availableEntities.find(c => c.id === currentEntity.id);
-            const isLeadRadarEnabled = currentCompany?.has_lead_radar;
-            if (!isLeadRadarEnabled) return false;
-            if (userRole === 'owner') return true;
-
-            const hasPermission = getModulePermission(item.key, userRole as 'admin' | 'member', settings);
-            return currentEntity.type === 'company' && hasPermission;
+            const isEnabled = !!currentEntity?.has_lead_radar;
+            if (!isEnabled) return false;
+            if (isSuper) return true;
+            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
 
         if (currentEntity.type === 'company' && userRole) {
-            // Owner/SystemAdmin see everything by default
-            if (userRole === 'owner' || isSystemAdmin) return true;
-
+            if (isSuper) return true;
             return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
-        // Personal View: Show everything by default (filtered later)
+
+        // Personal View defaults
         return true;
     });
 

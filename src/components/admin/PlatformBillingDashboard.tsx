@@ -344,7 +344,7 @@ export function PlatformBillingDashboard() {
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.subscription_plan === 'trial' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                        {c.subscription_plan?.toUpperCase()}
+                                                        {c.subscription_plan?.toUpperCase() || 'PADRÃO'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
@@ -364,38 +364,40 @@ export function PlatformBillingDashboard() {
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.next_billing_value || 97)}
                                                 </td>
                                                 <td className="px-4 py-4 text-right">
-                                                    <div className="flex items-center justify-end gap-1">
+                                                    <div className="flex items-center justify-end gap-2">
                                                         {c.subscription_status !== 'active' && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-50"
+                                                            <button
                                                                 onClick={() => manualRenewSubscription(c.id)}
+                                                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-100"
                                                                 title={t('lead_radar.manual_renew')}
                                                             >
-                                                                <CheckCircle size={16} />
-                                                            </Button>
+                                                                <CheckCircle size={14} />
+                                                                <span className="text-[10px] font-bold uppercase">Renovar</span>
+                                                            </button>
                                                         )}
                                                         {c.subscription_plan !== 'trial' && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50"
+                                                            <button
                                                                 onClick={() => setCompanyTrial(c.id)}
+                                                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100"
                                                                 title={t('lead_radar.set_trial')}
                                                             >
-                                                                <ZapIcon size={16} />
-                                                            </Button>
+                                                                <ZapIcon size={14} />
+                                                                <span className="text-[10px] font-bold uppercase">Trial</span>
+                                                            </button>
                                                         )}
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className={`h-8 w-8 p-0 ${c.status === 'blocked' ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'}`}
+                                                        <button
                                                             onClick={() => toggleCompanyBlock(c.id, c.status !== 'blocked')}
+                                                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors border ${c.status === 'blocked'
+                                                                ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-100'
+                                                                : 'bg-red-50 text-red-700 hover:bg-red-100 border-red-100'
+                                                                }`}
                                                             title={c.status === 'blocked' ? t('lead_radar.unblock') : t('lead_radar.block')}
                                                         >
-                                                            <Ban size={16} />
-                                                        </Button>
+                                                            <Ban size={14} />
+                                                            <span className="text-[10px] font-bold uppercase">
+                                                                {c.status === 'blocked' ? 'Liberar' : 'Bloquear'}
+                                                            </span>
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>

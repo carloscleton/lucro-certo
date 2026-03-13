@@ -508,12 +508,34 @@ export function LeadRadar() {
                         <Button
                             size="sm"
                             variant={settings.is_active ? 'outline' : 'primary'}
-                            onClick={() => setSettings({ ...settings, is_active: !settings.is_active })}
+                            isLoading={saving}
+                            onClick={async () => {
+                                const newState = !settings.is_active;
+                                setSettings({ ...settings, is_active: newState });
+
+                                // Save immediately
+                                try {
+                                    const { error } = await supabase
+                                        .from('company_ai_settings')
+                                        .upsert({
+                                            company_id: currentEntity.id,
+                                            ...settings,
+                                            is_active: newState
+                                        }, { onConflict: 'company_id' });
+
+                                    if (error) throw error;
+                                } catch (e) {
+                                    console.error("Error toggling robot:", e);
+                                    alert("Erro ao alterar status do robô.");
+                                    // Revert state if error
+                                    setSettings({ ...settings, is_active: !newState });
+                                }
+                            }}
                             className={settings.is_active ? 'text-red-500 border-red-200 hover:bg-red-50 py-1' : 'bg-green-600 hover:bg-green-700 py-1'}
                         >
                             {settings.is_active ? 'Desativar Robô' : 'Ativar Robô'}
                         </Button>
-                        <span className="text-[10px] font-black text-gray-400">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                             {settings.is_active ? 'ONLINE' : 'OFFLINE'}
                         </span>
                     </div>
@@ -577,7 +599,17 @@ export function LeadRadar() {
 
                             <div className="max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                                 <div className="space-y-3">
-                                    {leads
+                                    {leads.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-gray-50/50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-gray-100 dark:border-slate-700">
+                                            <div className="p-4 bg-white dark:bg-slate-800 rounded-full text-gray-300 shadow-sm border border-gray-100 dark:border-slate-700">
+                                                <Target size={48} className="animate-pulse" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Seu Radar está pronto!</h4>
+                                                <p className="text-sm text-gray-500 max-w-xs mx-auto">Configure seu nicho e clique em <b>"Minerar Agora"</b> para começar a encontrar clientes qualificados automaticamente.</p>
+                                            </div>
+                                        </div>
+                                    ) : leads
                                         .filter(l => {
                                             if (leadFilter === 'all') return true;
                                             if (leadFilter === 'approached') return l.status === 'approached';
