@@ -9,6 +9,12 @@ export interface AdminStats {
     total_commission: number;
 }
 
+export interface BIStats {
+    revenue_series: any[];
+    growth_series: any[];
+    plan_distribution: any[];
+}
+
 export interface AdminUser {
     id: string;
     email: string;
@@ -55,6 +61,7 @@ export interface AdminCompany {
 export function useAdmin() {
     const { user } = useAuth();
     const [stats, setStats] = useState<AdminStats | null>(null);
+    const [biStats, setBiStats] = useState<BIStats | null>(null);
     const [usersList, setUsersList] = useState<AdminUser[]>([]);
     const [companiesList, setCompaniesList] = useState<AdminCompany[]>([]);
     const [appSettings, setAppSettings] = useState<{
@@ -87,6 +94,14 @@ export function useAdmin() {
 
             if (statsError) throw statsError;
             setStats(statsData);
+
+            // Fetch BI Stats
+            const { data: biData, error: biError } = await supabase
+                .rpc('get_admin_bi_stats');
+
+            if (!biError && biData) {
+                setBiStats(biData);
+            }
 
             // Fetch Users List
             const { data: usersData, error: usersError } = await supabase
@@ -369,6 +384,7 @@ export function useAdmin() {
         updateAppSettings,
         manualRenewSubscription,
         setCompanyTrial,
+        biStats,
         appSettings,
         refresh: fetchAdminData
     };

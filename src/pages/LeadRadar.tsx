@@ -297,7 +297,23 @@ export function LeadRadar() {
                 contactId = newContact.id;
             }
 
-            // 2. Criar Negócio no CRM
+            // 2. Criar Negócio no CRM com Inteligência
+            let aiDescription = `Oportunidade vinda do Radar de Leads.\nInteresse: ${selectedLead.description}\nRaio: ${selectedLead.location}`;
+
+            try {
+                const { data: magicData } = await supabase.functions.invoke('lead-radar-magic', {
+                    body: {
+                        input: `Lead: ${selectedLead.name}. Interesse: ${selectedLead.description}. Região: ${selectedLead.location}. Empresa: ${currentEntity.name}. Gere uma breve análise de potencial e uma sugestão de primeira abordagem de vendas para este lead.`,
+                        mode: 'field_only'
+                    }
+                });
+                if (magicData?.text) {
+                    aiDescription = magicData.text;
+                }
+            } catch (e) {
+                console.error("Magic fail in conversion:", e);
+            }
+
             // Pega a primeira etapa do CRM se disponível
             const firstStageId = stages.length > 0 ? stages[0].id : null;
 
@@ -307,7 +323,7 @@ export function LeadRadar() {
                 stage_id: firstStageId,
                 value: 0,
                 status: 'active',
-                description: `Oportunidade vinda do Radar de Leads.\nInteresse: ${selectedLead.description}\nRaio: ${selectedLead.location}`,
+                description: aiDescription,
                 probability: 10,
                 tags: ['radar']
             });

@@ -18,6 +18,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useTranslation } from 'react-i18next';
 import { useAdmin } from '../../hooks/useAdmin';
+import { AdminBICharts } from './AdminBICharts';
 
 export function PlatformBillingDashboard() {
     const { t } = useTranslation();
@@ -27,6 +28,7 @@ export function PlatformBillingDashboard() {
         companiesList,
         refresh,
         loading: adminLoading,
+        biStats,
         manualRenewSubscription,
         setCompanyTrial,
         toggleCompanyBlock
@@ -141,6 +143,9 @@ export function PlatformBillingDashboard() {
                     <div className="mt-2 text-xs text-red-500 font-medium">Requer atenção comercial</div>
                 </div>
             </div>
+
+            {/* BI Performance Charts */}
+            <AdminBICharts data={biStats} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Gateway Config Section (Moved here) */}
