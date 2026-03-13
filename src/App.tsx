@@ -34,7 +34,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (loading) return <div className="flex h-screen items-center justify-center">Carregando...</div>;
 
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session) return <Navigate to="/" replace />;
 
   return children;
 }

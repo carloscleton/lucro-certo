@@ -423,7 +423,10 @@ export function Layout() {
                                     </p>
                                 </div>
                                 <div className="mt-8">
-                                    <Button onClick={signOut} variant="outline" className="flex items-center gap-2 mx-auto">
+                                    <Button onClick={async () => {
+                                        await signOut();
+                                        navigate('/');
+                                    }} variant="outline" className="flex items-center gap-2 mx-auto">
                                         <LogOut size={18} />
                                         Sair da Conta
                                     </Button>
