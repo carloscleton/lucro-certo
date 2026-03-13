@@ -427,10 +427,21 @@ export function Layout() {
                                 <div className="mt-6 p-5 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700">
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
                                         {currentEntity.subscription_status === 'past_due'
-                                            ? "Por favor, regularize sua assinatura para restaurar o acesso."
+                                            ? "Para continuar usando a plataforma, por favor, regularize o pagamento da sua assinatura."
                                             : "Selecione outro ambiente na barra lateral ou contate o administrador."}
                                     </p>
                                 </div>
+                                {currentEntity.subscription_status === 'past_due' && (
+                                    <div className="mt-8 flex justify-center">
+                                        <Button
+                                            onClick={() => alert('Integração com Gateway de Pagamento será acionada aqui!')}
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                                        >
+                                            <DollarSign size={20} />
+                                            Regularizar Pagamento
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (
