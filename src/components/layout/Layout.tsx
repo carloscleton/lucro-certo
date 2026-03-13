@@ -314,7 +314,10 @@ export function Layout() {
                             </p>
                         </div>
                         <Tooltip content={t('nav.logout')}>
-                            <Button variant="ghost" size="sm" onClick={signOut}>
+                            <Button variant="ghost" size="sm" onClick={async () => {
+                                await signOut();
+                                navigate('/');
+                            }}>
                                 <LogOut size={18} />
                             </Button>
                         </Tooltip>
