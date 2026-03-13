@@ -305,32 +305,46 @@ export function Settings() {
 
         setGeneratingInvoice(true);
         try {
-            // Reusar gatewy master (do Super Admin atual)
-            const masterCompanyId = profile?.company_id;
-            if (!masterCompanyId) {
-                alert('Erro: Sua conta Master não está vinculada a uma empresa para receber pagamentos.');
-                return;
+            // 1. Tentar usar configurações de plataforma do app_settings primeiro
+            let provider = appSettings?.platform_billing_provider;
+            let config: any = null;
+
+            if (provider === 'asaas') {
+                config = { api_key: appSettings?.platform_asaas_api_key };
+            } else if (provider === 'stripe') {
+                config = { secret_key: appSettings?.platform_stripe_api_key };
+            } else if (provider === 'mercadopago') {
+                config = { access_token: appSettings?.platform_mercadopago_api_key };
             }
 
-            // Buscar gateway ativo da empresa master
-            const { data: gateways } = await supabase
-                .from('payment_gateways')
-                .select('*')
-                .eq('company_id', masterCompanyId)
-                .eq('is_active', true)
-                .limit(1);
+            // 2. Se não houver config de plataforma, buscar gateway ativo da empresa master (LEGACY/Fallback)
+            if (!config) {
+                const masterCompanyId = profile?.company_id;
+                if (!masterCompanyId) {
+                    alert('Erro: Sua conta Master não está vinculada a uma empresa ou plataforma para faturar.');
+                    return;
+                }
 
-            if (!gateways || gateways.length === 0) {
-                alert('Erro: Você não possui um gateway de pagamento ativo na sua conta Master.');
-                return;
+                const { data: gateways } = await supabase
+                    .from('company_payment_gateways')
+                    .select('*')
+                    .eq('company_id', masterCompanyId)
+                    .eq('is_active', true)
+                    .limit(1);
+
+                if (!gateways || gateways.length === 0) {
+                    alert('Erro: Configure um Gateway de Plataforma em "Cobrança de Plano" primeiro.');
+                    return;
+                }
+
+                provider = gateways[0].provider;
+                config = gateways[0].config;
             }
-
-            const gateway = gateways[0];
 
             const result = await createCharge({
-                provider: gateway.provider,
-                config: gateway.config,
-                is_sandbox: gateway.is_sandbox,
+                provider: provider!,
+                config: config,
+                is_sandbox: false, // Invoices for customers are usually real
                 payload: {
                     amount: parseFloat(invoiceData.amount),
                     description: invoiceData.description,

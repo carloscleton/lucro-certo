@@ -47,14 +47,17 @@ export function PlatformBillingDashboard() {
         <div className="space-y-6">
             {/* Header Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div
+                    onClick={() => setFilterStatus('active')}
+                    className={`p-5 bg-white dark:bg-slate-800 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300 ${filterStatus === 'active' ? 'border-emerald-500 shadow-emerald-100 dark:shadow-emerald-900/20' : 'border-transparent shadow-sm hover:border-emerald-200'}`}
+                >
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
                             <TrendingUp size={20} />
                         </div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Receita Mensal Est.</span>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-2xl font-black text-gray-900 dark:text-white">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.estimatedRevenue)}
                     </div>
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
@@ -63,36 +66,45 @@ export function PlatformBillingDashboard() {
                     </div>
                 </div>
 
-                <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div
+                    onClick={() => setFilterStatus('active')}
+                    className={`p-5 bg-white dark:bg-slate-800 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-500 ${filterStatus === 'active' ? 'border-blue-500 shadow-blue-100 dark:shadow-blue-900/20' : 'border-transparent shadow-sm hover:border-blue-200'}`}
+                >
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
                             <Users size={20} />
                         </div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assinantes Pro</span>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalActive}</div>
+                    <div className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalActive}</div>
                     <div className="mt-2 text-xs text-gray-500">Planos ativos e pagos</div>
                 </div>
 
-                <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div
+                    onClick={() => setFilterStatus('trial')}
+                    className={`p-5 bg-white dark:bg-slate-800 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-700 ${filterStatus === 'trial' ? 'border-orange-500 shadow-orange-100 dark:shadow-orange-900/20' : 'border-transparent shadow-sm hover:border-orange-200'}`}
+                >
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl">
                             <Clock size={20} />
                         </div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Em Teste (Trial)</span>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalTrials}</div>
+                    <div className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalTrials}</div>
                     <div className="mt-2 text-xs text-gray-500">Aguardando conversão</div>
                 </div>
 
-                <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div
+                    onClick={() => setFilterStatus('past_due')}
+                    className={`p-5 bg-white dark:bg-slate-800 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-1000 ${filterStatus === 'past_due' ? 'border-red-500 shadow-red-100 dark:shadow-red-900/20' : 'border-transparent shadow-sm hover:border-red-200'}`}
+                >
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl">
                             <AlertTriangle size={20} />
                         </div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pendentes/Atrasados</span>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalPastDue}</div>
+                    <div className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalPastDue}</div>
                     <div className="mt-2 text-xs text-red-500 font-medium">Requer atenção comercial</div>
                 </div>
             </div>
@@ -166,11 +178,44 @@ export function PlatformBillingDashboard() {
                                         onChange={(e) => updateAppSettings({ billing_notifications_enabled: e.target.checked })}
                                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
-                                    <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Ativar réguas de cobrança</span>
+                                    <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Ativar réguas de cobrança (CRON)</span>
                                 </div>
-                                <p className="text-[10px] text-gray-500 leading-relaxed">
-                                    As configurações de template de WhatsApp e E-mail permanecem no controle de sistema para segurança.
-                                </p>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Instância WhatsApp Emissora</label>
+                                        <Input
+                                            value={appSettings?.platform_whatsapp_instance || ''}
+                                            onChange={(e) => updateAppSettings({ platform_whatsapp_instance: e.target.value })}
+                                            placeholder="Ex: MainAdmin"
+                                            className="text-[11px]"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Template WhatsApp</label>
+                                        <textarea
+                                            value={appSettings?.billing_whatsapp_template || ''}
+                                            onChange={(e) => updateAppSettings({ billing_whatsapp_template: e.target.value })}
+                                            className="w-full text-[11px] p-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl min-h-[80px] outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Ex: Olá, {company_name}! Sua fatura vence em {due_date}..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Template E-mail (HTML)</label>
+                                        <textarea
+                                            value={appSettings?.billing_email_template || ''}
+                                            onChange={(e) => updateAppSettings({ billing_email_template: e.target.value })}
+                                            className="w-full text-[11px] p-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl min-h-[80px] outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Ex: <h1>Sua Fatura</h1>..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                                    <div className="text-[9px] text-amber-800 dark:text-amber-200 leading-relaxed italic">
+                                        <strong>Variáveis aceitas:</strong> {'{company_name}'}, {'{due_date}'}, {'{days}'}, {'{value}'}, {'{payment_link}'}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -229,40 +274,52 @@ export function PlatformBillingDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                                    {filteredCompanies.map((c) => (
-                                        <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                                            <td className="px-4 py-4">
-                                                <div className="font-bold text-gray-900 dark:text-white leading-tight">{c.trade_name}</div>
-                                                <div className="text-[10px] text-gray-500">{c.owner_name}</div>
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.subscription_plan === 'trial' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                    {c.subscription_plan?.toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.subscription_status === 'active' ? 'bg-green-50 text-green-600' :
-                                                        c.subscription_status === 'past_due' ? 'bg-red-50 text-red-600' :
-                                                            'bg-gray-50 text-gray-600'
-                                                        }`}>
-                                                        {c.subscription_status?.toUpperCase() || 'Pendente'}
-                                                    </span>
-                                                    {c.trial_ends_at && c.subscription_plan === 'trial' && (
-                                                        <span className="text-[9px] text-gray-400">Expira {new Date(c.trial_ends_at).toLocaleDateString()}</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-center font-bold text-gray-900 dark:text-white">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.next_billing_value || 97)}
-                                            </td>
-                                            <td className="px-4 py-4 text-right">
-                                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Ver Histórico">
-                                                    <ArrowUpRight size={16} />
-                                                </Button>
+                                    {filteredCompanies.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-4 py-8 text-center text-gray-500 animate-pulse">
+                                                Nenhum associado encontrado para este filtro.
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        filteredCompanies.map((c, idx) => (
+                                            <tr
+                                                key={c.id}
+                                                style={{ animationDelay: `${idx * 50}ms` }}
+                                                className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors animate-in fade-in slide-in-from-left-2 duration-300"
+                                            >
+                                                <td className="px-4 py-4">
+                                                    <div className="font-bold text-gray-900 dark:text-white leading-tight">{c.trade_name}</div>
+                                                    <div className="text-[10px] text-gray-500">{c.owner_name}</div>
+                                                </td>
+                                                <td className="px-4 py-4 text-center">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.subscription_plan === 'trial' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                        {c.subscription_plan?.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4 text-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.subscription_status === 'active' ? 'bg-green-50 text-green-600' :
+                                                            c.subscription_status === 'past_due' ? 'bg-red-50 text-red-600' :
+                                                                'bg-gray-50 text-gray-600'
+                                                            }`}>
+                                                            {c.subscription_status?.toUpperCase() || 'Pendente'}
+                                                        </span>
+                                                        {c.trial_ends_at && c.subscription_plan === 'trial' && (
+                                                            <span className="text-[9px] text-gray-400">Expira {new Date(c.trial_ends_at).toLocaleDateString()}</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 text-center font-bold text-gray-900 dark:text-white">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.next_billing_value || 97)}
+                                                </td>
+                                                <td className="px-4 py-4 text-right">
+                                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Ver Histórico">
+                                                        <ArrowUpRight size={16} />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>

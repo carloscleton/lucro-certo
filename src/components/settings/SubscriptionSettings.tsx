@@ -8,31 +8,56 @@ export function SubscriptionSettings() {
     const { currentEntity } = useEntity();
     const [loading, setLoading] = useState(true);
     const [subscription, setSubscription] = useState<any>(null);
+    const [pendingInvoice, setPendingInvoice] = useState<any>(null);
 
     useEffect(() => {
         if (currentEntity?.id) {
-            fetchSubscription();
+            loadData();
         }
     }, [currentEntity]);
 
-    const fetchSubscription = async () => {
+    const loadData = async () => {
         setLoading(true);
+        await Promise.all([
+            fetchSubscription(),
+            fetchPendingInvoice()
+        ]);
+        setLoading(false);
+    };
+
+    const fetchSubscription = async () => {
         try {
             const { data, error: fetchError } = await supabase
                 .from('companies')
-                .select('subscription_plan, subscription_status, current_period_end, trial_ends_at, next_billing_value')
+                .select('subscription_plan, subscription_status, current_period_end, trial_ends_at, next_billing_value, cnpj')
                 .eq('id', currentEntity.id)
                 .single();
 
             if (fetchError) throw fetchError;
-
-            if (data) {
-                setSubscription(data);
-            }
+            if (data) setSubscription(data);
         } catch (error) {
             console.error('Error fetching subscription:', error);
-        } finally {
-            setLoading(false);
+        }
+    };
+
+    const fetchPendingInvoice = async () => {
+        try {
+            // Buscar cobrança pendente onde o nome da empresa está na descrição
+            // Em um sistema real, usaríamos target_company_id
+            const { data: invoice } = await supabase
+                .from('company_charges')
+                .select('*')
+                .eq('status', 'pending')
+                .ilike('description', `%${currentEntity.name}%`)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (invoice) {
+                setPendingInvoice(invoice);
+            }
+        } catch (error) {
+            console.error('Error fetching pending invoice:', error);
         }
     };
 
@@ -98,63 +123,103 @@ export function SubscriptionSettings() {
                 {/* Status Card */}
                 <div className="p-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-4">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Status do Pagamento</span>
-
-                    <div className="space-y-3">
-                        {isTrial ? (
-                            <div className="flex items-center gap-3 text-blue-600">
-                                <Clock size={20} />
-                                <div>
-                                    <div className="font-bold">{getRemainingDays()} dias restantes</div>
-                                    <div className="text-[10px] text-gray-500">Seu teste expira em {new Date(subscription?.trial_ends_at).toLocaleDateString()}</div>
-                                </div>
+                    <div className="flex items-center gap-3">
+                        {isPastDue ? (
+                            <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                                <AlertTriangle size={24} />
                             </div>
                         ) : (
-                            <div className="flex items-center gap-3 text-green-600">
-                                <CheckCircle size={20} />
-                                <div>
-                                    <div className="font-bold">Em dia</div>
-                                    <div className="text-[10px] text-gray-500">Próximo vencimento: {new Date(subscription?.current_period_end).toLocaleDateString()}</div>
-                                </div>
+                            <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                                <CheckCircle size={24} />
                             </div>
                         )}
-
-                        {isPastDue && (
-                            <div className="flex items-center gap-3 text-red-500 p-3 bg-red-50 rounded-lg">
-                                <AlertTriangle size={20} />
-                                <div className="text-xs font-medium">Pagamento atrasado. Regularize para evitar bloqueio.</div>
-                            </div>
-                        )}
+                        <div>
+                            <p className="font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+                                {isPastDue ? 'Pagamento Pendente' : 'Assinatura Regular'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                {isPastDue ? 'Regularize para evitar suspensão' : 'Sua conta está em dia'}
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="pt-4">
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                            Pagar Agora / Ver Fatura
-                        </Button>
+                    <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
+                        {pendingInvoice ? (
+                            <a
+                                href={pendingInvoice.payment_link || `/pay/${pendingInvoice.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block"
+                            >
+                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2">
+                                    <ExternalLink size={16} />
+                                    Pagar Fatura
+                                </Button>
+                            </a>
+                        ) : (
+                            <Button
+                                className="w-full bg-gray-100 dark:bg-slate-700 text-gray-400 cursor-not-allowed"
+                                disabled
+                            >
+                                Nenhuma Fatura Pendente
+                            </Button>
+                        )}
                     </div>
                 </div>
 
-                {/* Info Card */}
+                {/* Next Billing Card */}
                 <div className="p-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-4">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ajuda e Suporte</span>
-                    <p className="text-xs text-gray-500">Precisa de ajuda com sua assinatura ou quer um plano personalizado?</p>
-
-                    <ul className="space-y-2">
-                        <li className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                            <CheckCircle size={14} className="text-emerald-500" />
-                            Acesso a todos os módulos
-                        </li>
-                        <li className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                            <CheckCircle size={14} className="text-emerald-500" />
-                            Suporte prioritário via WhatsApp
-                        </li>
-                    </ul>
-
-                    <div className="pt-2">
-                        <a href="https://wa.me/5511999999999" target="_blank" className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline">
-                            Falar com Suporte
-                            <ExternalLink size={12} />
-                        </a>
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Próxima Renovação</span>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                            <Clock size={24} />
+                        </div>
+                        <div>
+                            <p className="font-bold text-gray-900 dark:text-white">
+                                {getRemainingDays()} Dias restantes
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                {isTrial ? 'Fim do teste em:' : 'Próxima cobrança em:'} {new Date(isTrial ? subscription?.trial_ends_at : subscription?.current_period_end).toLocaleDateString()}
+                            </p>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            {isPastDue && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl flex gap-3 items-center">
+                    <AlertTriangle className="text-red-500" size={20} />
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                        <strong>Aviso:</strong> Identificamos uma pendência financeira. Regularize agora para garantir que suas automações e o Social Copilot não sejam interrompidos.
+                    </p>
+                </div>
+            )}
+
+            {/* Support Info */}
+            <div className="p-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-4">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ajuda e Suporte</span>
+                <p className="text-xs text-gray-500">Precisa de ajuda com sua assinatura ou quer um plano personalizado?</p>
+
+                <ul className="space-y-2">
+                    <li className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                        <CheckCircle size={14} className="text-emerald-500" />
+                        Acesso a todos os módulos (Financeiro, CRM, Marketing)
+                    </li>
+                    <li className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                        <CheckCircle size={14} className="text-emerald-500" />
+                        Até 5 usuários na equipe
+                    </li>
+                    <li className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                        <CheckCircle size={14} className="text-emerald-500" />
+                        Suporte via WhatsApp
+                    </li>
+                </ul>
+
+                <div className="pt-2">
+                    <a href="https://wa.me/5511999999999" target="_blank" rel="noreferrer" className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline">
+                        Falar com Suporte
+                        <ExternalLink size={12} />
+                    </a>
                 </div>
             </div>
         </div>

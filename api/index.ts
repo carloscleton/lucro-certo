@@ -869,27 +869,46 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
     try {
         console.log(`🔔 Webhook recebido (${provider}) para empresa ${companyId}`);
 
-        // 1. Buscar configuração da empresa no Supabase para validar e processar
+        // 1. Buscar configuração da empresa no Supabase
         const responseSupabase = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways?company_id=eq.${companyId}&provider=eq.${provider}&select=*`, {
             headers: { 'apikey': SUPABASE_ANON_KEY }
         });
 
-        const gatewayConfig = responseSupabase.data;
+        let gatewayConfig = responseSupabase.data?.[0];
+        let config: any = null;
+        let is_sandbox = true;
 
-        if (!gatewayConfig || !gatewayConfig[0]) {
-            throw new Error('Configuração de gateway não encontrada para esta empresa');
+        if (gatewayConfig) {
+            config = gatewayConfig.config;
+            is_sandbox = gatewayConfig.is_sandbox ?? true;
+        } else {
+            // FALLBACK: Se não achar na tabela de gateways da empresa, verificar se é uma configuração global do sistema (Platform Billing)
+            console.log(`🔍 Gateway não encontrado para empresa ${companyId}. Verificando app_settings...`);
+            const { data: appSettings } = await axios.get(`${SUPABASE_URL}/rest/v1/app_settings?id=eq.1&select=*`, {
+                headers: { 'apikey': SUPABASE_ANON_KEY }
+            });
+
+            const settings = appSettings?.[0];
+            if (settings && settings.platform_billing_provider === provider) {
+                console.log('✅ Usando configurações globais de faturamento da plataforma.');
+                is_sandbox = false; // Configurações de plataforma em app_settings são geralmente produção
+                if (provider === 'asaas') config = { api_key: settings.platform_asaas_api_key };
+                else if (provider === 'stripe') config = { secret_key: settings.platform_stripe_api_key };
+                else if (provider === 'mercadopago') config = { access_token: settings.platform_mercadopago_api_key };
+            }
         }
 
-        const config = gatewayConfig[0].config;
-        const is_sandbox = gatewayConfig[0].is_sandbox ?? true;
-        const adapter = PaymentFactory.getAdapter(provider, config, is_sandbox);
+        if (!config) {
+            throw new Error(`Configuração de gateway não encontrada para o provedor ${provider}`);
+        }
 
+        const adapter = PaymentFactory.getAdapter(provider, config, is_sandbox);
         const { external_reference, status } = await adapter.handleNotification(notification);
 
         console.log(`✅ Pagamento ${external_reference} atualizado para: ${status}`);
 
-        // 2. Atualizar o registro na tabela company_charges e buscar quote_id vinculado
-        const updateChargeResponse = await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?external_reference=eq.${external_reference}&select=quote_id`, {
+        // 2. Atualizar o registro na tabela company_charges
+        const updateChargeResponse = await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?external_reference=eq.${external_reference}&select=quote_id,description,amount`, {
             status: status,
             paid_at: status === 'approved' ? new Date().toISOString() : null
         }, {
@@ -902,24 +921,46 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
 
         const chargeData = updateChargeResponse.data?.[0];
 
-        // 3. Se houver um quote_id e o status for 'approved', atualizar o orçamento e a transação
-        if (chargeData?.quote_id && status === 'approved') {
-            console.log(`🔗 Sincronizando aprovação com Orçamento: ${chargeData.quote_id}`);
+        // 3. LÓGICA DE NEGÓCIO PÓS-PAGAMENTO
+        if (status === 'approved' && chargeData) {
+            // A) Sincronizar com Orçamento e Transação Financeira (se houver quote_id)
+            if (chargeData.quote_id) {
+                console.log(`🔗 Sincronizando aprovação com Orçamento: ${chargeData.quote_id}`);
 
-            // Atualizar Orçamento
-            await axios.patch(`${SUPABASE_URL}/rest/v1/quotes?id=eq.${chargeData.quote_id}`, {
-                payment_status: 'paid'
-            }, {
-                headers: { 'apikey': SUPABASE_ANON_KEY }
-            });
+                await axios.patch(`${SUPABASE_URL}/rest/v1/quotes?id=eq.${chargeData.quote_id}`, {
+                    payment_status: 'paid'
+                }, { headers: { 'apikey': SUPABASE_ANON_KEY } });
 
-            // Atualizar Transação associada
-            await axios.patch(`${SUPABASE_URL}/rest/v1/transactions?quote_id=eq.${chargeData.quote_id}`, {
-                status: 'received',
-                payment_date: new Date().toISOString().split('T')[0]
-            }, {
-                headers: { 'apikey': SUPABASE_ANON_KEY }
-            });
+                await axios.patch(`${SUPABASE_URL}/rest/v1/transactions?quote_id=eq.${chargeData.quote_id}`, {
+                    status: 'received',
+                    payment_date: new Date().toISOString().split('T')[0]
+                }, { headers: { 'apikey': SUPABASE_ANON_KEY } });
+            }
+
+            // B) Sincronizar com Assinatura da Plataforma (se a cobrança for do plano "Lucro Certo")
+            // Identificamos isso pela descrição ou se for uma cobrança sem quote_id gerada pelo Admin
+            if (chargeData.description?.toLowerCase().includes('lucro certo') || chargeData.description?.toLowerCase().includes('assinatura')) {
+                console.log('⭐ Pagamento de Assinatura Detectado. Atualizando status da empresa...');
+
+                // Buscar empresa pelo nome contido na descrição (fallback simples do MVP)
+                // O ideal seria ter target_company_id na tabela company_charges
+                const possibleCompanyName = chargeData.description.split('-').pop()?.trim();
+
+                if (possibleCompanyName) {
+                    const { data: companies } = await axios.get(`${SUPABASE_URL}/rest/v1/companies?trade_name=ilike.%${possibleCompanyName}%&select=id`, {
+                        headers: { 'apikey': SUPABASE_ANON_KEY }
+                    });
+
+                    if (companies && companies[0]) {
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companies[0].id}`, {
+                            subscription_status: 'active',
+                            subscription_plan: 'pro',
+                            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // +30 dias
+                        }, { headers: { 'apikey': SUPABASE_ANON_KEY } });
+                        console.log(`✅ Assinatura da empresa ${possibleCompanyName} renovada!`);
+                    }
+                }
+            }
         }
 
         res.json({ success: true });
@@ -953,6 +994,91 @@ app.post('/payments/asaas/create-key', authenticate, async (req, res) => {
         res.json(result);
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.post('/payments/cron/check-subscriptions', async (req, res) => {
+    try {
+        console.log('⏰ Iniciando verificação de assinaturas...');
+
+        // 1. Buscar configurações globais
+        const { data: appSettings } = await axios.get(`${SUPABASE_URL}/rest/v1/app_settings?id=eq.1&select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY }
+        });
+        const settings = appSettings?.[0];
+
+        if (!settings || !settings.billing_notifications_enabled) {
+            return res.json({ message: 'Notificações de faturamento desativadas globalmente.' });
+        }
+
+        const daysBefore = settings.billing_days_before_reminder || [5, 2, 0];
+        const whatsappInstance = settings.platform_whatsapp_instance;
+        const waTemplate = settings.billing_whatsapp_template;
+
+        if (!whatsappInstance || !waTemplate) {
+            return res.json({ message: 'Configurações de WhatsApp (instância ou template) ausentes.' });
+        }
+
+        // 2. Buscar empresas ativas
+        const { data: companies } = await axios.get(`${SUPABASE_URL}/rest/v1/companies?status=eq.active&select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY }
+        });
+
+        if (!companies) return res.json({ message: 'Nenhuma empresa encontrada.' });
+
+        let notificationsSent = 0;
+
+        for (const company of companies) {
+            const targetDateStr = company.subscription_plan === 'trial' ? company.trial_ends_at : company.current_period_end;
+            if (!targetDateStr) continue;
+
+            const targetDate = new Date(targetDateStr);
+            const today = new Date();
+            const diffTime = targetDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // Verificar se o dia atual está na régua de cobrança
+            if (daysBefore.includes(diffDays)) {
+                console.log(`📢 Notificando ${company.trade_name} - Faltam ${diffDays} dias.`);
+
+                // Buscar cobrança pendente para gerar o link
+                const { data: charges } = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?status=eq.pending&description=ilike.%${company.trade_name}%&order=created_at.desc&limit=1`, {
+                    headers: { 'apikey': SUPABASE_ANON_KEY }
+                });
+
+                const charge = charges?.[0];
+                const paymentLink = charge ? (charge.payment_link || `${process.env.PUBLIC_URL || 'https://lucrocerto.com'}/pay/${charge.id}`) : 'Link não disponível (contate suporte)';
+
+                // Formatar mensagem
+                const message = waTemplate
+                    .replace('{company_name}', company.trade_name)
+                    .replace('{days}', diffDays.toString())
+                    .replace('{due_date}', targetDate.toLocaleDateString('pt-BR'))
+                    .replace('{value}', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(company.next_billing_value || 97))
+                    .replace('{payment_link}', paymentLink);
+
+                // Enviar via Evolution API
+                if (company.owner_phone || company.phone) {
+                    const phone = (company.owner_phone || company.phone).replace(/\D/g, '');
+                    try {
+                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${whatsappInstance}`, {
+                            number: phone,
+                            text: message
+                        }, {
+                            headers: { 'apikey': EVOLUTION_API_KEY }
+                        });
+                        notificationsSent++;
+                    } catch (err: any) {
+                        console.error(`❌ Erro ao enviar WA para ${company.trade_name}:`, err.message);
+                    }
+                }
+            }
+        }
+
+        res.json({ success: true, notifications_sent: notificationsSent });
+    } catch (error: any) {
+        console.error('❌ Erro no Cron de Assinaturas:', error.message);
+        res.status(500).json({ error: error.message });
     }
 });
 
