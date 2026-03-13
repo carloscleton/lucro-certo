@@ -194,8 +194,8 @@ export function PlatformBillingDashboard() {
                                     {['asaas', 'stripe', 'mercadopago'].map((provider) => (
                                         <button
                                             key={provider}
-                                            disabled={adminLoading}
-                                            onClick={() => updateAppSettings({ platform_billing_provider: provider as any })}
+                                            disabled={adminLoading || saving}
+                                            onClick={() => handleSaveSettings({ platform_billing_provider: provider as any })}
                                             className={`py-2 px-3 rounded-lg border text-[10px] font-bold capitalize transition-all ${appSettings?.platform_billing_provider === provider
                                                 ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
                                                 : 'bg-white dark:bg-slate-900 text-gray-500 border-gray-200 dark:border-slate-700 hover:border-gray-300'
