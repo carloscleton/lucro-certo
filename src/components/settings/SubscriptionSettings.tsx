@@ -143,28 +143,36 @@ export function SubscriptionSettings() {
                         </div>
                     </div>
 
-                    <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
-                        {pendingInvoice ? (
-                            <a
-                                href={pendingInvoice.payment_link || `/pay/${pendingInvoice.id}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block"
-                            >
-                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2">
-                                    <ExternalLink size={16} />
-                                    Pagar Fatura
-                                </Button>
-                            </a>
-                        ) : (
-                            <Button
-                                className="w-full bg-gray-100 dark:bg-slate-700 text-gray-400 cursor-not-allowed"
-                                disabled
-                            >
-                                Nenhuma Fatura Pendente
-                            </Button>
-                        )}
-                    </div>
+                    {isPastDue ? (
+                        <Button
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2"
+                            onClick={async () => {
+                                try {
+                                    const res = await supabase.functions.invoke('platform-checkout', {
+                                        body: { company_id: currentEntity.id }
+                                    });
+                                    if (res.error) throw res.error;
+                                    if (res.data?.paymentUrl) {
+                                        window.location.href = res.data.paymentUrl;
+                                    } else {
+                                        throw new Error('Falha ao gerar link. Contate o suporte.');
+                                    }
+                                } catch (err: any) {
+                                    alert(err.message || 'Erro ao gerar pagamento.');
+                                }
+                            }}
+                        >
+                            <ExternalLink size={16} />
+                            Regularizar Agora
+                        </Button>
+                    ) : (
+                        <Button
+                            className="w-full bg-gray-100 dark:bg-slate-700 text-gray-400 cursor-not-allowed"
+                            disabled
+                        >
+                            Plano em dia
+                        </Button>
+                    )}
                 </div>
 
                 {/* Next Billing Card */}

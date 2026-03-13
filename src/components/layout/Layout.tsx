@@ -434,7 +434,21 @@ export function Layout() {
                                 {currentEntity.subscription_status === 'past_due' && (
                                     <div className="mt-8 flex justify-center">
                                         <Button
-                                            onClick={() => alert('Integração com Gateway de Pagamento será acionada aqui!')}
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await supabase.functions.invoke('platform-checkout', {
+                                                        body: { company_id: currentEntity.id }
+                                                    });
+                                                    if (res.error) throw res.error;
+                                                    if (res.data?.paymentUrl) {
+                                                        window.location.href = res.data.paymentUrl;
+                                                    } else {
+                                                        throw new Error('Falha ao gerar link. Contate o suporte.');
+                                                    }
+                                                } catch (err: any) {
+                                                    alert(err.message || 'Erro ao gerar pagamento.');
+                                                }
+                                            }}
                                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
                                         >
                                             <DollarSign size={20} />
