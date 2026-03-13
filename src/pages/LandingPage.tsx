@@ -119,22 +119,51 @@ export function LandingPage() {
                         <div className="feature-icon">
                             <BarChart3 size={32} />
                         </div>
-                        <h3>Gestão Financeira 360°</h3>
-                        <p>Controle de fluxo de caixa, contas a pagar/receber e relatórios avançados com projeções automáticas.</p>
+                        <h3>Controle Financeiro Total</h3>
+                        <p>Gestão completa de Contas a Pagar e Receber. Organize seu fluxo de caixa por categorias, centros de custo e receba alertas de vencimento.</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon">
                             <Users size={32} />
                         </div>
-                        <h3>Integração CRM</h3>
-                        <p>Gestão completa de contatos, histórico de interações e pipeline de vendas ultra-visual.</p>
+                        <h3>CRM & Vendas</h3>
+                        <p>Gestão de contatos, histórico de interações e pipeline de vendas. Transforme leads em clientes com um fluxo organizado.</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon">
                             <DollarSign size={32} />
                         </div>
-                        <h3>Orçamentos Premium</h3>
-                        <p>Crie orçamentos elegantes em segundos, envie via WhatsApp e acompanhe a aprovação em tempo real.</p>
+                        <h3>Orçamentos & Pedidos</h3>
+                        <p>Crie orçamentos profissionais com um clique, envie via WhatsApp e converta em vendas rapidamente com controle de status.</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Detailed Finance Section */}
+            <section className="features-section" style={{ paddingTop: 0 }}>
+                <div className="visual-feature">
+                    <div className="visual-content">
+                        <div style={{ color: 'var(--primary-blue)', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <BarChart3 size={20} />
+                            GESTÃO DE CAIXA PROFISSIONAL
+                        </div>
+                        <h3>Domine cada centavo da sua empresa</h3>
+                        <p>
+                            Esqueça as planilhas complicadas. O Lucro Certo oferece um Livro Analítico completo para você visualizar exatamente para onde seu dinheiro está indo.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Contas a Pagar e Receber:</strong> Controle absoluto de prazos e valores.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>DRE Automática:</strong> Demonstrativo de Resultados do Exercício em tempo real.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Anexos Digitalizados:</strong> Guarde comprovantes e notas direto na transação.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Fluxo de Caixa Mensal:</strong> Previsão de saldo para os próximos meses.</li>
+                        </ul>
+                    </div>
+                    <div className="visual-image-container">
+                        <img
+                            src="/images/landing/financial-management.png"
+                            alt="Gestão Financeira Lucro Certo"
+                            className="visual-image"
+                        />
                     </div>
                 </div>
             </section>
