@@ -47,7 +47,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'dashboard',
         label: 'Dashboard',
         icon: LayoutDashboard,
-        path: '/',
+        path: '/dashboard',
         desc: 'Visão geral e gráficos',
         defaultPermissions: { admin: true, member: true }
     },
@@ -55,7 +55,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'quotes',
         label: 'Orçamentos',
         icon: FileText,
-        path: '/quotes',
+        path: '/dashboard/quotes',
         desc: 'Propostas comerciais',
         defaultPermissions: { admin: true, member: true }
     },
@@ -63,7 +63,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'receivables',
         label: 'A Receber',
         icon: ArrowUpCircle,
-        path: '/receivables',
+        path: '/dashboard/receivables',
         desc: 'Faturamento e receitas',
         defaultPermissions: { admin: true, member: true }
     },
@@ -71,7 +71,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'payables',
         label: 'A Pagar',
         icon: ArrowDownCircle,
-        path: '/payables',
+        path: '/dashboard/payables',
         desc: 'Contas e despesas',
         defaultPermissions: { admin: true, member: true }
     },
@@ -79,7 +79,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'categories',
         label: 'Categorias',
         icon: Wallet,
-        path: '/categories',
+        path: '/dashboard/categories',
         desc: 'Gestão financeira',
         defaultPermissions: { admin: true, member: true }
     },
@@ -87,7 +87,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'companies',
         label: 'Empresas',
         icon: Briefcase,
-        path: '/companies',
+        path: '/dashboard/companies',
         desc: 'Gestão de empresas',
         defaultPermissions: { admin: true, member: true }
     },
@@ -95,7 +95,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'contacts',
         label: 'Contatos',
         icon: Users,
-        path: '/contacts',
+        path: '/dashboard/contacts',
         desc: 'Clientes e fornecedores',
         defaultPermissions: { admin: true, member: true }
     },
@@ -103,7 +103,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'services',
         label: 'Serviços',
         icon: Package,
-        path: '/services',
+        path: '/dashboard/services',
         desc: 'Catálogo de serviços',
         defaultPermissions: { admin: true, member: true }
     },
@@ -111,7 +111,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'products',
         label: 'Produtos',
         icon: Box,
-        path: '/products',
+        path: '/dashboard/products',
         desc: 'Catálogo de produtos',
         defaultPermissions: { admin: true, member: true }
     },
@@ -119,7 +119,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'commissions',
         label: 'Comissões',
         icon: DollarSign,
-        path: '/commissions',
+        path: '/dashboard/commissions',
         desc: 'Controle de vendas',
         defaultPermissions: { admin: true, member: false }
     },
@@ -127,7 +127,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'reports',
         label: 'Relatórios',
         icon: PieChart,
-        path: '/reports',
+        path: '/dashboard/reports',
         desc: 'Análises detalhadas',
         defaultPermissions: { admin: true, member: false }
     },
@@ -135,7 +135,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'settings',
         label: 'Configurações',
         icon: Settings,
-        path: '/settings',
+        path: '/dashboard/settings',
         desc: 'Sistema e preferências',
         defaultPermissions: { admin: true, member: false }
     },
@@ -143,7 +143,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'whatsapp',
         label: 'WhatsApp (Uso)',
         icon: MessageSquare,
-        path: '/whatsapp',
+        path: '/dashboard/whatsapp',
         desc: 'Envio de mensagens e chat',
         defaultPermissions: { admin: true, member: false }
     },
@@ -151,7 +151,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'payments',
         label: 'Pagamentos (Módulo)',
         icon: CreditCard,
-        path: '/payments',
+        path: '/dashboard/payments',
         desc: 'Gestão de cobranças e links',
         defaultPermissions: { admin: true, member: false }
     },
@@ -159,7 +159,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'crm',
         label: 'CRM / Funil',
         icon: Users,
-        path: '/crm',
+        path: '/dashboard/crm',
         desc: 'Gestão de leads e funil de vendas',
         defaultPermissions: { admin: true, member: true }
     },
@@ -167,7 +167,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'marketing',
         label: 'Marketing IA',
         icon: Sparkles,
-        path: '/marketing',
+        path: '/dashboard/marketing',
         desc: 'Geração automática de postagens',
         defaultPermissions: { admin: true, member: true }
     },
@@ -175,7 +175,7 @@ export const APP_MODULES: ModuleDefinition[] = [
         key: 'lead_radar',
         label: 'Radar de Leads',
         icon: Target,
-        path: '/lead-radar',
+        path: '/dashboard/lead-radar',
         desc: 'Mineração e abordagem automática de clientes',
         defaultPermissions: { admin: true, member: false }
     }
