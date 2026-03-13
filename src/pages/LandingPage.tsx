@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     TrendingUp,
-    ShieldCheck,
-    Zap,
     Radar,
     Sparkles,
     BarChart3,
@@ -11,8 +9,7 @@ import {
     PlayCircle,
     CheckCircle2,
     DollarSign,
-    Users,
-    Target
+    Users
 } from 'lucide-react';
 import '../styles/LandingPage.css';
 
