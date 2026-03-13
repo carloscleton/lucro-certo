@@ -14,7 +14,6 @@ import {
     Wand2
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useTranslation } from 'react-i18next';
 import { useAdmin } from '../../hooks/useAdmin';

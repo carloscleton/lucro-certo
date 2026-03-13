@@ -15,8 +15,7 @@ import {
     Bell,
     Users,
     AlertTriangle,
-    ShieldAlert,
-    Rocket
+    ShieldAlert
 } from 'lucide-react';
 import logoFull from '../../assets/logo-full.png';
 import styles from './Layout.module.css';
