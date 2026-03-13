@@ -69,7 +69,11 @@ export function useAdmin() {
         platform_billing_provider?: 'asaas' | 'stripe' | 'mercadopago';
         platform_asaas_api_key?: string;
         platform_stripe_api_key?: string;
+        platform_stripe_publishable_key?: string;
         platform_mercadopago_api_key?: string;
+        platform_mercadopago_public_key?: string;
+        platform_billing_sandbox?: boolean;
+        platform_asaas_wallet_id?: string;
         platform_whatsapp_instance?: string;
         billing_notifications_enabled?: boolean;
         billing_whatsapp_template?: string;
@@ -333,7 +337,11 @@ export function useAdmin() {
         platform_billing_provider: 'asaas' | 'stripe' | 'mercadopago';
         platform_asaas_api_key: string;
         platform_stripe_api_key: string;
+        platform_stripe_publishable_key: string;
         platform_mercadopago_api_key: string;
+        platform_mercadopago_public_key: string;
+        platform_billing_sandbox: boolean;
+        platform_asaas_wallet_id: string;
         platform_whatsapp_instance: string;
         billing_notifications_enabled: boolean;
         billing_whatsapp_template: string;

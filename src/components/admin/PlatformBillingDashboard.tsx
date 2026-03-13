@@ -176,34 +176,86 @@ export function PlatformBillingDashboard() {
                                 </div>
                             </div>
 
+                            {appSettings?.platform_billing_provider && (
+                                <div className="mb-4 p-1 bg-gray-100 dark:bg-slate-900 rounded-xl flex items-center justify-between">
+                                    <div className="flex bg-white dark:bg-slate-700 rounded-lg p-0.5 shadow-sm">
+                                        <button
+                                            onClick={() => updateAppSettings({ platform_billing_sandbox: true })}
+                                            className={`px-3 py-1.5 text-[10px] font-bold rounded-md transition-all ${appSettings?.platform_billing_sandbox
+                                                ? 'bg-amber-500 text-white shadow-sm'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                                }`}
+                                        >
+                                            Sandbox
+                                        </button>
+                                        <button
+                                            onClick={() => updateAppSettings({ platform_billing_sandbox: false })}
+                                            className={`px-3 py-1.5 text-[10px] font-bold rounded-md transition-all ${!appSettings?.platform_billing_sandbox
+                                                ? 'bg-emerald-600 text-white shadow-sm'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                                }`}
+                                        >
+                                            Produção
+                                        </button>
+                                    </div>
+                                    <span className="text-[9px] font-medium text-gray-500 pr-3 uppercase tracking-tighter">
+                                        {appSettings?.platform_billing_sandbox ? 'Modo de Teste' : 'Transações Reais'}
+                                    </span>
+                                </div>
+                            )}
+
                             {appSettings?.platform_billing_provider === 'asaas' && (
-                                <Input
-                                    label="API Key Asaas"
-                                    type="password"
-                                    value={appSettings?.platform_asaas_api_key || ''}
-                                    onChange={(e) => updateAppSettings({ platform_asaas_api_key: e.target.value })}
-                                    placeholder="Chave secreta..."
-                                />
+                                <div className="space-y-4">
+                                    <Input
+                                        label="API Key Asaas"
+                                        type="password"
+                                        value={appSettings?.platform_asaas_api_key || ''}
+                                        onChange={(e) => updateAppSettings({ platform_asaas_api_key: e.target.value })}
+                                        placeholder="Chave secreta..."
+                                    />
+                                    <Input
+                                        label="Wallet ID (Opcional)"
+                                        value={appSettings?.platform_asaas_wallet_id || ''}
+                                        onChange={(e) => updateAppSettings({ platform_asaas_wallet_id: e.target.value })}
+                                        placeholder="Identificador da carteira..."
+                                    />
+                                </div>
                             )}
 
                             {appSettings?.platform_billing_provider === 'stripe' && (
-                                <Input
-                                    label="API Key Stripe"
-                                    type="password"
-                                    value={appSettings?.platform_stripe_api_key || ''}
-                                    onChange={(e) => updateAppSettings({ platform_stripe_api_key: e.target.value })}
-                                    placeholder="sk_live_..."
-                                />
+                                <div className="space-y-4">
+                                    <Input
+                                        label="Public Key Stripe"
+                                        value={appSettings?.platform_stripe_publishable_key || ''}
+                                        onChange={(e) => updateAppSettings({ platform_stripe_publishable_key: e.target.value })}
+                                        placeholder="pk_live_..."
+                                    />
+                                    <Input
+                                        label="Secret Key Stripe"
+                                        type="password"
+                                        value={appSettings?.platform_stripe_api_key || ''}
+                                        onChange={(e) => updateAppSettings({ platform_stripe_api_key: e.target.value })}
+                                        placeholder="sk_live_..."
+                                    />
+                                </div>
                             )}
 
                             {appSettings?.platform_billing_provider === 'mercadopago' && (
-                                <Input
-                                    label="Access Token MP"
-                                    type="password"
-                                    value={appSettings?.platform_mercadopago_api_key || ''}
-                                    onChange={(e) => updateAppSettings({ platform_mercadopago_api_key: e.target.value })}
-                                    placeholder="APP_USR-..."
-                                />
+                                <div className="space-y-4">
+                                    <Input
+                                        label="Public Key MP"
+                                        value={appSettings?.platform_mercadopago_public_key || ''}
+                                        onChange={(e) => updateAppSettings({ platform_mercadopago_public_key: e.target.value })}
+                                        placeholder="APP_USR-..."
+                                    />
+                                    <Input
+                                        label="Access Token MP"
+                                        type="password"
+                                        value={appSettings?.platform_mercadopago_api_key || ''}
+                                        onChange={(e) => updateAppSettings({ platform_mercadopago_api_key: e.target.value })}
+                                        placeholder="APP_USR-..."
+                                    />
+                                </div>
                             )}
 
                             <div className="pt-4 border-t border-gray-100 dark:border-slate-700 space-y-4">
