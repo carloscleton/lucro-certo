@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Target } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { LayoutGrid, Target, Wand2, RefreshCw } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -105,6 +106,34 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
     const [contactId, setContactId] = useState('');
     const [description, setDescription] = useState('');
     const [saving, setSaving] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    const handleMagicSuggestion = async () => {
+        if (!description && !title) {
+            alert('Por favor, descreva um pouco o negócio ou o título para que a IA possa ajudar.');
+            return;
+        }
+
+        setIsGenerating(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
+                body: {
+                    input: `Título: ${title}. Descrição Atual: ${description}. Sugira uma abordagem de vendas ou aprimore esta descrição para torná-la mais profissional e estratégica.`,
+                    mode: 'field_only'
+                }
+            });
+
+            if (error) throw error;
+            if (data?.text) {
+                setDescription(data.text);
+            }
+        } catch (error) {
+            console.error('Magic error:', error);
+            alert('Falha ao gerar sugestão. Tente novamente.');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     useEffect(() => {
         if (deal) {
@@ -212,9 +241,20 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Descrição / Notas
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Descrição / Notas
+                        </label>
+                        <button
+                            type="button"
+                            onClick={handleMagicSuggestion}
+                            disabled={isGenerating}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 p-1 rounded hover:bg-blue-50 transition-colors"
+                        >
+                            {isGenerating ? <RefreshCw size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                            {isGenerating ? 'Pensando...' : 'Magia IA'}
+                        </button>
+                    </div>
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
