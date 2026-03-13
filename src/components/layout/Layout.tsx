@@ -410,21 +410,25 @@ export function Layout() {
                                 </div>
                             </div>
                         </div>
-                    ) : currentEntity.status === 'blocked' ? (
+                    ) : (currentEntity.status === 'blocked' || currentEntity.subscription_status === 'past_due') ? (
                         <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6">
-                            <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+                            <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center animate-pulse">
                                 <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
                             </div>
                             <div className="max-w-md">
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                                     {currentEntity.name} {t('common.status')}: Bloqueada
                                 </h2>
-                                <p className="text-gray-600 dark:text-gray-300">
-                                    O acesso a esta empresa está temporariamente suspenso.
+                                <p className="text-gray-600 dark:text-gray-300 font-medium">
+                                    {currentEntity.subscription_status === 'past_due'
+                                        ? "O acesso foi suspenso devido a pendências financeiras."
+                                        : "O acesso a esta empresa está temporariamente suspenso pela administração."}
                                 </p>
                                 <div className="mt-6 p-5 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700">
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Selecione outro ambiente na barra lateral ou contate o administrador.
+                                        {currentEntity.subscription_status === 'past_due'
+                                            ? "Por favor, regularize sua assinatura para restaurar o acesso."
+                                            : "Selecione outro ambiente na barra lateral ou contate o administrador."}
                                     </p>
                                 </div>
                             </div>

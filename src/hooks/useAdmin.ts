@@ -256,6 +256,7 @@ export function useAdmin() {
                 .update({
                     subscription_status: 'active',
                     subscription_plan: 'pro',
+                    status: 'active',
                     current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
                 })
                 .eq('id', companyId);

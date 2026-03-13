@@ -31,6 +31,8 @@ export interface Entity {
     automations_module_enabled?: boolean;
     has_lead_radar?: boolean;
     status?: string;
+    subscription_status?: string;
+    subscription_plan?: string;
 }
 
 interface EntityContextType {
@@ -92,7 +94,9 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         has_social_copilot,
                         automations_module_enabled,
                         has_lead_radar,
-                        status
+                        status,
+                        subscription_status,
+                        subscription_plan
                     ),
                     role,
                     status
@@ -129,7 +133,9 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     has_social_copilot: item.company.has_social_copilot,
                     automations_module_enabled: item.company.automations_module_enabled,
                     has_lead_radar: item.company.has_lead_radar,
-                    status: item.company.status
+                    status: item.company.status,
+                    subscription_status: item.company.subscription_status,
+                    subscription_plan: item.company.subscription_plan
                 }));
 
             // Always include Personal option with user's settings

@@ -354,6 +354,11 @@ export function PlatformBillingDashboard() {
                                                             }`}>
                                                             {c.subscription_status?.toUpperCase() || 'Pendente'}
                                                         </span>
+                                                        {c.status === 'blocked' && (
+                                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-red-600 text-white uppercase animate-pulse">
+                                                                Bloqueada
+                                                            </span>
+                                                        )}
                                                         {c.trial_ends_at && c.subscription_plan === 'trial' && (
                                                             <span className="text-[9px] text-gray-400">Expira {new Date(c.trial_ends_at).toLocaleDateString()}</span>
                                                         )}
