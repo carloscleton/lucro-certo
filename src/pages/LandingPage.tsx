@@ -91,6 +91,14 @@ export function LandingPage() {
                 </div>
             </header>
 
+            {/* Trust Bar (Media) */}
+            <section className="media-bar" style={{ padding: '2rem 5%', background: '#fff', borderBottom: '1px solid var(--glass-border)', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '1.5rem', letterSpacing: '1px' }}>O SISTEMA QUE É DESTAQUE NO MERCADO FINANCEIRO</p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '4rem', alignItems: 'center', opacity: 0.6, filter: 'grayscale(1)' }}>
+                    <img src="/images/landing/media-logos.png" alt="Destaque na Mídia" style={{ maxHeight: '40px', width: 'auto' }} />
+                </div>
+            </section>
+
             {/* Stats Bar */}
             <section className="stats-bar">
                 <div className="stat-item">
@@ -217,6 +225,28 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> Criação de imagens e vídeos com IA</li>
                             <li><CheckCircle2 size={18} className="check-icon" /> Postagem direta no Instagram e Facebook</li>
                         </ul>
+                    </div>
+                </div>
+            </section>
+
+            {/* FAQ Section */}
+            <section id="faq" className="features-section" style={{ background: 'rgba(37, 99, 235, 0.02)' }}>
+                <div className="section-header">
+                    <h2>Perguntas Frequentes</h2>
+                    <p>Tudo o que você precisa saber para começar com segurança.</p>
+                </div>
+                <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O Lucro Certo é seguro?</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim. Utilizamos criptografia de nível bancário e servidores seguros na AWS e Supabase para garantir que seus dados financeiros e de clientes estejam sempre protegidos.</p>
+                    </div>
+                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Como funciona o Radar de Leads?</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Nossa IA varre fontes públicas e mapas para encontrar empresas no perfil que você definiu. Ela extrai contatos e já pode iniciar o primeiro contato via WhatsApp automaticamente.</p>
+                    </div>
+                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Posso testar antes de assinar?</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Com certeza! Oferecemos 7 dias de teste grátis com acesso total às funcionalidades de gestão financeira para você conhecer o sistema na prática.</p>
                     </div>
                 </div>
             </section>
