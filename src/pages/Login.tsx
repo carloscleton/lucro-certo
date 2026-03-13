@@ -180,7 +180,7 @@ export function Login() {
                     }
                 }
 
-                navigate('/');
+                navigate('/dashboard');
             }
         } catch (err: any) {
             console.error('Auth error:', err.message);
