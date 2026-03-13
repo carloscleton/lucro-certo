@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-    TrendingUp,
     Radar,
     Sparkles,
     BarChart3,
@@ -12,6 +11,7 @@ import {
     Users
 } from 'lucide-react';
 import '../styles/LandingPage.css';
+import logoFull from '../assets/logo-full.png';
 
 export function LandingPage() {
     const navigate = useNavigate();
@@ -29,9 +29,8 @@ export function LandingPage() {
 
             {/* Navbar */}
             <nav className="landing-nav">
-                <div className="nav-logo">
-                    <TrendingUp size={32} />
-                    <span>LUCRO CERTO</span>
+                <div className="nav-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+                    <img src={logoFull} alt="Lucro Certo" className="h-12 w-auto" style={{ height: '48px' }} />
                 </div>
                 <div className="nav-links">
                     <a href="#features" className="nav-link">Funcionalidades</a>
@@ -242,8 +241,7 @@ export function LandingPage() {
             {/* Footer */}
             <footer style={{ padding: '4rem 5%', borderTop: '1px solid var(--glass-border)', textAlign: 'center' }}>
                 <div className="nav-logo" style={{ justifyContent: 'center', marginBottom: '1.5rem' }}>
-                    <TrendingUp size={32} />
-                    <span>LUCRO CERTO</span>
+                    <img src={logoFull} alt="Lucro Certo" className="h-10 w-auto" style={{ height: '40px' }} />
                 </div>
                 <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
                     © 2026 Lucro Certo. Todos os direitos reservados.

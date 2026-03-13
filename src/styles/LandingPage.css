@@ -1,6 +1,7 @@
 :root {
+    --primary-blue: #2563EB;
+    --secondary-blue: #1D4ED8;
     --primary-emerald: #10b981;
-    --secondary-emerald: #059669;
     --dark-bg: #0f172a;
     --glass-bg: rgba(255, 255, 255, 0.03);
     --glass-border: rgba(255, 255, 255, 0.1);
@@ -10,7 +11,7 @@
     background-color: var(--dark-bg);
     color: white;
     min-height: 100vh;
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
     position: relative;
 }
@@ -89,18 +90,18 @@
 }
 
 .nav-link:hover {
-    color: var(--primary-emerald);
+    color: var(--primary-blue);
 }
 
 .nav-btn {
-    background: linear-gradient(135deg, var(--primary-emerald), var(--secondary-emerald));
+    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
     padding: 0.75rem 1.5rem;
     border-radius: 12px;
     color: white;
     font-weight: 600;
     text-decoration: none;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
 }
 
 .nav-btn:hover {
@@ -130,8 +131,9 @@
 }
 
 .text-gradient {
-    background: linear-gradient(135deg, #fff 30%, #a7f3d0);
+    background: linear-gradient(135deg, #fff 30%, #93c5fd);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -149,7 +151,7 @@
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary-emerald), var(--secondary-emerald));
+    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
     padding: 1.25rem 2.5rem;
     border-radius: 16px;
     color: white;
@@ -161,6 +163,7 @@
     align-items: center;
     gap: 0.75rem;
     font-size: 1.1rem;
+    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
 }
 
 .btn-secondary {
