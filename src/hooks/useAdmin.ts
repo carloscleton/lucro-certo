@@ -45,6 +45,11 @@ export interface AdminCompany {
     has_lead_radar?: boolean;
     allowed_entity_types?: string[];
     status: string;
+    subscription_plan?: string;
+    subscription_status?: string;
+    current_period_end?: string;
+    trial_ends_at?: string;
+    next_billing_value?: number;
 }
 
 export function useAdmin() {
@@ -52,7 +57,14 @@ export function useAdmin() {
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [usersList, setUsersList] = useState<AdminUser[]>([]);
     const [companiesList, setCompaniesList] = useState<AdminCompany[]>([]);
-    const [appSettings, setAppSettings] = useState<{ storage_provider: 'supabase' | 'r2' } | null>(null);
+    const [appSettings, setAppSettings] = useState<{
+        storage_provider: 'supabase' | 'r2';
+        platform_asaas_api_key?: string;
+        billing_notifications_enabled?: boolean;
+        billing_whatsapp_template?: string;
+        billing_email_template?: string;
+        billing_days_before_reminder?: number[];
+    } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +101,7 @@ export function useAdmin() {
             // Fetch App Settings
             const { data: settingsData, error: settingsError } = await supabase
                 .from('app_settings')
-                .select('storage_provider')
+                .select('*')
                 .eq('id', 1)
                 .maybeSingle();
 
@@ -252,7 +264,14 @@ export function useAdmin() {
         }
     };
 
-    const updateAppSettings = async (newSettings: { storage_provider: 'supabase' | 'r2' }) => {
+    const updateAppSettings = async (newSettings: Partial<{
+        storage_provider: 'supabase' | 'r2';
+        platform_asaas_api_key: string;
+        billing_notifications_enabled: boolean;
+        billing_whatsapp_template: string;
+        billing_email_template: string;
+        billing_days_before_reminder: number[];
+    }>) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
         try {
@@ -263,8 +282,7 @@ export function useAdmin() {
 
             if (error) throw error;
 
-            setAppSettings(newSettings);
-            // We might want to clear the storage service cache here if possible
+            setAppSettings(prev => prev ? { ...prev, ...newSettings } : newSettings as any);
             return { error: null };
         } catch (err: any) {
             console.error('Error updating app settings:', err);

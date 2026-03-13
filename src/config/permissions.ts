@@ -245,8 +245,15 @@ export const SETTINGS_TABS: TabDefinition[] = [
         color: 'blue',
         desc: 'Lembretes e avisos automáticos',
         defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'subscription',
+        label: 'Plano e Assinatura',
+        icon: CreditCard,
+        color: 'blue',
+        desc: 'Gestão da sua conta Lucro Certo',
+        defaultPermissions: { admin: true, member: false }
     }
-    // Admin tab is special, handled separately usually, but good to list if needed
 ];
 
 export function getModulePermission(

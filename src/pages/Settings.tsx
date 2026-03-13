@@ -18,6 +18,7 @@ import { WebhookSettings } from './WebhookSettings';
 import { WhatsApp } from './WhatsApp';
 import { FiscalSettings } from '../components/settings/FiscalSettings';
 import { PaymentSettings } from '../components/settings/PaymentSettings';
+import { SubscriptionSettings } from '../components/settings/SubscriptionSettings';
 import { useCharges } from '../hooks/useCharges';
 import { useAuth } from '../context/AuthContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/phoneUtils';
@@ -436,6 +437,10 @@ export function Settings() {
 
             {/* Tab Content */}
             <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6">
+                {activeTab === 'subscription' && (
+                    <SubscriptionSettings />
+                )}
+
                 {activeTab === 'quotes' && (
                     <div className="space-y-6">
                         <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -1930,6 +1935,63 @@ export function Settings() {
                                             </button>
                                         </div>
                                     </div>
+
+                                    {/* Platform Billing Section */}
+                                    <div className="p-6 rounded-xl border-2 border-blue-100 dark:border-blue-900/30 bg-blue-50/20 dark:bg-blue-900/10 md:col-span-2">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                                                <DollarSign size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Faturamento da Plataforma (Nossa Receita)</h4>
+                                                <p className="text-sm text-gray-500">Configurações para cobrar os clientes do Lucro Certo.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                                <Input
+                                                    label="API Key Asaas (Sistema)"
+                                                    type="password"
+                                                    value={appSettings?.platform_asaas_api_key || ''}
+                                                    onChange={(e) => updateAppSettings({ platform_asaas_api_key: e.target.value })}
+                                                    placeholder="$asaas_api_key..."
+                                                />
+                                                <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-700">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={appSettings?.billing_notifications_enabled}
+                                                        onChange={(e) => updateAppSettings({ billing_notifications_enabled: e.target.checked })}
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Ativar notificações automáticas de cobrança</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Template WhatsApp</label>
+                                                    <textarea
+                                                        className="w-full text-sm border border-gray-200 dark:border-slate-700 rounded-xl p-3 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        rows={4}
+                                                        value={appSettings?.billing_whatsapp_template || ''}
+                                                        onChange={(e) => updateAppSettings({ billing_whatsapp_template: e.target.value })}
+                                                        placeholder="Olá {company_name}..."
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Template E-mail</label>
+                                                    <textarea
+                                                        className="w-full text-sm border border-gray-200 dark:border-slate-700 rounded-xl p-3 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        rows={4}
+                                                        value={appSettings?.billing_email_template || ''}
+                                                        onChange={(e) => updateAppSettings({ billing_email_template: e.target.value })}
+                                                        placeholder="Olá {company_name}..."
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -2001,103 +2063,105 @@ export function Settings() {
             }
 
             {/* Modal de Edição de Automações */}
-            {editingAutomation && (
-                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-xl shadow-2xl border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                <Edit className="text-blue-600" size={20} />
-                                {editingAutomation === 'financial' && 'Configurar Resumo Financeiro'}
-                                {editingAutomation === 'birthday' && 'Configurar Lembrete de Aniversário'}
-                                {editingAutomation === 'overdue' && 'Configurar Aviso de Vencimento'}
-                            </h2>
-                            <button onClick={() => setEditingAutomation(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div className="space-y-4">
-                                <div className="flex items-end gap-2">
-                                    <div className="flex-1">
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                                            Prompt da Vara Mágica (O que quer destacar?)
-                                        </label>
-                                        <Input
-                                            value={
+            {
+                editingAutomation && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-xl shadow-2xl border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Edit className="text-blue-600" size={20} />
+                                    {editingAutomation === 'financial' && 'Configurar Resumo Financeiro'}
+                                    {editingAutomation === 'birthday' && 'Configurar Lembrete de Aniversário'}
+                                    {editingAutomation === 'overdue' && 'Configurar Aviso de Vencimento'}
+                                </h2>
+                                <button onClick={() => setEditingAutomation(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                <div className="space-y-4">
+                                    <div className="flex items-end gap-2">
+                                        <div className="flex-1">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                                                Prompt da Vara Mágica (O que quer destacar?)
+                                            </label>
+                                            <Input
+                                                value={
+                                                    editingAutomation === 'financial' ? autoFinancialPrompt :
+                                                        editingAutomation === 'birthday' ? autoBirthdayPrompt :
+                                                            autoOverduePrompt
+                                                }
+                                                onChange={(e) => {
+                                                    if (editingAutomation === 'financial') setAutoFinancialPrompt(e.target.value);
+                                                    if (editingAutomation === 'birthday') setAutoBirthdayPrompt(e.target.value);
+                                                    if (editingAutomation === 'overdue') setAutoOverduePrompt(e.target.value);
+                                                }}
+                                                placeholder="Ex: Foque no saldo previsto e seja motivador..."
+                                                className="h-10"
+                                            />
+                                            <p className="text-xs text-blue-500 mt-2 cursor-pointer hover:underline font-medium flex items-center gap-1"
+                                                onClick={() => {
+                                                    const suggestion = getRandomSuggestion(editingAutomation!);
+                                                    if (editingAutomation === 'financial') setAutoFinancialPrompt(suggestion);
+                                                    if (editingAutomation === 'birthday') setAutoBirthdayPrompt(suggestion);
+                                                    if (editingAutomation === 'overdue') setAutoOverduePrompt(suggestion);
+                                                }}>
+                                                <Sparkles size={12} />
+                                                Outra sugestão? Clique aqui para alternar.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={() => handleMagic(editingAutomation!,
                                                 editingAutomation === 'financial' ? autoFinancialPrompt :
                                                     editingAutomation === 'birthday' ? autoBirthdayPrompt :
                                                         autoOverduePrompt
+                                            )}
+                                            isLoading={generatingMagic === editingAutomation}
+                                            variant="outline"
+                                            className="h-10"
+                                        >
+                                            <Sparkles size={16} className="mr-2" />
+                                            Vara Mágica
+                                        </Button>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                                            Modelo da Mensagem (Customizado)
+                                        </label>
+                                        <p className="text-[10px] text-gray-500 mb-2">Use {'{name}'} para o nome do cliente e {'{amount}'} para valores.</p>
+                                        <textarea
+                                            value={
+                                                editingAutomation === 'financial' ? autoFinancialTemplate :
+                                                    editingAutomation === 'birthday' ? autoBirthdayTemplate :
+                                                        autoOverdueTemplate
                                             }
                                             onChange={(e) => {
-                                                if (editingAutomation === 'financial') setAutoFinancialPrompt(e.target.value);
-                                                if (editingAutomation === 'birthday') setAutoBirthdayPrompt(e.target.value);
-                                                if (editingAutomation === 'overdue') setAutoOverduePrompt(e.target.value);
+                                                if (editingAutomation === 'financial') setAutoFinancialTemplate(e.target.value);
+                                                if (editingAutomation === 'birthday') setAutoBirthdayTemplate(e.target.value);
+                                                if (editingAutomation === 'overdue') setAutoOverdueTemplate(e.target.value);
                                             }}
-                                            placeholder="Ex: Foque no saldo previsto e seja motivador..."
-                                            className="h-10"
+                                            placeholder="Deixe em branco para usar o padrão do sistema..."
+                                            className="w-full text-sm border border-gray-200 dark:border-slate-700 rounded-xl p-4 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            rows={6}
                                         />
-                                        <p className="text-xs text-blue-500 mt-2 cursor-pointer hover:underline font-medium flex items-center gap-1"
-                                            onClick={() => {
-                                                const suggestion = getRandomSuggestion(editingAutomation!);
-                                                if (editingAutomation === 'financial') setAutoFinancialPrompt(suggestion);
-                                                if (editingAutomation === 'birthday') setAutoBirthdayPrompt(suggestion);
-                                                if (editingAutomation === 'overdue') setAutoOverduePrompt(suggestion);
-                                            }}>
-                                            <Sparkles size={12} />
-                                            Outra sugestão? Clique aqui para alternar.
-                                        </p>
                                     </div>
+                                </div>
+
+                                <div className="pt-4 flex gap-3">
                                     <Button
-                                        onClick={() => handleMagic(editingAutomation!,
-                                            editingAutomation === 'financial' ? autoFinancialPrompt :
-                                                editingAutomation === 'birthday' ? autoBirthdayPrompt :
-                                                    autoOverduePrompt
-                                        )}
-                                        isLoading={generatingMagic === editingAutomation}
-                                        variant="outline"
-                                        className="h-10"
+                                        variant="primary"
+                                        className="w-full h-12 text-md font-bold"
+                                        onClick={() => setEditingAutomation(null)}
                                     >
-                                        <Sparkles size={16} className="mr-2" />
-                                        Vara Mágica
+                                        Confirmar Edição
                                     </Button>
                                 </div>
-
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                                        Modelo da Mensagem (Customizado)
-                                    </label>
-                                    <p className="text-[10px] text-gray-500 mb-2">Use {'{name}'} para o nome do cliente e {'{amount}'} para valores.</p>
-                                    <textarea
-                                        value={
-                                            editingAutomation === 'financial' ? autoFinancialTemplate :
-                                                editingAutomation === 'birthday' ? autoBirthdayTemplate :
-                                                    autoOverdueTemplate
-                                        }
-                                        onChange={(e) => {
-                                            if (editingAutomation === 'financial') setAutoFinancialTemplate(e.target.value);
-                                            if (editingAutomation === 'birthday') setAutoBirthdayTemplate(e.target.value);
-                                            if (editingAutomation === 'overdue') setAutoOverdueTemplate(e.target.value);
-                                        }}
-                                        placeholder="Deixe em branco para usar o padrão do sistema..."
-                                        className="w-full text-sm border border-gray-200 dark:border-slate-700 rounded-xl p-4 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                        rows={6}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="pt-4 flex gap-3">
-                                <Button
-                                    variant="primary"
-                                    className="w-full h-12 text-md font-bold"
-                                    onClick={() => setEditingAutomation(null)}
-                                >
-                                    Confirmar Edição
-                                </Button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </div >
     );
 }
