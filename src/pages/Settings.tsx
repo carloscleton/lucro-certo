@@ -1768,6 +1768,14 @@ export function Settings() {
                                                                         Expira {new Date(c.license_expires_at).toLocaleDateString('pt-BR')}
                                                                     </div>
                                                                 )}
+                                                                <div className="mt-1">
+                                                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${c.subscription_status === 'active' ? 'bg-green-50 text-green-600' :
+                                                                        c.subscription_status === 'past_due' ? 'bg-red-50 text-red-600' :
+                                                                            'bg-gray-50 text-gray-600'
+                                                                        }`}>
+                                                                        {c.subscription_status?.toUpperCase() || 'Pendente'}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td className="px-2 py-4 text-center">

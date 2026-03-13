@@ -9,7 +9,6 @@ import {
     DollarSign,
     RefreshCw,
     CheckCircle,
-    Ban,
     Zap as ZapIcon,
     Wand2
 } from 'lucide-react';
