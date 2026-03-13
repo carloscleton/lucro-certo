@@ -634,6 +634,14 @@
         "no_leads": "Nenhum lead encontrado hoje ainda. O robô está trabalhando!",
         "stats_found": "Leads Minerados",
         "stats_approached": "Abordagens Feitas",
-        "stats_converted": "Conversões/Agendamentos"
+        "stats_converted": "Conversões/Agendamentos",
+        "convert_to_crm": "Mover para CRM",
+        "converting": "Convertendo...",
+        "convert_success": "Lead movido para o CRM com sucesso!",
+        "already_converted": "Este lead já está no seu CRM/Funil.",
+        "manual_renew": "Renovar Manualmente",
+        "set_trial": "Dar Trial (7 dias)",
+        "block": "Bloquear",
+        "unblock": "Desbloquear"
     }
 }

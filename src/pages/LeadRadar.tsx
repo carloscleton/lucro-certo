@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
+import { useCRM } from '../context/CRMContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 
@@ -51,6 +52,7 @@ interface AISettings {
 export function LeadRadar() {
     const { t } = useTranslation();
     const { currentEntity } = useEntity();
+    const { stages, addDeal } = useCRM();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -250,6 +252,83 @@ export function LeadRadar() {
         const newCatalog = [...settings.services_catalog];
         newCatalog[index][field] = value;
         setSettings({ ...settings, services_catalog: newCatalog });
+    };
+
+    const handleConvertToCRM = async () => {
+        if (!selectedLead) return;
+
+        try {
+            setSaving(true);
+
+            // 1. Encontrar ou Criar Contato
+            let contactId = null;
+
+            // Se tiver telefone, tenta buscar contato existente
+            if (selectedLead.contact_number) {
+                const cleanPhone = selectedLead.contact_number.replace(/\D/g, '');
+                const { data: existingContacts } = await supabase
+                    .from('contacts')
+                    .select('id')
+                    .eq('company_id', currentEntity.id)
+                    .or(`phone.ilike.%${cleanPhone}%,whatsapp.ilike.%${cleanPhone}%`)
+                    .limit(1);
+
+                if (existingContacts && existingContacts.length > 0) {
+                    contactId = existingContacts[0].id;
+                }
+            }
+
+            if (!contactId) {
+                // Criar novo contato
+                const { data: newContact, error: contactError } = await supabase
+                    .from('contacts')
+                    .insert({
+                        company_id: currentEntity.id,
+                        name: selectedLead.name,
+                        email: selectedLead.email || null,
+                        phone: selectedLead.contact_number || null,
+                        whatsapp: selectedLead.contact_number || null,
+                        notes: `Gerado via Radar de Leads. Origem: ${selectedLead.platform}`
+                    })
+                    .select()
+                    .single();
+
+                if (contactError) throw contactError;
+                contactId = newContact.id;
+            }
+
+            // 2. Criar Negócio no CRM
+            // Pega a primeira etapa do CRM se disponível
+            const firstStageId = stages.length > 0 ? stages[0].id : null;
+
+            await addDeal({
+                title: `Lead: ${selectedLead.name}`,
+                contact_id: contactId,
+                stage_id: firstStageId,
+                value: 0,
+                status: 'active',
+                description: `Oportunidade vinda do Radar de Leads.\nInteresse: ${selectedLead.description}\nRaio: ${selectedLead.location}`,
+                probability: 10,
+                tags: ['radar']
+            });
+
+            // 3. Marcar Lead como Convertido
+            await supabase
+                .from('radar_leads')
+                .update({ status: 'converted' })
+                .eq('id', selectedLead.id);
+
+            // 4. Atualizar UI
+            setLeads((prev: any[]) => prev.map(l => l.id === selectedLead.id ? { ...l, status: 'converted' } : l));
+            setSelectedLead((prev: any) => ({ ...prev, status: 'converted' }));
+
+            alert("Lead convertido em negócio no CRM com sucesso! 🚀");
+        } catch (error: any) {
+            console.error("Erro ao converter lead:", error);
+            alert(`Erro ao converter lead: ${error.message}`);
+        } finally {
+            setSaving(false);
+        }
     };
 
 
@@ -1008,6 +1087,19 @@ export function LeadRadar() {
                         </div>
                         <div className="p-6 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-700">
                             <Button variant="outline" onClick={() => setSelectedLead(null)} className="rounded-xl">Fechar</Button>
+
+                            {selectedLead.status !== 'converted' && (
+                                <Button
+                                    onClick={handleConvertToCRM}
+                                    isLoading={saving}
+                                    variant="outline"
+                                    className="border-violet-200 text-violet-600 hover:bg-violet-50 rounded-xl"
+                                >
+                                    <Rocket size={18} className="mr-2" />
+                                    Mover para o CRM
+                                </Button>
+                            )}
+
                             <Button
                                 onClick={() => {
                                     if (selectedLead.contact_number) {

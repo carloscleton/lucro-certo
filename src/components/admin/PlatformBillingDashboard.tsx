@@ -7,19 +7,27 @@ import {
     Search,
     ArrowUpRight,
     DollarSign,
-    RefreshCw
+    RefreshCw,
+    CheckCircle,
+    Ban,
+    Zap as ZapIcon
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { useTranslation } from 'react-i18next';
 import { useAdmin } from '../../hooks/useAdmin';
 
 export function PlatformBillingDashboard() {
+    const { t } = useTranslation();
     const {
         appSettings,
         updateAppSettings,
         companiesList,
         refresh,
-        loading: adminLoading
+        loading: adminLoading,
+        manualRenewSubscription,
+        setCompanyTrial,
+        toggleCompanyBlock
     } = useAdmin();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -313,9 +321,39 @@ export function PlatformBillingDashboard() {
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.next_billing_value || 97)}
                                                 </td>
                                                 <td className="px-4 py-4 text-right">
-                                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Ver Histórico">
-                                                        <ArrowUpRight size={16} />
-                                                    </Button>
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        {c.subscription_status !== 'active' && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-50"
+                                                                onClick={() => manualRenewSubscription(c.id)}
+                                                                title={t('lead_radar.manual_renew')}
+                                                            >
+                                                                <CheckCircle size={16} />
+                                                            </Button>
+                                                        )}
+                                                        {c.subscription_plan !== 'trial' && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50"
+                                                                onClick={() => setCompanyTrial(c.id)}
+                                                                title={t('lead_radar.set_trial')}
+                                                            >
+                                                                <ZapIcon size={16} />
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className={`h-8 w-8 p-0 ${c.status === 'blocked' ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'}`}
+                                                            onClick={() => toggleCompanyBlock(c.id, c.status !== 'blocked')}
+                                                            title={c.status === 'blocked' ? t('lead_radar.unblock') : t('lead_radar.block')}
+                                                        >
+                                                            <Ban size={16} />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))

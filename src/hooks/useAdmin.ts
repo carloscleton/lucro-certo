@@ -232,6 +232,50 @@ export function useAdmin() {
         }
     };
 
+    const manualRenewSubscription = async (companyId: string) => {
+        if (!isAdmin) return { error: 'Unauthorized' };
+
+        try {
+            const { error } = await supabase
+                .from('companies')
+                .update({
+                    subscription_status: 'active',
+                    subscription_plan: 'pro',
+                    current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                })
+                .eq('id', companyId);
+
+            if (error) throw error;
+            await fetchAdminData(true);
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error renewing subscription:', err);
+            return { error: err.message };
+        }
+    };
+
+    const setCompanyTrial = async (companyId: string, days: number = 7) => {
+        if (!isAdmin) return { error: 'Unauthorized' };
+
+        try {
+            const { error } = await supabase
+                .from('companies')
+                .update({
+                    subscription_status: 'active',
+                    subscription_plan: 'trial',
+                    trial_ends_at: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+                })
+                .eq('id', companyId);
+
+            if (error) throw error;
+            await fetchAdminData(true);
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error setting trial:', err);
+            return { error: err.message };
+        }
+    };
+
     const updateUserLimit = async (userId: string, newLimit: number) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
@@ -323,6 +367,8 @@ export function useAdmin() {
         updateUserConfig,
         updateCompanyConfig,
         updateAppSettings,
+        manualRenewSubscription,
+        setCompanyTrial,
         appSettings,
         refresh: fetchAdminData
     };
