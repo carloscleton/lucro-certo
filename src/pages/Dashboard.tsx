@@ -94,7 +94,7 @@ export function Dashboard() {
     // Click handlers for cards
     const handleCardClick = (type: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected') => {
         if (type === 'rejected') {
-            navigate('/quotes', { state: { viewMode: 'recovery' } });
+            navigate('/dashboard/quotes', { state: { viewMode: 'recovery' } });
             return;
         }
 

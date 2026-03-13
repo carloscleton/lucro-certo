@@ -600,7 +600,7 @@ export function Quotes() {
                     <p className="text-gray-500 dark:text-gray-400">Gerencie e emita propostas comerciais.</p>
                 </div>
                 <div className="flex gap-2 items-center">
-                    <Button onClick={() => navigate('/quotes/new')}>
+                    <Button onClick={() => navigate('/dashboard/quotes/new')}>
                         <Plus size={20} className="mr-2" />
                         Novo Orçamento
                     </Button>
@@ -707,7 +707,7 @@ export function Quotes() {
                         {showAll ? "Puxa, você ainda não criou nenhum orçamento." : "Nenhum orçamento para o período selecionado."}
                     </p>
                     {showAll && (
-                        <Button onClick={() => navigate('/quotes/new')}>
+                        <Button onClick={() => navigate('/dashboard/quotes/new')}>
                             <Plus size={20} className="mr-2" />
                             Criar Orçamento
                         </Button>

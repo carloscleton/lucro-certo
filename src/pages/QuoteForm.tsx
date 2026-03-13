@@ -77,7 +77,7 @@ export function QuoteForm() {
 
     const handleBack = () => {
         if (id === 'new') clearCache();
-        navigate('/quotes');
+        navigate('/dashboard/quotes');
     };
 
     useEffect(() => {
@@ -162,7 +162,7 @@ export function QuoteForm() {
         } catch (error) {
             console.error('❌ Error loading quote:', error);
             alert('Erro ao carregar orçamento');
-            navigate('/quotes');
+            navigate('/dashboard/quotes');
         } finally {
             setLoading(false);
             console.log('✅ Loading finished');
@@ -353,7 +353,7 @@ export function QuoteForm() {
                 await createQuote(quoteData, items);
             }
             clearCache();
-            navigate('/quotes');
+            navigate('/dashboard/quotes');
         } catch (error) {
             console.error(error);
             alert('Erro ao salvar orçamento');

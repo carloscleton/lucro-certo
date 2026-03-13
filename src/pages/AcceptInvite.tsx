@@ -183,7 +183,7 @@ export function AcceptInvite() {
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Sucesso!</h2>
                             <p className="text-gray-500 dark:text-gray-400">{message}</p>
                         </div>
-                        <Button onClick={() => { navigate('/'); window.location.reload(); }} className="w-full">
+                        <Button onClick={() => { navigate('/dashboard'); window.location.reload(); }} className="w-full">
                             Ir para o Dashboard
                         </Button>
                     </>

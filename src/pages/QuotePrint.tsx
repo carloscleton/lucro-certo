@@ -30,7 +30,7 @@ export function QuotePrint() {
         } catch (error) {
             console.error(error);
             alert('Erro ao carregar orçamento');
-            navigate('/quotes');
+            navigate('/dashboard/quotes');
         } finally {
             setLoading(false);
         }
@@ -116,7 +116,7 @@ export function QuotePrint() {
         <div className="bg-gray-100 min-h-screen p-4 md:p-8 print:p-0 print:bg-white">
             {/* Toolbar - Hidden on Print */}
             <div className="max-w-4xl mx-auto mb-6 flex justify-between items-center print:hidden">
-                <Button variant="ghost" onClick={() => navigate('/quotes')}>
+                <Button variant="ghost" onClick={() => navigate('/dashboard/quotes')}>
                     <ArrowLeft size={18} className="mr-2" />
                     Voltar
                 </Button>

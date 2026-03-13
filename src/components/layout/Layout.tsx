@@ -129,8 +129,8 @@ export function Layout() {
 
     // Management items for the sidebar group (Comissões, Configurações)
     const managementItems = [
-        { label: t('nav.commissions'), icon: DollarSign, path: '/commissions', key: 'commissions' },
-        { label: t('nav.settings'), icon: Settings, path: '/settings', key: 'settings' },
+        { label: t('nav.commissions'), icon: DollarSign, path: '/dashboard/commissions', key: 'commissions' },
+        { label: t('nav.settings'), icon: Settings, path: '/dashboard/settings', key: 'settings' },
     ].filter(item => {
         if (currentEntity.type !== 'company') return false; // Handled in main nav for personal
 
@@ -377,7 +377,7 @@ export function Layout() {
                                             </span>
                                             {currentEntity.type === 'personal' && (
                                                 <button
-                                                    onClick={() => navigate('/settings?tab=automations')}
+                                                    onClick={() => navigate('/dashboard/settings?tab=automations')}
                                                     className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 px-2 py-0.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors whitespace-nowrap"
                                                     title="Configurar WhatsApp Pessoal"
                                                 >
