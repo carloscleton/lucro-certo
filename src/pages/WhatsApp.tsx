@@ -14,7 +14,7 @@ import {
     Check,
     QrCode,
     Wand2,
-
+    Activity,
     Pencil,
     Send,
     LogOut,
@@ -420,6 +420,30 @@ export function WhatsApp() {
         } catch (error) {
             console.error('Erro ao deletar:', error);
             notify('error', 'Erro ao deletar instância do banco de dados.', 'Erro de Exclusão');
+        }
+    };
+
+    const handleTestConnection = async (instance: Instance) => {
+        try {
+            notify('info', 'Testando conexão com a Evolution API...', 'Aguarde');
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}`);
+
+            if (response.ok) {
+                const data = await response.json().catch(() => ({}));
+                const evoStatus = data?.connectionStatus || data?.instance?.connectionStatus || data?.instance?.status || data?.status;
+
+                if (evoStatus === 'open' || evoStatus === 'connected') {
+                    notify('success', `A instância "${instance.instance_name}" está conectada e respondendo!`, 'Conexão OK');
+                } else {
+                    notify('warning', `A instância "${instance.instance_name}" respondeu, mas o status é: ${evoStatus || 'desconhecido'}.`, 'Atenção');
+                }
+                syncInstanceWithEvolution(instance);
+            } else {
+                throw new Error('A API não respondeu para esta instância.');
+            }
+        } catch (error: any) {
+            console.error('Erro no teste de conexão:', error);
+            notify('error', 'Falha ao validar conexão. Verifique se o servidor Proxy está online.', 'Erro de Conexão');
         }
     };
 
@@ -870,6 +894,15 @@ export function WhatsApp() {
                                 </div>
 
                                 <div className="flex flex-col gap-2">
+                                    <Button
+                                        variant="outline"
+                                        className="w-full text-emerald-600 hover:bg-emerald-50 border-emerald-100"
+                                        onClick={() => handleTestConnection(instance)}
+                                    >
+                                        <Activity size={16} className="mr-2" />
+                                        Testar Conexão
+                                    </Button>
+
                                     {instance.status !== 'connected' && (
                                         <Button
                                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
