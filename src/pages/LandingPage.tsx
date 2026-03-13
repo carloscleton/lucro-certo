@@ -8,7 +8,8 @@ import {
     PlayCircle,
     CheckCircle2,
     DollarSign,
-    Users
+    Users,
+    CreditCard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/LandingPage.css';
@@ -233,6 +234,33 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> Criação de imagens e vídeos com IA</li>
                             <li><CheckCircle2 size={18} className="check-icon" /> Postagem direta no Instagram e Facebook</li>
                         </ul>
+                    </div>
+                </div>
+
+                {/* Platform Billing Section */}
+                <div className="visual-feature">
+                    <div className="visual-content">
+                        <div style={{ color: '#ec4899', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <CreditCard size={20} />
+                            FATURAMENTO AUTOMÁTICO
+                        </div>
+                        <h3>Gestão de Assinantes Sem Stress</h3>
+                        <p>
+                            Venda o acesso ao seu sistema e deixe que a nossa plataforma cuide do resto. Régua de cobrança automática, bloqueio de inadimplentes e renovação instantânea.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Régua de Cobrança:</strong> WhatsApp automático antes do vencimento.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Checkout Integrado:</strong> Seus clientes pagam via PIX ou Cartão em segundos.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Gestão Centralizada:</strong> Painel administrativo para controle total de associados.</li>
+                        </ul>
+                    </div>
+                    <div className="visual-image-container">
+                        <img
+                            src="/images/landing/platform-billing.png"
+                            alt="Faturamento da Plataforma"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(236, 72, 153, 0.2)' }}
+                        />
                     </div>
                 </div>
             </section>
