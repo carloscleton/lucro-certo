@@ -10,11 +10,13 @@ import {
     DollarSign,
     Users
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import '../styles/LandingPage.css';
 import logoFull from '../assets/logo-full.png';
 
 export function LandingPage() {
     const navigate = useNavigate();
+    const { session } = useAuth();
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -38,8 +40,14 @@ export function LandingPage() {
                     <a href="#pricing" className="nav-link">Planos</a>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <Link to="/login" className="nav-link">Acessar Conta</Link>
-                    <Link to="/login" className="nav-btn">Começar Agora</Link>
+                    {session ? (
+                        <Link to="/dashboard" className="nav-btn">Acessar Sistema</Link>
+                    ) : (
+                        <>
+                            <Link to="/login" className="nav-link">Acessar Conta</Link>
+                            <Link to="/login" className="nav-btn">Começar Agora</Link>
+                        </>
+                    )}
                 </div>
             </nav>
 
@@ -57,8 +65,8 @@ export function LandingPage() {
                         Muito além de um controle financeiro. O Lucro Certo utiliza IA de ponta para prospectar leads, vender no automático e organizar sua empresa em um só lugar.
                     </p>
                     <div className="hero-actions">
-                        <button onClick={() => navigate('/login')} className="btn-primary">
-                            Teste Grátis por 7 dias
+                        <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
+                            {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
                             <ChevronRight size={20} />
                         </button>
                         <button className="btn-secondary">

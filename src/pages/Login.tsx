@@ -13,6 +13,7 @@ import loginHero3 from '../assets/login-hero-3.png';
 import loginHero4 from '../assets/login-hero-4.png';
 import logoFull from '../assets/logo-full.png';
 import gridPattern from '../assets/grid-pattern.png';
+import { useAuth } from '../context/AuthContext';
 
 export function Login() {
     const [searchParams] = useSearchParams();
@@ -97,6 +98,14 @@ export function Login() {
     const [resetLoading, setResetLoading] = useState(false);
     const navigate = useNavigate();
     const { t } = useTranslation();
+    const { session } = useAuth();
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (session) {
+            navigate('/dashboard');
+        }
+    }, [session, navigate]);
 
     // Check for recovery hash in URL
     useEffect(() => {
