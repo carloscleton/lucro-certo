@@ -253,6 +253,14 @@ export const SETTINGS_TABS: TabDefinition[] = [
         color: 'blue',
         desc: 'Gestão da sua conta Lucro Certo',
         defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'platform_billing',
+        label: 'Gestão da Plataforma',
+        icon: DollarSign,
+        color: 'emerald',
+        desc: 'Faturamento, Gateway e controle de assinantes',
+        defaultPermissions: { admin: false, member: false } // Only for Super Admin
     }
 ];
 
