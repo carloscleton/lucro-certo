@@ -2,8 +2,11 @@
 
 -- 1. Add platform billing settings to app_settings
 ALTER TABLE public.app_settings
+ADD COLUMN IF NOT EXISTS platform_billing_provider TEXT DEFAULT 'asaas', -- 'asaas', 'stripe', 'mercadopago'
 ADD COLUMN IF NOT EXISTS platform_asaas_api_key TEXT,
-ADD COLUMN IF NOT EXISTS platform_asaas_wallet_id TEXT, -- For multiple wallets if needed
+ADD COLUMN IF NOT EXISTS platform_stripe_api_key TEXT,
+ADD COLUMN IF NOT EXISTS platform_mercadopago_api_key TEXT,
+ADD COLUMN IF NOT EXISTS platform_asaas_wallet_id TEXT,
 ADD COLUMN IF NOT EXISTS billing_notifications_enabled BOOLEAN DEFAULT true,
 ADD COLUMN IF NOT EXISTS billing_whatsapp_template TEXT DEFAULT 'Olá, {company_name}! Sua mensalidade do Lucro Certo vence em {days} dias ({due_date}). Evite o bloqueio do sistema clicando no boleto/pix: {payment_link}',
 ADD COLUMN IF NOT EXISTS billing_email_template TEXT DEFAULT 'Olá, {company_name}!<br><br>Sua mensalidade do Lucro Certo está próxima do vencimento ({due_date}).<br><br>Valor: {value}<br><br>Para continuar com acesso total às funcionalidades, realize o pagamento pelo link abaixo:<br><a href="{payment_link}">{payment_link}</a><br><br>Atenciosamente,<br>Equipe Lucro Certo',

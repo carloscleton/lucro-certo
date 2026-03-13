@@ -1950,13 +1950,54 @@ export function Settings() {
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-4">
-                                                <Input
-                                                    label="API Key Asaas (Sistema)"
-                                                    type="password"
-                                                    value={appSettings?.platform_asaas_api_key || ''}
-                                                    onChange={(e) => updateAppSettings({ platform_asaas_api_key: e.target.value })}
-                                                    placeholder="$asaas_api_key..."
-                                                />
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Provedor Ativo</label>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {['asaas', 'stripe', 'mercadopago'].map((provider) => (
+                                                            <button
+                                                                key={provider}
+                                                                onClick={() => updateAppSettings({ platform_billing_provider: provider as any })}
+                                                                className={`py-2 px-3 rounded-lg border text-xs font-bold capitalize transition-all ${appSettings?.platform_billing_provider === provider
+                                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
+                                                                    : 'bg-white dark:bg-slate-900 text-gray-500 border-gray-200 dark:border-slate-700 hover:border-gray-300'
+                                                                    }`}
+                                                            >
+                                                                {provider}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {appSettings?.platform_billing_provider === 'asaas' && (
+                                                    <Input
+                                                        label="API Key Asaas (Sistema)"
+                                                        type="password"
+                                                        value={appSettings?.platform_asaas_api_key || ''}
+                                                        onChange={(e) => updateAppSettings({ platform_asaas_api_key: e.target.value })}
+                                                        placeholder="$asaas_api_key..."
+                                                    />
+                                                )}
+
+                                                {appSettings?.platform_billing_provider === 'stripe' && (
+                                                    <Input
+                                                        label="API Key Stripe (Sistema)"
+                                                        type="password"
+                                                        value={appSettings?.platform_stripe_api_key || ''}
+                                                        onChange={(e) => updateAppSettings({ platform_stripe_api_key: e.target.value })}
+                                                        placeholder="sk_live_..."
+                                                    />
+                                                )}
+
+                                                {appSettings?.platform_billing_provider === 'mercadopago' && (
+                                                    <Input
+                                                        label="Access Token Mercado Pago (Sistema)"
+                                                        type="password"
+                                                        value={appSettings?.platform_mercadopago_api_key || ''}
+                                                        onChange={(e) => updateAppSettings({ platform_mercadopago_api_key: e.target.value })}
+                                                        placeholder="APP_USR-..."
+                                                    />
+                                                )}
+
                                                 <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-700">
                                                     <input
                                                         type="checkbox"
@@ -1964,7 +2005,7 @@ export function Settings() {
                                                         onChange={(e) => updateAppSettings({ billing_notifications_enabled: e.target.checked })}
                                                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                     />
-                                                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Ativar notificações automáticas de cobrança</span>
+                                                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Ativar notificações automáticas</span>
                                                 </div>
                                             </div>
 

@@ -59,7 +59,10 @@ export function useAdmin() {
     const [companiesList, setCompaniesList] = useState<AdminCompany[]>([]);
     const [appSettings, setAppSettings] = useState<{
         storage_provider: 'supabase' | 'r2';
+        platform_billing_provider?: 'asaas' | 'stripe' | 'mercadopago';
         platform_asaas_api_key?: string;
+        platform_stripe_api_key?: string;
+        platform_mercadopago_api_key?: string;
         billing_notifications_enabled?: boolean;
         billing_whatsapp_template?: string;
         billing_email_template?: string;
@@ -266,7 +269,10 @@ export function useAdmin() {
 
     const updateAppSettings = async (newSettings: Partial<{
         storage_provider: 'supabase' | 'r2';
+        platform_billing_provider: 'asaas' | 'stripe' | 'mercadopago';
         platform_asaas_api_key: string;
+        platform_stripe_api_key: string;
+        platform_mercadopago_api_key: string;
         billing_notifications_enabled: boolean;
         billing_whatsapp_template: string;
         billing_email_template: string;
