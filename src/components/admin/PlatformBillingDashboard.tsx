@@ -389,19 +389,15 @@ export function PlatformBillingDashboard() {
                                                                 <span className="text-[10px] font-bold uppercase">Trial</span>
                                                             </button>
                                                         )}
-                                                        <button
-                                                            onClick={() => toggleCompanyBlock(c.id, c.status !== 'blocked')}
-                                                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors border ${c.status === 'blocked'
-                                                                ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-100'
-                                                                : 'bg-red-50 text-red-700 hover:bg-red-100 border-red-100'
-                                                                }`}
-                                                            title={c.status === 'blocked' ? t('lead_radar.unblock') : t('lead_radar.block')}
-                                                        >
-                                                            <Ban size={14} />
-                                                            <span className="text-[10px] font-bold uppercase">
-                                                                {c.status === 'blocked' ? 'Liberar' : 'Bloquear'}
-                                                            </span>
-                                                        </button>
+                                                        <label className="relative inline-flex items-center cursor-pointer scale-75">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="sr-only peer"
+                                                                checked={c.status !== 'blocked'}
+                                                                onChange={() => toggleCompanyBlock(c.id, c.status !== 'blocked')}
+                                                            />
+                                                            <div className="w-11 h-6 bg-red-500 peer-focus:outline-none rounded-full peer dark:bg-red-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                                                        </label>
                                                     </div>
                                                 </td>
                                             </tr>
