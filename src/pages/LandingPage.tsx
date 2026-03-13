@@ -71,13 +71,13 @@ export function LandingPage() {
 
                     <div style={{ marginTop: '3rem', display: 'flex', gap: '2rem', alignItems: 'center' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>+R$ 2.4M</span>
-                            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Transacionados</span>
+                            <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-dark)' }}>+R$ 2.4M</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Transacionados</span>
                         </div>
-                        <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }}></div>
+                        <div style={{ width: '1px', height: '40px', background: 'var(--glass-border)' }}></div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>1.2k+</span>
-                            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Empresas Ativas</span>
+                            <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-dark)' }}>1.2k+</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Empresas Ativas</span>
                         </div>
                     </div>
                 </div>
