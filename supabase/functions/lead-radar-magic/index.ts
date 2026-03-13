@@ -23,17 +23,18 @@ serve(async (req) => {
         if (mode === 'field_only') {
             prompt = `
         Você é um copywriter de elite especialista em IA. 
-        O usuário quer gerar uma sugestão criativa para um campo específico das configurações de um Agente de Vendas.
+        O usuário quer gerar uma sugestão criativa ou um template para um campo específico.
         
         CONTEXTO/SOLICITAÇÃO: "${input}"
 
         REGRAS:
-        1. Se o campo solicitado for "agent_name", sugira um nome curto e cativante para um robô assistente.
-        2. Se for "business_niche", sugira um nicho de mercado profissional e focado.
-        3. Se for "business_description", escreva um parágrafo envolvente sobre o que a empresa faz e como o robô deve abordar os clientes.
+        1. Se o campo solicitado for "agent_name", sugira um nome curto e cativante para um robô assistente. No JSON use a chave "agent_name".
+        2. Se for "business_niche", sugira um nicho de mercado profissional e focado. No JSON use a chave "business_niche".
+        3. Se for "business_description", escreva um parágrafo envolvente sobre o que a empresa faz. No JSON use a chave "business_description".
+        4. Para qualquer outra solicitação (como templates de WhatsApp ou E-mail), gere o conteúdo solicitado no tom adequado. No JSON use obrigatoriamente a chave "text".
         
-        Retorne APENAS um JSON com o campo solicitado preenchido.
-        Exemplo: { "agent_name": "Dr. Zap" } ou { "business_description": "..." }
+        Retorne APENAS o JSON.
+        Exemplo: { "text": "Conteúdo gerado..." }
       `;
         } else {
             prompt = `
@@ -76,8 +77,18 @@ serve(async (req) => {
         });
 
         const data = await res.json();
-        const content = data.choices?.[0]?.message?.content;
-        const result = JSON.parse(content.replace(/```json/g, '').replace(/```/g, ''));
+        const content = data.choices?.[0]?.message?.content || "";
+
+        // Clean JSON response from potential Markdown blocks or extra text
+        let result;
+        try {
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            const cleanContent = jsonMatch ? jsonMatch[0] : content;
+            result = JSON.parse(cleanContent.replace(/```json/g, '').replace(/```/g, ''));
+        } catch (e) {
+            console.error('Failed to parse JSON content:', content);
+            result = { text: content }; // Fallback to raw content if JSON fails
+        }
 
         return new Response(JSON.stringify(result), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
