@@ -68,43 +68,27 @@ export function Layout() {
 
     // Filter Logic
     const displayedNavItems = APP_MODULES.filter(item => {
-        // Exclude items that are managed in the Administrative Submenu below
+        // Exclude management items that go into the administrative submenu
         const isManagementItem = ['commissions', 'settings'].includes(item.key);
         if (currentEntity.type === 'company' && isManagementItem) return false;
 
-        // Owner/SystemAdmin see absolute everything if it is "hard-enabled" on the company record
         const isSuper = userRole === 'owner' || isSystemAdmin;
 
-        // CRM Module Check
-        if (item.key === 'crm') {
-            const isEnabled = !!currentEntity?.crm_module_enabled;
-            if (!isEnabled) return false;
+        // 1. Company Feature Flags Check
+        if (currentEntity.type === 'company') {
+            // CRM
+            if (item.key === 'crm' && !currentEntity.crm_module_enabled && !isSuper) return false;
+            // Marketing
+            if (item.key === 'marketing' && !currentEntity.has_social_copilot && !isSuper) return false;
+            // Lead Radar
+            if (item.key === 'lead_radar' && !currentEntity.has_lead_radar && !isSuper) return false;
+
+            // 2. Role-based Permission Check
             if (isSuper) return true;
             return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
 
-        // Marketing Module Check
-        if (item.key === 'marketing') {
-            const isEnabled = !!currentEntity?.has_social_copilot;
-            if (!isEnabled) return false;
-            if (isSuper) return true;
-            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
-        }
-
-        // Lead Radar Module Check
-        if (item.key === 'lead_radar') {
-            const isEnabled = !!currentEntity?.has_lead_radar;
-            if (!isEnabled) return false;
-            if (isSuper) return true;
-            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
-        }
-
-        if (currentEntity.type === 'company' && userRole) {
-            if (isSuper) return true;
-            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
-        }
-
-        // Personal View defaults
+        // 3. Fallback/Personal View (Role permissions handled later in finalNavItems)
         return true;
     });
 
