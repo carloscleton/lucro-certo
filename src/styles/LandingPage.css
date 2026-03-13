@@ -371,20 +371,29 @@
 .feature-list {
     list-style: none;
     padding: 0;
-    display: grid;
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
 .feature-list li {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    align-items: flex-start;
+    gap: 1rem;
     color: var(--text-muted);
     font-weight: 500;
+    line-height: 1.5;
+}
+
+.feature-list li strong {
+    color: var(--text-dark);
+    white-space: nowrap;
 }
 
 .check-icon {
     color: var(--primary-emerald);
+    flex-shrink: 0;
+    margin-top: 3px;
 }
 
 /* Pricing Section */
