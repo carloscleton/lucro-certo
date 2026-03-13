@@ -27,6 +27,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { EntityProvider } from './context/EntityContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CRMProvider } from './context/CRMContext';
+import { LandingPage } from './pages/LandingPage';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
@@ -41,17 +42,17 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/pay/:id" element={<Checkout />} />
 
-      <Route path="/" element={
+      <Route path="/dashboard" element={
         <ProtectedRoute>
           <Layout />
         </ProtectedRoute>
       }>
         <Route index element={<Dashboard />} />
-        <Route path="dashboard" element={<Dashboard />} />
         <Route path="payables" element={<Payables />} />
         <Route path="receivables" element={<Receivables />} />
         <Route path="categories" element={<Categories />} />
@@ -72,6 +73,8 @@ function AppRoutes() {
         <Route path="marketing" element={<Marketing />} />
         <Route path="lead-radar" element={<LeadRadar />} />
       </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

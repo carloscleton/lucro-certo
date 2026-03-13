@@ -85,6 +85,16 @@ serve(async (req) => {
             }
         }
 
+        // --- NOVO: Disparo das Rotinas de IA (Radar e Redes Sociais) ---
+        // Estas funções já possuem lógica interna para respeitar o agendamento de cada empresa
+        console.log(`[IA] Disparando Radar e Copilot para processamento agendado...`)
+
+        // Dispara Radar de Leads (Mineração Global)
+        await supabase.functions.invoke('lead-radar-miner', { body: {} })
+
+        // Dispara Social Copilot (Postagens Automáticas)
+        await supabase.functions.invoke('social-copilot-cron', { body: {} })
+
         return new Response(JSON.stringify({
             time: currentTime,
             processed: results.length,
