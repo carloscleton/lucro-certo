@@ -308,13 +308,16 @@ export function Settings() {
             // 1. Tentar usar configurações de plataforma do app_settings primeiro
             let provider = appSettings?.platform_billing_provider;
             let config: any = null;
+            const isSandbox = appSettings?.platform_billing_sandbox || false;
+            const env = isSandbox ? 'sandbox' : 'production';
+            const configData = (appSettings?.platform_billing_config as any)?.[provider!]?.[env] || {};
 
             if (provider === 'asaas') {
-                config = { api_key: appSettings?.platform_asaas_api_key };
+                config = { api_key: configData.api_key };
             } else if (provider === 'stripe') {
-                config = { secret_key: appSettings?.platform_stripe_api_key };
+                config = { secret_key: configData.secret_key };
             } else if (provider === 'mercadopago') {
-                config = { access_token: appSettings?.platform_mercadopago_api_key };
+                config = { access_token: configData.access_token };
             }
 
             // 2. Se não houver config de plataforma, buscar gateway ativo da empresa master (LEGACY/Fallback)
