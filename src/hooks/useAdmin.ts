@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
+import { API_BASE_URL } from '../lib/constants';
 
 export interface AdminStats {
     total_users: number;
@@ -382,6 +384,33 @@ export function useAdmin() {
         }
     }, [user, isAdmin]);
 
+    const testPlatformConnection = async (provider: 'asaas' | 'stripe' | 'mercadopago', config: any, isSandbox: boolean) => {
+        if (!isAdmin) return { success: false, message: 'Unauthorized' };
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            // We can reuse the existing endpoint or call a specific platform-test if available
+            // For now, let's call the generic test-connection endpoint if it exists in the API
+            const response = await axios.post(`${API_BASE_URL}/payments/test-connection`, {
+                provider,
+                config,
+                is_sandbox: isSandbox
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+
+            return response.data;
+        } catch (error: any) {
+            console.error('Error testing platform connection:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || error.message || 'Erro de conexão.'
+            };
+        }
+    };
+
     return {
         isAdmin,
         stats,
@@ -398,6 +427,7 @@ export function useAdmin() {
         updateAppSettings,
         manualRenewSubscription,
         setCompanyTrial,
+        testPlatformConnection,
         biStats,
         appSettings,
         refresh: fetchAdminData

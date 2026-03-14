@@ -105,3 +105,23 @@ entrypoint = "./functions/social-copilot-vision/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/platform-billing-cron/index.ts"
+
+[functions.platform-checkout]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/platform-checkout/index.ts"
+
+[functions.platform-webhook-asaas]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/platform-webhook-asaas/index.ts"
+
+[functions.platform-webhook-stripe]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/platform-webhook-stripe/index.ts"
+
+[functions.platform-webhook-mercadopago]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/platform-webhook-mercadopago/index.ts"

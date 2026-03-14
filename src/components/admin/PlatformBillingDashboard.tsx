@@ -11,7 +11,8 @@ import {
     CheckCircle,
     Zap as ZapIcon,
     Wand2,
-    Save
+    Save,
+    Activity
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
@@ -19,6 +20,7 @@ import { Input } from '../ui/Input';
 import { useTranslation } from 'react-i18next';
 import { useAdmin } from '../../hooks/useAdmin';
 import { AdminBICharts } from './AdminBICharts';
+import { useNotification } from '../../context/NotificationContext';
 
 export function PlatformBillingDashboard() {
     const { t } = useTranslation();
@@ -39,7 +41,11 @@ export function PlatformBillingDashboard() {
     const [isGeneratingWhatsApp, setIsGeneratingWhatsApp] = useState(false);
     const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [testing, setTesting] = useState(false);
+    const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [localKeys, setLocalKeys] = useState<Record<string, string>>({});
+    const { notify } = useNotification();
+    const { testPlatformConnection } = useAdmin();
 
     // Sync local keys when appSettings loads
     useEffect(() => {
@@ -289,14 +295,60 @@ export function PlatformBillingDashboard() {
                                 </div>
                             )}
 
-                            <Button
-                                onClick={() => handleSaveSettings()}
-                                isLoading={saving}
-                                className="mt-4 w-full"
-                            >
-                                <Save size={18} className="mr-2" />
-                                Salvar Configuração de Pay
-                            </Button>
+                            <div className="flex gap-2 mt-4">
+                                <Button
+                                    onClick={() => handleSaveSettings()}
+                                    isLoading={saving}
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-500/20"
+                                >
+                                    <Save size={18} className="mr-2" />
+                                    Salvar Alterações
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    onClick={async () => {
+                                        setTesting(true);
+                                        const config: any = {};
+                                        const provider = appSettings?.platform_billing_provider;
+                                        if (provider === 'asaas') {
+                                            config.api_key = localKeys.platform_asaas_api_key;
+                                        } else if (provider === 'stripe') {
+                                            config.api_key = localKeys.platform_stripe_api_key;
+                                        } else if (provider === 'mercadopago') {
+                                            config.access_token = localKeys.platform_mercadopago_api_key;
+                                        }
+
+                                        const res = await testPlatformConnection(
+                                            provider as any,
+                                            config,
+                                            appSettings?.platform_billing_sandbox ?? true
+                                        );
+                                        setTesting(false);
+                                        setTestResult(res);
+                                        if (res.success) {
+                                            notify('success', 'Conexão validada com sucesso!', 'Gateway Online');
+                                        } else {
+                                            notify('error', res.message || 'Falha na conexão.', 'Erro de Credenciais');
+                                        }
+                                    }}
+                                    isLoading={testing}
+                                    className="px-3"
+                                    title="Testar Conexão"
+                                >
+                                    <Activity size={18} className={testing ? 'animate-pulse' : ''} />
+                                </Button>
+                            </div>
+
+                            {testResult && (
+                                <div className={`mt-3 p-3 rounded-xl border text-[10px] flex items-start gap-2 animate-in fade-in slide-in-from-top-1 ${testResult.success ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-700'}`}>
+                                    <div className={`mt-0.5 w-1.5 h-1.5 rounded-full ${testResult.success ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                    <div>
+                                        <strong>Status:</strong> {testResult.success ? 'Conectado com sucesso!' : 'Falha na autenticação.'}
+                                        <p className="mt-1 opacity-80">{testResult.message}</p>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="pt-4 border-t border-gray-100 dark:border-slate-700 space-y-4">
                                 <div className="flex items-center gap-2 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100/50 dark:border-blue-900/30">

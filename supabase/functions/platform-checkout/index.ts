@@ -97,10 +97,9 @@ serve(async (req) => {
                 customerId = createData.id
             }
 
-            // b. Create Charge (Boleto/PIX/Card)
-            // Asaas allows setting billingType = 'UNDEFINED' so the user chooses on the Asaas checkout page
+            // b. Create Charge
             const dueDate = new Date()
-            dueDate.setDate(dueDate.getDate() + 3) // 3 days to pay
+            dueDate.setDate(dueDate.getDate() + 3)
 
             const chargePayload: any = {
                 customer: customerId,
@@ -111,7 +110,6 @@ serve(async (req) => {
                 externalReference: company.id
             }
 
-            // Add walletId if split is configured
             if (settings.platform_asaas_wallet_id) {
                 chargePayload.split = [{
                     walletId: settings.platform_asaas_wallet_id,
@@ -128,14 +126,65 @@ serve(async (req) => {
             const chargeData = await chargeRes.json()
             if (chargeData.errors) throw new Error(`Asaas Charge Error: ${chargeData.errors[0].description}`)
 
-            // chargeData.invoiceUrl -> link to Asaas checkout
             checkoutUrl = chargeData.invoiceUrl
         } else if (provider === 'mercadopago') {
-            // Mock integration, requires MP Preference Create
-            throw new Error('Mercado Pago integration not yet fully implemented in this module.')
+            const accessToken = settings.platform_mercadopago_api_key
+            if (!accessToken) throw new Error('Mercado Pago Access Token not configured')
+
+            // Create Preference
+            const prefRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    items: [{
+                        title: `Assinatura Lucro Certo - ${company.trade_name}`,
+                        quantity: 1,
+                        unit_price: amount,
+                        currency_id: 'BRL'
+                    }],
+                    external_reference: company.id,
+                    back_urls: {
+                        success: `${Deno.env.get('PUBLIC_URL') || 'https://lucrocerto.com'}/dashboard`,
+                        pending: `${Deno.env.get('PUBLIC_URL') || 'https://lucrocerto.com'}/dashboard`,
+                        failure: `${Deno.env.get('PUBLIC_URL') || 'https://lucrocerto.com'}/dashboard`
+                    },
+                    auto_return: 'all'
+                })
+            })
+            const prefData = await prefRes.json()
+            if (prefData.error) throw new Error(`Mercado Pago Error: ${prefData.message}`)
+            checkoutUrl = isSandbox ? prefData.sandbox_init_point : prefData.init_point
+        } else if (provider === 'stripe') {
+            const secretKey = settings.platform_stripe_api_key
+            if (!secretKey) throw new Error('Stripe Secret Key not configured')
+
+            // Reusing logic from Stripe adapter but adapted for simple fetch if don't want to import full SDK
+            // Or just use the Stripe SDK via esm.sh
+            const { default: Stripe } = await import('https://esm.sh/stripe@13.10.0?target=deno')
+            const stripe = new Stripe(secretKey, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() })
+
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                line_items: [{
+                    price_data: {
+                        currency: 'brl',
+                        product_data: { name: `Assinatura Lucro Certo - ${company.trade_name}` },
+                        unit_amount: Math.round(amount * 100),
+                    },
+                    quantity: 1,
+                }],
+                mode: 'payment',
+                success_url: `${Deno.env.get('PUBLIC_URL') || 'https://lucrocerto.com'}/dashboard?status=success`,
+                cancel_url: `${Deno.env.get('PUBLIC_URL') || 'https://lucrocerto.com'}/dashboard?status=cancelled`,
+                metadata: { external_reference: company.id }
+            })
+
+            checkoutUrl = session.url
         } else {
-            // Stripe
-            throw new Error('Stripe integration not yet fully implemented in this module.')
+            throw new Error(`Provider ${provider} not supported for platform billing.`)
         }
 
         return new Response(JSON.stringify({ paymentUrl: checkoutUrl }), {

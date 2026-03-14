@@ -8,7 +8,6 @@ export function SubscriptionSettings() {
     const { currentEntity } = useEntity();
     const [loading, setLoading] = useState(true);
     const [subscription, setSubscription] = useState<any>(null);
-    const [pendingInvoice, setPendingInvoice] = useState<any>(null);
 
     useEffect(() => {
         if (currentEntity?.id) {
@@ -19,8 +18,7 @@ export function SubscriptionSettings() {
     const loadData = async () => {
         setLoading(true);
         await Promise.all([
-            fetchSubscription(),
-            fetchPendingInvoice()
+            fetchSubscription()
         ]);
         setLoading(false);
     };
@@ -37,27 +35,6 @@ export function SubscriptionSettings() {
             if (data) setSubscription(data);
         } catch (error) {
             console.error('Error fetching subscription:', error);
-        }
-    };
-
-    const fetchPendingInvoice = async () => {
-        try {
-            // Buscar cobrança pendente onde o nome da empresa está na descrição
-            // Em um sistema real, usaríamos target_company_id
-            const { data: invoice } = await supabase
-                .from('company_charges')
-                .select('*')
-                .eq('status', 'pending')
-                .ilike('description', `%${currentEntity.name}%`)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (invoice) {
-                setPendingInvoice(invoice);
-            }
-        } catch (error) {
-            console.error('Error fetching pending invoice:', error);
         }
     };
 
