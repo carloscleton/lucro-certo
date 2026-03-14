@@ -58,9 +58,9 @@ BEGIN
     ) t;
 
     RETURN json_build_object(
-        'revenue_series', _revenue_series,
-        'growth_series', _growth_series,
-        'plan_distribution', _plan_distribution
+        'revenue_series', COALESCE(_revenue_series, '[]'::json),
+        'growth_series', COALESCE(_growth_series, '[]'::json),
+        'plan_distribution', COALESCE(_plan_distribution, '[]'::json)
     );
 END;
 $func$;

@@ -190,15 +190,30 @@ async function runRadarMining(target_company_id?: string) {
                 if (agent.auto_approach && newL && raw.contact_number) {
                     const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
                     if (inst?.length) {
-                        const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
-                        const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies.trade_name} e trabalhamos com ${niche}. Podemos conversar?`
-                        fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
-                            body: JSON.stringify({ number: num, text: msg })
-                        }).then(() => {
-                            supabase.from('radar_leads').update({ status: 'approached', last_approach_at: new Date().toISOString() }).eq('id', newL.id).then(() => { })
-                        }).catch(e => console.error(e))
+                        try {
+                            const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
+                            const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies.trade_name} e trabalhamos com ${niche}. Podemos conversar?`
+
+                            const evoRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+                                body: JSON.stringify({ number: num, text: msg })
+                            })
+
+                            if (evoRes.ok) {
+                                await supabase.from('radar_leads')
+                                    .update({
+                                        status: 'approached',
+                                        last_approach_at: new Date().toISOString()
+                                    })
+                                    .eq('id', newL.id)
+                            } else {
+                                const errData = await evoRes.text()
+                                console.error(`[RADAR] Erro Evolution API: ${errData}`)
+                            }
+                        } catch (e) {
+                            console.error(`[RADAR] Erro ao enviar Zap:`, e)
+                        }
                     }
                 }
                 leadsFoundTotal++

@@ -130,3 +130,8 @@ entrypoint = "./functions/platform-webhook-mercadopago/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/lead-radar-magic/index.ts"
+
+[functions.lead-radar-miner]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/lead-radar-miner/index.ts"
