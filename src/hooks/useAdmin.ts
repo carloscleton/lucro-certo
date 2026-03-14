@@ -69,13 +69,21 @@ export function useAdmin() {
     const [appSettings, setAppSettings] = useState<{
         storage_provider: 'supabase' | 'r2';
         platform_billing_provider?: 'asaas' | 'stripe' | 'mercadopago';
-        platform_asaas_api_key?: string;
-        platform_stripe_api_key?: string;
-        platform_stripe_publishable_key?: string;
-        platform_mercadopago_api_key?: string;
-        platform_mercadopago_public_key?: string;
+        platform_billing_config?: {
+            asaas?: {
+                sandbox?: { api_key?: string; wallet_id?: string };
+                production?: { api_key?: string; wallet_id?: string };
+            };
+            stripe?: {
+                sandbox?: { secret_key?: string; publishable_key?: string };
+                production?: { secret_key?: string; publishable_key?: string };
+            };
+            mercadopago?: {
+                sandbox?: { access_token?: string; public_key?: string };
+                production?: { access_token?: string; public_key?: string };
+            };
+        };
         platform_billing_sandbox?: boolean;
-        platform_asaas_wallet_id?: string;
         platform_whatsapp_instance?: string;
         billing_notifications_enabled?: boolean;
         billing_whatsapp_template?: string;
@@ -337,13 +345,8 @@ export function useAdmin() {
     const updateAppSettings = async (newSettings: Partial<{
         storage_provider: 'supabase' | 'r2';
         platform_billing_provider: 'asaas' | 'stripe' | 'mercadopago';
-        platform_asaas_api_key: string;
-        platform_stripe_api_key: string;
-        platform_stripe_publishable_key: string;
-        platform_mercadopago_api_key: string;
-        platform_mercadopago_public_key: string;
+        platform_billing_config: any;
         platform_billing_sandbox: boolean;
-        platform_asaas_wallet_id: string;
         platform_whatsapp_instance: string;
         billing_notifications_enabled: boolean;
         billing_whatsapp_template: string;

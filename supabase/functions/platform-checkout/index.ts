@@ -59,13 +59,15 @@ serve(async (req) => {
 
         const provider = settings.platform_billing_provider || 'asaas'
         const isSandbox = settings.platform_billing_sandbox !== false
+        const env = isSandbox ? 'sandbox' : 'production'
+        const configData = settings.platform_billing_config?.[provider]?.[env] || {}
         const amount = company.next_billing_value || 97.00
 
         let checkoutUrl = '';
 
         if (provider === 'asaas') {
-            const apiKey = settings.platform_asaas_api_key
-            if (!apiKey) throw new Error('Asaas API Key not configured on platform')
+            const apiKey = configData.api_key
+            if (!apiKey) throw new Error(`Asaas API Key [${env}] not configured on platform`)
             const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3'
 
             // a. Find or Create Asaas Customer
@@ -110,9 +112,10 @@ serve(async (req) => {
                 externalReference: company.id
             }
 
-            if (settings.platform_asaas_wallet_id) {
+            const walletId = configData.wallet_id || settings.platform_asaas_wallet_id
+            if (walletId) {
                 chargePayload.split = [{
-                    walletId: settings.platform_asaas_wallet_id,
+                    walletId: walletId,
                     fixedValue: amount,
                     status: 'PENDING'
                 }]
@@ -128,8 +131,8 @@ serve(async (req) => {
 
             checkoutUrl = chargeData.invoiceUrl
         } else if (provider === 'mercadopago') {
-            const accessToken = settings.platform_mercadopago_api_key
-            if (!accessToken) throw new Error('Mercado Pago Access Token not configured')
+            const accessToken = configData.access_token
+            if (!accessToken) throw new Error(`Mercado Pago Access Token [${env}] not configured`)
 
             // Create Preference
             const prefRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -158,11 +161,9 @@ serve(async (req) => {
             if (prefData.error) throw new Error(`Mercado Pago Error: ${prefData.message}`)
             checkoutUrl = isSandbox ? prefData.sandbox_init_point : prefData.init_point
         } else if (provider === 'stripe') {
-            const secretKey = settings.platform_stripe_api_key
-            if (!secretKey) throw new Error('Stripe Secret Key not configured')
+            const secretKey = configData.secret_key
+            if (!secretKey) throw new Error(`Stripe Secret Key [${env}] not configured`)
 
-            // Reusing logic from Stripe adapter but adapted for simple fetch if don't want to import full SDK
-            // Or just use the Stripe SDK via esm.sh
             const { default: Stripe } = await import('https://esm.sh/stripe@13.10.0?target=deno')
             const stripe = new Stripe(secretKey, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() })
 

@@ -43,36 +43,43 @@ export function PlatformBillingDashboard() {
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
-    const [localKeys, setLocalKeys] = useState<Record<string, string>>({});
+    const [localKeys, setLocalKeys] = useState<any>({});
     const { notify } = useNotification();
     const { testPlatformConnection } = useAdmin();
 
     // Sync local keys when appSettings loads
     useEffect(() => {
-        if (appSettings) {
-            setLocalKeys({
-                platform_asaas_api_key: appSettings.platform_asaas_api_key || '',
-                platform_asaas_wallet_id: appSettings.platform_asaas_wallet_id || '',
-                platform_stripe_api_key: appSettings.platform_stripe_api_key || '',
-                platform_stripe_publishable_key: appSettings.platform_stripe_publishable_key || '',
-                platform_mercadopago_api_key: appSettings.platform_mercadopago_api_key || '',
-                platform_mercadopago_public_key: appSettings.platform_mercadopago_public_key || '',
-            });
+        if (appSettings?.platform_billing_config) {
+            setLocalKeys(appSettings.platform_billing_config);
         }
     }, [appSettings]);
 
     const handleSaveSettings = async (settingsToSave?: any) => {
         setSaving(true);
-        const finalSettings = settingsToSave || localKeys;
+        const finalSettings = settingsToSave || { platform_billing_config: localKeys };
         const { error } = await updateAppSettings(finalSettings);
         setSaving(false);
         if (error) {
             alert('Erro ao salvar: ' + error);
         } else {
-            // refresh data
             refresh();
         }
     };
+
+    const updateNestedKey = (provider: string, env: 'sandbox' | 'production', key: string, value: string) => {
+        setLocalKeys((prev: any) => ({
+            ...prev,
+            [provider]: {
+                ...((prev as any)[provider] || {}),
+                [env]: {
+                    ...(((prev as any)[provider]?.[env]) || {}),
+                    [key]: value
+                }
+            }
+        }));
+    };
+
+    const currentEnv = appSettings?.platform_billing_sandbox ? 'sandbox' : 'production';
 
     const handleMagicTemplate = async (type: 'whatsapp' | 'email') => {
         const setGenerating = type === 'whatsapp' ? setIsGeneratingWhatsApp : setIsGeneratingEmail;
@@ -86,7 +93,8 @@ export function PlatformBillingDashboard() {
             });
             if (error) throw error;
             if (data?.text) {
-                updateAppSettings({ [type === 'whatsapp' ? 'billing_whatsapp_template' : 'billing_email_template']: data.text });
+                await updateAppSettings({ [type === 'whatsapp' ? 'billing_whatsapp_template' : 'billing_email_template']: data.text });
+                refresh();
             }
         } catch (error) {
             console.error('Magic error:', error);
@@ -190,7 +198,7 @@ export function PlatformBillingDashboard() {
                             <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
                                 <DollarSign size={20} />
                             </div>
-                            <h3 className="font-bold text-gray-900 dark:text-white">Configuração de Pay</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white">Configuração de Faturamento</h3>
                         </div>
 
                         <div className="space-y-6">
@@ -244,16 +252,16 @@ export function PlatformBillingDashboard() {
                             {appSettings?.platform_billing_provider === 'asaas' && (
                                 <div className="space-y-4">
                                     <Input
-                                        label="API Key Asaas"
+                                        label={`API Key Asaas [${currentEnv.toUpperCase()}]`}
                                         type="password"
-                                        value={localKeys.platform_asaas_api_key || ''}
-                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_asaas_api_key: e.target.value })}
+                                        value={(localKeys as any).asaas?.[currentEnv]?.api_key || ''}
+                                        onChange={(e) => updateNestedKey('asaas', currentEnv, 'api_key', e.target.value)}
                                         placeholder="Chave secreta..."
                                     />
                                     <Input
                                         label="Wallet ID (Opcional)"
-                                        value={localKeys.platform_asaas_wallet_id || ''}
-                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_asaas_wallet_id: e.target.value })}
+                                        value={(localKeys as any).asaas?.[currentEnv]?.wallet_id || ''}
+                                        onChange={(e) => updateNestedKey('asaas', currentEnv, 'wallet_id', e.target.value)}
                                         placeholder="Identificador da carteira..."
                                     />
                                 </div>
@@ -262,17 +270,17 @@ export function PlatformBillingDashboard() {
                             {appSettings?.platform_billing_provider === 'stripe' && (
                                 <div className="space-y-4">
                                     <Input
-                                        label="Public Key Stripe"
-                                        value={localKeys.platform_stripe_publishable_key || ''}
-                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_stripe_publishable_key: e.target.value })}
-                                        placeholder="pk_live_..."
+                                        label={`Public Key Stripe [${currentEnv.toUpperCase()}]`}
+                                        value={(localKeys as any).stripe?.[currentEnv]?.publishable_key || ''}
+                                        onChange={(e) => updateNestedKey('stripe', currentEnv, 'publishable_key', e.target.value)}
+                                        placeholder="pk_..."
                                     />
                                     <Input
-                                        label="Secret Key Stripe"
+                                        label={`Secret Key Stripe [${currentEnv.toUpperCase()}]`}
                                         type="password"
-                                        value={localKeys.platform_stripe_api_key || ''}
-                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_stripe_api_key: e.target.value })}
-                                        placeholder="sk_live_..."
+                                        value={(localKeys as any).stripe?.[currentEnv]?.secret_key || ''}
+                                        onChange={(e) => updateNestedKey('stripe', currentEnv, 'secret_key', e.target.value)}
+                                        placeholder="sk_..."
                                     />
                                 </div>
                             )}
@@ -280,16 +288,16 @@ export function PlatformBillingDashboard() {
                             {appSettings?.platform_billing_provider === 'mercadopago' && (
                                 <div className="space-y-4">
                                     <Input
-                                        label="Public Key MP"
-                                        value={localKeys.platform_mercadopago_public_key || ''}
-                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_mercadopago_public_key: e.target.value })}
+                                        label={`Public Key MP [${currentEnv.toUpperCase()}]`}
+                                        value={(localKeys as any).mercadopago?.[currentEnv]?.public_key || ''}
+                                        onChange={(e) => updateNestedKey('mercadopago', currentEnv, 'public_key', e.target.value)}
                                         placeholder="APP_USR-..."
                                     />
                                     <Input
-                                        label="Access Token MP"
+                                        label={`Access Token MP [${currentEnv.toUpperCase()}]`}
                                         type="password"
-                                        value={localKeys.platform_mercadopago_api_key || ''}
-                                        onChange={(e) => setLocalKeys({ ...localKeys, platform_mercadopago_api_key: e.target.value })}
+                                        value={(localKeys as any).mercadopago?.[currentEnv]?.access_token || ''}
+                                        onChange={(e) => updateNestedKey('mercadopago', currentEnv, 'access_token', e.target.value)}
                                         placeholder="APP_USR-..."
                                     />
                                 </div>
@@ -309,15 +317,14 @@ export function PlatformBillingDashboard() {
                                     variant="outline"
                                     onClick={async () => {
                                         setTesting(true);
-                                        const config: any = {};
                                         const provider = appSettings?.platform_billing_provider;
-                                        if (provider === 'asaas') {
-                                            config.api_key = localKeys.platform_asaas_api_key;
-                                        } else if (provider === 'stripe') {
-                                            config.api_key = localKeys.platform_stripe_api_key;
-                                        } else if (provider === 'mercadopago') {
-                                            config.access_token = localKeys.platform_mercadopago_api_key;
-                                        }
+                                        const envConfig = (localKeys as any)[provider!]?.[currentEnv] || {};
+
+                                        // Standardize keys for the backend adapter
+                                        const config: any = {};
+                                        if (provider === 'asaas') config.api_key = envConfig.api_key;
+                                        else if (provider === 'stripe') config.api_key = envConfig.secret_key;
+                                        else if (provider === 'mercadopago') config.access_token = envConfig.access_token;
 
                                         const res = await testPlatformConnection(
                                             provider as any,

@@ -891,10 +891,13 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
             const settings = appSettings?.[0];
             if (settings && settings.platform_billing_provider === provider) {
                 console.log('✅ Usando configurações globais de faturamento da plataforma.');
-                is_sandbox = false; // Configurações de plataforma em app_settings são geralmente produção
-                if (provider === 'asaas') config = { api_key: settings.platform_asaas_api_key };
-                else if (provider === 'stripe') config = { secret_key: settings.platform_stripe_api_key };
-                else if (provider === 'mercadopago') config = { access_token: settings.platform_mercadopago_api_key };
+                const isSandbox = settings.platform_billing_sandbox !== false;
+                const env = isSandbox ? 'sandbox' : 'production';
+                const configData = settings.platform_billing_config?.[provider]?.[env] || {};
+
+                if (provider === 'asaas') config = { api_key: configData.api_key };
+                else if (provider === 'stripe') config = { secret_key: configData.secret_key };
+                else if (provider === 'mercadopago') config = { access_token: configData.access_token };
             }
         }
 
