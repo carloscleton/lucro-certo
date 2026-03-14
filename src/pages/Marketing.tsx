@@ -268,6 +268,10 @@ export function Marketing() {
           profileData.blog_autopilot_frequency || "weekly",
         );
         await fetchPosts();
+      } else {
+        // If no profile exists yet, pre-set the logo from the company environment
+        setBrandLogo(currentEntity.logo_url || null);
+        setLoading(false);
       }
     } finally {
       setLoading(false);

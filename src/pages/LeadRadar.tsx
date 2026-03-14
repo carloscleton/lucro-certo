@@ -597,10 +597,17 @@ export function LeadRadar() {
                     {activeTab === 'stats' && (
                         <div className="space-y-6">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <Zap size={20} className="text-amber-500" />
-                                    Leads Qualificados em Tempo Real
-                                </h3>
+                                <div className="flex items-center gap-3">
+                                    {currentEntity.logo_url && (
+                                        <div className="w-10 h-10 rounded-xl overflow-hidden border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-1.5 shadow-sm">
+                                            <img src={currentEntity.logo_url} alt="Logo" className="w-full h-full object-contain" />
+                                        </div>
+                                    )}
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <Zap size={20} className="text-amber-500" />
+                                        Leads Qualificados em Tempo Real
+                                    </h3>
+                                </div>
                                 {settings.auto_approach && whatsappStatus === 'disconnected' && (
                                     <div className="flex-1 mx-6 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-2 px-4 rounded-xl flex items-center gap-2 text-red-600 dark:text-red-400 animate-pulse">
                                         <AlertCircle size={16} />
