@@ -26,6 +26,9 @@ export function AdminBICharts({ data }: Props) {
         </div>
     );
 
+    const revenue_series = data.revenue_series || [];
+    const growth_series = data.growth_series || [];
+    const plan_distribution = data.plan_distribution || [];
     const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
     return (
@@ -43,7 +46,7 @@ export function AdminBICharts({ data }: Props) {
                 </div>
                 <div className="h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={data.revenue_series}>
+                        <LineChart data={revenue_series}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                             <XAxis
                                 dataKey="month"
@@ -103,7 +106,7 @@ export function AdminBICharts({ data }: Props) {
                 </div>
                 <div className="h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={data.growth_series}>
+                        <LineChart data={growth_series}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                             <XAxis
                                 dataKey="month"
@@ -149,7 +152,7 @@ export function AdminBICharts({ data }: Props) {
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={data.plan_distribution}
+                                    data={plan_distribution}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={60}
@@ -158,7 +161,7 @@ export function AdminBICharts({ data }: Props) {
                                     dataKey="total"
                                     nameKey="plan"
                                 >
-                                    {data.plan_distribution.map((_, index) => (
+                                    {plan_distribution.map((_, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
@@ -168,7 +171,7 @@ export function AdminBICharts({ data }: Props) {
                         </ResponsiveContainer>
                     </div>
                     <div className="w-full md:w-1/2 space-y-4">
-                        {data.plan_distribution.map((item, index) => (
+                        {plan_distribution.map((item, index) => (
                             <div key={item.plan} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
                                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
