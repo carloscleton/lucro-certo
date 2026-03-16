@@ -57,10 +57,34 @@ serve(async (req) => {
             .eq('id', 1)
             .single()
 
-        const provider = settings.platform_billing_provider || 'asaas'
-        const isSandbox = settings.platform_billing_sandbox !== false
-        const env = isSandbox ? 'sandbox' : 'production'
-        const configData = settings.platform_billing_config?.[provider]?.[env] || {}
+        let provider = settings.platform_billing_provider
+        let configData: any = {}
+        let env = 'production'
+        let isSandbox = false
+
+        if (provider) {
+            isSandbox = settings.platform_billing_sandbox !== false
+            env = isSandbox ? 'sandbox' : 'production'
+            configData = settings.platform_billing_config?.[provider]?.[env] || {}
+        } else {
+            // Tenta pegar o gateway da empresa master se nao houver plataforma setada no settings globais
+            const masterCompanyId = 1; // Ajuste se necessario, 1 e o ID master
+            const { data: gateways } = await supabaseAdmin
+                .from('company_payment_gateways')
+                .select('*')
+                .eq('company_id', masterCompanyId)
+                .eq('is_active', true)
+                .limit(1)
+
+            if (gateways && gateways.length > 0) {
+                provider = gateways[0].provider
+                configData = gateways[0].config
+                isSandbox = gateways[0].is_sandbox !== false
+                env = isSandbox ? 'sandbox' : 'production'
+            } else {
+                provider = 'asaas' // Fallback to throw standard not configured error
+            }
+        }
         // Security: Get REAL amount from landing_plans to prevent tampering
         let amount = company.next_billing_value || 97.00
         if (settings.landing_plans && Array.isArray(settings.landing_plans)) {

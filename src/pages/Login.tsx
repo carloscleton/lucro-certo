@@ -183,15 +183,30 @@ export function Login() {
                                 if (!checkoutError && checkoutData?.paymentUrl) {
                                     window.location.href = checkoutData.paymentUrl;
                                     return; // Stop here, redirecting
+                                } else {
+                                    console.error('Checkout error:', checkoutError || checkoutData);
+                                    alert('Não foi possível gerar a página de pagamento: ' + (checkoutData?.error || 'Erro interno do servidor.'));
+
+                                    // Block company to prevent free access
+                                    await supabase.from('companies').update({
+                                        status: 'blocked',
+                                        subscription_status: 'blocked'
+                                    }).eq('id', newCompanyId);
+
+                                    await supabase.auth.signOut();
+                                    setLoading(false);
+                                    navigate('/');
+                                    return;
                                 }
                             }
                         } catch (e) {
                             console.error("Erro no checkout automático Option 2:", e);
+                            alert("Ocorreu um erro ao preparar sua conta. Tente novamente.");
+                            await supabase.auth.signOut();
+                            setLoading(false);
+                            navigate('/');
+                            return;
                         }
-
-                        // Fallback if anything above failed: Just go to dashboard normally
-                        navigate('/dashboard');
-                        return;
                     }
                 }
 
