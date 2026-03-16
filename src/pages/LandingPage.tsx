@@ -34,7 +34,8 @@ const banners = [
         tagColor: 'rgba(37, 99, 235, 0.1)',
         tagTextColor: '#2563eb',
         title: <>Domine suas Finanças com <span className="text-gradient">Inteligência</span></>,
-        description: 'Muito além de um controle financeiro. O Lucro Certo oferece previsibilidade real e organização absoluta para o seu dia a dia.',
+        description: 'Muito além de um controle financeiro. O Lucro Certo oferece previsibilidade real e organização absoluta.',
+        points: ['Fluxo de Caixa em Tempo Real', 'Conciliação Bancária Automática', 'Relatórios de Lucratividade'],
         image: bannerFinancial,
         accent: 'blue'
     },
@@ -44,7 +45,8 @@ const banners = [
         tagColor: 'rgba(16, 185, 129, 0.1)',
         tagTextColor: '#10b981',
         title: <>A IA que <span className="text-gradient">Encontra Clientes</span> para Você</>,
-        description: 'Nossa tecnologia mapeia o mercado, qualifica leads e inicia abordagens automáticas no WhatsApp para você vender mais.',
+        description: 'Nossa tecnologia mapeia o mercado, qualifica leads e inicia abordagens automáticas no WhatsApp.',
+        points: ['Prospecção Direcionada', 'Qualificação por Perfil', 'Abordagem Automática (API)'],
         image: bannerRadar,
         accent: 'emerald'
     },
@@ -54,7 +56,8 @@ const banners = [
         tagColor: 'rgba(99, 102, 241, 0.1)',
         tagTextColor: '#6366f1',
         title: <>Suas Redes Sociais no <span className="text-gradient">Piloto Automático</span></>,
-        description: 'Crie cronogramas, artes e legendas profissionais em segundos. Deixe a IA cuidar do seu posicionamento digital.',
+        description: 'Crie cronogramas, artes e legendas profissionais em segundos direto do seu celular.',
+        points: ['Gerador de Imagens IA', 'Legendas Persuasivas', 'Calendário de Postagens'],
         image: bannerMarketing,
         accent: 'indigo'
     },
@@ -64,7 +67,8 @@ const banners = [
         tagColor: 'rgba(236, 72, 153, 0.1)',
         tagTextColor: '#ec4899',
         title: <>Transforme Leads em <span className="text-gradient">Clientes Fiéis</span></>,
-        description: 'Gestão completa do pipeline de vendas. Organize seus contatos, histórico de interações e nunca perca uma oportunidade.',
+        description: 'Gestão completa do pipeline de vendas. Organize seus contatos e nunca perca uma oportunidade.',
+        points: ['Funil de Vendas Visual', 'Histórico de Interações', 'Automação de Follow-up'],
         image: bannerCRM,
         accent: 'pink'
     },
@@ -74,7 +78,8 @@ const banners = [
         tagColor: 'rgba(245, 158, 11, 0.1)',
         tagTextColor: '#f59e0b',
         title: <>Propostas que <span className="text-gradient">Vendem por Você</span></>,
-        description: 'Crie orçamentos lindíssimos em segundos, envie via WhatsApp e receba assinaturas digitais direto no sistema.',
+        description: 'Crie orçamentos lindíssimos em segundos e envie via WhatsApp para seus clientes.',
+        points: ['Modelos Customizáveis', 'Assinatura Digital Rápida', 'Status de Leitura (WhatsApp)'],
         image: bannerQuotes,
         accent: 'amber'
     },
@@ -84,7 +89,8 @@ const banners = [
         tagColor: 'rgba(20, 184, 166, 0.1)',
         tagTextColor: '#14b8a6',
         title: <>Régua de Cobrança <span className="text-gradient">Automática</span></>,
-        description: 'Reduza a inadimplência com lembretes automáticos de pagamento via WhatsApp e links de checkout integrado.',
+        description: 'Reduza a inadimplência com lembretes inteligentes de pagamento direto no app favorito.',
+        points: ['Lembretes de Vencimento', 'Links de Pagamento Direto', 'Baixa Automática no Caixa'],
         image: bannerWhatsApp,
         accent: 'teal'
     },
@@ -93,8 +99,9 @@ const banners = [
         tagIcon: <Users size={16} />,
         tagColor: 'rgba(107, 114, 128, 0.1)',
         tagTextColor: '#4b5563',
-        title: <>Gerencie <span className="text-gradient">Vários Negócios</span> em um só Lugar</>,
-        description: 'Troque entre empresas com um clique. Tenha uma visão consolidada ou individual de cada CNPJ da sua holding.',
+        title: <>Gerencie <span className="text-gradient">Vários Negócios</span></>,
+        description: 'Troque entre empresas com um clique. Tenha uma visão consolidada de todas as suas unidades.',
+        points: ['Consolidação de Dados', 'Acessos Diferenciados', 'Interligação de Estoques'],
         image: bannerMulticompany,
         accent: 'slate'
     }
@@ -167,6 +174,28 @@ export function LandingPage() {
                                 <p className="animate-p">
                                     {banner.description}
                                 </p>
+
+                                <div className="benefit-points">
+                                    {banner.points.map((point, i) => (
+                                        <div key={i} className="benefit-item" style={{ animationDelay: `${0.4 + i * 0.1}s` }}>
+                                            <div className="benefit-dot">
+                                                <CheckCircle2 size={12} />
+                                            </div>
+                                            {point}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="carousel-global-actions">
+                                    <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
+                                        {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
+                                        <ChevronRight size={18} />
+                                    </button>
+                                    <button className="btn-secondary">
+                                        <PlayCircle size={18} />
+                                        Conhecer Sistema
+                                    </button>
+                                </div>
                                 <div className="hero-stats animate-stats">
                                     <div className="mini-stat">
                                         <span className="stat-val">+R$ 2.4M</span>
@@ -192,17 +221,6 @@ export function LandingPage() {
                             </div>
                         </div>
                     ))}
-                </div>
-
-                <div className="carousel-global-actions">
-                    <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
-                        {session ? 'Ir para o Dashboard' : 'Começar Agora'}
-                        <ChevronRight size={18} />
-                    </button>
-                    <button className="btn-secondary">
-                        <PlayCircle size={18} />
-                        Conhecer Sistema
-                    </button>
                 </div>
 
                 {/* Carousel Controls */}
