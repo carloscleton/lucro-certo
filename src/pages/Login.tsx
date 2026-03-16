@@ -98,14 +98,22 @@ export function Login() {
     const [resetLoading, setResetLoading] = useState(false);
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { session } = useAuth();
+    const { session, loading: authLoading } = useAuth();
 
-    // Redirect if already logged in
+    if (authLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-slate-900">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
+
+    // Redirect if already logged in (but not while we are processing a login/signup form)
     useEffect(() => {
-        if (session) {
+        if (session && !loading) {
             navigate('/dashboard');
         }
-    }, [session, navigate]);
+    }, [session, navigate, loading]);
 
     // Check for recovery hash in URL
     useEffect(() => {

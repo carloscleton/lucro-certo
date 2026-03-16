@@ -382,7 +382,12 @@ export function Layout() {
 
                 <OfflineBanner />
                 <div className={styles.content}>
-                    {profile?.status === 'blocked' ? (
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center h-full space-y-4">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                            <p className="text-gray-500 animate-pulse">{t('common.loading')}</p>
+                        </div>
+                    ) : profile?.status === 'blocked' ? (
                         <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6">
                             <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center animate-bounce">
                                 <ShieldAlert className="w-10 h-10 text-red-600 dark:text-red-400" />
@@ -417,13 +422,15 @@ export function Layout() {
                             </div>
                             <div className="max-w-md">
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                                    {currentEntity.name} {t('common.status')}: Bloqueada
+                                    {currentEntity.subscription_status === 'unpaid'
+                                        ? `Bem-vindo, ${profile?.full_name?.split(' ')[0] || ''}! ✨`
+                                        : `${currentEntity.name} ${t('common.status')}: Bloqueada`}
                                 </h2>
                                 <p className="text-gray-600 dark:text-gray-300 font-medium">
                                     {currentEntity.subscription_status === 'past_due'
                                         ? "O acesso foi suspenso devido a pendências financeiras."
                                         : currentEntity.subscription_status === 'unpaid'
-                                            ? "Para ativar sua conta e acessar as ferramentas, conclua seu primeiro pagamento."
+                                            ? "Sua conta foi criada com sucesso! Para começar a usar o Lucro Certo, conclua a ativação da sua assinatura."
                                             : "O acesso a esta empresa está temporariamente suspenso pela administração."}
                                 </p>
                                 <div className="mt-6 p-5 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700">
@@ -464,8 +471,8 @@ export function Layout() {
                         <Outlet />
                     )}
                 </div>
-            </main >
-        </div >
+            </main>
+        </div>
     );
 }
 
