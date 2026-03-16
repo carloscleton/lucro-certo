@@ -267,14 +267,13 @@ function TransactionPage({ type, title }: TransactionPageProps) {
 
         let scope: 'single' | 'future' | 'all' = 'single';
 
-        if (transaction?.recurrence_group_id) { // Is recurring
+        if (transaction?.recurrence_group_id) { // Is recurring with group
             const choice = window.prompt(
                 'Lançamento Recorrente detectado. O que deseja apagar?\n\n' +
                 '1 - APENAS este Lançamento\n' +
                 '2 - Este e os FUTUROS (A partir desta data)\n' +
                 '3 - TODOS (Histórico completo desta repetição)\n\n' +
-                'Digite o número (1, 2 ou 3):',
-                '1'
+                'Digite o número da opção desejada:'
             );
 
             if (choice === null) return; // Cancelled
@@ -286,8 +285,22 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                 alert('Opção inválida. Operação cancelada.');
                 return;
             }
-        } else if (transaction?.is_recurring) {
-            if (!confirm('Este lançamento está marcado como recorrente, mas não faz parte de um grupo vinculado. Deseja excluir apenas este item?')) {
+        } else if (transaction?.is_recurring) { // Marked as recurring but no group ID
+            const choice = window.prompt(
+                'Este lançamento está marcado como recorrente, mas não possui um grupo vinculado.\n' +
+                'Deseja excluir apenas este item ou tentar remover todos com a mesma descrição?\n\n' +
+                '1 - APENAS este lançamento\n' +
+                '2 - TODOS com a mesma descrição (Atenção: Ação experimental)\n\n' +
+                'Digite o número da opção:',
+                '1'
+            );
+
+            if (choice === null) return;
+            if (choice === '2') {
+                scope = 'all'; // useTransactions delete call will handle this if it can find them by description? 
+                // Actually useTransactions.deleteTransaction uses recurrence_group_id. 
+                // So if it's null, scope 'all' won't work there unless I update it.
+            } else if (choice !== '1') {
                 return;
             }
         } else {

@@ -364,9 +364,11 @@ export function useTransactions(type: TransactionType) {
             // Get transaction details first to check status and quote link
             const { data: transaction } = await supabase
                 .from('transactions')
-                .select('quote_id, status, recurrence_group_id, date, attachment_path')
+                .select('quote_id, status, recurrence_group_id, date, attachment_path, description, amount, type')
                 .eq('id', id)
                 .maybeSingle();
+
+            if (!transaction) throw new Error('Transação não encontrada.');
 
             // The UI (Transactions.tsx) now handles permission checks (admin/owner/member_can_delete)
             // before calling this function. We removed the hardcoded superadmin lock here.
@@ -398,13 +400,30 @@ export function useTransactions(type: TransactionType) {
 
             let query = supabase.from('transactions').delete();
 
-            if (scope === 'single' || !transaction?.recurrence_group_id) {
+            if (scope === 'single') {
                 query = query.eq('id', id);
-            } else if (scope === 'future') {
-                query = query.eq('recurrence_group_id', transaction.recurrence_group_id)
-                    .gte('date', transaction.date);
+            } else if (transaction?.recurrence_group_id) {
+                // Scenario A: Has group ID - use it for precise deletion
+                if (scope === 'future') {
+                    query = query.eq('recurrence_group_id', transaction.recurrence_group_id)
+                        .gte('date', transaction.date);
+                } else if (scope === 'all') {
+                    query = query.eq('recurrence_group_id', transaction.recurrence_group_id);
+                }
             } else if (scope === 'all') {
-                query = query.eq('recurrence_group_id', transaction.recurrence_group_id);
+                // Scenario B: No group ID but user wants to delete "all" matching
+                // Fallback to description + amount + type (safer than just description)
+                console.log('[useTransactions] Fallback delete by description/amount');
+                query = query.eq('description', transaction.description)
+                    .eq('amount', transaction.amount)
+                    .eq('type', type);
+
+                if (currentEntity.id) {
+                    query = query.eq('company_id', currentEntity.id);
+                }
+            } else {
+                // Fallback for single or unknown
+                query = query.eq('id', id);
             }
 
             const { error } = await query;
