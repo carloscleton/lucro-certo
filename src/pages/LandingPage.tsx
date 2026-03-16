@@ -500,17 +500,15 @@ export function LandingPage() {
                             <X size={24} />
                         </button>
                         <div className="video-wrapper">
-                            <video
+                            <iframe
                                 width="100%"
                                 height="100%"
-                                src="/videos/apresentacao.mp4"
-                                controls
-                                autoPlay
-                                controlsList="nodownload"
+                                src="https://www.youtube.com/embed/vDxFacAITnA?autoplay=1"
                                 title="Apresentação Lucro Certo"
-                            >
-                                Seu navegador não suporta a visualização de vídeos.
-                            </video>
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
                         </div>
                     </div>
                 </div>
