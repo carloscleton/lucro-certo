@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     Radar,
@@ -9,15 +9,67 @@ import {
     CheckCircle2,
     DollarSign,
     Users,
-    CreditCard
+    CreditCard,
+    ArrowLeft,
+    ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import '../styles/LandingPage.css';
 import logoFull from '../assets/logo-full.png';
+
+// Import banner images
+import bannerFinancial from '../assets/landing/landing_hero_financial.png';
+import bannerRadar from '../assets/landing/landing_hero_radar_leads.png';
+import bannerMarketing from '../assets/landing/landing_hero_marketing_ia.png';
+
+import '../styles/LandingPage.css';
+
+const banners = [
+    {
+        tag: 'GESTÃO FINANCEIRA 2.0',
+        tagIcon: <BarChart3 size={16} />,
+        tagColor: 'rgba(37, 99, 235, 0.1)',
+        tagTextColor: '#2563eb',
+        title: <>Domine suas Finanças com <span className="text-gradient">Inteligência</span></>,
+        description: 'Muito além de um controle financeiro. O Lucro Certo oferece previsibilidade real e organização absoluta para o seu dia a dia.',
+        image: bannerFinancial,
+        accent: 'blue'
+    },
+    {
+        tag: 'RADAR DE LEADS IA',
+        tagIcon: <Radar size={16} />,
+        tagColor: 'rgba(16, 185, 129, 0.1)',
+        tagTextColor: '#10b981',
+        title: <>A IA que <span className="text-gradient">Encontra Clientes</span> para Você</>,
+        description: 'Nossa tecnologia mapeia o mercado, qualifica leads e inicia abordagens automáticas no WhatsApp para você vender mais.',
+        image: bannerRadar,
+        accent: 'emerald'
+    },
+    {
+        tag: 'MARKETING COPILOT',
+        tagIcon: <Sparkles size={16} />,
+        tagColor: 'rgba(99, 102, 241, 0.1)',
+        tagTextColor: '#6366f1',
+        title: <>Suas Redes Sociais no <span className="text-gradient">Piloto Automático</span></>,
+        description: 'Crie cronogramas, artes e legendas profissionais em segundos. Deixe a IA cuidar do seu posicionamento digital.',
+        image: bannerMarketing,
+        accent: 'indigo'
+    }
+];
 
 export function LandingPage() {
     const navigate = useNavigate();
     const { session } = useAuth();
+    const [currentSlide, setCurrentSlide] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % banners.length);
+        }, 8000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % banners.length);
+    const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -26,8 +78,8 @@ export function LandingPage() {
     return (
         <div className="landing-container">
             <div className="landing-bg-glow">
-                <div className="glow-1"></div>
-                <div className="glow-2"></div>
+                <div className={`glow-1 accent-${banners[currentSlide].accent}`}></div>
+                <div className={`glow-2 accent-${banners[currentSlide].accent}`}></div>
             </div>
 
             {/* Navbar */}
@@ -52,51 +104,91 @@ export function LandingPage() {
                 </div>
             </nav>
 
-            {/* Hero Section */}
-            <header className="hero-section">
-                <div className="hero-content">
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '100px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', marginBottom: '1.5rem', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                        <Sparkles size={16} />
-                        NOVA VERSÃO 2.0 COM IA GENERATIVA
-                    </div>
-                    <h1>
-                        O Sistema Financeiro que <span className="text-gradient">Encontra Clientes</span> para Você
-                    </h1>
-                    <p>
-                        Muito além de um controle financeiro. O Lucro Certo utiliza IA de ponta para prospectar leads, vender no automático e organizar sua empresa em um só lugar.
-                    </p>
-                    <div className="hero-actions">
-                        <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
-                            {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
-                            <ChevronRight size={20} />
-                        </button>
-                        <button className="btn-secondary">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <PlayCircle size={20} />
-                                Ver Vídeo
-                            </div>
-                        </button>
-                    </div>
+            {/* Hero Carousel Section */}
+            <header className="hero-section carousel-mode">
+                <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+                    {banners.map((banner, index) => (
+                        <div key={index} className="carousel-slide-content">
+                            <div className="hero-content">
+                                <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 16px',
+                                    borderRadius: '100px',
+                                    background: banner.tagColor,
+                                    color: banner.tagTextColor,
+                                    marginBottom: '1.5rem',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 'bold',
+                                    animation: 'fadeInDown 0.5s ease-out'
+                                }}>
+                                    {banner.tagIcon}
+                                    {banner.tag}
+                                </div>
+                                <h1 className="animate-title">
+                                    {banner.title}
+                                </h1>
+                                <p className="animate-p">
+                                    {banner.description}
+                                </p>
+                                <div className="hero-actions animate-actions">
+                                    <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
+                                        {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
+                                        <ChevronRight size={20} />
+                                    </button>
+                                    <button className="btn-secondary">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <PlayCircle size={20} />
+                                            Ver Vídeo
+                                        </div>
+                                    </button>
+                                </div>
 
-                    <div style={{ marginTop: '3rem', display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-dark)' }}>+R$ 2.4M</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Transacionados</span>
+                                <div className="hero-stats animate-stats">
+                                    <div className="mini-stat">
+                                        <span className="stat-val">+R$ 2.4M</span>
+                                        <span className="stat-desc">Transacionados</span>
+                                    </div>
+                                    <div className="mini-divider"></div>
+                                    <div className="mini-stat">
+                                        <span className="stat-val">1.2k+</span>
+                                        <span className="stat-desc">Empresas Ativas</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="hero-image-container animate-image">
+                                <div className="image-wrapper">
+                                    <img
+                                        src={banner.image}
+                                        alt={banner.tag}
+                                        className="hero-mockup"
+                                    />
+                                    <div className={`image-glow accent-${banner.accent}`}></div>
+                                </div>
+                            </div>
                         </div>
-                        <div style={{ width: '1px', height: '40px', background: 'var(--glass-border)' }}></div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-dark)' }}>1.2k+</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Empresas Ativas</span>
-                        </div>
-                    </div>
+                    ))}
                 </div>
 
-                <div className="hero-image-container">
-                    <img
-                        src="/images/landing/hero-mockup.png"
-                        alt="Lucro Certo Dashboard Mockup"
-                        className="hero-mockup"
-                    />
+                {/* Carousel Controls */}
+                <div className="carousel-controls">
+                    <button onClick={prevSlide} className="carousel-nav-btn prev">
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div className="carousel-dots">
+                        {banners.map((_, index) => (
+                            <button
+                                key={index}
+                                onClick={() => setCurrentSlide(index)}
+                                className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+                            />
+                        ))}
+                    </div>
+                    <button onClick={nextSlide} className="carousel-nav-btn next">
+                        <ArrowRight size={24} />
+                    </button>
                 </div>
             </header>
 
