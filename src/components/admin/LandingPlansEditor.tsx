@@ -64,11 +64,15 @@ export function LandingPlansEditor() {
         const plan = plans[pIdx];
         setGeneratingMagic(pIdx);
         try {
+            const promptText = plan.observation?.trim()
+                ? `Melhore, encurte e torne mais persuasiva e comercial a seguinte explicação (máximo de 6 a 10 palavras), que será exibida embaixo do preço do plano "${plan.name}" (R$${plan.price}). Texto original do usuário: "${plan.observation}". Não use aspas na resposta, apenas retorne a frase melhorada, mantendo o sentido original.`
+                : `Gere uma frase curtíssima e persuasiva (máximo de 5 a 6 palavras) para exibir embaixo do preço de um plano de sistema SaaS. Nome do plano: "${plan.name}". Preço: R$${plan.price}. Exemplo de saída desejada: "Ideal para Autônomos" ou "O mais completo do mercado". Não use aspas na resposta.`;
+
             const { data, error } = await supabase.functions.invoke('social-copilot-magic', {
                 body: {
                     company_id: currentEntity?.id || '',
                     mode: 'automation_template',
-                    topic: `Gere uma frase curtíssima e persuasiva (máximo de 5 a 6 palavras) para exibir embaixo do preço de um plano de sistema SaaS. Nome do plano: "${plan.name}". Preço: R$${plan.price}. Exemplo de saída desejada: "Ideal para Autônomos" ou "O mais completo do mercado". Não use aspas na resposta.`
+                    topic: promptText
                 }
             });
 
