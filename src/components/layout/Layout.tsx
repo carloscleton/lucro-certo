@@ -410,7 +410,7 @@ export function Layout() {
                                 </div>
                             </div>
                         </div>
-                    ) : (currentEntity.status === 'blocked' || currentEntity.subscription_status === 'past_due') ? (
+                    ) : (currentEntity.status === 'blocked' || ['past_due', 'unpaid'].includes(currentEntity.subscription_status || '')) ? (
                         <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6">
                             <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center animate-pulse">
                                 <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
@@ -422,16 +422,18 @@ export function Layout() {
                                 <p className="text-gray-600 dark:text-gray-300 font-medium">
                                     {currentEntity.subscription_status === 'past_due'
                                         ? "O acesso foi suspenso devido a pendências financeiras."
-                                        : "O acesso a esta empresa está temporariamente suspenso pela administração."}
+                                        : currentEntity.subscription_status === 'unpaid'
+                                            ? "Para ativar sua conta e acessar as ferramentas, conclua seu primeiro pagamento."
+                                            : "O acesso a esta empresa está temporariamente suspenso pela administração."}
                                 </p>
                                 <div className="mt-6 p-5 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700">
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {currentEntity.subscription_status === 'past_due'
-                                            ? "Para continuar usando a plataforma, por favor, regularize o pagamento da sua assinatura."
+                                        {['past_due', 'unpaid'].includes(currentEntity.subscription_status || '')
+                                            ? "Ao clicar no botão abaixo, você será redirecionado para concluir o pagamento de forma segura."
                                             : "Selecione outro ambiente na barra lateral ou contate o administrador."}
                                     </p>
                                 </div>
-                                {currentEntity.subscription_status === 'past_due' && (
+                                {['past_due', 'unpaid'].includes(currentEntity.subscription_status || '') && (
                                     <div className="mt-8 flex justify-center">
                                         <Button
                                             onClick={async () => {
@@ -452,7 +454,7 @@ export function Layout() {
                                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
                                         >
                                             <DollarSign size={20} />
-                                            Regularizar Pagamento
+                                            {currentEntity.subscription_status === 'unpaid' ? 'Concluir Assinatura' : 'Regularizar Pagamento'}
                                         </Button>
                                     </div>
                                 )}

@@ -172,7 +172,8 @@ export function Login() {
                                 // Update company with the selected plan values
                                 await supabase.from('companies').update({
                                     subscription_plan: checkoutPlan,
-                                    next_billing_value: parseFloat(checkoutPrice)
+                                    next_billing_value: parseFloat(checkoutPrice),
+                                    subscription_status: 'unpaid'
                                 }).eq('id', newCompanyId);
 
                                 // Request checkout URL

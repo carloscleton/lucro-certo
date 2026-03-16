@@ -262,6 +262,23 @@ export function useAdmin() {
         }
     };
 
+    const deleteCompany = async (companyId: string) => {
+        if (!isAdmin) return { error: 'Unauthorized' };
+
+        try {
+            const { error } = await supabase.rpc('admin_delete_company', {
+                target_company_id: companyId
+            });
+
+            if (error) throw error;
+            await fetchAdminData(true);
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error deleting company:', err);
+            return { error: err.message };
+        }
+    };
+
     const manualRenewSubscription = async (companyId: string) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
@@ -430,6 +447,7 @@ export function useAdmin() {
         updateUserConfig,
         updateCompanyConfig,
         updateAppSettings,
+        deleteCompany,
         manualRenewSubscription,
         setCompanyTrial,
         testPlatformConnection,

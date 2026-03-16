@@ -28,7 +28,7 @@ import { LandingPlansEditor } from '../components/admin/LandingPlansEditor';
 export function Settings() {
     const { t } = useTranslation();
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
-    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, toggleUserBan, toggleCompanyBlock, updateUserConfig, updateCompanyConfig, updateAppSettings, appSettings } = useAdmin();
+    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, deleteCompany, toggleUserBan, toggleCompanyBlock, updateUserConfig, updateCompanyConfig, updateAppSettings, appSettings } = useAdmin();
     console.log('Admin UI initialized with toggleCompanyBlock:', !!toggleCompanyBlock);
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity, refresh: refreshEntity } = useEntity();
@@ -1848,6 +1848,14 @@ export function Settings() {
                                                                         <Shield size={14} />
                                                                         Configurar
                                                                     </Button>
+                                                                </Tooltip>
+                                                                <Tooltip content="Excluir Empresa">
+                                                                    <button
+                                                                        onClick={() => { if (confirm(`Deseja realmente EXCLUIR a empresa ${c.trade_name} e TODOS os seus dados permanentemente?`)) deleteCompany(c.id); }}
+                                                                        className="p-2 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-lg transition-colors group"
+                                                                    >
+                                                                        <Trash2 size={18} className="transition-transform group-hover:scale-110" />
+                                                                    </button>
                                                                 </Tooltip>
                                                             </div>
                                                         </td>
