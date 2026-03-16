@@ -84,16 +84,16 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                     </Tooltip>
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    <div className="flex items-start gap-2 min-w-0">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-1 flex-shrink-0">
                             {formatDate(bill.date)}
                         </span>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white truncate" title={bill.description}>
                                 {bill.description}
                             </span>
                             {bill.category?.name && (
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium truncate">
                                     {bill.category.name}
                                 </span>
                             )}
