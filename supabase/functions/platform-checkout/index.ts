@@ -61,7 +61,21 @@ serve(async (req) => {
         const isSandbox = settings.platform_billing_sandbox !== false
         const env = isSandbox ? 'sandbox' : 'production'
         const configData = settings.platform_billing_config?.[provider]?.[env] || {}
-        const amount = company.next_billing_value || 97.00
+        // Security: Get REAL amount from landing_plans to prevent tampering
+        let amount = company.next_billing_value || 97.00
+        if (settings.landing_plans && Array.isArray(settings.landing_plans)) {
+            const planDetails = settings.landing_plans.find((p: any) => p.name === company.subscription_plan);
+            if (planDetails && planDetails.price) {
+                const realPrice = parseFloat(planDetails.price.toString().replace(/[^0-9.-]+/g, ""));
+                if (!isNaN(realPrice) && realPrice > 0) {
+                    amount = realPrice;
+                    // Auto-correct company in background if wrong
+                    if (company.next_billing_value !== amount) {
+                        supabaseAdmin.from('companies').update({ next_billing_value: amount }).eq('id', company.id).then();
+                    }
+                }
+            }
+        }
 
         let checkoutUrl = '';
 
