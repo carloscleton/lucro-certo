@@ -109,40 +109,43 @@ const banners = [
     }
 ];
 
+const DEFAULT_PLANS = [
+    {
+        name: "Essencial",
+        price: "97",
+        period: "mês",
+        features: ["Gestão Financeira Completa", "CRM até 500 contatos", "Relatórios Básicos"],
+        button_text: "Escolher Plano",
+        button_type: "secondary",
+        is_popular: false
+    },
+    {
+        name: "Profissional + IA",
+        price: "197",
+        period: "mês",
+        features: ["Tudo do Essencial", "**Radar de Leads (IA)**", "**Marketing Copilot (IA)**", "WhatsApp Ilimitado"],
+        button_text: "Começar agora",
+        button_type: "primary",
+        is_popular: true
+    },
+    {
+        name: "Empresarial",
+        price: "497",
+        period: "mês",
+        features: ["Tudo do Profissional", "Multi-empresas (até 5)", "Suporte VIP 24h", "API de Integração"],
+        button_text: "Falar com Consultor",
+        button_type: "secondary",
+        is_popular: false
+    }
+];
+
 export function LandingPage() {
     const navigate = useNavigate();
     const { session } = useAuth();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-    const [landingPlans, setLandingPlans] = useState<any[]>([
-        {
-            name: "Essencial",
-            price: "97",
-            period: "mês",
-            features: ["Gestão Financeira Completa", "CRM até 500 contatos", "Relatórios Básicos"],
-            button_text: "Escolher Plano",
-            button_type: "secondary",
-            is_popular: false
-        },
-        {
-            name: "Profissional + IA",
-            price: "197",
-            period: "mês",
-            features: ["Tudo do Essencial", "**Radar de Leads (IA)**", "**Marketing Copilot (IA)**", "WhatsApp Ilimitado"],
-            button_text: "Começar agora",
-            button_type: "primary",
-            is_popular: true
-        },
-        {
-            name: "Empresarial",
-            price: "497",
-            period: "mês",
-            features: ["Tudo do Profissional", "Multi-empresas (até 5)", "Suporte VIP 24h", "API de Integração"],
-            button_text: "Falar com Consultor",
-            button_type: "secondary",
-            is_popular: false
-        }
-    ]);
+    const [landingPlans, setLandingPlans] = useState<any[]>(DEFAULT_PLANS);
+    const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -173,6 +176,33 @@ export function LandingPage() {
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    const handleDynamicCheckout = async (plan: any, idx: number) => {
+        if (plan.checkout_url) {
+            window.open(plan.checkout_url, '_blank');
+            return;
+        }
+
+        setCheckoutLoading(idx);
+        try {
+            const { data, error } = await supabase.functions.invoke('public-landing-checkout', {
+                body: { plan_name: plan.name, price: plan.price }
+            });
+
+            if (error || !data?.url) {
+                console.error("Erro checkout dinâmico:", error || data);
+                // Fallback para login se não conseguir gerar link
+                navigate(`/login?mode=signup`);
+            } else {
+                window.location.href = data.url;
+            }
+        } catch (err) {
+            console.error("Erro checkout:", err);
+            navigate(`/login?mode=signup`);
+        } finally {
+            setCheckoutLoading(null);
+        }
+    };
 
     return (
         <div className="landing-container">
@@ -508,16 +538,11 @@ export function LandingPage() {
                                 ))}
                             </ul>
                             <button
-                                onClick={() => {
-                                    if (plan.checkout_url) {
-                                        window.open(plan.checkout_url, '_blank');
-                                    } else {
-                                        navigate('/login');
-                                    }
-                                }}
-                                className={`btn-pricing ${plan.button_type === 'primary' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => handleDynamicCheckout(plan, idx)}
+                                disabled={checkoutLoading === idx}
+                                className={`btn-pricing ${plan.button_type === 'primary' ? 'btn-primary' : 'btn-secondary'} flex items-center justify-center gap-2`}
                             >
-                                {plan.button_text}
+                                {checkoutLoading === idx ? 'Aguarde...' : plan.button_text}
                             </button>
                         </div>
                     ))}
