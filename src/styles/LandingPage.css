@@ -367,6 +367,22 @@
     background: radial-gradient(circle, #6366f1, transparent 70%);
 }
 
+.image-glow.accent-pink {
+    background: radial-gradient(circle, #ec4899, transparent 70%);
+}
+
+.image-glow.accent-amber {
+    background: radial-gradient(circle, #f59e0b, transparent 70%);
+}
+
+.image-glow.accent-teal {
+    background: radial-gradient(circle, #14b8a6, transparent 70%);
+}
+
+.image-glow.accent-slate {
+    background: radial-gradient(circle, #4b5563, transparent 70%);
+}
+
 .hero-mockup {
     width: 100%;
     border-radius: 32px;
@@ -385,6 +401,16 @@
     justify-content: center;
     gap: 2rem;
     z-index: 10;
+}
+
+.carousel-global-actions {
+    position: absolute;
+    bottom: 6rem;
+    left: 5%;
+    display: flex;
+    gap: 1.5rem;
+    z-index: 20;
+    animation: fadeInUp 1s ease-out 0.8s both;
 }
 
 .carousel-nav-btn {
@@ -441,6 +467,22 @@
 
 .landing-bg-glow .accent-indigo {
     background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+}
+
+.landing-bg-glow .accent-pink {
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, transparent 70%);
+}
+
+.landing-bg-glow .accent-amber {
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+}
+
+.landing-bg-glow .accent-teal {
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.15) 0%, transparent 70%);
+}
+
+.landing-bg-glow .accent-slate {
+    background: radial-gradient(circle, rgba(75, 85, 99, 0.15) 0%, transparent 70%);
 }
 
 /* Features Section */

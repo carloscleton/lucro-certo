@@ -20,6 +20,10 @@ import logoFull from '../assets/logo-full.png';
 import bannerFinancial from '../assets/landing/landing_hero_financial.png';
 import bannerRadar from '../assets/landing/landing_hero_radar_leads.png';
 import bannerMarketing from '../assets/landing/landing_hero_marketing_ia.png';
+import bannerQuotes from '../assets/landing/landing_hero_quotes.png';
+import bannerCRM from '../assets/landing/landing_hero_crm.png';
+import bannerWhatsApp from '../assets/landing/landing_hero_whatsapp.png';
+import bannerMulticompany from '../assets/landing/landing_hero_multicompany.png';
 
 import '../styles/LandingPage.css';
 
@@ -53,6 +57,46 @@ const banners = [
         description: 'Crie cronogramas, artes e legendas profissionais em segundos. Deixe a IA cuidar do seu posicionamento digital.',
         image: bannerMarketing,
         accent: 'indigo'
+    },
+    {
+        tag: 'CRM & VENDAS',
+        tagIcon: <Users size={16} />,
+        tagColor: 'rgba(236, 72, 153, 0.1)',
+        tagTextColor: '#ec4899',
+        title: <>Transforme Leads em <span className="text-gradient">Clientes Fiéis</span></>,
+        description: 'Gestão completa do pipeline de vendas. Organize seus contatos, histórico de interações e nunca perca uma oportunidade.',
+        image: bannerCRM,
+        accent: 'pink'
+    },
+    {
+        tag: 'ORÇAMENTOS PROFISSIONAIS',
+        tagIcon: <DollarSign size={16} />,
+        tagColor: 'rgba(245, 158, 11, 0.1)',
+        tagTextColor: '#f59e0b',
+        title: <>Propostas que <span className="text-gradient">Vendem por Você</span></>,
+        description: 'Crie orçamentos lindíssimos em segundos, envie via WhatsApp e receba assinaturas digitais direto no sistema.',
+        image: bannerQuotes,
+        accent: 'amber'
+    },
+    {
+        tag: 'AUTOMAÇÃO WHATSAPP',
+        tagIcon: <CreditCard size={16} />,
+        tagColor: 'rgba(20, 184, 166, 0.1)',
+        tagTextColor: '#14b8a6',
+        title: <>Régua de Cobrança <span className="text-gradient">Automática</span></>,
+        description: 'Reduza a inadimplência com lembretes automáticos de pagamento via WhatsApp e links de checkout integrado.',
+        image: bannerWhatsApp,
+        accent: 'teal'
+    },
+    {
+        tag: 'MULTI-EMPRESAS',
+        tagIcon: <Users size={16} />,
+        tagColor: 'rgba(107, 114, 128, 0.1)',
+        tagTextColor: '#4b5563',
+        title: <>Gerencie <span className="text-gradient">Vários Negócios</span> em um só Lugar</>,
+        description: 'Troque entre empresas com um clique. Tenha uma visão consolidada ou individual de cada CNPJ da sua holding.',
+        image: bannerMulticompany,
+        accent: 'slate'
     }
 ];
 
@@ -132,19 +176,6 @@ export function LandingPage() {
                                 <p className="animate-p">
                                     {banner.description}
                                 </p>
-                                <div className="hero-actions animate-actions">
-                                    <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
-                                        {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
-                                        <ChevronRight size={20} />
-                                    </button>
-                                    <button className="btn-secondary">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <PlayCircle size={20} />
-                                            Ver Vídeo
-                                        </div>
-                                    </button>
-                                </div>
-
                                 <div className="hero-stats animate-stats">
                                     <div className="mini-stat">
                                         <span className="stat-val">+R$ 2.4M</span>
@@ -170,6 +201,20 @@ export function LandingPage() {
                             </div>
                         </div>
                     ))}
+                </div>
+
+                {/* Global Carousel Actions (Fixed in center) */}
+                <div className="carousel-global-actions">
+                    <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
+                        {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
+                        <ChevronRight size={20} />
+                    </button>
+                    <button className="btn-secondary">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <PlayCircle size={20} />
+                            Ver Vídeo
+                        </div>
+                    </button>
                 </div>
 
                 {/* Carousel Controls */}
