@@ -11,7 +11,8 @@ import {
     Users,
     CreditCard,
     ArrowLeft,
-    ArrowRight
+    ArrowRight,
+    X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import logoFull from '../assets/logo-full.png';
@@ -111,6 +112,7 @@ export function LandingPage() {
     const navigate = useNavigate();
     const { session } = useAuth();
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -191,7 +193,7 @@ export function LandingPage() {
                                         {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
                                         <ChevronRight size={18} />
                                     </button>
-                                    <button className="btn-secondary">
+                                    <button onClick={() => setIsVideoModalOpen(true)} className="btn-secondary">
                                         <PlayCircle size={18} />
                                         Conhecer Sistema
                                     </button>
@@ -490,6 +492,28 @@ export function LandingPage() {
                     <a href="#" className="nav-link">Suporte</a>
                 </div>
             </footer>
+            {/* Video Modal */}
+            {isVideoModalOpen && (
+                <div className="video-modal-overlay" onClick={() => setIsVideoModalOpen(false)}>
+                    <div className="video-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="video-modal-close" onClick={() => setIsVideoModalOpen(false)}>
+                            <X size={24} />
+                        </button>
+                        <div className="video-wrapper">
+                            {/* Placeholder para o vídeo do usuário. Pode ser iframe do YouTube ou tag <video> */}
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                src="https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1"
+                                title="Apresentação Lucro Certo"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
