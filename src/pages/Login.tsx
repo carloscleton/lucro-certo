@@ -144,6 +144,57 @@ export function Login() {
                     },
                 });
                 if (error) throw error;
+
+                // Option 2: Automatic Checkout Redirect Check
+                const checkoutPlan = searchParams.get('checkout-plan');
+                const checkoutPrice = searchParams.get('checkout-price');
+
+                if (checkoutPlan && checkoutPrice) {
+                    // Try to log in immediately so we have the auth session to create a company
+                    const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+                        email,
+                        password,
+                    });
+
+                    if (!signInError && authData?.user) {
+                        try {
+                            // Create a company for them automatically
+                            const { data: createData, error: createError } = await supabase.rpc('create_company', {
+                                name_input: fullName,
+                                trade_name_input: fullName,
+                                cnpj_input: '00000000000',
+                                entity_type_input: 'PF'
+                            });
+
+                            if (!createError && createData?.success) {
+                                const newCompanyId = createData.company_id;
+
+                                // Update company with the selected plan values
+                                await supabase.from('companies').update({
+                                    subscription_plan: checkoutPlan,
+                                    next_billing_value: parseFloat(checkoutPrice)
+                                }).eq('id', newCompanyId);
+
+                                // Request checkout URL
+                                const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('platform-checkout', {
+                                    body: { company_id: newCompanyId }
+                                });
+
+                                if (!checkoutError && checkoutData?.paymentUrl) {
+                                    window.location.href = checkoutData.paymentUrl;
+                                    return; // Stop here, redirecting
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Erro no checkout automático Option 2:", e);
+                        }
+
+                        // Fallback if anything above failed: Just go to dashboard normally
+                        navigate('/dashboard');
+                        return;
+                    }
+                }
+
                 setMessage(t('login.signup_success'));
                 setIsSignUp(false);
                 setError(null);

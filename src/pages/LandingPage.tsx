@@ -145,7 +145,6 @@ export function LandingPage() {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [landingPlans, setLandingPlans] = useState<any[]>(DEFAULT_PLANS);
-    const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -177,31 +176,14 @@ export function LandingPage() {
         window.scrollTo(0, 0);
     }, []);
 
-    const handleDynamicCheckout = async (plan: any, idx: number) => {
+    const handleDynamicCheckout = async (plan: any) => {
         if (plan.checkout_url) {
             window.open(plan.checkout_url, '_blank');
             return;
         }
 
-        setCheckoutLoading(idx);
-        try {
-            const { data, error } = await supabase.functions.invoke('public-landing-checkout', {
-                body: { plan_name: plan.name, price: plan.price }
-            });
-
-            if (error || !data?.url) {
-                console.error("Erro checkout dinâmico:", error || data);
-                // Fallback para login se não conseguir gerar link
-                navigate(`/login?mode=signup`);
-            } else {
-                window.location.href = data.url;
-            }
-        } catch (err) {
-            console.error("Erro checkout:", err);
-            navigate(`/login?mode=signup`);
-        } finally {
-            setCheckoutLoading(null);
-        }
+        // Option 2: Redirect to signup with plan details, allowing them to register first
+        navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}`);
     };
 
     return (
@@ -538,11 +520,10 @@ export function LandingPage() {
                                 ))}
                             </ul>
                             <button
-                                onClick={() => handleDynamicCheckout(plan, idx)}
-                                disabled={checkoutLoading === idx}
+                                onClick={() => handleDynamicCheckout(plan)}
                                 className={`btn-pricing ${plan.button_type === 'primary' ? 'btn-primary' : 'btn-secondary'} flex items-center justify-center gap-2`}
                             >
-                                {checkoutLoading === idx ? 'Aguarde...' : plan.button_text}
+                                {plan.button_text}
                             </button>
                         </div>
                     ))}
