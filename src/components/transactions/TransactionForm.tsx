@@ -48,6 +48,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
+    const [exclusions, setExclusions] = useState<number[]>([]);
     const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
     const [tempOverrideAmount, setTempOverrideAmount] = useState('');
     const [tempOverrideDate, setTempOverrideDate] = useState('');
@@ -391,6 +392,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 attachment_path: attachmentPath,
                 deal_id: dealId || null,
                 overrides: Object.keys(overrides).length > 0 ? overrides : undefined,
+                exclusions: exclusions.length > 0 ? exclusions : undefined,
                 propagate: propagateChanges,
                 notes: notes
             });
@@ -427,6 +429,12 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             return next;
         });
         setEditingInstallment(null);
+    };
+
+    const handleToggleExclusion = (idx: number) => {
+        setExclusions(prev =>
+            prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+        );
     };
 
     const isExpense = type === 'expense';
@@ -546,6 +554,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                     <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-thin scrollbar-thumb-emerald-200">
                                         {calculateNextDates(date, frequency, recurringCount).map((nextDate, index) => {
                                             const installmentIdx = (initialData?.installment_number || 1) + index + 1;
+                                            const isExcluded = exclusions.includes(installmentIdx);
                                             const currentOverride = overrides[installmentIdx];
                                             const realData = dbInstallments[installmentIdx];
                                             const displayDate = currentOverride?.date || realData?.date || nextDate.toISOString().split('T')[0];
@@ -553,17 +562,27 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                             const isEditing = editingInstallment === installmentIdx;
 
                                             return (
-                                                <div key={index} className={`flex-none w-36 p-2 rounded-xl border transition-all ${isEditing ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-100 shadow-md' : 'bg-white dark:bg-slate-800 border-emerald-100 dark:border-slate-700 hover:border-emerald-300'}`}>
+                                                <div key={index} className={`flex-none w-36 p-2 rounded-xl border transition-all ${isEditing ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-100 shadow-md' : isExcluded ? 'bg-red-50/50 border-red-200 opacity-60 grayscale-[0.5]' : 'bg-white dark:bg-slate-800 border-emerald-100 dark:border-slate-700 hover:border-emerald-300'}`}>
                                                     <div className="flex justify-between items-center mb-1">
                                                         <span className="text-[10px] font-bold text-emerald-600">#{installmentIdx}</span>
                                                         {!isEditing ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleStartEditOverride(installmentIdx, displayAmount, displayDate)}
-                                                                className="p-1 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-md text-gray-400 hover:text-emerald-600 transition-colors"
-                                                            >
-                                                                <Pencil size={10} />
-                                                            </button>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStartEditOverride(installmentIdx, displayAmount, displayDate)}
+                                                                    className="p-1 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-md text-gray-400 hover:text-emerald-600 transition-colors"
+                                                                >
+                                                                    <Pencil size={10} />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleToggleExclusion(installmentIdx)}
+                                                                    className={`p-1 rounded-md transition-colors ${isExcluded ? 'text-red-600 bg-red-100' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}
+                                                                    title={isExcluded ? 'Restaurar' : 'Excluir'}
+                                                                >
+                                                                    <Trash2 size={10} />
+                                                                </button>
+                                                            </div>
                                                         ) : (
                                                             <div className="flex gap-1">
                                                                 <button type="button" onClick={() => handleSaveOverride(installmentIdx)} className="p-1 bg-emerald-600 text-white rounded-md">
@@ -604,13 +623,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col items-center">
-                                                            <span className={`text-xs font-bold mt-0.5 ${currentOverride ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                                                            <span className={`text-xs font-bold mt-0.5 ${isExcluded ? 'text-red-400 line-through' : currentOverride ? 'text-blue-600 dark:text-blue-400' : ''}`}>
                                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}
                                                             </span>
-                                                            <span className={`text-[10px] text-gray-500 ${currentOverride ? 'text-blue-500' : ''}`}>
+                                                            <span className={`text-[10px] text-gray-500 ${isExcluded ? 'text-red-300' : currentOverride ? 'text-blue-500' : ''}`}>
                                                                 {formatBrazilianDate(new Date(displayDate + 'T12:00:00'))}
                                                             </span>
-                                                            {currentOverride && <span className="text-[8px] font-bold text-blue-500 uppercase mt-1">Editado</span>}
+                                                            {isExcluded ? (
+                                                                <span className="text-[8px] font-bold text-red-500 uppercase mt-1">Excluído</span>
+                                                            ) : currentOverride ? (
+                                                                <span className="text-[8px] font-bold text-blue-500 uppercase mt-1">Editado</span>
+                                                            ) : null}
                                                         </div>
                                                     )}
                                                 </div>

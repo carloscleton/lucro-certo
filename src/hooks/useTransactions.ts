@@ -125,10 +125,13 @@ export function useTransactions(type: TransactionType) {
             }];
 
             if (is_recurring && frequency) {
+                const { exclusions } = transaction as any;
                 const totalCountNum = (recurring_count && recurring_count > 1) ? recurring_count : 12;
                 const nextDates = calculateNextDates(transaction.date, frequency, totalCountNum - 1);
                 nextDates.forEach((dateObj, index) => {
                     const installmentIdx = index + 2;
+                    if (exclusions?.includes(installmentIdx)) return;
+
                     const override = overrides?.[installmentIdx];
 
                     // IMPORTANT: Attachments and Notes are only for the FIRST (current) record
@@ -262,6 +265,20 @@ export function useTransactions(type: TransactionType) {
                             console.error(`Error applying override to installment #${installmentNum}:`, overError);
                         }
                     }
+                }
+            }
+
+            // Individual Exclusions (deleting specific installments)
+            if ((updates as any).exclusions && originalTransaction?.recurrence_group_id) {
+                console.log(`🗑️ Processing exclusions for group ${originalTransaction.recurrence_group_id}...`);
+                const { error: exclError } = await supabase
+                    .from('transactions')
+                    .delete()
+                    .eq('recurrence_group_id', originalTransaction.recurrence_group_id)
+                    .in('installment_number', (updates as any).exclusions);
+
+                if (exclError) {
+                    console.error('Error processing exclusions:', exclError);
                 }
             }
 
