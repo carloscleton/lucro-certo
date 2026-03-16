@@ -491,6 +491,11 @@ export function LandingPage() {
                             {plan.is_popular && <div className="popular-badge">Mais Popular</div>}
                             <h3>{plan.name}</h3>
                             <div className="price">R$ {plan.price}<span>/{plan.period}</span></div>
+                            {plan.observation && (
+                                <div className="text-sm font-medium mb-4 px-2" style={{ color: "var(--primary-color, #2563eb)", marginTop: "-10px" }}>
+                                    {plan.observation}
+                                </div>
+                            )}
                             <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
                                 {plan.features.map((feat: string, fIdx: number) => (
                                     <li key={fIdx}>

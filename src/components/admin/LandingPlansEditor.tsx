@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Save, Plus, Trash2, Edit } from 'lucide-react';
+import { Save, Plus, Trash2, Edit, Sparkles } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
+import { useEntity } from '../../context/EntityContext';
+import { supabase } from '../../lib/supabase';
 
 export function LandingPlansEditor() {
     const { appSettings, updateAppSettings } = useAdmin();
+    const { currentEntity } = useEntity();
     const [plans, setPlans] = useState<any[]>([]);
     const [saving, setSaving] = useState(false);
+    const [generatingMagic, setGeneratingMagic] = useState<number | null>(null);
 
     useEffect(() => {
         if (appSettings?.landing_plans) {
@@ -53,6 +57,35 @@ export function LandingPlansEditor() {
             alert('Erro ao salvar planos: ' + error);
         } else {
             alert('Planos da Landing Page salvos com sucesso!');
+        }
+    };
+
+    const handleMagic = async (pIdx: number) => {
+        const plan = plans[pIdx];
+        setGeneratingMagic(pIdx);
+        try {
+            const { data, error } = await supabase.functions.invoke('social-copilot-magic', {
+                body: {
+                    company_id: currentEntity?.id || '',
+                    mode: 'automation_template',
+                    topic: `Gere uma frase curtíssima e persuasiva (máximo de 5 a 6 palavras) para exibir embaixo do preço de um plano de sistema SaaS. Nome do plano: "${plan.name}". Preço: R$${plan.price}. Exemplo de saída desejada: "Ideal para Autônomos" ou "O mais completo do mercado". Não use aspas na resposta.`
+                }
+            });
+
+            if (error) {
+                console.error("Erro da IA do Supabase:", error);
+            }
+
+            if (data?.template) {
+                updatePlan(pIdx, 'observation', data.template.replace(/["']/g, '').trim());
+            } else {
+                alert('Erro ao gerar texto com IA.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Falha na comunicação com a IA.');
+        } finally {
+            setGeneratingMagic(null);
         }
     };
 
@@ -165,6 +198,26 @@ export function LandingPlansEditor() {
                         </div>
 
                         <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
+                            <div className="mb-3">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                                    Observação do Plano
+                                    <button
+                                        onClick={() => handleMagic(pIdx)}
+                                        disabled={generatingMagic === pIdx}
+                                        className="text-[10px] flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-2 py-1 rounded hover:opacity-90 disabled:opacity-50"
+                                    >
+                                        <Sparkles size={12} />
+                                        {generatingMagic === pIdx ? 'Gerando...' : 'IA'}
+                                    </button>
+                                </label>
+                                <input
+                                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700 dark:text-white text-sm"
+                                    placeholder="Ex: Ideal para quem está começando..."
+                                    value={plan.observation || ''}
+                                    onChange={(e) => updatePlan(pIdx, 'observation', e.target.value)}
+                                />
+                            </div>
+
                             <Input
                                 label="Texto do Botão"
                                 value={plan.button_text}
