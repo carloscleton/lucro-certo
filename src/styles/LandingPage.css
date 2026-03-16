@@ -428,27 +428,21 @@
 /* Controls UI */
 .carousel-controls {
     position: absolute;
-    bottom: -20px;
-    right: 5%;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 1.5rem;
     z-index: 50;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 12px 24px;
-    border-radius: 100px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    transform: translateX(-20px);
 }
 
 .carousel-nav-btn {
-    background: transparent;
-    border: none;
-    width: 36px;
-    height: 36px;
+    background: white;
+    border: 1px solid var(--glass-border);
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -456,11 +450,13 @@
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--text-dark);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .carousel-nav-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
-    transform: scale(1.1);
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: scale(1.05);
 }
 
 .carousel-dots {
