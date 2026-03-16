@@ -198,17 +198,15 @@ export function Login() {
                                     return; // Stop here, redirecting
                                 } else {
                                     console.error('Checkout error:', checkoutError || checkoutData);
-                                    alert('Não foi possível gerar a página de pagamento: ' + (checkoutData?.error || 'Erro interno do servidor.'));
 
-                                    // Block company to prevent free access
+                                    // Instead of blocking, we just let them log in
+                                    // The 'unpaid' logic in Layout.tsx will allow them to retry the payment
                                     await supabase.from('companies').update({
-                                        status: 'blocked',
-                                        subscription_status: 'blocked'
+                                        subscription_status: 'unpaid'
                                     }).eq('id', newCompanyId);
 
-                                    await supabase.auth.signOut();
                                     setLoading(false);
-                                    navigate('/');
+                                    navigate('/dashboard');
                                     return;
                                 }
                             }
@@ -295,6 +293,12 @@ export function Login() {
 
                                 if (!checkoutError && checkoutData?.paymentUrl) {
                                     window.location.href = checkoutData.paymentUrl;
+                                    return;
+                                } else {
+                                    console.error('Checkout error:', checkoutError || checkoutData);
+                                    // Just navigate to dashboard, unpaid logic will handle it
+                                    setLoading(false);
+                                    navigate('/dashboard');
                                     return;
                                 }
                             }
