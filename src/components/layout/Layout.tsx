@@ -445,8 +445,12 @@ export function Layout() {
                                         <Button
                                             onClick={async () => {
                                                 try {
+                                                    const { data: { session: currentSession } } = await supabase.auth.getSession();
                                                     const res = await supabase.functions.invoke('platform-checkout', {
-                                                        body: { company_id: currentEntity.id }
+                                                        body: { company_id: currentEntity.id },
+                                                        headers: {
+                                                            Authorization: `Bearer ${currentSession?.access_token}`
+                                                        }
                                                     });
                                                     if (res.error) throw res.error;
                                                     if (res.data?.paymentUrl) {
