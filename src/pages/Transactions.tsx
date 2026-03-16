@@ -286,6 +286,10 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                 alert('Opção inválida. Operação cancelada.');
                 return;
             }
+        } else if (transaction?.is_recurring) {
+            if (!confirm('Este lançamento está marcado como recorrente, mas não faz parte de um grupo vinculado. Deseja excluir apenas este item?')) {
+                return;
+            }
         } else {
             if (!confirm(t('common.confirm_delete'))) {
                 return;

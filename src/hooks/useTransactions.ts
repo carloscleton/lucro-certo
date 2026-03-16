@@ -189,8 +189,24 @@ export function useTransactions(type: TransactionType) {
                 if (rawData[key] !== undefined) cleanUpdates[key] = rawData[key];
             });
 
+            // Special case: if is_recurring is becoming true and it doesn't have a group yet
+            // We'll handle this AFTER fetching the current record to be sure
+
             // If we are overriding/propagating/excluding, we NEED the latest record data from DB
             // to get the correct recurrence_group_id, even if the local state is stale.
+            const { data: currentRows } = await supabase
+                .from('transactions')
+                .select('recurrence_group_id, is_recurring')
+                .eq('id', id)
+                .single();
+
+            if (is_recurring && !currentRows?.recurrence_group_id) {
+                cleanUpdates.recurrence_group_id = crypto.randomUUID();
+                if (cleanUpdates.installment_number === undefined) {
+                    cleanUpdates.installment_number = 1;
+                }
+            }
+
             const { data: updatedRows, error, count } = await supabase
                 .from('transactions')
                 .update(cleanUpdates, { count: 'exact' })

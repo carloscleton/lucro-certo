@@ -19,11 +19,57 @@ import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
 import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
+import { useTransactions } from '../hooks/useTransactions';
 
 export function Dashboard() {
     const { profile } = useAuth();
     const navigate = useNavigate();
     const { t } = useTranslation();
+    const { deleteTransaction: deleteExpense } = useTransactions('expense');
+    const { deleteTransaction: deleteIncome } = useTransactions('income');
+
+    const handleDelete = async (id: string) => {
+        const transaction = transactions.find(t => t.id === id);
+        if (!transaction) return;
+
+        let scope: 'single' | 'future' | 'all' = 'single';
+
+        if (transaction.recurrence_group_id) {
+            const choice = window.prompt(
+                'Lançamento Recorrente detectado. O que deseja apagar?\n\n' +
+                '1 - APENAS este Lançamento\n' +
+                '2 - Este e os FUTUROS (A partir desta data)\n' +
+                '3 - TODOS (Histórico completo desta repetição)\n\n' +
+                'Digite o número da opção desejada:'
+            );
+
+            if (choice === null) return; // Cancelled
+
+            if (choice === '2') {
+                scope = 'future';
+            } else if (choice === '3') {
+                scope = 'all';
+            } else if (choice !== '1') {
+                alert('Opção inválida. Operação cancelada.');
+                return;
+            }
+        } else {
+            if (!confirm(t('common.confirm_delete'))) {
+                return;
+            }
+        }
+
+        try {
+            if (transaction.type === 'expense') {
+                await deleteExpense(id, scope);
+            } else {
+                await deleteIncome(id, scope);
+            }
+            refreshDashboard();
+        } catch (error: any) {
+            alert(error.message || t('common.delete_error'));
+        }
+    };
 
     // Initial State: Current Month
     const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -243,6 +289,7 @@ export function Dashboard() {
                 title={modalTitle}
                 transactions={getFilteredTransactions()}
                 type={modalType}
+                onDelete={handleDelete}
             />
         </div>
     );

@@ -1,4 +1,4 @@
-import { ListFilter, Coffee, Repeat } from 'lucide-react';
+import { ListFilter, Coffee, Repeat, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,6 +34,7 @@ interface TransactionDetailModalProps {
     title: string;
     transactions: Transaction[];
     type?: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected';
+    onDelete?: (id: string) => void;
 }
 
 export function TransactionDetailModal({
@@ -41,7 +42,8 @@ export function TransactionDetailModal({
     onClose,
     title,
     transactions,
-    type = 'balance'
+    type = 'balance',
+    onDelete
 }: TransactionDetailModalProps) {
     if (!isOpen) return null;
 
@@ -147,20 +149,35 @@ export function TransactionDetailModal({
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className={`font-bold text-lg ${transaction.type === 'income'
-                                                        ? 'text-emerald-600 dark:text-emerald-400'
-                                                        : 'text-rose-600 dark:text-rose-400'
-                                                        }`}>
-                                                        {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.paid_amount || transaction.amount)}
-                                                    </p>
-                                                    {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
-                                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                                            (Orig: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
-                                                            {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.interest || 0)}`}
-                                                            {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.penalty || 0)}`}
-                                                            )
+                                                <div className="flex items-center gap-4">
+                                                    <div className="text-right">
+                                                        <p className={`font-bold text-lg ${transaction.type === 'income'
+                                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                                            : 'text-rose-600 dark:text-rose-400'
+                                                            }`}>
+                                                            {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.paid_amount || transaction.amount)}
                                                         </p>
+                                                        {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
+                                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                                                (Orig: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
+                                                                {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.interest || 0)}`}
+                                                                {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.penalty || 0)}`}
+                                                                )
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    {onDelete && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                onDelete(transaction.id);
+                                                            }}
+                                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all active:scale-90"
+                                                            title="Excluir"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>

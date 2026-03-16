@@ -3,7 +3,7 @@ import { useTransactions } from '../../hooks/useTransactions';
 import { useCategories } from '../../hooks/useCategories';
 import { useContacts } from '../../hooks/useContacts';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Tag, Building2, Repeat, Receipt, FileText, Paperclip, Eye } from 'lucide-react';
+import { ChevronDown, ChevronRight, Tag, Building2, Repeat, Receipt, FileText, Paperclip, Eye, Trash2 } from 'lucide-react';
 import { formatBrazilianDate } from '../../utils/dateUtils';
 import { Tooltip } from '../ui/Tooltip';
 
@@ -11,9 +11,10 @@ interface AnalyticalLedgerProps {
     startDate: string;
     endDate: string;
     onSelect?: (transaction: any) => void;
+    onDelete?: (id: string) => void;
 }
 
-export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLedgerProps) {
+export function AnalyticalLedger({ startDate, endDate, onSelect, onDelete }: AnalyticalLedgerProps) {
     const { t } = useTranslation();
     const { transactions: expenses } = useTransactions('expense');
     const { transactions: income } = useTransactions('income');
@@ -173,7 +174,7 @@ export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLed
                                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount)}
                                                         </td>
                                                         <td className="px-3 py-2 text-center">
-                                                            <div className="flex items-center justify-center">
+                                                            <div className="flex items-center justify-center gap-2">
                                                                 <button
                                                                     className="flex items-center gap-1.5 p-1.5 px-3 text-[9px] font-extrabold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-900/50 shadow-sm hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-md hover:shadow-blue-500/20 transition-all active:scale-90 uppercase tracking-wider"
                                                                     onClick={(e) => {
@@ -185,6 +186,21 @@ export function AnalyticalLedger({ startDate, endDate, onSelect }: AnalyticalLed
                                                                     <Eye className="w-3 h-3" />
                                                                     Detalhes
                                                                 </button>
+                                                                {onDelete && (
+                                                                    <Tooltip content="Excluir">
+                                                                        <button
+                                                                            type="button"
+                                                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all active:scale-90"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                onDelete(item.id);
+                                                                            }}
+                                                                        >
+                                                                            <Trash2 size={15} />
+                                                                        </button>
+                                                                    </Tooltip>
+                                                                )}
                                                             </div>
                                                         </td>
                                                     </tr>

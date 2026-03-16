@@ -11,12 +11,54 @@ import { TransactionForm } from '../components/transactions/TransactionForm';
 
 export function Reports() {
     const { t: tr } = useTranslation();
-    const { transactions: expenses, updateTransaction: updateExpense } = useTransactions('expense');
-    const { transactions: income, updateTransaction: updateIncome } = useTransactions('income');
+    const { transactions: expenses, updateTransaction: updateExpense, deleteTransaction: deleteExpense } = useTransactions('expense');
+    const { transactions: income, updateTransaction: updateIncome, deleteTransaction: deleteIncome } = useTransactions('income');
     const { categories } = useCategories();
 
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleDelete = async (id: string) => {
+        const transaction = [...expenses, ...income].find(t => t.id === id);
+        if (!transaction) return;
+
+        let scope: 'single' | 'future' | 'all' = 'single';
+
+        if (transaction.recurrence_group_id) {
+            const choice = window.prompt(
+                'Lançamento Recorrente detectado. O que deseja apagar?\n\n' +
+                '1 - APENAS este Lançamento\n' +
+                '2 - Este e os FUTUROS (A partir desta data)\n' +
+                '3 - TODOS (Histórico completo desta repetição)\n\n' +
+                'Digite o número da opção desejada:'
+            );
+
+            if (choice === null) return; // Cancelled
+
+            if (choice === '2') {
+                scope = 'future';
+            } else if (choice === '3') {
+                scope = 'all';
+            } else if (choice !== '1') {
+                alert('Opção inválida. Operação cancelada.');
+                return;
+            }
+        } else {
+            if (!confirm(tr('common.confirm_delete'))) {
+                return;
+            }
+        }
+
+        try {
+            if (transaction.type === 'expense') {
+                await deleteExpense(id, scope);
+            } else {
+                await deleteIncome(id, scope);
+            }
+        } catch (error: any) {
+            alert(error.message || tr('common.delete_error'));
+        }
+    };
 
     const [isMounted, setIsMounted] = useState(false);
     useEffect(() => {
@@ -590,6 +632,7 @@ export function Reports() {
                     setEditingTransaction(transaction);
                     setIsModalOpen(true);
                 }}
+                onDelete={handleDelete}
             />
 
             <TransactionForm
