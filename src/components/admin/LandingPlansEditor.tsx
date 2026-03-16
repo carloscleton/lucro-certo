@@ -238,6 +238,15 @@ export function LandingPlansEditor() {
                                     <option value="secondary">Secundário (Branco/Neutro)</option>
                                 </select>
                             </div>
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link de Pagamento (Gateway)</label>
+                                <input
+                                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700 dark:text-white text-sm"
+                                    placeholder="Ex: https://pay.kiwify.com.br/..."
+                                    value={plan.checkout_url || ''}
+                                    onChange={(e) => updatePlan(pIdx, 'checkout_url', e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
                 ))}

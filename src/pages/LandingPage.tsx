@@ -508,7 +508,13 @@ export function LandingPage() {
                                 ))}
                             </ul>
                             <button
-                                onClick={() => navigate('/login')}
+                                onClick={() => {
+                                    if (plan.checkout_url) {
+                                        window.open(plan.checkout_url, '_blank');
+                                    } else {
+                                        navigate('/login');
+                                    }
+                                }}
                                 className={`btn-pricing ${plan.button_type === 'primary' ? 'btn-primary' : 'btn-secondary'}`}
                             >
                                 {plan.button_text}
