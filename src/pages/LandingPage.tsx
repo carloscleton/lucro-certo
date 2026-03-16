@@ -152,20 +152,11 @@ export function LandingPage() {
             <header className="hero-section carousel-mode">
                 <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                     {banners.map((banner, index) => (
-                        <div key={index} className="carousel-slide-content">
+                        <div key={index} className="carousel-slide-content" aria-hidden={currentSlide !== index}>
                             <div className="hero-content">
-                                <div style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '8px 16px',
-                                    borderRadius: '100px',
-                                    background: banner.tagColor,
+                                <div className="banner-badge" style={{
+                                    borderColor: banner.tagTextColor,
                                     color: banner.tagTextColor,
-                                    marginBottom: '1.5rem',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 'bold',
-                                    animation: 'fadeInDown 0.5s ease-out'
                                 }}>
                                     {banner.tagIcon}
                                     {banner.tag}
@@ -203,17 +194,14 @@ export function LandingPage() {
                     ))}
                 </div>
 
-                {/* Global Carousel Actions (Fixed in center) */}
                 <div className="carousel-global-actions">
                     <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
-                        {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
-                        <ChevronRight size={20} />
+                        {session ? 'Ir para o Dashboard' : 'Começar Agora'}
+                        <ChevronRight size={18} />
                     </button>
                     <button className="btn-secondary">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <PlayCircle size={20} />
-                            Ver Vídeo
-                        </div>
+                        <PlayCircle size={18} />
+                        Conhecer Sistema
                     </button>
                 </div>
 
