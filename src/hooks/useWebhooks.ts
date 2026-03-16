@@ -85,7 +85,10 @@ export function useWebhooks() {
                 .rpc('get_template_webhooks', { current_company_id: currentEntity.id });
 
             if (error) {
-                console.error('Error fetching template webhooks:', error);
+                // Only log if it's NOT an authentication error (expected for public pages)
+                if (error.code !== 'PGRST301' && !error.message.includes('not authenticated')) {
+                    console.error('Error fetching template webhooks:', error);
+                }
                 setTemplateWebhooks([]);
                 return;
             }

@@ -312,6 +312,8 @@ export function Login() {
                 }
             } else if (err.message.includes('Email not confirmed')) {
                 setError(t('login.email_not_confirmed'));
+            } else if (err.message.toLowerCase().includes('user already registered') || err.message.toLowerCase().includes('already registered')) {
+                setError("Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.");
             } else if (err.message.includes('New password should be different from the old password')) {
                 setError(t('login.new_password_different'));
             } else if (err.message.includes('Password should be at least 6 characters')) {
