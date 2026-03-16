@@ -189,27 +189,29 @@ export function useTransactions(type: TransactionType) {
                 if (rawData[key] !== undefined) cleanUpdates[key] = rawData[key];
             });
 
-            // Find original transaction in local state to check for quote link or recurrence
-            const originalTransaction = transactions.find(t => t.id === id);
-
-            const { error, count } = await supabase
+            // If we are overriding/propagating/excluding, we NEED the latest record data from DB
+            // to get the correct recurrence_group_id, even if the local state is stale.
+            const { data: updatedRows, error, count } = await supabase
                 .from('transactions')
                 .update(cleanUpdates, { count: 'exact' })
-                .eq('id', id);
+                .eq('id', id)
+                .select();
 
             if (error) throw error;
 
-            console.log(`Updated transaction ${id}. Rows affected: ${count}`);
+            console.log(`[useTransactions] Updated transaction ${id}. Rows affected: ${count}`);
 
-            if (count === 0) {
-                // Diagnose why
-                console.warn('Update matched 0 rows. Probable causes: ID mismatch or RLS policy.');
-                throw new Error("Falha na atualização: O registro não foi alterado. Verifique suas permissões.");
+            if (count === 0 || !updatedRows?.[0]) {
+                console.warn('[useTransactions] Update matched 0 rows or failed to return data.');
+                throw new Error("Falha na atualização: O registro não foi encontrado ou você não tem permissão.");
             }
 
+            const currentRecord = updatedRows[0];
+            const groupId = currentRecord.recurrence_group_id;
+
             // Propagate to future ones if requested
-            if (propagate && originalTransaction?.recurrence_group_id) {
-                console.log(`📡 Propagating changes for group ${originalTransaction.recurrence_group_id}...`);
+            if (propagate && groupId) {
+                console.log(`📡 Propagating changes for group ${groupId}...`);
 
                 // Fields to propagate (not everything from updates should be propagated)
                 const propagationPayload: any = {};
@@ -219,10 +221,10 @@ export function useTransactions(type: TransactionType) {
                 if (cleanUpdates.company_id !== undefined) propagationPayload.company_id = cleanUpdates.company_id;
                 if (cleanUpdates.contact_id !== undefined) propagationPayload.contact_id = cleanUpdates.contact_id;
                 if (cleanUpdates.is_variable_amount !== undefined) propagationPayload.is_variable_amount = cleanUpdates.is_variable_amount;
-                if (cleanUpdates.recurring_count !== undefined) propagationPayload.recurring_count = cleanUpdates.recurring_count;
+                // Important: also propagate the new recurring_count if it was changed
+                if (recurring_count !== undefined) propagationPayload.recurring_count = recurring_count;
 
                 // Explicitly ensure we DON'T propagate attachments/notes to future ones if they were updated
-                // as the user wants them only for the specific record.
                 delete propagationPayload.attachment_url;
                 delete propagationPayload.attachment_path;
                 delete propagationPayload.notes;
@@ -231,25 +233,25 @@ export function useTransactions(type: TransactionType) {
                     const { error: propError } = await supabase
                         .from('transactions')
                         .update(propagationPayload)
-                        .eq('recurrence_group_id', originalTransaction.recurrence_group_id)
+                        .eq('recurrence_group_id', groupId)
                         .eq('status', 'pending')
-                        .gt('date', originalTransaction.date);
+                        .gt('date', currentRecord.date);
 
                     if (propError) {
-                        console.error('Propagation error:', propError);
-                        // We don't throw here to avoid failing the main update, but we log it
+                        console.error('[useTransactions] Propagation error:', propError);
                     }
                 }
             }
 
             // Individual Overrides (targeting specific installments by number)
-            if (overrides && originalTransaction?.recurrence_group_id) {
-                console.log(`🎯 Applying individual overrides for group ${originalTransaction.recurrence_group_id}...`);
+            if (overrides && groupId) {
+                console.log(`🎯 Applying ${Object.keys(overrides).length} overrides for group ${groupId}...`);
 
                 for (const [idxStr, override] of Object.entries(overrides)) {
                     const installmentNum = parseInt(idxStr);
-                    const { amount: ovAmount, date: ovDate } = override as any;
+                    if (isNaN(installmentNum)) continue;
 
+                    const { amount: ovAmount, date: ovDate } = override as any;
                     const overridePayload: any = {};
                     if (ovAmount !== undefined) overridePayload.amount = ovAmount;
                     if (ovDate !== undefined) overridePayload.date = ovDate;
@@ -258,39 +260,40 @@ export function useTransactions(type: TransactionType) {
                         const { error: overError } = await supabase
                             .from('transactions')
                             .update(overridePayload)
-                            .eq('recurrence_group_id', originalTransaction.recurrence_group_id)
+                            .eq('recurrence_group_id', groupId)
                             .eq('installment_number', installmentNum);
 
                         if (overError) {
-                            console.error(`Error applying override to installment #${installmentNum}:`, overError);
+                            console.error(`[useTransactions] Error applying override to installment #${installmentNum}:`, overError);
                         }
                     }
                 }
             }
 
             // Individual Exclusions (deleting specific installments)
-            if ((updates as any).exclusions && originalTransaction?.recurrence_group_id) {
-                console.log(`🗑️ Processing exclusions for group ${originalTransaction.recurrence_group_id}...`);
+            const exclusions = (updates as any).exclusions;
+            if (exclusions && exclusions.length > 0 && groupId) {
+                console.log(`🗑️ Deleting ${exclusions.length} installments for group ${groupId}:`, exclusions);
                 const { error: exclError } = await supabase
                     .from('transactions')
                     .delete()
-                    .eq('recurrence_group_id', originalTransaction.recurrence_group_id)
-                    .in('installment_number', (updates as any).exclusions);
+                    .eq('recurrence_group_id', groupId)
+                    .in('installment_number', exclusions);
 
                 if (exclError) {
-                    console.error('Error processing exclusions:', exclError);
+                    console.error('[useTransactions] Error processing exclusions:', exclError);
                 }
             }
 
             // Sync Quote Payment Status if needed
-            if (updates.status && originalTransaction?.quote_id) {
+            if (updates.status && currentRecord?.quote_id) {
                 const isPaid = updates.status === 'paid' || updates.status === 'received';
                 const paymentStatus = isPaid ? 'paid' : 'pending';
 
                 await supabase
                     .from('quotes')
                     .update({ payment_status: paymentStatus })
-                    .eq('id', originalTransaction.quote_id);
+                    .eq('id', currentRecord.quote_id);
             }
 
             await fetchTransactions();
