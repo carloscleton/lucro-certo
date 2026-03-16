@@ -149,6 +149,17 @@ Retorne APENAS o texto da mensagem.
       return new Response(JSON.stringify({ success: true, template: generatedTemplate }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    if (mode === 'landing_plan_magic') {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: topic }], temperature: 0.7 })
+      });
+      const data = await res.json();
+      const generatedTemplate = data.choices?.[0]?.message?.content?.trim() || '';
+      return new Response(JSON.stringify({ success: true, template: generatedTemplate }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     let generatedCaption = '';
     let publicUrl = null;
 

@@ -71,7 +71,7 @@ export function LandingPlansEditor() {
             const { data, error } = await supabase.functions.invoke('social-copilot-magic', {
                 body: {
                     company_id: currentEntity?.id || '',
-                    mode: 'automation_template',
+                    mode: 'landing_plan_magic',
                     topic: promptText
                 }
             });
