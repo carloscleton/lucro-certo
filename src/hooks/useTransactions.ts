@@ -230,12 +230,13 @@ export function useTransactions(type: TransactionType) {
                 delete propagationPayload.notes;
 
                 if (Object.keys(propagationPayload).length > 0) {
+                    console.log(`[useTransactions] Propagating to installments > ${currentRecord.installment_number}`);
                     const { error: propError } = await supabase
                         .from('transactions')
                         .update(propagationPayload)
                         .eq('recurrence_group_id', groupId)
                         .eq('status', 'pending')
-                        .gt('date', currentRecord.date);
+                        .gt('installment_number', currentRecord.installment_number || 0);
 
                     if (propError) {
                         console.error('[useTransactions] Propagation error:', propError);
@@ -245,7 +246,7 @@ export function useTransactions(type: TransactionType) {
 
             // Individual Overrides (targeting specific installments by number)
             if (overrides && groupId) {
-                console.log(`🎯 Applying ${Object.keys(overrides).length} overrides for group ${groupId}...`);
+                console.log(`[useTransactions] Applying ${Object.keys(overrides).length} overrides:`, overrides);
 
                 for (const [idxStr, override] of Object.entries(overrides)) {
                     const installmentNum = parseInt(idxStr);
@@ -273,7 +274,7 @@ export function useTransactions(type: TransactionType) {
             // Individual Exclusions (deleting specific installments)
             const exclusions = (updates as any).exclusions;
             if (exclusions && exclusions.length > 0 && groupId) {
-                console.log(`🗑️ Deleting ${exclusions.length} installments for group ${groupId}:`, exclusions);
+                console.log(`🗑️ Deleting ${exclusions.length} installments for group ${groupId}: ${exclusions}`);
                 const { error: exclError } = await supabase
                     .from('transactions')
                     .delete()
@@ -282,6 +283,44 @@ export function useTransactions(type: TransactionType) {
 
                 if (exclError) {
                     console.error('[useTransactions] Error processing exclusions:', exclError);
+                }
+            }
+
+            // NEW: Handle series extension (if recurring_count increased)
+            if (recurring_count && groupId && recurring_count > (currentRecord.recurring_count || 0)) {
+                console.log(`[useTransactions] Series extended from ${currentRecord.recurring_count} to ${recurring_count}.`);
+
+                const { data: existing } = await supabase
+                    .from('transactions')
+                    .select('installment_number, date')
+                    .eq('recurrence_group_id', groupId)
+                    .order('installment_number', { ascending: false });
+
+                const lastExisting = existing?.[0];
+                const lastNum = lastExisting?.installment_number || 1;
+                const lastDate = lastExisting?.date || currentRecord.date;
+                const existingCount = existing?.length || 0;
+                const needed = recurring_count - existingCount;
+
+                if (needed > 0) {
+                    const newDates = calculateNextDates(lastDate, frequency || (currentRecord as any).frequency || 'monthly', needed);
+
+                    // Base fields for new installments
+                    const { id: _, created_at: __, attachment_url: ___, attachment_path: ____, notes: _____, installment_number: ______, recurring_count: _______, ...baseData } = currentRecord;
+
+                    const newEntries = newDates.map((d, i) => ({
+                        ...baseData,
+                        date: d.toISOString().split('T')[0],
+                        installment_number: lastNum + i + 1,
+                        recurring_count: recurring_count,
+                        status: 'pending'
+                    }));
+
+                    const { error: insError } = await supabase
+                        .from('transactions')
+                        .insert(newEntries);
+
+                    if (insError) console.error('[useTransactions] Error extending series:', insError);
                 }
             }
 
@@ -298,7 +337,7 @@ export function useTransactions(type: TransactionType) {
 
             await fetchTransactions();
         } catch (err: any) {
-            console.error('Error updating transaction:', err);
+            console.error('[useTransactions] Error updating transaction:', err);
             setError(err.message);
             throw err;
         }
