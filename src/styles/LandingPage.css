@@ -440,9 +440,9 @@
 
 .carousel-nav-btn {
     background: transparent;
-    border: 1px solid transparent;
-    width: 32px;
-    height: 32px;
+    border: none;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -450,13 +450,14 @@
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--text-muted);
+    opacity: 0.6;
 }
 
 .carousel-nav-btn:hover {
-    background: white;
-    border-color: var(--glass-border);
+    background: transparent;
     color: var(--text-dark);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    opacity: 1;
+    transform: scale(1.1);
 }
 
 .carousel-dots {

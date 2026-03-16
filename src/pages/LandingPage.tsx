@@ -226,7 +226,7 @@ export function LandingPage() {
                 {/* Carousel Controls */}
                 <div className="carousel-controls">
                     <button onClick={prevSlide} className="carousel-nav-btn prev">
-                        <ArrowLeft size={18} />
+                        <ArrowLeft size={16} strokeWidth={1.5} />
                     </button>
                     <div className="carousel-dots">
                         {banners.map((_, index) => (
@@ -238,7 +238,7 @@ export function LandingPage() {
                         ))}
                     </div>
                     <button onClick={nextSlide} className="carousel-nav-btn next">
-                        <ArrowRight size={18} />
+                        <ArrowRight size={16} strokeWidth={1.5} />
                     </button>
                 </div>
             </header>
