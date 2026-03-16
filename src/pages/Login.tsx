@@ -176,9 +176,13 @@ export function Login() {
                                     subscription_status: 'unpaid'
                                 }).eq('id', newCompanyId);
 
-                                // Request checkout URL
+                                // Request checkout URL - passing headers explicitly to avoid 401 race conditions
+                                const { data: { session: currentSession } } = await supabase.auth.getSession();
                                 const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('platform-checkout', {
-                                    body: { company_id: newCompanyId }
+                                    body: { company_id: newCompanyId },
+                                    headers: {
+                                        Authorization: `Bearer ${currentSession?.access_token}`
+                                    }
                                 });
 
                                 if (!checkoutError && checkoutData?.paymentUrl) {
@@ -247,12 +251,48 @@ export function Login() {
 
                     const castedMembership = membershipData as any;
                     if (castedMembership?.company?.status === 'blocked') {
-                        // For company block, we also prevent immediate entry if it's the only/primary context
-                        // This matches "não precisa nem chegar abrir o sistema"
                         await supabase.auth.signOut();
                         setShowBannedModal(true);
                         setLoading(false);
                         return;
+                    }
+
+                    // CHECKOUT PARA USUÁRIOS EXISTENTES
+                    const checkoutPlan = searchParams.get('checkout-plan');
+                    const checkoutPrice = searchParams.get('checkout-price');
+
+                    if (checkoutPlan && checkoutPrice) {
+                        try {
+                            const { data: companies } = await supabase
+                                .from('company_members')
+                                .select('company_id, role')
+                                .eq('user_id', authData.user.id);
+
+                            if (companies && companies.length > 0) {
+                                const targetCompanyId = companies.find(c => c.role === 'owner')?.company_id || companies[0].company_id;
+
+                                await supabase.from('companies').update({
+                                    subscription_plan: checkoutPlan,
+                                    next_billing_value: parseFloat(checkoutPrice),
+                                    subscription_status: 'unpaid'
+                                }).eq('id', targetCompanyId);
+
+                                const { data: { session: currentSession } } = await supabase.auth.getSession();
+                                const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('platform-checkout', {
+                                    body: { company_id: targetCompanyId },
+                                    headers: {
+                                        Authorization: `Bearer ${currentSession?.access_token}`
+                                    }
+                                });
+
+                                if (!checkoutError && checkoutData?.paymentUrl) {
+                                    window.location.href = checkoutData.paymentUrl;
+                                    return;
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Erro no checkout de usuário existente:", e);
+                        }
                     }
                 }
 
