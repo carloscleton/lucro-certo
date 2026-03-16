@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo } from 'react';
 import type { FormEvent } from 'react';
-import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search, Eye, EyeOff, Trash2, FileText, Copy } from 'lucide-react';
+import { Receipt, TrendingUp, Paperclip, Repeat, Plus, Search, Eye, EyeOff, Trash2, FileText, Copy, Pencil, Check, X } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Barcode from 'react-barcode';
 import { CategoryForm } from '../categories/CategoryForm';
@@ -47,7 +47,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [notes, setNotes] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [overrides] = useState<Record<number, { amount?: number; date?: string }>>({});
+    const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
+    const [editingInstallment, setEditingInstallment] = useState<number | null>(null);
+    const [tempOverrideAmount, setTempOverrideAmount] = useState('');
+    const [tempOverrideDate, setTempOverrideDate] = useState('');
     const [removedAttachment, setRemovedAttachment] = useState(false);
     const [showEmbeddedPreview, setShowEmbeddedPreview] = useState(false);
     const [tempAttachmentUrl, setTempAttachmentUrl] = useState('');
@@ -400,6 +403,32 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         }
     };
 
+    const handleSaveOverride = (idx: number) => {
+        setOverrides(prev => ({
+            ...prev,
+            [idx]: {
+                amount: tempOverrideAmount ? parseFloat(tempOverrideAmount) : undefined,
+                date: tempOverrideDate || undefined
+            }
+        }));
+        setEditingInstallment(null);
+    };
+
+    const handleStartEditOverride = (idx: number, currentAmount: number, currentDate: string) => {
+        setEditingInstallment(idx);
+        setTempOverrideAmount(currentAmount.toString());
+        setTempOverrideDate(currentDate);
+    };
+
+    const handleRemoveOverride = (idx: number) => {
+        setOverrides(prev => {
+            const next = { ...prev };
+            delete next[idx];
+            return next;
+        });
+        setEditingInstallment(null);
+    };
+
     const isExpense = type === 'expense';
     /* eslint-disable @typescript-eslint/no-explicit-any */
     const handleCategoryCreated = async (data: any) => {
@@ -514,18 +543,76 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             {date && (
                                 <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200">
                                     <p className="text-[10px] font-bold uppercase mb-2">Próximas Datas</p>
-                                    <div className="flex overflow-x-auto gap-2 pb-2">
+                                    <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-thin scrollbar-thumb-emerald-200">
                                         {calculateNextDates(date, frequency, recurringCount).map((nextDate, index) => {
                                             const installmentIdx = (initialData?.installment_number || 1) + index + 1;
                                             const currentOverride = overrides[installmentIdx];
                                             const realData = dbInstallments[installmentIdx];
                                             const displayDate = currentOverride?.date || realData?.date || nextDate.toISOString().split('T')[0];
                                             const displayAmount = currentOverride?.amount !== undefined ? currentOverride.amount : (realData?.amount ?? parseFloat(amount || '0'));
+                                            const isEditing = editingInstallment === installmentIdx;
+
                                             return (
-                                                <div key={index} className="flex-none w-28 p-2 bg-white dark:bg-slate-800 rounded-md border border-emerald-100 flex flex-col items-center">
-                                                    <span className="text-[10px] font-semibold text-emerald-600">#{installmentIdx}</span>
-                                                    <span className="text-[10px] font-bold mt-0.5">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}</span>
-                                                    <span className="text-[9px] text-gray-500">{formatBrazilianDate(new Date(displayDate + 'T12:00:00'))}</span>
+                                                <div key={index} className={`flex-none w-36 p-2 rounded-xl border transition-all ${isEditing ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-100 shadow-md' : 'bg-white dark:bg-slate-800 border-emerald-100 dark:border-slate-700 hover:border-emerald-300'}`}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[10px] font-bold text-emerald-600">#{installmentIdx}</span>
+                                                        {!isEditing ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleStartEditOverride(installmentIdx, displayAmount, displayDate)}
+                                                                className="p-1 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-md text-gray-400 hover:text-emerald-600 transition-colors"
+                                                            >
+                                                                <Pencil size={10} />
+                                                            </button>
+                                                        ) : (
+                                                            <div className="flex gap-1">
+                                                                <button type="button" onClick={() => handleSaveOverride(installmentIdx)} className="p-1 bg-emerald-600 text-white rounded-md">
+                                                                    <Check size={10} />
+                                                                </button>
+                                                                <button type="button" onClick={() => setEditingInstallment(null)} className="p-1 bg-gray-200 dark:bg-slate-600 text-gray-600 dark:text-gray-300 rounded-md">
+                                                                    <X size={10} />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {isEditing ? (
+                                                        <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                                                            <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                value={tempOverrideAmount}
+                                                                onChange={e => setTempOverrideAmount(e.target.value)}
+                                                                className="w-full text-[10px] font-bold p-1 border rounded bg-white dark:bg-slate-900 border-emerald-200"
+                                                                autoFocus
+                                                            />
+                                                            <input
+                                                                type="date"
+                                                                value={tempOverrideDate}
+                                                                onChange={e => setTempOverrideDate(e.target.value)}
+                                                                className="w-full text-[9px] p-1 border rounded bg-white dark:bg-slate-900 border-emerald-200"
+                                                            />
+                                                            {(currentOverride || realData) && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveOverride(installmentIdx)}
+                                                                    className="w-full text-[8px] font-bold text-red-500 hover:underline uppercase pt-1"
+                                                                >
+                                                                    Resetar
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center">
+                                                            <span className={`text-xs font-bold mt-0.5 ${currentOverride ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}
+                                                            </span>
+                                                            <span className={`text-[10px] text-gray-500 ${currentOverride ? 'text-blue-500' : ''}`}>
+                                                                {formatBrazilianDate(new Date(displayDate + 'T12:00:00'))}
+                                                            </span>
+                                                            {currentOverride && <span className="text-[8px] font-bold text-blue-500 uppercase mt-1">Editado</span>}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
