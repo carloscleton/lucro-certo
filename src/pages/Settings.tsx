@@ -23,6 +23,7 @@ import { PlatformBillingDashboard } from '../components/admin/PlatformBillingDas
 import { useCharges } from '../hooks/useCharges';
 import { useAuth } from '../context/AuthContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/phoneUtils';
+import { LandingPlansEditor } from '../components/admin/LandingPlansEditor';
 
 export function Settings() {
     const { t } = useTranslation();
@@ -1969,6 +1970,9 @@ export function Settings() {
                                             </button>
                                         </div>
                                     </div>
+                                </div>
+                                <div className="mt-8 border-t border-gray-100 dark:border-slate-800 pt-8">
+                                    <LandingPlansEditor />
                                 </div>
                             </div>
                         )}

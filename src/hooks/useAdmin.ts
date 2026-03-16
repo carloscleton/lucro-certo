@@ -89,6 +89,7 @@ export function useAdmin() {
         billing_whatsapp_template?: string;
         billing_email_template?: string;
         billing_days_before_reminder?: number[];
+        landing_plans?: any[];
     } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -352,6 +353,7 @@ export function useAdmin() {
         billing_whatsapp_template: string;
         billing_email_template: string;
         billing_days_before_reminder: number[];
+        landing_plans: any[];
     }>) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 

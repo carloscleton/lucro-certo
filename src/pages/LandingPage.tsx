@@ -15,6 +15,7 @@ import {
     X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import logoFull from '../assets/logo-full.png';
 
 // Import banner images
@@ -113,6 +114,51 @@ export function LandingPage() {
     const { session } = useAuth();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+    const [landingPlans, setLandingPlans] = useState<any[]>([
+        {
+            name: "Essencial",
+            price: "97",
+            period: "mês",
+            features: ["Gestão Financeira Completa", "CRM até 500 contatos", "Relatórios Básicos"],
+            button_text: "Escolher Plano",
+            button_type: "secondary",
+            is_popular: false
+        },
+        {
+            name: "Profissional + IA",
+            price: "197",
+            period: "mês",
+            features: ["Tudo do Essencial", "**Radar de Leads (IA)**", "**Marketing Copilot (IA)**", "WhatsApp Ilimitado"],
+            button_text: "Começar agora",
+            button_type: "primary",
+            is_popular: true
+        },
+        {
+            name: "Empresarial",
+            price: "497",
+            period: "mês",
+            features: ["Tudo do Profissional", "Multi-empresas (até 5)", "Suporte VIP 24h", "API de Integração"],
+            button_text: "Falar com Consultor",
+            button_type: "secondary",
+            is_popular: false
+        }
+    ]);
+
+    useEffect(() => {
+        const fetchPlans = async () => {
+            try {
+                const { data, error } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+                if (error) {
+                    console.error("Erro ao puxar planos do Supabase:", error);
+                } else if (data?.landing_plans && Array.isArray(data.landing_plans) && data.landing_plans.length > 0) {
+                    setLandingPlans(data.landing_plans);
+                }
+            } catch (err) {
+                console.error("Erro ao puxar planos", err);
+            }
+        };
+        fetchPlans();
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -440,41 +486,30 @@ export function LandingPage() {
                 </div>
 
                 <div className="pricing-grid">
-                    <div className="pricing-card">
-                        <h3>Essencial</h3>
-                        <div className="price">R$ 97<span>/mês</span></div>
-                        <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Gestão Financeira Completa</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> CRM até 500 contatos</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Relatórios Básicos</li>
-                        </ul>
-                        <button onClick={() => navigate('/login')} className="btn-secondary btn-pricing">Escolher Plano</button>
-                    </div>
-
-                    <div className="pricing-card popular">
-                        <div className="popular-badge">Mais Popular</div>
-                        <h3>Profissional + IA</h3>
-                        <div className="price">R$ 197<span>/mês</span></div>
-                        <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Tudo do Essencial</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> **Radar de Leads (IA)**</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> **Marketing Copilot (IA)**</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> WhatsApp Ilimitado</li>
-                        </ul>
-                        <button onClick={() => navigate('/login')} className="btn-primary btn-pricing">Começar agora</button>
-                    </div>
-
-                    <div className="pricing-card">
-                        <h3>Empresarial</h3>
-                        <div className="price">R$ 497<span>/mês</span></div>
-                        <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Tudo do Profissional</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Multi-empresas (até 5)</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Suporte VIP 24h</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> API de Integração</li>
-                        </ul>
-                        <button onClick={() => navigate('/login')} className="btn-secondary btn-pricing">Falar com Consultor</button>
-                    </div>
+                    {landingPlans.map((plan, idx) => (
+                        <div key={idx} className={`pricing-card ${plan.is_popular ? 'popular' : ''}`}>
+                            {plan.is_popular && <div className="popular-badge">Mais Popular</div>}
+                            <h3>{plan.name}</h3>
+                            <div className="price">R$ {plan.price}<span>/{plan.period}</span></div>
+                            <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
+                                {plan.features.map((feat: string, fIdx: number) => (
+                                    <li key={fIdx}>
+                                        <CheckCircle2 size={18} className="check-icon" />
+                                        {feat.startsWith('**') && feat.endsWith('**') ?
+                                            <strong>{feat.replace(/\*\*/g, '')}</strong> :
+                                            feat
+                                        }
+                                    </li>
+                                ))}
+                            </ul>
+                            <button
+                                onClick={() => navigate('/login')}
+                                className={`btn-pricing ${plan.button_type === 'primary' ? 'btn-primary' : 'btn-secondary'}`}
+                            >
+                                {plan.button_text}
+                            </button>
+                        </div>
+                    ))}
                 </div>
             </section>
 
