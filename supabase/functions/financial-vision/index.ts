@@ -5,25 +5,34 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
-        return new Response(null, {
-            status: 204,
-            headers: corsHeaders
-        })
+        return new Response('ok', { headers: corsHeaders })
     }
 
     try {
-        const { image_url, text_content, type } = await req.json()
+        const body = await req.json().catch(() => ({}));
+        const { image_url, text_content, type } = body;
 
         if (!image_url && !text_content) {
-            return new Response(JSON.stringify({ error: "É necessário enviar imagem ou texto do documento." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+            return new Response(JSON.stringify({ error: "É necessário enviar imagem ou texto do documento." }), {
+                status: 400,
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            })
         }
 
-        console.log(`Analisando Documento Financeiro com IA. Tipo: ${type || 'não informado'}`)
+        console.log(`[FinancialVision] Analisando Documento. Tipo: ${type || 'não informado'}`)
+
+        if (!OPENAI_API_KEY) {
+            return new Response(JSON.stringify({ error: "Configuração de IA ausente (OPENAI_API_KEY)" }), {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            })
+        }
 
         const promptText = `
 Aja como um contador especialista e assistente financeiro de altíssimo nível. 
@@ -64,20 +73,16 @@ Regras:
 4. Responda ESTRITAMENTE o JSON VÁLIDO sem marcadores Markdown extras.
 5. PRESERVE OS MARCADORES: Se você encontrar dados entre >>>> e <<<< no conteúdo, você DEVE mantê-los EXATAMENTE como estão dentro do campo "notes_suggestion".`
 
-        if (!OPENAI_API_KEY) {
-            return new Response(JSON.stringify({ error: "Configuração de IA ausente (OPENAI_API_KEY)" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })
-        }
-
         let messagesContent: any[] = [{ type: "text", text: promptText }];
 
         if (text_content) {
-            console.log("Processando conteúdo de texto extraído...");
+            console.log("[FinancialVision] Processando conteúdo de texto extraído...");
             messagesContent.push({ type: "text", text: `CONTEÚDO DO DOCUMENTO (TEXTOS/BARRAS/PIX):\n${text_content.substring(0, 5000)}` });
         }
 
         // Apenas envie a URL da imagem para a IA se NÃO for um PDF (A IA Vision só aceita imagens)
         if (image_url && !image_url.toLowerCase().split('?')[0].endsWith('.pdf')) {
-            console.log("Arquivo de imagem detectado, acionando Vision API...");
+            console.log("[FinancialVision] Arquivo de imagem detectado, acionando Vision API...");
             messagesContent.push({ type: "image_url", image_url: { url: image_url } });
         }
 
@@ -100,14 +105,32 @@ Regras:
             })
         });
 
+        if (!aiResponse.ok) {
+            const errorData = await aiResponse.json().catch(() => ({}));
+            console.error("[FinancialVision] OpenAI Error:", errorData);
+            return new Response(JSON.stringify({ error: "Erro na comunicação com a OpenAI", details: errorData }), {
+                status: aiResponse.status,
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            });
+        }
+
         const aiData = await aiResponse.json();
         const resultText = aiData.choices?.[0]?.message?.content || '{}';
         const result = JSON.parse(resultText);
 
-        return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 })
+        return new Response(JSON.stringify(result), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
+        })
 
     } catch (err: any) {
-        console.error("Full error:", err, err.stack)
-        return new Response(JSON.stringify({ error: err?.message || String(err), stack: err?.stack }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 })
+        console.error("[FinancialVision] Full error:", err)
+        return new Response(JSON.stringify({
+            error: err?.message || String(err),
+            details: "Erro interno na Edge Function"
+        }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 500
+        })
     }
 })
