@@ -58,3 +58,19 @@ BEGIN
     RETURN jsonb_build_object('success', true);
 END;
 $$;
+
+-- 3. Gatilho para Excluir do Auth automaticamente
+-- Quando o profile é removido (pela admin_delete_user), remove também do sistema de Login
+CREATE OR REPLACE FUNCTION public.handle_delete_user_auth()
+RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM auth.users WHERE id = OLD.id;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_profile_delete_auth ON public.profiles;
+CREATE TRIGGER on_profile_delete_auth
+  AFTER DELETE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_delete_user_auth();
+
