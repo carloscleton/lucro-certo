@@ -379,8 +379,8 @@ export function useAdmin() {
         try {
             const { error } = await supabase
                 .from('app_settings')
-                .upsert({ id: 1, ...newSettings })
-                .select();
+                .update(newSettings)
+                .eq('id', 1);
 
             if (error) {
                 console.error('Supabase Update Error:', error);

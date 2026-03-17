@@ -15,7 +15,9 @@ import {
     X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useEntity } from '../context/EntityContext';
 import { supabase } from '../lib/supabase';
+import { PaymentRequired } from './PaymentRequired';
 import logoFull from '../assets/logo-full.png';
 
 // Import banner images
@@ -141,8 +143,10 @@ const DEFAULT_PLANS = [
 
 export function LandingPage() {
     const navigate = useNavigate();
+    const { currentEntity } = useEntity();
     const { session } = useAuth();
     const [currentSlide, setCurrentSlide] = useState(0);
+    const isUnpaid = ['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '');
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [landingPlans, setLandingPlans] = useState<any[]>(DEFAULT_PLANS);
 
@@ -565,6 +569,8 @@ export function LandingPage() {
                     </div>
                 </div>
             )}
+
+            {isUnpaid && <PaymentRequired />}
         </div>
     );
 }

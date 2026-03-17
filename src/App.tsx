@@ -28,7 +28,6 @@ import { EntityProvider, useEntity } from './context/EntityContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CRMProvider } from './context/CRMContext';
 import { LandingPage } from './pages/LandingPage';
-import { PaymentRequired } from './pages/PaymentRequired';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
@@ -38,14 +37,9 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!session) return <Navigate to="/" replace />;
 
-  // Se o ambiente atual ou empresa for 'unpaid' ou 'past_due', mostra o modal sobre o sistema
+  // Se o ambiente atual ou empresa for 'unpaid' ou 'past_due', manda pra land page mostrar o modal lá
   if (['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '')) {
-    return (
-      <>
-        {children}
-        <PaymentRequired />
-      </>
-    );
+    return <Navigate to="/" replace />;
   }
 
   return children;

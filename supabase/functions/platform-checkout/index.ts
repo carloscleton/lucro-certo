@@ -59,13 +59,20 @@ serve(async (req) => {
         if (!company) throw new Error('Company not found')
 
         // 2. Fetch App Settings for Platform Gateway
-        const { data: settings } = await supabaseAdmin
+        const { data: settings, error: settingsError } = await supabaseAdmin
             .from('app_settings')
             .select('*')
             .eq('id', 1)
             .single()
 
-        let provider = settings.platform_billing_provider
+        if (settingsError) console.error('Settings Fetch Error:', settingsError)
+        console.log('App Settings Loaded:', {
+            hasSettings: !!settings,
+            provider: settings?.platform_billing_provider,
+            sandbox: settings?.platform_billing_sandbox
+        })
+
+        let provider = settings?.platform_billing_provider
         let configData: any = {}
         let env = 'production'
         let isSandbox = false
@@ -74,31 +81,80 @@ serve(async (req) => {
             isSandbox = settings.platform_billing_sandbox !== false
             env = isSandbox ? 'sandbox' : 'production'
             configData = settings.platform_billing_config?.[provider]?.[env] || {}
-        } else {
-            // Tenta pegar o gateway da empresa master se nao houver plataforma setada no settings globais
-            const masterCompanyId = 1; // Ajuste se necessario, 1 e o ID master
-            const { data: gateways } = await supabaseAdmin
-                .from('company_payment_gateways')
-                .select('*')
-                .eq('company_id', masterCompanyId)
-                .eq('is_active', true)
-                .limit(1)
 
-            if (gateways && gateways.length > 0) {
-                provider = gateways[0].provider
-                configData = gateways[0].config
-                isSandbox = gateways[0].is_sandbox !== false
-                env = isSandbox ? 'sandbox' : 'production'
-            } else {
-                provider = 'asaas' // Fallback to throw standard not configured error
+            // Legacy fallbacks if JSONB is empty for this provider
+            if (provider === 'asaas' && !configData.api_key) {
+                configData = {
+                    api_key: settings.platform_asaas_api_key,
+                    wallet_id: settings.platform_asaas_wallet_id
+                }
+            } else if (provider === 'stripe' && !configData.secret_key) {
+                configData = {
+                    secret_key: settings.platform_stripe_api_key,
+                    publishable_key: settings.platform_stripe_publishable_key
+                }
+            } else if (provider === 'mercadopago' && !configData.access_token) {
+                configData = {
+                    access_token: settings.platform_mercadopago_api_key,
+                    public_key: settings.platform_mercadopago_public_key
+                }
+            }
+
+            console.log('Using Platform Billing Provider:', {
+                provider,
+                env,
+                fromJSONB: !!(settings.platform_billing_config?.[provider]?.[env]),
+                hasApiKey: !!(configData.api_key || configData.access_token || configData.secret_key)
+            })
+        } else {
+            // Find the owner with the email from the super admin policy
+            const { data: adminProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('id')
+                .eq('email', 'carloscleton.nat@gmail.com')
+                .single()
+
+            let masterId: any = null
+            if (adminProfile) {
+                const { data: adminMember } = await supabaseAdmin
+                    .from('company_members')
+                    .select('company_id')
+                    .eq('user_id', adminProfile.id)
+                    .eq('role', 'owner')
+                    .limit(1)
+                    .single()
+                masterId = adminMember?.company_id
+            }
+
+            if (masterId) {
+                const { data: gateways } = await supabaseAdmin
+                    .from('company_payment_gateways')
+                    .select('*')
+                    .eq('company_id', masterId)
+                    .eq('is_active', true)
+                    .limit(1)
+
+                if (gateways && gateways.length > 0) {
+                    provider = gateways[0].provider
+                    configData = gateways[0].config
+                    isSandbox = gateways[0].is_sandbox !== false
+                    env = isSandbox ? 'sandbox' : 'production'
+                    console.log('Using Master Company Gateway:', { provider, masterId })
+                }
             }
         }
+
+        if (!provider || !(configData.api_key || configData.access_token || configData.secret_key)) {
+            throw new Error(`Platform Billing is not configured! Provider: ${provider || 'none'}. Please set it in Super Admin > Sistema > Cobrança.`)
+        }
+
         // Security: Get REAL amount from landing_plans to prevent tampering
         let amount = company.next_billing_value || 97.00
-        if (settings.landing_plans && Array.isArray(settings.landing_plans)) {
+        if (settings?.landing_plans && Array.isArray(settings.landing_plans)) {
             const planDetails = settings.landing_plans.find((p: any) => p.name === company.subscription_plan);
             if (planDetails && planDetails.price) {
-                const realPrice = parseFloat(planDetails.price.toString().replace(/[^0-9.-]+/g, ""));
+                const priceStr = planDetails.price.toString().replace('R$', '').replace('.', '').replace(',', '.').trim();
+                const realPrice = parseFloat(priceStr);
                 if (!isNaN(realPrice) && realPrice > 0) {
                     amount = realPrice;
                     // Auto-correct company in background if wrong
