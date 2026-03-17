@@ -88,6 +88,8 @@ export function Login() {
     const [email, setEmail] = useState(emailParam || '');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
+    const [documentStr, setDocumentStr] = useState('');
+    const [phoneStr, setPhoneStr] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
@@ -142,13 +144,30 @@ export function Login() {
                 setIsUpdatePassword(false);
                 setPassword('');
             } else if (isSignUp) {
-                const { error } = await supabase.auth.signUp({
+                const cleanDoc = documentStr.replace(/\D/g, '');
+                const cleanPhone = phoneStr.replace(/\D/g, '');
+
+                if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
+                    setError('Por favor, informe um CPF ou CNPJ válido.');
+                    setLoading(false);
+                    return;
+                }
+
+                if (cleanPhone.length < 10) {
+                    setError('Informe um telefone válido com DDD.');
+                    setLoading(false);
+                    return;
+                }
+
+                const { error, data: authResult } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
                         data: {
                             full_name: fullName,
-                            user_type: 'PF',
+                            user_type: cleanDoc.length === 11 ? 'PF' : 'PJ',
+                            document: cleanDoc,
+                            phone: cleanPhone
                         },
                     },
                 });
@@ -170,8 +189,8 @@ export function Login() {
                             const { data: createData, error: createError } = await supabase.rpc('create_company', {
                                 name_input: fullName,
                                 trade_name_input: fullName,
-                                cnpj_input: '00000000000',
-                                entity_type_input: 'PF'
+                                cnpj_input: cleanDoc,
+                                entity_type_input: cleanDoc.length === 11 ? 'PF' : 'PJ'
                             });
 
                             if (!createError && createData?.success) {
@@ -179,7 +198,8 @@ export function Login() {
                                 await supabase.from('companies').update({
                                     subscription_plan: checkoutPlan,
                                     next_billing_value: parseFloat(checkoutPrice),
-                                    subscription_status: 'unpaid'
+                                    subscription_status: 'unpaid',
+                                    phone: cleanPhone
                                 }).eq('id', newCompanyId);
 
                                 setPendingCompanyId(newCompanyId);
@@ -332,11 +352,27 @@ export function Login() {
             setResetLoading(false);
         }
     };
+
+    const formatDocumentHelper = (v: string) => {
+        const numbers = v.replace(/\D/g, '');
+        if (numbers.length <= 11) {
+            return numbers.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2');
+        }
+        return numbers.replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})/, '$1-$2').substring(0, 18);
+    };
+
+    const formatPhoneHelper = (v: string) => {
+        const numbers = v.replace(/\D/g, '');
+        if (numbers.length <= 10) {
+            return numbers.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2').substring(0, 14);
+        }
+        return numbers.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').substring(0, 15);
+    };
+
     return (
         <div className="min-h-screen flex bg-white relative">
             {/* Left Side - Form */}
             <div className="flex-1 flex items-center justify-center p-8 sm:p-12 lg:p-16 relative">
-                {/* Background Pattern */}
                 <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
@@ -345,6 +381,7 @@ export function Login() {
                         opacity: 0.15
                     }}
                 />
+
                 <div className="w-full max-w-sm space-y-10 relative z-10">
                     <div className="space-y-4">
                         <div className="flex justify-center mb-8">
@@ -364,15 +401,35 @@ export function Login() {
 
                     <form onSubmit={handleAuth} className="space-y-6">
                         {isSignUp && (
-                            <Input
-                                label={t('login.full_name')}
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                placeholder={t('login.full_name_placeholder')}
-                                required={isSignUp}
-                                autoComplete="name"
-                                className="h-12"
-                            />
+                            <>
+                                <Input
+                                    label={t('login.full_name')}
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder={t('login.full_name_placeholder')}
+                                    required={isSignUp}
+                                    autoComplete="name"
+                                    className="h-12"
+                                />
+
+                                <Input
+                                    label="CPF ou CNPJ para faturamento"
+                                    value={documentStr}
+                                    onChange={(e) => setDocumentStr(formatDocumentHelper(e.target.value))}
+                                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                                    required={isSignUp}
+                                    className="h-12"
+                                />
+
+                                <Input
+                                    label="WhatsApp para avisos"
+                                    value={phoneStr}
+                                    onChange={(e) => setPhoneStr(formatPhoneHelper(e.target.value))}
+                                    placeholder="(00) 00000-0000"
+                                    required={isSignUp}
+                                    className="h-12"
+                                />
+                            </>
                         )}
 
                         {!isUpdatePassword && (
