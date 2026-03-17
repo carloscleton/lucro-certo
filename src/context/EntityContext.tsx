@@ -33,6 +33,7 @@ export interface Entity {
     status?: string;
     subscription_status?: string;
     subscription_plan?: string;
+    phone?: string;
 }
 
 interface EntityContextType {
@@ -96,7 +97,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         has_lead_radar,
                         status,
                         subscription_status,
-                        subscription_plan
+                        subscription_plan,
+                        phone
                     ),
                     role,
                     status
@@ -135,7 +137,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     has_lead_radar: item.company.has_lead_radar,
                     status: item.company.status,
                     subscription_status: item.company.subscription_status,
-                    subscription_plan: item.company.subscription_plan
+                    subscription_plan: item.company.subscription_plan,
+                    phone: item.company.phone
                 }));
 
             // Always include Personal option with user's settings

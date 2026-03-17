@@ -15,6 +15,7 @@ interface Profile {
     max_companies?: number;
     settings?: any;
     status?: string;
+    phone?: string;
 }
 
 interface AuthContextType {
