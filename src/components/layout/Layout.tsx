@@ -445,20 +445,36 @@ export function Layout() {
                                         <Button
                                             onClick={async () => {
                                                 try {
+                                                    // Force a fresh user session to ensure token is valid
+                                                    const { data: { user }, error: userError } = await supabase.auth.getUser();
+                                                    if (userError || !user) {
+                                                        throw new Error('Sessão expirada. Por favor, saia e entre novamente.');
+                                                    }
+
                                                     const { data: { session: currentSession } } = await supabase.auth.getSession();
+
                                                     const res = await supabase.functions.invoke('platform-checkout', {
                                                         body: { company_id: currentEntity.id },
                                                         headers: {
                                                             Authorization: `Bearer ${currentSession?.access_token}`
                                                         }
                                                     });
-                                                    if (res.error) throw res.error;
+
+                                                    if (res.error) {
+                                                        // Handle specific Edge Function errors
+                                                        const errorData = res.error;
+                                                        throw new Error(errorData.message || 'Erro na comunicação com o servidor de pagamento.');
+                                                    }
+
                                                     if (res.data?.paymentUrl) {
                                                         window.location.href = res.data.paymentUrl;
+                                                    } else if (res.data?.error) {
+                                                        throw new Error(res.data.error);
                                                     } else {
                                                         throw new Error('Falha ao gerar link. Contate o suporte.');
                                                     }
                                                 } catch (err: any) {
+                                                    console.error('Checkout Error:', err);
                                                     alert(err.message || 'Erro ao gerar pagamento.');
                                                 }
                                             }}
