@@ -145,18 +145,17 @@ export function Login() {
                 setPassword('');
             } else if (isSignUp) {
                 const cleanDoc = documentStr.replace(/\D/g, '');
-                const cleanPhone = phoneStr.replace(/\D/g, '');
+                let finalPhone = phoneStr.replace(/\D/g, '');
 
-                if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
-                    setError('Por favor, informe um CPF ou CNPJ válido.');
+                if (finalPhone.length < 10) {
+                    setError('Informe um telefone válido com DDD.');
                     setLoading(false);
                     return;
                 }
 
-                if (cleanPhone.length < 10) {
-                    setError('Informe um telefone válido com DDD.');
-                    setLoading(false);
-                    return;
+                // Prepend 55 for Brazil if not present but is a standard BR number
+                if ((finalPhone.length === 10 || finalPhone.length === 11) && !finalPhone.startsWith('55')) {
+                    finalPhone = '55' + finalPhone;
                 }
 
                 const { error } = await supabase.auth.signUp({
@@ -167,7 +166,7 @@ export function Login() {
                             full_name: fullName,
                             user_type: cleanDoc.length === 11 ? 'PF' : 'PJ',
                             document: cleanDoc,
-                            phone: cleanPhone
+                            phone: finalPhone
                         },
                     },
                 });
@@ -193,7 +192,7 @@ export function Login() {
                                 cnpj_input: isPF ? null : cleanDoc,
                                 cpf_input: isPF ? cleanDoc : null,
                                 entity_type_input: isPF ? 'PF' : 'PJ',
-                                phone_input: cleanPhone,
+                                phone_input: finalPhone,
                                 email_input: email
                             });
 
@@ -203,7 +202,7 @@ export function Login() {
                                     subscription_plan: checkoutPlan,
                                     next_billing_value: parseFloat(checkoutPrice),
                                     subscription_status: 'unpaid',
-                                    phone: cleanPhone
+                                    phone: finalPhone
                                 }).eq('id', newCompanyId);
 
                                 setPendingCompanyId(newCompanyId);
@@ -366,7 +365,23 @@ export function Login() {
     };
 
     const formatPhoneHelper = (v: string) => {
-        const numbers = v.replace(/\D/g, '');
+        let numbers = v.replace(/\D/g, '');
+        
+        // Auto-add 55 if it looks like a BR number without prefix
+        if (numbers.length > 0 && !numbers.startsWith('55') && numbers.length <= 11) {
+            numbers = '55' + numbers;
+        }
+
+        if (numbers.startsWith('55')) {
+            const country = numbers.substring(0, 2);
+            const rest = numbers.substring(2);
+            
+            if (rest.length <= 10) {
+                return `+${country} (${rest.substring(0, 2)})${rest.length > 2 ? ' ' + rest.substring(2, 6) : ''}${rest.length > 6 ? '-' + rest.substring(6, 10) : ''}`;
+            }
+            return `+${country} (${rest.substring(0, 2)})${rest.length > 2 ? ' ' + rest.substring(2, 7) : ''}${rest.length > 7 ? '-' + rest.substring(7, 11) : ''}`;
+        }
+
         if (numbers.length <= 10) {
             return numbers.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2').substring(0, 14);
         }
