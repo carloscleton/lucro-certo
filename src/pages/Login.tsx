@@ -185,6 +185,9 @@ export function Login() {
                                 }).eq('id', newCompanyId);
 
                                 // Request checkout URL - passing headers explicitly to avoid 401 race conditions
+                                // Small delay to ensure DB propagation
+                                await new Promise(r => setTimeout(r, 1500));
+
                                 const { data: { session: currentSession } } = await supabase.auth.getSession();
                                 const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('platform-checkout', {
                                     body: { company_id: newCompanyId },
