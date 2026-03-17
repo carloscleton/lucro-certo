@@ -115,13 +115,13 @@ export function PaymentRequired() {
 
     return (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xl z-[9999] flex items-center justify-center p-4 overflow-hidden">
-            <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-[3rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] p-12 border border-white/10 dark:border-slate-700/50 text-center animate-in fade-in zoom-in slide-in-from-bottom-8 duration-700">
-                <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-8 relative">
+            <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-[2rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] p-8 border border-white/10 dark:border-slate-700/50 text-center animate-in fade-in zoom-in slide-in-from-bottom-8 duration-700">
+                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-6 relative">
                     <div className="absolute inset-0 bg-emerald-400/20 animate-ping rounded-full duration-[2000ms]"></div>
-                    <CreditCard className="w-12 h-12 text-emerald-600 dark:text-emerald-400 relative z-10" />
+                    <CreditCard className="w-8 h-8 text-emerald-600 dark:text-emerald-400 relative z-10" />
                 </div>
 
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
                     {currentEntity?.subscription_status === 'past_due'
                         ? 'Assinatura Pendente 💳'
                         : currentEntity?.subscription_plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date()
@@ -129,7 +129,7 @@ export function PaymentRequired() {
                         : `Falta pouco, ${profile?.full_name?.split(' ')[0] || ''}! ✨`}
                 </h2>
                 <p
-                    className="text-slate-600 dark:text-slate-400 mb-10 leading-relaxed text-lg"
+                    className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed text-base"
                     dangerouslySetInnerHTML={{
                         __html: currentEntity?.subscription_status === 'past_due'
                             ? 'Identificamos uma pendência no pagamento da sua assinatura. Regularize agora para continuar usando todos os recursos.'
@@ -150,7 +150,7 @@ export function PaymentRequired() {
                                 value={documentStr}
                                 onChange={handleDocumentChange}
                                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                                className={`w-full p-4 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
+                                className={`w-full p-3 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
                                     errorMsg
                                         ? 'border-red-500 focus:ring-red-500/20'
                                         : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20'
@@ -170,7 +170,7 @@ export function PaymentRequired() {
                                 value={phoneStr}
                                 onChange={handlePhoneChange}
                                 placeholder="(00) 00000-0000"
-                                className={`w-full p-4 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
+                                className={`w-full p-3 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
                                     phoneError
                                         ? 'border-red-500 focus:ring-red-500/20'
                                         : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20'
@@ -185,9 +185,9 @@ export function PaymentRequired() {
                     <Button
                         onClick={handlePayment}
                         isLoading={loading}
-                        className="w-full h-16 text-xl font-bold bg-emerald-600 hover:bg-emerald-700 shadow-[0_10px_40px_-5px_rgba(16,185,129,0.3)] transition-all hover:-translate-y-1 active:scale-[0.98] rounded-2xl"
+                        className="w-full h-14 text-lg font-bold bg-emerald-600 hover:bg-emerald-700 shadow-[0_10px_40px_-5px_rgba(16,185,129,0.3)] transition-all hover:-translate-y-1 active:scale-[0.98] rounded-2xl"
                     >
-                        <CreditCard className="mr-3 w-6 h-6" />
+                        <CreditCard className="mr-3 w-5 h-5" />
                         Ativar Assinatura agora
                     </Button>
 
@@ -203,10 +203,10 @@ export function PaymentRequired() {
                     </button>
                 </div>
 
-                <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-700/50">
-                    <div className="flex items-center justify-center gap-2 px-6 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-full w-fit mx-auto">
-                        <AlertTriangle size={14} className="text-amber-500" />
-                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-wide uppercase">Gateway 100% Seguro</span>
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700/50">
+                    <div className="flex items-center justify-center gap-2 px-4 py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-full w-fit mx-auto">
+                        <AlertTriangle size={12} className="text-amber-500" />
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wide uppercase">Gateway 100% Seguro</span>
                     </div>
                 </div>
             </div>
