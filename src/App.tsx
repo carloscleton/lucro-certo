@@ -24,17 +24,24 @@ import { Marketing } from './pages/Marketing';
 import { LeadRadar } from './pages/LeadRadar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { EntityProvider } from './context/EntityContext';
+import { EntityProvider, useEntity } from './context/EntityContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CRMProvider } from './context/CRMContext';
 import { LandingPage } from './pages/LandingPage';
+import { PaymentRequired } from './pages/PaymentRequired';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
+  const { currentEntity } = useEntity();
 
   if (loading) return <div className="flex h-screen items-center justify-center">Carregando...</div>;
 
   if (!session) return <Navigate to="/" replace />;
+
+  // Se o ambiente atual ou qualquer empresa vinculada for 'unpaid', bloqueia acesso total
+  if (currentEntity?.subscription_status === 'unpaid') {
+    return <PaymentRequired />;
+  }
 
   return children;
 }
