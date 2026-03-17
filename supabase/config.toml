@@ -146,3 +146,8 @@ entrypoint = "./functions/admin-billing-history/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/admin-billing-history/*.html" ]
+
+[functions.platform-welcome-notification]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/platform-welcome-notification/index.ts"
