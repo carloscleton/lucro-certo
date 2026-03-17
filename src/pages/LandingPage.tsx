@@ -158,10 +158,10 @@ export function LandingPage() {
                 const { data, error } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                 if (error) {
                     console.error("Erro ao puxar planos do Supabase:", error);
-                } else if (data?.landing_plans && Array.isArray(data.landing_plans) && data.landing_plans.length > 0) {
+                } else if (data?.landing_plans && Array.isArray(data.landing_plans)) {
                     // Only show enabled plans on the public landing page
                     const activePlans = data.landing_plans.filter((p: any) => p.enabled !== false);
-                    setLandingPlans(activePlans.length > 0 ? activePlans : DEFAULT_PLANS);
+                    setLandingPlans(activePlans);
                 }
             } catch (err) {
                 console.error("Erro ao puxar planos", err);
@@ -209,7 +209,7 @@ export function LandingPage() {
                 <div className="nav-links">
                     <a href="#features" className="nav-link">Funcionalidades</a>
                     <a href="#ai" className="nav-link">Inteligência Artificial</a>
-                    <a href="#pricing" className="nav-link">Planos</a>
+                    {landingPlans.length > 0 && <a href="#pricing" className="nav-link">Planos</a>}
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     {session ? (
@@ -499,44 +499,46 @@ export function LandingPage() {
             </section>
 
             {/* Pricing */}
-            <section id="pricing" className="pricing-section">
-                <div className="section-header">
-                    <h2>O Plano Certo para Você</h2>
-                    <p>Sem taxas escondidas. Transparência total para o seu lucro.</p>
-                </div>
+            {landingPlans.length > 0 && (
+                <section id="pricing" className="pricing-section">
+                    <div className="section-header">
+                        <h2>O Plano Certo para Você</h2>
+                        <p>Sem taxas escondidas. Transparência total para o seu lucro.</p>
+                    </div>
 
-                <div className="pricing-grid">
-                    {landingPlans.map((plan, idx) => (
-                        <div key={idx} className={`pricing-card ${plan.is_popular ? 'popular' : ''}`}>
-                            {plan.is_popular && <div className="popular-badge">Mais Popular</div>}
-                            <h3>{plan.name}</h3>
-                            <div className="price">R$ {plan.price}<span>/{plan.period}</span></div>
-                            {plan.observation && (
-                                <div className="text-sm font-medium mb-4 px-2" style={{ color: "var(--primary-color, #2563eb)", marginTop: "-10px" }}>
-                                    {plan.observation}
-                                </div>
-                            )}
-                            <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                                {plan.features.map((feat: string, fIdx: number) => (
-                                    <li key={fIdx}>
-                                        <CheckCircle2 size={18} className="check-icon" />
-                                        {feat.startsWith('**') && feat.endsWith('**') ?
-                                            <strong>{feat.replace(/\*\*/g, '')}</strong> :
-                                            feat
-                                        }
-                                    </li>
-                                ))}
-                            </ul>
-                            <button
-                                onClick={() => handleDynamicCheckout(plan)}
-                                className={`btn-pricing ${plan.button_type === 'primary' ? 'btn-primary' : 'btn-secondary'} flex items-center justify-center gap-2`}
-                            >
-                                {plan.button_text}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </section>
+                    <div className="pricing-grid">
+                        {landingPlans.map((plan, idx) => (
+                            <div key={idx} className={`pricing-card ${plan.is_popular ? 'popular' : ''}`}>
+                                {plan.is_popular && <div className="popular-badge">Mais Popular</div>}
+                                <h3>{plan.name}</h3>
+                                <div className="price">R$ {plan.price}<span>/{plan.period}</span></div>
+                                {plan.observation && (
+                                    <div className="text-sm font-medium mb-4 px-2" style={{ color: "var(--primary-color, #2563eb)", marginTop: "-10px" }}>
+                                        {plan.observation}
+                                    </div>
+                                )}
+                                <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
+                                    {plan.features.map((feat: string, fIdx: number) => (
+                                        <li key={fIdx}>
+                                            <CheckCircle2 size={18} className="check-icon" />
+                                            {feat.startsWith('**') && feat.endsWith('**') ?
+                                                <strong>{feat.replace(/\*\*/g, '')}</strong> :
+                                                feat
+                                            }
+                                        </li>
+                                    ))}
+                                </ul>
+                                <button
+                                    onClick={() => handleDynamicCheckout(plan)}
+                                    className={`btn-pricing ${plan.button_type === 'primary' ? 'btn-primary' : 'btn-secondary'} flex items-center justify-center gap-2`}
+                                >
+                                    {plan.button_text}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Footer */}
             <footer style={{ padding: '4rem 5%', borderTop: '1px solid var(--glass-border)', textAlign: 'center' }}>
