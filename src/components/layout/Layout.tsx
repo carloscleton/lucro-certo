@@ -458,15 +458,22 @@ export function Layout() {
                                                     });
 
                                                     if (res.error) {
-                                                        console.error('Erro na Edge Function:', res.error);
-                                                        const errorMsg = res.error.message || '';
+                                                        console.error('Erro na Edge Function (HTTP):', res.error);
+                                                        alert('Erro de Conexão: ' + (res.error.message || 'Erro ao falar com o servidor.'));
+                                                        return;
+                                                    }
+
+                                                    // Se a função retornou 200 mas com erro no corpo (JSON)
+                                                    if (res.data?.error) {
+                                                        console.error('Erro de Negócio:', res.data.error);
+                                                        const errorMsg = res.data.error;
 
                                                         if (errorMsg.includes('Unauthorized') || errorMsg.includes('401')) {
-                                                            alert('Erro de Autenticação: Sua sessão pode ter expirado. Por favor, saia e entre novamente.');
+                                                            alert('Erro de Autenticação: Sua sessão pode ter expirado ou o token é inválido. Por favor, saia e entre novamente.');
                                                         } else if (errorMsg.includes('Not a member')) {
-                                                            alert('Erro de Permissão: Você não está vinculado como dono desta empresa no banco de dados.');
+                                                            alert('Erro de Permissão: Você não está vinculado como dono desta empresa (' + currentEntity.id + '). Contate o suporte.');
                                                         } else {
-                                                            alert('Erro no Servidor: ' + errorMsg);
+                                                            alert('Erro no Checkout: ' + errorMsg);
                                                         }
                                                         return;
                                                     }

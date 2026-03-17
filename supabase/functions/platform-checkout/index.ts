@@ -235,10 +235,9 @@ serve(async (req) => {
     } catch (error: any) {
         console.error('Platform Checkout Error:', error.message)
         const msg = error.message || ''
-        const isAuthError = msg.includes('Unauthorized') || msg.includes('Not a member')
 
         return new Response(JSON.stringify({ error: msg }), {
-            status: isAuthError ? 401 : 400,
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
     }
