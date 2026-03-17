@@ -46,18 +46,22 @@ export function PaymentRequired() {
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-            <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-[0_32px_128px_-15px_rgba(0,0,0,0.3)] p-10 border border-slate-100 dark:border-slate-700/50 text-center animate-in fade-in zoom-in duration-500">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xl z-[9999] flex items-center justify-center p-4 overflow-hidden">
+            <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-[3rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] p-12 border border-white/10 dark:border-slate-700/50 text-center animate-in fade-in zoom-in slide-in-from-bottom-8 duration-700">
                 <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-8 relative">
                     <div className="absolute inset-0 bg-emerald-400/20 animate-ping rounded-full duration-[2000ms]"></div>
                     <CreditCard className="w-12 h-12 text-emerald-600 dark:text-emerald-400 relative z-10" />
                 </div>
 
                 <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">
-                    Falta pouco, {profile?.full_name?.split(' ')[0] || ''}! ✨
+                    {currentEntity?.subscription_status === 'past_due'
+                        ? 'Assinatura Pendente 💳'
+                        : `Falta pouco, ${profile?.full_name?.split(' ')[0] || ''}! ✨`}
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 mb-10 leading-relaxed text-lg">
-                    Sua conta está pronta. Ative sua assinatura para liberar todas as ferramentas do <strong>Lucro Certo</strong>.
+                    {currentEntity?.subscription_status === 'past_due'
+                        ? 'Identificamos uma pendência no pagamento da sua assinatura. Regularize agora para continuar usando todos os recursos.'
+                        : 'Sua conta está pronta. Ative sua assinatura para liberar todas as ferramentas do <strong>Lucro Certo</strong>.'}
                 </p>
 
                 <div className="space-y-4">

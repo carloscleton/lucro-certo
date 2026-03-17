@@ -38,9 +38,14 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!session) return <Navigate to="/" replace />;
 
-  // Se o ambiente atual ou qualquer empresa vinculada for 'unpaid', bloqueia acesso total
-  if (currentEntity?.subscription_status === 'unpaid') {
-    return <PaymentRequired />;
+  // Se o ambiente atual ou empresa for 'unpaid' ou 'past_due', mostra o modal sobre o sistema
+  if (['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '')) {
+    return (
+      <>
+        {children}
+        <PaymentRequired />
+      </>
+    );
   }
 
   return children;

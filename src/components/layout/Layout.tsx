@@ -418,9 +418,7 @@ export function Layout() {
                             </div>
                         </div>
                     ) : (
-                        currentEntity.status === 'blocked' ||
-                        ['past_due', 'unpaid'].includes(currentEntity.subscription_status || '') ||
-                        (availableEntities.some(e => e.type === 'company' && e.subscription_status === 'unpaid') && currentEntity.type === 'personal')
+                        currentEntity.status === 'blocked'
                     ) ? (
                         <div className="fixed inset-0 z-[100] bg-white dark:bg-slate-900 flex flex-col items-center justify-center p-8 text-center space-y-6">
                             <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center animate-pulse">
