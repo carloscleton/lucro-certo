@@ -159,7 +159,9 @@ export function LandingPage() {
                 if (error) {
                     console.error("Erro ao puxar planos do Supabase:", error);
                 } else if (data?.landing_plans && Array.isArray(data.landing_plans) && data.landing_plans.length > 0) {
-                    setLandingPlans(data.landing_plans);
+                    // Only show enabled plans on the public landing page
+                    const activePlans = data.landing_plans.filter((p: any) => p.enabled !== false);
+                    setLandingPlans(activePlans.length > 0 ? activePlans : DEFAULT_PLANS);
                 }
             } catch (err) {
                 console.error("Erro ao puxar planos", err);

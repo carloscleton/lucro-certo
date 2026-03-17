@@ -99,6 +99,62 @@ export function LandingPlansEditor() {
         setPlans(newPlans);
     };
 
+    const addPlan = () => {
+        const newPlan = {
+            name: "Novo Plano",
+            price: "97",
+            period: "mês",
+            features: ["Feature 1", "Feature 2"],
+            button_text: "Assinar Agora",
+            button_type: "primary",
+            is_popular: false,
+            enabled: true
+        };
+        setPlans([...plans, newPlan]);
+    };
+
+    const removePlan = (index: number) => {
+        if (!window.confirm('Tem certeza que deseja remover este plano?')) return;
+        const newPlans = plans.filter((_, i) => i !== index);
+        setPlans(newPlans);
+    };
+
+    const resetToDefaults = () => {
+        if (!window.confirm('Isso irá substituir seus planos atuais pelos padrões. Deseja continuar?')) return;
+        setPlans([
+            {
+                name: "Essencial",
+                price: "97",
+                period: "mês",
+                features: ["Gestão Financeira Completa", "CRM até 500 contatos", "Relatórios Básicos"],
+                button_text: "Escolher Plano",
+                button_type: "secondary",
+                is_popular: false,
+                enabled: true
+            },
+            {
+                name: "Profissional + IA",
+                price: "197",
+                period: "mês",
+                features: ["Tudo do Essencial", "**Radar de Leads (IA)**", "**Marketing Copilot (IA)**", "WhatsApp Ilimitado"],
+                button_text: "Começar agora",
+                button_type: "primary",
+                is_popular: true,
+                enabled: true
+            },
+            {
+                name: "Empresarial",
+                price: "497",
+                period: "mês",
+                features: ["Tudo do Profissional", "Multi-empresas (até 5)", "Suporte VIP 24h", "API de Integração"],
+                button_text: "Falar com Consultor",
+                button_type: "secondary",
+                is_popular: false,
+                enabled: true
+            }
+        ]);
+    };
+
     const updateFeature = (planIndex: number, featureIndex: number, value: string) => {
         const newPlans = [...plans];
         const newFeatures = [...newPlans[planIndex].features];
@@ -126,28 +182,73 @@ export function LandingPlansEditor() {
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">Planos da Landing Page</h3>
                     <p className="text-sm text-gray-500">Configure os valores e textos exibidos na página inicial.</p>
                 </div>
-                <Button onClick={handleSave} isLoading={saving}>
-                    <Save size={18} className="mr-2" />
-                    Salvar Alterações
-                </Button>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={resetToDefaults}
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors mr-4"
+                    >
+                        Resetar Padrões
+                    </button>
+                    <Button onClick={handleSave} isLoading={saving}>
+                        <Save size={18} className="mr-2" />
+                        Salvar Alterações
+                    </Button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {plans.map((plan, pIdx) => (
-                    <div key={pIdx} className="border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl p-5 space-y-4">
+                    <div 
+                        key={pIdx} 
+                        className={`border rounded-2xl p-6 space-y-4 transition-all relative ${
+                            plan.enabled === false 
+                                ? 'bg-gray-50 dark:bg-slate-900/50 border-gray-100 dark:border-slate-800 opacity-60 grayscale' 
+                                : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm'
+                        }`}
+                    >
+                        {/* Exibir Tag de Oculto se desativado */}
+                        {plan.enabled === false && (
+                            <div className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider z-10 shadow-lg">
+                                Oculto na Página
+                            </div>
+                        )}
+
                         <div className="flex items-center justify-between">
-                            <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                <Edit size={16} className="text-blue-500" /> Card {pIdx + 1}
-                            </h4>
-                            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <input
-                                    type="checkbox"
-                                    checked={plan.is_popular}
-                                    onChange={(e) => updatePlan(pIdx, 'is_popular', e.target.checked)}
-                                    className="rounded border-gray-300"
-                                />
-                                Destaque Popular
-                            </label>
+                            <div className="flex items-center gap-3">
+                                <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                    <Edit size={16} className="text-blue-500" /> #{pIdx + 1}
+                                </h4>
+                                <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={plan.enabled !== false}
+                                        onChange={(e) => updatePlan(pIdx, 'enabled', e.target.checked)}
+                                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                    />
+                                    <span className={plan.enabled !== false ? 'text-emerald-600' : 'text-gray-400'}>
+                                        {plan.enabled !== false ? 'Visível' : 'Oculto'}
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={plan.is_popular}
+                                        onChange={(e) => updatePlan(pIdx, 'is_popular', e.target.checked)}
+                                        className="rounded border-gray-300"
+                                    />
+                                    Destaque
+                                </label>
+                                <button 
+                                    onClick={() => removePlan(pIdx)}
+                                    className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                                    title="Excluir Plano"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
                         </div>
 
                         <Input
@@ -250,6 +351,18 @@ export function LandingPlansEditor() {
                         </div>
                     </div>
                 ))}
+
+                {/* Botão Adicionar Novo Plano */}
+                <button 
+                    onClick={addPlan}
+                    className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center py-12 px-6 hover:border-blue-400 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all group min-h-[400px]"
+                >
+                    <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <Plus size={24} className="text-blue-600" />
+                    </div>
+                    <span className="font-bold text-gray-600 dark:text-gray-300">Adicionar Novo Plano</span>
+                    <p className="text-xs text-gray-400 mt-2 text-center">Crie uma nova opção de card para sua página inicial</p>
+                </button>
             </div>
         </div>
     );
