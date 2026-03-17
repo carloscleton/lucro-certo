@@ -217,7 +217,7 @@ export function LandingPage() {
                     ) : (
                         <>
                             <Link to="/login" className="nav-link">Acessar Conta</Link>
-                            <Link to="/login" className="nav-btn">Começar Agora</Link>
+                            <Link to="/login?mode=signup" className="nav-btn">Começar Agora</Link>
                         </>
                     )}
                 </div>
@@ -255,7 +255,7 @@ export function LandingPage() {
                                 </div>
 
                                 <div className="carousel-global-actions">
-                                    <button onClick={() => navigate(session ? '/dashboard' : '/login')} className="btn-primary">
+                                    <button onClick={() => navigate(session ? '/dashboard' : '/login?mode=signup&checkout-plan=trial&checkout-price=0')} className="btn-primary">
                                         {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
                                         <ChevronRight size={18} />
                                     </button>
