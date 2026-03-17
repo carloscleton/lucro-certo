@@ -35,7 +35,6 @@ export function Login() {
 
     // Carousel State & Data
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [paymentRedirectUrl, setPaymentRedirectUrl] = useState<string | null>(null);
     const [pendingCompanyId, setPendingCompanyId] = useState<string | null>(null);
 
     const carouselItems = [
@@ -471,7 +470,7 @@ export function Login() {
                                     setLoading(true);
                                     try {
                                         const { data: { session } } = await supabase.auth.getSession();
-                                        const { data, error } = await supabase.functions.invoke('platform-checkout', {
+                                        const { data } = await supabase.functions.invoke('platform-checkout', {
                                             body: { company_id: pendingCompanyId },
                                             headers: { Authorization: `Bearer ${session?.access_token}` }
                                         });
