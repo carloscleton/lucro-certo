@@ -445,33 +445,41 @@ export function Layout() {
                                         <Button
                                             onClick={async () => {
                                                 try {
-                                                    // Log IDs for debugging
                                                     console.log('Iniciando checkout para empresa:', currentEntity.id);
 
+                                                    // Get fresh session
+                                                    const { data: { session: freshSession } } = await supabase.auth.getSession();
+
                                                     const res = await supabase.functions.invoke('platform-checkout', {
-                                                        body: { company_id: currentEntity.id }
+                                                        body: { company_id: currentEntity.id },
+                                                        headers: {
+                                                            Authorization: `Bearer ${freshSession?.access_token}`
+                                                        }
                                                     });
 
                                                     if (res.error) {
                                                         console.error('Erro na Edge Function:', res.error);
-                                                        // Se for 401, pode ser a sessão. Vamos alertar.
-                                                        if (res.error.status === 401 || res.error.message?.includes('401')) {
-                                                            alert('Sua sessão expirou ou você não tem permissão para esta empresa. Por favor, saia e entre novamente no sistema.');
-                                                            return;
+                                                        const errorMsg = res.error.message || '';
+
+                                                        if (errorMsg.includes('Unauthorized') || errorMsg.includes('401')) {
+                                                            alert('Erro de Autenticação: Sua sessão pode ter expirado. Por favor, saia e entre novamente.');
+                                                        } else if (errorMsg.includes('Not a member')) {
+                                                            alert('Erro de Permissão: Você não está vinculado como dono desta empresa no banco de dados.');
+                                                        } else {
+                                                            alert('Erro no Servidor: ' + errorMsg);
                                                         }
-                                                        throw new Error(res.error.message || 'Erro na comunicação com o servidor.');
+                                                        return;
                                                     }
 
                                                     if (res.data?.paymentUrl) {
                                                         window.location.href = res.data.paymentUrl;
-                                                    } else if (res.data?.error) {
-                                                        throw new Error(res.data.error);
                                                     } else {
-                                                        throw new Error('O servidor não retornou um link de pagamento válido.');
+                                                        console.error('Dados de retorno inválidos:', res.data);
+                                                        throw new Error(res.data?.error || 'Não foi possível gerar o link de pagamento.');
                                                     }
                                                 } catch (err: any) {
                                                     console.error('Erro detalhado no checkout:', err);
-                                                    alert(err.message || 'Ocorreu um erro inesperado ao gerar o pagamento.');
+                                                    alert('Falha ao processar checkout: ' + (err.message || 'Erro desconhecido.'));
                                                 }
                                             }}
                                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
