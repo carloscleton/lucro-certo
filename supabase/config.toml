@@ -108,7 +108,7 @@ entrypoint = "./functions/platform-billing-cron/index.ts"
 
 [functions.platform-checkout]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 entrypoint = "./functions/platform-checkout/index.ts"
 
 [functions.platform-webhook-asaas]
