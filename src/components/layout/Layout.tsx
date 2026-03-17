@@ -415,7 +415,11 @@ export function Layout() {
                                 </div>
                             </div>
                         </div>
-                    ) : (currentEntity.status === 'blocked' || ['past_due', 'unpaid'].includes(currentEntity.subscription_status || '')) ? (
+                    ) : (
+                        currentEntity.status === 'blocked' ||
+                        ['past_due', 'unpaid'].includes(currentEntity.subscription_status || '') ||
+                        (availableEntities.some(e => e.type === 'company' && e.subscription_status === 'unpaid') && currentEntity.type === 'personal')
+                    ) ? (
                         <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6">
                             <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center animate-pulse">
                                 <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
