@@ -56,7 +56,7 @@ export function PlatformBillingDashboard() {
     const { notify } = useNotification();
     const { testPlatformConnection, fetchCompanyCharges } = useAdmin();
 
-    // Sync local keys when appSettings loads
+    // Sync local keys when appSettings loads - Triggering fresh Vercel build
     useEffect(() => {
         if (appSettings?.platform_billing_config) {
             setLocalKeys(appSettings.platform_billing_config);
