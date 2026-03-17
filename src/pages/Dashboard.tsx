@@ -135,7 +135,7 @@ export function Dashboard() {
                     'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
                 },
                 body: JSON.stringify({
-                    company_id: currentEntity.id,
+                    company_id: currentEntity.type === 'personal' ? profile?.company_id : currentEntity.id,
                     access_token: freshSession?.access_token
                 })
             });
