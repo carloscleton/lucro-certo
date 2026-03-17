@@ -508,15 +508,31 @@ export function Layout() {
                                                     }
 
                                                     console.log('Sessão ativa para:', freshSession.user.email);
-                                                    console.log('Token presente:', !!freshSession.access_token);
-                                                    const targetId = currentEntity.type === 'personal'
+                                                    let targetId = currentEntity.type === 'personal'
                                                          ? (currentEntity.associated_company_id || profile?.company_id)
                                                          : currentEntity.id;
 
+                                                     // ✅ AUTO-CRIAÇÃO: Se não existe empresa, cria uma PF na hora
                                                      if (!targetId || targetId === 'personal') {
-                                                         alert('Aguardando sincronização dos dados da sua empresa... Por favor, aguarde alguns segundos e tente novamente.');
-                                                         setLoadingCheckout(false);
-                                                         return;
+                                                         const userName = profile?.full_name || 'Conta Pessoal';
+                                                         console.log('DEBUG: Layout - Nenhuma empresa. Criando PF para:', userName);
+                                                         const { data: createData, error: createError } = await supabase.rpc('create_company', {
+                                                             name_input: userName,
+                                                             trade_name_input: userName,
+                                                             cnpj_input: '',
+                                                             entity_type_input: 'PF',
+                                                             cpf_input: null,
+                                                             email_input: profile?.email || '',
+                                                             phone_input: profile?.phone || '',
+                                                         });
+                                                         if (createError || !createData?.success) {
+                                                             const msg = createData?.message || createError?.message || 'Erro ao criar conta PF.';
+                                                             alert('Erro ao preparar sua conta: ' + msg);
+                                                             setLoadingCheckout(false);
+                                                             return;
+                                                         }
+                                                         targetId = createData.company_id;
+                                                         console.log('DEBUG: Layout - Empresa PF criada! ID:', targetId);
                                                      }
 
                                                     // Bypassing the Supabase 401 relay by using direct fetch

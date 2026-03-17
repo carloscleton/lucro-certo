@@ -124,24 +124,49 @@ export function Dashboard() {
     const handleUpgrade = async () => {
         try {
             setLoadingCheckout(true);
-            const targetCompanyId = currentEntity.type === 'personal' 
+
+            let targetCompanyId = currentEntity.type === 'personal' 
                 ? (currentEntity.associated_company_id || profile?.company_id || (companies && companies.length > 0 ? companies[0].id : null))
                 : currentEntity.id;
 
-            console.log('DEBUG: Dashboard Checkout', {
+            console.log('DEBUG: Dashboard Checkout - Iniciando', {
                 entityType: currentEntity.type,
                 associated: currentEntity.associated_company_id,
                 profileCompanyId: profile?.company_id,
+                companiesCount: companies?.length,
                 finalTarget: targetCompanyId
             });
 
+            // ✅ AUTO-CRIAÇÃO: Se não existe empresa, cria uma PF agora mesmo
             if (!targetCompanyId || targetCompanyId === 'personal') {
-                alert('Aguardando sincronização dos dados da sua empresa... Por favor, aguarde alguns segundos e tente novamente ou recarregue a página.');
-                setLoadingCheckout(false);
-                return;
+                const userName = profile?.full_name || 'Conta Pessoal';
+                console.log('DEBUG: Nenhuma empresa encontrada. Criando empresa PF para:', userName);
+
+                const { data: createData, error: createError } = await supabase.rpc('create_company', {
+                    name_input: userName,
+                    trade_name_input: userName,
+                    cnpj_input: '',
+                    entity_type_input: 'PF',
+                    cpf_input: null,
+                    email_input: profile?.email || '',
+                    phone_input: profile?.phone || '',
+                });
+
+                if (createError || !createData?.success) {
+                    const msg = createData?.message || createError?.message || 'Erro ao criar conta PF.';
+                    console.error('Erro ao auto-criar empresa PF:', msg);
+                    alert('Erro ao preparar sua conta para pagamento: ' + msg);
+                    setLoadingCheckout(false);
+                    return;
+                }
+
+                targetCompanyId = createData.company_id;
+                console.log('DEBUG: Empresa PF criada com sucesso! ID:', targetCompanyId);
             }
 
             const { data: { session: freshSession } } = await supabase.auth.getSession();
+
+            console.log('DEBUG: Enviando para checkout com company_id:', targetCompanyId);
 
             const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
             const fetchRes = await fetch(functionUrl, {
