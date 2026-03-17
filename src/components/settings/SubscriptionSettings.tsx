@@ -36,7 +36,7 @@ export function SubscriptionSettings() {
                 .from('companies')
                 .select('subscription_plan, subscription_status, current_period_end, trial_ends_at, next_billing_value, cnpj')
                 .eq('id', currentEntity.id)
-                .single();
+                .maybeSingle();
 
             if (fetchError) throw fetchError;
             if (data) setSubscription(data);
