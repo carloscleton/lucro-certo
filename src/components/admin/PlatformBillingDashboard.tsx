@@ -512,6 +512,9 @@ export function PlatformBillingDashboard() {
                                                         {c.trial_ends_at && c.subscription_plan === 'trial' && (
                                                             <span className="text-[9px] text-gray-400">Expira {new Date(c.trial_ends_at).toLocaleDateString()}</span>
                                                         )}
+                                                        {c.current_period_end && c.subscription_plan !== 'trial' && (
+                                                            <span className="text-[9px] text-blue-500 font-medium">Vence {new Date(c.current_period_end).toLocaleDateString()}</span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-center font-bold text-gray-900 dark:text-white">
