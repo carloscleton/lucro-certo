@@ -20,8 +20,11 @@ serve(async (req) => {
         )
 
         // Verifying Auth
+        const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
+        if (!authHeader) throw new Error('Unauthorized: Missing Authorization Header')
+
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-        if (authError || !user) throw new Error('Unauthorized')
+        if (authError || !user) throw new Error(`Unauthorized: ${authError?.message || 'Invalid User or Token'}`)
 
         const { company_id } = await req.json()
 

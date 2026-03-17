@@ -445,25 +445,21 @@ export function Layout() {
                                         <Button
                                             onClick={async () => {
                                                 try {
-                                                    // Force a fresh user session to ensure token is valid
-                                                    const { data: { user }, error: userError } = await supabase.auth.getUser();
-                                                    if (userError || !user) {
-                                                        throw new Error('Sessão expirada. Por favor, saia e entre novamente.');
-                                                    }
-
-                                                    const { data: { session: currentSession } } = await supabase.auth.getSession();
+                                                    // Log IDs for debugging
+                                                    console.log('Iniciando checkout para empresa:', currentEntity.id);
 
                                                     const res = await supabase.functions.invoke('platform-checkout', {
-                                                        body: { company_id: currentEntity.id },
-                                                        headers: {
-                                                            Authorization: `Bearer ${currentSession?.access_token}`
-                                                        }
+                                                        body: { company_id: currentEntity.id }
                                                     });
 
                                                     if (res.error) {
-                                                        // Handle specific Edge Function errors
-                                                        const errorData = res.error;
-                                                        throw new Error(errorData.message || 'Erro na comunicação com o servidor de pagamento.');
+                                                        console.error('Erro na Edge Function:', res.error);
+                                                        // Se for 401, pode ser a sessão. Vamos alertar.
+                                                        if (res.error.status === 401 || res.error.message?.includes('401')) {
+                                                            alert('Sua sessão expirou ou você não tem permissão para esta empresa. Por favor, saia e entre novamente no sistema.');
+                                                            return;
+                                                        }
+                                                        throw new Error(res.error.message || 'Erro na comunicação com o servidor.');
                                                     }
 
                                                     if (res.data?.paymentUrl) {
@@ -471,11 +467,11 @@ export function Layout() {
                                                     } else if (res.data?.error) {
                                                         throw new Error(res.data.error);
                                                     } else {
-                                                        throw new Error('Falha ao gerar link. Contate o suporte.');
+                                                        throw new Error('O servidor não retornou um link de pagamento válido.');
                                                     }
                                                 } catch (err: any) {
-                                                    console.error('Checkout Error:', err);
-                                                    alert(err.message || 'Erro ao gerar pagamento.');
+                                                    console.error('Erro detalhado no checkout:', err);
+                                                    alert(err.message || 'Ocorreu um erro inesperado ao gerar o pagamento.');
                                                 }
                                             }}
                                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
