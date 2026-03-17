@@ -12,15 +12,22 @@ export function SubscriptionSettings() {
     useEffect(() => {
         if (currentEntity?.id) {
             loadData();
+        } else {
+            setLoading(false);
         }
     }, [currentEntity]);
 
     const loadData = async () => {
+        console.log('Fetching subscription for:', currentEntity.id);
         setLoading(true);
-        await Promise.all([
-            fetchSubscription()
-        ]);
-        setLoading(false);
+        try {
+            await fetchSubscription();
+        } catch (err) {
+            console.error('Error in loadData:', err);
+        } finally {
+            setLoading(false);
+            console.log('Subscription load finished.');
+        }
     };
 
     const fetchSubscription = async () => {
@@ -39,6 +46,23 @@ export function SubscriptionSettings() {
     };
 
     if (loading) return <div className="p-4">Carregando informações da assinatura...</div>;
+
+    if (!currentEntity?.id) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
+                <CreditCard className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Assinatura Pessoal</h3>
+                <p className="text-sm text-gray-500 max-w-sm mt-2">
+                    As assinaturas e planos são gerenciados por empresa. Selecione uma empresa no menu lateral para ver os detalhes da assinatura.
+                </p>
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        O Lucro Certo é gratuito para uso pessoal! ✨
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     const isTrial = subscription?.subscription_plan === 'trial';
     const isPastDue = subscription?.subscription_status === 'past_due';
@@ -164,7 +188,12 @@ export function SubscriptionSettings() {
                                 {getRemainingDays()} Dias restantes
                             </p>
                             <p className="text-xs text-gray-500">
-                                {isTrial ? 'Fim do teste em:' : 'Próxima cobrança em:'} {new Date(isTrial ? subscription?.trial_ends_at : subscription?.current_period_end).toLocaleDateString()}
+                                {isTrial ? 'Fim do teste em:' : 'Próxima cobrança em:'} {(() => {
+                                    const dateStr = isTrial ? subscription?.trial_ends_at : subscription?.current_period_end;
+                                    if (!dateStr) return 'Não definida';
+                                    const d = new Date(dateStr);
+                                    return isNaN(d.getTime()) ? 'Data inválida' : d.toLocaleDateString('pt-BR');
+                                })()}
                             </p>
                         </div>
                     </div>
