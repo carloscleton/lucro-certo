@@ -13,47 +13,31 @@ serve(async (req) => {
     }
 
     try {
-        const supabaseClient = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-        )
-
-        // Verifying Auth
-        const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
-        if (!authHeader) throw new Error('Unauthorized: Missing Authorization Header')
-
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-
         // Admin client for elevated tasks
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        let userId = user?.id
+        // Verifying Auth manually to bypass sync lag
+        const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
+        if (!authHeader) throw new Error('Unauthorized: Missing Authorization Header')
 
-        // OPTIMIZATION: If getUser fails (sync lag), decode JWT manually to get user ID
-        if (!userId && authHeader) {
-            try {
-                const token = authHeader.replace('Bearer ', '')
-                const parts = token.split('.')
-                if (parts.length === 3) {
-                    const payload = JSON.parse(atob(parts[1]))
-                    userId = payload.sub
-                    console.log('User ID extracted from JWT fallback:', userId)
-                }
-            } catch (jwtErr) {
-                console.error('Failed to parse JWT fallback:', jwtErr)
+        let userId: string | null = null
+        try {
+            const token = authHeader.replace('Bearer ', '')
+            const parts = token.split('.')
+            if (parts.length === 3) {
+                const payload = JSON.parse(atob(parts[1]))
+                userId = payload.sub
             }
+        } catch (jwtErr) {
+            console.error('Failed to parse JWT:', jwtErr)
         }
+
+        if (!userId) throw new Error('Unauthorized: Invalid Token')
 
         const { company_id } = await req.json()
-
-        if (!userId) {
-            console.error('Auth error in Edge Function:', authError)
-            throw new Error(`Unauthorized: ${authError?.message || 'Invalid User or Token'}`)
-        }
 
         // Ensure user belongs to company
         const { data: membership } = await supabaseAdmin
@@ -145,6 +129,13 @@ serve(async (req) => {
             if (searchData.data && searchData.data.length > 0) {
                 customerId = searchData.data[0].id
             } else {
+                // Get user email from profile
+                const { data: profile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('email')
+                    .eq('id', userId)
+                    .single()
+
                 // Create customer
                 const createRes = await fetch(`${baseUrl}/customers`, {
                     method: 'POST',
@@ -152,7 +143,7 @@ serve(async (req) => {
                     body: JSON.stringify({
                         name: company.trade_name || 'Lucro Certo Customer',
                         cpfCnpj: cpfCnpj.replace(/\D/g, ''),
-                        email: (user as any).email,
+                        email: profile?.email || '',
                         mobilePhone: company.phone || ''
                     })
                 })

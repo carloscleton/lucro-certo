@@ -15,7 +15,8 @@ import {
     Bell,
     Users,
     AlertTriangle,
-    ShieldAlert
+    ShieldAlert,
+    CreditCard
 } from 'lucide-react';
 import logoFull from '../../assets/logo-full.png';
 import styles from './Layout.module.css';
@@ -34,6 +35,7 @@ import { useBillNotifications } from '../../hooks/useBillNotifications';
 
 export function Layout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [loadingCheckout, setLoadingCheckout] = useState(false);
     const { signOut, user, profile } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { currentEntity, availableEntities, switchEntity, isLoading } = useEntity();
@@ -420,7 +422,7 @@ export function Layout() {
                         ['past_due', 'unpaid'].includes(currentEntity.subscription_status || '') ||
                         (availableEntities.some(e => e.type === 'company' && e.subscription_status === 'unpaid') && currentEntity.type === 'personal')
                     ) ? (
-                        <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6">
+                        <div className="fixed inset-0 z-[100] bg-white dark:bg-slate-900 flex flex-col items-center justify-center p-8 text-center space-y-6">
                             <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center animate-pulse">
                                 <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
                             </div>
@@ -449,6 +451,7 @@ export function Layout() {
                                         <Button
                                             onClick={async () => {
                                                 try {
+                                                    setLoadingCheckout(true);
                                                     console.log('Iniciando checkout para empresa:', currentEntity.id);
 
                                                     // Get fresh session
@@ -502,9 +505,10 @@ export function Layout() {
                                                     alert('Falha ao processar checkout: ' + (err.message || 'Erro desconhecido.'));
                                                 }
                                             }}
+                                            isLoading={loadingCheckout}
                                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
                                         >
-                                            <DollarSign size={20} />
+                                            <CreditCard size={20} />
                                             {currentEntity.subscription_status === 'unpaid' ? 'Concluir Assinatura' : 'Regularizar Pagamento'}
                                         </Button>
                                     </div>
