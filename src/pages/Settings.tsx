@@ -426,7 +426,7 @@ export function Settings() {
 
                     // Hide company-specific tabs in personal context
                     if (currentEntity.type === 'personal') {
-                        const companyOnlyTabs = ['financial', 'team', 'webhooks', 'subscription'];
+                        const companyOnlyTabs = ['financial', 'team', 'webhooks'];
                         if (companyOnlyTabs.includes(tab.key)) {
                             return false;
                         }
