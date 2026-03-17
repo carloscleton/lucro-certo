@@ -154,12 +154,12 @@ export function Login() {
                 });
                 if (error) throw error;
 
-                // Option 2: Automatic Checkout Redirect Check
+                // Option 3: Professional Checkout Flow (Stay on Landing/Login)
                 const checkoutPlan = searchParams.get('checkout-plan');
                 const checkoutPrice = searchParams.get('checkout-price');
 
                 if (checkoutPlan && checkoutPrice) {
-                    // Try to log in immediately so we have the auth session to create a company
+                    // Sign in to get session, but DO NOT navigate
                     const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
                         email,
                         password,
@@ -167,7 +167,6 @@ export function Login() {
 
                     if (!signInError && authData?.user) {
                         try {
-                            // Create a company for them automatically
                             const { data: createData, error: createError } = await supabase.rpc('create_company', {
                                 name_input: fullName,
                                 trade_name_input: fullName,
@@ -177,44 +176,20 @@ export function Login() {
 
                             if (!createError && createData?.success) {
                                 const newCompanyId = createData.company_id;
-
-                                // Update company with the selected plan values
                                 await supabase.from('companies').update({
                                     subscription_plan: checkoutPlan,
                                     next_billing_value: parseFloat(checkoutPrice),
                                     subscription_status: 'unpaid'
                                 }).eq('id', newCompanyId);
 
-                                // Request checkout URL - passing headers explicitly to avoid 401 race conditions
-                                // Small delay to ensure DB propagation
-                                await new Promise(r => setTimeout(r, 1500));
-
-                                const { data: { session: currentSession } } = await supabase.auth.getSession();
-                                const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('platform-checkout', {
-                                    body: { company_id: newCompanyId },
-                                    headers: {
-                                        Authorization: `Bearer ${currentSession?.access_token}`
-                                    }
-                                });
-
-                                if (!checkoutError && checkoutData?.paymentUrl) {
-                                    window.location.href = checkoutData.paymentUrl;
-                                    return;
-                                } else {
-                                    console.error('Checkout error:', checkoutError || checkoutData);
-
-                                    // STAY on landing page/login if checkout failed
-                                    setPendingCompanyId(newCompanyId);
-                                    setError('Sua conta foi criada! Agora, conclua o pagamento para liberar seu acesso.');
-                                    setLoading(false);
-                                    return;
-                                }
+                                setPendingCompanyId(newCompanyId);
+                                setMessage('Conta criada com sucesso! Falta pouco.');
+                                setError(null);
+                                setLoading(false);
+                                return; // STAY HERE
                             }
                         } catch (e) {
-                            console.error("Erro no checkout automático:", e);
-                            setError("Ocorreu um erro ao preparar sua conta. Por favor, tente novamente.");
-                            setLoading(false);
-                            return;
+                            console.error("Erro no fluxo manual:", e);
                         }
                     }
                 }
@@ -222,6 +197,7 @@ export function Login() {
                 setMessage(t('login.signup_success'));
                 setIsSignUp(false);
                 setError(null);
+                setLoading(false);
             } else {
                 const { data: authData, error } = await supabase.auth.signInWithPassword({
                     email,
