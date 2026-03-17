@@ -37,3 +37,10 @@ CREATE TRIGGER on_company_created_welcome
   AFTER INSERT ON public.companies
   FOR EACH ROW
   EXECUTE FUNCTION public.trigger_welcome_notification();
+
+-- 5. Inicializa as chaves com os valores do seu projeto (opcional, pode ser alterado no painel)
+UPDATE public.app_settings
+SET 
+  supabase_anon_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uY2RkYmFycnR4YWxzbXpyYXZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjM3OTksImV4cCI6MjA4NTE5OTc5OX0.tjjFH4dX1AVI8ZdS7H61Oj2UDe6k2WPQJ8V5gkgPiE0',
+  platform_url = 'https://oncddbarrtxalsmzravk.supabase.co'
+WHERE id = 1;
