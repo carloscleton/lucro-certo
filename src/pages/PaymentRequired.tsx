@@ -4,17 +4,55 @@ import { useEntity } from '../context/EntityContext';
 import { Button } from '../components/ui/Button';
 import { CreditCard, AlertTriangle, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function PaymentRequired() {
     const { profile, signOut } = useAuth();
     const { currentEntity } = useEntity();
     const [loading, setLoading] = useState(false);
+    const [documentStr, setDocumentStr] = useState('');
+    const [errorMsg, setErrorMsg] = useState('');
     const navigate = useNavigate();
 
+    useEffect(() => {
+        if (currentEntity && !documentStr) {
+            setDocumentStr((currentEntity as any).document || currentEntity.cnpj || '');
+        }
+    }, [currentEntity]);
+
+    const formatDocument = (v: string) => {
+        const numbers = v.replace(/\D/g, '');
+        if (numbers.length <= 11) {
+            return numbers.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2');
+        }
+        return numbers.replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})/, '$1-$2').substring(0, 18);
+    };
+
+    const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setDocumentStr(formatDocument(e.target.value));
+        setErrorMsg('');
+    };
+
     const handlePayment = async () => {
+        const cleanDoc = documentStr.replace(/\D/g, '');
+        if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
+            setErrorMsg('Por favor, informe um CPF ou CNPJ válido.');
+            return;
+        }
+
         setLoading(true);
         try {
+            // Atualizar o cadastro se o documento for diferente do que está no banco
+            const currentDoc = ((currentEntity as any)?.document || currentEntity?.cnpj || '').replace(/\D/g, '');
+            if (cleanDoc !== currentDoc) {
+                const { error: updateError } = await supabase
+                    .from('companies')
+                    .update({ document: cleanDoc })
+                    .eq('id', currentEntity.id);
+                
+                if (updateError) throw updateError;
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
             // Bypassing the Supabase 401 relay by using direct fetch
             const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
@@ -71,6 +109,26 @@ export function PaymentRequired() {
                 />
 
                 <div className="space-y-4">
+                    <div className="text-left mb-6">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            CPF ou CNPJ para faturamento do sistema
+                        </label>
+                        <input
+                            type="text"
+                            value={documentStr}
+                            onChange={handleDocumentChange}
+                            placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                            className={`w-full p-4 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
+                                errorMsg
+                                    ? 'border-red-500 focus:ring-red-500/20'
+                                    : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20'
+                            }`}
+                        />
+                        {errorMsg && (
+                            <p className="text-red-500 text-sm mt-2">{errorMsg}</p>
+                        )}
+                    </div>
+
                     <Button
                         onClick={handlePayment}
                         isLoading={loading}
