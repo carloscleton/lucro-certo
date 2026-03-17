@@ -112,6 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     console.error('Error fetching company membership:', memberErr);
                 }
 
+                console.log('DEBUG: AuthContext fetchProfile', { data, userId });
                 setProfile({ ...data, company_id: companyId } as Profile);
             } else {
                 console.warn('No profile found for user:', userId);
@@ -119,6 +120,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
             console.error('Unexpected error in fetchProfile:', err);
         } finally {
+            console.log('DEBUG: AuthContext User Obj', {
+                email: user?.email,
+                created_at: user?.created_at,
+                keys: user ? Object.keys(user) : []
+            });
             setLoading(false);
         }
     }

@@ -70,6 +70,13 @@ export function Layout() {
     // Filter Logic
     const isTrial = currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial';
     
+    console.log('Layout: Current state', {
+        entityName: currentEntity.name,
+        entityType: currentEntity.type,
+        isTrial,
+        subscriptionPlan: currentEntity.subscription_plan,
+        createdAt: currentEntity.created_at
+    });
     const displayedNavItems = APP_MODULES.filter(item => {
         // Trial Restricted modules (Owner or not, you only see these during trial)
         const allowedTrialModules = ['dashboard', 'receivables', 'payables', 'categories', 'reports', 'whatsapp', 'settings'];

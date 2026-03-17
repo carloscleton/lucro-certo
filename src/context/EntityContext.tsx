@@ -147,18 +147,43 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     phone: item.company.phone
                 }));
 
+            // Base creation date for personal context (use profile or auth user as fallback)
+            // Use user.created_at if profile.created_at is not available (common in local devs)
+            const baseCreatedAt = profile?.created_at || user?.created_at;
+            
+            // Calculate if account is within 7 days
+            let isActuallyNew = false;
+            if (baseCreatedAt) {
+                const createdDate = new Date(baseCreatedAt).getTime();
+                const now = new Date().getTime();
+                const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+                isActuallyNew = (now - createdDate) < sevenDaysInMs;
+            }
+
+            console.log('DEBUG: EntityContext Mapping Start', {
+                profileCreatedAt: profile?.created_at,
+                userCreatedAt: user?.created_at,
+                isActuallyNew
+            });
+
             // Always include Personal option with user's settings
             const personalOption: Entity = {
                 type: 'personal',
+                id: 'personal',
                 name: 'Pessoal',
                 status: profile?.status || 'active',
                 settings: profile?.settings || {},
                 // Include trial and creation info for badges
-                subscription_plan: profile?.settings?.subscription_plan || (profile?.created_at && (new Date().getTime() - new Date(profile.created_at).getTime() < 7 * 24 * 60 * 60 * 1000) ? 'trial' : undefined),
-                trial_ends_at: profile?.settings?.trial_ends_at || (profile?.created_at ? new Date(new Date(profile.created_at).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined),
-                created_at: profile?.created_at,
+                subscription_plan: profile?.settings?.subscription_plan || (isActuallyNew ? 'trial' : undefined),
+                trial_ends_at: profile?.settings?.trial_ends_at || (baseCreatedAt ? new Date(new Date(baseCreatedAt).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined),
+                created_at: baseCreatedAt,
                 phone: profile?.phone
             };
+            
+            console.log('DEBUG: EntityContext Mapping Result', {
+                plan: personalOption.subscription_plan,
+                date: personalOption.created_at
+            });
             const allEntities = [personalOption, ...companies];
             setAvailableEntities(allEntities);
 
@@ -166,30 +191,31 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             const savedKey = localStorage.getItem(STORAGE_KEY);
 
             setCurrentEntity(prev => {
-                // Se o usuário já fez uma escolha ativa (não é a primeira carga), manter
-                // Atualizar dados da entidade atual sem trocar de entidade
+                // Determine the best entity to return
+                let bestMatch: Entity | null = null;
+
+                // 1. Try to maintain current selection with fresh data
                 if (prev.type === 'company') {
-                    const updated = companies.find(c => c.id === prev.id);
-                    if (updated) return updated;
+                    bestMatch = companies.find(c => c.id === prev.id) || null;
+                } else {
+                    bestMatch = personalOption;
                 }
 
-                // Se há preferência salva no localStorage, usar ela
-                if (savedKey) {
+                // 2. If no current selection (or lost), check saved preference
+                if (!bestMatch && savedKey) {
                     if (savedKey === 'personal') {
-                        return personalOption;
+                        bestMatch = personalOption;
+                    } else {
+                        bestMatch = companies.find(c => c.id === savedKey) || null;
                     }
-                    const savedCompany = companies.find(c => c.id === savedKey);
-                    if (savedCompany) return savedCompany;
                 }
 
-                // Primeira vez (sem preferência): auto-switch para primeira empresa se houver
-                if (companies.length > 0 && prev.type === 'personal' && !savedKey) {
-                    const firstCompany = companies[0];
-                    localStorage.setItem(STORAGE_KEY, firstCompany.id || 'personal');
-                    return firstCompany;
+                // 3. Auto-switch logic (only if no active preference)
+                if (!savedKey && companies.length > 0 && !bestMatch) {
+                    bestMatch = companies[0];
                 }
 
-                return prev;
+                return bestMatch || personalOption;
             });
 
         } catch (err) {
@@ -210,7 +236,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             localStorage.removeItem(STORAGE_KEY);
             setIsLoading(false);
         }
-    }, [user]);
+    }, [user, profile]);
 
     const switchEntity = (entity: Entity) => {
         setCurrentEntity(entity);
