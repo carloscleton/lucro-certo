@@ -71,34 +71,29 @@ export function Layout() {
     const isTrial = currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial';
     
     const displayedNavItems = APP_MODULES.filter(item => {
-        // 0. Trial Restriction (Enforced for all 7-day trials) - Shows ONLY these modules
+        // Trial Restricted modules (Owner or not, you only see these during trial)
         const allowedTrialModules = ['dashboard', 'receivables', 'payables', 'categories', 'reports', 'whatsapp', 'settings'];
         if (isTrial && !allowedTrialModules.includes(item.key) && !isSystemAdmin) {
             return false;
         }
 
-        // Exclude management items that go into the administrative submenu
+        // Exclude management items that go into the administrative submenu (only for company view)
         const isManagementItem = ['commissions', 'settings'].includes(item.key);
         if (currentEntity.type === 'company' && isManagementItem) return false;
 
         const isSuper = userRole === 'owner' || isSystemAdmin;
 
-        // 1. Company Feature Flags Check
+        // 1. Company-only feature flags and role checks
         if (currentEntity.type === 'company') {
-            // CRM
             if (item.key === 'crm' && !currentEntity.crm_module_enabled && !isSuper) return false;
-            // Marketing
             if (item.key === 'marketing' && !currentEntity.has_social_copilot && !isSuper) return false;
-            // Lead Radar
             if (item.key === 'lead_radar' && !currentEntity.has_lead_radar && !isSuper) return false;
 
-            // 2. Role-based Permission Check
             if (settings?.modules?.[item.key]?.[userRole as 'admin' | 'member'] === false) return false;
             if (isSuper) return true;
             return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
 
-        // 3. Fallback/Personal View (Role permissions handled later in finalNavItems)
         return true;
     });
 
