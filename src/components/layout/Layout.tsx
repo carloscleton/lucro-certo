@@ -450,10 +450,19 @@ export function Layout() {
                                                     // Get fresh session
                                                     const { data: { session: freshSession } } = await supabase.auth.getSession();
 
+                                                    if (!freshSession) {
+                                                        console.error('Nenhuma sessão encontrada no navegador.');
+                                                        alert('Sessão não encontrada. Por favor, saia e entre novamente.');
+                                                        return;
+                                                    }
+
+                                                    console.log('Sessão ativa para:', freshSession.user.email);
+                                                    console.log('Token presente:', !!freshSession.access_token);
+
                                                     const res = await supabase.functions.invoke('platform-checkout', {
                                                         body: { company_id: currentEntity.id },
                                                         headers: {
-                                                            Authorization: `Bearer ${freshSession?.access_token}`
+                                                            Authorization: `Bearer ${freshSession.access_token}`
                                                         }
                                                     });
 
