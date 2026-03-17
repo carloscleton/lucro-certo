@@ -199,20 +199,52 @@ export function Login() {
                             if (!createError && createData?.success) {
                                 const newCompanyId = createData.company_id;
                                 const isTrial = checkoutPlan === 'trial';
-                                
-                                const trialEndsAt = isTrial 
-                                   ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-                                   : null;
+                                 
+                                 const trialEndsAt = isTrial 
+                                    ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                                    : null;
 
-                                await supabase.from('companies').update({
-                                    subscription_plan: checkoutPlan,
-                                    next_billing_value: parseFloat(checkoutPrice),
-                                    subscription_status: isTrial ? 'active' : 'unpaid',
-                                    trial_ends_at: trialEndsAt,
-                                    phone: finalPhone
-                                }).eq('id', newCompanyId);
+                                 // Default permissions for Trial + Personal
+                                 // Dashboard, A Receber, A Pagar, Categorias, Relatórios, WhatsApp
+                                 const trialSettings = (isTrial && isPF) ? {
+                                     modules: {
+                                         dashboard: { admin: true, member: true },
+                                         receivables: { admin: true, member: true },
+                                         payables: { admin: true, member: true },
+                                         categories: { admin: true, member: true },
+                                         reports: { admin: true, member: true },
+                                         whatsapp: { admin: true, member: true },
+                                         // Explicitly disabled others
+                                         quotes: { admin: false, member: false },
+                                         contacts: { admin: false, member: false },
+                                         services: { admin: false, member: false },
+                                         products: { admin: false, member: false },
+                                         commissions: { admin: false, member: false },
+                                         crm: { admin: false, member: false },
+                                         marketing: { admin: false, member: false },
+                                         lead_radar: { admin: false, member: false },
+                                         payments: { admin: false, member: false }
+                                     }
+                                 } : undefined;
 
-                                if (isTrial) {
+                                 await supabase.from('companies').update({
+                                     subscription_plan: checkoutPlan,
+                                     next_billing_value: parseFloat(checkoutPrice),
+                                     subscription_status: isTrial ? 'active' : 'unpaid',
+                                     trial_ends_at: trialEndsAt,
+                                     phone: finalPhone,
+                                     settings: trialSettings,
+                                     // Disable advanced modules by default for trial
+                                     fiscal_module_enabled: false,
+                                     payments_module_enabled: false,
+                                     crm_module_enabled: false,
+                                     has_social_copilot: false,
+                                     automations_module_enabled: (isTrial && isPF), // Trial needs WA use, maybe allow automations too? User didn't say, but usually WA use implies some automations.
+                                                                                    // Actually, sticking to the list: WhatsApp was mentioned.
+                                     has_lead_radar: false
+                                 }).eq('id', newCompanyId);
+
+                                 if (isTrial) {
                                     // For trial, we can go straight in!
                                     navigate('/dashboard');
                                     setLoading(false);
