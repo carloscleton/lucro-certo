@@ -384,7 +384,7 @@ export function Layout() {
                             </div>
                             
                             {/* Trial Badge */}
-                            {currentEntity.type === 'company' && currentEntity.subscription_plan === 'trial' && currentEntity.trial_ends_at && (
+                            {currentEntity.subscription_plan === 'trial' && currentEntity.trial_ends_at && (
                                 <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 px-3 py-1 rounded-full ml-4 shadow-sm animate-in fade-in slide-in-from-top-1 duration-500">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                                     <span className="text-[10px] uppercase font-black tracking-wider text-emerald-700 dark:text-emerald-400">
@@ -398,7 +398,7 @@ export function Layout() {
                             )}
 
                             {/* Days in Use Badge */}
-                            {currentEntity.type === 'company' && currentEntity.created_at && (
+                            {currentEntity.created_at && (
                                 <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 px-3 py-1 rounded-full ml-3 opacity-90 shadow-sm animate-in fade-in slide-in-from-top-1 duration-700">
                                     <span className="text-[10px] uppercase font-black tracking-wider text-blue-700 dark:text-blue-400">
                                         Sistema em uso: {(() => {

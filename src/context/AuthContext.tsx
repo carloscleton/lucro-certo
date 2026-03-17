@@ -16,6 +16,7 @@ interface Profile {
     settings?: any;
     status?: string;
     phone?: string;
+    created_at?: string;
 }
 
 interface AuthContextType {

@@ -152,7 +152,12 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                 type: 'personal',
                 name: 'Pessoal',
                 status: profile?.status || 'active',
-                settings: profile?.settings || {}
+                settings: profile?.settings || {},
+                // Include trial and creation info for badges
+                subscription_plan: profile?.settings?.subscription_plan,
+                trial_ends_at: profile?.settings?.trial_ends_at,
+                created_at: profile?.created_at,
+                phone: profile?.phone
             };
             const allEntities = [personalOption, ...companies];
             setAvailableEntities(allEntities);

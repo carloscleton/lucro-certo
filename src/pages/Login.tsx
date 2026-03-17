@@ -208,6 +208,7 @@ export function Login() {
                                  // Dashboard, A Receber, A Pagar, Categorias, Relatórios, WhatsApp
                                  const trialSettings = (isTrial && isPF) ? {
                                      subscription_plan: 'trial',
+                                     trial_ends_at: trialEndsAt,
                                      modules: {
                                          dashboard: { admin: true, member: true },
                                          receivables: { admin: true, member: true },
