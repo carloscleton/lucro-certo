@@ -433,6 +433,34 @@ export function useAdmin() {
         }
     };
 
+    const fetchCompanyCharges = async (companyId: string) => {
+        if (!isAdmin) return { error: 'Unauthorized', charges: null };
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if(!session) return { error: 'Not logged in', charges: null };
+
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-billing-history`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ company_id: companyId })
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                 throw new Error(result.error || 'Failed to fetch charges');
+            }
+
+            return { charges: result.charges, error: null };
+        } catch (error: any) {
+            console.error('Error fetching company charges:', error);
+            return { error: error.message, charges: null };
+        }
+    };
+
     return {
         isAdmin,
         stats,
@@ -451,6 +479,7 @@ export function useAdmin() {
         manualRenewSubscription,
         setCompanyTrial,
         testPlatformConnection,
+        fetchCompanyCharges,
         biStats,
         appSettings,
         refresh: fetchAdminData

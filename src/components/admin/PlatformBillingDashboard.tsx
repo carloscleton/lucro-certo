@@ -12,7 +12,11 @@ import {
     Zap as ZapIcon,
     Wand2,
     Save,
-    Activity
+    Activity,
+    CreditCard,
+    Calendar,
+    X,
+    ExternalLink
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
@@ -44,8 +48,14 @@ export function PlatformBillingDashboard() {
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [localKeys, setLocalKeys] = useState<any>({});
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+    const [selectedCompanyName, setSelectedCompanyName] = useState<string>('');
+    const [billingHistory, setBillingHistory] = useState<any[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
     const { notify } = useNotification();
-    const { testPlatformConnection } = useAdmin();
+    const { testPlatformConnection, fetchCompanyCharges } = useAdmin();
 
     // Sync local keys when appSettings loads
     useEffect(() => {
@@ -100,6 +110,22 @@ export function PlatformBillingDashboard() {
             console.error('Magic error:', error);
         } finally {
             setGenerating(false);
+        }
+    };
+
+    const handleViewHistory = async (companyId: string, companyName: string) => {
+        setSelectedCompanyId(companyId);
+        setSelectedCompanyName(companyName);
+        setHistoryModalOpen(true);
+        setLoadingHistory(true);
+        
+        const { error, charges } = await fetchCompanyCharges(companyId);
+        setLoadingHistory(false);
+        
+        if (error) {
+            notify('error', 'Falha ao carregar o histórico de cobranças: ' + error, 'Erro');
+        } else {
+            setBillingHistory(charges || []);
         }
     };
 
@@ -542,6 +568,14 @@ export function PlatformBillingDashboard() {
                                                                 <span className="text-[10px] font-bold uppercase">Trial</span>
                                                             </button>
                                                         )}
+                                                        <button
+                                                            onClick={() => handleViewHistory(c.id, c.trade_name)}
+                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100"
+                                                            title="Ver Histórico de Cobranças"
+                                                        >
+                                                            <CreditCard size={14} />
+                                                            <span className="text-[10px] font-bold uppercase">Histórico</span>
+                                                        </button>
                                                         <label className="relative inline-flex items-center cursor-pointer scale-75">
                                                             <input
                                                                 type="checkbox"
@@ -562,6 +596,98 @@ export function PlatformBillingDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Billing History Modal */}
+            {historyModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/80">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <CreditCard className="text-blue-500" />
+                                    Histórico de Cobranças
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    Pagamentos de: <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedCompanyName}</span>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setHistoryModalOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-full transition-all"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {loadingHistory ? (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+                                    <p className="text-gray-500">Buscando faturas...</p>
+                                </div>
+                            ) : billingHistory.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4">
+                                        <Calendar className="w-8 h-8 text-gray-400" />
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Nenhum pagamento encontrado</h4>
+                                    <p className="text-sm text-gray-500 max-w-sm mt-2">Esta empresa ainda não possui registros de pagamento em seu histórico.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {billingHistory.map((charge) => (
+                                        <div key={charge.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-5 hover:shadow-md transition-shadow">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide
+                                                            ${charge.status === 'paid' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                                            charge.status === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}
+                                                        >
+                                                            {charge.status === 'paid' ? 'Pago' : charge.status === 'pending' ? 'Pendente' : charge.status}
+                                                        </span>
+                                                        <span className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(charge.amount || 0)}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{charge.description}</p>
+                                                    
+                                                    <div className="flex mt-3 gap-4 text-xs text-gray-500">
+                                                        <div className="flex items-center gap-1">
+                                                            <Calendar size={14} className="text-gray-400" />
+                                                            {new Date(charge.created_at).toLocaleDateString()}
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <Activity size={14} className="text-gray-400" />
+                                                            {charge.provider?.toUpperCase()} - {charge.payment_method?.toUpperCase()}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {charge.payment_link && charge.status !== 'paid' && (
+                                                    <a 
+                                                        href={charge.payment_link} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 rounded-lg text-sm font-semibold transition-colors w-full sm:w-auto mt-2 sm:mt-0"
+                                                    >
+                                                        Link de Pagamento
+                                                        <ExternalLink size={14} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
