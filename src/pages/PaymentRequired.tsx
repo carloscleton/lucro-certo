@@ -33,14 +33,16 @@ export function PaymentRequired() {
 
             const data = await response.json();
 
-            if (data?.paymentUrl) {
+            if (response.ok && data?.paymentUrl) {
                 window.location.href = data.paymentUrl;
             } else {
-                alert("Não foi possível gerar o link agora. Tente novamente em instantes.");
+                console.error("Detalhes do Erro do Gateway:", data);
+                const errorMessage = data?.error || data?.message || "Não foi possível gerar o link agora. Tente novamente em instantes.";
+                alert(`Ops! Problema ao gerar pagamento:\n\n${errorMessage}`);
             }
         } catch (err) {
-            console.error(err);
-            alert("Erro ao conectar com o gateway de pagamento.");
+            console.error("Erro na requisição:", err);
+            alert("Erro ao conectar com o gateway de pagamento. Verifique sua conexão.");
         } finally {
             setLoading(false);
         }
