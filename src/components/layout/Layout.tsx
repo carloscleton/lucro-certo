@@ -466,12 +466,22 @@ export function Layout() {
                                                     console.log('Sessão ativa para:', freshSession.user.email);
                                                     console.log('Token presente:', !!freshSession.access_token);
 
-                                                    const res = await supabase.functions.invoke('platform-checkout', {
-                                                        body: { company_id: currentEntity.id },
+                                                    // Bypassing the Supabase 401 relay by using direct fetch
+                                                    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
+                                                    const fetchRes = await fetch(functionUrl, {
+                                                        method: 'POST',
                                                         headers: {
-                                                            Authorization: `Bearer ${freshSession.access_token}`
-                                                        }
+                                                            'Content-Type': 'application/json',
+                                                            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                                                        },
+                                                        body: JSON.stringify({
+                                                            company_id: currentEntity.id,
+                                                            access_token: freshSession.access_token
+                                                        })
                                                     });
+
+                                                    const data = await fetchRes.json();
+                                                    const res = { data, error: !fetchRes.ok ? { message: data.error } : null };
 
                                                     if (res.error) {
                                                         console.error('Erro na Edge Function (HTTP):', res.error);

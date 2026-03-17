@@ -16,12 +16,21 @@ export function PaymentRequired() {
         setLoading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const { data } = await supabase.functions.invoke('platform-checkout', {
-                body: {
+            // Bypassing the Supabase 401 relay by using direct fetch
+            const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
+            const response = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                },
+                body: JSON.stringify({
                     company_id: currentEntity.id,
-                    access_token: session?.access_token // Bypassing 401 relay
-                }
+                    access_token: session?.access_token
+                })
             });
+
+            const data = await response.json();
 
             if (data?.paymentUrl) {
                 window.location.href = data.paymentUrl;
