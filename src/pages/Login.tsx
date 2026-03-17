@@ -159,7 +159,7 @@ export function Login() {
                     return;
                 }
 
-                const { error, data: authResult } = await supabase.auth.signUp({
+                const { error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
