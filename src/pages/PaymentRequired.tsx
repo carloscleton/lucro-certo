@@ -47,7 +47,7 @@ export function PaymentRequired() {
             if (cleanDoc !== currentDoc) {
                 const { error: updateError } = await supabase
                     .from('companies')
-                    .update({ document: cleanDoc })
+                    .update({ cnpj: cleanDoc }) // Atualizando a coluna cnpj em vez de document
                     .eq('id', currentEntity.id);
                 
                 if (updateError) throw updateError;
