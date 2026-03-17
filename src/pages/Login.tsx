@@ -186,11 +186,15 @@ export function Login() {
 
                     if (!signInError && authData?.user) {
                         try {
+                            const isPF = cleanDoc.length === 11;
                             const { data: createData, error: createError } = await supabase.rpc('create_company', {
                                 name_input: fullName,
                                 trade_name_input: fullName,
-                                cnpj_input: cleanDoc,
-                                entity_type_input: cleanDoc.length === 11 ? 'PF' : 'PJ'
+                                cnpj_input: isPF ? null : cleanDoc,
+                                cpf_input: isPF ? cleanDoc : null,
+                                entity_type_input: isPF ? 'PF' : 'PJ',
+                                phone_input: cleanPhone,
+                                email_input: email
                             });
 
                             if (!createError && createData?.success) {
