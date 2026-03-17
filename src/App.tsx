@@ -30,10 +30,19 @@ import { CRMProvider } from './context/CRMContext';
 import { LandingPage } from './pages/LandingPage';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { session, loading } = useAuth();
-  const { currentEntity } = useEntity();
+  const { session, loading: authLoading } = useAuth();
+  const { currentEntity, isLoading: entityLoading } = useEntity();
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Carregando...</div>;
+  if (authLoading || entityLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-slate-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+          <p className="text-sm font-medium text-gray-500 animate-pulse">Autenticando ambiente...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!session) return <Navigate to="/" replace />;
 
@@ -42,9 +51,11 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const plan = currentEntity?.subscription_plan || '';
   const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();
 
-  // Se o ambiente atual ou empresa for 'unpaid', 'past_due' ou teste expirado, manda pra land page mostrar o modal lá
-  if (['unpaid', 'past_due'].includes(status) || isTrialExpired) {
-    return <Navigate to="/" replace />;
+  // Se o ambiente atual for uma empresa e estiver com pendência ou teste expirado
+  if (currentEntity?.type === 'company') {
+    if (['unpaid', 'past_due'].includes(status) || isTrialExpired) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;

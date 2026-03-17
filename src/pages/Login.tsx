@@ -111,12 +111,12 @@ export function Login() {
         );
     }
 
-    // Redirect if already logged in (but not while we are processing a login/signup form)
+    // Redirect if already logged in (but not while we are processing a login/signup form or stay-on-checkout)
     useEffect(() => {
-        if (session && !loading) {
+        if (session && !loading && !pendingCompanyId) {
             navigate('/dashboard');
         }
-    }, [session, navigate, loading]);
+    }, [session, navigate, loading, pendingCompanyId]);
 
     // Check for recovery hash in URL
     useEffect(() => {
@@ -198,12 +198,26 @@ export function Login() {
 
                             if (!createError && createData?.success) {
                                 const newCompanyId = createData.company_id;
+                                const isTrial = checkoutPlan === 'trial';
+                                
+                                const trialEndsAt = isTrial 
+                                   ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                                   : null;
+
                                 await supabase.from('companies').update({
                                     subscription_plan: checkoutPlan,
                                     next_billing_value: parseFloat(checkoutPrice),
-                                    subscription_status: 'unpaid',
+                                    subscription_status: isTrial ? 'active' : 'unpaid',
+                                    trial_ends_at: trialEndsAt,
                                     phone: finalPhone
                                 }).eq('id', newCompanyId);
+
+                                if (isTrial) {
+                                    // For trial, we can go straight in!
+                                    navigate('/dashboard');
+                                    setLoading(false);
+                                    return;
+                                }
 
                                 setPendingCompanyId(newCompanyId);
                                 setMessage('Conta criada com sucesso! Falta pouco.');
