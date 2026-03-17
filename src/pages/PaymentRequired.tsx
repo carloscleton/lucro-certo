@@ -97,6 +97,8 @@ export function PaymentRequired() {
                 <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">
                     {currentEntity?.subscription_status === 'past_due'
                         ? 'Assinatura Pendente 💳'
+                        : currentEntity?.subscription_plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date()
+                        ? 'Período de Teste Expirado ⏳' 
                         : `Falta pouco, ${profile?.full_name?.split(' ')[0] || ''}! ✨`}
                 </h2>
                 <p
@@ -104,6 +106,8 @@ export function PaymentRequired() {
                     dangerouslySetInnerHTML={{
                         __html: currentEntity?.subscription_status === 'past_due'
                             ? 'Identificamos uma pendência no pagamento da sua assinatura. Regularize agora para continuar usando todos os recursos.'
+                            : currentEntity?.subscription_plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date()
+                            ? 'Seu período de 7 dias grátis chegou ao fim. Assine agora para não perder o acesso às ferramentas do seu sistema!'
                             : 'Sua conta está pronta. Ative sua assinatura para liberar todas as ferramentas do <strong>Lucro Certo</strong>.'
                     }}
                 />

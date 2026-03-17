@@ -146,7 +146,9 @@ export function LandingPage() {
     const { currentEntity } = useEntity();
     const { session } = useAuth();
     const [currentSlide, setCurrentSlide] = useState(0);
-    const isUnpaid = ['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '');
+    const plan = currentEntity?.subscription_plan || '';
+    const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();
+    const isUnpaid = ['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '') || isTrialExpired;
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [landingPlans, setLandingPlans] = useState<any[]>(DEFAULT_PLANS);
 

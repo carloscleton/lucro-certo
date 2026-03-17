@@ -37,8 +37,13 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!session) return <Navigate to="/" replace />;
 
-  // Se o ambiente atual ou empresa for 'unpaid' ou 'past_due', manda pra land page mostrar o modal lá
-  if (['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '')) {
+  // Verifica as condições de pagamento
+  const status = currentEntity?.subscription_status || '';
+  const plan = currentEntity?.subscription_plan || '';
+  const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();
+
+  // Se o ambiente atual ou empresa for 'unpaid', 'past_due' ou teste expirado, manda pra land page mostrar o modal lá
+  if (['unpaid', 'past_due'].includes(status) || isTrialExpired) {
     return <Navigate to="/" replace />;
   }
 

@@ -20,6 +20,7 @@ import { useCompanies } from '../hooks/useCompanies';
 import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
 import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
 import { useTransactions } from '../hooks/useTransactions';
+import { supabase } from '../lib/supabase';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -112,6 +113,46 @@ export function Dashboard() {
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
 
+    // Trial Calculation
+    const isTrial = currentEntity?.subscription_plan === 'trial';
+    const trialDaysLeft = (currentEntity as any)?.trial_ends_at 
+        ? Math.ceil((new Date((currentEntity as any).trial_ends_at).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+        : 0;
+
+    const [loadingCheckout, setLoadingCheckout] = useState(false);
+
+    const handleUpgrade = async () => {
+        try {
+            setLoadingCheckout(true);
+            const { data: { session: freshSession } } = await supabase.auth.getSession();
+
+            const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
+            const fetchRes = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    company_id: currentEntity.id,
+                    access_token: freshSession?.access_token
+                })
+            });
+
+            const data = await fetchRes.json();
+            if (fetchRes.ok && data?.paymentUrl) {
+                window.location.href = data.paymentUrl;
+            } else {
+                alert('Erro ao gerar link de pagamento: ' + (data.error || 'Erro desconhecido.'));
+            }
+        } catch (err: any) {
+             alert('Falha ao processar checkout: ' + err.message);
+        } finally {
+            setLoadingCheckout(false);
+        }
+    };
+
     // Modal state
     const [modalOpen, setModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'income' | 'expense' | 'receivable' | 'payable' | 'balance'>('income');
@@ -190,6 +231,24 @@ export function Dashboard() {
 
     return (
         <div className="flex flex-col gap-6">
+            {isTrial && trialDaysLeft > 0 && (
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 shadow-lg text-white flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
+                            <span>🚀</span> Você está no período de teste gratuito ({trialDaysLeft} dias restantes)
+                        </h4>
+                        <p className="text-blue-100 text-sm">Aproveite todas as ferramentas do sistema. Quer garantir seu acesso contínuo?</p>
+                    </div>
+                    <button 
+                        onClick={handleUpgrade}
+                        disabled={loadingCheckout}
+                        className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-2.5 rounded-xl font-bold transition-all shadow-sm disabled:opacity-70 whitespace-nowrap w-full md:w-auto text-center"
+                    >
+                        {loadingCheckout ? 'Gerando link...' : 'Antecipar Assinatura'}
+                    </button>
+                </div>
+            )}
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{greeting}, {firstName}</h1>
