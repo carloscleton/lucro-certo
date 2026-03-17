@@ -11,14 +11,21 @@ export function PaymentRequired() {
     const { currentEntity } = useEntity();
     const [loading, setLoading] = useState(false);
     const [documentStr, setDocumentStr] = useState('');
+    const [phoneStr, setPhoneStr] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
+    const [phoneError, setPhoneError] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (currentEntity && !documentStr) {
-            setDocumentStr((currentEntity as any).document || currentEntity.cnpj || '');
+        if (currentEntity) {
+            if (!documentStr) {
+                setDocumentStr(formatDocument((currentEntity as any).document || currentEntity.cnpj || ''));
+            }
+            if (!phoneStr) {
+                setPhoneStr(formatPhone(currentEntity.phone || profile?.phone || ''));
+            }
         }
-    }, [currentEntity]);
+    }, [currentEntity, profile]);
 
     const formatDocument = (v: string) => {
         const numbers = v.replace(/\D/g, '');
@@ -28,30 +35,50 @@ export function PaymentRequired() {
         return numbers.replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})/, '$1-$2').substring(0, 18);
     };
 
+    const formatPhone = (v: string) => {
+        const numbers = v.replace(/\D/g, '');
+        if (numbers.length <= 10) {
+            return numbers.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2').substring(0, 14);
+        }
+        return numbers.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').substring(0, 15);
+    };
+
     const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setDocumentStr(formatDocument(e.target.value));
         setErrorMsg('');
     };
 
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPhoneStr(formatPhone(e.target.value));
+        setPhoneError('');
+    };
+
     const handlePayment = async () => {
         const cleanDoc = documentStr.replace(/\D/g, '');
+        const cleanPhone = phoneStr.replace(/\D/g, '');
+
         if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
             setErrorMsg('Por favor, informe um CPF ou CNPJ válido.');
             return;
         }
 
+        if (cleanPhone.length < 10) {
+            setPhoneError('Informe um telefone válido com DDD.');
+            return;
+        }
+
         setLoading(true);
         try {
-            // Atualizar o cadastro se o documento for diferente do que está no banco
-            const currentDoc = ((currentEntity as any)?.document || currentEntity?.cnpj || '').replace(/\D/g, '');
-            if (cleanDoc !== currentDoc) {
-                const { error: updateError } = await supabase
-                    .from('companies')
-                    .update({ cnpj: cleanDoc }) // Atualizando a coluna cnpj em vez de document
-                    .eq('id', currentEntity.id);
-                
-                if (updateError) throw updateError;
-            }
+            // Atualizar o cadastro com os dados de faturamento
+            const { error: updateError } = await supabase
+                .from('companies')
+                .update({ 
+                    cnpj: cleanDoc,
+                    phone: cleanPhone
+                })
+                .eq('id', currentEntity.id);
+            
+            if (updateError) throw updateError;
 
             const { data: { session } } = await supabase.auth.getSession();
             // Bypassing the Supabase 401 relay by using direct fetch
@@ -113,24 +140,46 @@ export function PaymentRequired() {
                 />
 
                 <div className="space-y-4">
-                    <div className="text-left mb-6">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            CPF ou CNPJ para faturamento do sistema
-                        </label>
-                        <input
-                            type="text"
-                            value={documentStr}
-                            onChange={handleDocumentChange}
-                            placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                            className={`w-full p-4 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
-                                errorMsg
-                                    ? 'border-red-500 focus:ring-red-500/20'
-                                    : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20'
-                            }`}
-                        />
-                        {errorMsg && (
-                            <p className="text-red-500 text-sm mt-2">{errorMsg}</p>
-                        )}
+                    <div className="text-left space-y-4 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                CPF ou CNPJ para faturamento
+                            </label>
+                            <input
+                                type="text"
+                                value={documentStr}
+                                onChange={handleDocumentChange}
+                                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                                className={`w-full p-4 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
+                                    errorMsg
+                                        ? 'border-red-500 focus:ring-red-500/20'
+                                        : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20'
+                                }`}
+                            />
+                            {errorMsg && (
+                                <p className="text-red-500 text-sm mt-2">{errorMsg}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                WhatsApp para avisos de cobrança
+                            </label>
+                            <input
+                                type="text"
+                                value={phoneStr}
+                                onChange={handlePhoneChange}
+                                placeholder="(00) 00000-0000"
+                                className={`w-full p-4 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
+                                    phoneError
+                                        ? 'border-red-500 focus:ring-red-500/20'
+                                        : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20'
+                                }`}
+                            />
+                            {phoneError && (
+                                <p className="text-red-500 text-sm mt-2">{phoneError}</p>
+                            )}
+                        </div>
                     </div>
 
                     <Button
