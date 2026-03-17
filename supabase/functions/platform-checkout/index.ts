@@ -173,11 +173,18 @@ serve(async (req) => {
             const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3'
 
             // a. Find or Create Asaas Customer
-            const cpfCnpj = company.cnpj || company.document || '00000000000'
+            // PF: use 'cpf' field; PJ: use 'cnpj'; fallback to 'document' (old field)
+            const rawCpfCnpj = company.cpf || company.cnpj || company.document || ''
+            const cpfCnpj = rawCpfCnpj.replace(/\D/g, '')
+
+            if (!cpfCnpj || cpfCnpj === '00000000000') {
+                throw new Error('CPF/CNPJ não informado. Por favor, atualize seus dados antes de pagar.')
+            }
+
             let customerId = ''
 
-            // Search customer by CPF/CNPJ
-            const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${cpfCnpj.replace(/\D/g, '')}`, {
+            // Search customer by CPF/CNPJ (already cleaned above)
+            const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${cpfCnpj}`, {
                 headers: { 'access_token': apiKey }
             })
             const searchData = await searchRes.json()
