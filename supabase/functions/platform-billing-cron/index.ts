@@ -33,6 +33,71 @@ async function sendWhatsApp(instanceName: string, targetNumber: string, text: st
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+async function getAsaasPaymentLink(company: any, settings: any, amount: number) {
+    const provider = settings.platform_billing_provider;
+    if (provider !== 'asaas') return null;
+
+    const isSandbox = settings.platform_billing_sandbox !== false;
+    const env = isSandbox ? 'sandbox' : 'production';
+    const config = settings.platform_billing_config?.asaas?.[env] || {};
+    const apiKey = config.api_key;
+    
+    if (!apiKey) return null;
+    const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3';
+
+    try {
+        // Find or Create Customer
+        const cpfCnpj = (company.cnpj || company.document || '00000000000').replace(/\D/g, '');
+        let customerId = '';
+
+        const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${cpfCnpj}`, {
+            headers: { 'access_token': apiKey }
+        });
+        const searchData = await searchRes.json();
+
+        if (searchData.data && searchData.data.length > 0) {
+            customerId = searchData.data[0].id;
+        } else {
+            const createRes = await fetch(`${baseUrl}/customers`, {
+                method: 'POST',
+                headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: company.trade_name || 'Lucro Certo Customer',
+                    cpfCnpj: cpfCnpj,
+                    email: company.owner_email || '',
+                    mobilePhone: company.phone || ''
+                })
+            });
+            const createData = await createRes.json();
+            if (createData.id) customerId = createData.id;
+        }
+
+        if (!customerId) return null;
+
+        // Create/Get Charge
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 3);
+
+        const chargeRes = await fetch(`${baseUrl}/payments`, {
+            method: 'POST',
+            headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                customer: customerId,
+                billingType: 'UNDEFINED',
+                value: amount,
+                dueDate: dueDate.toISOString().split('T')[0],
+                description: `Mensalidade Lucro Certo - ${company.trade_name}`,
+                externalReference: company.id
+            })
+        });
+        const chargeData = await chargeRes.json();
+        return chargeData.invoiceUrl || null;
+    } catch (e) {
+        console.error('Error generating Asaas link:', e);
+        return null;
+    }
+}
+
 async function runBillingCycle() {
     console.log('Billing Cron: Starting run');
     try {
@@ -53,7 +118,8 @@ async function runBillingCycle() {
             return;
         }
 
-        const reminderDays = settings.billing_days_before_reminder || [5, 2, 0];
+        // Reminders: 5, 2, 0 days before, and 3 days after (overdue)
+        const reminderDays = settings.billing_days_before_reminder || [5, 2, 0, -3, -7];
         const waInstance = settings.platform_whatsapp_instance || 'MainAdmin';
         const waTemplate = settings.billing_whatsapp_template || 'Olá, {company_name}! Sua mensalidade do Lucro Certo vence em {days} dias ({due_date}). Evite o bloqueio do sistema clicando no boleto/pix: {payment_link}';
 
@@ -69,8 +135,7 @@ async function runBillingCycle() {
         const todayStr = now.toISOString().split('T')[0];
 
         for (const company of companies) {
-            // Delay to avoid spamming
-            await sleep(1000);
+            await sleep(800); // Throttling
 
             const targetDate = company.subscription_plan === 'trial'
                 ? (company.trial_ends_at ? new Date(company.trial_ends_at) : null)
@@ -78,27 +143,35 @@ async function runBillingCycle() {
 
             if (!targetDate || isNaN(targetDate.getTime())) continue;
 
-            // Calculate diff in days
             const targetStr = targetDate.toISOString().split('T')[0];
             const diffTime = new Date(targetStr).getTime() - new Date(todayStr).getTime();
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-            console.log(`Company: ${company.trade_name}, Status: ${company.subscription_status}, Days to expiry: ${diffDays}`);
+            console.log(`Company: ${company.trade_name}, Status: ${company.subscription_status}, Days: ${diffDays}`);
 
             if (reminderDays.includes(diffDays)) {
-                // Populate template
                 const formattedDate = targetDate.toLocaleDateString('pt-BR');
-                const value = (company.next_billing_value || 97).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                const paymentLink = 'https://fatura.lucrocerto.com.br'; // Mock link for now
+                const amount = Number(company.next_billing_value) || 97;
+                
+                // Try to get real payment link
+                let paymentLink = await getAsaasPaymentLink(company, settings, amount);
+                if (!paymentLink) {
+                    paymentLink = `https://lucrocerto.site/dashboard`; // Fallback to login
+                }
 
-                const message = waTemplate
+                let message = waTemplate
                     .replace(/{company_name}/g, company.trade_name || 'Empresa')
                     .replace(/{due_date}/g, formattedDate)
-                    .replace(/{days}/g, diffDays.toString())
-                    .replace(/{value}/g, value.toString())
+                    .replace(/{days}/g, Math.abs(diffDays).toString())
+                    .replace(/{value}/g, amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }))
                     .replace(/{payment_link}/g, paymentLink);
 
-                // Find owner phone
+                // Adjustment for overdue message if generic
+                if (diffDays < 0 && message.includes('vence em')) {
+                    message = message.replace(/vence em .*/, `está atrasada há ${Math.abs(diffDays)} dias. Regularize agora para evitar bloqueio: ${paymentLink}`);
+                }
+
+                // Get owner phone
                 const { data: owner } = await supabase
                     .from('company_members')
                     .select('profiles(phone)')
@@ -110,18 +183,19 @@ async function runBillingCycle() {
 
                 if (targetNumber) {
                     const cleanPhone = targetNumber.replace(/\D/g, '');
-                    const success = await sendWhatsApp(waInstance, cleanPhone, message);
-                    console.log(`Notification for ${company.trade_name}: ${success ? 'Sent' : 'Failed'}`);
+                    if (cleanPhone.length >= 10) {
+                        const success = await sendWhatsApp(waInstance, cleanPhone, message);
+                        console.log(`Notification for ${company.trade_name} (${diffDays}d): ${success ? 'Sent' : 'Failed'}`);
+                    }
                 }
             }
 
-            // 3. Auto-update status to past_due if expired
+            // Auto-update status to past_due if expired
             if (diffDays < 0 && company.subscription_status === 'active') {
                 await supabase
                     .from('companies')
                     .update({ subscription_status: 'past_due' })
                     .eq('id', company.id);
-                console.log(`Company ${company.trade_name} marked as PAST_DUE`);
             }
         }
     } catch (err) {
