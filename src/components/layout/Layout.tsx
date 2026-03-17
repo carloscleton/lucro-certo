@@ -368,6 +368,33 @@ export function Layout() {
                                     </div>
                                 </div>
                             </div>
+                            
+                            {/* Trial Badge */}
+                            {currentEntity.type === 'company' && currentEntity.subscription_plan === 'trial' && currentEntity.trial_ends_at && (
+                                <div className="hidden lg:flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 px-3 py-1 rounded-full ml-4 shadow-sm">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <span className="text-[10px] uppercase font-black tracking-wider text-emerald-700 dark:text-emerald-400">
+                                        Período de Teste: {(() => {
+                                            const diff = new Date(currentEntity.trial_ends_at!).getTime() - Date.now();
+                                            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                            return days > 0 ? `${days} ${days === 1 ? 'dia' : 'dias'}` : 'Expirado';
+                                        })()}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Days in Use Badge */}
+                            {currentEntity.type === 'company' && currentEntity.created_at && (
+                                <div className="hidden lg:flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 px-3 py-1 rounded-full ml-3 opacity-90">
+                                    <span className="text-[10px] uppercase font-black tracking-wider text-blue-700 dark:text-blue-400">
+                                        Sistema em uso: {(() => {
+                                            const diff = Date.now() - new Date(currentEntity.created_at!).getTime();
+                                            const days = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+                                            return `${days} ${days === 1 ? 'dia' : 'dias'}`;
+                                        })()}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className="flex-1" /> {/* Spacer */}
                         <LanguageSelector />

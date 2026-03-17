@@ -33,6 +33,8 @@ export interface Entity {
     status?: string;
     subscription_status?: string;
     subscription_plan?: string;
+    trial_ends_at?: string;
+    created_at?: string;
     phone?: string;
 }
 
@@ -98,6 +100,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         status,
                         subscription_status,
                         subscription_plan,
+                        trial_ends_at,
+                        created_at,
                         phone
                     ),
                     role,
@@ -138,6 +142,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     status: item.company.status,
                     subscription_status: item.company.subscription_status,
                     subscription_plan: item.company.subscription_plan,
+                    trial_ends_at: item.company.trial_ends_at,
+                    created_at: item.company.created_at,
                     phone: item.company.phone
                 }));
 
