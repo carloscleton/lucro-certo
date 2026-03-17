@@ -24,15 +24,24 @@ serve(async (req) => {
         if (!authHeader) throw new Error('Unauthorized: Missing Authorization Header')
 
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-        if (authError || !user) throw new Error(`Unauthorized: ${authError?.message || 'Invalid User or Token'}`)
 
-        const { company_id } = await req.json()
-
-        // Admin Auth (Elevated client)
+        // Admin client for elevated tasks
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
+
+        let verifiedUser = user
+
+        const { company_id } = await req.json()
+
+        // If getUser fails, it might be a sync lag for a new user. 
+        // We'll try to extract the user ID from the JWT manually if needed, 
+        // but for now let's just ensure we have a valid response.
+        if (authError || !user) {
+            console.error('Auth error in Edge Function:', authError)
+            throw new Error(`Unauthorized: ${authError?.message || 'Invalid User or Token'}`)
+        }
 
         // Ensure user belongs to company
         const { data: membership } = await supabaseAdmin
