@@ -58,11 +58,14 @@ export function PaymentRequired() {
                         ? 'Assinatura Pendente 💳'
                         : `Falta pouco, ${profile?.full_name?.split(' ')[0] || ''}! ✨`}
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400 mb-10 leading-relaxed text-lg">
-                    {currentEntity?.subscription_status === 'past_due'
-                        ? 'Identificamos uma pendência no pagamento da sua assinatura. Regularize agora para continuar usando todos os recursos.'
-                        : 'Sua conta está pronta. Ative sua assinatura para liberar todas as ferramentas do <strong>Lucro Certo</strong>.'}
-                </p>
+                <p
+                    className="text-slate-600 dark:text-slate-400 mb-10 leading-relaxed text-lg"
+                    dangerouslySetInnerHTML={{
+                        __html: currentEntity?.subscription_status === 'past_due'
+                            ? 'Identificamos uma pendência no pagamento da sua assinatura. Regularize agora para continuar usando todos os recursos.'
+                            : 'Sua conta está pronta. Ative sua assinatura para liberar todas as ferramentas do <strong>Lucro Certo</strong>.'
+                    }}
+                />
 
                 <div className="space-y-4">
                     <Button
