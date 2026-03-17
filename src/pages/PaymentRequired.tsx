@@ -72,7 +72,7 @@ export function PaymentRequired() {
             const data = await response.json();
 
             if (response.ok && data?.paymentUrl) {
-                window.location.href = data.paymentUrl;
+                window.open(data.paymentUrl, '_blank');
             } else {
                 console.error("Detalhes do Erro do Gateway:", data);
                 const errorMessage = data?.error || data?.message || "Não foi possível gerar o link agora. Tente novamente em instantes.";

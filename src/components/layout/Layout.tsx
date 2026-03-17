@@ -504,7 +504,7 @@ export function Layout() {
                                                     }
 
                                                     if (res.data?.paymentUrl) {
-                                                        window.location.href = res.data.paymentUrl;
+                                                        window.open(res.data.paymentUrl, '_blank');
                                                     } else {
                                                         console.error('Dados de retorno inválidos:', res.data);
                                                         throw new Error(res.data?.error || 'Não foi possível gerar o link de pagamento.');

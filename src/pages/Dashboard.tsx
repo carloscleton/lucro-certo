@@ -142,7 +142,7 @@ export function Dashboard() {
 
             const data = await fetchRes.json();
             if (fetchRes.ok && data?.paymentUrl) {
-                window.location.href = data.paymentUrl;
+                window.open(data.paymentUrl, '_blank');
             } else {
                 alert('Erro ao gerar link de pagamento: ' + (data.error || 'Erro desconhecido.'));
             }
