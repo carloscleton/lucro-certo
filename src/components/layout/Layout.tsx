@@ -509,6 +509,15 @@ export function Layout() {
 
                                                     console.log('Sessão ativa para:', freshSession.user.email);
                                                     console.log('Token presente:', !!freshSession.access_token);
+                                                    const targetId = currentEntity.type === 'personal'
+                                                         ? (currentEntity.associated_company_id || profile?.company_id)
+                                                         : currentEntity.id;
+
+                                                     if (!targetId || targetId === 'personal') {
+                                                         alert('Aguardando sincronização dos dados da sua empresa... Por favor, aguarde alguns segundos e tente novamente.');
+                                                         setLoadingCheckout(false);
+                                                         return;
+                                                     }
 
                                                     // Bypassing the Supabase 401 relay by using direct fetch
                                                     const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
@@ -520,7 +529,7 @@ export function Layout() {
                                                             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
                                                         },
                                                         body: JSON.stringify({
-                                                            company_id: currentEntity.type === 'personal' ? profile?.company_id : currentEntity.id,
+                                                            company_id: targetId,
                                                             access_token: freshSession.access_token
                                                         })
                                                     });

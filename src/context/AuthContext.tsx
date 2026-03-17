@@ -91,28 +91,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
                 let companyId: string | undefined;
                 try {
-                    // Fetch company_id and status
-                    const { data: memberData } = await supabase
+                    // Try to find ANY membership first
+                    const { data: members } = await supabase
                         .from('company_members')
-                        .select('company_id, company:companies(status)')
-                        .eq('user_id', userId)
-                        .eq('status', 'active')
-                        .limit(1)
-                        .maybeSingle();
+                        .select('company_id, status')
+                        .eq('user_id', userId);
 
-                    if (memberData) {
-                        companyId = memberData.company_id;
-                        const companyStatus = (memberData as any)?.company?.status;
-                        if (companyStatus === 'blocked' && data.email !== 'carloscleton.nat@gmail.com') {
-                            await supabase.auth.signOut();
-                            return;
+                    if (members && members.length > 0) {
+                        // Prefer active, but take any if none active
+                        const primary = members.find(m => m.status === 'active') || members[0];
+                        companyId = primary.company_id;
+                    } else {
+                        // Fallback: Check if user OWNS any companies directly (in case of membership sync issues)
+                        const { data: ownedCompanies } = await supabase
+                            .from('companies')
+                            .select('id')
+                            .eq('user_id', userId)
+                            .limit(1);
+
+                        if (ownedCompanies && ownedCompanies.length > 0) {
+                            companyId = ownedCompanies[0].id;
                         }
                     }
+                    console.log('DEBUG: AuthContext fetchProfile Result', { userId, companyId });
                 } catch (memberErr) {
                     console.error('Error fetching company membership:', memberErr);
                 }
 
-                console.log('DEBUG: AuthContext fetchProfile', { data, userId, companyId });
                 setProfile({ ...data, company_id: companyId } as Profile);
             } else {
                 console.warn('No profile found for user:', userId);
