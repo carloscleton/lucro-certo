@@ -69,6 +69,13 @@ export function Layout() {
 
     // Filter Logic
     const displayedNavItems = APP_MODULES.filter(item => {
+        // 0. Trial Restriction (Enforced for all 7-day trials) - Shows ONLY these modules
+        const isTrial = currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial';
+        const allowedTrialModules = ['dashboard', 'receivables', 'payables', 'categories', 'reports', 'whatsapp', 'settings'];
+        if (isTrial && !allowedTrialModules.includes(item.key) && !isSystemAdmin) {
+            return false;
+        }
+
         // Exclude management items that go into the administrative submenu
         const isManagementItem = ['commissions', 'settings'].includes(item.key);
         if (currentEntity.type === 'company' && isManagementItem) return false;
@@ -85,6 +92,7 @@ export function Layout() {
             if (item.key === 'lead_radar' && !currentEntity.has_lead_radar && !isSuper) return false;
 
             // 2. Role-based Permission Check
+            if (settings?.modules?.[item.key]?.[userRole as 'admin' | 'member'] === false) return false;
             if (isSuper) return true;
             return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
         }
@@ -98,7 +106,10 @@ export function Layout() {
             // Bypass for System Admin - they see everything in personal context
             if (isSystemAdmin) return true;
 
-            // Basic items always allowed in personal view
+            // Explicitly disabled in settings
+            if (settings?.modules?.[item.key]?.admin === false) return false;
+
+            // Basic items always allowed in personal view if not disabled
             if (['dashboard', 'companies'].includes(item.key)) return true;
 
             // Check if module is allowed in personal settings (treat as admin)
@@ -112,6 +123,9 @@ export function Layout() {
         { label: t('nav.settings'), icon: Settings, path: '/dashboard/settings', key: 'settings' },
     ].filter(item => {
         if (currentEntity.type !== 'company') return false; // Handled in main nav for personal
+
+        // Explicitly disabled overrides owner
+        if (settings?.modules?.[item.key]?.[userRole as 'admin' | 'member'] === false) return false;
 
         // Owner/SystemAdmin see everything by default
         if (userRole === 'owner' || isSystemAdmin) return true;

@@ -207,6 +207,7 @@ export function Login() {
                                  // Default permissions for Trial + Personal
                                  // Dashboard, A Receber, A Pagar, Categorias, Relatórios, WhatsApp
                                  const trialSettings = (isTrial && isPF) ? {
+                                     subscription_plan: 'trial',
                                      modules: {
                                          dashboard: { admin: true, member: true },
                                          receivables: { admin: true, member: true },
@@ -214,8 +215,10 @@ export function Login() {
                                          categories: { admin: true, member: true },
                                          reports: { admin: true, member: true },
                                          whatsapp: { admin: true, member: true },
+                                         settings: { admin: true, member: false }, // Necessary for subscription tab
                                          // Explicitly disabled others
                                          quotes: { admin: false, member: false },
+                                         companies: { admin: false, member: false },
                                          contacts: { admin: false, member: false },
                                          services: { admin: false, member: false },
                                          products: { admin: false, member: false },
@@ -239,10 +242,15 @@ export function Login() {
                                      payments_module_enabled: false,
                                      crm_module_enabled: false,
                                      has_social_copilot: false,
-                                     automations_module_enabled: (isTrial && isPF), // Trial needs WA use, maybe allow automations too? User didn't say, but usually WA use implies some automations.
-                                                                                    // Actually, sticking to the list: WhatsApp was mentioned.
+                                     automations_module_enabled: (isTrial && isPF), 
                                      has_lead_radar: false
                                  }).eq('id', newCompanyId);
+
+                                 if (trialSettings && authData.user?.id) {
+                                     await supabase.from('profiles').update({
+                                         settings: trialSettings
+                                     }).eq('id', authData.user.id);
+                                 }
 
                                  if (isTrial) {
                                     // For trial, we can go straight in!
