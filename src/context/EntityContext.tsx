@@ -154,8 +154,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                 status: profile?.status || 'active',
                 settings: profile?.settings || {},
                 // Include trial and creation info for badges
-                subscription_plan: profile?.settings?.subscription_plan,
-                trial_ends_at: profile?.settings?.trial_ends_at,
+                subscription_plan: profile?.settings?.subscription_plan || (profile?.created_at && (new Date().getTime() - new Date(profile.created_at).getTime() < 7 * 24 * 60 * 60 * 1000) ? 'trial' : undefined),
+                trial_ends_at: profile?.settings?.trial_ends_at || (profile?.created_at ? new Date(new Date(profile.created_at).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined),
                 created_at: profile?.created_at,
                 phone: profile?.phone
             };

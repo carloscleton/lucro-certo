@@ -62,15 +62,16 @@ export function Layout() {
 
     const [adminOpen, setAdminOpen] = useState(true); // Default to open for visibility
     const isSystemAdmin = user?.email === 'carloscleton.nat@gmail.com';
-    const userRole = currentEntity.role || 'member';
+    const userRole = currentEntity.type === 'personal' ? 'admin' : (currentEntity.role || 'member');
 
     // Permission Logic
     const settings = currentEntity.settings || {};
 
     // Filter Logic
+    const isTrial = currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial';
+    
     const displayedNavItems = APP_MODULES.filter(item => {
         // 0. Trial Restriction (Enforced for all 7-day trials) - Shows ONLY these modules
-        const isTrial = currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial';
         const allowedTrialModules = ['dashboard', 'receivables', 'payables', 'categories', 'reports', 'whatsapp', 'settings'];
         if (isTrial && !allowedTrialModules.includes(item.key) && !isSystemAdmin) {
             return false;
@@ -109,8 +110,10 @@ export function Layout() {
             // Explicitly disabled in settings
             if (settings?.modules?.[item.key]?.admin === false) return false;
 
-            // Basic items always allowed in personal view if not disabled
-            if (['dashboard', 'companies'].includes(item.key)) return true;
+            // Basic items allowed in personal view if not disabled
+            if (item.key === 'dashboard') return true;
+            if (item.key === 'companies' && isTrial) return false; // Hide companies in trial
+            if (item.key === 'companies') return true;
 
             // Check if module is allowed in personal settings (treat as admin)
             return getModulePermission(item.key, 'admin', settings);
