@@ -49,7 +49,6 @@ export function PlatformBillingDashboard() {
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [localKeys, setLocalKeys] = useState<any>({});
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
-    const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
     const [selectedCompanyName, setSelectedCompanyName] = useState<string>('');
     const [billingHistory, setBillingHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -114,7 +113,6 @@ export function PlatformBillingDashboard() {
     };
 
     const handleViewHistory = async (companyId: string, companyName: string) => {
-        setSelectedCompanyId(companyId);
         setSelectedCompanyName(companyName);
         setHistoryModalOpen(true);
         setLoadingHistory(true);
