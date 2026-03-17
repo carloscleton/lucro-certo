@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Wallet, ArrowRight, AlertTriangle, X, Eye, EyeOff } from 'lucide-react';
+import { Wallet, ArrowRight, AlertTriangle, X, Eye, EyeOff, CreditCard } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +35,8 @@ export function Login() {
 
     // Carousel State & Data
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [paymentRedirectUrl, setPaymentRedirectUrl] = useState<string | null>(null);
+    const [pendingCompanyId, setPendingCompanyId] = useState<string | null>(null);
 
     const carouselItems = [
         {
@@ -198,27 +200,21 @@ export function Login() {
 
                                 if (!checkoutError && checkoutData?.paymentUrl) {
                                     window.location.href = checkoutData.paymentUrl;
-                                    return; // Stop here, redirecting
+                                    return;
                                 } else {
                                     console.error('Checkout error:', checkoutError || checkoutData);
 
-                                    // Instead of blocking, we just let them log in
-                                    // The 'unpaid' logic in Layout.tsx will allow them to retry the payment
-                                    await supabase.from('companies').update({
-                                        subscription_status: 'unpaid'
-                                    }).eq('id', newCompanyId);
-
+                                    // STAY on landing page/login if checkout failed
+                                    setPendingCompanyId(newCompanyId);
+                                    setError('Sua conta foi criada! Agora, conclua o pagamento para liberar seu acesso.');
                                     setLoading(false);
-                                    navigate('/dashboard');
                                     return;
                                 }
                             }
                         } catch (e) {
-                            console.error("Erro no checkout automático Option 2:", e);
-                            alert("Ocorreu um erro ao preparar sua conta. Tente novamente.");
-                            await supabase.auth.signOut();
+                            console.error("Erro no checkout automático:", e);
+                            setError("Ocorreu um erro ao preparar sua conta. Por favor, tente novamente.");
                             setLoading(false);
-                            navigate('/');
                             return;
                         }
                     }
@@ -468,10 +464,40 @@ export function Login() {
                             </div>
                         )}
 
-                        <Button type="submit" isLoading={loading} className="w-full h-12 text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all">
-                            {isUpdatePassword ? t('login.save_new_password') : (isSignUp ? t('login.create_account_btn') : t('login.login_btn'))}
-                            {!loading && <ArrowRight size={18} className="ml-2" />}
-                        </Button>
+                        {pendingCompanyId ? (
+                            <Button
+                                type="button"
+                                onClick={async () => {
+                                    setLoading(true);
+                                    try {
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        const { data, error } = await supabase.functions.invoke('platform-checkout', {
+                                            body: { company_id: pendingCompanyId },
+                                            headers: { Authorization: `Bearer ${session?.access_token}` }
+                                        });
+                                        if (data?.paymentUrl) {
+                                            window.location.href = data.paymentUrl;
+                                        } else {
+                                            throw new Error(data?.error || 'Erro ao gerar link');
+                                        }
+                                    } catch (err: any) {
+                                        setError('Ainda não conseguimos gerar o link. Tente novamente em instantes ou contate o suporte.');
+                                    } finally {
+                                        setLoading(false);
+                                    }
+                                }}
+                                isLoading={loading}
+                                className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                            >
+                                <CreditCard size={18} className="mr-2" />
+                                Concluir Pagamento e Entrar
+                            </Button>
+                        ) : (
+                            <Button type="submit" isLoading={loading} className="w-full h-12 text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all">
+                                {isUpdatePassword ? t('login.save_new_password') : (isSignUp ? t('login.create_account_btn') : t('login.login_btn'))}
+                                {!loading && <ArrowRight size={18} className="ml-2" />}
+                            </Button>
+                        )}
                     </form>
 
                     <div className="pt-4 text-center border-t border-gray-100">

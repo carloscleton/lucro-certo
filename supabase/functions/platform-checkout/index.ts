@@ -31,14 +31,26 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        let verifiedUser = user
+        let userId = user?.id
+
+        // OPTIMIZATION: If getUser fails (sync lag), decode JWT manually to get user ID
+        if (!userId && authHeader) {
+            try {
+                const token = authHeader.replace('Bearer ', '')
+                const parts = token.split('.')
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]))
+                    userId = payload.sub
+                    console.log('User ID extracted from JWT fallback:', userId)
+                }
+            } catch (jwtErr) {
+                console.error('Failed to parse JWT fallback:', jwtErr)
+            }
+        }
 
         const { company_id } = await req.json()
 
-        // If getUser fails, it might be a sync lag for a new user. 
-        // We'll try to extract the user ID from the JWT manually if needed, 
-        // but for now let's just ensure we have a valid response.
-        if (authError || !user) {
+        if (!userId) {
             console.error('Auth error in Edge Function:', authError)
             throw new Error(`Unauthorized: ${authError?.message || 'Invalid User or Token'}`)
         }
@@ -47,7 +59,7 @@ serve(async (req) => {
         const { data: membership } = await supabaseAdmin
             .from('company_members')
             .select('role')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('company_id', company_id)
             .single()
 
