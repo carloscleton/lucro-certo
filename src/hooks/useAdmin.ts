@@ -440,22 +440,15 @@ export function useAdmin() {
             const { data: { session } } = await supabase.auth.getSession();
             if(!session) return { error: 'Not logged in', charges: null };
 
-            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-billing-history`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-                },
-                body: JSON.stringify({ company_id: companyId })
+            const { data, error: functionError } = await supabase.functions.invoke('admin-billing-history', {
+                body: { company_id: companyId }
             });
-
-            const result = await response.json();
-            if (!response.ok) {
-                 throw new Error(result.error || 'Failed to fetch charges');
+            
+            if (functionError) {
+                 throw new Error(functionError.message || 'Failed to fetch' );
             }
 
-            return { charges: result.charges, error: null };
+            return { charges: data.charges || [], error: null };
         } catch (error: any) {
             console.error('Error fetching company charges:', error);
             return { error: error.message, charges: null };
