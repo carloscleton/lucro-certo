@@ -36,6 +36,7 @@ export interface Entity {
     trial_ends_at?: string;
     created_at?: string;
     phone?: string;
+    associated_company_id?: string; // Links personal context to its main billing company
 }
 
 interface EntityContextType {
@@ -177,7 +178,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                 subscription_plan: profile?.settings?.subscription_plan || (isActuallyNew ? 'trial' : undefined),
                 trial_ends_at: profile?.settings?.trial_ends_at || (baseCreatedAt ? new Date(new Date(baseCreatedAt).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined),
                 created_at: baseCreatedAt,
-                phone: profile?.phone
+                phone: profile?.phone,
+                associated_company_id: profile?.company_id
             };
             
             console.log('DEBUG: EntityContext Mapping Result', {

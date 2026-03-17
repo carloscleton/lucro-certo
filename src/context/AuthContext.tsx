@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     console.error('Error fetching company membership:', memberErr);
                 }
 
-                console.log('DEBUG: AuthContext fetchProfile', { data, userId });
+                console.log('DEBUG: AuthContext fetchProfile', { data, userId, companyId });
                 setProfile({ ...data, company_id: companyId } as Profile);
             } else {
                 console.warn('No profile found for user:', userId);
@@ -120,10 +120,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
             console.error('Unexpected error in fetchProfile:', err);
         } finally {
+            const authUser = (await supabase.auth.getUser()).data.user;
             console.log('DEBUG: AuthContext User Obj', {
-                email: user?.email,
-                created_at: user?.created_at,
-                keys: user ? Object.keys(user) : []
+                email: authUser?.email,
+                created_at: authUser?.created_at
             });
             setLoading(false);
         }

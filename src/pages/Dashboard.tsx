@@ -124,6 +124,23 @@ export function Dashboard() {
     const handleUpgrade = async () => {
         try {
             setLoadingCheckout(true);
+            const targetCompanyId = currentEntity.type === 'personal' 
+                ? (currentEntity.associated_company_id || profile?.company_id || (companies && companies.length > 0 ? companies[0].id : null))
+                : currentEntity.id;
+
+            console.log('DEBUG: Dashboard Checkout', {
+                entityType: currentEntity.type,
+                associated: currentEntity.associated_company_id,
+                profileCompanyId: profile?.company_id,
+                finalTarget: targetCompanyId
+            });
+
+            if (!targetCompanyId || targetCompanyId === 'personal') {
+                alert('Aguardando sincronização dos dados da sua empresa... Por favor, aguarde alguns segundos e tente novamente ou recarregue a página.');
+                setLoadingCheckout(false);
+                return;
+            }
+
             const { data: { session: freshSession } } = await supabase.auth.getSession();
 
             const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
@@ -135,7 +152,7 @@ export function Dashboard() {
                     'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
                 },
                 body: JSON.stringify({
-                    company_id: currentEntity.type === 'personal' ? profile?.company_id : currentEntity.id,
+                    company_id: targetCompanyId,
                     access_token: freshSession?.access_token
                 })
             });
@@ -144,6 +161,7 @@ export function Dashboard() {
             if (fetchRes.ok && data?.paymentUrl) {
                 window.open(data.paymentUrl, '_blank');
             } else {
+                console.error('Checkout Error Response:', data);
                 alert('Erro ao gerar link de pagamento: ' + (data.error || 'Erro desconhecido.'));
             }
         } catch (err: any) {
