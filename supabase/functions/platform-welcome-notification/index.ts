@@ -86,7 +86,13 @@ serve(async (req) => {
             .replace(/{full_name}/g, owner?.full_name || 'Amigo(a)')
             .replace(/{company_name}/g, company.trade_name || 'sua empresa');
 
-        const cleanPhone = targetNumber.replace(/\D/g, '')
+        let cleanPhone = targetNumber.replace(/\D/g, '')
+        
+        // Prepend 55 if standard BR number without country code
+        if ((cleanPhone.length === 10 || cleanPhone.length === 11) && !cleanPhone.startsWith('55')) {
+            cleanPhone = '55' + cleanPhone;
+        }
+
         if (cleanPhone.length >= 10) {
             const success = await sendWhatsApp(waInstance, cleanPhone, message)
             console.log(`Welcome message sent to ${owner?.full_name}: ${success}`)

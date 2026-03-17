@@ -787,7 +787,7 @@ export function Settings() {
                                     label="WhatsApp para Receber Relatórios"
                                     value={automationWhatsAppNumber}
                                     onChange={(e) => setAutomationWhatsAppNumber(formatPhoneInput(e.target.value))}
-                                    placeholder="(11) 99999-9999"
+                                    placeholder="+55 (00) 00000-0000"
                                     helpText="Este número receberá o Resumo Financeiro Diário e alertas do sistema."
                                 />
                             </div>

@@ -1,30 +1,41 @@
 export const formatPhoneInput = (value: string | undefined | null) => {
     if (!value) return '';
 
-    // Remove tudo que não é dígito
     let v = value.replace(/\D/g, '');
 
-    // Remove o 55 se vier com 55 e tiver mais de 10/11 dígitos
-    if (v.startsWith('55') && v.length >= 12) {
-        v = v.substring(2);
+    // Auto-add 55 if it looks like a BR number without prefix
+    if (v.length > 0 && !v.startsWith('55') && v.length <= 11) {
+        v = '55' + v;
     }
 
-    // Limita a 11 dígitos no máximo
-    if (v.length > 11) v = v.substring(0, 11);
+    if (v.startsWith('55')) {
+        const country = v.substring(0, 2);
+        const rest = v.substring(2, 13);
+        
+        if (rest.length <= 10) {
+            // Fixo: +55 (XX) XXXX-XXXX
+            let result = `+${country}`;
+            if (rest.length > 0) result += ` (${rest.substring(0, 2)}`;
+            if (rest.length > 2) result += `) ${rest.substring(2, 6)}`;
+            if (rest.length > 6) result += `-${rest.substring(6, 10)}`;
+            return result;
+        } else {
+            // Celular: +55 (XX) XXXXX-XXXX
+            let result = `+${country}`;
+            if (rest.length > 0) result += ` (${rest.substring(0, 2)}`;
+            if (rest.length > 2) result += `) ${rest.substring(2, 7)}`;
+            if (rest.length > 7) result += `-${rest.substring(7, 11)}`;
+            return result;
+        }
+    }
 
-    // Formata
+    // Fallback for other countries or raw typing
     if (v.length > 10) {
-        // Celular: (XX) X XXXX-XXXX
-        v = v.replace(/^(\d{2})(\d{1})(\d{4})(\d{4}).*/, '($1) $2 $3-$4');
+        return v.replace(/^(\d{2})(\d{1})(\d{4})(\d{4}).*/, '($1) $2 $3-$4');
     } else if (v.length > 6) {
-        // Fixo: (XX) XXXX-XXXX
-        v = v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
-    } else if (v.length > 2) {
-        // Digitando... (XX) XXXXX
-        v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+        return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
     } else if (v.length > 0) {
-        // Digitando DDD... (XX
-        v = v.replace(/^(\d{0,2})/, '($1');
+        return v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
     }
 
     return v;
@@ -34,7 +45,7 @@ export const cleanPhoneNumber = (phone: string | null | undefined) => {
     if (!phone) return null;
     let digits = phone.replace(/\D/g, '');
     if (!digits) return null;
-    if (!digits.startsWith('55')) {
+    if (digits.length >= 10 && digits.length <= 11 && !digits.startsWith('55')) {
         digits = '55' + digits;
     }
     return digits;
@@ -42,9 +53,5 @@ export const cleanPhoneNumber = (phone: string | null | undefined) => {
 
 export const formatPhoneFromDB = (phone: string | null | undefined) => {
     if (!phone) return '';
-    let digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('55') && digits.length >= 12) {
-        digits = digits.substring(2);
-    }
-    return formatPhoneInput(digits);
+    return formatPhoneInput(phone);
 };

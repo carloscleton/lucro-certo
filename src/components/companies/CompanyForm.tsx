@@ -314,7 +314,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                         label="WhatsApp da Empresa (Para notificações)"
                         value={phone}
                         onChange={e => setPhone(formatPhoneInput(e.target.value))}
-                        placeholder="(00) 0 0000-0000"
+                        placeholder="+55 (00) 0 0000-0000"
                         helpText="Número para receber resumos e alertas"
                     />
                 </div>

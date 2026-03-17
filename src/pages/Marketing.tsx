@@ -153,9 +153,9 @@ export function Marketing() {
     if (v.startsWith("55")) v = v.substring(2);
     v = v.substring(0, 11);
 
-    if (v.length === 0) return "55 ";
+    if (v.length === 0) return '+55 ';
 
-    let formatted = "55 ";
+    let formatted = '+55 ';
     if (v.length > 0) formatted += `(${v.slice(0, 2)}`;
     if (v.length > 2) formatted += `) ${v.slice(2, 3)}`;
     if (v.length > 3) formatted += ` ${v.slice(3, 7)}`;
@@ -1192,7 +1192,7 @@ export function Marketing() {
                               formatWhatsAppMask(e.target.value),
                             )
                           }
-                          placeholder="55 (00) 0 0000-0000"
+                          placeholder="+55 (00) 0 0000-0000"
                           maxLength={20}
                           className="h-14 rounded-2xl border-gray-100 dark:border-slate-800 focus:ring-rose-500 bg-gray-50/50 dark:bg-slate-900/50 font-mono font-bold shadow-inner"
                         />

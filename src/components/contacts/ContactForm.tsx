@@ -247,14 +247,14 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         label="Telefone Comercial"
                         value={phone}
                         onChange={e => setPhone(formatPhoneInput(e.target.value))}
-                        placeholder="(00) 00000-0000"
+                        placeholder="+55 (00) 0000-0000"
                     />
 
                     <Input
                         label="WhatsApp p/ Automação"
                         value={whatsapp}
                         onChange={e => setWhatsapp(formatPhoneInput(e.target.value))}
-                        placeholder="(00) 0 0000-0000"
+                        placeholder="+55 (00) 0 0000-0000"
                         helpText="Número usado para envio de lembretes automáticos."
                     />
 

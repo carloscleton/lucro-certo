@@ -36,7 +36,23 @@ export function PaymentRequired() {
     };
 
     const formatPhone = (v: string) => {
-        const numbers = v.replace(/\D/g, '');
+        let numbers = v.replace(/\D/g, '');
+        
+        // Auto-add 55 if it looks like a BR number without prefix
+        if (numbers.length > 0 && !numbers.startsWith('55') && numbers.length <= 11) {
+            numbers = '55' + numbers;
+        }
+
+        if (numbers.startsWith('55')) {
+            const country = numbers.substring(0, 2);
+            const rest = numbers.substring(2);
+            
+            if (rest.length <= 10) {
+                return `+${country} (${rest.substring(0, 2)})${rest.length > 2 ? ' ' + rest.substring(2, 6) : ''}${rest.length > 6 ? '-' + rest.substring(6, 10) : ''}`;
+            }
+            return `+${country} (${rest.substring(0, 2)})${rest.length > 2 ? ' ' + rest.substring(2, 7) : ''}${rest.length > 7 ? '-' + rest.substring(7, 11) : ''}`;
+        }
+
         if (numbers.length <= 10) {
             return numbers.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2').substring(0, 14);
         }
@@ -169,7 +185,7 @@ export function PaymentRequired() {
                                 type="text"
                                 value={phoneStr}
                                 onChange={handlePhoneChange}
-                                placeholder="(00) 00000-0000"
+                                placeholder="+55 (00) 00000-0000"
                                 className={`w-full p-3 rounded-xl border bg-white dark:bg-slate-900 focus:ring-2 focus:outline-none transition-all ${
                                     phoneError
                                         ? 'border-red-500 focus:ring-red-500/20'

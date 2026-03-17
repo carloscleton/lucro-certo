@@ -182,7 +182,13 @@ async function runBillingCycle() {
                 const targetNumber = (owner?.profiles as any)?.phone || company.phone;
 
                 if (targetNumber) {
-                    const cleanPhone = targetNumber.replace(/\D/g, '');
+                    let cleanPhone = targetNumber.replace(/\D/g, '');
+                    
+                    // Prepend 55 if standard BR number without country code
+                    if ((cleanPhone.length === 10 || cleanPhone.length === 11) && !cleanPhone.startsWith('55')) {
+                        cleanPhone = '55' + cleanPhone;
+                    }
+
                     if (cleanPhone.length >= 10) {
                         const success = await sendWhatsApp(waInstance, cleanPhone, message);
                         console.log(`Notification for ${company.trade_name} (${diffDays}d): ${success ? 'Sent' : 'Failed'}`);
