@@ -21,11 +21,13 @@ serve(async (req) => {
 
         // Verifying Auth manually to bypass sync lag
         const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
-        if (!authHeader) throw new Error('Unauthorized: Missing Authorization Header')
+        const { company_id, access_token: bodyToken } = await req.json()
+        const token = bodyToken || authHeader?.replace('Bearer ', '')
+
+        if (!token) throw new Error('Unauthorized: Missing Token')
 
         let userId: string | null = null
         try {
-            const token = authHeader.replace('Bearer ', '')
             const parts = token.split('.')
             if (parts.length === 3) {
                 const payload = JSON.parse(atob(parts[1]))
@@ -36,8 +38,6 @@ serve(async (req) => {
         }
 
         if (!userId) throw new Error('Unauthorized: Invalid Token')
-
-        const { company_id } = await req.json()
 
         // Ensure user belongs to company
         const { data: membership } = await supabaseAdmin
