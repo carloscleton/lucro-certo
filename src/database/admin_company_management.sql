@@ -17,8 +17,16 @@ RETURNS TABLE (
     members_count BIGINT,
     fiscal_module_enabled BOOLEAN,
     payments_module_enabled BOOLEAN,
+    crm_module_enabled BOOLEAN,
+    has_social_copilot BOOLEAN,
+    automations_module_enabled BOOLEAN,
+    has_lead_radar BOOLEAN,
+    allowed_entity_types TEXT[],
     settings JSONB,
     logo_url TEXT,
+    subscription_status TEXT,
+    subscription_plan TEXT,
+    trial_ends_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ
 )
 LANGUAGE plpgsql
@@ -36,8 +44,16 @@ BEGIN
         (SELECT COUNT(*) FROM public.company_members cm_inner WHERE cm_inner.company_id = c.id) as members_count,
         COALESCE(c.fiscal_module_enabled, false) as fiscal_module_enabled,
         COALESCE(c.payments_module_enabled, false) as payments_module_enabled,
+        COALESCE(c.crm_module_enabled, false) as crm_module_enabled,
+        COALESCE(c.has_social_copilot, false) as has_social_copilot,
+        COALESCE(c.automations_module_enabled, false) as automations_module_enabled,
+        COALESCE(c.has_lead_radar, false) as has_lead_radar,
+        c.allowed_entity_types,
         c.settings,
         c.logo_url,
+        c.subscription_status,
+        c.subscription_plan,
+        c.trial_ends_at,
         c.created_at
     FROM public.companies c
     LEFT JOIN public.company_members cm ON cm.company_id = c.id AND cm.role = 'owner'
@@ -46,14 +62,16 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS public.admin_update_company_config(UUID, BOOLEAN, BOOLEAN, BOOLEAN, JSONB);
-
 -- 2. Function to update company configuration (Super Admin ONLY)
 CREATE OR REPLACE FUNCTION public.admin_update_company_config(
     target_company_id UUID,
     fiscal_enabled BOOLEAN,
     payments_enabled BOOLEAN,
     crm_enabled BOOLEAN,
+    marketing_enabled BOOLEAN,
+    automations_enabled BOOLEAN,
+    lead_radar_enabled BOOLEAN,
+    allowed_types TEXT[],
     settings_input JSONB DEFAULT NULL
 )
 RETURNS JSONB
@@ -66,6 +84,10 @@ BEGIN
         fiscal_module_enabled = fiscal_enabled,
         payments_module_enabled = payments_enabled,
         crm_module_enabled = crm_enabled,
+        has_social_copilot = marketing_enabled,
+        automations_module_enabled = automations_enabled,
+        has_lead_radar = lead_radar_enabled,
+        allowed_entity_types = allowed_types,
         settings = COALESCE(settings_input, settings)
     WHERE id = target_company_id;
 

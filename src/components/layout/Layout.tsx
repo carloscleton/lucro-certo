@@ -90,35 +90,48 @@ export function Layout() {
     }, [currentEntity, availableEntities, isSystemAdmin, profile]);
     
     const displayedNavItems = APP_MODULES.filter(item => {
-        // 0. Super Admin / Trial Bypass: See everything
-        if (isSystemAdmin || isTrial) return true;
+        // 0. Super Admin Bypass: Always see everything
+        if (isSystemAdmin) return true;
 
-        // X. Individual Permission Mask (from profile settings)
+        // X. Individual Permission Mask (from profile settings - "Configurar Usuário" modal)
+        // If explicitly set to false, respect it even in Trial
         if (profile?.settings?.modules?.[item.key]?.admin === false) return false;
 
-        // 1. Trial Restriction removed - isTrial already returns true above
+        const isSuper = userRole === 'owner';
 
-
-        const isSuper = userRole === 'owner' || isSystemAdmin;
-
-        // 2. Company-only feature flags and role checks
         if (currentEntity.type === 'company') {
-            if (item.key === 'crm' && !currentEntity.crm_module_enabled && !isSuper && !isTrial) return false;
-            if (item.key === 'marketing' && !currentEntity.has_social_copilot && !isSuper && !isTrial) return false;
-            if (item.key === 'lead_radar' && !currentEntity.has_lead_radar && !isSuper && !isTrial) return false;
+            const settings = currentEntity.settings || {};
+            
+            // Normalize owner to admin for matrix checks
+            const roleForMatrix = userRole === 'owner' ? 'admin' : userRole;
 
-            if (settings?.modules?.[item.key]?.[userRole as 'admin' | 'member'] === false) return false;
+            // 1. Role-based Permission Check (from "Configurar Empresa" modal)
+            // If the module is explicitly disabled for this role in settings, return false
+            if (settings?.modules?.[item.key]?.[roleForMatrix as 'admin' | 'member'] === false) return false;
+
+            // 2. Feature Availability (Plan/Flags)
+            // Trial bypasses these flags, but they still respect isSuper for non-trial users
+            const isModuleEnabled = 
+                isTrial ||
+                (item.key === 'crm' && currentEntity.crm_module_enabled) ||
+                (item.key === 'marketing' && currentEntity.has_social_copilot) ||
+                (item.key === 'lead_radar' && currentEntity.has_lead_radar) ||
+                (typeof (currentEntity as any)[`${item.key}_module_enabled`] !== 'undefined' ? (currentEntity as any)[`${item.key}_module_enabled`] : true);
+
+            if (!isModuleEnabled && !isSuper) return false;
+
+            // 3. Final Permission logic
             if (isSuper) return true;
-            return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
+            return getModulePermission(item.key, roleForMatrix as 'admin' | 'member', settings);
         }
 
         return true;
     });
 
-    const finalNavItems = (currentEntity.type === 'personal' && !isTrial)
+    const finalNavItems = (currentEntity.type === 'personal' && !isTrial && !isSystemAdmin)
         ? displayedNavItems.filter(item => {
-            // Bypass for System Admin - they see everything in personal context
-            if (isSystemAdmin) return true;
+            // Bypass for Super Admin/Trial in personal context
+            if (isSystemAdmin || isTrial) return true;
 
             // Explicitly disabled in settings
             if (settings?.modules?.[item.key]?.admin === false) return false;

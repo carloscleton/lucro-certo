@@ -420,45 +420,35 @@ export function Settings() {
                         { key: 'admin', label: t('settings.tab_admin'), icon: Shield, color: 'purple' }
                     ] : [])
                 ].filter(tab => {
+                    // 0. Super Admin Bypass (Carlos)
+                    if (isAdmin) return true;
+
                     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
-                    // Show Fiscal tab only if enabled for company or if trial
-                    if (tab.key === 'fiscal') {
-                        return currentEntity.type === 'company' && (currentCompany?.fiscal_module_enabled || isTrial);
+                    // 1. Feature Availability / Plan Check
+                    // Trial bypasses these flags
+                    if (!isTrial) {
+                        if (tab.key === 'fiscal' && (currentEntity.type !== 'company' || !currentCompany?.fiscal_module_enabled)) return false;
+                        if (tab.key === 'payments' && (currentEntity.type !== 'company' || !currentCompany?.payments_module_enabled)) return false;
+                        if (tab.key === 'automations' && (currentEntity.type === 'company' && !currentCompany?.automations_module_enabled)) return false;
                     }
 
-                    // Show Payments tab only if enabled for company or if trial
-                    if (tab.key === 'payments') {
-                        return currentEntity.type === 'company' && (currentCompany?.payments_module_enabled || isTrial);
-                    }
-
-                    // Show Automations tab only if enabled for company or if personal/trial
-                    if (tab.key === 'automations') {
-                        return currentEntity.type === 'personal' || (currentEntity.type === 'company' && (currentCompany?.automations_module_enabled || isTrial));
-                    }
-
+                    // 2. Personal Context Restrictions
                     // Hide company-specific tabs in personal context UNLESS on trial
                     if (currentEntity.type === 'personal' && !isTrial) {
                         const companyOnlyTabs = ['financial', 'team', 'webhooks'];
-                        if (companyOnlyTabs.includes(tab.key)) {
-                            return false;
-                        }
+                        if (companyOnlyTabs.includes(tab.key)) return false;
                     }
 
-                    // Always show Admin tab to system admin
-                    if (tab.key === 'admin') return true;
-
-                    // Bypass for System Admin - they see all tabs
-                    if (isAdmin) return true;
-
-                    // Platform Global User Restriction (from profile.settings)
+                    // 3. Platform Global User Restriction (from profile.settings - "Configurar Usuário")
                     if (profile?.settings?.settings_tabs?.[tab.key]?.admin === false) return false;
 
-                    // Matrix-based filtering
+                    // 4. Matrix-based filtering (from "Configurar Empresa")
                     const matrix = currentEntity.settings || {};
                     const role = currentEntity.type === 'company' ? (currentEntity.role || 'member') : 'admin';
+                    const roleForMatrix = role === 'owner' ? 'admin' : role;
 
-                    return getTabPermission(tab.key, role as any, matrix);
+                    return getTabPermission(tab.key, roleForMatrix as any, matrix);
                 }).map(tab => (
                     <button
                         key={tab.key}
