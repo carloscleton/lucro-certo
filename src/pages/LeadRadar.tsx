@@ -1280,16 +1280,18 @@ export function LeadRadar() {
                                             </div>
                                         </div>
 
-                                        {selectedLead.contact_number && (
-                                            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600">
-                                                <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-emerald-600">
-                                                    <Phone size={18} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase">WhatsApp / Telefone</p>
-                                                    <p className="text-sm text-gray-700 dark:text-gray-300 font-bold">{selectedLead.contact_number}</p>
-                                                </div>
-                                                <div className="ml-auto flex gap-2">
+                                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600">
+                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-emerald-600">
+                                                <Phone size={18} />
+                                            </div>
+                                            <div className="overflow-hidden flex-1">
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase">WhatsApp / Telefone</p>
+                                                <p className="text-sm text-gray-700 dark:text-gray-300 font-bold truncate">
+                                                    {selectedLead.contact_number || 'Não informado'}
+                                                </p>
+                                            </div>
+                                            {selectedLead.contact_number && (
+                                                <div className="flex gap-2">
                                                     <a
                                                         href={`https://wa.me/${selectedLead.contact_number.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.name}! Vim através do Radar de Leads.`)}`}
                                                         target="_blank"
@@ -1297,15 +1299,21 @@ export function LeadRadar() {
                                                     >
                                                         <MessageSquare size={16} />
                                                     </a>
-                                                    <a
-                                                        href={`tel:${selectedLead.contact_number}`}
-                                                        className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-                                                    >
-                                                        <Phone size={16} />
-                                                    </a>
                                                 </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600">
+                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-blue-600">
+                                                <MessageSquare size={18} />
                                             </div>
-                                        )}
+                                            <div className="overflow-hidden">
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase">E-mail</p>
+                                                <p className="text-sm text-gray-700 dark:text-gray-300 truncate lowercase">
+                                                    {selectedLead.email || 'Não informado'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
