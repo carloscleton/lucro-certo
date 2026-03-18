@@ -20,12 +20,22 @@ const corsHeaders = {
  */
 function extractPhone(text: string): string | null {
     if (!text) return null;
-    const phoneRegex = /(?:\+?55\s?)?(?:\(?([1-9][0-9])\)?\s?)?(?:((?:9\d|[2-9])\d{3})[-.\s]?(\d{4}))/g;
-    const match = text.match(phoneRegex);
-    if (match) {
-        return match[0].replace(/\D/g, '');
-    }
+    // Padrão brasileiro aceitando diversos formatos (com ou sem DDD, com ou sem +55)
+    // Ex: (84) 99999-9999, 84999999999, +55 84 9...
+    const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\d{8}|\d{8,9})|(?:\(?\d{2}\)?\s?\d{4,5}[-\s]?\d{4})/g;
+    const matches = text.match(phoneRegex);
+    if (!matches) return null;
+    
+    const clean = matches[0].replace(/\D/g, '');
+    // Valida comprimento razoável para BR (8 a 13 dígitos)
+    if (clean.length >= 8 && clean.length <= 13) return clean;
     return null;
+}
+function extractEmail(text: string): string | null {
+    if (!text) return null;
+    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+    const match = text.match(emailRegex);
+    return match ? match[0].toLowerCase() : null;
 }
 
 /**
@@ -69,15 +79,25 @@ async function fetchMaps(query: string, location: string, serperKey?: string, se
                 // Evita pegar a própria cidade como lead
                 return titleLower !== locLower && (item.address || item.formatted_address)
             })
-            .map((item: any) => ({
-                platform: 'google_maps',
-                name: item.title || item.name,
-                description: item.category ? `${item.category}. Localizado em ${item.address || item.formatted_address}.` : `Empresa local em ${item.address || item.formatted_address}.`,
-                external_url: item.website || item.link || `https://www.google.com/maps/search/${encodeURIComponent(item.title || item.name)}`,
-                location: item.address || item.formatted_address,
-                contact_number: (item.phoneNumber || item.phone || "").replace(/\D/g, ''),
-                metadata: { source: serperKey ? 'serper_maps' : 'searchapi_maps', category: item.category, rating: item.rating }
-            }))
+            .map((item: any) => {
+                const description = item.category ? `${item.category}. Localizado em ${item.address || item.formatted_address}.` : `Empresa local em ${item.address || item.formatted_address}.`;
+                let rawPhone = (item.phoneNumber || item.phone || "").replace(/\D/g, '');
+                
+                // Fallback: Tenta extrair da descrição/snippet se vier vazio
+                if (!rawPhone) {
+                    rawPhone = extractPhone(item.title + " " + (item.snippet || "")) || "";
+                }
+
+                return {
+                    platform: 'google_maps',
+                    name: item.title || item.name,
+                    description: description,
+                    external_url: item.website || item.link || `https://www.google.com/maps/search/${encodeURIComponent(item.title || item.name)}`,
+                    location: item.address || item.formatted_address,
+                    contact_number: rawPhone,
+                    metadata: { source: serperKey ? 'serper_maps' : 'searchapi_maps', category: item.category, rating: item.rating }
+                };
+            })
     } catch (e) { console.error('[RADAR] Erro fetchMaps:', e); return [] }
 }
 
@@ -146,10 +166,18 @@ async function fetchSocials(query: string, location: string, serperKey?: string,
                     let cleanName = item.title.split(/•|\||-|:|\u2013/)[0].trim()
                     if (cleanName.length < 3) cleanName = item.title.trim()
 
-                    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
-                    const emailMatch = (item.snippet || "").match(emailRegex);
-                    const foundEmail = emailMatch ? emailMatch[0].toLowerCase() : null;
-                    const foundPhone = extractPhone(item.snippet || "");
+                    // Extração agressiva: Snippet + Título
+                    const fullText = (item.title || "") + " " + (item.snippet || "");
+                    const foundEmail = extractEmail(fullText);
+                    let foundPhone = extractPhone(fullText);
+
+                    // Tenta extrair do LINK (comum em perfis que põem o wa.me na bio)
+                    if (!foundPhone && item.link) {
+                        if (item.link.includes('wa.me/') || item.link.includes('api.whatsapp.com/send')) {
+                            const linkMatch = item.link.match(/(?:wa\.me\/|phone=)(\d+)/);
+                            if (linkMatch) foundPhone = linkMatch[1];
+                        }
+                    }
 
                     results.push({
                         platform: target.platform,
