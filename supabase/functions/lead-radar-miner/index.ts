@@ -34,6 +34,7 @@ function extractPhone(text: string): string | null {
 async function fetchMaps(query: string, location: string, serperKey?: string, searchApiKey?: string) {
     if (!serperKey && !searchApiKey) return []
     try {
+        const coreNiche = cleanNiche(query);
         const executeSearch = async (q: string) => {
             if (serperKey) {
                 const res = await fetch('https://google.serper.dev/maps', {
@@ -50,13 +51,13 @@ async function fetchMaps(query: string, location: string, serperKey?: string, se
             }
         }
 
-        let places = await executeSearch(query);
+        let places = await executeSearch(coreNiche);
 
-        // FALLBACK: Se não achar nada com o nicho específico, tenta apenas o termo principal
+        // FALLBACK: Se não achar nada com o nicho limpo, tenta a primeira palavra
         if (places.length === 0) {
-            const broaderQuery = query.split(' ')[0];
-            if (broaderQuery !== query) {
-                console.log(`[RADAR] Fallback Maps: Tentando termo mais amplo "${broaderQuery}"...`);
+            const broaderQuery = coreNiche.split(' ')[0];
+            if (broaderQuery && broaderQuery !== coreNiche) {
+                console.log(`[RADAR] Fallback Maps: Tentando termo principal "${broaderQuery}"...`);
                 places = await executeSearch(broaderQuery);
             }
         }
@@ -65,6 +66,7 @@ async function fetchMaps(query: string, location: string, serperKey?: string, se
             .filter((item: any) => {
                 const titleLower = (item.title || item.name || "").toLowerCase().trim()
                 const locLower = location.toLowerCase().trim()
+                // Evita pegar a própria cidade como lead
                 return titleLower !== locLower && (item.address || item.formatted_address)
             })
             .map((item: any) => ({
@@ -77,6 +79,14 @@ async function fetchMaps(query: string, location: string, serperKey?: string, se
                 metadata: { source: serperKey ? 'serper_maps' : 'searchapi_maps', category: item.category, rating: item.rating }
             }))
     } catch (e) { console.error('[RADAR] Erro fetchMaps:', e); return [] }
+}
+
+function cleanNiche(query: string): string {
+    const stopWords = ['que', 'tenha', 'com', 'de', 'para', 'em', 'um', 'uma', 'o', 'a', 'os', 'as', 'cnpj', 'cpf', 'pequenas', 'grandes', 'empresas', 'empresa'];
+    return query.toLowerCase()
+        .split(' ')
+        .filter(word => !stopWords.includes(word) && word.length > 2)
+        .join(' ') || query;
 }
 
 async function fetchSocials(query: string, location: string, serperKey?: string, searchApiKey?: string, targetSite?: string) {
@@ -93,23 +103,42 @@ async function fetchSocials(query: string, location: string, serperKey?: string,
         ? allTargets.filter(t => t.site === targetSite || (targetSite.includes('linkedin') && t.platform === 'linkedin'))
         : allTargets
 
+    const coreNiche = cleanNiche(query);
+
     for (const target of targets) {
         try {
-            const refinedQuery = query.split(' ').slice(0, 4).join(' ');
-            const q = `site:${target.site} ${refinedQuery} ${location}`;
+            const executeSearch = async (currentQ: string) => {
+                if (serperKey) {
+                    const res = await fetch('https://google.serper.dev/search', {
+                        method: 'POST',
+                        headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ q: currentQ, num: 15, hl: 'pt-br', gl: 'br' })
+                    })
+                    return await res.json()
+                } else {
+                    const res = await fetch(`https://www.searchapi.io/api/v1/search?q=${encodeURIComponent(currentQ)}&api_key=${searchApiKey}`)
+                    return await res.json()
+                }
+            }
+
+            // Tenta busca 1: Nicho limpo + Localização (com aspas para precisão)
+            let q = `site:${target.site} "${coreNiche}" "${location}"`;
             console.log(`[RADAR] Fetch ${target.platform}: "${q}"`);
-            
-            let data: any = {};
-            if (serperKey) {
-                const res = await fetch('https://google.serper.dev/search', {
-                    method: 'POST',
-                    headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ q, num: 15, hl: 'pt-br', gl: 'br' })
-                })
-                data = await res.json()
-            } else {
-                const res = await fetch(`https://www.searchapi.io/api/v1/search?q=${encodeURIComponent(q)}&api_key=${searchApiKey}`)
-                data = await res.json()
+            let data = await executeSearch(q);
+
+            // FALLBACK 1: Se zero resultados, tenta sem aspas
+            if (!data.organic || data.organic.length === 0) {
+                console.log(`[RADAR] Fallback 1 ${target.platform}: Tentando sem aspas...`);
+                data = await executeSearch(`site:${target.site} ${coreNiche} ${location}`);
+            }
+
+            // FALLBACK 2: Se ainda zero, tenta apenas o termo principal do nicho + localização
+            if (!data.organic || data.organic.length === 0) {
+                const firstWord = coreNiche.split(' ')[0];
+                if (firstWord && firstWord !== coreNiche) {
+                    console.log(`[RADAR] Fallback 2 ${target.platform}: Tentando termo principal "${firstWord}"...`);
+                    data = await executeSearch(`site:${target.site} ${firstWord} ${location}`);
+                }
             }
 
             if (data.organic) {
