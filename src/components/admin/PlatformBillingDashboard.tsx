@@ -3,7 +3,6 @@ import {
     Users,
     AlertTriangle,
     Clock,
-    TrendingUp,
     Search,
     ArrowUpRight,
     DollarSign,

@@ -4,7 +4,6 @@ import {
     ArrowUpCircle,
     Wallet,
     Briefcase,
-    PieChart,
     Users,
     Package,
     Box,
@@ -19,9 +18,6 @@ import {
     Rocket,
     BarChart3,
     Percent,
-    Shield,
-    Zap,
-    Activity
 } from 'lucide-react';
 
 export interface ModuleDefinition {

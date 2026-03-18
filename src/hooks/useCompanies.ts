@@ -29,6 +29,7 @@ export interface Company {
             };
         };
         allowed_entity_types?: string[];
+        [key: string]: any;
     };
     fiscal_module_enabled?: boolean;
     payments_module_enabled?: boolean;
@@ -45,6 +46,10 @@ export interface Company {
     city?: string;
     state?: string;
     phone?: string;
+    subscription_status?: string;
+    subscription_plan?: string;
+    trial_ends_at?: string;
+    status?: string;
 }
 
 export function useCompanies() {
