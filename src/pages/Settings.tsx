@@ -1450,7 +1450,7 @@ export function Settings() {
                                         {APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).map(module => {
                                             const isEnabled = selectedUserForConfig.settings?.modules?.[module.key]?.admin !== false;
                                             return (
-                                                <div key={module.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700">
+                                                <div key={module.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                                     <div className="flex items-center gap-3">
                                                         <div className="p-2 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
                                                             <module.icon size={16} />
@@ -1472,9 +1472,14 @@ export function Settings() {
                                                                         [module.key]: { admin: newVal, member: newVal }
                                                                     }
                                                                 };
+                                                                
+                                                                // Marcar carregando visualmente seria ideal, mas o instant save já dá o feedback
                                                                 const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
-                                                                if (error) alert('Erro: ' + error);
-                                                                else setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                                if (error) {
+                                                                    alert('Erro ao salvar: ' + error);
+                                                                } else {
+                                                                    setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                                }
                                                             }}
                                                         />
                                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
@@ -1492,7 +1497,7 @@ export function Settings() {
                                         {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map(tab => {
                                             const isEnabled = selectedUserForConfig.settings?.settings_tabs?.[tab.key]?.admin !== false;
                                             return (
-                                                <div key={tab.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700">
+                                                <div key={tab.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                                     <div className="flex items-center gap-3">
                                                         <div className="p-2 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
                                                             <tab.icon size={16} />
@@ -1515,8 +1520,11 @@ export function Settings() {
                                                                     }
                                                                 };
                                                                 const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
-                                                                if (error) alert('Erro: ' + error);
-                                                                else setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                                if (error) {
+                                                                    alert('Erro ao salvar: ' + error);
+                                                                } else {
+                                                                    setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                                }
                                                             }}
                                                         />
                                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>

@@ -16,6 +16,19 @@ const corsHeaders = {
 }
 
 /**
+ * Extração de Telefone via Regex (Padrão Brasil)
+ */
+function extractPhone(text: string): string | null {
+    if (!text) return null;
+    const phoneRegex = /(?:\+?55\s?)?(?:\(?([1-9][0-9])\)?\s?)?(?:((?:9\d|[2-9])\d{3})[-.\s]?(\d{4}))/g;
+    const match = text.match(phoneRegex);
+    if (match) {
+        return match[0].replace(/\D/g, '');
+    }
+    return null;
+}
+
+/**
  * Busca no Google Maps (PJ/Local)
  */
 async function fetchMaps(query: string, location: string, apiKey?: string) {
@@ -87,13 +100,16 @@ async function fetchSocials(query: string, location: string, apiKey?: string) {
                     const emailMatch = (item.snippet || "").match(emailRegex);
                     const foundEmail = emailMatch ? emailMatch[0].toLowerCase() : null;
 
+                    // Extração de Telefone via Regex
+                    const foundPhone = extractPhone(item.snippet || "");
+
                     results.push({
                         platform: target.platform,
                         name: cleanName,
                         description: item.snippet || `Perfil detectado no ${target.platform}`,
                         external_url: item.link,
                         location: location,
-                        contact_number: null,
+                        contact_number: foundPhone,
                         email: foundEmail,
                         metadata: { source: 'serper_social_optimized' }
                     })
@@ -102,6 +118,38 @@ async function fetchSocials(query: string, location: string, apiKey?: string) {
         } catch (e) { console.error(`Erro ao buscar ${target.platform}:`, e) }
     }
     return results
+}
+
+/**
+ * Busca Geral na Web (Sites de empresas)
+ */
+async function fetchWeb(query: string, location: string, apiKey?: string) {
+    if (!apiKey) return []
+    try {
+        const res = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                q: `${query} em ${location} contato "whatsapp"`,
+                num: 10,
+                hl: 'pt-br',
+                gl: 'br'
+            })
+        })
+        const data = await res.json()
+        if (!data.organic) return []
+
+        return data.organic.map((item: any) => ({
+            platform: 'custom',
+            name: item.title.split('-')[0].split('|')[0].trim(),
+            description: item.snippet || 'Site comercial detectado.',
+            external_url: item.link,
+            location: location,
+            contact_number: extractPhone(item.snippet || ""),
+            email: null,
+            metadata: { source: 'serper_web_discovery' }
+        })).filter((l: any) => l.name.length > 3);
+    } catch { return [] }
 }
 
 async function runRadarMining(target_company_id?: string) {
@@ -162,7 +210,11 @@ async function runRadarMining(target_company_id?: string) {
             const socialLeads = await fetchSocials(niche, loc, apiKey)
             console.log(`[RADAR] Redes Sociais retornaram ${socialLeads?.length || 0} leads para ${loc}.`)
 
-            const allRawLeads = [...(mapsLeads || []), ...(socialLeads || [])]
+            // Camada 3: Web Discovery (Sites Gerais)
+            const webLeads = await fetchWeb(niche, loc, apiKey)
+            console.log(`[RADAR] Web Discovery retornou ${webLeads?.length || 0} leads para ${loc}.`)
+
+            const allRawLeads = [...(mapsLeads || []), ...(socialLeads || []), ...(webLeads || [])]
 
             if (allRawLeads.length === 0) continue
 
@@ -176,6 +228,7 @@ async function runRadarMining(target_company_id?: string) {
                     company_id: agent.company_id,
                     platform: raw.platform,
                     name: raw.name,
+                    contact_number: raw.contact_number,
                     description: raw.description,
                     external_url: raw.external_url,
                     location: raw.location,

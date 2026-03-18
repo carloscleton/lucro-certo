@@ -98,13 +98,26 @@ export function LeadRadar() {
         }
     }, [currentEntity.id]);
 
+    const getEffectiveCompanyId = () => {
+        if (currentEntity.type === 'personal') {
+            return currentEntity.associated_company_id;
+        }
+        return currentEntity.id;
+    };
+
     const fetchWhatsAppStatus = async () => {
+        const companyId = getEffectiveCompanyId();
+        if (!companyId || companyId === 'personal') {
+            setWhatsappStatus('disconnected');
+            return;
+        }
+
         try {
             setWhatsappStatus('loading');
             const { data, error } = await supabase
                 .from('instances')
                 .select('status')
-                .eq('company_id', currentEntity.id)
+                .eq('company_id', companyId)
                 .eq('status', 'connected')
                 .limit(1);
 
@@ -123,10 +136,12 @@ export function LeadRadar() {
     }, [settings.serper_api_key, settings.searchapi_api_key]);
 
     const fetchAPICredits = async () => {
-        if (!currentEntity.id) return;
+        const companyId = getEffectiveCompanyId();
+        if (!companyId || companyId === 'personal') return;
+
         try {
             const { data, error } = await supabase.functions.invoke('lead-radar-miner', {
-                body: { company_id: currentEntity.id, action: 'get-credits' }
+                body: { company_id: companyId, action: 'get-credits' }
             });
             if (error) throw error;
             if (data) {
@@ -141,12 +156,18 @@ export function LeadRadar() {
     };
 
     const fetchSettings = async () => {
+        const companyId = getEffectiveCompanyId();
+        if (!companyId || companyId === 'personal') {
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             const { data, error } = await supabase
                 .from('company_ai_settings')
                 .select('*')
-                .eq('company_id', currentEntity.id)
+                .eq('company_id', companyId)
                 .single();
 
             if (error && error.code !== 'PGRST116') throw error;
@@ -165,11 +186,14 @@ export function LeadRadar() {
     };
 
     const fetchLeads = async () => {
+        const companyId = getEffectiveCompanyId();
+        if (!companyId || companyId === 'personal') return;
+
         try {
             const { data, error } = await supabase
                 .from('radar_leads')
                 .select('*')
-                .eq('company_id', currentEntity.id)
+                .eq('company_id', companyId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -211,13 +235,16 @@ export function LeadRadar() {
     };
 
     const handleDeleteAllLeads = async () => {
+        const companyId = getEffectiveCompanyId();
+        if (!companyId || companyId === 'personal') return;
+
         if (!window.confirm('ATENÇÃO: Isso apagará TODOS os seus leads minerados permanentemente. Deseja continuar?')) return;
 
         try {
             const { error } = await supabase
                 .from('radar_leads')
                 .delete()
-                .eq('company_id', currentEntity.id);
+                .eq('company_id', companyId);
 
             if (error) throw error;
 
@@ -231,10 +258,16 @@ export function LeadRadar() {
     };
 
     const handleSave = async () => {
+        const companyId = getEffectiveCompanyId();
+        if (!companyId || companyId === 'personal') {
+            alert('Erro: ID de empresa não encontrado para salvar configurações.');
+            return;
+        }
+
         try {
             setSaving(true);
             const payload = {
-                company_id: currentEntity.id,
+                company_id: companyId,
                 ...settings
             };
 
@@ -278,6 +311,7 @@ export function LeadRadar() {
 
     const handleConvertToCRM = async () => {
         if (!selectedLead) return;
+        const companyId = getEffectiveCompanyId();
 
         try {
             setSaving(true);
@@ -305,7 +339,7 @@ export function LeadRadar() {
                 const { data: newContact, error: contactError } = await supabase
                     .from('contacts')
                     .insert({
-                        company_id: currentEntity.id,
+                        company_id: companyId,
                         name: selectedLead.name,
                         email: selectedLead.email || null,
                         phone: selectedLead.contact_number || null,
@@ -434,10 +468,16 @@ export function LeadRadar() {
                                     return;
                                 }
 
+                                const companyId = getEffectiveCompanyId();
+                                if (!companyId || companyId === 'personal') {
+                                    alert('Erro: ID de empresa não encontrado para iniciar mineração.');
+                                    return;
+                                }
+
                                 setIsMining(true);
 
                                 // 2. Limpa os leads antigos dessa empresa para garantir resultados frescos
-                                await supabase.from('radar_leads').delete().eq('company_id', currentEntity.id);
+                                await supabase.from('radar_leads').delete().eq('company_id', companyId);
 
                                 // 3. Se o agente estiver offline, ativa ele automaticamente antes de minerar
                                 if (!settings.is_active) {
@@ -452,7 +492,7 @@ export function LeadRadar() {
                                     const { error: updateError } = await supabase
                                         .from('company_ai_settings')
                                         .upsert({
-                                            company_id: currentEntity.id,
+                                            company_id: companyId,
                                             ...settings,
                                             is_active: true
                                         }, { onConflict: 'company_id' });
@@ -462,7 +502,7 @@ export function LeadRadar() {
                                 }
 
                                 const { error } = await supabase.functions.invoke('lead-radar-miner', {
-                                    body: { company_id: currentEntity.id }
+                                    body: { company_id: companyId }
                                 });
 
                                 if (error) throw error;
