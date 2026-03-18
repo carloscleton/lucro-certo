@@ -521,12 +521,16 @@ export function LeadRadar() {
                                 if (error) throw error;
                                 if (data?.status === 'completed') {
                                     const log = data.logs?.[0];
-                                    const statsMsg = log?.stats 
-                                        ? `\n\nResultados por fonte:\n📍 Maps: ${log.stats.maps}\n👥 Facebook: ${log.stats.facebook}\n📸 Instagram: ${log.stats.instagram}\n💼 LinkedIn: ${log.stats.linkedin}`
-                                        : '';
-                                    alert(`A prospecção inteligente foi concluída com sucesso! ${data.total_leads_found || 0} novos leads encontrados.${statsMsg}`);
+                                    if (log?.error) {
+                                        alert(`Ops! Algo deu errado: ${log.error}`);
+                                    } else {
+                                        const statsMsg = log?.stats 
+                                            ? `\n\nResultados por fonte:\n📍 Maps: ${log.stats.maps}\n👥 Facebook: ${log.stats.facebook}\n📸 Instagram: ${log.stats.instagram}\n💼 LinkedIn: ${log.stats.linkedin}`
+                                            : '';
+                                        alert(`A prospecção inteligente foi concluída com sucesso! ${data.total_leads_found || 0} novos leads encontrados.${statsMsg}`);
+                                    }
                                 } else if (data?.error) {
-                                    alert(`Ops! ${data.error}`);
+                                    alert(`Houve um problema na mineração: ${data.error}`);
                                 } else {
                                     alert('A prospecção inteligente foi concluída com sucesso!');
                                 }

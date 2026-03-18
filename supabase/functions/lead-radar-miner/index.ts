@@ -186,15 +186,23 @@ async function runRadarMining(target_company_id?: string) {
     }
 
     for (const agent of agents) {
-        console.log(`[RADAR] Processando agente: ${agent.companies?.trade_name || agent.company_id}`)
-        const niche = agent.business_niche
-        const rawLoc = agent.target_location || 'Brasil'
-        const serperKey = agent.serper_api_key?.trim()
-        const searchApiKey = agent.searchapi_api_key?.trim()
+        const companyName = agent.companies?.trade_name || agent.company_id
+        console.log(`[RADAR] Processando agente: ${companyName}`)
+        
+        const niche = (agent.business_niche || "").trim()
+        const rawLoc = (agent.target_location || "Brasil").trim()
+        const serperKey = (agent.serper_api_key || "").trim()
+        const searchApiKey = (agent.searchapi_api_key || "").trim()
+
+        if (!niche) {
+            console.log(`[RADAR] Erro: Nicho de negócio não configurado para ${companyName}`);
+            logs.push({ company: companyName, error: 'Por favor, preencha o Nicho de Negócio nas configurações.' })
+            continue
+        }
 
         if (!serperKey && !searchApiKey) {
-            console.log(`[RADAR] Erro: Nenhuma API Key configurada para ${agent.companies?.trade_name}`);
-            logs.push({ company: agent.companies?.trade_name || 'Empresa', error: 'Sem chave API configurada.' })
+            console.log(`[RADAR] Erro: Nenhuma API Key configurada para ${companyName}`);
+            logs.push({ company: companyName, error: 'Sem chave API configurada.' })
             continue
         }
 
@@ -258,6 +266,9 @@ async function runRadarMining(target_company_id?: string) {
 
             searchResults.forEach(res => {
                 const quota = res.type === 'maps' ? quotaMaps : res.type === 'face' ? quotaFace : res.type === 'insta' ? quotaInsta : quotaLink;
+                const foundCount = (res.leads || []).length;
+                console.log(`[RADAR] ${res.type} bruto: ${foundCount} encontrados. Cota: ${quota}`);
+                
                 const found = (res.leads || []).slice(0, quota);
                 leadsToInsert.push(...found);
                 
