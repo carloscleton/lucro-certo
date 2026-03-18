@@ -27,6 +27,7 @@ export interface AdminUser {
     transactions_count: number;
     max_companies: number;
     status: string;
+    settings?: any;
 }
 
 export interface AdminCompany {
