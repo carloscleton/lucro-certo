@@ -23,7 +23,8 @@ import {
     Instagram,
     Facebook,
     Linkedin,
-    AlertCircle
+    AlertCircle,
+    PieChart
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
@@ -48,6 +49,10 @@ interface AISettings {
     mining_interval_hours?: number;
     chat_enabled: boolean;
     openai_api_key?: string;
+    perc_google_maps?: number;
+    perc_facebook?: number;
+    perc_instagram?: number;
+    perc_linkedin?: number;
 }
 
 export function LeadRadar() {
@@ -77,7 +82,11 @@ export function LeadRadar() {
         chat_enabled: false,
         openai_api_key: '',
         serper_api_key: '',
-        searchapi_api_key: ''
+        searchapi_api_key: '',
+        perc_google_maps: 40,
+        perc_facebook: 20,
+        perc_instagram: 20,
+        perc_linkedin: 20
     });
 
     const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -964,6 +973,82 @@ export function LeadRadar() {
                                         onChange={(e) => setSettings({ ...settings, daily_lead_quota: parseInt(e.target.value) })}
                                         className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-violet-600"
                                     />
+                                </div>
+
+                                {/* Equilíbrio de Fontes / Percentuais */}
+                                <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 space-y-4 shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <PieChart size={18} className="text-indigo-500" />
+                                            Equilíbrio de Fontes
+                                        </h4>
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${((settings.perc_google_maps || 0) + (settings.perc_facebook || 0) + (settings.perc_instagram || 0) + (settings.perc_linkedin || 0)) === 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            Total: {(settings.perc_google_maps || 0) + (settings.perc_facebook || 0) + (settings.perc_instagram || 0) + (settings.perc_linkedin || 0)}%
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500">Distribua o esforço de mineração entre as plataformas.</p>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                                                <MapPin size={10} /> Maps
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={settings.perc_google_maps}
+                                                onChange={(e) => setSettings({ ...settings, perc_google_maps: parseInt(e.target.value) || 0 })}
+                                                className="h-9 text-xs"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                                                <Facebook size={10} /> Facebook
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={settings.perc_facebook}
+                                                onChange={(e) => setSettings({ ...settings, perc_facebook: parseInt(e.target.value) || 0 })}
+                                                className="h-9 text-xs"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                                                <Instagram size={10} /> Instagram
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={settings.perc_instagram}
+                                                onChange={(e) => setSettings({ ...settings, perc_instagram: parseInt(e.target.value) || 0 })}
+                                                className="h-9 text-xs"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                                                <Linkedin size={10} /> LinkedIn
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={settings.perc_linkedin}
+                                                onChange={(e) => setSettings({ ...settings, perc_linkedin: parseInt(e.target.value) || 0 })}
+                                                className="h-9 text-xs"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {((settings.perc_google_maps || 0) + (settings.perc_facebook || 0) + (settings.perc_instagram || 0) + (settings.perc_linkedin || 0)) !== 100 && (
+                                        <div className="flex items-center gap-1.5 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/10 rounded-lg">
+                                            <AlertCircle size={14} className="text-amber-600" />
+                                            <p className="text-[9px] text-amber-700 dark:text-amber-400 leading-tight">A soma das porcentagens deve ser exatamente 100% para o robô funcionar corretamente.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

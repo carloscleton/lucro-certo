@@ -77,19 +77,28 @@ async function fetchMaps(query: string, location: string, apiKey?: string) {
 /**
  * Busca em Redes Sociais via Google Search (Instagram, Facebook, LinkedIn)
  */
-async function fetchSocials(query: string, location: string, apiKey?: string) {
+/**
+ * Busca em Redes Sociais via Google Search (Instagram, Facebook, LinkedIn)
+ */
+async function fetchSocials(query: string, location: string, apiKey?: string, targetSite?: string) {
     if (!apiKey) return []
     const results: any[] = []
 
     // Alvos sociais
-    const targets = [
+    const allTargets = [
         { site: 'instagram.com', platform: 'instagram' },
         { site: 'facebook.com', platform: 'facebook' },
         { site: 'linkedin.com/company', platform: 'linkedin' }
     ]
 
+    // Filtrar se um site específico foi pedido
+    const targets = targetSite 
+        ? allTargets.filter(t => t.site === targetSite || (targetSite.includes('linkedin') && t.platform === 'linkedin'))
+        : allTargets
+
     for (const target of targets) {
         try {
+            console.log(`[RADAR] Buscando em ${target.platform}: "site:${target.site} ${query} ${location}"`);
             const res = await fetch('https://google.serper.dev/search', {
                 method: 'POST',
                 headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
@@ -107,12 +116,10 @@ async function fetchSocials(query: string, location: string, apiKey?: string) {
                     let cleanName = item.title.split(/•|\||-|:|\u2013/)[0].trim()
                     if (cleanName.length < 3) cleanName = item.title.trim()
 
-                    // Extração de E-mail via Regex
+                    // Extração de E-mail e Telefone
                     const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
                     const emailMatch = (item.snippet || "").match(emailRegex);
                     const foundEmail = emailMatch ? emailMatch[0].toLowerCase() : null;
-
-                    // Extração de Telefone via Regex
                     const foundPhone = extractPhone(item.snippet || "");
 
                     results.push({
@@ -123,7 +130,7 @@ async function fetchSocials(query: string, location: string, apiKey?: string) {
                         location: location,
                         contact_number: foundPhone,
                         email: foundEmail,
-                        metadata: { source: 'serper_social_optimized' }
+                        metadata: { source: `serper_${target.platform}_optimized` }
                     })
                 })
             }
@@ -208,42 +215,63 @@ async function runRadarMining(target_company_id?: string) {
         }
         // ---------------------------------------------
 
-        // Suporte a múltiplas cidades separadas por vírgula
+        // Calcular cotas por plataforma com base nos percentuais (default se nulo)
+        const totalQuota = agent.daily_lead_quota || 50;
+        const pMaps = agent.perc_google_maps ?? 40;
+        const pFace = agent.perc_facebook ?? 20;
+        const pInsta = agent.perc_instagram ?? 20;
+        const pLink = agent.perc_linkedin ?? 20;
+
+        const quotaMaps = Math.max(1, Math.floor(totalQuota * (pMaps / 100)));
+        const quotaFace = Math.floor(totalQuota * (pFace / 100));
+        const quotaInsta = Math.floor(totalQuota * (pInsta / 100));
+        const quotaLink = Math.floor(totalQuota * (pLink / 100));
+
         const locations = rawLoc.split(',').map(l => l.trim()).filter(l => l.length > 0)
 
         for (const loc of locations) {
-            console.log(`[RADAR] Iniciando busca para ${agent.companies.trade_name} - Nicho: ${niche} em ${loc}`)
-
-            // REFINAMENTO: O Google Maps funciona melhor com nichos curtos (Ex: "Contabilidade")
-            // Se o nicho for muito longo, pegamos as primeiras 3 palavras para o Maps
-            const mapsQuery = niche.split(' ').slice(0, 3).join(' ');
-
-            // Camada 1: Google Maps (ALTA PRIORIDADE)
-            console.log(`[RADAR] Chamando Serper Maps para: "${mapsQuery}" em "${loc}"...`);
-            const mapsLeads = await fetchMaps(mapsQuery, loc, apiKey)
-            console.log(`[RADAR] Google Maps retornou ${mapsLeads?.length || 0} leads para ${loc}.`);
+            console.log(`[RADAR] Iniciando busca equilibrada para ${agent.companies.trade_name} em ${loc}`)
             
-            if (mapsLeads?.length > 0) {
-                console.log(`[RADAR] Amostra do 1º lead Maps: ${mapsLeads[0].name} - Tel: ${mapsLeads[0].contact_number}`);
+            const leadsToInsert: any[] = [];
+
+            // 1. Google Maps
+            if (pMaps > 0) {
+                const mapsQuery = niche.split(' ').slice(0, 3).join(' ');
+                console.log(`[RADAR] Maps (${pMaps}%): Cota ${quotaMaps} para ${loc}`);
+                const mapsLeads = await fetchMaps(mapsQuery, loc, apiKey);
+                leadsToInsert.push(...(mapsLeads || []).slice(0, quotaMaps));
             }
 
-            // Camada 2: Web Discovery (Sites Gerais) - Agora secundária
-            const webLeads = await fetchWeb(niche, loc, apiKey)
-            console.log(`[RADAR] Web Discovery retornou ${webLeads?.length || 0} leads para ${loc}.`)
+            // 2. Facebook
+            if (pFace > 0) {
+                console.log(`[RADAR] Facebook (${pFace}%): Cota ${quotaFace}`);
+                const faceLeads = await fetchSocials(niche, loc, apiKey, 'facebook.com');
+                leadsToInsert.push(...(faceLeads || []).slice(0, quotaFace));
+            }
 
-            // Camada 3: Redes Sociais (Discovery) - Agora secundária
-            const socialLeads = await fetchSocials(niche, loc, apiKey)
-            console.log(`[RADAR] Redes Sociais retornaram ${socialLeads?.length || 0} leads para ${loc}.`)
+            // 3. Instagram
+            if (pInsta > 0) {
+                console.log(`[RADAR] Instagram (${pInsta}%): Cota ${quotaInsta}`);
+                const instaLeads = await fetchSocials(niche, loc, apiKey, 'instagram.com');
+                leadsToInsert.push(...(instaLeads || []).slice(0, quotaInsta));
+            }
 
-            // Priorização na ordem de processamento: Maps -> Web -> Social
-            const allRawLeads = [...(mapsLeads || []), ...(webLeads || []), ...(socialLeads || [])]
+            // 4. LinkedIn
+            if (pLink > 0) {
+                console.log(`[RADAR] LinkedIn (${pLink}%): Cota ${quotaLink}`);
+                const linkedInLeads = await fetchSocials(niche, loc, apiKey, 'linkedin.com/company');
+                leadsToInsert.push(...(linkedInLeads || []).slice(0, quotaLink));
+            }
 
-            if (allRawLeads.length === 0) {
-                console.log(`[RADAR] Nenhum lead encontrado em NENHUMA plataforma para ${loc}. Verifique a API Key ou o nicho.`);
+            if (leadsToInsert.length === 0) {
+                console.log(`[RADAR] Nenhum lead encontrado para ${loc} com o equilíbrio atual.`);
                 continue;
             }
 
-            for (const raw of allRawLeads) {
+            // Embaralhar para não vir tudo de uma plataforma só no início da lista
+            const shuffledLeads = leadsToInsert.sort(() => Math.random() - 0.5);
+
+            for (const raw of shuffledLeads) {
                 const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
                 if (ext) continue
 
