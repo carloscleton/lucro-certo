@@ -38,6 +38,43 @@ function extractEmail(text: string): string | null {
     return match ? match[0].toLowerCase() : null;
 }
 
+async function generateAIApproach(agent: any, lead: any): Promise<string> {
+    const fallbackMsg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies?.trade_name || 'nossa empresa'} e trabalhamos com ${agent.business_niche || 'soluções para o seu nicho'}. Podemos conversar?`;
+    
+    try {
+        const companyName = agent.companies?.trade_name || 'nossa empresa';
+        const businessDesc = agent.business_description || 'empresa de tecnologia e serviços';
+        const leadName = lead.name || 'Empresa';
+        const leadBio = lead.description || lead.snippet || 'sem descrição disponível';
+        const niche = agent.business_niche || 'seu segmento';
+
+        const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
+            body: {
+                mode: 'field_only',
+                input: `Você é um consultor de vendas da empresa "${companyName}". 
+Contexto da Empresa: "${businessDesc}". 
+Nicho de Atuação: "${niche}". 
+O Lead é: "${leadName}". 
+A Bio/Descrição do Lead diz: "${leadBio}". 
+
+Escreva uma primeira abordagem curta, amigável e MUITO profissional para enviar via WhatsApp. 
+REGRAS:
+1. Comece saudando o lead (ex: "Olá [Nome]...") se o nome for de pessoa, se for de empresa, seja genérico mas cordial.
+2. Máximo 280 caracteres.
+3. Foque em como a "${companyName}" pode ajudar com base no contexto.
+4. Linguagem natural e persuasiva.
+5. NÃO use placeholders tipo [Nicho]. Substitua pelos termos reais.`
+            }
+        });
+
+        if (error || !data?.text) return fallbackMsg;
+        return data.text;
+    } catch (e) {
+        console.error("[RADAR] Erro ao gerar mensagem com IA:", e);
+        return fallbackMsg;
+    }
+}
+
 /**
  * Busca no Google Maps (PJ/Local)
  */
@@ -378,7 +415,8 @@ async function runRadarMining(target_company_id?: string) {
                             const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
                             if (inst?.length) {
                                 const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
-                                const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies?.trade_name || 'nossa empresa'} e trabalhamos com ${niche}. Podemos conversar?`
+                                const msg = await generateAIApproach(agent, raw);
+
                                 fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
@@ -454,7 +492,7 @@ serve(async (req: any) => {
 
             // 3. Envia mensagem
             const num = lead.contact_number.replace(/\D/g, '').startsWith('55') ? lead.contact_number.replace(/\D/g, '') : `55${lead.contact_number.replace(/\D/g, '')}`;
-            const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies?.trade_name || 'nossa empresa'} e trabalhamos com ${agent.business_niche}. Podemos conversar?`;
+            const msg = await generateAIApproach(agent, lead);
             
             const evoRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
                 method: 'POST',
