@@ -98,12 +98,14 @@ async function fetchSocials(query: string, location: string, apiKey?: string, ta
 
     for (const target of targets) {
         try {
-            console.log(`[RADAR] Buscando em ${target.platform}: "site:${target.site} ${query} ${location}"`);
+            // Refinamento de query: no máximo 4 palavras para redes sociais (evita "zero results")
+            const refinedQuery = query.split(' ').slice(0, 4).join(' ');
+            console.log(`[RADAR] Buscando em ${target.platform}: "site:${target.site} ${refinedQuery} ${location}"`);
             const res = await fetch('https://google.serper.dev/search', {
                 method: 'POST',
                 headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    q: `site:${target.site} ${query} ${location}`,
+                    q: `site:${target.site} ${refinedQuery} ${location}`,
                     num: 15,
                     hl: 'pt-br',
                     gl: 'br'
@@ -222,107 +224,118 @@ async function runRadarMining(target_company_id?: string) {
         const pInsta = agent.perc_instagram ?? 20;
         const pLink = agent.perc_linkedin ?? 20;
 
-        const quotaMaps = Math.max(1, Math.floor(totalQuota * (pMaps / 100)));
-        const quotaFace = Math.floor(totalQuota * (pFace / 100));
-        const quotaInsta = Math.floor(totalQuota * (pInsta / 100));
-        const quotaLink = Math.floor(totalQuota * (pLink / 100));
+        console.log(`[RADAR] Config: Quota=${totalQuota}, Maps=${pMaps}%, Face=${pFace}%, Insta=${pInsta}%, Link=${pLink}%`);
+
+        // Garante pelo menos 1 lead por plataforma se o percentual for > 0
+        const quotaMaps = pMaps > 0 ? Math.max(1, Math.floor(totalQuota * (pMaps / 100))) : 0;
+        const quotaFace = pFace > 0 ? Math.max(1, Math.floor(totalQuota * (pFace / 100))) : 0;
+        const quotaInsta = pInsta > 0 ? Math.max(1, Math.floor(totalQuota * (pInsta / 100))) : 0;
+        const quotaLink = pLink > 0 ? Math.max(1, Math.floor(totalQuota * (pLink / 100))) : 0;
 
         const locations = rawLoc.split(',').map(l => l.trim()).filter(l => l.length > 0)
+        let insertedThisRun = 0;
+        const platformStats = { maps: 0, facebook: 0, instagram: 0, linkedin: 0 };
 
         for (const loc of locations) {
-            console.log(`[RADAR] Iniciando busca equilibrada para ${agent.companies.trade_name} em ${loc}`)
-            
+            console.log(`[RADAR] Iniciando busca equilibrada em ${loc}...`)
             const leadsToInsert: any[] = [];
 
             // 1. Google Maps
-            if (pMaps > 0) {
+            if (quotaMaps > 0) {
                 const mapsQuery = niche.split(' ').slice(0, 3).join(' ');
-                console.log(`[RADAR] Maps (${pMaps}%): Cota ${quotaMaps} para ${loc}`);
+                console.log(`[RADAR] Buscando Maps: "${mapsQuery}" em ${loc} (Cota: ${quotaMaps})`);
                 const mapsLeads = await fetchMaps(mapsQuery, loc, apiKey);
-                leadsToInsert.push(...(mapsLeads || []).slice(0, quotaMaps));
+                const found = (mapsLeads || []).slice(0, quotaMaps);
+                leadsToInsert.push(...found);
+                platformStats.maps += found.length;
+                console.log(`[RADAR] Maps: ${found.length} leads adicionados à fila.`);
             }
 
             // 2. Facebook
-            if (pFace > 0) {
-                console.log(`[RADAR] Facebook (${pFace}%): Cota ${quotaFace}`);
+            if (quotaFace > 0) {
+                console.log(`[RADAR] Buscando Facebook: "${niche}" em ${loc} (Cota: ${quotaFace})`);
                 const faceLeads = await fetchSocials(niche, loc, apiKey, 'facebook.com');
-                leadsToInsert.push(...(faceLeads || []).slice(0, quotaFace));
+                const found = (faceLeads || []).slice(0, quotaFace);
+                leadsToInsert.push(...found);
+                platformStats.facebook += found.length;
+                console.log(`[RADAR] Facebook: ${found.length} leads adicionados à fila.`);
             }
 
             // 3. Instagram
-            if (pInsta > 0) {
-                console.log(`[RADAR] Instagram (${pInsta}%): Cota ${quotaInsta}`);
+            if (quotaInsta > 0) {
+                console.log(`[RADAR] Buscando Instagram: "${niche}" em ${loc} (Cota: ${quotaInsta})`);
                 const instaLeads = await fetchSocials(niche, loc, apiKey, 'instagram.com');
-                leadsToInsert.push(...(instaLeads || []).slice(0, quotaInsta));
+                const found = (instaLeads || []).slice(0, quotaInsta);
+                leadsToInsert.push(...found);
+                platformStats.instagram += found.length;
+                console.log(`[RADAR] Instagram: ${found.length} leads adicionados à fila.`);
             }
 
             // 4. LinkedIn
-            if (pLink > 0) {
-                console.log(`[RADAR] LinkedIn (${pLink}%): Cota ${quotaLink}`);
+            if (quotaLink > 0) {
+                console.log(`[RADAR] Buscando LinkedIn: "${niche}" em ${loc} (Cota: ${quotaLink})`);
                 const linkedInLeads = await fetchSocials(niche, loc, apiKey, 'linkedin.com/company');
-                leadsToInsert.push(...(linkedInLeads || []).slice(0, quotaLink));
+                const found = (linkedInLeads || []).slice(0, quotaLink);
+                leadsToInsert.push(...found);
+                platformStats.linkedin += found.length;
+                console.log(`[RADAR] LinkedIn: ${found.length} leads adicionados à fila.`);
             }
 
             if (leadsToInsert.length === 0) {
-                console.log(`[RADAR] Nenhum lead encontrado para ${loc} com o equilíbrio atual.`);
+                console.log(`[RADAR] ATENÇÃO: Nenhum lead encontrado em NENHUMA plataforma para ${loc}.`);
                 continue;
             }
 
-            // Embaralhar para não vir tudo de uma plataforma só no início da lista
+            // Embaralhar
             const shuffledLeads = leadsToInsert.sort(() => Math.random() - 0.5);
 
             for (const raw of shuffledLeads) {
-                const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
-                if (ext) continue
+                try {
+                    const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
+                    if (ext) continue
 
-                const score = Math.floor(Math.random() * 20) + 75
+                    const score = Math.floor(Math.random() * 20) + 75
+                    const { data: newL, error: insErr } = await supabase.from('radar_leads').insert({
+                        company_id: agent.company_id,
+                        platform: raw.platform,
+                        name: raw.name,
+                        contact_number: raw.contact_number,
+                        description: raw.description,
+                        external_url: raw.external_url,
+                        location: raw.location,
+                        email: raw.email,
+                        score: score,
+                        ai_summary: `IA detectou relevância para "${niche}" no ${raw.platform}.`,
+                        metadata: { ...raw.metadata, contact_number: raw.contact_number },
+                        status: 'pending'
+                    }).select().single();
 
-                const { data: newL } = await supabase.from('radar_leads').insert({
-                    company_id: agent.company_id,
-                    platform: raw.platform,
-                    name: raw.name,
-                    contact_number: raw.contact_number,
-                    description: raw.description,
-                    external_url: raw.external_url,
-                    location: raw.location,
-                    email: raw.email,
-                    score: score,
-                    ai_summary: `IA detectou alta relevância para "${niche}" nesta plataforma (${raw.platform}).`,
-                    metadata: { ...raw.metadata, contact_number: raw.contact_number },
-                    status: 'pending'
-                }).select().single()
+                    if (insErr) {
+                        console.error(`[RADAR] Erro ao inserir lead ${raw.name}:`, insErr);
+                        continue;
+                    }
 
-                // Abordagem automática apenas para Quem tem Número (Maps)
-                if (agent.auto_approach && newL && raw.contact_number) {
-                    const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
-                    if (inst?.length) {
-                        try {
-                            const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
-                            const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies.trade_name} e trabalhamos com ${niche}. Podemos conversar?`
+                    if (newL) {
+                        insertedThisRun++;
+                        leadsFoundTotal++;
 
-                            const evoRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
-                                body: JSON.stringify({ number: num, text: msg })
-                            })
-
-                            if (evoRes.ok) {
-                                await supabase.from('radar_leads')
-                                    .update({
-                                        status: 'approached',
-                                        last_approach_at: new Date().toISOString()
-                                    })
-                                    .eq('id', newL.id)
-                            } else {
-                                const errData = await evoRes.text()
-                                console.error(`[RADAR] Erro Evolution API: ${errData}`)
+                        // Abordagem automática
+                        if (agent.auto_approach && raw.contact_number) {
+                            const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
+                            if (inst?.length) {
+                                const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
+                                const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies.trade_name} e trabalhamos com ${niche}. Podemos conversar?`
+                                fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+                                    body: JSON.stringify({ number: num, text: msg })
+                                }).catch(e => console.error(`[RADAR] Erro ao enviar Zap:`, e));
                             }
-                        } catch (e) {
-                            console.error(`[RADAR] Erro ao enviar Zap:`, e)
                         }
                     }
+                } catch (e) {
+                    console.error(`[RADAR] Erro no processamento do lead ${raw.name}:`, e);
                 }
-                leadsFoundTotal++
             }
         }
 
@@ -330,10 +343,20 @@ async function runRadarMining(target_company_id?: string) {
         await supabase.from('company_ai_settings').update({ last_mining_at: new Date().toISOString() }).eq('company_id', agent.company_id)
 
         processedCount++
-        logs.push({ company: agent.companies.trade_name, status: 'success', leads_added: leadsFoundTotal })
+        logs.push({ 
+            company: agent.companies?.trade_name || 'Empresa', 
+            status: 'success', 
+            leads_added: insertedThisRun,
+            stats: platformStats 
+        })
     }
 
-    return { status: 'completed', agents_processed: processedCount, total_leads_found: leadsFoundTotal, logs }
+    return { 
+        status: 'completed', 
+        agents_processed: processedCount, 
+        total_leads_found: leadsFoundTotal, 
+        logs 
+    }
 }
 
 serve(async (req: any) => {

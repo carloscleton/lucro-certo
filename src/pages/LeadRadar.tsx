@@ -519,11 +519,21 @@ export function LeadRadar() {
                                 });
 
                                 if (error) throw error;
-                                alert('A prospecção inteligente foi concluída com sucesso!');
+                                if (data?.status === 'completed') {
+                                    const log = data.logs?.[0];
+                                    const statsMsg = log?.stats 
+                                        ? `\n\nResultados por fonte:\n📍 Maps: ${log.stats.maps}\n👥 Facebook: ${log.stats.facebook}\n📸 Instagram: ${log.stats.instagram}\n💼 LinkedIn: ${log.stats.linkedin}`
+                                        : '';
+                                    alert(`A prospecção inteligente foi concluída com sucesso! ${data.total_leads_found || 0} novos leads encontrados.${statsMsg}`);
+                                } else if (data?.error) {
+                                    alert(`Ops! ${data.error}`);
+                                } else {
+                                    alert('A prospecção inteligente foi concluída com sucesso!');
+                                }
                                 fetchLeads();
-                            } catch (e) {
+                            } catch (e: any) {
                                 console.error('Mining/Activation Error:', e);
-                                alert('Erro ao iniciar mineração ou ativar agente.');
+                                alert(`Erro ao iniciar mineração: ${e.message || 'Erro de conexão'}`);
                             } finally {
                                 setIsMining(false);
                             }
