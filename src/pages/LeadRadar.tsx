@@ -184,6 +184,10 @@ export function LeadRadar() {
             if (data) {
                 setSettings({
                     ...data,
+                    perc_google_maps: data.perc_google_maps ?? 40,
+                    perc_facebook: data.perc_facebook ?? 20,
+                    perc_instagram: data.perc_instagram ?? 20,
+                    perc_linkedin: data.perc_linkedin ?? 20,
                     services_catalog: Array.isArray(data.services_catalog) ? data.services_catalog : []
                 });
             }
