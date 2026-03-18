@@ -88,6 +88,7 @@
         "whatsapp": "WhatsApp (Uso)",
         "payments": "Pagamentos (Módulo)",
         "crm": "CRM / Funil",
+        "marketing": "Marketing IA",
         "lead_radar": "Radar de Leads",
         "administrative": "Administrativo",
         "logout": "Sair"
@@ -108,6 +109,7 @@
         "whatsapp": "Envio de mensagens e chat",
         "payments": "Gestão de cobranças e links",
         "crm": "Gestão de leads e funil de vendas",
+        "marketing": "Geração automática de postagens",
         "lead_radar": "Mineração e abordagem automática de clientes"
     },
     "layout": {

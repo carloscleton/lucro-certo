@@ -94,18 +94,19 @@ export function Commissions() {
             if (error) throw error;
 
             if (data) {
-                // Determine the rate to use
-                let rateToUse = (settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0);
-
-                if (isAdmin && selectedCompanyId !== 'all' && selectedCompanyId !== 'personal') {
-                    const companyDetails = companiesList.find((c: any) => c.id === selectedCompanyId);
-                    if (companyDetails) {
-                        // For Super Admin viewing a company, the "Commission" is the platform rate (commission_rate)
-                        rateToUse = companyDetails.settings?.commission_rate || 0;
-                    }
-                }
-
+                // Formatting data based on role and selection
                 const formattedData = data.map(t => {
+                    let rateToUse = (settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0);
+
+                    // If Admin is viewing all companies, we need the platform commission rate for EACH company
+                    if (isAdmin && t.company_id && selectedCompanyId === 'all') {
+                        const companyDetails = companiesList.find((c: any) => c.id === t.company_id);
+                        rateToUse = companyDetails?.settings?.commission_rate || 0;
+                    } else if (isAdmin && selectedCompanyId !== 'personal' && selectedCompanyId !== 'all') {
+                        const companyDetails = companiesList.find((c: any) => c.id === selectedCompanyId);
+                        rateToUse = companyDetails?.settings?.commission_rate || 0;
+                    }
+
                     const baseAmount = t.status === 'received' && t.paid_amount ? Number(t.paid_amount) : Number(t.amount);
                     return {
                         id: t.id,
@@ -116,10 +117,10 @@ export function Commissions() {
                         origin: t.contact?.name || t.origin || 'N/A',
                         commission_value: baseAmount * (rateToUse / 100),
                         payment_method: t.payment_method,
-                        status: t.status === 'received' ? 'received' : 'pending' // normalize late to pending for comm view
+                        status: t.status === 'received' ? 'received' : 'pending'
                     };
                 });
-                // @ts-ignore - status match
+                // @ts-ignore
                 setTransactions(formattedData);
             }
         } catch (error) {

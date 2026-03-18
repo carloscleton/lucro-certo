@@ -95,7 +95,7 @@ export function useAdmin() {
     const [error, setError] = useState<string | null>(null);
 
     const ALLOWED_EMAIL = 'carloscleton.nat@gmail.com';
-    const isAdmin = user?.email === ALLOWED_EMAIL;
+    const isAdmin = user?.email?.toLowerCase() === ALLOWED_EMAIL;
 
     const fetchAdminData = async (silent = false) => {
         if (!isAdmin) return;

@@ -21,6 +21,8 @@ import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
 import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
 import { useTransactions } from '../hooks/useTransactions';
 import { supabase } from '../lib/supabase';
+import { useAdmin } from '../hooks/useAdmin';
+import { Users, Building, DollarSign, TrendingUp } from 'lucide-react';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -264,6 +266,8 @@ export function Dashboard() {
     const [modalType, setModalType] = useState<'income' | 'expense' | 'receivable' | 'payable' | 'balance'>('income');
     const [modalTitle, setModalTitle] = useState('');
 
+    const { isAdmin, stats: adminStats } = useAdmin();
+
     if (loading || categoriesLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -337,20 +341,64 @@ export function Dashboard() {
 
     return (
         <div className="flex flex-col gap-6">
+            {isAdmin && adminStats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm group hover:border-blue-200 transition-all">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Usuários</span>
+                            <Users size={14} className="text-blue-500" />
+                        </div>
+                        <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{adminStats.total_users}</div>
+                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Plataforma Global</div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm group hover:border-purple-200 transition-all">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Empresas</span>
+                            <Building size={14} className="text-purple-500" />
+                        </div>
+                        <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{adminStats.total_companies}</div>
+                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Contas corporativas</div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm group hover:border-emerald-200 transition-all">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Comissões</span>
+                            <DollarSign size={14} className="text-emerald-500" />
+                        </div>
+                        <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(adminStats.total_commission || 0)}
+                        </div>
+                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Líquido estimado</div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm group hover:border-blue-300 transition-all">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Volume</span>
+                            <TrendingUp size={14} className="text-blue-600" />
+                        </div>
+                        <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(adminStats.total_revenue || 0)}
+                        </div>
+                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Total processado</div>
+                    </div>
+                </div>
+            )}
+
             {isTrial && trialDaysLeft > 0 && (
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 shadow-lg text-white flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div>
-                        <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-                            <span>🚀</span> Você está no período de teste gratuito ({trialDaysLeft} dias restantes)
-                        </h4>
-                        <p className="text-blue-100 text-sm">Aproveite todas as ferramentas do sistema. Quer garantir seu acesso contínuo?</p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg px-4 py-2 flex items-center justify-between mb-6 animate-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-center gap-3">
+                        <span className="hidden md:inline">🚀</span>
+                        <p className="text-xs md:text-sm text-blue-800 dark:text-blue-300">
+                            Você está em teste gratuito: <span className="font-bold">{trialDaysLeft} dias restantes</span>. Aproveite todas as ferramentas!
+                        </p>
                     </div>
                     <button 
-                        onClick={handleUpgrade}
+                        onClick={handleUpgrade} 
                         disabled={loadingCheckout}
-                        className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-2.5 rounded-xl font-bold transition-all shadow-sm disabled:opacity-70 whitespace-nowrap w-full md:w-auto text-center"
+                        className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 transition-all"
                     >
-                        {loadingCheckout ? 'Gerando link...' : 'Antecipar Assinatura'}
+                        {loadingCheckout ? '...' : 'Assinar Agora →'}
                     </button>
                 </div>
             )}

@@ -16,7 +16,12 @@ import {
     CreditCard,
     Sparkles,
     Target,
-    Rocket
+    Rocket,
+    BarChart3,
+    Percent,
+    Shield,
+    Zap,
+    Activity
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -117,30 +122,6 @@ export const APP_MODULES: ModuleDefinition[] = [
         defaultPermissions: { admin: true, member: true }
     },
     {
-        key: 'commissions',
-        label: 'Comissões',
-        icon: DollarSign,
-        path: '/dashboard/commissions',
-        desc: 'Controle de vendas',
-        defaultPermissions: { admin: true, member: false }
-    },
-    {
-        key: 'reports',
-        label: 'Relatórios',
-        icon: PieChart,
-        path: '/dashboard/reports',
-        desc: 'Análises detalhadas',
-        defaultPermissions: { admin: true, member: false }
-    },
-    {
-        key: 'settings',
-        label: 'Configurações',
-        icon: Settings,
-        path: '/dashboard/settings',
-        desc: 'Sistema e preferências',
-        defaultPermissions: { admin: true, member: false }
-    },
-    {
         key: 'whatsapp',
         label: 'WhatsApp (Uso)',
         icon: MessageSquare,
@@ -178,6 +159,30 @@ export const APP_MODULES: ModuleDefinition[] = [
         icon: Target,
         path: '/dashboard/lead-radar',
         desc: 'Mineração e abordagem automática de clientes',
+        defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'commissions',
+        label: 'Comissões',
+        icon: Percent,
+        path: '/dashboard/commissions',
+        desc: 'Controle de vendas',
+        defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'reports',
+        label: 'Relatórios',
+        icon: BarChart3,
+        path: '/dashboard/reports',
+        desc: 'Análises detalhadas',
+        defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'settings',
+        label: 'Configurações',
+        icon: Settings,
+        path: '/dashboard/settings',
+        desc: 'Sistema e preferências',
         defaultPermissions: { admin: true, member: false }
     }
 ];

@@ -165,9 +165,11 @@ export function AdminBICharts({ data }: Props) {
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip />
-                                <Legend />
+                                <Tooltip 
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                />
                             </PieChart>
+
                         </ResponsiveContainer>
                     </div>
                     <div className="w-full md:w-1/2 space-y-4">

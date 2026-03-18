@@ -103,14 +103,6 @@ export function Login() {
     const { t } = useTranslation();
     const { session, loading: authLoading } = useAuth();
 
-    if (authLoading) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-slate-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        );
-    }
-
     // Redirect if already logged in (but not while we are processing a login/signup form or stay-on-checkout)
     useEffect(() => {
         if (session && !loading && !pendingCompanyId) {
@@ -126,6 +118,15 @@ export function Login() {
             setMessage(t('login.set_new_password'));
         }
     }, []);
+
+    if (authLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-slate-900">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
+
 
     const handleAuth = async (e: FormEvent) => {
         e.preventDefault();
@@ -200,61 +201,73 @@ export function Login() {
                                 const newCompanyId = createData.company_id;
                                 const isTrial = checkoutPlan === 'trial';
                                  
-                                 const trialEndsAt = isTrial 
+                                const trialEndsAt = isTrial 
                                     ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
                                     : null;
 
-                                 // Default permissions for Trial + Personal
-                                 // Dashboard, A Receber, A Pagar, Categorias, Relatórios, WhatsApp
-                                 const trialSettings = (isTrial && isPF) ? {
-                                     subscription_plan: 'trial',
-                                     trial_ends_at: trialEndsAt,
-                                     modules: {
-                                         dashboard: { admin: true, member: true },
-                                         receivables: { admin: true, member: true },
-                                         payables: { admin: true, member: true },
-                                         categories: { admin: true, member: true },
-                                         reports: { admin: true, member: true },
-                                         whatsapp: { admin: true, member: true },
-                                         settings: { admin: true, member: false }, // Necessary for subscription tab
-                                         // Explicitly disabled others
-                                         quotes: { admin: false, member: false },
-                                         companies: { admin: false, member: false },
-                                         contacts: { admin: false, member: false },
-                                         services: { admin: false, member: false },
-                                         products: { admin: false, member: false },
-                                         commissions: { admin: false, member: false },
-                                         crm: { admin: false, member: false },
-                                         marketing: { admin: false, member: false },
-                                         lead_radar: { admin: false, member: false },
-                                         payments: { admin: false, member: false }
-                                     }
-                                 } : undefined;
+                                // Dynamic Plan Lookup
+                                let planModules: any = null;
+                                try {
+                                    const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+                                    if (settingsData?.landing_plans) {
+                                        const foundPlan = settingsData.landing_plans.find((p: any) => 
+                                            p.name?.toLowerCase() === checkoutPlan?.toLowerCase()
+                                        );
+                                        if (foundPlan?.modules) {
+                                            planModules = foundPlan.modules;
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error('Error fetching plan modules:', err);
+                                }
 
-                                 await supabase.from('companies').update({
-                                     subscription_plan: checkoutPlan,
-                                     next_billing_value: parseFloat(checkoutPrice),
-                                     subscription_status: isTrial ? 'active' : 'unpaid',
-                                     trial_ends_at: trialEndsAt,
-                                     phone: finalPhone,
-                                     settings: trialSettings,
-                                     // Disable advanced modules by default for trial
-                                     fiscal_module_enabled: false,
-                                     payments_module_enabled: false,
-                                     crm_module_enabled: false,
-                                     has_social_copilot: false,
-                                     automations_module_enabled: (isTrial && isPF), 
-                                     has_lead_radar: false
-                                 }).eq('id', newCompanyId);
+                                // Fallback defaults
+                                const defaultModules = {
+                                    dashboard: { admin: true, member: true },
+                                    receivables: { admin: true, member: true },
+                                    payables: { admin: true, member: true },
+                                    categories: { admin: true, member: true },
+                                    reports: { admin: true, member: true },
+                                    whatsapp: { admin: true, member: true },
+                                    settings: { admin: true, member: false },
+                                    quotes: { admin: false, member: false },
+                                    companies: { admin: false, member: false },
+                                    contacts: { admin: false, member: false },
+                                    services: { admin: false, member: false },
+                                    products: { admin: false, member: false },
+                                    commissions: { admin: false, member: false },
+                                    crm: { admin: false, member: false },
+                                    marketing: { admin: false, member: false },
+                                    lead_radar: { admin: false, member: false },
+                                    payments: { admin: false, member: false }
+                                };
 
-                                 if (trialSettings && authData.user?.id) {
-                                     await supabase.from('profiles').update({
-                                         settings: trialSettings
-                                     }).eq('id', authData.user.id);
-                                 }
+                                const finalSettings = {
+                                    subscription_plan: checkoutPlan,
+                                    trial_ends_at: trialEndsAt,
+                                    modules: planModules || defaultModules
+                                };
 
-                                 if (isTrial) {
-                                    // For trial, we can go straight in!
+                                await supabase.from('companies').update({
+                                    subscription_plan: checkoutPlan,
+                                    next_billing_value: parseFloat(checkoutPrice || '0'),
+                                    subscription_status: isTrial ? 'active' : 'unpaid',
+                                    trial_ends_at: trialEndsAt,
+                                    phone: finalPhone,
+                                    settings: finalSettings,
+                                    fiscal_module_enabled: finalSettings.modules.payables?.admin === true,
+                                    payments_module_enabled: finalSettings.modules.payments?.admin === true,
+                                    crm_module_enabled: finalSettings.modules.crm?.admin === true,
+                                    has_social_copilot: finalSettings.modules.marketing?.admin === true,
+                                    automations_module_enabled: finalSettings.modules.whatsapp?.admin === true, 
+                                    has_lead_radar: finalSettings.modules.lead_radar?.admin === true
+                                }).eq('id', newCompanyId);
+
+                                if (authData.user?.id) {
+                                    await supabase.from('profiles').update({ settings: finalSettings }).eq('id', authData.user.id);
+                                }
+
+                                if (isTrial) {
                                     navigate('/dashboard');
                                     setLoading(false);
                                     return;

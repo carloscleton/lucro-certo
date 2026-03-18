@@ -155,7 +155,7 @@ export function PlatformBillingDashboard() {
                 >
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                            <TrendingUp size={20} />
+                            <DollarSign size={20} />
                         </div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Receita Mensal Est.</span>
                     </div>
@@ -174,13 +174,14 @@ export function PlatformBillingDashboard() {
                 >
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                            <Users size={20} />
+                            <CheckCircle size={20} />
                         </div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assinantes Pro</span>
                     </div>
                     <div className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalActive}</div>
                     <div className="mt-2 text-xs text-gray-500">Planos ativos e pagos</div>
                 </div>
+
 
                 <div
                     onClick={() => setFilterStatus('trial')}

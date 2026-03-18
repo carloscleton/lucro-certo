@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -29,7 +29,6 @@ export function Settings() {
     const { t } = useTranslation();
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
     const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, deleteCompany, toggleUserBan, toggleCompanyBlock, updateUserConfig, updateCompanyConfig, updateAppSettings, appSettings } = useAdmin();
-    console.log('Admin UI initialized with toggleCompanyBlock:', !!toggleCompanyBlock);
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies } = useCompanies();
@@ -59,6 +58,20 @@ export function Settings() {
     const [autoOverdueTemplate, setAutoOverdueTemplate] = useState('');
     const [automationWhatsAppNumber, setAutomationWhatsAppNumber] = useState('');
     const [waConnected, setWaConnected] = useState(false);
+    const isTrial = useMemo(() => {
+        if (isAdmin) return false;
+        // 1. Check current entity
+        if (currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial' || !!currentEntity.trial_ends_at) return true;
+        // 2. Check if any company is on trial
+        if (companies.some(c => c.subscription_plan === 'trial' || c.settings?.subscription_plan === 'trial' || !!c.trial_ends_at)) return true;
+        // 3. Fallback: Registration date (7 days)
+        if (profile?.created_at) {
+            const createdAt = new Date(profile.created_at).getTime();
+            const now = Date.now();
+            if ((now - createdAt) < (7.5 * 24 * 60 * 60 * 1000)) return true;
+        }
+        return false;
+    }, [currentEntity, companies, isAdmin, profile]);
     const [generatingMagic, setGeneratingMagic] = useState<string | null>(null);
 
     // Company Settings State
@@ -400,32 +413,32 @@ export function Settings() {
                     { key: 'whatsapp', label: t('settings.tab_whatsapp'), icon: MessageSquare, color: 'green' },
                     { key: 'payments', label: t('settings.tab_payments'), icon: CreditCard, color: 'emerald' },
                     { key: 'automations', label: 'Automações', icon: Sparkles, color: 'blue' },
-                    { key: 'fiscal', label: t('settings.tab_fiscal'), icon: FileText, color: 'indigo' },
-                    { key: 'subscription', label: 'Plano e Assinatura', icon: CreditCard, color: 'blue' },
+                    { key: 'fiscal', label: t('settings.tab_fiscal'), icon: Calculator, color: 'indigo' },
+                    { key: 'subscription', label: 'Plano e Assinatura', icon: Zap, color: 'blue' },
                     ...(isAdmin ? [
-                        { key: 'platform_billing', label: 'Gestão da Plataforma', icon: DollarSign, color: 'emerald' },
+                        { key: 'platform_billing', label: 'Gestão da Plataforma', icon: Activity, color: 'emerald' },
                         { key: 'admin', label: t('settings.tab_admin'), icon: Shield, color: 'purple' }
                     ] : [])
                 ].filter(tab => {
                     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
-                    // Show Fiscal tab only if enabled for company
+                    // Show Fiscal tab only if enabled for company or if trial
                     if (tab.key === 'fiscal') {
-                        return currentEntity.type === 'company' && currentCompany?.fiscal_module_enabled;
+                        return currentEntity.type === 'company' && (currentCompany?.fiscal_module_enabled || isTrial);
                     }
 
-                    // Show Payments tab only if enabled for company
+                    // Show Payments tab only if enabled for company or if trial
                     if (tab.key === 'payments') {
-                        return currentEntity.type === 'company' && currentCompany?.payments_module_enabled;
+                        return currentEntity.type === 'company' && (currentCompany?.payments_module_enabled || isTrial);
                     }
 
-                    // Show Automations tab only if enabled for company or if personal
+                    // Show Automations tab only if enabled for company or if personal/trial
                     if (tab.key === 'automations') {
-                        return currentEntity.type === 'personal' || (currentEntity.type === 'company' && currentCompany?.automations_module_enabled);
+                        return currentEntity.type === 'personal' || (currentEntity.type === 'company' && (currentCompany?.automations_module_enabled || isTrial));
                     }
 
-                    // Hide company-specific tabs in personal context
-                    if (currentEntity.type === 'personal') {
+                    // Hide company-specific tabs in personal context UNLESS on trial
+                    if (currentEntity.type === 'personal' && !isTrial) {
                         const companyOnlyTabs = ['financial', 'team', 'webhooks'];
                         if (companyOnlyTabs.includes(tab.key)) {
                             return false;
@@ -437,6 +450,9 @@ export function Settings() {
 
                     // Bypass for System Admin - they see all tabs
                     if (isAdmin) return true;
+
+                    // Platform Global User Restriction (from profile.settings)
+                    if (profile?.settings?.settings_tabs?.[tab.key]?.admin === false) return false;
 
                     // Matrix-based filtering
                     const matrix = currentEntity.settings || {};
@@ -464,9 +480,6 @@ export function Settings() {
                     <SubscriptionSettings />
                 )}
 
-                {activeTab === 'platform_billing' && isAdmin && (
-                    <PlatformBillingDashboard />
-                )}
 
                 {activeTab === 'quotes' && (
                     <div className="space-y-6">
@@ -1984,6 +1997,21 @@ export function Settings() {
                                 </div>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {activeTab === 'platform_billing' && isAdmin && (
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                                <CreditCard size={24} />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Faturamento da Plataforma</h1>
+                                <p className="text-gray-500">Gestão global de assinaturas, gateways e cobranças de empresas.</p>
+                            </div>
+                        </div>
+                        <PlatformBillingDashboard />
                     </div>
                 )}
             </div>

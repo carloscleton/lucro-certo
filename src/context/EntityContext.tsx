@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -161,11 +161,6 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                 isActuallyNew = (now - createdDate) < sevenDaysInMs;
             }
 
-            console.log('DEBUG: EntityContext Mapping Start', {
-                profileCreatedAt: profile?.created_at,
-                userCreatedAt: user?.created_at,
-                isActuallyNew
-            });
 
             // Always include Personal option with user's settings
             const personalOption: Entity = {
@@ -182,10 +177,6 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                 associated_company_id: profile?.company_id
             };
             
-            console.log('DEBUG: EntityContext Mapping Result', {
-                plan: personalOption.subscription_plan,
-                date: personalOption.created_at
-            });
             const allEntities = [personalOption, ...companies];
             setAvailableEntities(allEntities);
 
@@ -247,8 +238,16 @@ export function EntityProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(STORAGE_KEY, key || 'personal');
     };
 
+    const entityValue = useMemo(() => ({
+        currentEntity,
+        availableEntities,
+        switchEntity,
+        refresh: fetchCompanies,
+        isLoading
+    }), [currentEntity, availableEntities, isLoading]);
+
     return (
-        <EntityContext.Provider value={{ currentEntity, availableEntities, switchEntity, refresh: fetchCompanies, isLoading }}>
+        <EntityContext.Provider value={entityValue}>
             {children}
         </EntityContext.Provider>
     );

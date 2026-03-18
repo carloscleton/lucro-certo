@@ -5,6 +5,8 @@ import { Save, Plus, Trash2, Edit, Sparkles } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import { useEntity } from '../../context/EntityContext';
 import { supabase } from '../../lib/supabase';
+import { APP_MODULES } from '../../config/permissions';
+import { Check } from 'lucide-react';
 
 export function LandingPlansEditor() {
     const { appSettings, updateAppSettings } = useAdmin();
@@ -58,6 +60,23 @@ export function LandingPlansEditor() {
         } else {
             alert('Planos da Landing Page salvos com sucesso!');
         }
+    };
+
+    const toggleModule = (planIndex: number, moduleKey: string) => {
+        const newPlans = [...plans];
+        const plan = { ...newPlans[planIndex] };
+        const modules = { ...(plan.modules || {}) };
+        
+        // Toggle for both admin and member by default for simplicity in plan config
+        const isEnabled = modules[moduleKey]?.admin === true;
+        modules[moduleKey] = {
+            admin: !isEnabled,
+            member: !isEnabled
+        };
+        
+        plan.modules = modules;
+        newPlans[planIndex] = plan;
+        setPlans(newPlans);
     };
 
     const handleMagic = async (pIdx: number) => {
@@ -347,6 +366,32 @@ export function LandingPlansEditor() {
                                     value={plan.checkout_url || ''}
                                     onChange={(e) => updatePlan(pIdx, 'checkout_url', e.target.value)}
                                 />
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Módulos Liberados</label>
+                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-100 dark:border-slate-700">
+                                    {APP_MODULES.map((mod) => {
+                                        const isEnabled = plan.modules?.[mod.key]?.admin === true;
+                                        return (
+                                            <button
+                                                key={mod.key}
+                                                onClick={() => toggleModule(pIdx, mod.key)}
+                                                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all text-left ${
+                                                    isEnabled 
+                                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' 
+                                                        : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
+                                                }`}
+                                            >
+                                                <div className={`w-3 h-3 rounded-full flex items-center justify-center ${isEnabled ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
+                                                    {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
+                                                </div>
+                                                <span className="truncate">{mod.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-2 italic">* Define o acesso inicial ao assinar este plano</p>
                             </div>
                         </div>
                     </div>

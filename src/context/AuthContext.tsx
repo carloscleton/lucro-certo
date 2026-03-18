@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
@@ -113,7 +113,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                             companyId = ownedCompanies[0].id;
                         }
                     }
-                    console.log('DEBUG: AuthContext fetchProfile Result', { userId, companyId });
                 } catch (memberErr) {
                     console.error('Error fetching company membership:', memberErr);
                 }
@@ -125,11 +124,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
             console.error('Unexpected error in fetchProfile:', err);
         } finally {
-            const authUser = (await supabase.auth.getUser()).data.user;
-            console.log('DEBUG: AuthContext User Obj', {
-                email: authUser?.email,
-                created_at: authUser?.created_at
-            });
             setLoading(false);
         }
     }
@@ -138,8 +132,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await supabase.auth.signOut();
     }
 
+    const authValue = useMemo(() => ({
+        session,
+        user,
+        profile,
+        loading,
+        signOut
+    }), [session, user, profile, loading]);
+
     return (
-        <AuthContext.Provider value={{ session, user, profile, loading, signOut }}>
+        <AuthContext.Provider value={authValue}>
             <PresenceBroadcaster />
             {children}
         </AuthContext.Provider>

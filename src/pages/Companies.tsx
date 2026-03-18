@@ -39,7 +39,7 @@ export function Companies() {
     if (loading) return <div>{t('common.loading')}</div>;
 
     const maxCompanies = profile?.max_companies ?? 1; // Default to 1 if not set
-    const canCreateCompany = companies.length < maxCompanies;
+    const canCreateCompany = (companies.length < maxCompanies) && (profile?.settings?.can_create_companies !== false);
 
     return (
         <div className="space-y-6">

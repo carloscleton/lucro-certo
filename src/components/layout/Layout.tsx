@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,12 +11,13 @@ import {
     Sun,
     Moon,
     Settings,
-    DollarSign,
-    Bell,
+    Shield,
     Users,
-    AlertTriangle,
+    Bell,
     ShieldAlert,
-    CreditCard
+    AlertTriangle,
+    CreditCard,
+    Activity
 } from 'lucide-react';
 import logoFull from '../../assets/logo-full.png';
 import styles from './Layout.module.css';
@@ -61,40 +62,50 @@ export function Layout() {
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
     const [adminOpen, setAdminOpen] = useState(true); // Default to open for visibility
-    const isSystemAdmin = user?.email === 'carloscleton.nat@gmail.com';
+    const isSystemAdmin = user?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
     const userRole = currentEntity.type === 'personal' ? 'admin' : (currentEntity.role || 'member');
 
     // Permission Logic
     const settings = currentEntity.settings || {};
 
     // Filter Logic
-    const isTrial = currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial';
-    
-    console.log('Layout: Current state', {
-        entityName: currentEntity.name,
-        entityType: currentEntity.type,
-        isTrial,
-        subscriptionPlan: currentEntity.subscription_plan,
-        createdAt: currentEntity.created_at
-    });
-    const displayedNavItems = APP_MODULES.filter(item => {
-        // Trial Restricted modules (Owner or not, you only see these during trial)
-        const allowedTrialModules = ['dashboard', 'receivables', 'payables', 'categories', 'reports', 'whatsapp', 'settings'];
-        if (isTrial && !allowedTrialModules.includes(item.key) && !isSystemAdmin) {
-            return false;
+    // Filter Logic - Check current entity OR any other company for trial status
+    const isTrial = useMemo(() => {
+        if (isSystemAdmin) return false;
+        
+        // 1. Check current entity
+        if (currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial' || !!currentEntity.trial_ends_at) return true;
+        
+        // 2. Check if any available company is on trial
+        if (availableEntities.some(ent => ent.subscription_plan === 'trial' || ent.settings?.subscription_plan === 'trial' || !!ent.trial_ends_at)) return true;
+
+        // 3. Robust Fallback: Check profile creation date (7 days)
+        if (profile?.created_at) {
+            const createdAt = new Date(profile.created_at).getTime();
+            const now = Date.now();
+            if ((now - createdAt) < (7.5 * 24 * 60 * 60 * 1000)) return true; // 7.5 days buffer
         }
 
-        // Exclude management items that go into the administrative submenu (only for company view)
-        const isManagementItem = ['commissions', 'settings'].includes(item.key);
-        if (currentEntity.type === 'company' && isManagementItem) return false;
+        return false;
+    }, [currentEntity, availableEntities, isSystemAdmin, profile]);
+    
+    const displayedNavItems = APP_MODULES.filter(item => {
+        // 0. Super Admin / Trial Bypass: See everything
+        if (isSystemAdmin || isTrial) return true;
+
+        // X. Individual Permission Mask (from profile settings)
+        if (profile?.settings?.modules?.[item.key]?.admin === false) return false;
+
+        // 1. Trial Restriction removed - isTrial already returns true above
+
 
         const isSuper = userRole === 'owner' || isSystemAdmin;
 
-        // 1. Company-only feature flags and role checks
+        // 2. Company-only feature flags and role checks
         if (currentEntity.type === 'company') {
-            if (item.key === 'crm' && !currentEntity.crm_module_enabled && !isSuper) return false;
-            if (item.key === 'marketing' && !currentEntity.has_social_copilot && !isSuper) return false;
-            if (item.key === 'lead_radar' && !currentEntity.has_lead_radar && !isSuper) return false;
+            if (item.key === 'crm' && !currentEntity.crm_module_enabled && !isSuper && !isTrial) return false;
+            if (item.key === 'marketing' && !currentEntity.has_social_copilot && !isSuper && !isTrial) return false;
+            if (item.key === 'lead_radar' && !currentEntity.has_lead_radar && !isSuper && !isTrial) return false;
 
             if (settings?.modules?.[item.key]?.[userRole as 'admin' | 'member'] === false) return false;
             if (isSuper) return true;
@@ -104,7 +115,7 @@ export function Layout() {
         return true;
     });
 
-    const finalNavItems = currentEntity.type === 'personal'
+    const finalNavItems = (currentEntity.type === 'personal' && !isTrial)
         ? displayedNavItems.filter(item => {
             // Bypass for System Admin - they see everything in personal context
             if (isSystemAdmin) return true;
@@ -114,31 +125,18 @@ export function Layout() {
 
             // Basic items allowed in personal view if not disabled
             if (item.key === 'dashboard') return true;
-            if (item.key === 'companies' && isTrial) return false; // Hide companies in trial
-            if (item.key === 'companies') return true;
+
+            // Unlock all features during trial even in personal context
+            if (isTrial) return true;
 
             // Check if module is allowed in personal settings (treat as admin)
             return getModulePermission(item.key, 'admin', settings);
         })
         : displayedNavItems;
 
-    // Management items for the sidebar group (Comissões, Configurações)
-    const managementItems = [
-        { label: t('nav.commissions'), icon: DollarSign, path: '/dashboard/commissions', key: 'commissions' },
-        { label: t('nav.settings'), icon: Settings, path: '/dashboard/settings', key: 'settings' },
-    ].filter(item => {
-        if (currentEntity.type !== 'company') return false; // Handled in main nav for personal
-
-        // Explicitly disabled overrides owner
-        if (settings?.modules?.[item.key]?.[userRole as 'admin' | 'member'] === false) return false;
-
-        // Owner/SystemAdmin see everything by default
-        if (userRole === 'owner' || isSystemAdmin) return true;
-
-        return getModulePermission(item.key, userRole as 'admin' | 'member', settings);
-    });
-
-    const canSeeManagementGroup = currentEntity.type === 'company' && (managementItems.length > 0 || isSystemAdmin);
+    // Management items for the sidebar group (ONLY system tools now)
+    const managementItems: any[] = [];
+    const canSeeManagementGroup = managementItems.length > 0 || isSystemAdmin;
 
     // Color Mapping (Hex values for CSS Variables)
     const MODULE_COLORS: Record<string, string> = {
@@ -263,7 +261,7 @@ export function Layout() {
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`${styles.navIcon} ${adminOpen ? 'bg-blue-600 !text-white' : ''}`}>
-                                            <Settings size={20} />
+                                            <Shield size={20} />
                                         </div>
                                         <span className="font-semibold">{t('nav.administrative')}</span>
                                     </div>
@@ -291,6 +289,23 @@ export function Layout() {
                                                 </NavLink>
                                             );
                                         })}
+
+                                        {/* Super Admin Panel Shortcut */}
+                                        {isSystemAdmin && (
+                                            <NavLink
+                                                to="/dashboard/settings?tab=platform_billing"
+                                                className={({ isActive }) =>
+                                                    `${styles.navItem} ${styles.adminItem} ${isActive ? styles.navItemActive : ''}`
+                                                }
+                                                style={{ '--hover-color': '#059669' } as React.CSSProperties}
+                                                onClick={() => setSidebarOpen(false)}
+                                            >
+                                                <div className={styles.navIcon}>
+                                                    <Activity size={20} />
+                                                </div>
+                                                <span className={styles.navLabel}>Gestão da Plataforma</span>
+                                            </NavLink>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -463,9 +478,7 @@ export function Layout() {
                                 </div>
                             </div>
                         </div>
-                    ) : (
-                        currentEntity.status === 'blocked'
-                    ) ? (
+                    ) : currentEntity.status === 'blocked' ? (
                         <div className="fixed inset-0 z-[100] bg-white dark:bg-slate-900 flex flex-col items-center justify-center p-8 text-center space-y-6">
                             <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center animate-pulse">
                                 <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
