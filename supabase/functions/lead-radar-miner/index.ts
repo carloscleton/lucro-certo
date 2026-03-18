@@ -34,20 +34,32 @@ function extractPhone(text: string): string | null {
 async function fetchMaps(query: string, location: string, apiKey?: string) {
     if (!apiKey) return []
     try {
-        const res = await fetch('https://google.serper.dev/maps', {
-            method: 'POST',
-            headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ q: `${query} em ${location}`, hl: 'pt-br', gl: 'br' })
-        })
-        const data = await res.json()
-        if (data.error) return []
+        const executeSearch = async (q: string) => {
+            const res = await fetch('https://google.serper.dev/maps', {
+                method: 'POST',
+                headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q: `${q} em ${location}`, hl: 'pt-br', gl: 'br' })
+            })
+            const data = await res.json()
+            return data.places || []
+        }
+
+        let places = await executeSearch(query);
+
+        // FALLBACK: Se não achar nada com o nicho específico, tenta apenas o termo principal
+        if (places.length === 0) {
+            const broaderQuery = query.split(' ')[0]; // Pega apenas a primeira palavra
+            if (broaderQuery !== query) {
+                console.log(`[RADAR] Fallback Maps: Tentando termo mais amplo "${broaderQuery}"...`);
+                places = await executeSearch(broaderQuery);
+            }
+        }
 
         // Filtrar para evitar que a própria cidade apareça como "empresa"
-        return (data.places || [])
+        return places
             .filter((item: any) => {
                 const titleLower = item.title.toLowerCase().trim()
                 const locLower = location.toLowerCase().trim()
-                // Se o título for exatamente igual à cidade pesquisada, é um resultado geográfico, não uma empresa
                 return titleLower !== locLower && item.address
             })
             .map((item: any) => ({
@@ -202,21 +214,34 @@ async function runRadarMining(target_company_id?: string) {
         for (const loc of locations) {
             console.log(`[RADAR] Iniciando busca para ${agent.companies.trade_name} - Nicho: ${niche} em ${loc}`)
 
-            // Camada 1: Google Maps
-            const mapsLeads = await fetchMaps(niche, loc, apiKey)
-            console.log(`[RADAR] Google Maps retornou ${mapsLeads?.length || 0} leads para ${loc}.`)
+            // REFINAMENTO: O Google Maps funciona melhor com nichos curtos (Ex: "Contabilidade")
+            // Se o nicho for muito longo, pegamos as primeiras 3 palavras para o Maps
+            const mapsQuery = niche.split(' ').slice(0, 3).join(' ');
 
-            // Camada 2: Redes Sociais (Discovery)
-            const socialLeads = await fetchSocials(niche, loc, apiKey)
-            console.log(`[RADAR] Redes Sociais retornaram ${socialLeads?.length || 0} leads para ${loc}.`)
+            // Camada 1: Google Maps (ALTA PRIORIDADE)
+            console.log(`[RADAR] Chamando Serper Maps para: "${mapsQuery}" em "${loc}"...`);
+            const mapsLeads = await fetchMaps(mapsQuery, loc, apiKey)
+            console.log(`[RADAR] Google Maps retornou ${mapsLeads?.length || 0} leads para ${loc}.`);
+            
+            if (mapsLeads?.length > 0) {
+                console.log(`[RADAR] Amostra do 1º lead Maps: ${mapsLeads[0].name} - Tel: ${mapsLeads[0].contact_number}`);
+            }
 
-            // Camada 3: Web Discovery (Sites Gerais)
+            // Camada 2: Web Discovery (Sites Gerais) - Agora secundária
             const webLeads = await fetchWeb(niche, loc, apiKey)
             console.log(`[RADAR] Web Discovery retornou ${webLeads?.length || 0} leads para ${loc}.`)
 
-            const allRawLeads = [...(mapsLeads || []), ...(socialLeads || []), ...(webLeads || [])]
+            // Camada 3: Redes Sociais (Discovery) - Agora secundária
+            const socialLeads = await fetchSocials(niche, loc, apiKey)
+            console.log(`[RADAR] Redes Sociais retornaram ${socialLeads?.length || 0} leads para ${loc}.`)
 
-            if (allRawLeads.length === 0) continue
+            // Priorização na ordem de processamento: Maps -> Web -> Social
+            const allRawLeads = [...(mapsLeads || []), ...(webLeads || []), ...(socialLeads || [])]
+
+            if (allRawLeads.length === 0) {
+                console.log(`[RADAR] Nenhum lead encontrado em NENHUMA plataforma para ${loc}. Verifique a API Key ou o nicho.`);
+                continue;
+            }
 
             for (const raw of allRawLeads) {
                 const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
