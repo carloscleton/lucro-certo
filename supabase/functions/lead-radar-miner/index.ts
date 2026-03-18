@@ -98,9 +98,10 @@ async function fetchSocials(query: string, location: string, apiKey?: string, ta
 
     for (const target of targets) {
         try {
-            // Refinamento de query: no máximo 4 palavras para redes sociais (evita "zero results")
+            // Refinamento: max 4 palavras para evitar "zero results"
             const refinedQuery = query.split(' ').slice(0, 4).join(' ');
-            console.log(`[RADAR] Buscando em ${target.platform}: "site:${target.site} ${refinedQuery} ${location}"`);
+            console.log(`[RADAR] Fetch ${target.platform}: "site:${target.site} ${refinedQuery} ${location}"`);
+            
             const res = await fetch('https://google.serper.dev/search', {
                 method: 'POST',
                 headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
@@ -111,6 +112,7 @@ async function fetchSocials(query: string, location: string, apiKey?: string, ta
                     gl: 'br'
                 })
             })
+            console.log(`[RADAR] ${target.platform} Status: ${res.status}`);
             const data = await res.json()
 
             if (data.organic) {
@@ -187,10 +189,11 @@ async function runRadarMining(target_company_id?: string) {
     for (const agent of agents) {
         const niche = agent.business_niche
         const rawLoc = agent.target_location || 'Brasil'
-        const apiKey = agent.serper_api_key || agent.searchapi_api_key
+        const apiKey = (agent.serper_api_key || agent.searchapi_api_key || "").trim()
 
-        if (!apiKey) {
-            logs.push({ company: agent.companies.trade_name, error: 'Sem chave API' })
+        if (!apiKey || apiKey.length < 5) {
+            console.log(`[RADAR] Erro: API Key inválida ou ausente para ${agent.companies?.trade_name}`);
+            logs.push({ company: agent.companies?.trade_name || 'Empresa', error: 'Sem chave API configurada ou inválida.' })
             continue
         }
 
@@ -221,6 +224,10 @@ async function runRadarMining(target_company_id?: string) {
         const totalQuota = agent.daily_lead_quota || 50;
         const pMaps = agent.perc_google_maps ?? 40;
         const pFace = agent.perc_facebook ?? 20;
+        // Calcular cotas por plataforma com base nos percentuais (default se nulo)
+        const totalQuota = agent.daily_lead_quota || 50;
+        const pMaps = agent.perc_google_maps ?? 40;
+        const pFace = agent.perc_facebook ?? 20;
         const pInsta = agent.perc_instagram ?? 20;
         const pLink = agent.perc_linkedin ?? 20;
 
@@ -238,48 +245,37 @@ async function runRadarMining(target_company_id?: string) {
 
         for (const loc of locations) {
             console.log(`[RADAR] Iniciando busca equilibrada em ${loc}...`)
-            const leadsToInsert: any[] = [];
-
-            // 1. Google Maps
+            
+            // Busca em paralelo para poupar tempo (Edge timeout = 60s)
+            const searchPromises = [];
+            
             if (quotaMaps > 0) {
                 const mapsQuery = niche.split(' ').slice(0, 3).join(' ');
-                console.log(`[RADAR] Buscando Maps: "${mapsQuery}" em ${loc} (Cota: ${quotaMaps})`);
-                const mapsLeads = await fetchMaps(mapsQuery, loc, apiKey);
-                const found = (mapsLeads || []).slice(0, quotaMaps);
-                leadsToInsert.push(...found);
-                platformStats.maps += found.length;
-                console.log(`[RADAR] Maps: ${found.length} leads adicionados à fila.`);
+                searchPromises.push(fetchMaps(mapsQuery, loc, apiKey).then(res => ({ type: 'maps', leads: res })));
             }
-
-            // 2. Facebook
             if (quotaFace > 0) {
-                console.log(`[RADAR] Buscando Facebook: "${niche}" em ${loc} (Cota: ${quotaFace})`);
-                const faceLeads = await fetchSocials(niche, loc, apiKey, 'facebook.com');
-                const found = (faceLeads || []).slice(0, quotaFace);
-                leadsToInsert.push(...found);
-                platformStats.facebook += found.length;
-                console.log(`[RADAR] Facebook: ${found.length} leads adicionados à fila.`);
+                searchPromises.push(fetchSocials(niche, loc, apiKey, 'facebook.com').then(res => ({ type: 'face', leads: res })));
             }
-
-            // 3. Instagram
             if (quotaInsta > 0) {
-                console.log(`[RADAR] Buscando Instagram: "${niche}" em ${loc} (Cota: ${quotaInsta})`);
-                const instaLeads = await fetchSocials(niche, loc, apiKey, 'instagram.com');
-                const found = (instaLeads || []).slice(0, quotaInsta);
-                leadsToInsert.push(...found);
-                platformStats.instagram += found.length;
-                console.log(`[RADAR] Instagram: ${found.length} leads adicionados à fila.`);
+                searchPromises.push(fetchSocials(niche, loc, apiKey, 'instagram.com').then(res => ({ type: 'insta', leads: res })));
+            }
+            if (quotaLink > 0) {
+                searchPromises.push(fetchSocials(niche, loc, apiKey, 'linkedin.com/company').then(res => ({ type: 'link', leads: res })));
             }
 
-            // 4. LinkedIn
-            if (quotaLink > 0) {
-                console.log(`[RADAR] Buscando LinkedIn: "${niche}" em ${loc} (Cota: ${quotaLink})`);
-                const linkedInLeads = await fetchSocials(niche, loc, apiKey, 'linkedin.com/company');
-                const found = (linkedInLeads || []).slice(0, quotaLink);
+            const searchResults = await Promise.all(searchPromises);
+            const leadsToInsert: any[] = [];
+
+            searchResults.forEach(res => {
+                const quota = res.type === 'maps' ? quotaMaps : res.type === 'face' ? quotaFace : res.type === 'insta' ? quotaInsta : quotaLink;
+                const found = (res.leads || []).slice(0, quota);
                 leadsToInsert.push(...found);
-                platformStats.linkedin += found.length;
-                console.log(`[RADAR] LinkedIn: ${found.length} leads adicionados à fila.`);
-            }
+                
+                if (res.type === 'maps') platformStats.maps += found.length;
+                if (res.type === 'face') platformStats.facebook += found.length;
+                if (res.type === 'insta') platformStats.instagram += found.length;
+                if (res.type === 'link') platformStats.linkedin += found.length;
+            });
 
             if (leadsToInsert.length === 0) {
                 console.log(`[RADAR] ATENÇÃO: Nenhum lead encontrado em NENHUMA plataforma para ${loc}.`);
@@ -306,7 +302,7 @@ async function runRadarMining(target_company_id?: string) {
                         email: raw.email,
                         score: score,
                         ai_summary: `IA detectou relevância para "${niche}" no ${raw.platform}.`,
-                        metadata: { ...raw.metadata, contact_number: raw.contact_number },
+                        metadata: { ...raw.metadata, contact_number: raw.contact_number, email: raw.email },
                         status: 'pending'
                     }).select().single();
 
@@ -324,7 +320,7 @@ async function runRadarMining(target_company_id?: string) {
                             const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
                             if (inst?.length) {
                                 const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
-                                const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies.trade_name} e trabalhamos com ${niche}. Podemos conversar?`
+                                const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies?.trade_name || 'nossa empresa'} e trabalhamos com ${niche}. Podemos conversar?`
                                 fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
