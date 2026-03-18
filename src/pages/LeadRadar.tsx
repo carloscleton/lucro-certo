@@ -514,7 +514,7 @@ export function LeadRadar() {
                                     setSettings(prev => ({ ...prev, is_active: true }));
                                 }
 
-                                const { error } = await supabase.functions.invoke('lead-radar-miner', {
+                                const { data, error } = await supabase.functions.invoke('lead-radar-miner', {
                                     body: { company_id: companyId }
                                 });
 
