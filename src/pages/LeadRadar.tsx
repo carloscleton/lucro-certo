@@ -323,10 +323,11 @@ export function LeadRadar() {
         setSettings({ ...settings, services_catalog: newCatalog });
     };
 
-    const handleUpdateLeadContacts = async () => {
+    const handleUpdateLeadContacts = async (shouldApproach = false) => {
         if (!selectedLead?.id) return;
         setIsSavingContact(true);
         try {
+            // 1. Salvar no Banco
             const { error } = await supabase
                 .from('radar_leads')
                 .update({
@@ -336,12 +337,38 @@ export function LeadRadar() {
                 .eq('id', selectedLead.id);
 
             if (error) throw error;
+
+            // 2. Se for para abordar agora, chama a função de abordagem
+            if (shouldApproach) {
+                if (!selectedLead.contact_number) {
+                    alert("Para abordar agora, você precisa informar um número de WhatsApp.");
+                    return;
+                }
+
+                const { data, error: approachError } = await supabase.functions.invoke('lead-radar-miner', {
+                    body: { 
+                        company_id: getEffectiveCompanyId(), 
+                        action: 'approach-lead', 
+                        lead_id: selectedLead.id 
+                    }
+                });
+
+                if (approachError) throw approachError;
+                if (data?.error) throw new Error(data.error);
+                
+                alert("Contato salvo e abordagem enviada com sucesso! 🚀 ✅");
+            } else {
+                alert("Contatos salvos com sucesso! ✅");
+            }
             
-            setLeads(leads.map(l => l.id === selectedLead.id ? selectedLead : l));
-            alert("Contatos salvos com sucesso! ✅");
+            // 3. Atualizar UI
+            const finalStatus = shouldApproach ? 'approached' : selectedLead.status;
+            setLeads(leads.map(l => l.id === selectedLead.id ? { ...selectedLead, status: finalStatus } : l));
+            if (shouldApproach) setSelectedLead({ ...selectedLead, status: 'approached' });
+            
         } catch (err: any) {
-            console.error("Erro ao salvar contatos:", err);
-            alert("Erro ao salvar contatos: " + err.message);
+            console.error("Erro ao salvar/abordar:", err);
+            alert("Erro: " + err.message);
         } finally {
             setIsSavingContact(false);
         }
@@ -1391,13 +1418,23 @@ export function LeadRadar() {
                             </div>
                             <div className="p-6 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-700">
                                 <Button
-                                    onClick={handleUpdateLeadContacts}
+                                    onClick={() => handleUpdateLeadContacts(true)}
+                                    isLoading={isSavingContact}
+                                    variant="primary"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-200 dark:shadow-none"
+                                >
+                                    <MessageSquare size={18} className="mr-2" />
+                                    Salvar e Abordar Agora
+                                </Button>
+
+                                <Button
+                                    onClick={() => handleUpdateLeadContacts(false)}
                                     isLoading={isSavingContact}
                                     variant="outline"
-                                    className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 rounded-xl"
+                                    className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
                                 >
                                     <Save size={18} className="mr-2" />
-                                    Salvar Alterações
+                                    Apenas Salvar
                                 </Button>
 
                                 <Button variant="outline" onClick={() => setSelectedLead(null)} className="rounded-xl">Fechar</Button>

@@ -434,6 +434,45 @@ serve(async (req: any) => {
             return new Response(JSON.stringify({ serper: null, searchapi }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
         }
 
+        // Rota de Abordagem Individual
+        if (action === 'approach-lead') {
+            const { lead_id } = body;
+            if (!lead_id) throw new Error("ID do lead não fornecido.");
+
+            // 1. Busca dados do lead e do agente
+            const { data: lead, error: leadErr } = await supabase.from('radar_leads').select('*').eq('id', lead_id).single();
+            if (leadErr || !lead) throw new Error("Lead não encontrado.");
+
+            const { data: agent, error: agentErr } = await supabase.from('company_ai_settings').select('*, companies(trade_name)').eq('company_id', company_id).single();
+            if (agentErr || !agent) throw new Error("Configurações do agente não encontradas.");
+
+            if (!lead.contact_number) throw new Error("Este lead não possui número de contato.");
+
+            // 2. Busca instância conectada
+            const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', company_id).eq('status', 'connected').limit(1);
+            if (!inst?.length) throw new Error("Nenhuma instância de WhatsApp conectada encontrada.");
+
+            // 3. Envia mensagem
+            const num = lead.contact_number.replace(/\D/g, '').startsWith('55') ? lead.contact_number.replace(/\D/g, '') : `55${lead.contact_number.replace(/\D/g, '')}`;
+            const msg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies?.trade_name || 'nossa empresa'} e trabalhamos com ${agent.business_niche}. Podemos conversar?`;
+            
+            const evoRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+                body: JSON.stringify({ number: num, text: msg })
+            });
+
+            if (!evoRes.ok) {
+                const errData = await evoRes.json().catch(() => ({}));
+                throw new Error(`Erro no WhatsApp: ${JSON.stringify(errData)}`);
+            }
+
+            // 4. Marca como abordado
+            await supabase.from('radar_leads').update({ status: 'approached' }).eq('id', lead_id);
+
+            return new Response(JSON.stringify({ status: 'success', message: 'Abordagem enviada com sucesso!' }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
         // Rota Principal de Mineração
         const res = await runRadarMining(company_id)
         return new Response(JSON.stringify(res), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
