@@ -20,15 +20,18 @@ const corsHeaders = {
  */
 function extractPhone(text: string): string | null {
     if (!text) return null;
-    // Padrão brasileiro aceitando diversos formatos (com ou sem DDD, com ou sem +55)
-    // Ex: (84) 99999-9999, 84999999999, +55 84 9...
-    const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\d{8}|\d{8,9})|(?:\(?\d{2}\)?\s?\d{4,5}[-\s]?\d{4})/g;
+    // Regex mais abrangente para padrões brasileiros e internacionais
+    // Brasil: (84) 99999-9999, 84999999999
+    // EUA/Global: (405) 843-1234, +1 405..., 4058431234
+    const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,5}[-.\s]?\d{4}/g;
     const matches = text.match(phoneRegex);
     if (!matches) return null;
     
-    const clean = matches[0].replace(/\D/g, '');
-    // Valida comprimento razoável para BR (8 a 13 dígitos)
-    if (clean.length >= 8 && clean.length <= 13) return clean;
+    // Pega o primeiro match longo o suficiente para ser um fone (8 a 15 dígitos)
+    for (const m of matches) {
+        const clean = m.replace(/\D/g, '');
+        if (clean.length >= 8 && clean.length <= 15) return clean;
+    }
     return null;
 }
 function extractEmail(text: string): string | null {
@@ -120,9 +123,11 @@ async function fetchMaps(query: string, location: string, serperKey?: string, se
                 const description = item.category ? `${item.category}. Localizado em ${item.address || item.formatted_address}.` : `Empresa local em ${item.address || item.formatted_address}.`;
                 let rawPhone = (item.phoneNumber || item.phone || "").replace(/\D/g, '');
                 
-                // Fallback: Tenta extrair da descrição/snippet se vier vazio
+                // Fallback: Tenta extrair da descrição/snippet/título/endereço se vier vazio
                 if (!rawPhone) {
-                    rawPhone = extractPhone(item.title + " " + (item.snippet || "")) || "";
+                    const combined = `${item.title} ${item.address || item.formatted_address} ${item.snippet || ""}`;
+                    rawPhone = extractPhone(combined) || "";
+                    if (rawPhone) console.log(`[RADAR] Telefone extraído via Regex para ${item.title}: ${rawPhone}`);
                 }
 
                 return {
@@ -212,7 +217,10 @@ async function fetchSocials(query: string, location: string, serperKey?: string,
                     if (!foundPhone && item.link) {
                         if (item.link.includes('wa.me/') || item.link.includes('api.whatsapp.com/send')) {
                             const linkMatch = item.link.match(/(?:wa\.me\/|phone=)(\d+)/);
-                            if (linkMatch) foundPhone = linkMatch[1];
+                            if (linkMatch) {
+                                foundPhone = linkMatch[1];
+                                console.log(`[RADAR] WhatsApp extraído do LINK: ${foundPhone}`);
+                            }
                         }
                     }
 
