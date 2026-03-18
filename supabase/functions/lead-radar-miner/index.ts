@@ -180,13 +180,17 @@ async function runRadarMining(target_company_id?: string) {
     let leadsFoundTotal = 0
     const logs: any[] = []
 
-    let query = supabase.from('company_ai_settings').select('*, companies(*)').eq('is_active', true)
-    if (target_company_id) query = query.eq('company_id', target_company_id)
+    let query = supabase.from('company_ai_settings').select('*, companies(*)').eq('company_id', target_company_id)
+    if (!target_company_id) query = query.eq('is_active', true)
 
     const { data: agents } = await query
-    if (!agents?.length) return { error: 'Nenhum agente ativo.' }
+    if (!agents?.length) {
+        console.log(`[RADAR] Nenhum agente encontrado para ID: ${target_company_id}`)
+        return { error: 'Nenhum agente ativo ou encontrado.' }
+    }
 
     for (const agent of agents) {
+        console.log(`[RADAR] Processando agente: ${agent.companies?.trade_name || agent.company_id}`)
         const niche = agent.business_niche
         const rawLoc = agent.target_location || 'Brasil'
         const apiKey = (agent.serper_api_key || agent.searchapi_api_key || "").trim()
@@ -197,7 +201,7 @@ async function runRadarMining(target_company_id?: string) {
             continue
         }
 
-        // --- NOVA LÓGICA DE FILTRO POR AGENDAMENTO ---
+        // --- LÓGICA DE FILTRO POR AGENDAMENTO (APENAS PARA CRON) ---
         if (!target_company_id) {
             const freq = agent.mining_frequency || 'manual'
             if (freq === 'manual') continue
@@ -211,19 +215,12 @@ async function runRadarMining(target_company_id?: string) {
 
             if (freq === 'daily') {
                 const hour = now.getUTCHours() - 3 // Ajuste para BRT (UTC-3)
-                // Se não for a hora marcada e não passou pelo menos 20h da última run, ignora
                 if (hour !== targetHour && hoursSinceLastRun < 20) continue
             } else if (freq === 'interval') {
-                // Se não passou o intervalo marcado, ignora
                 if (hoursSinceLastRun < targetInterval) continue
             }
         }
-        // ---------------------------------------------
 
-        // Calcular cotas por plataforma com base nos percentuais (default se nulo)
-        const totalQuota = agent.daily_lead_quota || 50;
-        const pMaps = agent.perc_google_maps ?? 40;
-        const pFace = agent.perc_facebook ?? 20;
         // Calcular cotas por plataforma com base nos percentuais (default se nulo)
         const totalQuota = agent.daily_lead_quota || 50;
         const pMaps = agent.perc_google_maps ?? 40;
