@@ -98,6 +98,7 @@ export function LeadRadar() {
         searchapi: null
     });
     const [whatsappStatus, setWhatsappStatus] = useState<'connected' | 'disconnected' | 'loading'>('loading');
+    const [isSavingContact, setIsSavingContact] = useState(false);
 
     useEffect(() => {
         if (currentEntity.id) {
@@ -320,6 +321,30 @@ export function LeadRadar() {
         const newCatalog = [...settings.services_catalog];
         newCatalog[index][field] = value;
         setSettings({ ...settings, services_catalog: newCatalog });
+    };
+
+    const handleUpdateLeadContacts = async () => {
+        if (!selectedLead?.id) return;
+        setIsSavingContact(true);
+        try {
+            const { error } = await supabase
+                .from('radar_leads')
+                .update({
+                    contact_number: selectedLead.contact_number,
+                    email: selectedLead.email
+                })
+                .eq('id', selectedLead.id);
+
+            if (error) throw error;
+            
+            setLeads(leads.map(l => l.id === selectedLead.id ? selectedLead : l));
+            alert("Contatos salvos com sucesso! ✅");
+        } catch (err: any) {
+            console.error("Erro ao salvar contatos:", err);
+            alert("Erro ao salvar contatos: " + err.message);
+        } finally {
+            setIsSavingContact(false);
+        }
     };
 
     const handleConvertToCRM = async () => {
@@ -1284,11 +1309,15 @@ export function LeadRadar() {
                                             <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-emerald-600">
                                                 <Phone size={18} />
                                             </div>
-                                            <div className="overflow-hidden flex-1">
+                                            <div className="flex-1">
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase">WhatsApp / Telefone</p>
-                                                <p className="text-sm text-gray-700 dark:text-gray-300 font-bold truncate">
-                                                    {selectedLead.contact_number || 'Não informado'}
-                                                </p>
+                                                <input 
+                                                    type="text"
+                                                    value={selectedLead.contact_number || ''}
+                                                    onChange={(e) => setSelectedLead({ ...selectedLead, contact_number: e.target.value })}
+                                                    placeholder="Digite o WhatsApp..."
+                                                    className="w-full bg-transparent border-none p-0 text-sm text-gray-700 dark:text-gray-300 font-bold focus:ring-0 placeholder:text-gray-300"
+                                                />
                                             </div>
                                             {selectedLead.contact_number && (
                                                 <div className="flex gap-2">
@@ -1307,11 +1336,15 @@ export function LeadRadar() {
                                             <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-blue-600">
                                                 <MessageSquare size={18} />
                                             </div>
-                                            <div className="overflow-hidden">
+                                            <div className="flex-1">
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase">E-mail</p>
-                                                <p className="text-sm text-gray-700 dark:text-gray-300 truncate lowercase">
-                                                    {selectedLead.email || 'Não informado'}
-                                                </p>
+                                                <input 
+                                                    type="email"
+                                                    value={selectedLead.email || ''}
+                                                    onChange={(e) => setSelectedLead({ ...selectedLead, email: e.target.value })}
+                                                    placeholder="Digite o e-mail..."
+                                                    className="w-full bg-transparent border-none p-0 text-sm text-gray-700 dark:text-gray-300 lowercase focus:ring-0 placeholder:text-gray-300"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -1357,6 +1390,16 @@ export function LeadRadar() {
                                 </div>
                             </div>
                             <div className="p-6 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-700">
+                                <Button
+                                    onClick={handleUpdateLeadContacts}
+                                    isLoading={isSavingContact}
+                                    variant="outline"
+                                    className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 rounded-xl"
+                                >
+                                    <Save size={18} className="mr-2" />
+                                    Salvar Alterações
+                                </Button>
+
                                 <Button variant="outline" onClick={() => setSelectedLead(null)} className="rounded-xl">Fechar</Button>
 
                                 {selectedLead.status !== 'converted' && (
