@@ -31,96 +31,92 @@ function extractPhone(text: string): string | null {
 /**
  * Busca no Google Maps (PJ/Local)
  */
-async function fetchMaps(query: string, location: string, apiKey?: string) {
-    if (!apiKey) return []
+async function fetchMaps(query: string, location: string, serperKey?: string, searchApiKey?: string) {
+    if (!serperKey && !searchApiKey) return []
     try {
         const executeSearch = async (q: string) => {
-            const res = await fetch('https://google.serper.dev/maps', {
-                method: 'POST',
-                headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ q: `${q} em ${location}`, hl: 'pt-br', gl: 'br' })
-            })
-            const data = await res.json()
-            return data.places || []
+            if (serperKey) {
+                const res = await fetch('https://google.serper.dev/maps', {
+                    method: 'POST',
+                    headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ q: `${q} em ${location}`, hl: 'pt-br', gl: 'br' })
+                })
+                const data = await res.json()
+                return data.places || []
+            } else {
+                const res = await fetch(`https://www.searchapi.io/api/v1/search?engine=google_maps&q=${encodeURIComponent(q + ' em ' + location)}&api_key=${searchApiKey}`)
+                const data = await res.json()
+                return data.places || []
+            }
         }
 
         let places = await executeSearch(query);
 
         // FALLBACK: Se não achar nada com o nicho específico, tenta apenas o termo principal
         if (places.length === 0) {
-            const broaderQuery = query.split(' ')[0]; // Pega apenas a primeira palavra
+            const broaderQuery = query.split(' ')[0];
             if (broaderQuery !== query) {
                 console.log(`[RADAR] Fallback Maps: Tentando termo mais amplo "${broaderQuery}"...`);
                 places = await executeSearch(broaderQuery);
             }
         }
 
-        // Filtrar para evitar que a própria cidade apareça como "empresa"
         return places
             .filter((item: any) => {
-                const titleLower = item.title.toLowerCase().trim()
+                const titleLower = (item.title || item.name || "").toLowerCase().trim()
                 const locLower = location.toLowerCase().trim()
-                return titleLower !== locLower && item.address
+                return titleLower !== locLower && (item.address || item.formatted_address)
             })
             .map((item: any) => ({
                 platform: 'google_maps',
-                name: item.title,
-                description: item.category ? `${item.category}. Localizado em ${item.address}.` : `Empresa local em ${item.address}. Avaliação: ${item.rating || 'N/A'}.`,
-                external_url: item.website || item.link || `https://www.google.com/maps/search/${encodeURIComponent(item.title)}`,
-                location: item.address,
-                contact_number: item.phoneNumber ? item.phoneNumber.replace(/\D/g, '') : null,
-                metadata: { source: 'serper_maps', category: item.category, rating: item.rating }
+                name: item.title || item.name,
+                description: item.category ? `${item.category}. Localizado em ${item.address || item.formatted_address}.` : `Empresa local em ${item.address || item.formatted_address}.`,
+                external_url: item.website || item.link || `https://www.google.com/maps/search/${encodeURIComponent(item.title || item.name)}`,
+                location: item.address || item.formatted_address,
+                contact_number: (item.phoneNumber || item.phone || "").replace(/\D/g, ''),
+                metadata: { source: serperKey ? 'serper_maps' : 'searchapi_maps', category: item.category, rating: item.rating }
             }))
-    } catch { return [] }
+    } catch (e) { console.error('[RADAR] Erro fetchMaps:', e); return [] }
 }
 
-/**
- * Busca em Redes Sociais via Google Search (Instagram, Facebook, LinkedIn)
- */
-/**
- * Busca em Redes Sociais via Google Search (Instagram, Facebook, LinkedIn)
- */
-async function fetchSocials(query: string, location: string, apiKey?: string, targetSite?: string) {
-    if (!apiKey) return []
+async function fetchSocials(query: string, location: string, serperKey?: string, searchApiKey?: string, targetSite?: string) {
+    if (!serperKey && !searchApiKey) return []
     const results: any[] = []
 
-    // Alvos sociais
     const allTargets = [
         { site: 'instagram.com', platform: 'instagram' },
         { site: 'facebook.com', platform: 'facebook' },
         { site: 'linkedin.com/company', platform: 'linkedin' }
     ]
 
-    // Filtrar se um site específico foi pedido
     const targets = targetSite 
         ? allTargets.filter(t => t.site === targetSite || (targetSite.includes('linkedin') && t.platform === 'linkedin'))
         : allTargets
 
     for (const target of targets) {
         try {
-            // Refinamento: max 4 palavras para evitar "zero results"
             const refinedQuery = query.split(' ').slice(0, 4).join(' ');
-            console.log(`[RADAR] Fetch ${target.platform}: "site:${target.site} ${refinedQuery} ${location}"`);
+            const q = `site:${target.site} ${refinedQuery} ${location}`;
+            console.log(`[RADAR] Fetch ${target.platform}: "${q}"`);
             
-            const res = await fetch('https://google.serper.dev/search', {
-                method: 'POST',
-                headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    q: `site:${target.site} ${refinedQuery} ${location}`,
-                    num: 15,
-                    hl: 'pt-br',
-                    gl: 'br'
+            let data: any = {};
+            if (serperKey) {
+                const res = await fetch('https://google.serper.dev/search', {
+                    method: 'POST',
+                    headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ q, num: 15, hl: 'pt-br', gl: 'br' })
                 })
-            })
-            console.log(`[RADAR] ${target.platform} Status: ${res.status}`);
-            const data = await res.json()
+                data = await res.json()
+            } else {
+                const res = await fetch(`https://www.searchapi.io/api/v1/search?q=${encodeURIComponent(q)}&api_key=${searchApiKey}`)
+                data = await res.json()
+            }
 
             if (data.organic) {
                 data.organic.forEach((item: any) => {
                     let cleanName = item.title.split(/•|\||-|:|\u2013/)[0].trim()
                     if (cleanName.length < 3) cleanName = item.title.trim()
 
-                    // Extração de E-mail e Telefone
                     const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
                     const emailMatch = (item.snippet || "").match(emailRegex);
                     const foundEmail = emailMatch ? emailMatch[0].toLowerCase() : null;
@@ -134,7 +130,7 @@ async function fetchSocials(query: string, location: string, apiKey?: string, ta
                         location: location,
                         contact_number: foundPhone,
                         email: foundEmail,
-                        metadata: { source: `serper_${target.platform}_optimized` }
+                        metadata: { source: serperKey ? 'serper_social' : 'searchapi_social' }
                     })
                 })
             }
@@ -193,11 +189,12 @@ async function runRadarMining(target_company_id?: string) {
         console.log(`[RADAR] Processando agente: ${agent.companies?.trade_name || agent.company_id}`)
         const niche = agent.business_niche
         const rawLoc = agent.target_location || 'Brasil'
-        const apiKey = (agent.serper_api_key || agent.searchapi_api_key || "").trim()
+        const serperKey = agent.serper_api_key?.trim()
+        const searchApiKey = agent.searchapi_api_key?.trim()
 
-        if (!apiKey || apiKey.length < 5) {
-            console.log(`[RADAR] Erro: API Key inválida ou ausente para ${agent.companies?.trade_name}`);
-            logs.push({ company: agent.companies?.trade_name || 'Empresa', error: 'Sem chave API configurada ou inválida.' })
+        if (!serperKey && !searchApiKey) {
+            console.log(`[RADAR] Erro: Nenhuma API Key configurada para ${agent.companies?.trade_name}`);
+            logs.push({ company: agent.companies?.trade_name || 'Empresa', error: 'Sem chave API configurada.' })
             continue
         }
 
@@ -221,7 +218,6 @@ async function runRadarMining(target_company_id?: string) {
             }
         }
 
-        // Calcular cotas por plataforma com base nos percentuais (default se nulo)
         const totalQuota = agent.daily_lead_quota || 50;
         const pMaps = agent.perc_google_maps ?? 40;
         const pFace = agent.perc_facebook ?? 20;
@@ -230,7 +226,6 @@ async function runRadarMining(target_company_id?: string) {
 
         console.log(`[RADAR] Config: Quota=${totalQuota}, Maps=${pMaps}%, Face=${pFace}%, Insta=${pInsta}%, Link=${pLink}%`);
 
-        // Garante pelo menos 1 lead por plataforma se o percentual for > 0
         const quotaMaps = pMaps > 0 ? Math.max(1, Math.floor(totalQuota * (pMaps / 100))) : 0;
         const quotaFace = pFace > 0 ? Math.max(1, Math.floor(totalQuota * (pFace / 100))) : 0;
         const quotaInsta = pInsta > 0 ? Math.max(1, Math.floor(totalQuota * (pInsta / 100))) : 0;
@@ -242,22 +237,20 @@ async function runRadarMining(target_company_id?: string) {
 
         for (const loc of locations) {
             console.log(`[RADAR] Iniciando busca equilibrada em ${loc}...`)
-            
-            // Busca em paralelo para poupar tempo (Edge timeout = 60s)
             const searchPromises = [];
             
             if (quotaMaps > 0) {
                 const mapsQuery = niche.split(' ').slice(0, 3).join(' ');
-                searchPromises.push(fetchMaps(mapsQuery, loc, apiKey).then(res => ({ type: 'maps', leads: res })));
+                searchPromises.push(fetchMaps(mapsQuery, loc, serperKey, searchApiKey).then(res => ({ type: 'maps', leads: res })));
             }
             if (quotaFace > 0) {
-                searchPromises.push(fetchSocials(niche, loc, apiKey, 'facebook.com').then(res => ({ type: 'face', leads: res })));
+                searchPromises.push(fetchSocials(niche, loc, serperKey, searchApiKey, 'facebook.com').then(res => ({ type: 'face', leads: res })));
             }
             if (quotaInsta > 0) {
-                searchPromises.push(fetchSocials(niche, loc, apiKey, 'instagram.com').then(res => ({ type: 'insta', leads: res })));
+                searchPromises.push(fetchSocials(niche, loc, serperKey, searchApiKey, 'instagram.com').then(res => ({ type: 'insta', leads: res })));
             }
             if (quotaLink > 0) {
-                searchPromises.push(fetchSocials(niche, loc, apiKey, 'linkedin.com/company').then(res => ({ type: 'link', leads: res })));
+                searchPromises.push(fetchSocials(niche, loc, serperKey, searchApiKey, 'linkedin.com/company').then(res => ({ type: 'link', leads: res })));
             }
 
             const searchResults = await Promise.all(searchPromises);
