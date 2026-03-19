@@ -20,58 +20,45 @@ export function Login() {
     const mode = searchParams.get('mode');
     const emailParam = searchParams.get('email');
 
-    // Generate a new seed every 12 hours (Morning/Afternoon cycle)
-    const getSeed = () => {
-        const now = new Date();
-        const twelveHours = 1000 * 60 * 60 * 12; // 12 hours in milliseconds
-        return Math.floor(now.getTime() / twelveHours);
-    };
-
-    const getHeroImage = (basePrompt: string) => {
-        const seed = getSeed();
-        const prompt = encodeURIComponent(`${basePrompt}, wide shot, centered composition, main subject in center or right, high quality, professional photography, sharp focus, vibrant colors, cinematic lighting`);
-        return `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=1280&seed=${seed}&nologo=true`;
-    };
-
     // Carousel State & Data
     const [currentSlide, setCurrentSlide] = useState(0);
     const [pendingCompanyId, setPendingCompanyId] = useState<string | null>(null);
 
     const carouselItems = [
         {
-            text: "A melhor ferramenta para organizar as finanças da sua empresa e da sua vida pessoal em um só lugar. Simplesmente essencial.",
-            author: "Beatriz Oliveira",
-            role: "Especialista Financeira",
-            initials: "BO",
-            color: "from-blue-400 to-purple-500",
-            image: getHeroImage("Strategic wealth management, a premium 3D composition with glowing green glass charts and 3D bar graphs on a dark corporate background. Financial growth, clarity, professional, clean minimalist style, centered framing"),
+            text: "Gestão financeira de alto nível para sua empresa. Transforme dados em lucros claros e decisões seguras todos os dias.",
+            author: "Lucro Certo",
+            role: "Gestão Financeira",
+            initials: "LC",
+            color: "from-blue-600 to-emerald-500",
+            image: loginHero1,
             fallback: loginHero1
         },
         {
-            text: "Mantenha o fluxo de caixa sempre positivo. Acompanhe entradas e saídas em tempo real e tome decisões mais inteligentes.",
-            author: "Dica Financeira",
-            role: "Gestão Empresarial",
-            initials: "DF",
-            color: "from-green-400 to-emerald-500",
-            image: getHeroImage("Successful profit growth concept, stack of premium gold coins and rising green arrow chart against a dark sophisticated background. Crystal textures, reflection, high success, prosperity, centered subject"),
+            text: "Automação total de cobranças via WhatsApp. Recupere créditos pendentes e mantenha seu fluxo de caixa sempre saudável.",
+            author: "WhatsApp Automático",
+            role: "Produtividade",
+            initials: "WA",
+            color: "from-green-500 to-teal-600",
+            image: loginHero2,
             fallback: loginHero2
         },
         {
-            text: "Separe as finanças pessoais das empresariais. Esse é o primeiro passo para o sucesso financeiro saudável.",
-            author: "Dica de Sucesso",
-            role: "Empreendedorismo",
-            initials: "DS",
-            color: "from-orange-400 to-red-500",
-            image: getHeroImage("Balance and organization concept, abstract 3D scales or geometric shapes in warm gold and deep green. Sophisticated corporate aesthetics, structured organization, professional minimalist, balanced framing"),
+            text: "Radar de Leads: encontre novos clientes qualificados e oportunidades de negócio com nossa inteligência de mercado.",
+            author: "Inteligência de Vendas",
+            role: "Crescimento",
+            initials: "IV",
+            color: "from-blue-500 to-indigo-600",
+            image: loginHero3,
             fallback: loginHero3
         },
         {
-            text: "Automatize seus processos financeiros e ganhe tempo para focar no que realmente importa: o crescimento constante.",
-            author: "Lucro Certo",
-            role: "Produtividade",
-            initials: "LC",
-            color: "from-blue-500 to-cyan-500",
-            image: getHeroImage("Automation and productivity, high-tech digital gear system with glowing green data lines on a dark background. Efficiency, fluid motion, precision, futuristic financial technology"),
+            text: "Equilíbrio absoluto entre suas finanças empresariais e pessoais. O segredo para um sucesso financeiro sustentável e duradouro.",
+            author: "Vida e Sucesso",
+            role: "Organização",
+            initials: "VS",
+            color: "from-orange-500 to-red-600",
+            image: loginHero4,
             fallback: loginHero4
         }
     ];
