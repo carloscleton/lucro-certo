@@ -171,14 +171,25 @@ export function useAdmin() {
 
             if (error) throw error;
 
-            // The RPC returns jsonb_build_object('success', true/false, 'message', string)
-            if (data && data.success === false) {
-                console.error('RPC Update Failed:', data.message);
-                return { error: data.message || 'Erro ao atualizar configuração no servidor' };
-            }
+            // Update local state instead of full refresh
+            setCompaniesList(prev => prev.map(c => 
+                c.id === companyId 
+                    ? { 
+                        ...c, 
+                        fiscal_module_enabled: fiscal, 
+                        payments_module_enabled: payments, 
+                        crm_module_enabled: crm, 
+                        marketing_enabled: marketing,
+                        automations_module_enabled: automations,
+                        has_lead_radar: leadRadar,
+                        allowed_entity_types: allowedTypes,
+                        settings: settings || c.settings 
+                    } 
+                    : c
+            ));
 
-            console.log('Update Success! Refreshing data...');
-            await fetchAdminData(true);
+            // Refresh silently later if really needed, but skip for now to be fast
+            // await fetchAdminData(true); 
             return { error: null };
         } catch (err: any) {
             console.error('Error updating company config:', err);
@@ -335,7 +346,12 @@ export function useAdmin() {
             });
 
             if (error) throw error;
-            await fetchAdminData(true);
+            
+            // Update local state instead of full refresh
+            setUsersList(prev => prev.map(u => 
+                u.id === userId ? { ...u, max_companies: newLimit } : u
+            ));
+
             return { error: null };
         } catch (err: any) {
             console.error('Error updating user limit:', err);
@@ -353,7 +369,12 @@ export function useAdmin() {
             });
 
             if (error) throw error;
-            await fetchAdminData(true);
+
+            // Update local state instead of full refresh
+            setUsersList(prev => prev.map(u => 
+                u.id === userId ? { ...u, settings } : u
+            ));
+
             return { error: null };
         } catch (err: any) {
             console.error('Error updating user config:', err);
