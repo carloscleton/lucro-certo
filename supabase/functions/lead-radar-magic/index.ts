@@ -78,6 +78,7 @@ serve(async (req) => {
 
         const data = await res.json();
         const content = data.choices?.[0]?.message?.content || "";
+        console.log(`[MAGIC] Resposta bruta da OpenAI: ${content.substring(0, 100)}...`);
 
         // Clean JSON response from potential Markdown blocks or extra text
         let result;
@@ -85,8 +86,9 @@ serve(async (req) => {
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             const cleanContent = jsonMatch ? jsonMatch[0] : content;
             result = JSON.parse(cleanContent.replace(/```json/g, '').replace(/```/g, ''));
+            console.log(`[MAGIC] JSON parseado com sucesso.`);
         } catch (e) {
-            console.error('Failed to parse JSON content:', content);
+            console.error('[MAGIC] Failed to parse JSON content:', content);
             result = { text: content }; // Fallback to raw content if JSON fails
         }
 
@@ -95,7 +97,12 @@ serve(async (req) => {
         });
 
     } catch (error: any) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error(`[MAGIC] Erro Fatal na Edge Function:`, error);
+        return new Response(JSON.stringify({ 
+            error: error.message, 
+            stack: error.stack,
+            details: "Erro interno na Edge Function lead-radar-magic"
+        }), { 
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });

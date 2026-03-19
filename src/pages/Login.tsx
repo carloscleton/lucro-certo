@@ -99,6 +99,7 @@ export function Login() {
     const [isUpdatePassword, setIsUpdatePassword] = useState(false);
     const [forgotEmail, setForgotEmail] = useState('');
     const [resetLoading, setResetLoading] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState<{ document?: string; email?: string }>({});
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { session, loading: authLoading } = useAuth();
@@ -147,16 +148,34 @@ export function Login() {
             } else if (isSignUp) {
                 const cleanDoc = documentStr.replace(/\D/g, '');
                 let finalPhone = phoneStr.replace(/\D/g, '');
+                
+                // 1. Verificação de Duplicidade (CPF/CNPJ e E-mail)🛡️
+                try {
+                    console.log('Verificando duplicidade para:', { email, cleanDoc });
+                    
+                    const { data: checkData } = await supabase.rpc('check_duplicate_registration', {
+                        document_input: cleanDoc,
+                        email_input: email.trim().toLowerCase()
+                    });
 
-                if (finalPhone.length < 10) {
-                    setError('Informe um telefone válido com DDD.');
-                    setLoading(false);
-                    return;
-                }
+                    console.log('Resultado verificação:', checkData);
 
-                // Prepend 55 for Brazil if not present but is a standard BR number
-                if ((finalPhone.length === 10 || finalPhone.length === 11) && !finalPhone.startsWith('55')) {
-                    finalPhone = '55' + finalPhone;
+                    if (checkData) {
+                        if (checkData.document_exists) {
+                            setError(`Este ${cleanDoc.length === 11 ? 'CPF' : 'CNPJ'} já está vinculado à empresa "${checkData.legal_name || 'outra conta'}". Por favor, use outro documento ou recupere sua senha.`);
+                            setLoading(false);
+                            return;
+                        }
+
+                        if (checkData.email_exists) {
+                            setError("Este e-mail já está cadastrado em nossa base. Por favor, faça login ou use a recuperação de senha.");
+                            setLoading(false);
+                            return;
+                        }
+                    }
+
+                } catch (checkErr) {
+                    console.error('Erro ao verificar duplicidade (RPC):', checkErr);
                 }
 
                 const { error } = await supabase.auth.signUp({
@@ -207,45 +226,54 @@ export function Login() {
 
                                 // Dynamic Plan Lookup
                                 let planModules: any = null;
+                                let planProfileModules: any = null;
                                 try {
                                     const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                                     if (settingsData?.landing_plans) {
                                         const foundPlan = settingsData.landing_plans.find((p: any) => 
                                             p.name?.toLowerCase() === checkoutPlan?.toLowerCase()
                                         );
-                                        if (foundPlan?.modules) {
+                                        if (foundPlan) {
                                             planModules = foundPlan.modules;
+                                            planProfileModules = foundPlan.profile_modules;
                                         }
                                     }
                                 } catch (err) {
                                     console.error('Error fetching plan modules:', err);
                                 }
 
-                                // Fallback defaults
-                                const defaultModules = {
+                                // Default Sidebar (User)
+                                const defaultProfileModules = {
                                     dashboard: { admin: true, member: true },
                                     receivables: { admin: true, member: true },
                                     payables: { admin: true, member: true },
                                     categories: { admin: true, member: true },
                                     reports: { admin: true, member: true },
                                     whatsapp: { admin: true, member: true },
-                                    settings: { admin: true, member: false },
-                                    quotes: { admin: false, member: false },
-                                    companies: { admin: false, member: false },
-                                    contacts: { admin: false, member: false },
-                                    services: { admin: false, member: false },
-                                    products: { admin: false, member: false },
-                                    commissions: { admin: false, member: false },
-                                    crm: { admin: false, member: false },
-                                    marketing: { admin: false, member: false },
-                                    lead_radar: { admin: false, member: false },
-                                    payments: { admin: false, member: false }
+                                    settings: { admin: true, member: false }
                                 };
 
-                                const finalSettings = {
+                                // Default Functional (Company)
+                                const defaultCompanyModules = {
+                                    fiscal_module_enabled: true,
+                                    payments_module_enabled: false,
+                                    crm_module_enabled: false,
+                                    has_social_copilot: false,
+                                    automations_module_enabled: true, 
+                                    has_lead_radar: false
+                                };
+
+                                const finalProfileSettings = {
+                                    subscription_plan: checkoutPlan,
+                                    modules: planProfileModules || defaultProfileModules
+                                };
+
+                                const finalCompanyModules = planModules || defaultCompanyModules;
+
+                                const finalCompanySettings = {
                                     subscription_plan: checkoutPlan,
                                     trial_ends_at: trialEndsAt,
-                                    modules: planModules || defaultModules
+                                    modules: finalCompanyModules // Keep as plan.modules for compatibility in Settings.tsx if needed
                                 };
 
                                 await supabase.from('companies').update({
@@ -254,17 +282,17 @@ export function Login() {
                                     subscription_status: isTrial ? 'active' : 'unpaid',
                                     trial_ends_at: trialEndsAt,
                                     phone: finalPhone,
-                                    settings: finalSettings,
-                                    fiscal_module_enabled: finalSettings.modules.payables?.admin === true,
-                                    payments_module_enabled: finalSettings.modules.payments?.admin === true,
-                                    crm_module_enabled: finalSettings.modules.crm?.admin === true,
-                                    has_social_copilot: finalSettings.modules.marketing?.admin === true,
-                                    automations_module_enabled: finalSettings.modules.whatsapp?.admin === true, 
-                                    has_lead_radar: finalSettings.modules.lead_radar?.admin === true
+                                    settings: finalCompanySettings,
+                                    fiscal_module_enabled: !!finalCompanyModules.fiscal_module_enabled,
+                                    payments_module_enabled: !!finalCompanyModules.payments_module_enabled,
+                                    crm_module_enabled: !!finalCompanyModules.crm_module_enabled,
+                                    has_social_copilot: !!finalCompanyModules.has_social_copilot,
+                                    automations_module_enabled: !!finalCompanyModules.automations_module_enabled, 
+                                    has_lead_radar: !!finalCompanyModules.has_lead_radar
                                 }).eq('id', newCompanyId);
 
                                 if (authData.user?.id) {
-                                    await supabase.from('profiles').update({ settings: finalSettings }).eq('id', authData.user.id);
+                                    await supabase.from('profiles').update({ settings: finalProfileSettings }).eq('id', authData.user.id);
                                 }
 
                                 if (isTrial) {
@@ -424,6 +452,51 @@ export function Login() {
         }
     };
 
+    const handleCheckDocument = async (doc: string) => {
+        const clean = doc.replace(/\D/g, '');
+        if (clean.length !== 11 && clean.length !== 14) return;
+
+        setFieldErrors(prev => ({ ...prev, document: undefined }));
+        
+        try {
+            const { data: checkData } = await supabase.rpc('check_duplicate_registration', {
+                document_input: clean,
+                email_input: ''
+            });
+
+            if (checkData?.document_exists) {
+                setFieldErrors(prev => ({ 
+                    ...prev, 
+                    document: `Este ${clean.length === 11 ? 'CPF' : 'CNPJ'} já possui cadastro ("${checkData.legal_name || 'Usuário'}").`
+                }));
+            }
+        } catch (err) {
+            console.error('Error checking doc:', err);
+        }
+    };
+
+    const handleCheckEmail = async (emailInput: string) => {
+        if (!emailInput.includes('@')) return;
+
+        try {
+            const { data: checkData } = await supabase.rpc('check_duplicate_registration', {
+                document_input: '',
+                email_input: emailInput.trim().toLowerCase()
+            });
+
+            if (checkData?.email_exists) {
+                setFieldErrors(prev => ({ 
+                    ...prev, 
+                    email: "Este e-mail já está cadastrado. Por favor, faça login."
+                }));
+            } else {
+                setFieldErrors(prev => ({ ...prev, email: undefined }));
+            }
+        } catch (err) {
+            console.error('Error checking email:', err);
+        }
+    };
+
     const formatDocumentHelper = (v: string) => {
         const numbers = v.replace(/\D/g, '');
         if (numbers.length <= 11) {
@@ -502,11 +575,18 @@ export function Login() {
                                 <Input
                                     label="CPF ou CNPJ para faturamento"
                                     value={documentStr}
-                                    onChange={(e) => setDocumentStr(formatDocumentHelper(e.target.value))}
+                                    onChange={(e) => {
+                                        const v = formatDocumentHelper(e.target.value);
+                                        setDocumentStr(v);
+                                        setFieldErrors(prev => ({ ...prev, document: undefined }));
+                                    }}
+                                    onBlur={() => handleCheckDocument(documentStr)}
                                     placeholder="000.000.000-00 ou 00.000.000/0000-00"
                                     required={isSignUp}
-                                    className="h-12"
+                                    className={`h-12 ${fieldErrors.document ? 'border-red-500 focus:ring-red-500' : ''}`}
+                                    error={fieldErrors.document}
                                 />
+
 
                                 <Input
                                     label="WhatsApp para avisos"
@@ -524,11 +604,16 @@ export function Login() {
                                 label="Email"
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    setFieldErrors(prev => ({ ...prev, email: undefined }));
+                                }}
+                                onBlur={() => handleCheckEmail(email)}
                                 placeholder="seu@email.com"
                                 required
                                 autoComplete="email"
-                                className="h-12"
+                                className={`h-12 ${fieldErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
+                                error={fieldErrors.email}
                             />
                         )}
 

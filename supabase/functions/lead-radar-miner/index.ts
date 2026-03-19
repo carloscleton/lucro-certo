@@ -42,38 +42,53 @@ function extractEmail(text: string): string | null {
 }
 
 async function generateAIApproach(agent: any, lead: any): Promise<string> {
-    const fallbackMsg = `Olá! Vi sua empresa no Radar. Somos da ${agent.companies?.trade_name || 'nossa empresa'} e trabalhamos com ${agent.business_niche || 'soluções para o seu nicho'}. Podemos conversar?`;
-    
+    const companyObj = Array.isArray(agent.companies) ? agent.companies[0] : agent.companies;
+    const companyName = companyObj?.trade_name || 'nossa empresa';
+    const niche = agent.business_niche || 'seu segmento';
+    const fallbackMsg = `Olá! Vi sua empresa no Radar. Somos da ${companyName} e trabalhamos com ${niche}. Podemos conversar?`;
+
     try {
-        const companyName = agent.companies?.trade_name || 'nossa empresa';
         const businessDesc = agent.business_description || 'empresa de tecnologia e serviços';
         const leadName = lead.name || 'Empresa';
         const leadBio = lead.description || lead.snippet || 'sem descrição disponível';
-        const niche = agent.business_niche || 'seu segmento';
+
+        console.log(`[RADAR] Chamando IA: ${leadName} | Empresa: ${companyName}`);
 
         const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
             body: {
                 mode: 'field_only',
-                input: `Você é um consultor de vendas da empresa "${companyName}". 
-Contexto da Empresa: "${businessDesc}". 
-Nicho de Atuação: "${niche}". 
-O Lead é: "${leadName}". 
-A Bio/Descrição do Lead diz: "${leadBio}". 
+                input: `Você é um consultor de vendas especializado em prospecção via WhatsApp. 
+REQUISITO: Gerar uma primeira abordagem curta, amigável e MUITO profissional.
 
-Escreva uma primeira abordagem curta, amigável e MUITO profissional para enviar via WhatsApp. 
+MINHA EMPRESA: "${companyName}"
+O QUE FAZEMOS: "${businessDesc}"
+NOSSO NICHO: "${niche}"
+
+O LEAD É: "${leadName}"
+O QUE SABEMOS DELES: "${leadBio}"
+
 REGRAS:
-1. Comece saudando o lead (ex: "Olá [Nome]...") se o nome for de pessoa, se for de empresa, seja genérico mas cordial.
-2. Máximo 280 caracteres.
-3. Foque em como a "${companyName}" pode ajudar com base no contexto.
-4. Linguagem natural e persuasiva.
-5. NÃO use placeholders tipo [Nicho]. Substitua pelos termos reais.`
+1. Saudação natural.
+2. Seja direto e mencione que a "${companyName}" pode ajudar com base no contexto.
+3. Máximo 280 caracteres.
+4. Retorne APENAS o JSON com a chave "text".`
             }
         });
 
-        if (error || !data?.text) return fallbackMsg;
+        if (error) {
+            console.error(`[RADAR] Erro no invoke:`, error);
+            return fallbackMsg;
+        }
+
+        if (!data?.text) {
+            console.warn(`[RADAR] IA sem campo 'text'`);
+            return fallbackMsg;
+        }
+
+        console.log(`[RADAR] Abordagem IA gerada com sucesso para ${leadName}`);
         return data.text;
     } catch (e) {
-        console.error("[RADAR] Erro ao gerar mensagem com IA:", e);
+        console.error("[RADAR] Erro fatal ao gerar mensagem com IA:", e);
         return fallbackMsg;
     }
 }
@@ -465,6 +480,11 @@ serve(async (req: any) => {
         const body = await req.json().catch(() => ({}))
         const { company_id, action } = body
 
+        // Rota de Teste Simples
+        if (action === 'ping') {
+            return new Response(JSON.stringify({ status: 'pong', time: new Date().toISOString() }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+        }
+
         // Rota de Créditos (Proxy para evitar CORS)
         if (action === 'get-credits') {
             const { data: agent } = await supabase.from('company_ai_settings').select('searchapi_api_key').eq('company_id', company_id).single()
@@ -499,7 +519,10 @@ serve(async (req: any) => {
             if (!inst?.length) throw new Error("Nenhuma instância de WhatsApp conectada encontrada.");
 
             // 3. Envia mensagem
-            const num = lead.contact_number.replace(/\D/g, '').startsWith('55') ? lead.contact_number.replace(/\D/g, '') : `55${lead.contact_number.replace(/\D/g, '')}`;
+            let cleanNum = lead.contact_number.replace(/\D/g, '');
+            if (cleanNum.startsWith('0')) cleanNum = cleanNum.substring(1);
+            
+            const num = cleanNum.startsWith('55') ? cleanNum : `55${cleanNum}`;
             const msg = await generateAIApproach(agent, lead);
             
             const evoRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
@@ -523,6 +546,14 @@ serve(async (req: any) => {
         const res = await runRadarMining(company_id)
         return new Response(JSON.stringify(res), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     } catch (e: any) {
-        return new Response(JSON.stringify({ error: e.message }), { headers: corsHeaders, status: 500 })
+        console.error(`[RADAR] Erro Fatal na Edge Function:`, e);
+        return new Response(JSON.stringify({ 
+            error: e.message, 
+            stack: e.stack,
+            details: "Erro interno na Edge Function lead-radar-miner"
+        }), { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+            status: 200 
+        })
     }
 })

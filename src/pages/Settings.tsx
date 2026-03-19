@@ -440,8 +440,6 @@ export function Settings() {
                         if (companyOnlyTabs.includes(tab.key)) return false;
                     }
 
-                    // 3. Platform Global User Restriction (from profile.settings - "Configurar Usuário")
-                    if (profile?.settings?.settings_tabs?.[tab.key]?.admin === false) return false;
 
                     // 4. Matrix-based filtering (from "Configurar Empresa")
                     const matrix = currentEntity.settings || {};

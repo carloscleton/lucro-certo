@@ -17,8 +17,12 @@ import {
     ShieldAlert,
     AlertTriangle,
     CreditCard,
-    Activity
+    Activity,
+    User,
+    Building2,
+    ChevronDown
 } from 'lucide-react';
+import { useRef } from 'react';
 import logoFull from '../../assets/logo-full.png';
 import styles from './Layout.module.css';
 import { useAuth } from '../../context/AuthContext';
@@ -33,20 +37,159 @@ import { APP_MODULES, getModulePermission } from '../../config/permissions';
 import { OfflineBanner } from '../ui/OfflineBanner';
 import { LanguageSelector } from '../ui/LanguageSelector';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
+import { useCompanies } from '../../hooks/useCompanies';
+import { ProfileCompletionModal } from '../orientation/ProfileCompletionModal';
 
 export function Layout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [loadingCheckout, setLoadingCheckout] = useState(false);
-    const { signOut, user, profile } = useAuth();
+    const { signOut, user, profile, refreshProfile } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { currentEntity, availableEntities, switchEntity, isLoading } = useEntity();
     const { t } = useTranslation();
+
+    const isIncomplete = profile && (!profile.full_name || !profile.phone);
 
     // Browser push notifications for due bills
     useBillNotifications();
 
     const navigate = useNavigate();
     const [pendingInvites, setPendingInvites] = useState<any[]>([]);
+    const [isEntityMenuOpen, setIsEntityMenuOpen] = useState(false);
+    const entityMenuRef = useRef<HTMLDivElement>(null);
+    
+    // Checkout states
+    const [loadingCheckout, setLoadingCheckout] = useState(false);
+    const [cpfModalOpen, setCpfModalOpen] = useState(false);
+    const [cpfInput, setCpfInput] = useState('');
+    const [cpfError, setCpfError] = useState('');
+    const [pendingCheckoutCompanyId, setPendingCheckoutCompanyId] = useState<string | null>(null);
+
+    const { companies } = useCompanies();
+
+    // Checkout Logic
+    const executeCheckout = async (companyId: string) => {
+        try {
+            setLoadingCheckout(true);
+            const { data: { session: freshSession } } = await supabase.auth.getSession();
+            const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
+            const fetchRes = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ company_id: companyId, access_token: freshSession?.access_token })
+            });
+            const data = await fetchRes.json();
+            if (fetchRes.ok && data?.paymentUrl) {
+                window.open(data.paymentUrl, '_blank');
+            } else {
+                console.error('Checkout Error:', data);
+                alert('Erro ao gerar link de pagamento: ' + (data.error || 'Erro desconhecido.'));
+            }
+        } catch (err: any) {
+            alert('Falha ao processar checkout: ' + err.message);
+        } finally {
+            setLoadingCheckout(false);
+        }
+    };
+
+    const handleCpfConfirm = async () => {
+        const cleanCpf = cpfInput.replace(/\D/g, '');
+        if (cleanCpf.length !== 11) {
+            setCpfError('CPF inválido. Informe os 11 dígitos.');
+            return;
+        }
+        setCpfError('');
+        setCpfModalOpen(false);
+
+        try {
+            setLoadingCheckout(true);
+            if (pendingCheckoutCompanyId) {
+                await supabase
+                    .from('companies')
+                    .update({ cpf: cleanCpf, entity_type: 'PF' })
+                    .eq('id', pendingCheckoutCompanyId);
+                const targetId = pendingCheckoutCompanyId;
+                setPendingCheckoutCompanyId(null);
+                await executeCheckout(targetId);
+                return;
+            }
+
+            const userName = profile?.full_name || 'Conta Pessoal';
+            const { data: createData, error: createError } = await supabase.rpc('create_company', {
+                name_input: userName,
+                trade_name_input: userName,
+                cnpj_input: '',
+                entity_type_input: 'PF',
+                cpf_input: cleanCpf,
+                email_input: profile?.email || '',
+                phone_input: profile?.phone || '',
+            });
+
+            if (createError || !createData?.success) {
+                alert('Erro ao preparar sua conta: ' + (createData?.message || createError?.message || 'Erro ao criar conta.'));
+                setLoadingCheckout(false);
+                return;
+            }
+            await executeCheckout(createData.company_id);
+        } catch (err: any) {
+            alert('Erro: ' + err.message);
+            setLoadingCheckout(false);
+        }
+    };
+
+    const handleUpgrade = async () => {
+        try {
+            setLoadingCheckout(true);
+            let targetCompanyId = currentEntity.type === 'personal'
+                ? (currentEntity.associated_company_id || profile?.company_id || (companies && companies.length > 0 ? companies[0].id : null))
+                : currentEntity.id;
+
+            if (!targetCompanyId || targetCompanyId === 'personal') {
+                setLoadingCheckout(false);
+                setCpfInput('');
+                setCpfError('');
+                setCpfModalOpen(true);
+                return;
+            }
+
+            const { data: companyData } = await supabase
+                .from('companies')
+                .select('cpf, cnpj, entity_type')
+                .eq('id', targetCompanyId)
+                .maybeSingle();
+
+            const hasCpfOrCnpj = (companyData?.cpf && companyData.cpf.replace(/\D/g, '').length >= 11)
+                || (companyData?.cnpj && companyData.cnpj.replace(/\D/g, '').length >= 14);
+
+            if (!hasCpfOrCnpj) {
+                setLoadingCheckout(false);
+                setCpfInput('');
+                setCpfError('');
+                setPendingCheckoutCompanyId(targetCompanyId);
+                setCpfModalOpen(true);
+                return;
+            }
+
+            await executeCheckout(targetCompanyId);
+        } catch (err: any) {
+            alert('Falha ao processar checkout: ' + err.message);
+            setLoadingCheckout(false);
+        }
+    };
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (entityMenuRef.current && !entityMenuRef.current.contains(event.target as Node)) {
+                setIsEntityMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         const fetchInvites = async () => {
@@ -63,10 +206,7 @@ export function Layout() {
 
     const [adminOpen, setAdminOpen] = useState(true); // Default to open for visibility
     const isSystemAdmin = user?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
-    const userRole = currentEntity.type === 'personal' ? 'admin' : (currentEntity.role || 'member');
-
     // Permission Logic
-    const settings = currentEntity.settings || {};
 
     // Filter Logic
     // Filter Logic - Check current entity OR any other company for trial status
@@ -89,67 +229,61 @@ export function Layout() {
         return false;
     }, [currentEntity, availableEntities, isSystemAdmin, profile]);
     
-    const displayedNavItems = APP_MODULES.filter(item => {
+    // Unified Sidebar Filter
+    const finalNavItems = APP_MODULES.filter(item => {
         // 0. Super Admin Bypass: Always see everything
         if (isSystemAdmin) return true;
 
-        // X. Individual Permission Mask (from profile settings - "Configurar Usuário" modal)
-        // If explicitly set to false, respect it even in Trial
-        if (profile?.settings?.modules?.[item.key]?.admin === false) return false;
+        // 1. Get settings and role for the current context (Personal Profile or Company)
+        const settings = currentEntity.settings || {};
+        const role = currentEntity.type === 'personal' ? 'admin' : (currentEntity.role || 'member');
+        const roleForMatrix = role === 'owner' ? 'admin' : role;
 
-        const isSuper = userRole === 'owner';
+        // 2. EXPLICIT OVERRIDE: Respect even in Trial
+        // If the module is explicitly disabled for this role in settings, return false
+        if (settings?.modules?.[item.key]?.[roleForMatrix as 'admin' | 'member'] === false) return false;
 
+        // 3. TRIAL BYPASS: If not explicitly disabled, show everything in trial
+        if (isTrial) return true;
+
+        // 4. PLAN & FEATURE CHECK (For non-trial users)
         if (currentEntity.type === 'company') {
-            const settings = currentEntity.settings || {};
-            
-            // Normalize owner to admin for matrix checks
-            const roleForMatrix = userRole === 'owner' ? 'admin' : userRole;
-
-            // 1. Role-based Permission Check (from "Configurar Empresa" modal)
-            // If the module is explicitly disabled for this role in settings, return false
-            if (settings?.modules?.[item.key]?.[roleForMatrix as 'admin' | 'member'] === false) return false;
-
-            // 2. Feature Availability (Plan/Flags)
-            // Trial bypasses these flags, but they still respect isSuper for non-trial users
             const isModuleEnabled = 
-                isTrial ||
                 (item.key === 'crm' && currentEntity.crm_module_enabled) ||
                 (item.key === 'marketing' && currentEntity.has_social_copilot) ||
                 (item.key === 'lead_radar' && currentEntity.has_lead_radar) ||
                 (typeof (currentEntity as any)[`${item.key}_module_enabled`] !== 'undefined' ? (currentEntity as any)[`${item.key}_module_enabled`] : true);
 
-            if (!isModuleEnabled && !isSuper) return false;
-
-            // 3. Final Permission logic
-            if (isSuper) return true;
-            return getModulePermission(item.key, roleForMatrix as 'admin' | 'member', settings);
+            // Owner sees everything unless explicitly disabled (checked above)
+            if (!isModuleEnabled && role !== 'owner') return false;
         }
 
-        return true;
+        // 5. DEFAULT PERMISSIONS (Fallback to getModulePermission)
+        return getModulePermission(item.key, roleForMatrix as 'admin' | 'member', settings);
     });
-
-    const finalNavItems = (currentEntity.type === 'personal' && !isTrial && !isSystemAdmin)
-        ? displayedNavItems.filter(item => {
-            // Bypass for Super Admin/Trial in personal context
-            if (isSystemAdmin || isTrial) return true;
-
-            // Explicitly disabled in settings
-            if (settings?.modules?.[item.key]?.admin === false) return false;
-
-            // Basic items allowed in personal view if not disabled
-            if (item.key === 'dashboard') return true;
-
-            // Unlock all features during trial even in personal context
-            if (isTrial) return true;
-
-            // Check if module is allowed in personal settings (treat as admin)
-            return getModulePermission(item.key, 'admin', settings);
-        })
-        : displayedNavItems;
 
     // Management items for the sidebar group (ONLY system tools now)
     const managementItems: any[] = [];
     const canSeeManagementGroup = managementItems.length > 0 || isSystemAdmin;
+
+    const getEntityColor = (entity: any) => {
+        if (entity.type === 'personal') return '#10b981'; // Emerald
+        const colors = [
+            '#3b82f6', // Blue
+            '#8b5cf6', // Violet
+            '#ec4899', // Pink
+            '#f59e0b', // Amber
+            '#06b6d4', // Cyan
+            '#84cc16', // Lime
+            '#f43f5e', // Rose
+        ];
+        // Use a simple hash of the ID to pick a consistent color
+        const id = entity.id || entity.name || '';
+        const hash = id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+        return colors[hash % colors.length];
+    };
+
+    const currentEntityColor = getEntityColor(currentEntity);
 
     // Color Mapping (Hex values for CSS Variables)
     const MODULE_COLORS: Record<string, string> = {
@@ -202,40 +336,91 @@ export function Layout() {
                         </button>
                     </div>
 
-                    <div className={styles.contextSection} data-tour="entity-selector">
-                        <div className={styles.entitySelectWrapper}>
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('layout.current_environment')}</span>
+                    <div className={styles.contextSection} data-tour="entity-selector" ref={entityMenuRef}>
+                        <div className={styles.contextDropdown}>
+                            <div className="flex items-center justify-between mb-1.5 px-1">
+                                <span className={styles.contextSectionLabel}>{t('layout.current_environment')}</span>
                                 <div className={`${styles.entityBadge} ${currentEntity.type === 'personal' ? styles.badgePersonal : styles.badgeCompany}`}>
                                     {currentEntity.type === 'personal' ? t('layout.personal_label') : t('layout.company_label')}
                                 </div>
                             </div>
-                            <div className="relative">
-                                <select
-                                    value={currentEntity.type === 'personal' ? 'personal' : currentEntity.id}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        const entity = availableEntities.find(ent =>
-                                            value === 'personal' ? ent.type === 'personal' : ent.id === value
-                                        );
-                                        if (entity) switchEntity(entity);
-                                    }}
-                                    className="w-full pl-3 pr-8 py-2 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200"
-                                    disabled={isLoading}
-                                >
-                                    {availableEntities.map((entity) => (
-                                        <option
-                                            key={entity.type === 'personal' ? 'personal' : entity.id}
-                                            value={entity.type === 'personal' ? 'personal' : entity.id}
-                                        >
-                                            {entity.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                    <Briefcase className="w-4 h-4 text-gray-500" />
+                            
+                            <button
+                                type="button"
+                                className={`${styles.contextTrigger} ${isEntityMenuOpen ? styles.contextTriggerOpen : ''}`}
+                                onClick={() => setIsEntityMenuOpen(!isEntityMenuOpen)}
+                                disabled={isLoading}
+                                style={{ '--active-color': currentEntityColor } as React.CSSProperties}
+                            >
+                                <div className={styles.triggerContent}>
+                                    <div 
+                                        className={styles.triggerIcon}
+                                        style={{ 
+                                            color: currentEntityColor, 
+                                            backgroundColor: `${currentEntityColor}15` 
+                                        }}
+                                    >
+                                        {currentEntity.type === 'personal' ? (
+                                            <User size={18} />
+                                        ) : (
+                                            <Building2 size={18} />
+                                        )}
+                                    </div>
+                                    <span className={styles.triggerName}>{currentEntity.name}</span>
                                 </div>
-                            </div>
+                                <ChevronDown 
+                                    size={16} 
+                                    className={`text-gray-400 transition-transform duration-200 ${isEntityMenuOpen ? 'rotate-180' : ''}`} 
+                                    style={isEntityMenuOpen ? { color: currentEntityColor } : {}}
+                                />
+                            </button>
+
+                            {isEntityMenuOpen && (
+                                <div className={styles.dropdownMenu}>
+                                    {availableEntities.map((entity) => {
+                                        const isActive = entity.type === 'personal' 
+                                            ? currentEntity.type === 'personal' 
+                                            : currentEntity.id === entity.id;
+                                        
+                                        const entityColor = getEntityColor(entity);
+                                        
+                                        return (
+                                            <button
+                                                key={entity.type === 'personal' ? 'personal' : entity.id}
+                                                className={`${styles.dropdownItem} ${isActive ? styles.dropdownItemActive : ''}`}
+                                                onClick={() => {
+                                                    switchEntity(entity);
+                                                    setIsEntityMenuOpen(false);
+                                                }}
+                                                style={{ '--item-color': entityColor } as React.CSSProperties}
+                                            >
+                                                <div 
+                                                    className={styles.itemIcon}
+                                                    style={isActive ? { backgroundColor: entityColor, color: 'white' } : { color: entityColor, backgroundColor: `${entityColor}10` }}
+                                                >
+                                                    {entity.type === 'personal' ? (
+                                                        <User size={16} />
+                                                    ) : (
+                                                        <Building2 size={16} />
+                                                    )}
+                                                </div>
+                                                <span 
+                                                    className={styles.itemName}
+                                                    style={isActive ? { color: entityColor, fontWeight: 700 } : {}}
+                                                >
+                                                    {entity.name}
+                                                </span>
+                                                {isActive && (
+                                                    <div 
+                                                        className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.2)]"
+                                                        style={{ backgroundColor: entityColor }}
+                                                    ></div>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -416,30 +601,28 @@ export function Layout() {
                                 </div>
                             </div>
                             
-                            {/* Trial Badge */}
+                            {/* Unified Trial Banner */}
                             {currentEntity.subscription_plan === 'trial' && currentEntity.trial_ends_at && (
-                                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 px-3 py-1 rounded-full ml-4 shadow-sm animate-in fade-in slide-in-from-top-1 duration-500">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                    <span className="text-[10px] uppercase font-black tracking-wider text-emerald-700 dark:text-emerald-400">
-                                        Período de Teste: {(() => {
-                                            const diff = new Date(currentEntity.trial_ends_at!).getTime() - Date.now();
-                                            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                                            return days > 0 ? `${days} ${days === 1 ? 'dia' : 'dias'}` : 'Expirado';
-                                        })()}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Days in Use Badge */}
-                            {currentEntity.created_at && (
-                                <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 px-3 py-1 rounded-full ml-3 opacity-90 shadow-sm animate-in fade-in slide-in-from-top-1 duration-700">
-                                    <span className="text-[10px] uppercase font-black tracking-wider text-blue-700 dark:text-blue-400">
-                                        Sistema em uso: {(() => {
-                                            const diff = Date.now() - new Date(currentEntity.created_at!).getTime();
-                                            const days = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
-                                            return `${days} ${days === 1 ? 'dia' : 'dias'}`;
-                                        })()}
-                                    </span>
+                                <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 px-5 py-2.5 rounded-2xl ml-4 shadow-sm animate-in fade-in slide-in-from-top-1 duration-500 w-full max-w-4xl">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <span className="text-xl">🚀</span>
+                                        <span className="text-sm font-medium text-blue-800 dark:text-blue-100">
+                                            Você está em teste gratuito: <span className="font-bold text-blue-600 dark:text-blue-400">
+                                                {(() => {
+                                                    const diff = new Date(currentEntity.trial_ends_at!).getTime() - Date.now();
+                                                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                                    return days > 0 ? `${days} ${days === 1 ? 'dia restante' : 'dias restantes'}` : 'Expirado';
+                                                })()}
+                                            </span>. Aproveite todas as ferramentas!
+                                        </span>
+                                    </div>
+                                    <button 
+                                        onClick={handleUpgrade}
+                                        disabled={loadingCheckout}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 whitespace-nowrap disabled:opacity-70"
+                                    >
+                                        {loadingCheckout ? '...' : 'Assinar Agora →'}
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -626,6 +809,75 @@ export function Layout() {
                     )}
                 </div>
             </main>
+            {/* CPF Modal - Solicita CPF antes do checkout */}
+            {cpfModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                                <span className="text-xl">📄</span>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Dados para Pagamento</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Precisamos do seu CPF para gerar o link</p>
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 text-left">
+                            Para processar o pagamento como <strong>Pessoa Física</strong>, informe seu CPF abaixo.
+                            Ele será usado apenas para identificação no gateway de pagamento.
+                        </p>
+
+                        <div className="mb-4 text-left">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                CPF
+                            </label>
+                            <input
+                                type="text"
+                                value={cpfInput}
+                                onChange={e => {
+                                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                    let formatted = digits;
+                                    if (digits.length > 9) formatted = digits.slice(0,3) + '.' + digits.slice(3,6) + '.' + digits.slice(6,9) + '-' + digits.slice(9);
+                                    else if (digits.length > 6) formatted = digits.slice(0,3) + '.' + digits.slice(3,6) + '.' + digits.slice(6);
+                                    else if (digits.length > 3) formatted = digits.slice(0,3) + '.' + digits.slice(3);
+                                    setCpfInput(formatted);
+                                    setCpfError('');
+                                }}
+                                placeholder="000.000.000-00"
+                                className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg tracking-widest"
+                                autoFocus
+                            />
+                            {cpfError && (
+                                <p className="text-red-500 text-sm mt-1">{cpfError}</p>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setCpfModalOpen(false); setPendingCheckoutCompanyId(null); }}
+                                className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors font-medium"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleCpfConfirm}
+                                disabled={loadingCheckout}
+                                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors disabled:opacity-70"
+                            >
+                                {loadingCheckout ? 'Processando...' : 'Confirmar e Pagar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Profile Completion Modal */}
+            {isIncomplete && user && (
+                <ProfileCompletionModal 
+                    userId={user.id} 
+                    onComplete={refreshProfile} 
+                />
+            )}
         </div>
     );
 }

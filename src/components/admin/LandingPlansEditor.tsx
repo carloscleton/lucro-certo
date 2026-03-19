@@ -8,6 +8,15 @@ import { supabase } from '../../lib/supabase';
 import { APP_MODULES } from '../../config/permissions';
 import { Check } from 'lucide-react';
 
+const COMPANY_MODULE_OPTIONS = [
+    { key: 'fiscal_module_enabled', label: 'Módulo Fiscal' },
+    { key: 'payments_module_enabled', label: 'Módulo Pagamentos' },
+    { key: 'crm_module_enabled', label: 'CRM / Funil' },
+    { key: 'has_social_copilot', label: 'Marketing IA' },
+    { key: 'automations_module_enabled', label: 'Automações' },
+    { key: 'has_lead_radar', label: 'Radar de Leads' },
+];
+
 export function LandingPlansEditor() {
     const { appSettings, updateAppSettings } = useAdmin();
     const { currentEntity } = useEntity();
@@ -62,19 +71,32 @@ export function LandingPlansEditor() {
         }
     };
 
-    const toggleModule = (planIndex: number, moduleKey: string) => {
+    const toggleCompanyModule = (planIndex: number, moduleKey: string) => {
         const newPlans = [...plans];
         const plan = { ...newPlans[planIndex] };
         const modules = { ...(plan.modules || {}) };
         
-        // Toggle for both admin and member by default for simplicity in plan config
+        // Empresa modules are direct booleans
+        modules[moduleKey] = !modules[moduleKey];
+        
+        plan.modules = modules;
+        newPlans[planIndex] = plan;
+        setPlans(newPlans);
+    };
+
+    const toggleProfileModule = (planIndex: number, moduleKey: string) => {
+        const newPlans = [...plans];
+        const plan = { ...newPlans[planIndex] };
+        const modules = { ...(plan.profile_modules || {}) };
+        
+        // Profile modules (Sidebar) use the { admin, member } structure
         const isEnabled = modules[moduleKey]?.admin === true;
         modules[moduleKey] = {
             admin: !isEnabled,
             member: !isEnabled
         };
         
-        plan.modules = modules;
+        plan.profile_modules = modules;
         newPlans[planIndex] = plan;
         setPlans(newPlans);
     };
@@ -368,30 +390,57 @@ export function LandingPlansEditor() {
                                 />
                             </div>
 
-                            <div className="mt-4">
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Módulos Liberados</label>
-                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-100 dark:border-slate-700">
-                                    {APP_MODULES.map((mod) => {
-                                        const isEnabled = plan.modules?.[mod.key]?.admin === true;
-                                        return (
-                                            <button
-                                                key={mod.key}
-                                                onClick={() => toggleModule(pIdx, mod.key)}
-                                                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all text-left ${
-                                                    isEnabled 
-                                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' 
-                                                        : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
-                                                }`}
-                                            >
-                                                <div className={`w-3 h-3 rounded-full flex items-center justify-center ${isEnabled ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
-                                                    {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
-                                                </div>
-                                                <span className="truncate">{mod.label}</span>
-                                            </button>
-                                        );
-                                    })}
+                            <div className="mt-4 space-y-4">
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Acesso ao Sidebar (Perfil)</label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                                        {APP_MODULES.filter(m => !['settings'].includes(m.key)).map((mod) => {
+                                            const isEnabled = plan.profile_modules?.[mod.key]?.admin === true;
+                                            return (
+                                                <button
+                                                    key={mod.key}
+                                                    onClick={() => toggleProfileModule(pIdx, mod.key)}
+                                                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
+                                                        isEnabled 
+                                                            ? 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300' 
+                                                            : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-blue-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
+                                                        {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
+                                                    </div>
+                                                    <span className="truncate">{mod.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                                <p className="text-[10px] text-gray-400 mt-2 italic">* Define o acesso inicial ao assinar este plano</p>
+
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Módulos Ativos (Empresa)</label>
+                                    <div className="grid grid-cols-2 gap-2 p-2 bg-emerald-50/30 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                                        {COMPANY_MODULE_OPTIONS.map((mod) => {
+                                            const isEnabled = !!plan.modules?.[mod.key];
+                                            return (
+                                                <button
+                                                    key={mod.key}
+                                                    onClick={() => toggleCompanyModule(pIdx, mod.key)}
+                                                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
+                                                        isEnabled 
+                                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' 
+                                                            : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
+                                                        {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
+                                                    </div>
+                                                    <span className="truncate">{mod.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-gray-400 italic">Define os privilégios iniciais do plano</p>
                             </div>
                         </div>
                     </div>
