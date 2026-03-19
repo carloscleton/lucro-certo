@@ -20,7 +20,6 @@ import { useCompanies } from '../hooks/useCompanies';
 import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
 import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
 import { useTransactions } from '../hooks/useTransactions';
-import { supabase } from '../lib/supabase';
 import { useAdmin } from '../hooks/useAdmin';
 import { Users, Building, DollarSign, TrendingUp } from 'lucide-react';
 
