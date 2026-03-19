@@ -163,46 +163,41 @@ export function PaymentRequired() {
     const plans = appSettings?.landing_plans?.filter((p: any) => p.enabled !== false) || [];
 
     return (
-        <div className="min-h-screen bg-[#070b14] text-white selection:bg-blue-500/30">
-            {/* Background Decorative Elements */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[120px]" />
+        <div className="min-h-screen bg-[#070b14] text-white selection:bg-blue-500/30 font-sans overflow-x-hidden">
+            {/* Immersive Background Image */}
+            <div className="fixed inset-0 z-0">
+                <img 
+                    src="file:///C:/Users/carlo/.gemini/antigravity/brain/757d300a-253e-4f79-b0a4-dd2440e46f26/premium_financial_growth_3d_1773953310925.png" 
+                    alt="" 
+                    className="w-full h-full object-cover opacity-20 scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#070b14] via-[#070b14]/80 to-[#070b14]" />
+                <div className="absolute inset-0 bg-blue-600/5 mix-blend-overlay" />
             </div>
 
-            <div className="relative max-w-7xl mx-auto px-4 py-16 lg:py-24">
-                {/* Hero Section with Image */}
-                <div className="flex flex-col lg:flex-row items-center gap-16 mb-20">
-                    <div className="flex-1 text-center lg:text-left">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-black uppercase tracking-[0.2em] mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                            <Sparkles size={14} />
-                            Gestão de Alta Performance
-                        </div>
-                        <h1 className="text-4xl md:text-6xl font-black mb-8 leading-[1.1] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/50">
-                            {currentEntity?.subscription_plan === 'trial' ? 'Seu Período de Teste Expirou.' : 'Ative seu Lucro Certo Agora.'}
-                        </h1>
-                        <p className="text-slate-400 text-lg md:text-xl leading-relaxed max-w-2xl">
-                            Transforme sua gestão financeira com clareza, automação e inteligência. Escolha o plano que melhor se adapta ao momento da sua empresa.
-                        </p>
-                    </div>
+            {/* Background Decorative Blurs */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
+                <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[140px] animate-pulse duration-[10s]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[140px] animate-pulse duration-[8s]" />
+            </div>
 
-                    <div className="flex-1 relative w-full max-w-lg lg:max-w-none">
-                        <div className="relative group">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-                            <div className="relative aspect-square md:aspect-video lg:aspect-square bg-slate-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
-                                <img 
-                                    src="file:///C:/Users/carlo/.gemini/antigravity/brain/757d300a-253e-4f79-b0a4-dd2440e46f26/premium_financial_growth_3d_1773953310925.png" 
-                                    alt="Lucro Certo Premium Visualization" 
-                                    className="w-full h-full object-cover transform scale-105 group-hover:scale-110 transition-transform duration-700"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                            </div>
-                        </div>
+            <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 lg:py-24">
+                {/* Centered Hero Section */}
+                <div className="max-w-4xl mx-auto text-center mb-20 lg:mb-24">
+                    <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <Sparkles size={14} />
+                        Gestão de Alta Performance
                     </div>
+                    <h1 className="text-4xl md:text-7xl font-black mb-8 leading-[1.05] tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/40">
+                        {currentEntity?.subscription_plan === 'trial' ? 'Acelere seu Negócio.' : 'Ative seu Lucro Certo Agora.'}
+                    </h1>
+                    <p className="text-slate-400 text-lg md:text-2xl leading-relaxed max-w-3xl mx-auto font-medium">
+                        Transforme sua gestão com clareza absoluta, automação inteligente e a força do seu novo painel financeiro.
+                    </p>
                 </div>
 
                 {/* Plan Selection Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-28">
                     {plans.map((plan: any, idx: number) => (
                         <div 
                             key={idx}
