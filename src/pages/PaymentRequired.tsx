@@ -163,121 +163,158 @@ export function PaymentRequired() {
     const plans = appSettings?.landing_plans?.filter((p: any) => p.enabled !== false) || [];
 
     return (
-        <div className="fixed inset-0 bg-slate-900 z-[9999] overflow-y-auto pb-12">
-            <div className="max-w-6xl mx-auto px-4 pt-12">
-                <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-blue-600/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
-                        <Sparkles className="w-8 h-8 text-blue-500 animate-pulse" />
+        <div className="min-h-screen bg-[#070b14] text-white selection:bg-blue-500/30">
+            {/* Background Decorative Elements */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[120px]" />
+            </div>
+
+            <div className="relative max-w-7xl mx-auto px-4 py-16 lg:py-24">
+                {/* Hero Section with Image */}
+                <div className="flex flex-col lg:flex-row items-center gap-16 mb-20">
+                    <div className="flex-1 text-center lg:text-left">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-black uppercase tracking-[0.2em] mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <Sparkles size={14} />
+                            Gestão de Alta Performance
+                        </div>
+                        <h1 className="text-4xl md:text-6xl font-black mb-8 leading-[1.1] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/50">
+                            {currentEntity?.subscription_plan === 'trial' ? 'Seu Período de Teste Expirou.' : 'Ative seu Lucro Certo Agora.'}
+                        </h1>
+                        <p className="text-slate-400 text-lg md:text-xl leading-relaxed max-w-2xl">
+                            Transforme sua gestão financeira com clareza, automação e inteligência. Escolha o plano que melhor se adapta ao momento da sua empresa.
+                        </p>
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">
-                        {currentEntity?.subscription_plan === 'trial' ? 'Seu Teste Grátis Expirou ⏳' : 'Ative seu Lucro Certo ✨'}
-                    </h1>
-                    <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-                        Escolha o plano ideal para o momento do seu negócio e continue transformando sua gestão financeira.
-                    </p>
+
+                    <div className="flex-1 relative w-full max-w-lg lg:max-w-none">
+                        <div className="relative group">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
+                            <div className="relative aspect-square md:aspect-video lg:aspect-square bg-slate-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
+                                <img 
+                                    src="file:///C:/Users/carlo/.gemini/antigravity/brain/757d300a-253e-4f79-b0a4-dd2440e46f26/premium_financial_growth_3d_1773953310925.png" 
+                                    alt="Lucro Certo Premium Visualization" 
+                                    className="w-full h-full object-cover transform scale-105 group-hover:scale-110 transition-transform duration-700"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                {/* Plan Selection Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
                     {plans.map((plan: any, idx: number) => (
                         <div 
                             key={idx}
                             onClick={() => setSelectedPlan(plan)}
-                            className={`relative cursor-pointer rounded-3xl p-6 border-2 transition-all duration-300 flex flex-col ${
+                            className={`relative cursor-pointer rounded-[2rem] p-8 border transition-all duration-500 flex flex-col group ${
                                 selectedPlan?.name === plan.name 
-                                    ? 'bg-blue-600/5 border-blue-500 shadow-[0_20px_50px_-12px_rgba(59,130,246,0.3)]' 
-                                    : 'bg-slate-800/50 border-slate-700 hover:border-slate-500'
+                                    ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_20px_50px_-12px_rgba(59,130,246,0.5)] ring-1 ring-blue-500/20' 
+                                    : 'bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.05]'
                             }`}
                         >
                             {plan.is_popular && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-blue-400 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-lg">
                                     Mais Popular
                                 </div>
                             )}
 
-                            <div className="mb-6">
-                                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-3xl font-black text-white">R$ {plan.price}</span>
-                                    <span className="text-slate-400 text-sm font-medium">/{plan.period}</span>
+                            <div className="mb-8">
+                                <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">{plan.name}</h3>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-4xl font-black text-white">R$ {plan.price}</span>
+                                    <span className="text-slate-500 text-sm font-medium uppercase tracking-widest">/{plan.period === 'mensal' ? 'mês' : plan.period}</span>
                                 </div>
-                                {plan.observation && <p className="text-blue-400 text-[11px] font-bold mt-2 uppercase tracking-wide">{plan.observation}</p>}
+                                {plan.observation && <p className="text-blue-400 text-xs font-black mt-3 uppercase tracking-widest bg-blue-500/10 inline-block px-3 py-1 rounded-lg border border-blue-500/20">{plan.observation}</p>}
                             </div>
 
-                            <div className="flex-1 space-y-3 mb-8">
+                            <div className="flex-1 space-y-4 mb-10">
                                 {plan.features?.map((feat: string, fIdx: number) => (
-                                    <div key={fIdx} className="flex items-start gap-2">
-                                        <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5 border border-emerald-500/20">
-                                            <Check size={12} className="text-emerald-500" />
+                                    <div key={fIdx} className="flex items-start gap-3">
+                                        <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5 border border-emerald-500/20">
+                                            <Check size={14} className="text-emerald-500" />
                                         </div>
-                                        <span className="text-slate-300 text-sm leading-tight">{feat.replace(/\*\*/g, '')}</span>
+                                        <span className="text-slate-400 text-sm leading-relaxed">{feat.replace(/\*\*/g, '')}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className={`w-full py-3 rounded-xl font-bold text-center transition-all ${
+                            <div className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all duration-300 ${
                                 selectedPlan?.name === plan.name 
-                                    ? 'bg-blue-500 text-white' 
-                                    : 'bg-slate-700 text-slate-300'
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
+                                    : 'bg-white/10 text-slate-300 group-hover:bg-white/20'
                             }`}>
-                                {selectedPlan?.name === plan.name ? 'Selecionado' : 'Selecionar'}
+                                {selectedPlan?.name === plan.name ? 'Plano Selecionado' : 'Selecionar'}
                             </div>
                         </div>
                     ))}
                 </div>
 
-                <div className="max-w-2xl mx-auto">
-                    <div className="bg-slate-800/80 backdrop-blur-md rounded-3xl border border-slate-700 p-8 shadow-2xl">
-                        <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                            <Building2 className="text-blue-500" size={20} />
-                            Dados de Faturamento
-                        </h4>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">CPF ou CNPJ</label>
-                                <input
-                                    type="text"
-                                    value={documentStr}
-                                    onChange={(e) => { setDocumentStr(formatDocument(e.target.value)); setErrorMsg(''); }}
-                                    placeholder="000.000.000-00"
-                                    className={`w-full bg-slate-900 border ${errorMsg ? 'border-red-500' : 'border-slate-700'} rounded-2xl p-4 text-white focus:ring-2 focus:ring-blue-500/20 transition-all outline-none`}
-                                />
-                                {errorMsg && <p className="text-red-500 text-[10px] mt-2 font-bold">{errorMsg}</p>}
+                {/* Billing Section */}
+                <div className="max-w-3xl mx-auto">
+                    <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 to-emerald-600/20 rounded-[2.5rem] blur-xl opacity-50" />
+                        <div className="relative bg-white/[0.03] backdrop-blur-3xl rounded-[2.5rem] border border-white/10 p-10 md:p-12 shadow-2xl">
+                            <h4 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20 text-emerald-500">
+                                    <Building2 size={24} />
+                                </div>
+                                Dados de Faturamento
+                            </h4>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">CPF ou CNPJ</label>
+                                    <input
+                                        type="text"
+                                        value={documentStr}
+                                        onChange={(e) => { setDocumentStr(formatDocument(e.target.value)); setErrorMsg(''); }}
+                                        placeholder="000.000.000-00"
+                                        className={`w-full bg-[#0a0f1a] border ${errorMsg ? 'border-red-500/50' : 'border-white/10'} rounded-2xl p-4 text-white placeholder:text-slate-700 focus:border-blue-500/50 transition-all outline-none text-lg font-medium`}
+                                    />
+                                    {errorMsg && <p className="text-red-500 text-[10px] mt-2 font-black uppercase tracking-widest">{errorMsg}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">WhatsApp</label>
+                                    <input
+                                        type="text"
+                                        value={phoneStr}
+                                        onChange={(e) => { setPhoneStr(formatPhone(e.target.value)); setPhoneError(''); }}
+                                        placeholder="+55 (00) 00000-0000"
+                                        className={`w-full bg-[#0a0f1a] border ${phoneError ? 'border-red-500/50' : 'border-white/10'} rounded-2xl p-4 text-white placeholder:text-slate-700 focus:border-blue-500/50 transition-all outline-none text-lg font-medium`}
+                                    />
+                                    {phoneError && <p className="text-red-500 text-[10px] mt-2 font-black uppercase tracking-widest">{phoneError}</p>}
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">WhatsApp</label>
-                                <input
-                                    type="text"
-                                    value={phoneStr}
-                                    onChange={(e) => { setPhoneStr(formatPhone(e.target.value)); setPhoneError(''); }}
-                                    placeholder="+55 (00) 00000-0000"
-                                    className={`w-full bg-slate-900 border ${phoneError ? 'border-red-500' : 'border-slate-700'} rounded-2xl p-4 text-white focus:ring-2 focus:ring-blue-500/20 transition-all outline-none`}
-                                />
-                                {phoneError && <p className="text-red-500 text-[10px] mt-2 font-bold">{phoneError}</p>}
-                            </div>
-                        </div>
 
-                        <Button
-                            onClick={handlePayment}
-                            isLoading={loading}
-                            className="w-full h-16 rounded-2xl text-xl font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_20px_40px_-10px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
-                        >
-                            <CreditCard size={24} />
-                            ASSINAR AGORA
-                        </Button>
-
-                        <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-700/50">
-                            <div className="flex items-center gap-2 text-slate-400 text-sm">
-                                <AlertTriangle size={16} className="text-amber-500" />
-                                Gateway de Pagamento 100% Seguro
-                            </div>
-                            <button
-                                onClick={async () => { await signOut(); navigate('/'); }}
-                                className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors text-sm font-bold"
+                            <Button
+                                onClick={handlePayment}
+                                isLoading={loading}
+                                className="w-full h-20 rounded-[1.5rem] text-xl font-black bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 text-white shadow-2xl shadow-emerald-500/20 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-4 group"
                             >
-                                <LogOut size={16} />
-                                Sair da Conta
-                            </button>
+                                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <CreditCard size={24} />
+                                </div>
+                                ASSINAR AGORA
+                            </Button>
+
+                            <div className="mt-12 flex flex-col md:flex-row items-center justify-between gap-6 pt-10 border-t border-white/5">
+                                <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
+                                    <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500 border border-amber-500/20">
+                                        <AlertTriangle size={16} />
+                                    </div>
+                                    Pagamento Seguro via Asaas®
+                                </div>
+                                <div className="flex items-center gap-6">
+                                    <button
+                                        onClick={async () => { await signOut(); navigate('/'); }}
+                                        className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors text-xs font-black uppercase tracking-widest"
+                                    >
+                                        <LogOut size={16} />
+                                        Sair da Conta
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
