@@ -16,7 +16,6 @@ import {
     Bell,
     ShieldAlert,
     AlertTriangle,
-    CreditCard,
     Activity,
     User,
     Building2,
@@ -37,7 +36,6 @@ import { APP_MODULES, getModulePermission } from '../../config/permissions';
 import { OfflineBanner } from '../ui/OfflineBanner';
 import { LanguageSelector } from '../ui/LanguageSelector';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
-import { useCompanies } from '../../hooks/useCompanies';
 import { ProfileCompletionModal } from '../orientation/ProfileCompletionModal';
 
 export function Layout() {
@@ -63,8 +61,6 @@ export function Layout() {
     const [cpfInput, setCpfInput] = useState('');
     const [cpfError, setCpfError] = useState('');
     const [pendingCheckoutCompanyId, setPendingCheckoutCompanyId] = useState<string | null>(null);
-
-    const { companies } = useCompanies();
 
     // Checkout Logic
     const executeCheckout = async (companyId: string) => {
