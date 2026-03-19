@@ -265,7 +265,8 @@ export function useAdmin() {
             });
 
             if (error) throw error;
-            await fetchAdminData(true);
+            // Removed heavy refetch to prevent snapping back and improve perf
+            // await fetchAdminData(true);
             return { error: null };
         } catch (err: any) {
             console.error('Error toggling company status:', err);
