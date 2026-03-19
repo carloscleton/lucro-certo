@@ -157,7 +157,7 @@ export function useAdmin() {
         console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, allowedTypes, settings });
 
         try {
-            const { data, error } = await supabase.rpc('admin_update_company_config', {
+            const { error } = await supabase.rpc('admin_update_company_config', {
                 target_company_id: companyId,
                 fiscal_enabled: fiscal,
                 payments_enabled: payments,
