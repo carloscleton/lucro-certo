@@ -89,19 +89,43 @@ export function PaymentRequired() {
         if (cleanPhone.length < 10) {
             setPhoneError('Informe um telefone válido com DDD.');
             return;
-        }
-
-        setLoading(true);
+        }        setLoading(true);
         try {
+            let targetId = currentEntity.type === 'personal'
+                ? (currentEntity.associated_company_id || profile?.company_id)
+                : currentEntity.id;
+
+            // ✅ AUTO-CRIAÇÃO: Se não existe empresa, cria uma PF na hora
+            if (!targetId || targetId === 'personal') {
+                const userName = profile?.full_name || 'Conta Pessoal';
+                console.log('DEBUG: Criando PF para:', userName);
+                const { data: createData, error: createError } = await supabase.rpc('create_company', {
+                    name_input: userName,
+                    trade_name_input: userName,
+                    cnpj_input: '',
+                    entity_type_input: 'PF',
+                    cpf_input: null,
+                    email_input: profile?.email || '',
+                    phone_input: profile?.phone || '',
+                });
+                
+                if (createError || !createData?.success) {
+                    throw new Error(createData?.message || createError?.message || 'Erro ao criar conta.');
+                }
+                targetId = createData.company_id;
+                console.log('DEBUG: Empresa PF criada! ID:', targetId);
+            }
+
             // 1. Atualizar o plano e dados de faturamento na empresa
+            const isCnpj = cleanDoc.length === 14;
             const { error: updateError } = await supabase
                 .from('companies')
                 .update({ 
-                    cnpj: cleanDoc,
+                    [isCnpj ? 'cnpj' : 'cpf']: cleanDoc, // Use CPF column if it's 11 digits
                     phone: cleanPhone,
                     subscription_plan: selectedPlan.name
                 })
-                .eq('id', currentEntity.id);
+                .eq('id', targetId);
             
             if (updateError) throw updateError;
 
@@ -116,7 +140,7 @@ export function PaymentRequired() {
                     'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
                 },
                 body: JSON.stringify({
-                    company_id: currentEntity.id,
+                    company_id: targetId,
                     access_token: session?.access_token
                 })
             });
@@ -128,9 +152,9 @@ export function PaymentRequired() {
             } else {
                 alert(`Erro ao gerar pagamento: ${data?.error || "Tente novamente em instantes."}`);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Erro no processo de pagamento:", err);
-            alert("Erro ao conectar com o gateway. Verifique sua conexão.");
+            alert("Erro ao processar: " + (err.message || "Verifique sua conexão."));
         } finally {
             setLoading(false);
         }
