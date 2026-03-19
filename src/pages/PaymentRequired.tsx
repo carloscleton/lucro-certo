@@ -315,7 +315,3 @@ export function PaymentRequired() {
         </div>
     );
 }
-            </div>
-        </div>
-    );
-}
