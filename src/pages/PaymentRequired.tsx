@@ -25,7 +25,7 @@ export function PaymentRequired() {
                 setAppSettings(data);
                 // Pré-selecionar o plano atual ou o primeiro visível
                 const plans = data.landing_plans || [];
-                const current = plans.find((p: any) => p.name === currentEntity?.subscription_plan && p.enabled !== false);
+                const current = plans.find((p: any) => p.name?.toLowerCase() === currentEntity?.subscription_plan?.toLowerCase() && p.enabled !== false);
                 setSelectedPlan(current || plans.find((p: any) => p.enabled !== false));
             }
         };
