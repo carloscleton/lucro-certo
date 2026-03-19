@@ -28,6 +28,7 @@ import { EntityProvider, useEntity } from './context/EntityContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CRMProvider } from './context/CRMContext';
 import { LandingPage } from './pages/LandingPage';
+import { PaymentRequired } from './pages/PaymentRequired';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading: authLoading } = useAuth();
@@ -54,7 +55,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   // Se o ambiente atual for uma empresa e estiver com pendência ou teste expirado
   if (currentEntity?.type === 'company') {
     if (['unpaid', 'past_due'].includes(status) || isTrialExpired) {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/payment-required" replace />;
     }
   }
 
@@ -68,6 +69,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/pay/:id" element={<Checkout />} />
+      <Route path="/payment-required" element={<PaymentRequired />} />
 
       <Route path="/dashboard" element={
         <ProtectedRoute>

@@ -139,46 +139,8 @@ export function Layout() {
             setLoadingCheckout(false);
         }
     };
+    const handleUpgrade = () => navigate('/payment-required');
 
-    const handleUpgrade = async () => {
-        try {
-            setLoadingCheckout(true);
-            let targetCompanyId = currentEntity.type === 'personal'
-                ? (currentEntity.associated_company_id || profile?.company_id || (companies && companies.length > 0 ? companies[0].id : null))
-                : currentEntity.id;
-
-            if (!targetCompanyId || targetCompanyId === 'personal') {
-                setLoadingCheckout(false);
-                setCpfInput('');
-                setCpfError('');
-                setCpfModalOpen(true);
-                return;
-            }
-
-            const { data: companyData } = await supabase
-                .from('companies')
-                .select('cpf, cnpj, entity_type')
-                .eq('id', targetCompanyId)
-                .maybeSingle();
-
-            const hasCpfOrCnpj = (companyData?.cpf && companyData.cpf.replace(/\D/g, '').length >= 11)
-                || (companyData?.cnpj && companyData.cnpj.replace(/\D/g, '').length >= 14);
-
-            if (!hasCpfOrCnpj) {
-                setLoadingCheckout(false);
-                setCpfInput('');
-                setCpfError('');
-                setPendingCheckoutCompanyId(targetCompanyId);
-                setCpfModalOpen(true);
-                return;
-            }
-
-            await executeCheckout(targetCompanyId);
-        } catch (err: any) {
-            alert('Falha ao processar checkout: ' + err.message);
-            setLoadingCheckout(false);
-        }
-    };
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -658,11 +620,6 @@ export function Layout() {
                                 <p className="text-gray-600 dark:text-gray-300">
                                     {t('login.account_suspended')}
                                 </p>
-                                <div className="mt-6 p-5 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {t('login.contact_support')}
-                                    </p>
-                                </div>
                                 <div className="mt-8">
                                     <Button onClick={async () => {
                                         await signOut();
@@ -681,127 +638,21 @@ export function Layout() {
                             </div>
                             <div className="max-w-md">
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                                    {currentEntity.subscription_status === 'unpaid'
-                                        ? `Bem-vindo, ${profile?.full_name?.split(' ')[0] || ''}! ✨`
-                                        : `${currentEntity.name} ${t('common.status')}: Bloqueada`}
+                                    Ambiente Bloqueado
                                 </h2>
                                 <p className="text-gray-600 dark:text-gray-300 font-medium">
-                                    {currentEntity.subscription_status === 'past_due'
-                                        ? "O acesso foi suspenso devido a pendências financeiras."
-                                        : currentEntity.subscription_status === 'unpaid'
-                                            ? "Sua conta foi criada com sucesso! Para começar a usar o Lucro Certo, conclua a ativação da sua assinatura."
-                                            : "O acesso a esta empresa está temporariamente suspenso pela administração."}
+                                    O acesso a esta empresa está temporariamente suspenso pela administração.
                                 </p>
-                                <div className="mt-6 p-5 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {['past_due', 'unpaid'].includes(currentEntity.subscription_status || '')
-                                            ? "Ao clicar no botão abaixo, você será redirecionado para concluir o pagamento de forma segura."
-                                            : "Selecione outro ambiente na barra lateral ou contate o administrador."}
-                                    </p>
+                                <div className="mt-8 flex justify-center">
+                                    <Button
+                                        onClick={async () => { await signOut(); navigate('/'); }}
+                                        variant="outline"
+                                        className="flex items-center gap-2"
+                                    >
+                                        <LogOut size={18} />
+                                        Sair da Conta
+                                    </Button>
                                 </div>
-                                {['past_due', 'unpaid'].includes(currentEntity.subscription_status || '') && (
-                                    <div className="mt-8 flex justify-center">
-                                        <Button
-                                            onClick={async () => {
-                                                try {
-                                                    setLoadingCheckout(true);
-                                                    console.log('Iniciando checkout para empresa:', currentEntity.id);
-
-                                                    // Get fresh session
-                                                    const { data: { session: freshSession } } = await supabase.auth.getSession();
-
-                                                    if (!freshSession) {
-                                                        console.error('Nenhuma sessão encontrada no navegador.');
-                                                        alert('Sessão não encontrada. Por favor, saia e entre novamente.');
-                                                        return;
-                                                    }
-
-                                                    console.log('Sessão ativa para:', freshSession.user.email);
-                                                    let targetId = currentEntity.type === 'personal'
-                                                         ? (currentEntity.associated_company_id || profile?.company_id)
-                                                         : currentEntity.id;
-
-                                                     // ✅ AUTO-CRIAÇÃO: Se não existe empresa, cria uma PF na hora
-                                                     if (!targetId || targetId === 'personal') {
-                                                         const userName = profile?.full_name || 'Conta Pessoal';
-                                                         console.log('DEBUG: Layout - Nenhuma empresa. Criando PF para:', userName);
-                                                         const { data: createData, error: createError } = await supabase.rpc('create_company', {
-                                                             name_input: userName,
-                                                             trade_name_input: userName,
-                                                             cnpj_input: '',
-                                                             entity_type_input: 'PF',
-                                                             cpf_input: null,
-                                                             email_input: profile?.email || '',
-                                                             phone_input: profile?.phone || '',
-                                                         });
-                                                         if (createError || !createData?.success) {
-                                                             const msg = createData?.message || createError?.message || 'Erro ao criar conta PF.';
-                                                             alert('Erro ao preparar sua conta: ' + msg);
-                                                             setLoadingCheckout(false);
-                                                             return;
-                                                         }
-                                                         targetId = createData.company_id;
-                                                         console.log('DEBUG: Layout - Empresa PF criada! ID:', targetId);
-                                                     }
-
-                                                    // Bypassing the Supabase 401 relay by using direct fetch
-                                                    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
-                                                    const fetchRes = await fetch(functionUrl, {
-                                                        method: 'POST',
-                                                        headers: {
-                                                            'Content-Type': 'application/json',
-                                                            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-                                                            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-                                                        },
-                                                        body: JSON.stringify({
-                                                            company_id: targetId,
-                                                            access_token: freshSession.access_token
-                                                        })
-                                                    });
-
-                                                    const data = await fetchRes.json();
-                                                    const res = { data, error: !fetchRes.ok ? { message: data.error } : null };
-
-                                                    if (res.error) {
-                                                        console.error('Erro na Edge Function (HTTP):', res.error);
-                                                        alert('Erro de Conexão: ' + (res.error.message || 'Erro ao falar com o servidor.'));
-                                                        return;
-                                                    }
-
-                                                    // Se a função retornou 200 mas com erro no corpo (JSON)
-                                                    if (res.data?.error) {
-                                                        console.error('Erro de Negócio:', res.data.error);
-                                                        const errorMsg = res.data.error;
-
-                                                        if (errorMsg.includes('Unauthorized') || errorMsg.includes('401')) {
-                                                            alert('Erro de Autenticação: Sua sessão pode ter expirado ou o token é inválido. Por favor, saia e entre novamente.');
-                                                        } else if (errorMsg.includes('Not a member')) {
-                                                            alert('Erro de Permissão: Você não está vinculado como dono desta empresa (' + currentEntity.id + '). Contate o suporte.');
-                                                        } else {
-                                                            alert('Erro no Checkout: ' + errorMsg);
-                                                        }
-                                                        return;
-                                                    }
-
-                                                    if (res.data?.paymentUrl) {
-                                                        window.open(res.data.paymentUrl, '_blank');
-                                                    } else {
-                                                        console.error('Dados de retorno inválidos:', res.data);
-                                                        throw new Error(res.data?.error || 'Não foi possível gerar o link de pagamento.');
-                                                    }
-                                                } catch (err: any) {
-                                                    console.error('Erro detalhado no checkout:', err);
-                                                    alert('Falha ao processar checkout: ' + (err.message || 'Erro desconhecido.'));
-                                                }
-                                            }}
-                                            isLoading={loadingCheckout}
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-                                        >
-                                            <CreditCard size={20} />
-                                            {currentEntity.subscription_status === 'unpaid' ? 'Concluir Assinatura' : 'Regularizar Pagamento'}
-                                        </Button>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     ) : (
