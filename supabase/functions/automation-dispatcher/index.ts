@@ -109,3 +109,24 @@ serve(async (req) => {
         })
     }
 })
+
+// Cron Trigger: Roda a cada 1 hora para processar agendamentos pendentes
+if (typeof (Deno as any).cron === 'function') {
+    (Deno as any).cron('Automation Dispatcher Hourly', '0 * * * *', async () => {
+        try {
+            console.log("Triggered by Deno Cron (Automation Dispatcher)");
+            const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+            const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+            const client = createClient(supabaseUrl, supabaseServiceKey);
+            
+            // Simula o request para o próprio Dispatcher (ou chama a lógica interna se refatorado)
+            // Para simplicidade aqui, chamamos a URL interna
+            await fetch(`${supabaseUrl}/functions/v1/automation-dispatcher`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${supabaseServiceKey}` }
+            });
+        } catch (err) {
+            console.error("Cron Error:", err);
+        }
+    })
+}
