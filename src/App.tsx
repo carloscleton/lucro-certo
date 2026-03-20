@@ -29,6 +29,41 @@ import { NotificationProvider } from './context/NotificationContext';
 import { CRMProvider } from './context/CRMContext';
 import { LandingPage } from './pages/LandingPage';
 import { PaymentRequired } from './pages/PaymentRequired';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
+import { Clock } from 'lucide-react'; // Security icons
+
+function SessionTimeoutWrapper({ children }: { children: ReactNode }) {
+  const { showWarning, resetTimer } = useIdleTimeout();
+
+  return (
+    <>
+      {children}
+      {showWarning && (
+        <div className="fixed bottom-6 right-6 z-[9999] animate-in slide-in-from-right-full duration-500">
+          <div className="bg-white dark:bg-slate-800 border-2 border-orange-500 rounded-2xl p-5 shadow-2xl max-w-sm flex gap-4 ring-4 ring-orange-500/10">
+            <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl self-start">
+              <Clock className="text-orange-600 animate-pulse" size={24} />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                Sessão Expirando!
+              </h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+                Você está inativo há quase 15 minutos. Por segurança, sua sessão será encerrada em breve.
+              </p>
+              <button 
+                onClick={resetTimer}
+                className="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-lg transition-all shadow-lg shadow-orange-500/20 active:scale-95"
+              >
+                CONTINUAR CONECTADO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading: authLoading } = useAuth();
@@ -111,7 +146,9 @@ function App() {
           <EntityProvider>
             <NotificationProvider>
               <CRMProvider>
-                <AppRoutes />
+                <SessionTimeoutWrapper>
+                  <AppRoutes />
+                </SessionTimeoutWrapper>
               </CRMProvider>
             </NotificationProvider>
           </EntityProvider>
