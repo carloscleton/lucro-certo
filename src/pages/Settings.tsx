@@ -28,7 +28,7 @@ import { LandingPlansEditor } from '../components/admin/LandingPlansEditor';
 export function Settings() {
     const { t } = useTranslation();
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
-    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, deleteCompany, toggleUserBan, toggleCompanyBlock, updateUserConfig, updateCompanyConfig, updateAppSettings, appSettings } = useAdmin();
+    const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, deleteCompany, toggleUserBan, toggleCompanyBlock, updateUserLimit, updateUserConfig, updateCompanyConfig, updateAppSettings, appSettings } = useAdmin();
     const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies } = useCompanies();
