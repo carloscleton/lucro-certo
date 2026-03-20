@@ -1410,40 +1410,93 @@ export function Settings() {
                             </div>
 
                             <div className="p-8 overflow-y-auto space-y-6">
-                                {/* User-specific settings */}
-                                <div>
-                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                        <Lock size={18} className="text-blue-500" />
-                                        Permissões Pessoais
-                                    </h4>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                {/* NOVO: Limites da Empresa (Solicitado pelo usuário) */}
+                                <div className="p-4 rounded-xl border-2 border-orange-100 dark:border-orange-900/10 bg-orange-50/20 dark:bg-orange-900/10">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
+                                            <Building size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">Limite de Gerenciamento</h4>
+                                            <p className="text-sm text-gray-500">Defina se este usuário pode cadastrar empresas (PJ) e qual o seu limite.</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                             <div>
-                                                <h5 className="font-bold text-gray-900 dark:text-white">Pode Criar Empresas</h5>
-                                                <p className="text-xs text-gray-500">Permite ao usuário criar novas empresas (PJ)</p>
+                                                <h5 className="font-bold text-[12px] text-gray-900 dark:text-white leading-tight">Pode Criar Empresas</h5>
+                                                <p className="text-[10px] text-gray-400">Permite criar empresas novas como PJ</p>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
+                                            <label className="relative inline-flex items-center cursor-pointer scale-90">
                                                 <input
                                                     type="checkbox"
                                                     className="sr-only peer"
-                                                    checked={selectedUserForConfig.can_create_companies}
+                                                    checked={selectedUserForConfig.settings?.can_create_companies !== false}
                                                     onChange={async (e) => {
                                                         const newVal = e.target.checked;
                                                         const newSettings = { ...(selectedUserForConfig.settings || {}), can_create_companies: newVal };
                                                         const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
-                                                        if (error) alert('Erro: ' + error);
-                                                        else setSelectedUserForConfig({ ...selectedUserForConfig, can_create_companies: newVal, settings: newSettings });
+                                                        if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
                                                     }}
                                                 />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                                             </label>
+                                        </div>
+                                        <div className="flex items-end gap-3 min-w-[140px]">
+                                            <Input
+                                                label="Limite de Empresas (PJ)"
+                                                type="number"
+                                                value={selectedUserForConfig.max_companies ?? 1}
+                                                onChange={async (e) => {
+                                                    const val = parseInt(e.target.value) || 1;
+                                                    const { error } = await updateUserLimit(selectedUserForConfig.id, val);
+                                                    if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, max_companies: val });
+                                                }}
+                                                min="1"
+                                                className="h-10 text-center font-bold text-lg"
+                                            />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Modules Matrix */}
                                 <div>
-                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Acesso aos Módulos (Sidebar)</h4>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Acesso aos Módulos (Sidebar)</h4>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={async () => {
+                                                    const currentSettings = selectedUserForConfig.settings || {};
+                                                    const newModules = { ...(currentSettings.modules || {}) };
+                                                    APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).forEach(m => {
+                                                        newModules[m.key] = { admin: true, member: true };
+                                                    });
+                                                    const newSettings = { ...currentSettings, modules: newModules };
+                                                    const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                    if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                }}
+                                                className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase"
+                                            >
+                                                Marcar Tudo
+                                            </button>
+                                            <span className="text-gray-300">|</span>
+                                            <button
+                                                onClick={async () => {
+                                                    const currentSettings = selectedUserForConfig.settings || {};
+                                                    const newModules = { ...(currentSettings.modules || {}) };
+                                                    APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).forEach(m => {
+                                                        newModules[m.key] = { admin: false, member: false };
+                                                    });
+                                                    const newSettings = { ...currentSettings, modules: newModules };
+                                                    const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                    if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                }}
+                                                className="text-[10px] font-bold text-gray-500 hover:text-gray-600 uppercase"
+                                            >
+                                                Desmarcar Tudo
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).map(module => {
                                             const isEnabled = selectedUserForConfig.settings?.modules?.[module.key]?.admin !== false;
@@ -1490,7 +1543,42 @@ export function Settings() {
 
                                 {/* Tabs Matrix */}
                                 <div>
-                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Abas de Configuração</h4>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Abas de Configuração</h4>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={async () => {
+                                                    const currentSettings = selectedUserForConfig.settings || {};
+                                                    const newTabs = { ...(currentSettings.settings_tabs || {}) };
+                                                    SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).forEach(t => {
+                                                        newTabs[t.key] = { admin: true, member: true };
+                                                    });
+                                                    const newSettings = { ...currentSettings, settings_tabs: newTabs };
+                                                    const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                    if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                }}
+                                                className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase"
+                                            >
+                                                Marcar Tudo
+                                            </button>
+                                            <span className="text-gray-300">|</span>
+                                            <button
+                                                onClick={async () => {
+                                                    const currentSettings = selectedUserForConfig.settings || {};
+                                                    const newTabs = { ...(currentSettings.settings_tabs || {}) };
+                                                    SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).forEach(t => {
+                                                        newTabs[t.key] = { admin: false, member: false };
+                                                    });
+                                                    const newSettings = { ...currentSettings, settings_tabs: newTabs };
+                                                    const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                    if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                }}
+                                                className="text-[10px] font-bold text-gray-500 hover:text-gray-600 uppercase"
+                                            >
+                                                Desmarcar Tudo
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map(tab => {
                                             const isEnabled = selectedUserForConfig.settings?.settings_tabs?.[tab.key]?.admin !== false;
