@@ -9,7 +9,6 @@ import {
     Building2,
     Check,
     Loader2,
-    Calendar,
     FileText
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -106,7 +105,6 @@ export function PublicProposal() {
         setStatus('approving');
         try {
             // We'll use a public RPC or specific policy for this
-            const newStatus = action === 'approve' ? 'approved' : 'rejected';
             
             // 🚀 Call Edge Function to handle atomic update + CRM movement
             const { error } = await supabase.functions.invoke('crm-process-proposal', {
