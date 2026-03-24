@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { LayoutGrid, Target, Wand2, RefreshCw } from 'lucide-react';
+import { LayoutGrid, Target, Wand2, RefreshCw, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCRM, type CRMStage, type CRMDeal } from '../../hooks/useCRM';
 import { useContacts } from '../../hooks/useContacts';
+import { EntityAgendaList } from '../agenda/EntityAgendaList';
 
 interface StageModalProps {
     isOpen: boolean;
@@ -97,6 +99,7 @@ interface DealModalProps {
 }
 
 export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalProps) {
+    const navigate = useNavigate();
     const { addDeal, updateDeal, stages } = useCRM();
     const { contacts } = useContacts();
 
@@ -177,6 +180,18 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleCreateProposal = () => {
+        if (!deal) return;
+        const params = new URLSearchParams({
+            dealId: deal.id,
+            contactId: deal.contact_id || '',
+            title: deal.title,
+            amount: deal.value.toString()
+        });
+        navigate(`/dashboard/quotes/new?${params.toString()}`);
+        onClose();
     };
 
     return (
@@ -263,13 +278,27 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
                     />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4">
-                    <Button variant="ghost" onClick={onClose} type="button">Cancelar</Button>
-                    <Button type="submit" isLoading={saving}>
-                        {deal ? 'Salvar Alterações' : 'Criar Negócio'}
-                    </Button>
+                <div className="flex justify-between items-center pt-4">
+                    {deal && (
+                        <Button type="button" variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50 gap-2" onClick={handleCreateProposal}>
+                            <FileText size={18} />
+                            Gerar Proposta
+                        </Button>
+                    )}
+                    <div className="flex gap-3 ml-auto">
+                        <Button variant="ghost" onClick={onClose} type="button">Cancelar</Button>
+                        <Button type="submit" isLoading={saving}>
+                            {deal ? 'Salvar Alterações' : 'Criar Negócio'}
+                        </Button>
+                    </div>
                 </div>
             </form>
+
+            {deal && (
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-800">
+                    <EntityAgendaList dealId={deal.id} contactId={deal.contact_id || undefined} />
+                </div>
+            )}
         </Modal>
     );
 }

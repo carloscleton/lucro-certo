@@ -260,6 +260,7 @@ export function Layout() {
         whatsapp: '#10b981',  // emerald-500
         payments: '#2563eb', // blue-600
         crm: '#f59e0b',      // amber-500
+        agenda: '#0ea5e9',   // sky-500
         marketing: '#f43f5e', // rose-500
         lead_radar: '#8b5cf6', // violet-500
     };

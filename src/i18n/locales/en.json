@@ -88,6 +88,7 @@
         "whatsapp": "WhatsApp",
         "payments": "Payments",
         "crm": "CRM / Pipeline",
+        "agenda": "Agenda & Tasks",
         "administrative": "Administrative",
         "logout": "Log Out"
     },
@@ -106,7 +107,8 @@
         "settings": "System and preferences",
         "whatsapp": "Messaging and chat",
         "payments": "Charges and link management",
-        "crm": "Lead management and sales pipeline"
+        "crm": "Lead management and sales pipeline",
+        "agenda": "Management of appointments and tasks"
     },
     "layout": {
         "current_environment": "Current Environment",

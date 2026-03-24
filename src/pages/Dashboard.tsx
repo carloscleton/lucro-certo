@@ -22,6 +22,7 @@ import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidg
 import { useTransactions } from '../hooks/useTransactions';
 import { useAdmin } from '../hooks/useAdmin';
 import { Users, Building, DollarSign, TrendingUp } from 'lucide-react';
+import { AgendaTasksWidget } from '../components/dashboard/AgendaTasksWidget';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -109,7 +110,7 @@ export function Dashboard() {
         setMonthFilter(''); // Clear month selection if manual date is picked
     };
 
-    const { metrics, chartData, alerts, expensesByCategory, pendingList, transactions, contextMetrics, previousPeriod, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
+    const { metrics, chartData, alerts, expensesByCategory, agendaTasks, pendingList, transactions, contextMetrics, previousPeriod, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
     const { categories, loading: categoriesLoading } = useCategories();
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
@@ -302,7 +303,14 @@ export function Dashboard() {
 
                 <div className="space-y-6">
                     {/* CRM Dashboard 360 Widget */}
-                    {isCRMEnabled && <CRMStatsWidget receivedIncome={metrics.income} />}
+                    {isCRMEnabled && (
+                        <div className="space-y-6">
+                            <AgendaTasksWidget tasks={agendaTasks} />
+                            <CRMStatsWidget receivedIncome={metrics.income} />
+                        </div>
+                    )}
+
+                    {!isCRMEnabled && <AgendaTasksWidget tasks={agendaTasks} />}
 
                     {/* Cash Flow Forecast */}
                     <CashFlowForecast

@@ -1113,6 +1113,18 @@ export function Quotes() {
                                                         <Edit size={16} />
                                                     </button>
                                                 </Tooltip>
+                                                <Tooltip content="Copiar Link Proposta (Público)">
+                                                    <button
+                                                        onClick={() => {
+                                                            const url = `${window.location.origin}/proposal/${quote.id}`;
+                                                            navigator.clipboard.writeText(url);
+                                                            notify('success', 'Copiado', 'Link da proposta copiado!');
+                                                        }}
+                                                        className="text-emerald-500 hover:text-emerald-700 p-1 rounded hover:bg-emerald-50"
+                                                    >
+                                                        <Rocket size={16} />
+                                                    </button>
+                                                </Tooltip>
                                                 <Tooltip content="Imprimir">
                                                     <button
                                                         onClick={() => navigate(`/quotes/${quote.id}/print`)}

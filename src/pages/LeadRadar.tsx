@@ -31,6 +31,7 @@ import { useEntity } from '../context/EntityContext';
 import { useCRM } from '../context/CRMContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { EntityAgendaList } from '../components/agenda/EntityAgendaList';
 
 interface AISettings {
     id?: string;
@@ -1414,6 +1415,10 @@ export function LeadRadar() {
                                             Ver postagem/site original
                                         </a>
                                     )}
+
+                                    <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
+                                        <EntityAgendaList leadId={selectedLead.id} />
+                                    </div>
                                 </div>
                             </div>
                             <div className="p-6 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-700">

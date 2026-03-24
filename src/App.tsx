@@ -20,6 +20,7 @@ import { WhatsApp } from './pages/WhatsApp';
 import { Payments } from './pages/Payments';
 import { Checkout } from './pages/Checkout';
 import { CRM } from './pages/CRM';
+import { Agenda } from './pages/Agenda';
 import { Marketing } from './pages/Marketing';
 import { LeadRadar } from './pages/LeadRadar';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -29,6 +30,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import { CRMProvider } from './context/CRMContext';
 import { LandingPage } from './pages/LandingPage';
 import { PaymentRequired } from './pages/PaymentRequired';
+import { PublicProposal } from './pages/PublicProposal';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { Clock } from 'lucide-react'; // Security icons
 
@@ -104,6 +106,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/pay/:id" element={<Checkout />} />
+      <Route path="/proposal/:id" element={<PublicProposal />} />
       <Route path="/payment-required" element={<PaymentRequired />} />
 
       <Route path="/dashboard" element={
@@ -129,6 +132,7 @@ function AppRoutes() {
         <Route path="whatsapp" element={<WhatsApp />} />
         <Route path="payments" element={<Payments />} />
         <Route path="crm" element={<CRM />} />
+        <Route path="agenda" element={<Agenda />} />
         <Route path="marketing" element={<Marketing />} />
         <Route path="lead-radar" element={<LeadRadar />} />
       </Route>

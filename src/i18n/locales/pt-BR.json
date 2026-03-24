@@ -88,6 +88,7 @@
         "whatsapp": "WhatsApp (Uso)",
         "payments": "Pagamentos (Módulo)",
         "crm": "CRM / Funil",
+        "agenda": "Agenda e Lembretes",
         "marketing": "Marketing IA",
         "lead_radar": "Radar de Leads",
         "administrative": "Administrativo",
@@ -109,6 +110,7 @@
         "whatsapp": "Envio de mensagens e chat",
         "payments": "Gestão de cobranças e links",
         "crm": "Gestão de leads e funil de vendas",
+        "agenda": "Gerenciamento de compromissos e tarefas",
         "marketing": "Geração automática de postagens",
         "lead_radar": "Mineração e abordagem automática de clientes"
     },
@@ -645,5 +647,19 @@
         "set_trial": "Dar Trial (7 dias)",
         "block": "Bloquear",
         "unblock": "Desbloquear"
+    },
+    "agenda_module": {
+        "title": "Agenda e Lembretes",
+        "today": "Hoje",
+        "new_reminder": "Novo Lembrete",
+        "no_tasks": "Nada agendado",
+        "no_tasks_desc": "Aproveite para focar em outra atividade hoje!",
+        "delete_confirm": "Tem certeza que deseja excluir esta tarefa?",
+        "assigned_to": "Responsável",
+        "status_pending": "Pendente",
+        "status_completed": "Concluído",
+        "priority_high": "Alta",
+        "priority_medium": "Média",
+        "priority_low": "Baixa"
     }
 }

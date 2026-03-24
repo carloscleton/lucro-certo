@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -20,6 +20,7 @@ import { useAutoSave } from '../hooks/useAutoSave';
 export function QuoteForm() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { getQuote, createQuote, updateQuote } = useQuotes();
     const { contacts, addContact } = useContacts();
     const { services } = useServices();
@@ -106,7 +107,31 @@ export function QuoteForm() {
                 .split('T')[0];
             setValidUntil(localDate);
         }
-    }, [id, settingsLoading]); // Removed settings and items from dependencies
+    }, [id, settingsLoading]);
+
+    // Handle initial pre-fill from searchParams
+    useEffect(() => {
+        if (id === 'new') {
+            const dealIdParam = searchParams.get('dealId');
+            const contactIdParam = searchParams.get('contactId');
+            const titleParam = searchParams.get('title');
+            const amountParam = searchParams.get('amount');
+
+            if (dealIdParam) setDealId(dealIdParam);
+            if (contactIdParam) setContactId(contactIdParam);
+            if (titleParam) setTitle(titleParam);
+            if (amountParam && !isNaN(parseFloat(amountParam))) {
+                setItems([{
+                    description: titleParam || 'Item do Negócio',
+                    quantity: 1,
+                    unit_price: parseFloat(amountParam),
+                    total_price: parseFloat(amountParam),
+                    service_id: null,
+                    product_id: null
+                }]);
+            }
+        }
+    }, [id, searchParams]);
 
     // State for discount
 

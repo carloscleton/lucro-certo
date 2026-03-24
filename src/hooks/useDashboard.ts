@@ -54,6 +54,7 @@ export function useDashboard(startDate: string, endDate: string) {
         business: { income: 0, expense: 0, balance: 0 }
     });
     const [previousPeriod, setPreviousPeriod] = useState<{ income: number; expense: number }>({ income: 0, expense: 0 });
+    const [agendaTasks, setAgendaTasks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const { user } = useAuth();
@@ -92,6 +93,20 @@ export function useDashboard(startDate: string, endDate: string) {
                 quotesQuery = quotesQuery.eq('user_id', user.id).is('company_id', null);
             }
 
+            // Fetch Agenda Tasks
+            let agendaQuery = supabase
+                .from('crm_tasks')
+                .select('*, lead:radar_leads(name), deal:crm_deals(title), contact:contacts(name)')
+                .eq('status', 'pending')
+                .order('due_date', { ascending: true })
+                .limit(10);
+
+            if (currentEntity.type === 'company' && currentEntity.id) {
+                agendaQuery = agendaQuery.eq('company_id', currentEntity.id);
+            } else {
+                agendaQuery = agendaQuery.eq('assigned_to', user.id);
+            }
+
             // Fetch all user transactions for the period (for personal vs business breakdown)
             const allTxQuery = supabase
                 .from('transactions')
@@ -120,22 +135,27 @@ export function useDashboard(startDate: string, endDate: string) {
                 prevTxQuery = prevTxQuery.eq('user_id', user.id).is('company_id', null);
             }
 
-            const results = await Promise.allSettled([txQuery, quotesQuery, allTxQuery, prevTxQuery]);
+            const results = await Promise.allSettled([txQuery, quotesQuery, allTxQuery, prevTxQuery, agendaQuery]);
 
             const txRes = results[0].status === 'fulfilled' ? results[0].value : { data: [], error: (results[0] as any).reason };
             const quotesRes = results[1].status === 'fulfilled' ? results[1].value : { data: [], error: (results[1] as any).reason };
             const allTxRes = results[2].status === 'fulfilled' ? results[2].value : { data: [], error: (results[2] as any).reason };
             const prevTxRes = results[3].status === 'fulfilled' ? results[3].value : { data: [], error: (results[3] as any).reason };
+            const agendaRes = results[4].status === 'fulfilled' ? results[4].value : { data: [], error: (results[4] as any).reason };
 
             if (txRes.error) console.error('Dashboard: Error fetching transactions:', txRes.error);
             if (quotesRes.error) console.error('Dashboard: Error fetching quotes:', quotesRes.error);
             if (allTxRes.error) console.error('Dashboard: Error fetching all transactions:', allTxRes.error);
             if (prevTxRes.error) console.error('Dashboard: Error fetching previous transactions:', prevTxRes.error);
+            if (agendaRes.error) console.error('Dashboard: Error fetching agenda tasks:', agendaRes.error);
 
             const transactions = txRes.data || [];
             const quotes = quotesRes.data || [];
             const allTx = allTxRes.data || [];
             const prevTx = prevTxRes?.data || [];
+            const agendaTasks = agendaRes.data || [];
+
+            setAgendaTasks(agendaTasks);
 
             // Previous period metrics (safe - don't let it break dashboard)
             try {
@@ -329,6 +349,7 @@ export function useDashboard(startDate: string, endDate: string) {
         transactions,
         contextMetrics,
         previousPeriod,
+        agendaTasks,
         loading,
         isRefreshing,
         refresh: fetchMetrics

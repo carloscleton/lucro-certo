@@ -18,6 +18,7 @@ import {
     Rocket,
     BarChart3,
     Percent,
+    Calendar
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -139,6 +140,14 @@ export const APP_MODULES: ModuleDefinition[] = [
         icon: Rocket,
         path: '/dashboard/crm',
         desc: 'Gestão de leads e funil de vendas',
+        defaultPermissions: { admin: true, member: true }
+    },
+    {
+        key: 'agenda',
+        label: 'Agenda e Lembretes',
+        icon: Calendar,
+        path: '/dashboard/agenda',
+        desc: 'Gerenciamento de compromissos e tarefas',
         defaultPermissions: { admin: true, member: true }
     },
     {
