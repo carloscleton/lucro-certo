@@ -202,7 +202,13 @@ export function Layout() {
         if (settings?.modules?.[item.key]?.[roleForMatrix as 'admin' | 'member'] === false) return false;
 
         // 3. TRIAL BYPASS: If not explicitly disabled, show everything in trial
-        if (isTrial) return true;
+        // (Except modules that require a Company ID like CRM, Marketing, Lead Radar and Agenda)
+        if (isTrial) {
+            if (currentEntity.type === 'personal' && (item.key === 'crm' || item.key === 'marketing' || item.key === 'lead_radar' || item.key === 'agenda')) {
+                return false;
+            }
+            return true;
+        }
 
         // 4. PLAN & FEATURE CHECK (For non-trial users)
         if (currentEntity.type === 'company') {

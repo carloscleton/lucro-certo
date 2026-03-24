@@ -71,13 +71,21 @@ export function Agenda() {
             const monthEnd = endOfMonth(currentMonth);
             const endDate = endOfWeek(monthEnd);
 
-            const { data, error } = await supabase
-                .from('crm_tasks')
-                .select('*')
-                .eq('company_id', currentEntity.id)
-                .gte('due_date', startDate.toISOString())
-                .lte('due_date', endDate.toISOString())
-                .order('due_date', { ascending: true });
+            const { data, error } = currentEntity.type === 'company' 
+                ? await supabase
+                    .from('crm_tasks')
+                    .select('*')
+                    .eq('company_id', currentEntity.id)
+                    .gte('due_date', startDate.toISOString())
+                    .lte('due_date', endDate.toISOString())
+                    .order('due_date', { ascending: true })
+                : await supabase
+                    .from('crm_tasks')
+                    .select('*')
+                    .eq('assigned_to', (await supabase.auth.getUser()).data.user?.id)
+                    .gte('due_date', startDate.toISOString())
+                    .lte('due_date', endDate.toISOString())
+                    .order('due_date', { ascending: true });
 
             if (error) throw error;
             setTasks(data || []);

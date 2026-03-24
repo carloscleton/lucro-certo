@@ -67,7 +67,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     }, [user, currentEntity]);
 
     const addStage = async (stage: Omit<CRMStage, 'id' | 'company_id'>) => {
-        if (!currentEntity.id) return;
+        if (!currentEntity.id || currentEntity.id === 'personal') return;
         const nextPosition = stages.length > 0
             ? Math.max(...stages.map(s => s.position)) + 1
             : 0;
@@ -102,7 +102,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addDeal = async (deal: Omit<CRMDeal, 'id' | 'company_id' | 'created_at'>) => {
-        if (!currentEntity.id) return;
+        if (!currentEntity.id || currentEntity.id === 'personal') return;
         const { error } = await supabase
             .from('crm_deals')
             .insert([{ ...deal, company_id: currentEntity.id }]);
