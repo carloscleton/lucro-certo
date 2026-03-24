@@ -303,11 +303,20 @@ REGRAS:
                                     if (inst?.length) {
                                         const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
                                         const msg = await generateAIApproach(agent, raw);
-                                        fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
+                                        
+                                        // Envia e espera o resultado
+                                        await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
                                             body: JSON.stringify({ number: num, text: msg })
                                         }).catch(() => {});
+
+                                        // Marca como abordado agora que enviamos
+                                        await supabase.from('radar_leads').update({ status: 'approached' }).eq('id', newL.id);
+
+                                        // Pausa de Segurança Curta (1 segundo) para evitar Gateway Timeout do navegador
+                                        const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+                                        await delay(1000);
                                     }
                                 }
                             }
