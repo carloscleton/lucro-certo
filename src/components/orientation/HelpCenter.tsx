@@ -33,7 +33,7 @@ export function HelpCenter() {
             icon: DollarSignIcon,
             description: t('help_center.guide_cashflow_desc'),
             onClick: () => {
-                navigate('/transactions');
+                navigate('/dashboard/receivables');
                 setIsOpen(false);
             },
         },
@@ -42,7 +42,7 @@ export function HelpCenter() {
             icon: BookOpen,
             description: t('help_center.guide_crm_desc'),
             onClick: () => {
-                navigate('/crm');
+                navigate('/dashboard/crm');
                 setIsOpen(false);
             },
         },
@@ -51,7 +51,7 @@ export function HelpCenter() {
             icon: Rocket,
             description: t('help_center.guide_sales_desc'),
             onClick: () => {
-                navigate('/quotes');
+                navigate('/dashboard/quotes');
                 setIsOpen(false);
             },
         },
