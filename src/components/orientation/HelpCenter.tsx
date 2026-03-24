@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2, Trash2 } from 'lucide-react';
+import { HelpCircle, PlayCircle, BookOpen, MessageCircle, X, Send, User, Bot, ArrowLeft, Loader2, Trash2, Rocket } from 'lucide-react';
 import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { useWebhooks } from '../../hooks/useWebhooks';
@@ -43,6 +43,15 @@ export function HelpCenter() {
             description: t('help_center.guide_crm_desc'),
             onClick: () => {
                 navigate('/crm');
+                setIsOpen(false);
+            },
+        },
+        {
+            title: t('help_center.guide_sales'),
+            icon: Rocket,
+            description: t('help_center.guide_sales_desc'),
+            onClick: () => {
+                navigate('/quotes');
                 setIsOpen(false);
             },
         },
