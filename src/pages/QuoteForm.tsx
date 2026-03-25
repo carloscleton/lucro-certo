@@ -189,10 +189,9 @@ export function QuoteForm() {
             console.log('✅ Discount set:', data.discount, data.discount_type);
 
             // Load expenses for this quote
-            // We want the list of transactions to show them individually.
             const { data: transData } = await supabase
                 .from('transactions')
-                .select('*')
+                .select('id, description, amount, date, status, quote_id, company_id, user_id')
                 .eq('quote_id', quoteId)
                 .order('date', { ascending: false });
             
