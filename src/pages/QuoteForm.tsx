@@ -17,7 +17,6 @@ import { useCRM } from '../hooks/useCRM';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { TransactionForm } from '../components/transactions/TransactionForm';
-import { useTransactions } from '../hooks/useTransactions';
 import { TrendingDown, Receipt } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
