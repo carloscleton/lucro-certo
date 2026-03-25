@@ -45,211 +45,240 @@ export class PDFService {
      */
     static async generateQuotePDF(data: QuotePDFData): Promise<Blob> {
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 20;
 
-        let yPosition = 20;
+        // Cores Profesionais
+        const primaryColor = [30, 41, 59]; // Slate 800
+        const accentColor = [59, 130, 246]; // Blue 500
+        const textColor = [55, 65, 81]; // Gray 700
+        const lightBg = [249, 250, 251]; // Gray 50
+        const borderColor = [226, 232, 240]; // Slate 200
 
-        // --- Header / Logo ---
+        let yPos = 20;
+
+        // --- 1. HEADER (Design Premium) ---
+        // Barra superior decorativa
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(0, 0, pageWidth, 5, 'F');
+        yPos = margin;
+
+        // Bloco de Identidade (Logo ou Nome)
         if (data.company.logo_url) {
             try {
-                // Fetch image to convert to base64 or blob for jsPDF
-                // Note: CORS issues might happen if not handled. Supabase public URLs usually allow GET.
-                // We need to fetch it client-side.
-                const img = new Image();
-                img.src = data.company.logo_url;
-                // Wait for load? In a non-browser env or without await, this is tricky. 
-                // Better strategy: Fetch as blob -> base64
-
-                console.log('🖼️ Fetching logo from:', data.company.logo_url);
-
-                // Since we are in an async function, let's try fetch
                 const response = await fetch(data.company.logo_url);
-                if (!response.ok) throw new Error(`Failed to fetch logo: ${response.statusText}`);
-
-                const blob = await response.blob();
-                console.log('📦 Logo blob received, size:', blob.size, 'type:', blob.type);
-
-                const base64 = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        if (typeof reader.result === 'string') resolve(reader.result);
-                        else reject(new Error('Failed to convert blob to base64'));
-                    };
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-                console.log('✅ Logo converted to base64');
-
-                // Add image (x, y, w, h) - adjust aspect ratio if needed
-                const imgProps = doc.getImageProperties(base64);
-                const pdfWidth = 40;
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-                doc.addImage(base64, 'PNG', 20, yPosition, pdfWidth, pdfHeight);
-
-                // Move text to right if logo exists, or move Y down?
-                // Standard layout: Logo Left, Text Right OR Logo Top Center.
-                // Let's go with Logo Top Left, Company Info Below or Right.
-                // Let's put Company Info to the right of logo
-
-                doc.setFontSize(16);
-                doc.setFont('helvetica', 'bold');
-                doc.text(data.company.name, 70, yPosition + 10);
-
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                let infoY = yPosition + 16;
-                if (data.company.legal_name) {
-                    doc.text(data.company.legal_name, 70, infoY);
-                    infoY += 5;
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const base64 = await new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.readAsDataURL(blob);
+                    });
+                    const imgProps = doc.getImageProperties(base64);
+                    const pdfWidth = 45;
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    doc.addImage(base64, 'PNG', margin, yPos, pdfWidth, pdfHeight);
                 }
-                if (data.company.entity_type === 'PF' && data.company.cpf) {
-                    doc.text(`CPF: ${data.company.cpf}`, 70, infoY);
-                    infoY += 5;
-                } else if (data.company.cnpj) {
-                    doc.text(`CNPJ: ${data.company.cnpj}`, 70, infoY);
-                    infoY += 5;
-                }
-
-                yPosition += Math.max(pdfHeight, 30) + 10;
-
             } catch (e) {
-                console.error("Error loading logo for PDF", e);
-                // Fallback if logo fails: Just text
-                doc.setFontSize(20);
-                doc.setFont('helvetica', 'bold');
-                doc.text(data.company.name, 20, yPosition);
-                yPosition += 10;
+                console.error("Erro ao carregar logo no PDF", e);
             }
-        } else {
-            // No Logo - Default Header
-            doc.setFontSize(20);
-            doc.setFont('helvetica', 'bold');
-            doc.text(data.company.name, 20, yPosition);
-            yPosition += 10;
         }
 
-        // Company Contact / Address (Full Width below header)
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100);
-
-        // Build address string if parts exist or use pre-formatted address
-        let addressLine = '';
-        if (data.company.address) addressLine += data.company.address;
-
-        let contactLine = '';
-        if (data.company.email) contactLine += `Email: ${data.company.email}  `;
-        if (data.company.phone) contactLine += `Tel: ${data.company.phone}`;
-
-        if (addressLine) {
-            doc.text(addressLine, 20, yPosition);
-            yPosition += 5;
-        }
-        if (contactLine) {
-            doc.text(contactLine, 20, yPosition);
-            yPosition += 5;
-        }
-
-        doc.setTextColor(0); // Reset color
-        yPosition += 10;
-        doc.line(20, yPosition, 190, yPosition); // Separator line
-        yPosition += 10;
-
-        // Title (Orçamento)
+        // Info da Empresa (Alinhado à Direita)
+        doc.setFont('helvetica', 'bold');
         doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.text('ORÇAMENTO', 20, yPosition);
-        yPosition += 10;
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(data.company.name.toUpperCase(), pageWidth - margin, yPos + 10, { align: 'right' });
 
-        // Quote Info
-        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Título: ${data.quote.title}`, 20, yPosition);
-        yPosition += 5;
-        doc.text(`Data: ${new Date(data.quote.created_at).toLocaleDateString('pt-BR')}`, 20, yPosition);
-        yPosition += 5;
-        doc.text(`Validade: ${new Date(data.quote.valid_until).toLocaleDateString('pt-BR')}`, 20, yPosition);
-        yPosition += 10;
-
-        // Customer Info
-        doc.setFont('helvetica', 'bold');
-        doc.text('CLIENTE:', 20, yPosition);
-        yPosition += 5;
-        doc.setFont('helvetica', 'normal');
-        doc.text(data.customer.name, 20, yPosition);
-        yPosition += 5;
-        if (data.customer.email) doc.text(`Email: ${data.customer.email}`, 20, yPosition);
-        yPosition += 5;
-        if (data.customer.phone) doc.text(`Telefone: ${data.customer.phone}`, 20, yPosition);
-        yPosition += 5;
-        if (data.customer.address) doc.text(`Endereço: ${data.customer.address}`, 20, yPosition);
-        yPosition += 15;
-
-        // Items Table Header
-        doc.setFont('helvetica', 'bold');
-        doc.text('ITENS:', 20, yPosition);
-        yPosition += 7;
-
-        // Table headers
         doc.setFontSize(9);
-        doc.text('Descrição', 20, yPosition);
-        doc.text('Qtd', 120, yPosition);
-        doc.text('Valor Unit.', 140, yPosition);
-        doc.text('Total', 170, yPosition);
-        yPosition += 5;
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        let companyInfoY = yPos + 16;
+        
+        const companyLines = [];
+        if (data.company.cnpj || data.company.cpf) companyLines.push(`${data.company.cnpj || data.company.cpf}`);
+        if (data.company.email) companyLines.push(data.company.email);
+        if (data.company.phone) companyLines.push(data.company.phone);
+        if (data.company.address) companyLines.push(data.company.address);
 
-        // Line
-        doc.line(20, yPosition, 190, yPosition);
-        yPosition += 5;
-
-        // Items
-        doc.setFont('helvetica', 'normal');
-        data.items.forEach(item => {
-            if (yPosition > 270) {
-                doc.addPage();
-                yPosition = 20;
-            }
-
-            doc.text(item.description.substring(0, 50), 20, yPosition);
-            doc.text(item.quantity.toString(), 120, yPosition);
-            doc.text(`R$ ${item.unit_price.toFixed(2)}`, 140, yPosition);
-            doc.text(`R$ ${item.total_price.toFixed(2)}`, 170, yPosition);
-            yPosition += 5;
+        companyLines.forEach(line => {
+            doc.text(line, pageWidth - margin, companyInfoY, { align: 'right' });
+            companyInfoY += 4.5;
         });
 
-        yPosition += 5;
-        doc.line(20, yPosition, 190, yPosition);
-        yPosition += 7;
+        yPos = 60;
 
-        // Totals
+        // --- 2. TÍTULO E NÚMERO DA PROPOSTA ---
+        doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 30, 'F');
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 30, 'S');
+        
         doc.setFont('helvetica', 'bold');
-        doc.text(`Subtotal: R$ ${data.subtotal.toFixed(2)}`, 140, yPosition);
-        yPosition += 5;
+        doc.setFontSize(18);
+        doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.text('ORÇAMENTO / PROPOSTA', margin + 8, yPos + 12);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Ref: ${data.quote.title}`, margin + 8, yPos + 20);
+
+        // Grid com detalhes do orçamento
+        doc.setFontSize(9);
+        doc.text(`Emissão: ${new Date(data.quote.created_at).toLocaleDateString('pt-BR')}`, pageWidth - margin - 8, yPos + 10, { align: 'right' });
+        doc.text(`Vencimento: ${new Date(data.quote.valid_until).toLocaleDateString('pt-BR')}`, pageWidth - margin - 8, yPos + 16, { align: 'right' });
+        doc.setFont('helvetica', 'bold');
+        doc.text(`ID: ${data.quote.id.substring(0, 8).toUpperCase()}`, pageWidth - margin - 8, yPos + 22, { align: 'right' });
+
+        yPos += 45;
+
+        // --- 3. DADOS DO CLIENTE (Card Estilizado) ---
+        doc.setFontSize(11);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('DADOS DO CLIENTE', margin, yPos);
+        doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.setLineWidth(0.8);
+        doc.line(margin, yPos + 2, margin + 40, yPos + 2);
+        
+        yPos += 12;
+        doc.setFontSize(10);
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.text(data.customer.name, margin, yPos);
+        
+        doc.setFont('helvetica', 'normal');
+        yPos += 6;
+        if (data.customer.phone) {
+            doc.text(`WhatsApp/Tel: ${data.customer.phone}`, margin, yPos);
+            yPos += 5;
+        }
+        if (data.customer.email) {
+            doc.text(`E-mail: ${data.customer.email}`, margin, yPos);
+            yPos += 5;
+        }
+        if (data.customer.address) {
+            doc.text(`Endereço: ${data.customer.address}`, margin, yPos);
+        }
+
+        yPos += 18;
+
+        // --- 4. LISTA DE ITENS (Tabela Profissional) ---
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F');
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.text('DESCRIÇÃO', margin + 5, yPos + 6.5);
+        doc.text('QTD', pageWidth - margin - 55, yPos + 6.5, { align: 'center' });
+        doc.text('V. UNIT (R$)', pageWidth - margin - 35, yPos + 6.5, { align: 'center' });
+        doc.text('TOTAL (R$)', pageWidth - margin - 5, yPos + 6.5, { align: 'right' });
+
+        yPos += 10;
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.setFont('helvetica', 'normal');
+
+        data.items.forEach((item, index) => {
+            // Zebra Striping para facilitar leitura
+            if (index % 2 === 0) {
+                doc.setFillColor(252, 252, 252);
+                doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F');
+            }
+
+            // Quebra de página se necessário
+            if (yPos > pageHeight - 70) {
+                doc.addPage();
+                yPos = margin + 10;
+                // Repetir header da tabela na nova página? Opcional, vamos manter simples.
+            }
+
+            // Multi-line description support
+            const descriptionLines = doc.splitTextToSize(item.description, 95);
+            doc.text(descriptionLines, margin + 5, yPos + 6);
+            
+            const cellHeight = Math.max(10, (descriptionLines.length * 5) + 2);
+
+            doc.text(item.quantity.toString(), pageWidth - margin - 55, yPos + 6, { align: 'center' });
+            doc.text(item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), pageWidth - margin - 35, yPos + 6, { align: 'center' });
+            doc.text(item.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), pageWidth - margin - 5, yPos + 6, { align: 'right' });
+            
+            yPos += cellHeight;
+            doc.setDrawColor(241, 245, 249);
+            doc.setLineWidth(0.1);
+            doc.line(margin, yPos, pageWidth - margin, yPos);
+        });
+
+        yPos += 15;
+
+        // --- 5. RESUMO DE VALORES ---
+        const resumoWidth = 75;
+        const resumoX = pageWidth - margin - resumoWidth;
+        
+        doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+        doc.rect(resumoX, yPos, resumoWidth, 28, 'F');
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.rect(resumoX, yPos, resumoWidth, 28, 'S');
+
+        doc.setFontSize(9);
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.text('Subtotal:', resumoX + 5, yPos + 8);
+        doc.text(data.subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), pageWidth - margin - 5, yPos + 8, { align: 'right' });
 
         if (data.quote.discount > 0) {
-            const discountText = data.quote.discount_type === 'percentage'
-                ? `${data.quote.discount}%`
-                : `R$ ${data.quote.discount.toFixed(2)}`;
-            doc.text(`Desconto: ${discountText}`, 140, yPosition);
-            yPosition += 5;
+            yPos += 6;
+            doc.setTextColor(185, 28, 28); // Text-red-700
+            const discLabel = data.quote.discount_type === 'percentage' ? `Desconto (${data.quote.discount}%):` : 'Desconto:';
+            const discValue = data.quote.discount_type === 'percentage' ? (data.subtotal * data.quote.discount / 100) : data.quote.discount;
+            doc.text(discLabel, resumoX + 5, yPos + 8);
+            doc.text(`- ${discValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
         }
 
-        doc.setFontSize(12);
-        doc.text(`TOTAL: R$ ${data.total.toFixed(2)}`, 140, yPosition);
-        yPosition += 10;
+        yPos += 10;
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TOTAL:', resumoX + 5, yPos + 8);
+        doc.text(data.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), pageWidth - margin - 5, yPos + 8, { align: 'right' });
 
-        // Notes
+        yPos += 30;
+
+        // --- 6. OBSERVAÇÕES ---
         if (data.quote.notes) {
             doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text('OBSERVAÇÕES:', 20, yPosition);
-            yPosition += 5;
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.text('NOTAS E CONDIÇÕES', margin, yPos);
             doc.setFont('helvetica', 'normal');
-            const splitNotes = doc.splitTextToSize(data.quote.notes, 170);
-            doc.text(splitNotes, 20, yPosition);
+            doc.setFontSize(9);
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            const splitNotes = doc.splitTextToSize(data.quote.notes, pageWidth - (margin * 2));
+            doc.text(splitNotes, margin, yPos + 6);
+            yPos += (splitNotes.length * 4.5) + 20;
         }
 
-        // Convert to Blob
+        // --- 7. ASSINATURAS (No final do documento) ---
+        if (yPos > pageHeight - 50) {
+            doc.addPage();
+            yPos = 40;
+        } else {
+            yPos = pageHeight - 55;
+        }
+
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setLineWidth(0.5);
+        doc.line(margin + 10, yPos, margin + 80, yPos);
+        doc.line(pageWidth - margin - 80, yPos, pageWidth - margin - 10, yPos);
+        
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text('Assinatura da Empresa', margin + 45, yPos + 5, { align: 'center' });
+        doc.text('Assinatura do Cliente', pageWidth - margin - 45, yPos + 5, { align: 'center' });
+
+        // Rodapé (Pequeno)
+        doc.setFontSize(7);
+        doc.text(`Este orçamento tem caráter informativo. Gerado em ${new Date().toLocaleString('pt-BR')}.`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+
         return doc.output('blob');
     }
 
