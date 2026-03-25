@@ -219,7 +219,8 @@ export function QuoteForm() {
                 date: new Date().toISOString().split('T')[0],
                 status: 'pending',
                 quote_id: id,
-                company_id: currentEntity.id
+                company_id: currentEntity.id,
+                user_id: user?.id
             }
         ]);
     };
@@ -442,6 +443,7 @@ export function QuoteForm() {
                     const { id: expId, ...expData } = exp;
                     const payload = {
                         ...expData,
+                        user_id: user?.id,
                         quote_id: finalQuoteId,
                         type: 'expense'
                     };
@@ -459,6 +461,7 @@ export function QuoteForm() {
                         const { id: expId, ...expData } = exp;
                         await supabase.from('transactions').insert([{
                             ...expData,
+                            user_id: user?.id,
                             quote_id: newQuote.id,
                             type: 'expense'
                         }]);
