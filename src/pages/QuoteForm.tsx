@@ -16,8 +16,7 @@ import { useCompanies } from '../hooks/useCompanies';
 import { useCRM } from '../hooks/useCRM';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAutoSave } from '../hooks/useAutoSave';
-import { TransactionForm } from '../components/transactions/TransactionForm';
-import { TrendingDown, Receipt } from 'lucide-react';
+import { TrendingDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export function QuoteForm() {
@@ -69,8 +68,6 @@ export function QuoteForm() {
 
     // Expenses State
     const [expenses, setExpenses] = useState<any[]>([]);
-    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
-    const [expenseToEdit, setExpenseToEdit] = useState<any | null>(null);
 
     const { clearCache } = useAutoSave(
         'quote_form',
@@ -212,26 +209,43 @@ export function QuoteForm() {
         }
     };
 
-    const loadExpenses = async () => {
-        if (!id || id === 'new') return;
-        const { data } = await supabase
-            .from('transactions')
-            .select('*')
-            .eq('quote_id', id)
-            .order('date', { ascending: false });
-        if (data) setExpenses(data);
+    const addExpenseRow = () => {
+        setExpenses([
+            ...expenses,
+            {
+                id: `temp-${Date.now()}`,
+                description: '',
+                amount: 0,
+                date: new Date().toISOString().split('T')[0],
+                status: 'pending',
+                quote_id: id,
+                company_id: currentEntity.id
+            }
+        ]);
     };
 
-    const handleDeleteExpense = async (expenseId: string) => {
-        if (!confirm('Deseja realmente excluir esta despesa?')) return;
-        try {
-            const { error } = await supabase.from('transactions').delete().eq('id', expenseId);
-            if (error) throw error;
-            loadExpenses();
-        } catch (err) {
-            console.error(err);
-            alert('Erro ao excluir despesa');
+    const updateExpenseRow = (index: number, field: string, value: any) => {
+        const newExpenses = [...expenses];
+        newExpenses[index] = { ...newExpenses[index], [field]: value };
+        setExpenses(newExpenses);
+    };
+
+    const removeExpenseRow = async (index: number) => {
+        const expense = expenses[index];
+        if (!expense.id.toString().startsWith('temp-')) {
+            if (!confirm('Esta despesa já está salva no financeiro. Deseja realmente excluí-la?')) return;
+            try {
+                const { error } = await supabase.from('transactions').delete().eq('id', expense.id);
+                if (error) throw error;
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao excluir despesa');
+                return;
+            }
         }
+        const newExpenses = [...expenses];
+        newExpenses.splice(index, 1);
+        setExpenses(newExpenses);
     };
 
     // ... addItem, removeItem, updateItem, handleItemSelect ...
@@ -421,9 +435,35 @@ export function QuoteForm() {
             };
 
             if (id && id !== 'new') {
-                await updateQuote(id, quoteData, items);
+                const quoteRes = await updateQuote(id, quoteData, items);
+                // Save inline expenses
+                const finalQuoteId = id;
+                for (const exp of expenses) {
+                    const { id: expId, ...expData } = exp;
+                    const payload = {
+                        ...expData,
+                        quote_id: finalQuoteId,
+                        type: 'expense'
+                    };
+                    if (expId.toString().startsWith('temp-')) {
+                        await supabase.from('transactions').insert([payload]);
+                    } else {
+                        await supabase.from('transactions').update(payload).eq('id', expId);
+                    }
+                }
             } else {
-                await createQuote(quoteData, items);
+                const newQuote = await createQuote(quoteData, items);
+                // Save inline expenses for new quote
+                if (newQuote && newQuote.id) {
+                    for (const exp of expenses) {
+                        const { id: expId, ...expData } = exp;
+                        await supabase.from('transactions').insert([{
+                            ...expData,
+                            quote_id: newQuote.id,
+                            type: 'expense'
+                        }]);
+                    }
+                }
             }
             clearCache();
             navigate('/dashboard/quotes');
@@ -693,95 +733,88 @@ export function QuoteForm() {
                 </div>
 
                 {/* Expenses Card */}
-                {id !== 'new' && (
-                    <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                <TrendingDown className="w-5 h-5 text-orange-500" />
-                                Despesas do Serviço / Obra
-                            </h3>
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm" 
-                                className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                                onClick={() => {
-                                    setExpenseToEdit(null);
-                                    setIsExpenseModalOpen(true);
-                                }}
-                            >
-                                <Plus size={16} className="mr-2" />
-                                Lançar Despesa
-                            </Button>
-                        </div>
-
-                        {expenses.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-gray-200 dark:border-slate-700">
-                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter">Data</th>
-                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter">Descrição</th>
-                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter text-right">Valor</th>
-                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter text-center">Status</th>
-                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {expenses.map((exp) => (
-                                            <tr key={exp.id} className="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                                <td className="p-2 text-sm text-gray-500">
-                                                    {new Date(exp.date + 'T12:00:00').toLocaleDateString('pt-BR')}
-                                                </td>
-                                                <td className="p-2 text-sm font-medium text-gray-900 dark:text-white">
-                                                    {exp.description}
-                                                </td>
-                                                <td className="p-2 text-sm font-bold text-red-600 text-right">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.amount)}
-                                                </td>
-                                                <td className="p-2 text-center text-[10px]">
-                                                    <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
-                                                        exp.status === 'paid' || exp.status === 'received' 
-                                                            ? 'bg-emerald-100 text-emerald-700' 
-                                                            : 'bg-orange-100 text-orange-700'
-                                                    }`}>
-                                                        {exp.status === 'paid' || exp.status === 'received' ? 'Pago' : 'Pendente'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-2 text-right">
-                                                    <div className="flex justify-end gap-1">
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => {
-                                                                setExpenseToEdit(exp);
-                                                                setIsExpenseModalOpen(true);
-                                                            }}
-                                                            className="p-1 text-blue-500 hover:bg-blue-50 rounded"
-                                                        >
-                                                            <Receipt size={14} />
-                                                        </button>
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => handleDeleteExpense(exp.id)}
-                                                            className="p-1 text-red-500 hover:bg-red-50 rounded"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="text-center py-8 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700">
-                                <p className="text-sm text-gray-500">Nenhuma despesa lançada para este orçamento.</p>
-                                <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-widest">Acompanhe seus custos para saber o lucro real</p>
-                            </div>
-                        )}
+                <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <TrendingDown className="w-5 h-5 text-orange-500" />
+                            Despesas do Serviço / Obra
+                        </h3>
                     </div>
-                )}
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-200 dark:border-slate-700">
+                                    <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[15%]">Data</th>
+                                    <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[55%]">Descrição da Despesa</th>
+                                    <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[20%] text-right">Valor (R$)</th>
+                                    <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[10%]"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {expenses.map((exp, index) => (
+                                    <tr key={exp.id} className="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                        <td className="p-2">
+                                            <input
+                                                type="date"
+                                                value={exp.date}
+                                                onChange={e => updateExpenseRow(index, 'date', e.target.value)}
+                                                className="w-full bg-transparent border-none text-sm outline-none focus:ring-0 text-gray-600 dark:text-gray-300"
+                                            />
+                                        </td>
+                                        <td className="p-2">
+                                            <input
+                                                type="text"
+                                                value={exp.description}
+                                                onChange={e => updateExpenseRow(index, 'description', e.target.value)}
+                                                placeholder="Ex: Material Hidráulico, Frete, etc."
+                                                className="w-full bg-transparent border-none text-sm outline-none focus:ring-0 text-gray-900 dark:text-white font-medium"
+                                            />
+                                        </td>
+                                        <td className="p-2">
+                                            <input
+                                                type="number"
+                                                value={exp.amount}
+                                                onChange={e => updateExpenseRow(index, 'amount', parseFloat(e.target.value) || 0)}
+                                                className="w-full bg-transparent border-none text-sm outline-none focus:ring-0 text-right font-bold text-red-600"
+                                                step="0.01"
+                                            />
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => removeExpenseRow(index)}
+                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {expenses.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="py-8 text-center text-gray-400 text-sm italic">
+                                            Nenhuma despesa lançada para este orçamento.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-4">
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={addExpenseRow}
+                            className="text-orange-600 border-orange-200 hover:bg-orange-50 font-bold"
+                        >
+                            <Plus size={16} className="mr-2" />
+                            Adicionar Despesa
+                        </Button>
+                    </div>
+                </div>
 
                 {/* Footer / Summary */}
                 <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-end">
@@ -925,31 +958,6 @@ export function QuoteForm() {
                     </div>
                 </form>
             </Modal>
-
-            {/* Expense Modal Integration */}
-            {id !== 'new' && (
-                <TransactionForm
-                    type="expense"
-                    isOpen={isExpenseModalOpen}
-                    onClose={() => {
-                        setIsExpenseModalOpen(false);
-                        setExpenseToEdit(null);
-                    }}
-                    onSubmit={async () => {
-                        await loadExpenses();
-                        setIsExpenseModalOpen(false);
-                        setExpenseToEdit(null);
-                    }}
-                    initialData={expenseToEdit || {
-                        quote_id: id,
-                        description: `DESPESA ORÇAMENTO: ${title.toUpperCase()}`,
-                        amount: 0,
-                        date: new Date().toISOString().split('T')[0],
-                        contact_id: contactId,
-                        company_id: currentEntity.id
-                    }}
-                />
-            )}
         </div>
     );
 }
