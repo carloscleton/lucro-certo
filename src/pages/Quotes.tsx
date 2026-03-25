@@ -551,28 +551,17 @@ export function Quotes() {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     };
 
-    const { totalValue, totalDiscount, totalExpense, totalProfit } = useMemo(() => {
+    const { totalValue, totalExpense, totalProfit } = useMemo(() => {
         return filteredQuotes.reduce((acc, quote) => {
             const amount = quote.total_amount || 0;
             const expense = quoteExpenses[quote.id] || 0;
             const profit = amount - expense;
-            let discount = 0;
-
-            if (quote.discount && quote.discount > 0) {
-                if (quote.discount_type === 'percentage') {
-                    discount = (amount / (1 - (quote.discount / 100))) * (quote.discount / 100);
-                } else {
-                    discount = quote.discount;
-                }
-            }
-
             return {
                 totalValue: acc.totalValue + amount,
-                totalDiscount: acc.totalDiscount + discount,
                 totalExpense: acc.totalExpense + expense,
                 totalProfit: acc.totalProfit + profit
             };
-        }, { totalValue: 0, totalDiscount: 0, totalExpense: 0, totalProfit: 0 });
+        }, { totalValue: 0, totalExpense: 0, totalProfit: 0 });
     }, [filteredQuotes, quoteExpenses]);
 
     useEffect(() => {
