@@ -453,6 +453,30 @@ export function useTransactions(type: TransactionType) {
         }
     };
 
+    const fetchTransactionsByQuoteIds = useCallback(async (quoteIds: string[]) => {
+        if (!user || quoteIds.length === 0) return {};
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('quote_id, amount')
+                .in('quote_id', quoteIds)
+                .eq('type', type);
+
+            if (error) throw error;
+
+            const map: Record<string, number> = {};
+            data.forEach(tx => {
+                if (tx.quote_id) {
+                    map[tx.quote_id] = (map[tx.quote_id] || 0) + tx.amount;
+                }
+            });
+            return map;
+        } catch (err) {
+            console.error('Error fetching transactions by quote IDs:', err);
+            return {};
+        }
+    }, [user, type]);
+
     return {
         transactions,
         loading,
@@ -461,6 +485,7 @@ export function useTransactions(type: TransactionType) {
         addTransaction,
         updateTransaction,
         deleteTransaction,
-        refresh: fetchTransactions
+        refresh: fetchTransactions,
+        fetchTransactionsByQuoteIds
     };
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search } from 'lucide-react';
+import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search, TrendingDown } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useQuotes, type Quote } from '../hooks/useQuotes';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -7,7 +7,9 @@ import { Input } from '../components/ui/Input';
 import { Tooltip } from '../components/ui/Tooltip';
 
 import { SettleModal } from '../components/transactions/SettleModal';
+import { TransactionForm } from '../components/transactions/TransactionForm';
 import { Modal } from '../components/ui/Modal';
+import { useTransactions } from '../hooks/useTransactions';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
@@ -58,6 +60,9 @@ export function Quotes() {
         };
         fetchWA();
     }, [currentEntity.id, user?.id]);
+
+    const { addTransaction, fetchTransactionsByQuoteIds } = useTransactions('expense');
+
 
     const handleSendWhatsApp = async (quote: Quote, result: any) => {
         const instance = waInstances[0];
@@ -204,6 +209,11 @@ export function Quotes() {
     // Finalize Recovery Modal
     const [showFinalizeModal, setShowFinalizeModal] = useState(false);
     const [finalizeQuote, setFinalizeQuote] = useState<Quote | null>(null);
+
+    // Expense Modal State
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const [quoteForExpense, setQuoteForExpense] = useState<Quote | null>(null);
+    const [quoteExpenses, setQuoteExpenses] = useState<Record<string, number>>({});
 
     const statusColors = {
         draft: 'bg-gray-100 text-gray-800',
@@ -541,17 +551,15 @@ export function Quotes() {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     };
 
-    const { totalValue, totalDiscount } = useMemo(() => {
+    const { totalValue, totalDiscount, totalExpense, totalProfit } = useMemo(() => {
         return filteredQuotes.reduce((acc, quote) => {
             const amount = quote.total_amount || 0;
+            const expense = quoteExpenses[quote.id] || 0;
+            const profit = amount - expense;
             let discount = 0;
 
             if (quote.discount && quote.discount > 0) {
                 if (quote.discount_type === 'percentage') {
-                    // Calculate absolute discount value from the Net Total
-                    // Net = Gross * (1 - rate)
-                    // Gross = Net / (1 - rate)
-                    // Discount = Gross * rate
                     discount = (amount / (1 - (quote.discount / 100))) * (quote.discount / 100);
                 } else {
                     discount = quote.discount;
@@ -560,10 +568,34 @@ export function Quotes() {
 
             return {
                 totalValue: acc.totalValue + amount,
-                totalDiscount: acc.totalDiscount + discount
+                totalDiscount: acc.totalDiscount + discount,
+                totalExpense: acc.totalExpense + expense,
+                totalProfit: acc.totalProfit + profit
             };
-        }, { totalValue: 0, totalDiscount: 0 });
-    }, [filteredQuotes]);
+        }, { totalValue: 0, totalDiscount: 0, totalExpense: 0, totalProfit: 0 });
+    }, [filteredQuotes, quoteExpenses]);
+
+    useEffect(() => {
+        const fetchExpenses = async () => {
+            const ids = filteredQuotes.map(q => q.id);
+            if (ids.length > 0) {
+                const map = await fetchTransactionsByQuoteIds(ids);
+                setQuoteExpenses(map);
+            } else {
+                setQuoteExpenses({});
+            }
+        };
+        fetchExpenses();
+    }, [filteredQuotes, fetchTransactionsByQuoteIds]);
+
+    const handleAddExpense = async (data: any) => {
+        await addTransaction(data);
+        // Refresh expenses map
+        const ids = filteredQuotes.map(q => q.id);
+        const map = await fetchTransactionsByQuoteIds(ids);
+        setQuoteExpenses(map);
+        setIsExpenseModalOpen(false);
+    };
 
     const getDiscountDisplay = (quote: Quote) => {
         if (!quote.discount || quote.discount === 0) return '-';
@@ -585,10 +617,6 @@ export function Quotes() {
         if (!contact?.address?.street) missing.push('Endereço (Rua)');
         if (!contact?.address?.number) missing.push('Número do Endereço');
 
-        if (missing.length > 0) {
-            alert(`⚠️ Para gerar o link de pagamento, complete o cadastro do cliente:\n\nFaltando:\n- ${missing.join('\n- ')}`);
-            return false;
-        }
         return true;
     };
 
@@ -749,8 +777,21 @@ export function Quotes() {
                                         <td className="py-3 px-4 text-sm text-red-500 font-medium text-right whitespace-nowrap">
                                             {getDiscountDisplay(quote)}
                                         </td>
-                                        <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white text-right whitespace-nowrap">
-                                            {formatCurrency(quote.total_amount)}
+                                        <td className="py-3 px-4 text-sm font-medium text-right whitespace-nowrap">
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-gray-900 dark:text-white">{formatCurrency(quote.total_amount)}</span>
+                                                {quoteExpenses[quote.id] > 0 && (
+                                                    <div className="flex flex-col items-end text-[10px]">
+                                                        <span className="text-red-500">- {formatCurrency(quoteExpenses[quote.id])} (Desp.)</span>
+                                                        <span className="text-emerald-600 font-bold border-t border-gray-100 dark:border-slate-700">Lucro: {formatCurrency(quote.total_amount - quoteExpenses[quote.id])}</span>
+                                                    </div>
+                                                )}
+                                                {quoteExpenses[quote.id] === undefined && (
+                                                     <div className="flex flex-col items-end text-[10px]">
+                                                        <span className="text-emerald-600 font-bold border-t border-gray-100 dark:border-slate-700">Lucro: {formatCurrency(quote.total_amount)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="py-3 px-4 text-center">
                                             <div className="flex flex-col items-center gap-1">
@@ -801,6 +842,20 @@ export function Quotes() {
                                         </td>
                                         <td className="py-3 px-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <Tooltip content="Lançar Despesa">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setQuoteForExpense(quote);
+                                                            setIsExpenseModalOpen(true);
+                                                        }}
+                                                        className="p-1 rounded text-orange-600 hover:text-orange-800 hover:bg-orange-50 transition-colors"
+                                                    >
+                                                        <TrendingDown size={16} />
+                                                    </button>
+                                                </Tooltip>
+
+                                                <div className="h-4 w-px bg-gray-300 dark:bg-slate-600 mx-1"></div>
                                                 {/* Status Actions */}
                                                 {(quote.status === 'draft' || quote.status === 'sent' || quote.status === 'approved') && (
                                                     <Tooltip content={quote.status === 'draft' ? 'Enviar Proposta' : 'Reenviar Proposta'}>
@@ -1103,6 +1158,7 @@ export function Quotes() {
                                                     </>
                                                 )}
 
+
                                                 <div className="h-4 w-px bg-gray-300 dark:bg-slate-600 mx-1"></div>
 
                                                 <Tooltip content="Editar">
@@ -1159,8 +1215,7 @@ export function Quotes() {
                         </table>
                     </div>
                 </div>
-            )
-            }
+            )}
 
             {/* Approval Options Modal */}
             {
@@ -1283,18 +1338,26 @@ export function Quotes() {
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                         Exibindo {filteredQuotes.length} orçamentos
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-5">
                         <div className="text-right">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 block uppercase tracking-wider">Total de Descontos</span>
-                            <span className="text-lg font-semibold text-red-600 dark:text-red-400">
-                                {formatCurrency(totalDiscount)}
-                            </span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">Total Descontos</span>
+                            <span className="text-sm font-bold text-red-500">{formatCurrency(totalDiscount)}</span>
                         </div>
-                        <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
                         <div className="text-right">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 block uppercase tracking-wider">Valor Total</span>
-                            <span className="text-xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(totalValue)}
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">Valor Total</span>
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(totalValue)}</span>
+                        </div>
+                        {totalExpense > 0 && (
+                            <div className="text-right">
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">Total Despesas</span>
+                                <span className="text-sm font-bold text-red-600">{formatCurrency(totalExpense)}</span>
+                            </div>
+                        )}
+                        <div className="w-px h-8 bg-gray-200 dark:bg-slate-600 hidden sm:block" />
+                        <div className="text-right">
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 block uppercase tracking-wider font-bold">Lucro Líquido</span>
+                            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                                {formatCurrency(totalProfit)}
                             </span>
                         </div>
                     </div>
@@ -1534,6 +1597,25 @@ export function Quotes() {
                     </div>
                 </div>
             </Modal>
+            {isExpenseModalOpen && quoteForExpense && (
+                <TransactionForm
+                    isOpen={isExpenseModalOpen}
+                    onClose={() => {
+                        setIsExpenseModalOpen(false);
+                        setQuoteForExpense(null);
+                    }}
+                    type="expense"
+                    initialData={{
+                        quote_id: quoteForExpense.id,
+                        description: `Despesa Orçamento: ${quoteForExpense.title}`,
+                        amount: 0,
+                        date: new Date().toISOString().split('T')[0],
+                        contact_id: quoteForExpense.contact_id,
+                        company_id: currentEntity.id
+                    }}
+                    onSubmit={handleAddExpense}
+                />
+            )}
         </div>
     );
 }
