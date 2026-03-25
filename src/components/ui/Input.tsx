@@ -6,13 +6,14 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
     error?: string;
     helpText?: string;
+    leftElement?: React.ReactNode;
     rightElement?: React.ReactNode;
     preserveCase?: boolean; // Don't convert to uppercase
     containerClassName?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-    ({ className, label, error, helpText, rightElement, preserveCase = false, containerClassName, ...props }, ref) => {
+    ({ className, label, error, helpText, leftElement, rightElement, preserveCase = false, containerClassName, ...props }, ref) => {
         return (
             <div className={clsx("flex flex-col gap-1 w-full", containerClassName)}>
                 {label && (
@@ -21,12 +22,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     </label>
                 )}
                 <div className="relative flex items-center">
+                    {leftElement && (
+                        <div className="absolute left-3 flex items-center justify-center pointer-events-none z-10 text-gray-400">
+                            {leftElement}
+                        </div>
+                    )}
                     <input
                         ref={ref}
                         className={clsx(
                             'flex h-10 w-full rounded-md border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] placeholder:text-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50',
                             error && 'border-red-500 focus:ring-red-500 dark:border-red-500',
                             !['password', 'email', 'date', 'number', 'time', 'datetime-local'].includes(props.type || 'text') && !preserveCase && 'uppercase',
+                            leftElement && 'pl-10',
                             rightElement && 'pr-10',
                             className
                         )}

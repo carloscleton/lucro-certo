@@ -701,6 +701,7 @@ export function QuoteForm() {
                                                 value={item.unit_price}
                                                 onChange={e => updateItem(index, 'unit_price', parseFloat(e.target.value))}
                                                 className="h-9 text-right"
+                                                leftElement={<span className="text-xs font-bold text-gray-400">R$</span>}
                                             />
                                         </td>
                                         <td className="p-2 align-top text-right pt-2.5 font-medium text-gray-900 dark:text-white">
@@ -775,13 +776,16 @@ export function QuoteForm() {
                                             />
                                         </td>
                                         <td className="p-2">
-                                            <input
-                                                type="number"
-                                                value={exp.amount}
-                                                onChange={e => updateExpenseRow(index, 'amount', parseFloat(e.target.value) || 0)}
-                                                className="w-full bg-transparent border-none text-sm outline-none focus:ring-0 text-right font-bold text-red-600"
-                                                step="0.01"
-                                            />
+                                            <div className="relative flex items-center">
+                                                <span className="absolute left-0 text-xs font-bold text-gray-400">R$</span>
+                                                <input
+                                                    type="number"
+                                                    value={exp.amount}
+                                                    onChange={e => updateExpenseRow(index, 'amount', parseFloat(e.target.value) || 0)}
+                                                    className="w-full bg-transparent border-none text-sm outline-none focus:ring-0 text-right font-bold text-red-600 px-6"
+                                                    step="0.01"
+                                                />
+                                            </div>
                                         </td>
                                         <td className="p-2 text-right">
                                             <button 
