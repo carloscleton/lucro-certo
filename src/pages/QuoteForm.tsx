@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -91,7 +91,7 @@ export function QuoteForm() {
 
         if (id && id !== 'new') {
             loadQuote(id);
-        } else {
+        } else if (id === 'new') {
             // Initialize with one empty item row for new quotes
             setItems([{
                 description: '',
@@ -112,7 +112,7 @@ export function QuoteForm() {
                 .split('T')[0];
             setValidUntil(localDate);
         }
-    }, [id, settingsLoading]);
+    }, [id, settingsLoading, loadQuote]);
 
     // Handle initial pre-fill from searchParams
     useEffect(() => {
@@ -140,23 +140,16 @@ export function QuoteForm() {
 
     // State for discount
 
-    const loadQuote = async (quoteId: string) => {
+    const loadQuote = useCallback(async (quoteId: string) => {
+        if (!quoteId || quoteId === 'new') return;
+        
         console.log('🔍 Loading quote with ID:', quoteId);
         setLoading(true);
         try {
             const data = await getQuote(quoteId);
-            console.log('📋 Quote Data:', data);
-            console.log('👤 Your User ID:', user?.id);
-            console.log('👤 Quote Owner ID:', data.user_id);
-            console.log('🏢 Quote Company ID:', data.company_id);
-            console.log('📦 Items retrieved:', data.items?.length || 0);
-
+            
             setTitle(data.title);
-            console.log('✅ Title set:', data.title);
-
             setContactId(data.contact_id || '');
-            console.log('✅ Contact ID set:', data.contact_id);
-
             setValidUntil(data.valid_until || '');
             setStatus(data.status);
             setPaymentStatus(data.payment_status || 'none');
@@ -169,24 +162,19 @@ export function QuoteForm() {
                 const diffTime = date.getTime() - today.getTime();
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 setValidityDays(diffDays);
-                console.log('✅ Validity days set:', diffDays);
             }
 
             setNotes(data.notes || '');
 
             if (data.items && data.items.length > 0) {
-                console.log(`📦 Loaded ${data.items.length} items from database`);
                 setItems(data.items);
             } else {
-                console.error('❌ NO ITEMS LOADED! This is likely an RLS (Row Level Security) issue in Supabase.');
-                console.log('💡 Joyce may not have permission to view items of this quote.');
                 setItems([]);
             }
 
             setDiscount(data.discount || 0);
             setDiscountType(data.discount_type || 'amount');
             setDealId(data.deal_id || null);
-            console.log('✅ Discount set:', data.discount, data.discount_type);
 
             // Load expenses for this quote
             const { data: transData } = await supabase
@@ -206,7 +194,7 @@ export function QuoteForm() {
             setLoading(false);
             console.log('✅ Loading finished');
         }
-    };
+    }, [getQuote, navigate, user?.id, currentEntity.id]);
 
     const addExpenseRow = () => {
         setExpenses([

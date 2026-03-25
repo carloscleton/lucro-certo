@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -70,7 +70,7 @@ export function useQuotes() {
     const { user } = useAuth();
     const { currentEntity } = useEntity();
 
-    const fetchQuotes = async () => {
+    const fetchQuotes = useCallback(async () => {
         if (!user) return;
 
         if (quotes.length === 0) {
@@ -135,9 +135,9 @@ export function useQuotes() {
             setLoading(false);
             setIsRefreshing(false);
         }
-    };
+    }, [user, currentEntity.id, quotes.length]);
 
-    const scheduleFollowUp = async (id: string, date: string, notes: string) => {
+    const scheduleFollowUp = useCallback(async (id: string, date: string, notes: string) => {
         try {
             const { error } = await supabase
                 .from('quotes')
@@ -153,13 +153,13 @@ export function useQuotes() {
             console.error('Error scheduling follow-up:', error);
             throw error;
         }
-    };
+    }, [fetchQuotes]);
 
     useEffect(() => {
         fetchQuotes();
     }, [user, currentEntity.id]);
 
-    const getQuote = async (id: string) => {
+    const getQuote = useCallback(async (id: string) => {
         const { data: quote, error } = await supabase
             .from('quotes')
             .select(`
@@ -176,9 +176,9 @@ export function useQuotes() {
         }
 
         return quote as Quote;
-    };
+    }, []);
 
-    const createQuote = async (quoteData: Partial<Quote>, items: QuoteItem[]) => {
+    const createQuote = useCallback(async (quoteData: Partial<Quote>, items: QuoteItem[]) => {
         if (!user) return;
 
         // 1. Insert Quote
@@ -205,7 +205,7 @@ export function useQuotes() {
                 .from('quote_items')
                 .insert(itemsToInsert);
 
-            if (itemsError) throw itemsError; // Note: Quote created but items failed. ideally transaction.
+            if (itemsError) throw itemsError;
         }
 
         await fetchQuotes();
@@ -223,9 +223,9 @@ export function useQuotes() {
         }
 
         return newQuote;
-    };
+    }, [user, currentEntity.id, fetchQuotes]);
 
-    const updateQuoteStatus = async (id: string, status: Quote['status']) => {
+    const updateQuoteStatus = useCallback(async (id: string, status: Quote['status']) => {
         const { error } = await supabase
             .from('quotes')
             .update({ status })
@@ -282,9 +282,9 @@ export function useQuotes() {
                 console.error('Error triggering reject webhook:', err);
             }
         }
-    };
+    }, [user, currentEntity.id, fetchQuotes]);
 
-    const approveQuote = async (id: string, options: {
+    const approveQuote = useCallback(async (id: string, options: {
         generateTransaction: boolean;
         transactionStatus?: 'pending' | 'received';
         paymentDetails?: {
@@ -443,9 +443,9 @@ export function useQuotes() {
         } catch (error) {
             console.error('❌ Error triggering webhook:', error);
         }
-    };
+    }, [user, currentEntity.id, quotes, fetchQuotes]);
 
-    const updateQuote = async (id: string, quoteData: Partial<Quote>, items: QuoteItem[]) => {
+    const updateQuote = useCallback(async (id: string, quoteData: Partial<Quote>, items: QuoteItem[]) => {
         if (!user) return;
 
         // 1. Update Quote Details
@@ -501,9 +501,6 @@ export function useQuotes() {
                         description: `Ref. Orçamento: ${quote.title}`
                     };
 
-                    // If it was already received, we also update the paid_amount to keep it in sync
-                    // unless it had interest/penalty (amount != paid_amount), then we might want to be careful.
-                    // For now, simpler sync: if it was fully paid, keep it fully paid.
                     if (tx.status === 'received') {
                         updates.paid_amount = quote.total_amount;
                     }
@@ -519,9 +516,9 @@ export function useQuotes() {
         }
 
         await fetchQuotes();
-    };
+    }, [user, fetchQuotes]);
 
-    const resetQuotePayment = async (quoteId: string) => {
+    const resetQuotePayment = useCallback(async (quoteId: string) => {
         try {
             // 1. Update Transaction back to pending
             const { error: txError } = await supabase
@@ -552,9 +549,9 @@ export function useQuotes() {
             console.error('Error resetting payment:', error);
             return { error: error.message };
         }
-    };
+    }, [fetchQuotes]);
 
-    const deleteQuote = async (id: string) => {
+    const deleteQuote = useCallback(async (id: string) => {
         // Fetch quote to check status
         const quote = quotes.find(q => q.id === id);
 
@@ -568,7 +565,7 @@ export function useQuotes() {
             }
         }
 
-        // 0. Delete linked items (Necessary due to foreign key constraints)
+        // 0. Delete linked items
         const { error: itemsDeleteError } = await supabase
             .from('quote_items')
             .delete()
@@ -587,11 +584,9 @@ export function useQuotes() {
 
         if (txError) {
             console.error('Error deleting linked transaction:', txError);
-            // We continue to delete the quote even if transaction delete fails? 
-            // Or maybe we should warn? Let's assume we proceed but log it.
         }
 
-        // 1.1 Delete linked company charges (Payment links)
+        // 1.1 Delete linked company charges
         const { error: chargesError } = await supabase
             .from('company_charges')
             .delete()
@@ -602,12 +597,9 @@ export function useQuotes() {
         }
 
         // 2. Delete Quote PDFs from Storage
-        // We need to find the files first because they are named with timestamps
-        // The bucket is 'orcamento-quote-pdfs' and folders are by company_id
         try {
-            const companyId = quote?.company_id || (currentEntity.type === 'company' ? currentEntity.id : 'personal'); // Best guess for folder
+            const companyId = quote?.company_id || (currentEntity.type === 'company' ? currentEntity.id : 'personal');
 
-            // If we have a company ID, we can try to list and delete
             if (companyId) {
                 const folder = `${companyId}/`;
                 const files = await storageService.list('orcamento-quote-pdfs', folder);
@@ -616,12 +608,11 @@ export function useQuotes() {
                     .map(f => `${folder}${f.name}`);
 
                 if (filesToRemove.length > 0) {
-                    console.log('🗑️ Deleting quote PDFs via storageService:', filesToRemove);
                     await storageService.deleteMultiple('orcamento-quote-pdfs', filesToRemove);
                 }
             }
         } catch (storageErr) {
-            console.error('Error in storage cleanup (proceeding with quote delete):', storageErr);
+            console.error('Error in storage cleanup:', storageErr);
         }
 
         // 3. Delete Quote
@@ -632,7 +623,7 @@ export function useQuotes() {
 
         if (error) throw error;
         await fetchQuotes();
-    };
+    }, [user, quotes, currentEntity.id, fetchQuotes]);
 
     return { quotes, loading, isRefreshing, getQuote, createQuote, updateQuote, updateQuoteStatus, approveQuote, deleteQuote, resetQuotePayment, scheduleFollowUp, refresh: fetchQuotes };
 }
