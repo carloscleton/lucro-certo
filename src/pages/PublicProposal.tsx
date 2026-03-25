@@ -159,83 +159,96 @@ export function PublicProposal() {
             <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-40">
                 <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-200 dark:bg-sky-900/20 blur-[150px] rounded-full" />
                 <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-200 dark:bg-emerald-900/20 blur-[120px] rounded-full" />
-            </div>
-
-            <main className="relative z-10 max-w-5xl mx-auto py-12 px-6">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-12">
-                    <div className="flex items-center gap-4">
+            </div>            <main className="relative z-10 max-w-4xl mx-auto py-16 px-6">
+                {/* Header - Centralizado e Elegante */}
+                <div className="flex flex-col items-center text-center mb-16 animate-in fade-in slide-in-from-top-4 duration-700">
+                    <div className="relative mb-6">
                         {proposal.company.logo_url ? (
-                            <img src={proposal.company.logo_url} alt={proposal.company.name} className="h-16 w-16 object-contain rounded-2xl shadow-sm bg-white p-2" />
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-sky-200 blur-2xl opacity-20 rounded-full scale-150" />
+                                <img 
+                                    src={proposal.company.logo_url} 
+                                    alt={proposal.company.name} 
+                                    className="relative h-28 w-28 object-contain rounded-3xl shadow-xl shadow-sky-500/10 bg-white p-3 border border-slate-100 dark:border-slate-800" 
+                                />
+                            </div>
                         ) : (
-                            <div className="h-16 w-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800">
-                                <Building2 className="text-sky-600" size={32} />
+                            <div className="h-28 w-28 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800">
+                                <Building2 className="text-sky-600" size={40} />
                             </div>
                         )}
-                        <div>
-                            <h2 className="text-xl font-black tracking-tight">{proposal.company.name}</h2>
-                            <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
-                                <ShieldCheck size={14} className="text-emerald-500" />
-                                Proposta Verificada
-                            </div>
-                        </div>
+                    </div>
+                    
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
+                        {proposal.company.name}
+                    </h2>
+                    <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-1.5 rounded-full text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                        <ShieldCheck size={14} />
+                        Proposta Verificada
                     </div>
 
-                    <div className="hidden md:flex items-center gap-3">
-                        <div className="text-right">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Data de Emissão</p>
-                            <p className="font-bold">{format(parseISO(proposal.created_at), 'dd/MM/yyyy')}</p>
+                    <div className="flex items-center gap-6 mt-10">
+                        <div className="text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Emissão</p>
+                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">{format(parseISO(proposal.created_at), 'dd/MM/yyyy')}</p>
                         </div>
-                        <div className="h-10 w-px bg-slate-200 dark:bg-slate-800 mx-2" />
-                        <div className="text-right">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ref.</p>
-                            <p className="font-bold">#{id?.slice(0, 8).toUpperCase()}</p>
+                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800" />
+                        <div className="text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Referência</p>
+                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">#{id?.slice(0, 8).toUpperCase()}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Main Content Card */}
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-white dark:border-slate-800 overflow-hidden">
+                {/* Main Content Card - Refinado e Compacto */}
+                <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl shadow-slate-200/60 dark:shadow-none border border-white dark:border-slate-800/50 overflow-hidden">
                     {/* Status Top Bar */}
                     {status === 'approved' && (
-                        <div className="bg-emerald-500 h-16 flex items-center justify-center gap-2 text-white font-black animate-in fade-in slide-in-from-top duration-500">
-                            <CheckCircle2 size={24} />
-                            PROPOSTA APROVADA
+                        <div className="bg-emerald-500 h-14 flex items-center justify-between px-8 text-white font-black text-sm uppercase tracking-widest animate-in fade-in slide-in-from-top duration-500">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle2 size={20} />
+                                PROPOSTA APROVADA
+                            </div>
+                            <button className="flex items-center gap-2 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors text-[10px]">
+                                <Download size={14} />
+                                BAIXAR PDF
+                            </button>
                         </div>
                     )}
                     {status === 'rejected' && (
-                        <div className="bg-red-500 h-16 flex items-center justify-center gap-2 text-white font-black animate-in fade-in slide-in-from-top duration-500">
-                            <XCircle size={24} />
+                        <div className="bg-red-500 h-14 flex items-center justify-center gap-2 text-white font-black text-sm uppercase tracking-widest animate-in fade-in slide-in-from-top duration-500">
+                            <XCircle size={20} />
                             PROPOSTA DECLINADA
                         </div>
                     )}
 
-                    <div className="p-8 md:p-12">
-                        {/* Title & Customer */}
-                        <div className="max-w-3xl mb-12">
-                            <p className="text-sky-600 dark:text-sky-400 font-bold text-sm uppercase tracking-[0.3em] mb-4">Proposta Comercial</p>
-                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 leading-tight">
+                    <div className="p-8 md:p-14">
+                        {/* Title & Customer Information */}
+                        <div className="max-w-3xl mb-14 text-center md:text-left">
+                            <p className="text-sky-600 dark:text-sky-400 font-bold text-xs uppercase tracking-[0.4em] mb-6">Documento Oficial</p>
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-10 leading-tight">
                                 {proposal.title}
                             </h1>
-                            <div className="flex flex-wrap items-center gap-6">
-                                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 rounded-2xl">
-                                    <div className="w-10 h-10 bg-sky-100 dark:bg-sky-900/30 rounded-xl flex items-center justify-center text-sky-600">
-                                        <Loader2 size={20} className="animate-pulse" />
+                            
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/60 px-5 py-3.5 rounded-2xl border border-slate-100/50 dark:border-slate-700/50 flex-1 min-w-[200px]">
+                                    <div className="w-10 h-10 bg-sky-100 dark:bg-sky-900/40 rounded-xl flex items-center justify-center text-sky-600 shadow-sm">
+                                        <Building2 size={20} />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Para:</p>
-                                        <p className="font-bold text-slate-900 dark:text-white">{proposal.client.name}</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Para:</p>
+                                        <p className="font-bold text-slate-900 dark:text-white text-base">{proposal.client.name}</p>
                                     </div>
                                 </div>
 
                                 {proposal.valid_until && (
-                                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 rounded-2xl">
-                                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600">
+                                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/60 px-5 py-3.5 rounded-2xl border border-slate-100/50 dark:border-slate-700/50 flex-1 min-w-[200px]">
+                                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-xl flex items-center justify-center text-amber-600 shadow-sm">
                                             <Clock size={20} />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Válido até:</p>
-                                            <p className="font-bold text-slate-900 dark:text-white">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Válido até:</p>
+                                            <p className="font-bold text-slate-900 dark:text-white text-base">
                                                 {format(parseISO(proposal.valid_until), "dd 'de' MMMM", { locale: ptBR })}
                                             </p>
                                         </div>
@@ -244,61 +257,74 @@ export function PublicProposal() {
                             </div>
                         </div>
 
-                        {/* Items Table */}
-                        <div className="mb-12">
-                            <h3 className="text-lg font-black mb-6 flex items-center gap-2">
-                                <FileText className="text-sky-600" size={24} />
-                                Resumo da Proposta
+                        {/* Items Section - Cartões Elegantes */}
+                        <div className="mb-14">
+                            <h3 className="text-base font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
+                                <div className="w-8 h-px bg-slate-200 dark:bg-slate-800" />
+                                Itens da Proposta
+                                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
                             </h3>
-                            <div className="space-y-4">
+                            
+                            <div className="grid gap-3">
                                 {proposal.items.map((item, idx) => (
-                                    <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/40 rounded-[2rem] border border-slate-100 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-colors">
-                                        <div className="flex-1 mb-4 md:mb-0">
-                                            <h4 className="font-black text-lg mb-1">{item.description}</h4>
-                                            {item.quantity > 1 && (
-                                                <p className="text-sm text-slate-500 font-medium">Quantidade: {item.quantity}</p>
-                                            )}
+                                    <div key={idx} className="group flex items-center justify-between p-5 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-200/40 dark:hover:shadow-none transition-all duration-300">
+                                        <div className="flex-1 flex gap-4 items-center">
+                                            <div className="w-8 h-8 rounded-full bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 flex items-center justify-center text-[10px] font-bold border border-sky-100 dark:border-sky-800">
+                                                {idx + 1}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-slate-900 dark:text-white mb-0.5">{item.description}</h4>
+                                                {item.quantity > 1 && (
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.quantity} unidade(s)</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-2xl font-black text-sky-600 dark:text-sky-400">{formatCurrency(item.total_price)}</p>
+                                        <div className="text-right pl-4">
+                                            <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">
+                                                {formatCurrency(item.total_price)}
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Summary Section */}
-                        <div className="flex flex-col md:flex-row justify-between items-start gap-12 bg-slate-900 dark:bg-slate-950 rounded-[3rem] p-12 text-white relative overflow-hidden">
-                            {/* Decorative element inside summary */}
-                            <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-sky-500/20 blur-[80px] rounded-full" />
+                        {/* Summary Section - Layout Premium Semi-Dark */}
+                        <div className="flex flex-col lg:flex-row justify-between items-stretch gap-8 bg-slate-900 dark:bg-slate-950 rounded-[2rem] p-8 md:p-12 text-white relative overflow-hidden ring-1 ring-white/10">
+                            {/* Decorative element */}
+                            <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-sky-500/10 blur-[90px] rounded-full pointer-events-none" />
                             
-                            <div className="flex-1">
-                                <h3 className="text-xl font-black mb-4">Considerações Finais</h3>
-                                <p className="text-slate-400 text-sm leading-relaxed mb-6 italic">
+                            <div className="flex-1 flex flex-col justify-center">
+                                <h3 className="text-lg font-black mb-4 tracking-tight">Observações Adicionais</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed mb-8 font-medium">
                                     {proposal.notes || "Sua satisfação é nossa prioridade. Esta proposta foi elaborada pensando na melhor solução para o seu negócio."}
                                 </p>
-                                <div className="flex items-center gap-4 text-emerald-400 text-xs font-bold uppercase tracking-widest">
-                                    <ShieldCheck size={18} />
-                                    Ambiente de Segurança Lucro Certo
+                                <div className="inline-flex items-center gap-3 py-2 px-4 rounded-xl bg-white/5 border border-white/10 w-fit">
+                                    <ShieldCheck size={18} className="text-emerald-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Security Environment</span>
                                 </div>
                             </div>
 
-                            <div className="w-full md:w-auto text-right md:border-l border-slate-700 md:pl-12">
-                                <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.4em] mb-2">Total do Investimento</p>
-                                <p className="text-5xl font-black text-white tabular-nums mb-4">{formatCurrency(proposal.total_amount)}</p>
+                            <div className="w-full lg:w-px bg-white/10 hidden lg:block my-2" />
+
+                            <div className="w-full lg:w-auto flex flex-col justify-center text-center lg:text-right">
+                                <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.5em] mb-3">Total do Investimento</p>
+                                <p className="text-5xl md:text-6xl font-black text-white tabular-nums tracking-tighter mb-8 italic">
+                                    {formatCurrency(proposal.total_amount)}
+                                </p>
                                 
                                 {status === 'view' && (
-                                    <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col gap-4">
                                         <button 
                                             onClick={() => handleAction('approve')}
-                                            className="w-full py-5 bg-sky-500 hover:bg-sky-400 text-white rounded-2xl font-black text-lg transition-all active:scale-95 shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 group"
+                                            className="w-full py-5 bg-sky-500 hover:bg-sky-400 text-white rounded-2xl font-black text-xl transition-all active:scale-95 shadow-2xl shadow-sky-600/30 flex items-center justify-center gap-3 group px-10"
                                         >
                                             ACEITAR PROPOSTA
-                                            <Check className="group-hover:translate-x-1 transition-transform" />
+                                            <Check className="group-hover:scale-125 transition-transform" strokeWidth={3} size={24} />
                                         </button>
                                         <button 
                                             onClick={() => handleAction('reject')}
-                                            className="text-slate-500 hover:text-red-400 font-bold text-xs uppercase tracking-widest transition-colors py-2"
+                                            className="text-slate-500 hover:text-red-400 font-bold text-[10px] uppercase tracking-[0.3em] transition-colors py-2"
                                         >
                                             Declinear Proposta
                                         </button>
@@ -309,27 +335,12 @@ export function PublicProposal() {
                     </div>
                 </div>
 
-                {/* Status-specific screens */}
-                {status === 'approved' && (
-                    <div className="mt-12 text-center animate-in zoom-in-95 fade-in duration-700">
-                        <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6 text-emerald-600">
-                            <Check size={48} />
-                        </div>
-                        <h2 className="text-3xl font-black mb-4">Parabéns!</h2>
-                        <p className="text-slate-500 max-w-md mx-auto mb-8 font-medium">Você aceitou esta proposta. O responsável já foi notificado e entrará em contato em breve para os próximos passos.</p>
-                        <button className="flex items-center gap-2 mx-auto font-black text-sky-600 hover:text-sky-500 transition-colors">
-                            <Download size={20} />
-                            Baixar Cópia em PDF
-                        </button>
-                    </div>
-                )}
-
-                {/* Footer */}
-                <footer className="mt-20 text-center">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Processado por</p>
-                    <div className="flex items-center justify-center gap-2">
-                        <div className="w-8 h-8 bg-sky-600 rounded-lg flex items-center justify-center text-white font-black text-sm">L</div>
-                        <span className="font-black text-slate-400">LUCRO CERTO</span>
+                {/* Footer Style Refinado */}
+                <footer className="mt-24 text-center pb-8">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4">Securely processed by</p>
+                    <div className="flex items-center justify-center gap-3 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-base shadow-lg">L</div>
+                        <span className="font-black text-slate-800 dark:text-slate-200 tracking-tighter text-lg italic">LUCRO CERTO</span>
                     </div>
                 </footer>
             </main>
