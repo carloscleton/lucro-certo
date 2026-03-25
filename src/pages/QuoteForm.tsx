@@ -86,60 +86,6 @@ export function QuoteForm() {
         navigate('/dashboard/quotes');
     };
 
-    useEffect(() => {
-        if (settingsLoading) return;
-
-        if (id && id !== 'new') {
-            loadQuote(id);
-        } else if (id === 'new') {
-            // Initialize with one empty item row for new quotes
-            setItems([{
-                description: '',
-                quantity: 1,
-                unit_price: 0,
-                total_price: 0,
-                service_id: null,
-                product_id: null
-            }]);
-
-            // Set default validity from settings
-            const defaultDays = settings?.quote_validity_days || 7;
-            setValidityDays(defaultDays);
-            const date = new Date();
-            date.setDate(date.getDate() + defaultDays);
-            const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-                .toISOString()
-                .split('T')[0];
-            setValidUntil(localDate);
-        }
-    }, [id, settingsLoading, loadQuote]);
-
-    // Handle initial pre-fill from searchParams
-    useEffect(() => {
-        if (id === 'new') {
-            const dealIdParam = searchParams.get('dealId');
-            const contactIdParam = searchParams.get('contactId');
-            const titleParam = searchParams.get('title');
-            const amountParam = searchParams.get('amount');
-
-            if (dealIdParam) setDealId(dealIdParam);
-            if (contactIdParam) setContactId(contactIdParam);
-            if (titleParam) setTitle(titleParam);
-            if (amountParam && !isNaN(parseFloat(amountParam))) {
-                setItems([{
-                    description: titleParam || 'Item do Negócio',
-                    quantity: 1,
-                    unit_price: parseFloat(amountParam),
-                    total_price: parseFloat(amountParam),
-                    service_id: null,
-                    product_id: null
-                }]);
-            }
-        }
-    }, [id, searchParams]);
-
-    // State for discount
-
     const loadQuote = useCallback(async (quoteId: string) => {
         if (!quoteId || quoteId === 'new') return;
         
@@ -195,6 +141,61 @@ export function QuoteForm() {
             console.log('✅ Loading finished');
         }
     }, [getQuote, navigate, user?.id, currentEntity.id]);
+
+    useEffect(() => {
+        if (settingsLoading) return;
+
+        if (id && id !== 'new') {
+            loadQuote(id);
+        } else if (id === 'new') {
+            // Initialize with one empty item row for new quotes
+            setItems([{
+                description: '',
+                quantity: 1,
+                unit_price: 0,
+                total_price: 0,
+                service_id: null,
+                product_id: null
+            }]);
+
+            // Set default validity from settings
+            const defaultDays = settings?.quote_validity_days || 7;
+            setValidityDays(defaultDays);
+            const date = new Date();
+            date.setDate(date.getDate() + defaultDays);
+            const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+                .toISOString()
+                .split('T')[0];
+            setValidUntil(localDate);
+        }
+    }, [id, settingsLoading, loadQuote]);
+
+    // Handle initial pre-fill from searchParams
+    useEffect(() => {
+        if (id === 'new') {
+            const dealIdParam = searchParams.get('dealId');
+            const contactIdParam = searchParams.get('contactId');
+            const titleParam = searchParams.get('title');
+            const amountParam = searchParams.get('amount');
+
+            if (dealIdParam) setDealId(dealIdParam);
+            if (contactIdParam) setContactId(contactIdParam);
+            if (titleParam) setTitle(titleParam);
+            if (amountParam && !isNaN(parseFloat(amountParam))) {
+                setItems([{
+                    description: titleParam || 'Item do Negócio',
+                    quantity: 1,
+                    unit_price: parseFloat(amountParam),
+                    total_price: parseFloat(amountParam),
+                    service_id: null,
+                    product_id: null
+                }]);
+            }
+        }
+    }, [id, searchParams]);
+
+    // State for discount
+
 
     const addExpenseRow = () => {
         setExpenses([
