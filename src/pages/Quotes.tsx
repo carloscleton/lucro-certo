@@ -778,19 +778,21 @@ export function Quotes() {
                                             {getDiscountDisplay(quote)}
                                         </td>
                                         <td className="py-3 px-4 text-sm font-medium text-right whitespace-nowrap">
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-gray-900 dark:text-white">{formatCurrency(quote.total_amount)}</span>
-                                                {quoteExpenses[quote.id] > 0 && (
-                                                    <div className="flex flex-col items-end text-[10px]">
-                                                        <span className="text-red-500">- {formatCurrency(quoteExpenses[quote.id])} (Desp.)</span>
-                                                        <span className="text-emerald-600 font-bold border-t border-gray-100 dark:border-slate-700">Lucro: {formatCurrency(quote.total_amount - quoteExpenses[quote.id])}</span>
-                                                    </div>
-                                                )}
-                                                {quoteExpenses[quote.id] === undefined && (
-                                                     <div className="flex flex-col items-end text-[10px]">
-                                                        <span className="text-emerald-600 font-bold border-t border-gray-100 dark:border-slate-700">Lucro: {formatCurrency(quote.total_amount)}</span>
-                                                    </div>
-                                                )}
+                                            <div className="flex flex-col items-end gap-1">
+                                                <div className="flex items-center gap-1.5 leading-none">
+                                                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Orçamento:</span>
+                                                    <span className="text-gray-900 dark:text-white font-bold">{formatCurrency(quote.total_amount)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 leading-none text-[10px] text-red-500">
+                                                    <span className="uppercase font-bold tracking-tight">(-) Despesas:</span>
+                                                    <span className="font-bold">{formatCurrency(quoteExpenses[quote.id] || 0)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg mt-1 border border-emerald-200/50 dark:border-emerald-800/50">
+                                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-black tracking-widest">Lucro:</span>
+                                                    <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                                                        {formatCurrency(quote.total_amount - (quoteExpenses[quote.id] || 0))}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-center">
@@ -1338,27 +1340,24 @@ export function Quotes() {
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                         Exibindo {filteredQuotes.length} orçamentos
                     </div>
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-8">
                         <div className="text-right">
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">Total Descontos</span>
-                            <span className="text-sm font-bold text-red-500">{formatCurrency(totalDiscount)}</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-bold mb-0.5">Total Bruto</span>
+                            <span className="text-lg font-bold text-gray-900 dark:text-white leading-none">{formatCurrency(totalValue)}</span>
                         </div>
+                        
                         <div className="text-right">
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">Valor Total</span>
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(totalValue)}</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-bold mb-0.5">Despesas</span>
+                            <span className="text-lg font-bold text-red-500 leading-none">-{formatCurrency(totalExpense)}</span>
                         </div>
-                        {totalExpense > 0 && (
+
+                        <div className="flex items-center gap-6 bg-gray-50 dark:bg-slate-700/50 px-6 py-2.5 rounded-2xl border border-gray-100 dark:border-slate-700">
                             <div className="text-right">
-                                <span className="text-[10px] text-gray-400 dark:text-gray-500 block uppercase tracking-wider font-medium">Total Despesas</span>
-                                <span className="text-sm font-bold text-red-600">{formatCurrency(totalExpense)}</span>
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400 block uppercase tracking-[0.2em] font-black">Lucro Líquido Real</span>
+                                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm">
+                                    {formatCurrency(totalProfit)}
+                                </span>
                             </div>
-                        )}
-                        <div className="w-px h-8 bg-gray-200 dark:bg-slate-600 hidden sm:block" />
-                        <div className="text-right">
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 block uppercase tracking-wider font-bold">Lucro Líquido</span>
-                            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                                {formatCurrency(totalProfit)}
-                            </span>
                         </div>
                     </div>
                 </div>
