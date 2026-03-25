@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search } from 'lucide-react';
+import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search, DollarSign } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useQuotes, type Quote } from '../hooks/useQuotes';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -1101,6 +1101,21 @@ export function Quotes() {
                                                     </>
                                                 )}
 
+                                                {/* Manual Finance Sync Button for already approved quotes */}
+                                                {quote.status === 'approved' && quote.payment_status === 'none' && (
+                                                    <Tooltip content="Lançar no Financeiro (Manual)">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleApproveClick(quote);
+                                                            }}
+                                                            className="text-emerald-600 hover:text-emerald-800 p-1 rounded hover:bg-emerald-50"
+                                                        >
+                                                            <DollarSign size={16} />
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
+
                                                 {quote.status === 'rejected' && (
                                                     <>
                                                         <Tooltip content="Agendar Retorno">
@@ -1188,7 +1203,9 @@ export function Quotes() {
                 showApprovalOptions && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
                         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md animate-in fade-in slide-in-from-bottom-4">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Aprovar Orçamento</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                                {quoteToApprove?.status === 'approved' ? 'Lançar no Financeiro' : 'Aprovar Orçamento'}
+                            </h3>
                             <p className="text-gray-600 dark:text-gray-300 mb-6">
                                 O orçamento será marcado como <span className="font-bold text-green-600">Aprovado</span>. O que você deseja fazer em seguida?
                             </p>

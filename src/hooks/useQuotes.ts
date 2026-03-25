@@ -329,6 +329,7 @@ export function useQuotes() {
                 .from('transactions')
                 .select('id')
                 .eq('quote_id', id)
+                .eq('type', 'income')
                 .maybeSingle();
 
             if (existingTx) {
@@ -493,7 +494,7 @@ export function useQuotes() {
             const { data: quote } = await supabase.from('quotes').select('status, total_amount, title').eq('id', id).single();
 
             if (quote && quote.status === 'approved') {
-                const { data: tx } = await supabase.from('transactions').select('id, status, amount, paid_amount').eq('quote_id', id).single();
+                const { data: tx } = await supabase.from('transactions').select('id, status, amount, paid_amount').eq('quote_id', id).eq('type', 'income').maybeSingle();
 
                 if (tx) {
                     const updates: any = {
@@ -531,7 +532,8 @@ export function useQuotes() {
                     interest: null,
                     penalty: null
                 })
-                .eq('quote_id', quoteId);
+                .eq('quote_id', quoteId)
+                .eq('type', 'income');
 
             if (txError) throw txError;
 
