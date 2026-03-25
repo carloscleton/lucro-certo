@@ -14,8 +14,11 @@ import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { useCRM } from '../hooks/useCRM';
-import { Tooltip } from '../components/ui/Tooltip';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { TransactionForm } from '../components/transactions/TransactionForm';
+import { useTransactions, type Transaction } from '../hooks/useTransactions';
+import { TrendingDown, Receipt } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export function QuoteForm() {
     const { id } = useParams();
@@ -63,6 +66,12 @@ export function QuoteForm() {
 
     const [discount, setDiscount] = useState(0);
     const [discountType, setDiscountType] = useState<'amount' | 'percentage'>('amount');
+
+    // Expenses State
+    const [expenses, setExpenses] = useState<any[]>([]);
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const [expenseToEdit, setExpenseToEdit] = useState<any | null>(null);
+    const { fetchTransactionsByQuoteIds } = useTransactions('expense');
 
     const { clearCache } = useAutoSave(
         'quote_form',
@@ -183,6 +192,19 @@ export function QuoteForm() {
             setDealId(data.deal_id || null);
             console.log('✅ Discount set:', data.discount, data.discount_type);
 
+            // Load expenses for this quote
+            const expensesMap = await fetchTransactionsByQuoteIds([quoteId]);
+            // The hook returns a map: { [quote_id]: total_amount }
+            // But we actually want the list of transactions to show them individually.
+            // Let's adjust or use a direct query.
+            const { data: transData } = await supabase
+                .from('transactions')
+                .select('*')
+                .eq('quote_id', quoteId)
+                .order('date', { ascending: false });
+            
+            if (transData) setExpenses(transData);
+
             console.log('✅ All data loaded successfully!');
         } catch (error) {
             console.error('❌ Error loading quote:', error);
@@ -191,6 +213,28 @@ export function QuoteForm() {
         } finally {
             setLoading(false);
             console.log('✅ Loading finished');
+        }
+    };
+
+    const loadExpenses = async () => {
+        if (!id || id === 'new') return;
+        const { data } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('quote_id', id)
+            .order('date', { ascending: false });
+        if (data) setExpenses(data);
+    };
+
+    const handleDeleteExpense = async (expenseId: string) => {
+        if (!confirm('Deseja realmente excluir esta despesa?')) return;
+        try {
+            const { error } = await supabase.from('transactions').delete().eq('id', expenseId);
+            if (error) throw error;
+            loadExpenses();
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao excluir despesa');
         }
     };
 
@@ -299,6 +343,14 @@ export function QuoteForm() {
         }
 
         return Math.max(0, subtotal - discountValue);
+    };
+
+    const calculateTotalExpenses = () => {
+        return expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0);
+    };
+
+    const calculateProfit = () => {
+        return calculateTotal() - calculateTotalExpenses();
     };
 
     const handleAddClient = async (e: React.FormEvent) => {
@@ -644,6 +696,97 @@ export function QuoteForm() {
                     </div>
                 </div>
 
+                {/* Expenses Card */}
+                {id !== 'new' && (
+                    <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <TrendingDown className="w-5 h-5 text-orange-500" />
+                                Despesas do Serviço / Obra
+                            </h3>
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                                onClick={() => {
+                                    setExpenseToEdit(null);
+                                    setIsExpenseModalOpen(true);
+                                }}
+                            >
+                                <Plus size={16} className="mr-2" />
+                                Lançar Despesa
+                            </Button>
+                        </div>
+
+                        {expenses.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-gray-200 dark:border-slate-700">
+                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter">Data</th>
+                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter">Descrição</th>
+                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter text-right">Valor</th>
+                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter text-center">Status</th>
+                                            <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {expenses.map((exp) => (
+                                            <tr key={exp.id} className="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                <td className="p-2 text-sm text-gray-500">
+                                                    {new Date(exp.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                                </td>
+                                                <td className="p-2 text-sm font-medium text-gray-900 dark:text-white">
+                                                    {exp.description}
+                                                </td>
+                                                <td className="p-2 text-sm font-bold text-red-600 text-right">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.amount)}
+                                                </td>
+                                                <td className="p-2 text-center text-[10px]">
+                                                    <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
+                                                        exp.status === 'paid' || exp.status === 'received' 
+                                                            ? 'bg-emerald-100 text-emerald-700' 
+                                                            : 'bg-orange-100 text-orange-700'
+                                                    }`}>
+                                                        {exp.status === 'paid' || exp.status === 'received' ? 'Pago' : 'Pendente'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-2 text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => {
+                                                                setExpenseToEdit(exp);
+                                                                setIsExpenseModalOpen(true);
+                                                            }}
+                                                            className="p-1 text-blue-500 hover:bg-blue-50 rounded"
+                                                        >
+                                                            <Receipt size={14} />
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => handleDeleteExpense(exp.id)}
+                                                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700">
+                                <p className="text-sm text-gray-500">Nenhuma despesa lançada para este orçamento.</p>
+                                <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-widest">Acompanhe seus custos para saber o lucro real</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Footer / Summary */}
                 <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-end">
                     <div className="w-full md:w-1/2">
@@ -698,6 +841,24 @@ export function QuoteForm() {
                             <span>Total</span>
                             <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateTotal())}</span>
                         </div>
+
+                        {id !== 'new' && (
+                            <div className="space-y-2 pt-2 animate-in slide-in-from-bottom-2 duration-500">
+                                <div className="flex justify-between items-center text-sm text-gray-400">
+                                    <span className="flex items-center gap-1.5 font-bold uppercase tracking-tighter">(-) Total Despesas</span>
+                                    <span className="font-bold">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateTotalExpenses())}</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/40 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest">Lucro Líquido Real</span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">Fórmula: Total - Despesas</span>
+                                    </div>
+                                    <span className={`text-xl font-black ${calculateProfit() >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 font-black'}`}>
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateProfit())}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                         <div className="pt-2">
                             <Button type="submit" className="w-full" isLoading={loading}>
                                 <Save size={18} className="mr-2" />
@@ -768,6 +929,31 @@ export function QuoteForm() {
                     </div>
                 </form>
             </Modal>
+
+            {/* Expense Modal Integration */}
+            {id !== 'new' && (
+                <TransactionForm
+                    type="expense"
+                    isOpen={isExpenseModalOpen}
+                    onClose={() => {
+                        setIsExpenseModalOpen(false);
+                        setExpenseToEdit(null);
+                    }}
+                    onSubmit={async () => {
+                        await loadExpenses();
+                        setIsExpenseModalOpen(false);
+                        setExpenseToEdit(null);
+                    }}
+                    initialData={expenseToEdit || {
+                        quote_id: id,
+                        description: `DESPESA ORÇAMENTO: ${title.toUpperCase()}`,
+                        amount: 0,
+                        date: new Date().toISOString().split('T')[0],
+                        contact_id: contactId,
+                        company_id: currentEntity.id
+                    }}
+                />
+            )}
         </div>
     );
 }

@@ -510,8 +510,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             <Modal
                 isOpen={isOpen}
                 onClose={handleClose}
-                title={initialData ? (type === 'expense' ? 'Editar Despesa' : 'Editar Receita') : (type === 'expense' ? 'Nova Despesa' : 'Nova Receita')}
-                subtitle={initialData ? 'Atualize os dados deste lançamento financeiro' : `Registre um novo fluxo de ${isExpense ? 'saída' : 'entrada'} no seu caixa`}
+                title={initialData?.id ? (type === 'expense' ? 'Editar Despesa' : 'Editar Receita') : (type === 'expense' ? 'Nova Despesa' : 'Nova Receita')}
+                subtitle={initialData?.id ? 'Atualize os dados deste lançamento financeiro' : `Registre um novo fluxo de ${isExpense ? 'saída' : 'entrada'} no seu caixa`}
                 icon={isExpense ? Receipt : TrendingUp}
                 maxWidth="max-w-2xl"
             >
@@ -872,7 +872,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             isLoading={loading}
                             className="bg-emerald-600 hover:bg-emerald-700 px-6 h-9 text-sm text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all hover:scale-[1.02] active:scale-95 border-none font-bold"
                         >
-                            {initialData ? 'Salvar Alterações' : 'Processar Lançamento'}
+                            {initialData?.id ? 'Salvar Alterações' : 'Processar Lançamento'}
                         </Button>
                     </div>
                 </form>
