@@ -435,7 +435,7 @@ export function QuoteForm() {
             };
 
             if (id && id !== 'new') {
-                const quoteRes = await updateQuote(id, quoteData, items);
+                await updateQuote(id, quoteData, items);
                 // Save inline expenses
                 const finalQuoteId = id;
                 for (const exp of expenses) {
