@@ -27,7 +27,7 @@ interface TransactionFormProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (data: any) => Promise<void>;
-    initialData?: Transaction | null;
+    initialData?: Partial<Transaction> | null;
 }
 
 export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }: TransactionFormProps) {
@@ -91,7 +91,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setDescription(initialData.description || '');
             setAmount(initialData.amount ? initialData.amount.toString() : '');
             setDate(initialData.date || new Date().toISOString().split('T')[0]);
-            setStatus(initialData.status);
+            setStatus(initialData.status || 'pending');
             setCategoryId(initialData.category_id || '');
             setCompanyId(initialData.company_id || '');
             setContactId(initialData.contact_id || '');
