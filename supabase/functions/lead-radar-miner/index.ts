@@ -277,8 +277,33 @@ REGRAS:
 
                     for (const raw of leadsToInsert) {
                         try {
-                            const { data: ext } = await supabase.from('radar_leads').select('id').eq('company_id', agent.company_id).eq('name', raw.name).limit(1).maybeSingle()
-                            if (ext) continue
+                            // Check for duplicates by name first
+                            const { data: extByName } = await supabase.from('radar_leads')
+                                .select('id')
+                                .eq('company_id', agent.company_id)
+                                .eq('name', raw.name)
+                                .limit(1)
+                                .maybeSingle();
+
+                            if (extByName) {
+                                console.log(`Skipping duplicate lead by name: ${raw.name}`);
+                                continue;
+                            }
+
+                            // Then check by contact number if provided
+                            if (raw.contact_number) {
+                                const { data: extByNum } = await supabase.from('radar_leads')
+                                    .select('id')
+                                    .eq('company_id', agent.company_id)
+                                    .eq('contact_number', raw.contact_number)
+                                    .limit(1)
+                                    .maybeSingle();
+                                
+                                if (extByNum) {
+                                    console.log(`Skipping duplicate lead by number: ${raw.contact_number}`);
+                                    continue;
+                                }
+                            }
 
                             const { data: newL } = await supabase.from('radar_leads').insert({
                                 company_id: agent.company_id,
@@ -305,11 +330,20 @@ REGRAS:
                                         const msg = await generateAIApproach(agent, raw);
                                         
                                         // Envia e espera o resultado
-                                        await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
+                                        const approachRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
-                                            body: JSON.stringify({ number: num, text: msg })
-                                        }).catch(() => {});
+                                            body: JSON.stringify({ 
+                                                number: num, 
+                                                options: { delay: 1000, presence: "composing" },
+                                                textMessage: { text: msg } 
+                                            })
+                                        });
+
+                                        if (!approachRes.ok) {
+                                            const errTxt = await approachRes.text();
+                                            console.error(`Failed to send approach to ${num}:`, errTxt);
+                                        }
 
                                         // Marca como abordado agora que enviamos
                                         await supabase.from('radar_leads').update({ status: 'approached' }).eq('id', newL.id);
@@ -358,7 +392,11 @@ REGRAS:
             await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
-                body: JSON.stringify({ number: num, text: msg })
+                body: JSON.stringify({ 
+                    number: num, 
+                    options: { delay: 1000, presence: "composing" },
+                    textMessage: { text: msg } 
+                })
             });
             await supabase.from('radar_leads').update({ status: 'approached' }).eq('id', lead_id);
             return new Response(JSON.stringify({ status: 'success' }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

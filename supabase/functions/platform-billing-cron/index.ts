@@ -137,6 +137,11 @@ async function runBillingCycle() {
         for (const company of companies) {
             await sleep(800); // Throttling
 
+            if (company.settings?.billing_exempt) {
+                console.log(`Skipping billing for exempt company: ${company.trade_name}`);
+                continue;
+            }
+
             const targetDate = company.subscription_plan === 'trial'
                 ? (company.trial_ends_at ? new Date(company.trial_ends_at) : null)
                 : (company.current_period_end ? new Date(company.current_period_end) : null);

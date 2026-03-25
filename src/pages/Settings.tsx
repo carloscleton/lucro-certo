@@ -1181,6 +1181,34 @@ export function Settings() {
                                         </div>
                                     </div>
 
+                                    {/* Isenção de Faturamento (Solicitado pelo usuário) */}
+                                    <div className="flex items-center justify-between p-3 rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20 mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600">
+                                                <Shield size={16} />
+                                            </div>
+                                            <div>
+                                                <h5 className="font-bold text-[12px] text-gray-900 dark:text-white leading-tight">Cortesia / Isento de Faturamento</h5>
+                                                <p className="text-[10px] text-gray-400">Marque para não gerar cobranças automáticas para esta empresa.</p>
+                                            </div>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer scale-90">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={!!tempCompanyConfig.settings?.billing_exempt}
+                                                onChange={(e) => {
+                                                    const newVal = e.target.checked;
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        settings: { ...(tempCompanyConfig.settings || {}), billing_exempt: newVal }
+                                                    });
+                                                }}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <Input
                                             label={t('settings.monthly_fee')}
@@ -1410,6 +1438,35 @@ export function Settings() {
                             </div>
 
                             <div className="p-8 overflow-y-auto space-y-6">
+                                {/* Isenção de Faturamento (VIP) */}
+                                <div className="p-4 rounded-xl border-2 border-emerald-100 dark:border-emerald-900/10 bg-emerald-50/20 dark:bg-emerald-900/10">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600">
+                                                <Shield size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">VIP / Isento de Faturamento</h4>
+                                                <p className="text-sm text-gray-500">Este usuário não será cobrado pela plataforma.</p>
+                                            </div>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer scale-90">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={!!selectedUserForConfig.settings?.billing_exempt}
+                                                onChange={async (e) => {
+                                                    const newVal = e.target.checked;
+                                                    const newSettings = { ...(selectedUserForConfig.settings || {}), billing_exempt: newVal };
+                                                    const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                    if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                }}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 {/* NOVO: Limites da Empresa (Solicitado pelo usuário) */}
                                 <div className="p-4 rounded-xl border-2 border-orange-100 dark:border-orange-900/10 bg-orange-50/20 dark:bg-orange-900/10">
                                     <div className="flex items-center gap-4 mb-4">
