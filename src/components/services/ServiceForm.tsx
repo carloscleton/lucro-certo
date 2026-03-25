@@ -140,19 +140,17 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
 
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="Cód. Serviço Municipal *"
+                                label="Cód. Serviço Municipal"
                                 value={munCode}
                                 onChange={e => setMunCode(e.target.value)}
                                 placeholder="Consultar Prefeitura"
-                                required={isFiscalEnabled}
                                 helpText="Código de tributação do município"
                             />
                             <Input
-                                label="Item Lista Servico *"
+                                label="Item Lista Servico"
                                 value={lcItem}
                                 onChange={e => setLcItem(e.target.value)}
                                 placeholder="Ex: 01.01"
-                                required={isFiscalEnabled}
                                 helpText="Item da Lei Complementar 116/2003"
                             />
                         </div>
