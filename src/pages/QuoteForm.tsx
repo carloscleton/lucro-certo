@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { useCRM } from '../hooks/useCRM';
+import { Tooltip } from '../components/ui/Tooltip';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { TransactionForm } from '../components/transactions/TransactionForm';
 import { useTransactions, type Transaction } from '../hooks/useTransactions';
