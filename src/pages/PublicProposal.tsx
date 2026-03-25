@@ -8,8 +8,7 @@ import {
     Clock, 
     Building2,
     Check,
-    Loader2,
-    FileText
+    Loader2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
