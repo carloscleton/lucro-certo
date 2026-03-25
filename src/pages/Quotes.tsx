@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search, TrendingDown } from 'lucide-react';
+import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useQuotes, type Quote } from '../hooks/useQuotes';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -7,7 +7,6 @@ import { Input } from '../components/ui/Input';
 import { Tooltip } from '../components/ui/Tooltip';
 
 import { SettleModal } from '../components/transactions/SettleModal';
-import { TransactionForm } from '../components/transactions/TransactionForm';
 import { Modal } from '../components/ui/Modal';
 import { useTransactions } from '../hooks/useTransactions';
 import { useAuth } from '../context/AuthContext';
@@ -61,7 +60,7 @@ export function Quotes() {
         fetchWA();
     }, [currentEntity.id, user?.id]);
 
-    const { addTransaction, fetchTransactionsByQuoteIds } = useTransactions('expense');
+    const { fetchTransactionsByQuoteIds } = useTransactions('expense');
 
 
     const handleSendWhatsApp = async (quote: Quote, result: any) => {
@@ -210,9 +209,7 @@ export function Quotes() {
     const [showFinalizeModal, setShowFinalizeModal] = useState(false);
     const [finalizeQuote, setFinalizeQuote] = useState<Quote | null>(null);
 
-    // Expense Modal State
-    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
-    const [quoteForExpense, setQuoteForExpense] = useState<Quote | null>(null);
+    // Expense Data
     const [quoteExpenses, setQuoteExpenses] = useState<Record<string, number>>({});
 
     const statusColors = {
@@ -577,14 +574,6 @@ export function Quotes() {
         fetchExpenses();
     }, [filteredQuotes, fetchTransactionsByQuoteIds]);
 
-    const handleAddExpense = async (data: any) => {
-        await addTransaction(data);
-        // Refresh expenses map
-        const ids = filteredQuotes.map(q => q.id);
-        const map = await fetchTransactionsByQuoteIds(ids);
-        setQuoteExpenses(map);
-        setIsExpenseModalOpen(false);
-    };
 
     const getDiscountDisplay = (quote: Quote) => {
         if (!quote.discount || quote.discount === 0) return '-';
@@ -833,20 +822,6 @@ export function Quotes() {
                                         </td>
                                         <td className="py-3 px-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Tooltip content="Lançar Despesa">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setQuoteForExpense(quote);
-                                                            setIsExpenseModalOpen(true);
-                                                        }}
-                                                        className="p-1 rounded text-orange-600 hover:text-orange-800 hover:bg-orange-50 transition-colors"
-                                                    >
-                                                        <TrendingDown size={16} />
-                                                    </button>
-                                                </Tooltip>
-
-                                                <div className="h-4 w-px bg-gray-300 dark:bg-slate-600 mx-1"></div>
                                                 {/* Status Actions */}
                                                 {(quote.status === 'draft' || quote.status === 'sent' || quote.status === 'approved') && (
                                                     <Tooltip content={quote.status === 'draft' ? 'Enviar Proposta' : 'Reenviar Proposta'}>
@@ -1585,25 +1560,6 @@ export function Quotes() {
                     </div>
                 </div>
             </Modal>
-            {isExpenseModalOpen && quoteForExpense && (
-                <TransactionForm
-                    isOpen={isExpenseModalOpen}
-                    onClose={() => {
-                        setIsExpenseModalOpen(false);
-                        setQuoteForExpense(null);
-                    }}
-                    type="expense"
-                    initialData={{
-                        quote_id: quoteForExpense.id,
-                        description: `Despesa Orçamento: ${quoteForExpense.title}`,
-                        amount: 0,
-                        date: new Date().toISOString().split('T')[0],
-                        contact_id: quoteForExpense.contact_id,
-                        company_id: currentEntity.id
-                    }}
-                    onSubmit={handleAddExpense}
-                />
-            )}
         </div>
     );
 }
