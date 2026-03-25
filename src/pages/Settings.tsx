@@ -1807,7 +1807,14 @@ export function Settings() {
                                                                         <Users size={16} />
                                                                     </div>
                                                                     <div>
-                                                                        <div className={`font-medium ${isBlocked ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{u.full_name || 'Sem nome'}</div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className={`font-medium ${isBlocked ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{u.full_name || 'Sem nome'}</div>
+                                                                            {u.settings?.billing_exempt && (
+                                                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-tighter">
+                                                                                    Isento
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                         <div className="text-xs text-gray-500">{u.email}</div>
                                                                     </div>
                                                                 </div>
@@ -1899,7 +1906,14 @@ export function Settings() {
                                                                     {c.logo_url ? <img src={c.logo_url} alt="" className="w-full h-full object-contain" /> : <Building className="text-gray-400" size={16} />}
                                                                 </div>
                                                                 <div className="min-w-0">
-                                                                    <div className="font-bold text-gray-900 dark:text-white text-[12px] leading-tight truncate">{c.trade_name}</div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="font-bold text-gray-900 dark:text-white text-[12px] leading-tight truncate">{c.trade_name}</div>
+                                                                        {c.settings?.billing_exempt && (
+                                                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-tighter">
+                                                                                Isento
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                     <div className="text-[9px] text-gray-500 font-mono italic truncate">{c.cnpj}</div>
                                                                 </div>
                                                             </div>
