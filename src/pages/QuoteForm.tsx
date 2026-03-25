@@ -17,7 +17,7 @@ import { useCRM } from '../hooks/useCRM';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { TransactionForm } from '../components/transactions/TransactionForm';
-import { useTransactions, type Transaction } from '../hooks/useTransactions';
+import { useTransactions } from '../hooks/useTransactions';
 import { TrendingDown, Receipt } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -72,7 +72,6 @@ export function QuoteForm() {
     const [expenses, setExpenses] = useState<any[]>([]);
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [expenseToEdit, setExpenseToEdit] = useState<any | null>(null);
-    const { fetchTransactionsByQuoteIds } = useTransactions('expense');
 
     const { clearCache } = useAutoSave(
         'quote_form',
@@ -194,10 +193,7 @@ export function QuoteForm() {
             console.log('✅ Discount set:', data.discount, data.discount_type);
 
             // Load expenses for this quote
-            const expensesMap = await fetchTransactionsByQuoteIds([quoteId]);
-            // The hook returns a map: { [quote_id]: total_amount }
-            // But we actually want the list of transactions to show them individually.
-            // Let's adjust or use a direct query.
+            // We want the list of transactions to show them individually.
             const { data: transData } = await supabase
                 .from('transactions')
                 .select('*')
