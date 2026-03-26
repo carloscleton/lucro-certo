@@ -101,10 +101,12 @@ export function Commissions() {
                     // If Admin is viewing all companies, we need the platform commission rate for EACH company
                     if (isAdmin && t.company_id && selectedCompanyId === 'all') {
                         const companyDetails = companiesList.find((c: any) => c.id === t.company_id);
-                        rateToUse = companyDetails?.settings?.commission_rate || 0;
+                        const s = companyDetails?.settings || {};
+                        rateToUse = (s.service_commission_rate || 0) + (s.product_commission_rate || 0) + (s.commission_rate || 0);
                     } else if (isAdmin && selectedCompanyId !== 'personal' && selectedCompanyId !== 'all') {
                         const companyDetails = companiesList.find((c: any) => c.id === selectedCompanyId);
-                        rateToUse = companyDetails?.settings?.commission_rate || 0;
+                        const s = companyDetails?.settings || {};
+                        rateToUse = (s.service_commission_rate || 0) + (s.product_commission_rate || 0) + (s.commission_rate || 0);
                     }
 
                     const baseAmount = t.status === 'received' && t.paid_amount ? Number(t.paid_amount) : Number(t.amount);
@@ -179,7 +181,12 @@ export function Commissions() {
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400">
                         {isAdmin && selectedCompanyId !== 'all'
-                            ? t('commissions.company_view')
+                            ? `${t('commissions.company_view')} (${(() => {
+                                if (selectedCompanyId === 'personal') return (settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0);
+                                const companyDetails = companiesList.find((c: any) => c.id === selectedCompanyId);
+                                const s = companyDetails?.settings || {};
+                                return (s.service_commission_rate || 0) + (s.product_commission_rate || 0) + (s.commission_rate || 0);
+                            })()}%).`
                             : `${t('commissions.personal_view')} (${(settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0)}%).`
                         }
                     </p>
@@ -249,7 +256,21 @@ export function Commissions() {
             </div>
 
             {/* Stats Cards - Hidden on print? Maybe allow summary on print. */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:grid-cols-3 print:gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 print:grid-cols-4 print:gap-2">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-indigo-500 print:shadow-none print:border">
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('settings.commission_rate')}</p>
+                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                        {(() => {
+                            if (selectedCompanyId === 'all') return '--';
+                            if (selectedCompanyId === 'personal') return `${((settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}%`;
+                            const companyDetails = companiesList.find((c: any) => c.id === selectedCompanyId);
+                            const s = companyDetails?.settings || {};
+                            return `${((s.service_commission_rate || 0) + (s.product_commission_rate || 0) + (s.commission_rate || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}%`;
+                        })()}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Percentual configurado</p>
+                </div>
+
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-green-500 print:shadow-none print:border">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('commissions.received_commissions')}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">

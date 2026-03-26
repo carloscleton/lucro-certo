@@ -761,6 +761,32 @@ export function LeadRadar() {
                                                 Limpar Tudo
                                             </Button>
                                         )}
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="text-violet-600 border-violet-100 hover:bg-violet-50"
+                                            onClick={async () => {
+                                                const companyId = getEffectiveCompanyId();
+                                                if (!companyId || companyId === 'personal') return;
+                                                
+                                                try {
+                                                    setLoading(true);
+                                                    const { data, error } = await supabase.functions.invoke('lead-radar-miner', {
+                                                        body: { company_id: companyId, action: 'process-followups' }
+                                                    });
+                                                    if (error) throw error;
+                                                    alert(data?.message || `Processamento concluído: ${data?.followups_sent || 0} follow-ups enviadas.`);
+                                                    fetchLeads();
+                                                } catch (e: any) {
+                                                    alert("Erro ao processar: " + e.message);
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            }}
+                                        >
+                                            <Zap size={16} className="mr-1" />
+                                            Processar Follow-ups
+                                        </Button>
                                         <Button variant="ghost" size="sm" className="text-violet-600">
                                             {t('lead_radar.view_leads', 'Ver Todos')}
                                         </Button>
@@ -801,10 +827,11 @@ export function LeadRadar() {
                                                 text={lead.description}
                                                 status={lead.status}
                                                 platform={lead.platform}
+                                                score={lead.score}
+                                                approachCount={lead.approach_count}
                                                 createdAt={lead.created_at}
-                                                isPJ={lead.platform === 'google_maps'}
                                                 onClick={() => setSelectedLead(lead)}
-                                                onDelete={(e: React.MouseEvent) => handleDeleteLead(e, lead.id)}
+                                                onDelete={(e: any) => handleDeleteLead(e, lead.id)}
                                             />
                                         ))}
                                 </div>
@@ -1523,7 +1550,7 @@ function TabButton({ active, onClick, icon: Icon, label }: any) {
     );
 }
 
-function LeadItem({ name, source, text, status, platform, createdAt, onDelete, onClick }: any) {
+function LeadItem({ name, source, text, status, platform, score, approachCount, createdAt, onDelete, onClick }: any) {
     const getPlatformIcon = () => {
         switch (platform) {
             case 'google_maps':
@@ -1568,6 +1595,25 @@ function LeadItem({ name, source, text, status, platform, createdAt, onDelete, o
                     }`}>
                     {status === 'converted' ? 'CONVERTIDO' : status === 'approached' ? 'ABORDADO' : 'PENDENTE'}
                 </span>
+                
+                {/* Score and Approach indicators */}
+                <div className="flex flex-col items-end gap-1">
+                    {score !== undefined && (
+                        <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                            score >= 80 ? 'bg-green-50 text-green-700 border-green-200' :
+                            score >= 50 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            'bg-red-50 text-red-700 border-red-200'
+                        }`}>
+                            Score: {score}
+                        </div>
+                    )}
+                    {approachCount > 0 && (
+                        <div className="text-[10px] font-black text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100 italic">
+                            F{approachCount}
+                        </div>
+                    )}
+                </div>
+
                 <button
                     onClick={(e) => {
                         e.stopPropagation();

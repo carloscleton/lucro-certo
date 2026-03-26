@@ -45,36 +45,36 @@ serve(async (req: any) => {
             return match ? match[0].toLowerCase() : null;
         }
 
-        async function generateAIApproach(agent: any, lead: any): Promise<string> {
+        async function generateAIApproach(agent: any, lead: any, step: number = 1): Promise<string> {
             const companyObj = Array.isArray(agent.companies) ? agent.companies[0] : agent.companies;
             const companyName = companyObj?.trade_name || 'nossa empresa';
             const niche = agent.business_niche || 'seu segmento';
-            const fallbackMsg = `Olá! Vi sua empresa no Radar. Somos da ${companyName} e trabalhamos com ${niche}. Podemos conversar?`;
+            
+            const fallbackMsgs = [
+                `Olá! Vi sua empresa no Radar. Somos da ${companyName} e trabalhamos com ${niche}. Podemos conversar?`,
+                `Olá, tudo bem? Notei que vocês atuam em ${lead.location}. Gostaria de apresentar uma solução da ${companyName} para seu setor.`,
+                `Oi! Passando para ver se recebeu minha mensagem anterior. Acreditamos que a ${companyName} tem muito a somar com vocês.`
+            ];
+            const fallbackMsg = fallbackMsgs[step - 1] || fallbackMsgs[0];
 
             try {
                 const businessDesc = agent.business_description || 'empresa de tecnologia e serviços';
                 const leadName = lead.name || 'Empresa';
                 const leadBio = lead.description || lead.snippet || 'sem descrição disponível';
+                const leadPlatform = lead.platform || 'internet';
+
+                const prompt = step === 1 
+                    ? `Você é um consultor de vendas experiente. Gere uma PRIMEIRA abordagem curta (max 280 chars) para o WhatsApp.
+                       CONTEXTO: Minha empresa se chama "${companyName}", atuamos com "${niche}" (${businessDesc}). 
+                       O LEAD: "${leadName}" encontrado no ${leadPlatform}. Bio/Info: "${leadBio}". 
+                       REGRAS: Seja amigável, cite um ponto de conexão real baseado na bio deles (quebra-gelo) e termine com uma pergunta aberta.`
+                    : `Você é um consultor de vendas fazendo um FOLLOW-UP (contato ${step}) via WhatsApp. 
+                       O lead "${leadName}" não respondeu à mensagem anterior. 
+                       MANTENHA: Tom profissional e leve. Reitere como a "${companyName}" ajuda no nicho de "${niche}". 
+                       REGRAS: Não seja insistente/chato. Curto (max 200 chars).`;
 
                 const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
-                    body: {
-                        mode: 'field_only',
-                        input: `Você é um consultor de vendas especializado em prospecção via WhatsApp. 
-REQUISITO: Gerar uma primeira abordagem curta, amigável e MUITO profissional.
-
-MINHA EMPRESA: "${companyName}"
-O QUE FAZEMOS: "${businessDesc}"
-NOSSO NICHO: "${niche}"
-
-O LEAD É: "${leadName}"
-O QUE SABEMOS DELES: "${leadBio}"
-
-REGRAS:
-1. Saudação natural.
-2. Seja direto e mencione que a "${companyName}" pode ajudar com base no contexto.
-3. Máximo 280 caracteres.
-4. Retorne APENAS o JSON com a chave "text".`
-                    }
+                    body: { mode: 'field_only', input: prompt }
                 });
 
                 if (error) return fallbackMsg;
@@ -82,6 +82,46 @@ REGRAS:
             } catch (e) {
                 return fallbackMsg;
             }
+        }
+
+        async function scoreLeadWithAI(agent: any, lead: any): Promise<{ score: number, reason: string }> {
+            try {
+                const niche = agent.business_niche || '';
+                const leadInfo = `${lead.name} | ${lead.description} | ${lead.location}`;
+                
+                const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
+                    body: {
+                        mode: 'field_only',
+                        input: `AJA COMO UM FILTRO DE QUALIFICAÇÃO DE LEADS.
+                        MEU NICHO ALVO: "${niche}"
+                        DADOS DO LEAD ENCONTRADO: "${leadInfo}"
+                        
+                        REGRAS:
+                        1. Dê uma nota de 0 a 100 de quão provável este lead se interessar pelo meu nicho.
+                        2. Retorne o JSON com "score" (number) e "reason" (string curta em PT-BR).
+                        3. Se for irrelevante (ex: pessoa física em busca de empresa), nota baixa.`
+                    }
+                });
+
+                if (error || !data?.score) return { score: 75, reason: "Relevância detectada automaticamente." };
+                return { score: Number(data.score), reason: data.reason || "" };
+            } catch {
+                return { score: 70, reason: "Análise simplificada concluída." };
+            }
+        }
+
+        async function sendWhatsAppMessage(instanceName: string, number: string, text: string) {
+            const num = number.startsWith('55') ? number : `55${number}`;
+            const res = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+                body: JSON.stringify({ 
+                    number: num, 
+                    options: { delay: 1000, presence: "composing" },
+                    textMessage: { text } 
+                })
+            });
+            return res;
         }
 
         function cleanNiche(query: string): string {
@@ -305,6 +345,13 @@ REGRAS:
                                 }
                             }
 
+                            // --- ITEM 1: SCORING / FILTRO DE RELEVÂNCIA ---
+                            const { score, reason } = await scoreLeadWithAI(agent, raw);
+                            if (score < 40) {
+                                console.log(`Skipping low score lead (${score}): ${raw.name} - ${reason}`);
+                                continue;
+                            }
+
                             const { data: newL } = await supabase.from('radar_leads').insert({
                                 company_id: agent.company_id,
                                 platform: raw.platform,
@@ -314,10 +361,11 @@ REGRAS:
                                 external_url: raw.external_url,
                                 location: raw.location,
                                 email: raw.email,
-                                score: Math.floor(Math.random() * 20) + 75,
-                                ai_summary: `IA detectou relevância para "${niche}" no ${raw.platform}.`,
+                                score: score,
+                                ai_summary: reason || `IA detectou relevância para "${niche}" no ${raw.platform}.`,
                                 metadata: { ...raw.metadata, contact_number: raw.contact_number, email: raw.email },
-                                status: 'pending'
+                                status: 'pending',
+                                approach_count: 0
                             }).select().single();
 
                             if (newL) {
@@ -326,31 +374,23 @@ REGRAS:
                                 if (agent.auto_approach && raw.contact_number) {
                                     const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
                                     if (inst?.length) {
-                                        const num = raw.contact_number.startsWith('55') ? raw.contact_number : `55${raw.contact_number}`
-                                        const msg = await generateAIApproach(agent, raw);
-                                        
-                                        // Envia e espera o resultado
-                                        const approachRes = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
-                                            body: JSON.stringify({ 
-                                                number: num, 
-                                                options: { delay: 1000, presence: "composing" },
-                                                textMessage: { text: msg } 
-                                            })
-                                        });
+                                        const msg = await generateAIApproach(agent, raw, 1);
+                                        const approachRes = await sendWhatsAppMessage(inst[0].instance_name, raw.contact_number, msg);
 
                                         if (!approachRes.ok) {
                                             const errTxt = await approachRes.text();
-                                            console.error(`Failed to send approach to ${num}:`, errTxt);
+                                            console.error(`Failed to send approach to ${raw.contact_number}:`, errTxt);
                                         }
 
                                         // Marca como abordado agora que enviamos
-                                        await supabase.from('radar_leads').update({ status: 'approached' }).eq('id', newL.id);
+                                        await supabase.from('radar_leads').update({ 
+                                            status: 'approached',
+                                            approach_count: 1,
+                                            last_approach_at: new Date().toISOString()
+                                        }).eq('id', newL.id);
 
-                                        // Pausa de Segurança Curta (1 segundo) para evitar Gateway Timeout do navegador
-                                        const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-                                        await delay(1000);
+                                        // Pausa de Segurança
+                                        await new Promise(res => setTimeout(res, 1200));
                                     }
                                 }
                             }
@@ -402,8 +442,100 @@ REGRAS:
             return new Response(JSON.stringify({ status: 'success' }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        const res = await runRadarMining(company_id)
-        return new Response(JSON.stringify(res), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+        if (action === 'process-followups') {
+            const hoursAgo = 48; // Intervalo de follow-up
+            const checkDate = new Date(Date.now() - (hoursAgo * 60 * 60 * 1000)).toISOString();
+
+            // Busca leads que foram abordados, não responderam (status continua approached)
+            // e que o último contato foi há mais de 48h, com menos de 3 tentativas totais.
+            const { data: pendingFollowups } = await supabase
+                .from('radar_leads')
+                .select('*, company_ai_settings(*)')
+                .eq('status', 'approached')
+                .lt('approach_count', 3)
+                .lt('last_approach_at', checkDate)
+                .limit(20);
+
+            if (!pendingFollowups?.length) return new Response(JSON.stringify({ message: "Nenhum follow-up pendente." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+            let processed = 0;
+            for (const lead of pendingFollowups) {
+                const agent = lead.company_ai_settings;
+                if (!agent || !agent.auto_approach || !lead.contact_number) continue;
+
+                const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', lead.company_id).eq('status', 'connected').limit(1);
+                if (!inst?.length) continue;
+
+                const nextStep = (lead.approach_count || 1) + 1;
+                const msg = await generateAIApproach(agent, lead, nextStep);
+                const res = await sendWhatsAppMessage(inst[0].instance_name, lead.contact_number, msg);
+
+                if (res.ok) {
+                    await supabase.from('radar_leads').update({ 
+                        approach_count: nextStep,
+                        last_approach_at: new Date().toISOString()
+                    }).eq('id', lead.id);
+                    processed++;
+                    // Pausa de Segurança entre mensagens de follow-up
+                    await new Promise(res => setTimeout(res, 2000));
+                }
+            }
+
+            return new Response(JSON.stringify({ status: 'completed', followups_sent: processed }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // --- AUTOMATION: PROCESS FOLLOWUPS GLOBALLY ON EVERY EXECUTION ---
+        // This ensures the cadence flows even if we only trigger "mining"
+        async function runAutoFollowups() {
+            const hoursAgo = 48; 
+            const checkDate = new Date(Date.now() - (hoursAgo * 60 * 60 * 1000)).toISOString();
+            
+            const { data: pending } = await supabase
+                .from('radar_leads')
+                .select('*, company_ai_settings(*)')
+                .eq('status', 'approached')
+                .lt('approach_count', 3)
+                .lt('last_approach_at', checkDate)
+                .limit(15); // Safe batch size
+
+            if (!pending?.length) return 0;
+
+            let sent = 0;
+            for (const lead of pending) {
+                const agent = lead.company_ai_settings;
+                if (!agent?.is_active || !agent?.auto_approach || !lead.contact_number) continue;
+
+                const { data: inst } = await supabase.from('instances')
+                    .select('instance_name')
+                    .eq('company_id', lead.company_id)
+                    .eq('status', 'connected')
+                    .limit(1);
+
+                if (!inst?.length) continue;
+
+                const nextStep = (lead.approach_count || 1) + 1;
+                const msg = await generateAIApproach(agent, lead, nextStep);
+                const res = await sendWhatsAppMessage(inst[0].instance_name, lead.contact_number, msg);
+
+                if (res.ok) {
+                    await supabase.from('radar_leads').update({ 
+                        approach_count: nextStep,
+                        last_approach_at: new Date().toISOString()
+                    }).eq('id', lead.id);
+                    sent++;
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+            return sent;
+        }
+
+        const followupsSent = await runAutoFollowups();
+        const miningRes = await runRadarMining(company_id);
+        
+        return new Response(JSON.stringify({ 
+            ...miningRes, 
+            auto_followups_sent: followupsSent 
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
 
     } catch (e: any) {
         return new Response(JSON.stringify({ error: e.message, details: "Erro interno" }), { 
