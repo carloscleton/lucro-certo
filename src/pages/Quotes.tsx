@@ -1211,6 +1211,15 @@ export function Quotes() {
                             </p>
 
                             <div className="flex flex-col gap-3">
+                                {waInstances.length === 0 && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2 flex items-start gap-2">
+                                        <AlertTriangle className="text-amber-500 shrink-0" size={18} />
+                                        <p className="text-xs text-amber-700">
+                                            <strong>WhatsApp Desconectado:</strong> Você poderá gerar o link, mas o envio automático não funcionará até que você conecte uma instância.
+                                        </p>
+                                    </div>
+                                )}
+
                                 <Button variant="primary" onClick={handleApproveReceive}>
                                     <Check className="mr-2" size={18} />
                                     Baixar / Receber Agora
