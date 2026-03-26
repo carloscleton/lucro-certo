@@ -112,7 +112,7 @@ export function Settings() {
 
     const activeTab = useMemo(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing'];
+        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing', 'loyalty'];
         return (tab && validTabs.includes(tab)) ? (tab as any) : 'quotes';
     }, [searchParams]);
 
@@ -414,6 +414,7 @@ export function Settings() {
                     { key: 'payments', label: t('settings.tab_payments'), icon: CreditCard, color: 'emerald' },
                     { key: 'automations', label: 'Automações', icon: Sparkles, color: 'blue' },
                     { key: 'fiscal', label: t('settings.tab_fiscal'), icon: Calculator, color: 'indigo' },
+                    { key: 'loyalty', label: 'Clube de Fidelidade', icon: Award, color: 'indigo' },
                     { key: 'subscription', label: 'Plano e Assinatura', icon: Zap, color: 'blue' },
                     ...(isAdmin ? [
                         { key: 'platform_billing', label: 'Gestão da Plataforma', icon: Activity, color: 'emerald' },
@@ -922,8 +923,70 @@ export function Settings() {
                     <FiscalSettings />
                 )}
 
-                {activeTab === 'payments' && (
-                    <PaymentSettings />
+                {activeTab === 'loyalty' && (
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+                                <Award size={24} />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Clube de Fidelidade</h1>
+                                <p className="text-gray-500">Gestão de recorrência, planos e benefícios para seus clientes.</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-8 shadow-sm space-y-8">
+                            <div className="flex items-center justify-between p-6 rounded-2xl border-2 border-indigo-100 dark:border-indigo-900/10 bg-indigo-50/20 dark:bg-indigo-900/10">
+                                <div className="flex items-center gap-6">
+                                    <div className="p-4 rounded-xl bg-indigo-100 text-indigo-600">
+                                        <Shield size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Status do Módulo</h3>
+                                        <p className="text-sm text-gray-500">Ao ativar, você poderá criar planos e faturar assinaturas recorrentes dos seus clientes.</p>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer scale-125">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={currentEntity.loyalty_module_enabled}
+                                        onChange={async (e) => {
+                                            const newVal = e.target.checked;
+                                            try {
+                                                const { error } = await supabase
+                                                    .from('companies')
+                                                    .update({ loyalty_module_enabled: newVal })
+                                                    .eq('id', currentEntity.id);
+                                                
+                                                if (error) throw error;
+                                                refreshEntity();
+                                            } catch (err: any) {
+                                                alert('Erro ao atualizar módulo: ' + err.message);
+                                            }
+                                        }}
+                                    />
+                                    <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+
+                            {currentEntity.loyalty_module_enabled ? (
+                                <div className="p-6 rounded-xl border border-blue-100 bg-blue-50/30 dark:border-blue-900/20 dark:bg-blue-900/10 flex items-start gap-3">
+                                    <Sparkles className="text-blue-600 mt-1" size={20} />
+                                    <div className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                                        Módulo Ativo! Agora você pode acessar o menu <b>Clube de Fidelidade</b> na barra lateral para configurar seus planos e gerenciar seus assinantes.
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-6 rounded-xl border border-orange-100 bg-orange-50/30 dark:border-orange-900/20 dark:bg-orange-900/10 flex items-start gap-3">
+                                    <AlertTriangle className="text-orange-600 mt-1" size={20} />
+                                    <div className="text-sm text-orange-700 dark:text-orange-300 leading-relaxed">
+                                        Módulo Inativo. O menu de fidelidade ficará oculto para todos os membros da sua equipe até que você o ative.
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 )}
 
                 {/* Per-Company Config Modal */}
@@ -1044,8 +1107,8 @@ export function Settings() {
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.lead_radar_module')}</h4>
-                                                <p className="text-xs text-gray-500">{t('settings.lead_radar_module_desc')}</p>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Módulo Radar de Leads</h4>
+                                                <p className="text-xs text-gray-500">Mineração e abordagem automática de clientes em massa via IA.</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
@@ -1055,6 +1118,24 @@ export function Settings() {
                                                     onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_lead_radar: e.target.checked })}
                                                 />
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-violet-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-violet-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">🏆 Clube de Fidelidade</h4>
+                                                <p className="text-xs text-gray-500">Habilita gestão de planos, recorrência e benefícios para clientes.</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={!!tempCompanyConfig.loyalty_module_enabled}
+                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_module_enabled: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-600"></div>
                                             </label>
                                         </div>
                                     </div>
@@ -1391,6 +1472,7 @@ export function Settings() {
                                             !!tempCompanyConfig.has_social_copilot,
                                             !!tempCompanyConfig.automations_module_enabled,
                                             !!tempCompanyConfig.has_lead_radar,
+                                            !!tempCompanyConfig.loyalty_module_enabled,
                                             tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'],
                                             tempCompanyConfig.settings || {}
                                         );

@@ -13,6 +13,7 @@ export interface Service {
     show_in_pdf?: boolean;
     codigo_servico_municipal?: string;
     item_lista_servico?: string;
+    is_loyalty?: boolean;
     user_id: string;
     company_id?: string;
 }

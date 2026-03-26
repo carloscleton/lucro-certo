@@ -52,6 +52,7 @@ export interface AdminCompany {
     has_social_copilot?: boolean;
     automations_module_enabled?: boolean;
     has_lead_radar?: boolean;
+    loyalty_module_enabled?: boolean;
     allowed_entity_types?: string[];
     status: string;
     subscription_plan?: string;
@@ -151,10 +152,10 @@ export function useAdmin() {
             if (!silent) setLoading(false);
         }
     };
-    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, allowedTypes: string[], settings?: any) => {
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, loyalty: boolean, allowedTypes: string[], settings?: any) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
-        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, allowedTypes, settings });
+        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, loyalty, allowedTypes, settings });
 
         try {
             const { error } = await supabase.rpc('admin_update_company_config', {
@@ -165,6 +166,7 @@ export function useAdmin() {
                 marketing_enabled: marketing,
                 automations_enabled: automations,
                 lead_radar_enabled: leadRadar,
+                loyalty_enabled: loyalty,
                 allowed_types: allowedTypes,
                 settings_input: settings
             });
@@ -182,6 +184,7 @@ export function useAdmin() {
                         marketing_enabled: marketing,
                         automations_module_enabled: automations,
                         has_lead_radar: leadRadar,
+                        loyalty_module_enabled: loyalty,
                         allowed_entity_types: allowedTypes,
                         settings: settings || c.settings 
                     } 

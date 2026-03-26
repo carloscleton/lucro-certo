@@ -26,6 +26,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     const [loading, setLoading] = useState(false);
     const [munCode, setMunCode] = useState('');
     const [lcItem, setLcItem] = useState('');
+    const [isLoyalty, setIsLoyalty] = useState(false);
 
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
@@ -41,6 +42,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
             setShowInPdf(initialData.show_in_pdf !== false);
             setMunCode(initialData.codigo_servico_municipal || '');
             setLcItem(initialData.item_lista_servico || '');
+            setIsLoyalty(initialData.is_loyalty || false);
         } else {
             setName('');
             setDescription('');
@@ -49,6 +51,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
             setShowInPdf(true);
             setMunCode('');
             setLcItem('');
+            setIsLoyalty(false);
         }
     }, [initialData, isOpen]);
 
@@ -58,7 +61,8 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
         {
             name: setName, description: setDescription, price: setPrice,
             unit: setUnit, showInPdf: setShowInPdf, munCode: setMunCode,
-            lcItem: setLcItem
+            lcItem: setLcItem,
+            isLoyalty: setIsLoyalty
         },
         !initialData,
         isOpen
@@ -81,6 +85,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
                 show_in_pdf: showInPdf,
                 codigo_servico_municipal: munCode,
                 item_lista_servico: lcItem,
+                is_loyalty: isLoyalty,
             });
             clearCache();
             onClose();
@@ -157,17 +162,39 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
                     </div>
                 )}
 
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="show-in-pdf"
-                        checked={showInPdf}
-                        onChange={e => setShowInPdf(e.target.checked)}
-                        className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
-                    />
-                    <label htmlFor="show-in-pdf" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                        Serviço ativo e mostrar no PDF
-                    </label>
+                <div className="flex flex-col gap-4 py-2">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="show-in-pdf"
+                            checked={showInPdf}
+                            onChange={e => setShowInPdf(e.target.checked)}
+                            className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                        />
+                        <label htmlFor="show-in-pdf" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                            Serviço ativo e mostrar no PDF
+                        </label>
+                    </div>
+
+                    {currentEntity.loyalty_module_enabled && (
+                        <div className="flex items-start gap-2 p-3 rounded-xl border-2 border-indigo-100 bg-indigo-50/20 dark:border-indigo-900/10 dark:bg-indigo-900/10 hover:bg-indigo-50/50 transition-colors cursor-pointer" onClick={() => setIsLoyalty(!isLoyalty)}>
+                            <div className="pt-0.5">
+                                <input
+                                    type="checkbox"
+                                    id="is-loyalty"
+                                    checked={isLoyalty}
+                                    onChange={e => setIsLoyalty(e.target.checked)}
+                                    className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label htmlFor="is-loyalty" className="text-sm font-bold text-gray-900 dark:text-white cursor-pointer select-none">
+                                    🏆 Disponível no Clube de Fidelidade
+                                </label>
+                                <p className="text-[10px] text-gray-400 mt-1">Este serviço poderá ser incluído em planos de recorrência e gerar cobranças automáticas para seus assinantes.</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6">

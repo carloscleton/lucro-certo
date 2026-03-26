@@ -267,6 +267,14 @@ export const SETTINGS_TABS: TabDefinition[] = [
         defaultPermissions: { admin: true, member: false }
     },
     {
+        key: 'loyalty',
+        label: 'Clube de Fidelidade',
+        icon: Award,
+        color: 'indigo',
+        desc: 'Recorrência e Benefícios',
+        defaultPermissions: { admin: true, member: false }
+    },
+    {
         key: 'subscription',
         label: 'Plano e Assinatura',
         icon: CreditCard,
