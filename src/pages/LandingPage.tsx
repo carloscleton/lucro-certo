@@ -12,7 +12,9 @@ import {
     CreditCard,
     ArrowLeft,
     ArrowRight,
-    X
+    X,
+    Award,
+    Gift
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -28,6 +30,7 @@ import bannerQuotes from '../assets/landing/landing_hero_quotes.png';
 import bannerCRM from '../assets/landing/landing_hero_crm.png';
 import bannerWhatsApp from '../assets/landing/landing_hero_whatsapp.png';
 import bannerMulticompany from '../assets/landing/landing_hero_multicompany.png';
+import bannerLoyalty from '../assets/landing/landing_hero_loyalty.png';
 
 import '../styles/LandingPage.css';
 
@@ -108,6 +111,17 @@ const banners = [
         points: ['Consolidação de Dados', 'Acessos Diferenciados', 'Interligação de Estoques'],
         image: bannerMulticompany,
         accent: 'slate'
+    },
+    {
+        tag: 'CLUBE DE FIDELIDADE',
+        tagIcon: <Award size={16} />,
+        tagColor: 'rgba(79, 70, 229, 0.1)',
+        tagTextColor: '#4f46e5',
+        title: <>Crie um <span className="text-gradient">Clube de Vantagens</span> Lucrativo</>,
+        description: 'Venda assinaturas recorrentes para seus clientes. Planos de cashback, serviços e benefícios automáticos direto no sistema.',
+        points: ['Faturamento Recorrente Mensal', 'Planos de Benefícios VIP', 'Régua de Cobrança (WhatsApp)'],
+        image: bannerLoyalty,
+        accent: 'indigo'
     }
 ];
 
@@ -364,6 +378,13 @@ export function LandingPage() {
                         <h3>Orçamentos & Pedidos</h3>
                         <p>Crie orçamentos profissionais com um clique, envie via WhatsApp e converta em vendas rapidamente com controle de status.</p>
                     </div>
+                    <div className="feature-card">
+                        <div className="feature-icon" style={{ background: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5' }}>
+                            <Gift size={32} />
+                        </div>
+                        <h3>Clube de Fidelidade</h3>
+                        <p>Fidelize seus clientes com planos de assinatura e recorrência. Gere previsibilidade de caixa com faturamento automático.</p>
+                    </div>
                 </div>
             </section>
 
@@ -474,6 +495,33 @@ export function LandingPage() {
                         />
                     </div>
                 </div>
+
+                {/* Loyalty Club Section */}
+                <div className="visual-feature reverse">
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerLoyalty}
+                            alt="Clube de Fidelidade"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(79, 70, 229, 0.3)' }}
+                        />
+                    </div>
+                    <div className="visual-content">
+                        <div style={{ color: '#4f46e5', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Award size={20} />
+                            CLUBE DE FIDELIDADE
+                        </div>
+                        <h3>Transforme sua Prestação de Serviço em Recorrência</h3>
+                        <p>
+                            Chega de depender apenas de vendas avulsas. Com o Clube de Fidelidade, você cria planos de benefícios que seus clientes pagam todo mês, garantindo estabilidade financeira.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Planos Personalizados:</strong> Defina quais serviços e descontos fazem parte de cada nível.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Cashback Automático:</strong> Incentive novas compras devolvendo parte do valor ao cliente fiel.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Gestão de Assinaturas:</strong> Controle quem está ativo, inadimplente ou em período extra.</li>
+                        </ul>
+                    </div>
+                </div>
             </section>
 
             {/* FAQ Section */}
@@ -483,6 +531,10 @@ export function LandingPage() {
                     <p>Tudo o que você precisa saber para começar com segurança.</p>
                 </div>
                 <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O que é o Clube de Fidelidade?</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>É um módulo que permite criar planos de assinatura para seus clientes. Eles pagam um valor mensal fixo e têm direito a benefícios como descontos em serviços, cashback ou atendimentos exclusivos, tudo faturado automaticamente.</p>
+                    </div>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                         <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O Lucro Certo é seguro?</h4>
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim. Utilizamos criptografia de nível bancário e servidores seguros na AWS e Supabase para garantir que seus dados financeiros e de clientes estejam sempre protegidos.</p>
