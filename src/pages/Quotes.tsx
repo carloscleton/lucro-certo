@@ -25,7 +25,7 @@ import { PDFService } from '../services/pdfService';
 export function Quotes() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { quotes, isRefreshing, deleteQuote, updateQuoteStatus, approveQuote, resetQuotePayment, scheduleFollowUp } = useQuotes();
+    const { quotes, isRefreshing, deleteQuote, updateQuoteStatus, approveQuote, resetQuotePayment, scheduleFollowUp, refresh: refreshQuotes } = useQuotes();
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -36,6 +36,7 @@ export function Quotes() {
     const [paymentResult, setPaymentResult] = useState<any>(null);
     const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
+    const [isSettlingExisting, setIsSettlingExisting] = useState(false);
 
     // Permission Check
     const { user } = useAuth();
@@ -282,19 +283,71 @@ export function Quotes() {
         setShowSettleModal(true);
     };
 
+    // Settle an EXISTING pending transaction (for already-approved quotes)
+    const handleSettleExistingPayment = (quote: Quote) => {
+        setQuoteToApprove(quote);
+        setIsSettlingExisting(true);
+        setShowSettleModal(true);
+    };
+
     const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number) => {
         if (!quoteToApprove) return;
-        await approveQuote(quoteToApprove.id, {
-            generateTransaction: true,
-            transactionStatus: 'received',
-            paymentDetails: {
-                date,
-                method: paymentMethod,
-                interest,
-                penalty,
-                amount: totalAmount
+
+        if (isSettlingExisting) {
+            // Find and update the existing pending transaction
+            try {
+                const { data: existingTx, error: findError } = await supabase
+                    .from('transactions')
+                    .select('id')
+                    .eq('quote_id', quoteToApprove.id)
+                    .eq('type', 'income')
+                    .maybeSingle();
+
+                if (findError || !existingTx) {
+                    // No existing tx found, fall back to creating via approveQuote
+                    await approveQuote(quoteToApprove.id, {
+                        generateTransaction: true,
+                        transactionStatus: 'received',
+                        paymentDetails: { date, method: paymentMethod, interest, penalty, amount: totalAmount }
+                    });
+                } else {
+                    // Update existing transaction to received
+                    const { error: updateError } = await supabase
+                        .from('transactions')
+                        .update({
+                            status: 'received',
+                            payment_date: date,
+                            payment_method: paymentMethod,
+                            interest: interest || null,
+                            penalty: penalty || null,
+                            paid_amount: totalAmount
+                        })
+                        .eq('id', existingTx.id);
+
+                    if (updateError) throw updateError;
+
+                    // Update quote payment_status to paid
+                    await supabase
+                        .from('quotes')
+                        .update({ payment_status: 'paid' })
+                        .eq('id', quoteToApprove.id);
+
+                    await refreshQuotes();
+                    notify('success', 'Pagamento Registrado', 'Baixa realizada com sucesso!');
+                }
+            } catch (err: any) {
+                console.error('Erro ao dar baixa:', err);
+                notify('error', 'Erro', err.message || 'Falha ao registrar pagamento.');
             }
-        });
+        } else {
+            await approveQuote(quoteToApprove.id, {
+                generateTransaction: true,
+                transactionStatus: 'received',
+                paymentDetails: { date, method: paymentMethod, interest, penalty, amount: totalAmount }
+            });
+        }
+
+        setIsSettlingExisting(false);
         closeModals();
     };
 
@@ -315,6 +368,7 @@ export function Quotes() {
         setShowSettleModal(false);
         setShowFinalizeModal(false);
         setFinalizeQuote(null);
+        setIsSettlingExisting(false);
     };
 
     const handleFinalizeClick = (quote: Quote) => {
@@ -1103,11 +1157,17 @@ export function Quotes() {
 
                                                 {/* Manual Finance Sync Button for already approved quotes */}
                                                 {quote.status === 'approved' && quote.payment_status !== 'paid' && (
-                                                    <Tooltip content="Lançar no Financeiro (Manual)">
+                                                    <Tooltip content={quote.payment_status === 'pending' ? 'Dar Baixa no Pagamento' : 'Lançar no Financeiro (Manual)'}>
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleApproveClick(quote);
+                                                                if (quote.payment_status === 'pending') {
+                                                                    // Already has a pending transaction — just settle it
+                                                                    handleSettleExistingPayment(quote);
+                                                                } else {
+                                                                    // No transaction yet — show full approval options
+                                                                    handleApproveClick(quote);
+                                                                }
                                                             }}
                                                             className="text-emerald-600 hover:text-emerald-800 p-1 rounded hover:bg-emerald-50"
                                                         >
