@@ -280,6 +280,10 @@ export function Quotes() {
 
     const handleApproveReceive = () => {
         setShowApprovalOptions(false);
+        // If quote already has a pending transaction, settle it directly instead of creating new
+        if (quoteToApprove?.payment_status === 'pending') {
+            setIsSettlingExisting(true);
+        }
         setShowSettleModal(true);
     };
 
@@ -1161,13 +1165,8 @@ export function Quotes() {
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (quote.payment_status === 'pending') {
-                                                                    // Already has a pending transaction — just settle it
-                                                                    handleSettleExistingPayment(quote);
-                                                                } else {
-                                                                    // No transaction yet — show full approval options
-                                                                    handleApproveClick(quote);
-                                                                }
+                                                                // Always open full modal — smart logic inside handles existing tx
+                                                                handleApproveClick(quote);
                                                             }}
                                                             className="text-emerald-600 hover:text-emerald-800 p-1 rounded hover:bg-emerald-50"
                                                         >
