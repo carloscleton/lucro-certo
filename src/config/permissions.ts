@@ -18,7 +18,8 @@ import {
     Rocket,
     BarChart3,
     Percent,
-    Calendar
+    Calendar,
+    Award
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -164,6 +165,14 @@ export const APP_MODULES: ModuleDefinition[] = [
         icon: Target,
         path: '/dashboard/lead-radar',
         desc: 'Mineração e abordagem automática de clientes',
+        defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'loyalty',
+        label: 'Clube de Fidelidade',
+        icon: Award,
+        path: '/dashboard/loyalty',
+        desc: 'Planos de recorrência e fidelidade para clientes',
         defaultPermissions: { admin: true, member: false }
     },
     {

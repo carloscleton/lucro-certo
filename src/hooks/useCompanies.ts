@@ -11,6 +11,7 @@ export interface Company {
     entity_type: 'PF' | 'PJ';
     cpf?: string;
     user_id: string;
+    slug?: string;
     logo_url?: string;
     settings?: {
         member_can_delete?: boolean;
@@ -37,6 +38,7 @@ export interface Company {
     has_social_copilot?: boolean;
     automations_module_enabled?: boolean;
     has_lead_radar?: boolean;
+    loyalty_module_enabled?: boolean;
     tecnospeed_config?: any;
     zip_code?: string;
     street?: string;
@@ -108,7 +110,8 @@ export function useCompanies() {
             complement_input: company.complement || null,
             neighborhood_input: company.neighborhood || null,
             city_input: company.city || null,
-            state_input: company.state || null
+            state_input: company.state || null,
+            slug_input: (company as any).slug || null
         });
 
         if (error) throw error;

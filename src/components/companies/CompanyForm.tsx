@@ -23,6 +23,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [cnpj, setCnpj] = useState('');
     const [entityType, setEntityType] = useState<'PF' | 'PJ'>('PJ');
     const [cpf, setCpf] = useState('');
+    const [slug, setSlug] = useState('');
 
     // Address fields
     const [zipCode, setZipCode] = useState('');
@@ -36,6 +37,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [logoFile, setLogoFile] = useState<File | null>(null);
 
     const [phone, setPhone] = useState('');
+    const [loyaltyModuleEnabled, setLoyaltyModuleEnabled] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
 
@@ -62,7 +64,9 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setLogoUrl(initialData.logo_url || '');
             setEntityType(initialData.entity_type || 'PJ');
             setCpf(initialData.cpf || '');
+            setSlug(initialData.slug || '');
             setPhone(formatPhoneFromDB(initialData.phone));
+            setLoyaltyModuleEnabled(initialData.loyalty_module_enabled || false);
             setLogoFile(null);
         } else {
             setTradeName('');
@@ -78,19 +82,21 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setLogoUrl('');
             setEntityType('PJ');
             setCpf('');
+            setSlug('');
             setPhone('');
+            setLoyaltyModuleEnabled(false);
             setLogoFile(null);
         }
     }, [initialData, isOpen]);
 
     const { clearCache } = useAutoSave(
         'company_form',
-        { tradeName, legalName, cnpj, entityType, cpf, zipCode, street, number, complement, neighborhood, city, state, phone },
+        { tradeName, legalName, cnpj, entityType, cpf, zipCode, street, number, complement, neighborhood, city, state, phone, loyaltyModuleEnabled },
         {
             tradeName: setTradeName, legalName: setLegalName, cnpj: setCnpj, entityType: setEntityType as any,
             cpf: setCpf, zipCode: setZipCode, street: setStreet, number: setNumber,
             complement: setComplement, neighborhood: setNeighborhood, city: setCity,
-            state: setState, phone: setPhone
+            state: setState, phone: setPhone, loyaltyModuleEnabled: setLoyaltyModuleEnabled
         },
         !initialData,
         isOpen
@@ -183,6 +189,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 legal_name: legalName,
                 cnpj: entityType === 'PJ' ? cnpj : null,
                 cpf: entityType === 'PF' ? cpf : null,
+                slug: slug || null,
                 entity_type: entityType,
                 phone: cleanPhoneNumber(phone),
                 zip_code: zipCode || null,
@@ -192,6 +199,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 neighborhood: neighborhood || null,
                 city: city || null,
                 state: state || null,
+                loyalty_module_enabled: loyaltyModuleEnabled,
                 logo_url: logoUrl || null,
                 logo_file: logoFile,
             });
@@ -245,6 +253,11 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                         onChange={e => setTradeName(e.target.value)}
                         required
                         placeholder={entityType === 'PJ' ? "Ex: Minha Loja" : "Como quer ser chamado"}
+                        onBlur={() => {
+                            if (!slug && tradeName) {
+                                setSlug(tradeName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                            }
+                        }}
                     />
 
                     <Input
@@ -309,6 +322,14 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                             placeholder="000.000.000-00"
                         />
                     )}
+
+                    <Input
+                        label="Friendly URL (Slug)"
+                        value={slug}
+                        onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                        placeholder="ex-minha-loja"
+                        helpText="Acesso público: lucrocerto.com/clube/[slug]"
+                    />
 
                     <Input
                         label="WhatsApp da Empresa (Para notificações)"
@@ -438,6 +459,28 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                             maxLength={2}
                             placeholder="EX: SP"
                         />
+                    </div>
+                </div>
+
+                <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                         Módulos de Expansão
+                    </h3>
+
+                    <div className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                        <div>
+                            <p className="text-sm font-bold text-indigo-900 dark:text-indigo-100">🏆 Clube de Fidelidade</p>
+                            <p className="text-xs text-indigo-600 dark:text-indigo-400">Ativa planos de recorrência e descontos para clientes</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={loyaltyModuleEnabled}
+                                onChange={e => setLoyaltyModuleEnabled(e.target.checked)}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                        </label>
                     </div>
                 </div>
 

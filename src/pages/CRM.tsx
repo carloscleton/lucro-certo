@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, LayoutGrid, List, Target, Pencil, Trash2 } from 'lucide-react';
+import { Plus, LayoutGrid, List, Target, Pencil, Trash2, Award } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useCRM, type CRMStage, type CRMDeal } from '../hooks/useCRM';
@@ -237,9 +237,21 @@ export function CRM() {
                                                                         <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: stage.color }} />
 
                                                                         <div className="flex justify-between items-start mb-2">
-                                                                            <h4 className="font-bold text-gray-900 dark:text-gray-100 text-[13px] leading-tight group-hover:text-blue-600 transition-colors">
-                                                                                {deal.title}
-                                                                            </h4>
+                                                                            <div className="flex-1">
+                                                                                {(deal as any).contact?.loyalty_subscriptions?.[0] && (
+                                                                                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest mb-1 shadow-sm ${
+                                                                                        (deal as any).contact.loyalty_subscriptions[0].status === 'active' 
+                                                                                        ? 'bg-amber-100 text-amber-600 border border-amber-200' 
+                                                                                        : 'bg-red-500 text-white animate-pulse'
+                                                                                    }`}>
+                                                                                        <Award size={8} />
+                                                                                        {(deal as any).contact.loyalty_subscriptions[0].status === 'active' ? 'VIP MEMBER' : 'BLOQUEADO - INADIMPLENTE'}
+                                                                                    </div>
+                                                                                )}
+                                                                                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-[13px] leading-tight group-hover:text-blue-600 transition-colors">
+                                                                                    {deal.title}
+                                                                                </h4>
+                                                                            </div>
                                                                             <button
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();

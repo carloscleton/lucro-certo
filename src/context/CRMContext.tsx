@@ -41,7 +41,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
             const { data: dealsData, error: dealsError } = await supabase
                 .from('crm_deals')
-                .select('*')
+                .select('*, contact:contacts(id, name, loyalty_subscriptions(status, plan:loyalty_plans(name)))')
                 .eq('company_id', currentEntity.id);
 
             if (dealsError) throw dealsError;

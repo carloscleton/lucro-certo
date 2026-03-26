@@ -23,6 +23,10 @@ import { CRM } from './pages/CRM';
 import { Agenda } from './pages/Agenda';
 import { Marketing } from './pages/Marketing';
 import { LeadRadar } from './pages/LeadRadar';
+import { Loyalty } from './pages/Loyalty';
+import { LoyaltyPublicPage } from './pages/LoyaltyPublicPage';
+import { LoyaltyCheckout } from './pages/LoyaltyCheckout';
+import { LoyaltyPortal } from './pages/LoyaltyPortal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { EntityProvider, useEntity } from './context/EntityContext';
@@ -106,7 +110,10 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/pay/:id" element={<Checkout />} />
-      <Route path="/proposal/:id" element={<PublicProposal />} />
+      <Route path="/clube/:slug" element={<LoyaltyPublicPage />} />
+      <Route path="/checkout/loyalty/:planId" element={<LoyaltyCheckout />} />
+      <Route path="/portal/:token" element={<LoyaltyPortal />} />
+      <Route path="/p/:id" element={<PublicProposal />} />
       <Route path="/payment-required" element={<PaymentRequired />} />
 
       <Route path="/dashboard" element={
@@ -135,6 +142,7 @@ function AppRoutes() {
         <Route path="agenda" element={<Agenda />} />
         <Route path="marketing" element={<Marketing />} />
         <Route path="lead-radar" element={<LeadRadar />} />
+        <Route path="loyalty" element={<Loyalty />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
