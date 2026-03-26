@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Award, CreditCard, Calendar, CheckCircle2, Clock, XCircle, Package, ExternalLink, Loader2 } from 'lucide-react';
+import { Award, CreditCard, CheckCircle2, Clock, XCircle, Package, ExternalLink, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
