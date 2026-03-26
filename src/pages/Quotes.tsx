@@ -1102,7 +1102,7 @@ export function Quotes() {
                                                 )}
 
                                                 {/* Manual Finance Sync Button for already approved quotes */}
-                                                {quote.status === 'approved' && quote.payment_status === 'none' && (
+                                                {quote.status === 'approved' && quote.payment_status !== 'paid' && (
                                                     <Tooltip content="Lançar no Financeiro (Manual)">
                                                         <button
                                                             onClick={(e) => {
