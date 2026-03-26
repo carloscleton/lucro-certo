@@ -104,7 +104,14 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                                 <td className="px-3 py-3 font-medium text-gray-900 dark:text-white truncate max-w-[120px] lg:max-w-[250px]">
                                     <div className="flex items-center gap-1.5 min-w-0">
                                         <Tooltip content={t.description}>
-                                            <span className="truncate">{t.description}</span>
+                                            <span className="truncate flex items-center gap-1.5">
+                                                {t.quote_id && (
+                                                    <span className="shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] px-1 py-0.5 rounded border border-purple-200 dark:border-purple-800 font-bold">
+                                                        ORÇ
+                                                    </span>
+                                                )}
+                                                {t.description}
+                                            </span>
                                         </Tooltip>
                                         <div className="flex items-center gap-1 shrink-0">
                                             {t.notes && (

@@ -317,7 +317,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     };
 
     const handleViewQuote = (quoteId: string) => {
-        navigate(`/quotes/${quoteId}/print`);
+        navigate(`/dashboard/quotes/${quoteId}/print`);
     };
 
     const handleSendSummary = async () => {
