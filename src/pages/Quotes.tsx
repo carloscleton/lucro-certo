@@ -287,13 +287,6 @@ export function Quotes() {
         setShowSettleModal(true);
     };
 
-    // Settle an EXISTING pending transaction (for already-approved quotes)
-    const handleSettleExistingPayment = (quote: Quote) => {
-        setQuoteToApprove(quote);
-        setIsSettlingExisting(true);
-        setShowSettleModal(true);
-    };
-
     const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number) => {
         if (!quoteToApprove) return;
 
