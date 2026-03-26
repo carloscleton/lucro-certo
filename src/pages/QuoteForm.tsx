@@ -122,11 +122,12 @@ export function QuoteForm() {
             setDiscountType(data.discount_type || 'amount');
             setDealId(data.deal_id || null);
 
-            // Load expenses for this quote
+            // Load ONLY expenses for this quote
             const { data: transData } = await supabase
                 .from('transactions')
-                .select('id, description, amount, date, status, quote_id, company_id, user_id')
+                .select('id, description, amount, date, status, quote_id, company_id, user_id, type')
                 .eq('quote_id', quoteId)
+                .eq('type', 'expense')
                 .order('date', { ascending: false });
             
             if (transData) setExpenses(transData);
