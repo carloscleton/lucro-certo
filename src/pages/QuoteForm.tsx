@@ -783,6 +783,17 @@ export function QuoteForm() {
                                             />
                                         </td>
                                         <td className="p-2 align-top">
+                                            {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
+                                                const originalService = services.find(s => s.id === item.service_id);
+                                                if (originalService && originalService.price > item.unit_price) {
+                                                    return (
+                                                        <div className="text-[10px] text-gray-400 line-through text-right mb-0.5" title="Preço original sem plano VIP">
+                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(originalService.price)}
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                             <Input
                                                 type="number"
                                                 value={item.unit_price}
@@ -791,7 +802,18 @@ export function QuoteForm() {
                                                 leftElement={<span className="text-xs font-bold text-gray-400">R$</span>}
                                             />
                                         </td>
-                                        <td className="p-2 align-top text-right pt-2.5 font-medium text-gray-900 dark:text-white">
+                                        <td className="p-2 align-top text-right pt-2 font-medium text-gray-900 dark:text-white">
+                                            {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
+                                                const originalService = services.find(s => s.id === item.service_id);
+                                                if (originalService && originalService.price > item.unit_price) {
+                                                    return (
+                                                        <div className="text-[10px] text-gray-400 line-through text-right mb-0.5">
+                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * originalService.price)}
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * item.unit_price)}
                                         </td>
                                         <td className="p-2 align-top text-center pt-2">
