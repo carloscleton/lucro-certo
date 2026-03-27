@@ -1,4 +1,4 @@
-import { Edit2, Trash2, User, Truck, History } from 'lucide-react';
+import { Edit2, Trash2, User, Truck, History, Award } from 'lucide-react';
 import type { Contact } from '../../hooks/useContacts';
 import { Tooltip } from '../ui/Tooltip';
 
@@ -43,6 +43,18 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                             {contact.type === 'client' ? <User size={14} /> : <Truck size={14} />}
                                         </div>
                                         {contact.name}
+                                        {contact.loyalty_subscriptions?.[0] && (
+                                            <Tooltip content={`Plano: ${contact.loyalty_subscriptions[0].plan?.name || 'Clube VIP'}`}>
+                                                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm border ${
+                                                    contact.loyalty_subscriptions[0].status === 'active' 
+                                                    ? 'bg-amber-100 text-amber-600 border-amber-200' 
+                                                    : 'bg-red-500 text-white animate-pulse border-red-600'
+                                                }`}>
+                                                    <Award size={10} />
+                                                    {contact.loyalty_subscriptions[0].status === 'active' ? 'VIP' : 'BLOQUEADO'}
+                                                </div>
+                                            </Tooltip>
+                                        )}
                                     </div>
                                     <div className="md:hidden text-xs text-gray-500 mt-1">
                                         {contact.email} {contact.phone && `• ${contact.phone}`}
