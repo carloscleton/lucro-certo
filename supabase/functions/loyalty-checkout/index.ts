@@ -268,9 +268,21 @@ serve(async (req) => {
         if (appSettings.loyalty_whatsapp_enabled && finalContactData.phone) {
             const evoUrl = Deno.env.get('EVOLUTION_API_URL') || 'https://evo.idealzap.com.br'
             const evoKey = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
-            const instanceName = appSettings.platform_whatsapp_instance || 'MainAdmin'
             
-            console.log(`[Loyalty] WhatsApp enabled. Instance: ${instanceName}, URL: ${evoUrl}`)
+            // Try to find a connected instance for this company
+            let instanceName = appSettings.platform_whatsapp_instance || 'MainAdmin'
+            const { data: instances } = await supabaseAdmin
+                .from('instances')
+                .select('instance_name')
+                .eq('company_id', companyId)
+                .eq('status', 'connected')
+                .limit(1)
+            
+            if (instances && instances.length > 0) {
+                instanceName = instances[0].instance_name
+            }
+
+            console.log(`[Loyalty] Notification attempt: ${finalContactData.phone} via ${instanceName}`)
 
             const template = appSettings.loyalty_whatsapp_template || 'Olá, {name}! 👋 Seu link para ativar o {plan_name} no Clube VIP está pronto: {payment_link}'
             const message = template
@@ -285,8 +297,12 @@ serve(async (req) => {
             }
 
             if (cleanPhone.length >= 10) {
-                whatsappSent = await sendWhatsApp(instanceName, cleanPhone, message, evoKey, evoUrl)
-                console.log(`[Loyalty] WhatsApp sent: ${whatsappSent}`)
+                try {
+                    whatsappSent = await sendWhatsApp(instanceName, cleanPhone, message, evoKey, evoUrl)
+                    console.log(`[Loyalty] WhatsApp Result: ${whatsappSent ? 'SUCCESS' : 'FAILURE'}`)
+                } catch (err: any) {
+                    console.error('[Loyalty] WhatsApp Error:', err.message)
+                }
             } else {
                 console.warn(`[Loyalty] Phone number too short: ${cleanPhone}`)
             }
