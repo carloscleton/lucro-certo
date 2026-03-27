@@ -39,7 +39,10 @@ export function FiscalSettings() {
     }, [currentCompany]);
 
     const handleSave = async () => {
-        if (!currentEntity.id) return;
+        if (!currentEntity.id || currentEntity.type === 'personal') {
+            alert('Configurações fiscais são exclusivas para empresas. Mude o contexto no topo.');
+            return;
+        }
         setSaving(true);
         try {
             await updateCompany(currentEntity.id, {
@@ -55,8 +58,12 @@ export function FiscalSettings() {
     };
 
     const handleUploadCertificate = async () => {
-        if (!currentEntity.id || !certFile || !certPassword) {
-            alert('Selecione o arquivo e informe a senha do certificado.');
+        if (!currentEntity.id || currentEntity.type === 'personal' || !certFile || !certPassword) {
+            if (currentEntity.type === 'personal') {
+                alert('O Certificado Digital deve ser vinculado a uma empresa. Mude o contexto no topo.');
+            } else {
+                alert('Selecione o arquivo e informe a senha do certificado.');
+            }
             return;
         }
 
@@ -79,7 +86,10 @@ export function FiscalSettings() {
     };
 
     const handleSyncIssuer = async () => {
-        if (!currentEntity.id) return;
+        if (!currentEntity.id || currentEntity.type === 'personal') {
+            alert('A sincronização de emitente é exclusiva para empresas.');
+            return;
+        }
 
         // 1. Confirm fields
         if (!config.cnpj || !config.tecnospeed_api_key) {

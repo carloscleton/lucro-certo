@@ -970,6 +970,10 @@ export function Settings() {
                                         className="sr-only peer"
                                         checked={currentEntity.loyalty_module_enabled}
                                         onChange={async (e) => {
+                                            if (currentEntity.type === 'personal') {
+                                                alert('O Clube de Fidelidade é um módulo exclusivo para Empresas. Mude o contexto no seletor do topo.');
+                                                return;
+                                            }
                                             const newVal = e.target.checked;
                                             try {
                                                 const { error } = await supabase

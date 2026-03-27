@@ -14,7 +14,7 @@ export function SubscriptionSettings() {
 
     useEffect(() => {
         const resolveCompany = async () => {
-            if (currentEntity?.id) {
+            if (currentEntity?.id && currentEntity.id !== 'personal') {
                 setEffectiveCompanyId(currentEntity.id);
             } else if (user?.id) {
                 // If in personal, find the first company he's owner of
