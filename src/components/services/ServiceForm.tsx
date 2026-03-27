@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Wrench } from 'lucide-react';
+import { Wrench, Wand2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
@@ -9,6 +9,8 @@ import { useCompanies } from '../../hooks/useCompanies';
 import { useEntity } from '../../context/EntityContext';
 import type { Service } from '../../hooks/useServices';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { supabase } from '../../lib/supabase';
+import { useNotification } from '../../context/NotificationContext';
 
 interface ServiceFormProps {
     isOpen: boolean;
@@ -27,9 +29,11 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     const [munCode, setMunCode] = useState('');
     const [lcItem, setLcItem] = useState('');
     const [isLoyalty, setIsLoyalty] = useState(false);
+    const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
 
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
+    const { notify } = useNotification();
     const currentCompany = companies.find(c => c.id === currentEntity.id);
     const isFiscalEnabled = currentEntity.type === 'company' && currentCompany?.fiscal_module_enabled;
 
@@ -73,6 +77,40 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
         onClose();
     };
 
+    const handleGenerateDescription = async () => {
+        if (!name) {
+            notify('warning', 'Digite o nome do serviço primeiro para a IA gerar a descrição.', 'Atenção');
+            return;
+        }
+        
+        setIsGeneratingDesc(true);
+        try {
+            const prompt = `Crie uma descrição comercial atrativa e direta para o seguinte serviço: "${name}".
+Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o cliente e não use aspas nem introduções.`;
+
+            const { data, error } = await supabase.functions.invoke('social-copilot-magic', {
+                body: { 
+                    company_id: currentEntity.id, 
+                    mode: 'landing_plan_magic', 
+                    topic: prompt 
+                }
+            });
+
+            if (error) throw error;
+            if (data?.template) {
+                setDescription(data.template.replace(/^["']|["']$/g, '').trim());
+                notify('success', 'Descrição gerada com sucesso!', 'IA Mágica');
+            } else {
+                throw new Error("Nenhum texto gerado");
+            }
+        } catch (err: any) {
+            console.error('AI Error:', err);
+            notify('error', 'Falha ao gerar descrição com IA.', 'Erro');
+        } finally {
+            setIsGeneratingDesc(false);
+        }
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -113,13 +151,27 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
                     placeholder="Ex: Consultoria Técnica, Manutenção..."
                 />
 
-                <TextArea
-                    label="Descrição"
-                    rows={3}
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    placeholder="Descreva o serviço oferecido..."
-                />
+                <div className="flex flex-col gap-1 w-full">
+                    <div className="flex justify-between items-center w-full">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Descrição
+                        </label>
+                        <button 
+                           type="button" 
+                           onClick={handleGenerateDescription}
+                           className="text-[10px] text-indigo-600 font-bold flex items-center gap-1 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-2 py-1 rounded-md transition-all"
+                           disabled={isGeneratingDesc}
+                        >
+                             <Wand2 size={12} className={isGeneratingDesc ? "animate-pulse" : ""} /> {isGeneratingDesc ? 'GERANDO...' : 'IA MÁGICA'}
+                        </button>
+                    </div>
+                    <TextArea
+                        rows={3}
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        placeholder="Descreva o serviço oferecido..."
+                    />
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <Input
