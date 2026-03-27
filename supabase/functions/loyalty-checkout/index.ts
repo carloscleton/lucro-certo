@@ -141,6 +141,10 @@ serve(async (req) => {
             const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${documentClean}`, { headers: { 'access_token': apiKey } })
             const searchData = await searchRes.json()
             
+            if (searchData.errors) {
+                throw new Error(`Asaas Search Error [Ambiente: ${isSandbox ? 'Sandbox' : 'Produção'}]: ${searchData.errors[0].description}`)
+            }
+            
             let asaasCustomerId = ''
             if (searchData.data && searchData.data.length > 0) {
                 asaasCustomerId = searchData.data[0].id
@@ -156,7 +160,9 @@ serve(async (req) => {
                     })
                 })
                 const createCustData = await createCustRes.json()
-                if (createCustData.errors) throw new Error(`Asaas Cust Error: ${createCustData.errors[0].description}`)
+                if (createCustData.errors) {
+                    throw new Error(`Asaas Cust Error [Ambiente: ${isSandbox ? 'Sandbox' : 'Produção'}]: ${createCustData.errors[0].description}`)
+                }
                 asaasCustomerId = createCustData.id
             }
 
