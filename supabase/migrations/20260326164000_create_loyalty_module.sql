@@ -92,36 +92,36 @@ ALTER TABLE loyalty_charges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Company members can manage loyalty settings" ON loyalty_settings
     FOR ALL USING (
         EXISTS (
-            SELECT 1 FROM memberships 
-            WHERE memberships.company_id = loyalty_settings.company_id 
-            AND memberships.user_id = auth.uid()
+            SELECT 1 FROM company_members 
+            WHERE company_members.company_id = loyalty_settings.company_id 
+            AND company_members.user_id = auth.uid()
         )
     );
 
 CREATE POLICY "Company members can manage loyalty plans" ON loyalty_plans
     FOR ALL USING (
         EXISTS (
-            SELECT 1 FROM memberships 
-            WHERE memberships.company_id = loyalty_plans.company_id 
-            AND memberships.user_id = auth.uid()
+            SELECT 1 FROM company_members 
+            WHERE company_members.company_id = loyalty_plans.company_id 
+            AND company_members.user_id = auth.uid()
         )
     );
 
 CREATE POLICY "Company members can manage loyalty subscriptions" ON loyalty_subscriptions
     FOR ALL USING (
         EXISTS (
-            SELECT 1 FROM memberships 
-            WHERE memberships.company_id = loyalty_subscriptions.company_id 
-            AND memberships.user_id = auth.uid()
+            SELECT 1 FROM company_members 
+            WHERE company_members.company_id = loyalty_subscriptions.company_id 
+            AND company_members.user_id = auth.uid()
         )
     );
 
 CREATE POLICY "Company members can manage loyalty charges" ON loyalty_charges
     FOR ALL USING (
         EXISTS (
-            SELECT 1 FROM memberships 
-            WHERE memberships.company_id = loyalty_charges.company_id 
-            AND memberships.user_id = auth.uid()
+            SELECT 1 FROM company_members 
+            WHERE company_members.company_id = loyalty_charges.company_id 
+            AND company_members.user_id = auth.uid()
         )
     );
 

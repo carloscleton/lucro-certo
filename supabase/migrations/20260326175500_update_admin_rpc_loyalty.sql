@@ -5,6 +5,7 @@
 -- ================================================================================
 
 -- 1. Update Companies List Function
+DROP FUNCTION IF EXISTS public.get_admin_companies_list();
 CREATE OR REPLACE FUNCTION public.get_admin_companies_list()
 RETURNS TABLE (
     id UUID,
@@ -75,6 +76,7 @@ END;
 $$;
 
 -- 2. Update Consolidated Update Function
+DROP FUNCTION IF EXISTS public.admin_update_company_config(uuid,boolean,boolean,boolean,boolean,boolean,boolean,text[],jsonb,boolean);
 CREATE OR REPLACE FUNCTION public.admin_update_company_config(
     target_company_id UUID,
     fiscal_enabled BOOLEAN,
