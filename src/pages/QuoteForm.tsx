@@ -592,14 +592,14 @@ export function QuoteForm() {
                             {!loyaltyLoading && loyaltySub && loyaltySub.status === 'active' && (
                                 <div className="mt-2 flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
                                     <Award size={14} className="animate-pulse" />
-                                    <span>Cliente Clube VIP Ativo (Descontos aplicados nos serviços cobertos).</span>
+                                    <span>Cliente Clube VIP Ativo - <strong>{loyaltySub.plan?.name}</strong> (Descontos aplicados nos serviços cobertos).</span>
                                 </div>
                             )}
                             {!loyaltyLoading && loyaltySub && (loyaltySub.status === 'past_due' || loyaltySub.status === 'canceled') && (
                                 <div className="mt-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800/50 flex flex-col gap-2">
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle size={14} />
-                                        <span>Assinatura do Clube VIP está {loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}.</span>
+                                        <span>Assinatura do Clube VIP (<strong>{loyaltySub.plan?.name}</strong>) está {loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}.</span>
                                     </div>
                                     <button 
                                         type="button" 
