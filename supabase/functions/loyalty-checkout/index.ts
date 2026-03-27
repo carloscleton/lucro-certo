@@ -135,7 +135,7 @@ serve(async (req) => {
 
         if (settings.gateway_type === 'asaas') {
             const apiKey = gatewayConfig.api_key
-            const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.api.asaas.com/v3'
+            const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3'
 
             // a. Find or Create Asaas Customer
             const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${documentClean}`, { headers: { 'access_token': apiKey } })
