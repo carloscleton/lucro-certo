@@ -266,18 +266,36 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             return;
                         }
                     } else {
-                        // Manual Activation (Local Upsert)
-                        const { error: subError } = await supabase
+                        // Manual Activation (Local Update/Insert)
+                        const { data: existingSub } = await supabase
                             .from('loyalty_subscriptions')
-                            .upsert([{
-                                company_id: currentEntity.id,
-                                contact_id: contactId,
-                                plan_id: loyaltyPlanId,
-                                status: 'active',
-                                started_at: new Date().toISOString()
-                            }], { onConflict: 'company_id,contact_id' });
+                            .select('id')
+                            .eq('company_id', currentEntity.id)
+                            .eq('contact_id', contactId)
+                            .maybeSingle();
+
+                        if (existingSub) {
+                            const { error: updateError } = await supabase
+                                .from('loyalty_subscriptions')
+                                .update({
+                                    plan_id: loyaltyPlanId,
+                                    status: 'active',
+                                })
+                                .eq('id', existingSub.id);
+                            if (updateError) throw updateError;
+                        } else {
+                            const { error: insertError } = await supabase
+                                .from('loyalty_subscriptions')
+                                .insert([{
+                                    company_id: currentEntity.id,
+                                    contact_id: contactId,
+                                    plan_id: loyaltyPlanId,
+                                    status: 'active',
+                                    started_at: new Date().toISOString()
+                                }]);
+                            if (insertError) throw insertError;
+                        }
                         
-                        if (subError) throw subError;
                         notify('success', 'Plano vinculado com sucesso!', 'Clube de Fidelidade');
                     }
                 } else {
