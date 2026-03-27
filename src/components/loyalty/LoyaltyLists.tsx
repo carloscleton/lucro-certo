@@ -92,7 +92,7 @@ export function SubscriberList() {
                                 <Clock size={10} /> {t('loyalty.next_billing', 'Próx. Cobrança')}
                             </p>
                             <p className="font-bold text-amber-600 dark:text-amber-400">
-                                {sub.next_billing_date ? format(new Date(sub.next_billing_date), 'dd/MM/yyyy') : '--/--/----'}
+                                {sub.next_due_at ? format(new Date(sub.next_due_at), 'dd/MM/yyyy') : '--/--/----'}
                             </p>
                         </div>
                         <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all">

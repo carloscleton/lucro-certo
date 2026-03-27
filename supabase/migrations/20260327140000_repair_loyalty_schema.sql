@@ -29,4 +29,8 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'loyalty_subscriptions' AND column_name = 'portal_token') THEN
         ALTER TABLE loyalty_subscriptions ADD COLUMN portal_token TEXT UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex');
     END IF;
+    -- 5. Ensure last_billing_date exists (useful for history)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'loyalty_subscriptions' AND column_name = 'last_billing_date') THEN
+        ALTER TABLE loyalty_subscriptions ADD COLUMN last_billing_date TIMESTAMP WITH TIME ZONE;
+    END IF;
 END $$;

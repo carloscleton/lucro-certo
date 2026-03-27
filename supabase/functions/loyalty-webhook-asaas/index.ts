@@ -35,7 +35,7 @@ serve(async (req) => {
                 const { data: subByGateway } = await supabaseAdmin
                     .from('loyalty_subscriptions')
                     .select('*, plan:loyalty_plans(*)')
-                    .eq('gateway_subscription_id', payment.subscription)
+                    .eq('gateway_sub_id', payment.subscription)
                     .single()
                 
                 if (!subByGateway) throw new Error(`Subscription not found for ref ${subscriptionId}`)
@@ -71,7 +71,7 @@ serve(async (req) => {
                 .update({
                     status: 'active',
                     last_billing_date: new Date().toISOString(),
-                    next_billing_date: nextDate.toISOString()
+                    next_due_at: nextDate.toISOString().split('T')[0]
                 })
                 .eq('id', currentSub.id)
 

@@ -114,7 +114,7 @@ export function LoyaltyPortal() {
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Próxima Cobrança</p>
                                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                        {subscription.next_billing_date ? format(new Date(subscription.next_billing_date), 'dd/MM/yyyy') : '--/--/----'}
+                                        {subscription.next_due_at ? format(new Date(subscription.next_due_at), 'dd/MM/yyyy') : '--/--/----'}
                                     </p>
                                 </div>
                              </div>
