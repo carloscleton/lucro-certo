@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { UserPlus, Search, Award } from 'lucide-react';
+import { UserPlus, Search, Award, Check, Copy } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -40,6 +40,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [city, setCity] = useState('');
     const [state, setState] = useState('');
     const [loyaltyPlanId, setLoyaltyPlanId] = useState('');
+    const [generateGatewayLink, setGenerateGatewayLink] = useState(false);
+    const [checkoutUrl, setCheckoutUrl] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
@@ -99,6 +101,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setCity('');
             setState('');
             setLoyaltyPlanId('');
+            setGenerateGatewayLink(false);
+            setCheckoutUrl('');
         }
     }, [initialData, isOpen, currentEntity.id]);
 
@@ -222,6 +226,43 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
 
             if (contactId && currentEntity.id) {
                 if (loyaltyPlanId) {
+                    if (generateGatewayLink) {
+                        if (!phone && !whatsapp) {
+                            setLoading(false);
+                            notify('warning', 'É necessário um telefone ou WhatsApp para gerar a cobrança no gateway.', 'Dados Faltando');
+                            return;
+                        }
+                        if (!taxId) {
+                            setLoading(false);
+                            notify('warning', 'É necessário informar o CPF ou CNPJ para gerar a cobrança no gateway.', 'Dados Faltando');
+                            return;
+                        }
+                        // Call Edge Function for Gateway Checkout
+                        try {
+                            const { data, error: functionError } = await supabase.functions.invoke('loyalty-checkout', {
+                                body: { 
+                                    planId: loyaltyPlanId, 
+                                    contactId: contactId
+                                }
+                            });
+
+                            if (functionError) throw functionError;
+                            if (data?.success && data.checkout_url) {
+                                setCheckoutUrl(data.checkout_url);
+                                notify('success', 'Link de pagamento gerado com sucesso!', 'Gateway Ativo');
+                                // We don't close the modal yet so the user can see the link
+                                return; 
+                            } else {
+                                throw new Error(data?.error || 'Erro desconhecido ao gerar link');
+                            }
+                        } catch (err: any) {
+                            console.error('Error in loyalty-checkout:', err);
+                            notify('error', `Não foi possível gerar a cobrança no gateway: ${err.message}`, 'Erro Gateway');
+                            // Fallback to manual activation without gateway? 
+                            // Or stop here? Let's proceed with manual partial success.
+                        }
+                    }
+
                     const { data: existing } = await supabase
                         .from('loyalty_subscriptions')
                         .select('id, plan_id')
@@ -363,6 +404,61 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             </select>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ao selecionar um plano, ele será ativado manualmente para este contato.</p>
                         </div>
+
+                        {loyaltyPlanId && (
+                            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1">
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={generateGatewayLink}
+                                        onChange={e => setGenerateGatewayLink(e.target.checked)}
+                                        className="mt-1 w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-amber-900 dark:text-amber-100">Gerar cobrança no Gateway (Asaas)</span>
+                                        <span className="text-xs text-amber-700 dark:text-amber-300">O sistema criará a assinatura no gateway e gerará o link de pagamento.</span>
+                                    </div>
+                                </label>
+                            </div>
+                        )}
+
+                        {checkoutUrl && (
+                            <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border-2 border-emerald-200 dark:border-emerald-800 animate-in zoom-in-95 duration-300">
+                                <h4 className="text-sm font-bold text-emerald-900 dark:text-emerald-100 mb-2 flex items-center gap-2">
+                                    <Check className="text-emerald-500" size={18} />
+                                    Cobrança Gerada!
+                                </h4>
+                                <div className="flex flex-col gap-3">
+                                    <div className="p-2 bg-white dark:bg-slate-800 rounded border border-emerald-100 dark:border-emerald-900/50 text-xs font-mono text-emerald-700 dark:text-emerald-400 truncate">
+                                        {checkoutUrl}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button 
+                                            type="button" 
+                                            size="sm" 
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(checkoutUrl);
+                                                notify('success', 'Link copiado para a área de transferência!', 'Sucesso');
+                                            }}
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                                        >
+                                            <Copy size={14} className="mr-1" /> Copiar
+                                        </Button>
+                                        <Button 
+                                            type="button" 
+                                            size="sm" 
+                                            onClick={() => {
+                                                const msg = encodeURIComponent(`Olá ${name}! Aqui está o link para ativação do seu Clube VIP: ${checkoutUrl}`);
+                                                window.open(`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                                            }}
+                                            className="flex-1 bg-green-500 hover:bg-green-600"
+                                        >
+                                            <Award size={14} className="mr-1" /> WhatsApp
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

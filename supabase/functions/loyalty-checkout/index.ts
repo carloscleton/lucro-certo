@@ -18,9 +18,9 @@ serve(async (req) => {
         const supabaseAdmin = createClient(supabaseUrl, supabaseKey)
 
         // 1. Get Request body
-        const { planId, customer } = await req.json()
-        if (!planId || !customer || !customer.name || !customer.document) {
-            throw new Error('Missing planId or customer data')
+        const { planId, customer, contactId } = await req.json()
+        if (!planId || (!customer && !contactId)) {
+            throw new Error('Missing planId, customer or contactId')
         }
 
         // 2. Fetch Plan + Company + Loyalty Settings
@@ -57,40 +57,59 @@ serve(async (req) => {
         const gatewayConfig = gateway.config
         const isSandbox = gateway.is_sandbox !== false // Defaults to sandbox unless explicitly set
 
-        // 4. Contact Management (Upsert)
-        const documentClean = customer.document.replace(/\D/g, '')
-        const { data: contacts } = await supabaseAdmin
-            .from('contacts')
-            .select('id')
-            .eq('company_id', companyId)
-            .or(`cpf.eq.${documentClean},cnpj.eq.${documentClean}`)
-            .limit(1)
+        // 4. Contact Management
+        let realContactId = contactId
+        let contactData = customer
 
-        let contactId
-        if (contacts && contacts.length > 0) {
-            contactId = contacts[0].id
-        } else {
-            const { data: newContact, error: createContactError } = await supabaseAdmin
+        if (contactId) {
+            const { data: dbContact, error: dbContactError } = await supabaseAdmin
                 .from('contacts')
-                .insert([{
-                    company_id: companyId,
-                    name: customer.name,
-                    email: customer.email,
-                    phone: customer.phone.replace(/\D/g, ''),
-                    cpf: documentClean.length === 11 ? documentClean : null,
-                    cnpj: documentClean.length > 11 ? documentClean : null,
-                    type: 'lead'
-                }])
-                .select()
+                .select('*')
+                .eq('id', contactId)
                 .single()
-            if (createContactError) throw createContactError
-            contactId = newContact.id
+            
+            if (dbContactError || !dbContact) throw new Error('Contato não encontrado no banco de dados.')
+            
+            contactData = {
+                name: dbContact.name,
+                email: dbContact.email,
+                phone: dbContact.whatsapp || dbContact.phone || '',
+                document: dbContact.cnpj || dbContact.cpf || dbContact.tax_id || ''
+            }
+        } else {
+            // Upsert Logic for public checkout
+            const documentClean = customer.document.replace(/\D/g, '')
+            const { data: contacts } = await supabaseAdmin
+                .from('contacts')
+                .select('id')
+                .eq('company_id', companyId)
+                .or(`cpf.eq.${documentClean},cnpj.eq.${documentClean}`)
+                .limit(1)
+
+            if (contacts && contacts.length > 0) {
+                realContactId = contacts[0].id
+            } else {
+                const { data: newContact, error: createContactError } = await supabaseAdmin
+                    .from('contacts')
+                    .insert([{
+                        company_id: companyId,
+                        name: customer.name,
+                        email: customer.email,
+                        phone: customer.phone.replace(/\D/g, ''),
+                        cpf: documentClean.length === 11 ? documentClean : null,
+                        cnpj: documentClean.length > 11 ? documentClean : null,
+                        type: 'lead'
+                    }])
+                    .select()
+                    .single()
+                if (createContactError) throw createContactError
+                realContactId = newContact.id
+            }
         }
 
         // 5. Register Subscription
         const portalToken = crypto.randomUUID()
         const nextBilling = new Date()
-        // For monthly plans, add 1 month. In future turn real billing logic.
         nextBilling.setMonth(nextBilling.getMonth() + 1)
 
         const { data: subscription, error: subError } = await supabaseAdmin
@@ -98,7 +117,7 @@ serve(async (req) => {
             .insert([{
                 company_id: companyId,
                 plan_id: planId,
-                contact_id: contactId,
+                contact_id: realContactId,
                 status: 'active',
                 portal_token: portalToken,
                 next_billing_date: nextBilling.toISOString()
@@ -111,6 +130,7 @@ serve(async (req) => {
         // 6. Generate Gateway Payment
         let checkoutUrl = ''
         let gatewaySubId = ''
+        const documentClean = contactData.document.replace(/\D/g, '')
 
         if (settings.gateway_type === 'asaas') {
             const apiKey = gatewayConfig.api_key
@@ -128,10 +148,10 @@ serve(async (req) => {
                     method: 'POST',
                     headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name: customer.name,
+                        name: contactData.name,
                         cpfCnpj: documentClean,
-                        email: customer.email || '',
-                        mobilePhone: customer.phone.replace(/\D/g, '')
+                        email: contactData.email || '',
+                        mobilePhone: contactData.phone ? contactData.phone.replace(/\D/g, '') : ''
                     })
                 })
                 const createCustData = await createCustRes.json()
@@ -147,7 +167,7 @@ serve(async (req) => {
                     customer: asaasCustomerId,
                     billingType: 'UNDEFINED',
                     value: plan.price,
-                    nextDueDate: new Date().toISOString().split('T')[0], // First charge NOW? or plan settings?
+                    nextDueDate: new Date().toISOString().split('T')[0],
                     cycle: plan.billing_cycle === 'monthly' ? 'MONTHLY' : 'YEARLY',
                     description: `Assinatura ${plan.name} - ${plan.company.trade_name}`,
                     externalReference: subscription.id
