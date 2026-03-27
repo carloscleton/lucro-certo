@@ -134,7 +134,7 @@ serve(async (req) => {
         const documentClean = contactData.document.replace(/\D/g, '')
 
         if (settings.gateway_type === 'asaas') {
-            const apiKey = gatewayConfig.api_key
+            const apiKey = gatewayConfig[`${isSandbox ? 'sandbox_' : 'prod_'}api_key`] || gatewayConfig.api_key
             const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3'
 
             // a. Find or Create Asaas Customer
