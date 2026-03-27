@@ -42,6 +42,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [loyaltyPlanId, setLoyaltyPlanId] = useState('');
     const [generateGatewayLink, setGenerateGatewayLink] = useState(false);
     const [checkoutUrl, setCheckoutUrl] = useState('');
+    const [whatsappSent, setWhatsappSent] = useState(false);
+    const [emailSent, setEmailSent] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
@@ -249,11 +251,13 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             if (functionError) throw functionError;
                             if (data?.success && data.checkout_url) {
                                 setCheckoutUrl(data.checkout_url);
-                                notify('success', 'Link de pagamento gerado com sucesso!', 'Gateway Ativo');
+                                if (data.whatsapp_sent) setWhatsappSent(true);
+                                if (data.email_sent) setEmailSent(true);
+                                notify('success', 'Cobrança gerada e enviada para o cliente!', 'Sucesso');
                                 // We don't close the modal yet so the user can see the link
                                 return; 
                             } else {
-                                throw new Error(data?.error || 'Erro desconhecido ao gerar link');
+                                throw new Error(data?.error || 'Erro desconhecido ao gerar cobrança.');
                             }
                         } catch (err: any) {
                             console.error('Error in loyalty-checkout:', err);
@@ -426,8 +430,24 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border-2 border-emerald-200 dark:border-emerald-800 animate-in zoom-in-95 duration-300">
                                 <h4 className="text-sm font-bold text-emerald-900 dark:text-emerald-100 mb-2 flex items-center gap-2">
                                     <Check className="text-emerald-500" size={18} />
-                                    Cobrança Gerada!
+                                    Cobrança Gerada e Enviada!
                                 </h4>
+                                
+                                <div className="space-y-2 mb-4">
+                                    {whatsappSent && (
+                                        <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                            Enviado via WhatsApp
+                                        </div>
+                                    )}
+                                    {emailSent && (
+                                        <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                            Enviado via E-mail (Asaas)
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="flex flex-col gap-3">
                                     <div className="p-2 bg-white dark:bg-slate-800 rounded border border-emerald-100 dark:border-emerald-900/50 text-xs font-mono text-emerald-700 dark:text-emerald-400 truncate">
                                         {checkoutUrl}
@@ -438,22 +458,11 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                                             size="sm" 
                                             onClick={() => {
                                                 navigator.clipboard.writeText(checkoutUrl);
-                                                notify('success', 'Link copiado para a área de transferência!', 'Sucesso');
+                                                notify('success', 'Link copiado!', 'Sucesso');
                                             }}
                                             className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                                         >
-                                            <Copy size={14} className="mr-1" /> Copiar
-                                        </Button>
-                                        <Button 
-                                            type="button" 
-                                            size="sm" 
-                                            onClick={() => {
-                                                const msg = encodeURIComponent(`Olá ${name}! Aqui está o link para ativação do seu Clube VIP: ${checkoutUrl}`);
-                                                window.open(`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${msg}`, '_blank');
-                                            }}
-                                            className="flex-1 bg-green-500 hover:bg-green-600"
-                                        >
-                                            <Award size={14} className="mr-1" /> WhatsApp
+                                            <Copy size={14} className="mr-1" /> Copiar Link
                                         </Button>
                                     </div>
                                 </div>

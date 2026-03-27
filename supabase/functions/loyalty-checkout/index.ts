@@ -7,6 +7,24 @@ const corsHeaders = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+async function sendWhatsApp(instanceName: string, targetNumber: string, text: string, apiKey: string, baseUrl: string) {
+    try {
+        const response = await fetch(`${baseUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+            body: JSON.stringify({
+                number: targetNumber,
+                options: { delay: 1200, presence: "composing" },
+                textMessage: { text }
+            })
+        })
+        return response.ok
+    } catch (e) {
+        console.error('Error sending WhatsApp:', e)
+        return false
+    }
+}
+
 serve(async (req) => {
     // 0. Handle CORS
     if (req.method === 'OPTIONS') {
@@ -24,7 +42,11 @@ serve(async (req) => {
             throw new Error('Missing planId, customer or contactId')
         }
 
-        // 2. Fetch Plan + Company + Loyalty Settings
+        // 1.1 Fetch App Settings (for global templates and keys)
+        const { data: appSettings } = await supabaseAdmin.from('app_settings').select('*').eq('id', 1).single()
+        if (!appSettings) throw new Error('Global app settings not found')
+
+        // 2. Fetch Plan + Company
         const { data: plan, error: planError } = await supabaseAdmin
             .from('loyalty_plans')
             .select('*, company:companies(id, trade_name, email, phone)')
@@ -34,33 +56,35 @@ serve(async (req) => {
         if (planError || !plan) throw new Error('Plano não encontrado.')
 
         const companyId = plan.company_id
-        const { data: settings, error: settingsError } = await supabaseAdmin
+        
+        // 3. Loyalty Settings (for gateway type)
+        const { data: loyaltySettings, error: settingsError } = await supabaseAdmin
             .from('loyalty_settings')
             .select('*')
             .eq('company_id', companyId)
             .single()
 
-        if (settingsError || !settings) throw new Error('Configurações de fidelidade não encontradas.')
+        if (settingsError || !loyaltySettings) throw new Error('Configurações de fidelidade não encontradas.')
 
-        // 3. Fetch Gateway Credentials
+        // 4. Gateway Credentials
         const { data: gateway, error: gatewayError } = await supabaseAdmin
             .from('company_payment_gateways')
             .select('*')
             .eq('company_id', companyId)
-            .eq('provider', settings.gateway_type)
+            .eq('provider', loyaltySettings.gateway_type)
             .eq('is_active', true)
             .single()
 
         if (gatewayError || !gateway) {
-            throw new Error(`Gateway [${settings.gateway_type}] não configurado para esta empresa.`)
+            throw new Error(`Gateway [${loyaltySettings.gateway_type}] não configurado para esta empresa.`)
         }
 
         const gatewayConfig = gateway.config
-        const isSandbox = gateway.is_sandbox !== false // Defaults to sandbox unless explicitly set
+        const isSandbox = gateway.is_sandbox !== false
 
-        // 4. Contact Management
+        // 5. Contact Management
         let realContactId = contactId
-        let contactData = customer
+        let finalContactData = customer
 
         if (contactId) {
             const { data: dbContact, error: dbContactError } = await supabaseAdmin
@@ -71,14 +95,13 @@ serve(async (req) => {
             
             if (dbContactError || !dbContact) throw new Error('Contato não encontrado no banco de dados.')
             
-            contactData = {
+            finalContactData = {
                 name: dbContact.name,
                 email: dbContact.email,
                 phone: dbContact.whatsapp || dbContact.phone || '',
                 document: dbContact.cnpj || dbContact.cpf || dbContact.tax_id || ''
             }
         } else {
-            // Upsert Logic for public checkout
             const documentClean = customer.document.replace(/\D/g, '')
             const { data: contacts } = await supabaseAdmin
                 .from('contacts')
@@ -108,7 +131,7 @@ serve(async (req) => {
             }
         }
 
-        // 5. Register Subscription
+        // 6. Register Subscription
         const portalToken = crypto.randomUUID()
         const nextBilling = new Date()
         nextBilling.setMonth(nextBilling.getMonth() + 1)
@@ -119,7 +142,7 @@ serve(async (req) => {
                 company_id: companyId,
                 plan_id: planId,
                 contact_id: realContactId,
-                status: 'active',
+                status: 'pending',
                 portal_token: portalToken,
                 next_due_at: nextBilling.toISOString().split('T')[0]
             }])
@@ -128,45 +151,43 @@ serve(async (req) => {
 
         if (subError) throw subError
 
-        // 6. Generate Gateway Payment
+        // 7. Generate Gateway Payment
         let checkoutUrl = ''
         let gatewaySubId = ''
-        let asaasCustomerId = ''
-        const documentClean = contactData.document.replace(/\D/g, '')
+        const docClean = (finalContactData.document || '').replace(/\D/g, '')
 
-        if (settings.gateway_type === 'asaas') {
+        if (loyaltySettings.gateway_type === 'asaas') {
             const apiKey = gatewayConfig[`${isSandbox ? 'sandbox_' : 'prod_'}api_key`] || gatewayConfig.api_key
             const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3'
 
+            if (!apiKey) throw new Error(`API Key do Asaas [${isSandbox ? 'sandbox' : 'produção'}] não encontrada.`)
+
             // a. Find or Create Asaas Customer
-            const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${documentClean}`, { headers: { 'access_token': apiKey } })
+            let asaasCustomerId = ''
+            const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${docClean}`, {
+                headers: { 'access_token': apiKey }
+            })
             const searchData = await searchRes.json()
-            
-            if (searchData.errors) {
-                throw new Error(`Asaas Search Error [Ambiente: ${isSandbox ? 'Sandbox' : 'Produção'}]: ${searchData.errors[0].description}`)
-            }
-            
+
             if (searchData.data && searchData.data.length > 0) {
                 asaasCustomerId = searchData.data[0].id
             } else {
-                const createCustRes = await fetch(`${baseUrl}/customers`, {
+                const createRes = await fetch(`${baseUrl}/customers`, {
                     method: 'POST',
                     headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name: contactData.name,
-                        cpfCnpj: documentClean,
-                        email: contactData.email || '',
-                        mobilePhone: contactData.phone ? contactData.phone.replace(/\D/g, '') : ''
+                        name: finalContactData.name,
+                        cpfCnpj: docClean,
+                        email: finalContactData.email || '',
+                        mobilePhone: finalContactData.phone || ''
                     })
                 })
-                const createCustData = await createCustRes.json()
-                if (createCustData.errors) {
-                    throw new Error(`Asaas Cust Error [Ambiente: ${isSandbox ? 'Sandbox' : 'Produção'}]: ${createCustData.errors[0].description}`)
-                }
-                asaasCustomerId = createCustData.id
+                const createData = await createRes.json()
+                if (createData.errors) throw new Error(`Asaas Customer Error: ${createData.errors[0].description}`)
+                asaasCustomerId = createData.id
             }
 
-            // b. Create Subscription in Asaas
+            // b. Create Subscription
             const asaasSubRes = await fetch(`${baseUrl}/subscriptions`, {
                 method: 'POST',
                 headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
@@ -174,10 +195,11 @@ serve(async (req) => {
                     customer: asaasCustomerId,
                     billingType: 'UNDEFINED',
                     value: plan.price,
-                    nextDueDate: new Date().toISOString().split('T')[0],
-                    cycle: plan.billing_cycle === 'monthly' ? 'MONTHLY' : 'YEARLY',
-                    description: `Assinatura ${plan.name} - ${plan.company.trade_name}`,
-                    externalReference: subscription.id
+                    nextDueDate: nextBilling.toISOString().split('T')[0],
+                    cycle: plan.billing_cycle === 'yearly' ? 'YEARLY' : 'MONTHLY',
+                    description: `Clube VIP: ${plan.name}`,
+                    externalReference: subscription.id,
+                    notificationDisabled: !appSettings.loyalty_email_enabled
                 })
             })
             const asaasSubData = await asaasSubRes.json()
@@ -186,55 +208,66 @@ serve(async (req) => {
             checkoutUrl = asaasSubData.checkoutUrl || asaasSubData.invoiceUrl || ''
             gatewaySubId = asaasSubData.id
 
-            if (!checkoutUrl && !gatewaySubId) {
-                throw new Error(`Asaas Error: ${JSON.stringify(asaasSubData)}`)
-            }
-            
-            // Fallback if checkoutUrl is missing but sub was created
             if (!checkoutUrl && gatewaySubId) {
-                // Try to fetch the first payment to get its invoiceUrl
-                const paymentsRes = await fetch(`${baseUrl}/payments?subscription=${gatewaySubId}`, { 
-                    headers: { 'access_token': apiKey } 
+                const paymentsRes = await fetch(`${baseUrl}/subscriptions/${gatewaySubId}/payments`, {
+                    headers: { 'access_token': apiKey }
                 })
                 const paymentsData = await paymentsRes.json()
                 if (paymentsData.data && paymentsData.data.length > 0) {
-                    checkoutUrl = paymentsData.data[0].invoiceUrl || paymentsData.data[0].checkoutUrl || ''
+                    checkoutUrl = paymentsData.data[0].invoiceUrl || paymentsData.data[0].bankSlipUrl
                 }
             }
-
-            if (!checkoutUrl) {
-                throw new Error('Assinatura criada, mas o gateway não retornou um link de pagamento direto.')
-            }
-        } else {
-            throw new Error(`Gateway ${settings.gateway_type} não suportado ainda para assinaturas automáticas.`)
         }
 
-        // 7. Update Subscription with Gateway ID
-        await supabaseAdmin
-            .from('loyalty_subscriptions')
-            .update({ 
-                gateway_sub_id: gatewaySubId,
-                gateway_customer_id: asaasCustomerId 
-            })
-            .eq('id', subscription.id)
+        if (!checkoutUrl) {
+            throw new Error('Assinatura criada, mas o gateway não retornou um link de pagamento direto.')
+        }
 
-        // 8. Log the initial charge entry
-        // In Asaas, creating a subscription might generate an invoice immediately.
-        // We'll trust the Webhook to populate charges later, but let's return the URL.
+        // 8. Update local subscription
+        await supabaseAdmin.from('loyalty_subscriptions').update({
+            gateway_sub_id: gatewaySubId,
+            status: 'pending'
+        }).eq('id', subscription.id)
+
+        // 9. BACKGROUND NOTIFICATION
+        let whatsappSent = false
+        if (appSettings.loyalty_whatsapp_enabled && finalContactData.phone) {
+            const evoUrl = Deno.env.get('EVOLUTION_API_URL') || 'https://evo.idealzap.com.br'
+            const evoKey = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
+            const instanceName = appSettings.platform_whatsapp_instance || 'MainAdmin'
+            
+            const template = appSettings.loyalty_whatsapp_template || 'Olá, {name}! 👋 Seu link para ativar o {plan_name} no Clube VIP está pronto: {payment_link}'
+            const message = template
+                .replace(/{name}/g, finalContactData.name.split(' ')[0])
+                .replace(/{plan_name}/g, plan.name)
+                .replace(/{payment_link}/g, checkoutUrl)
+
+            let cleanPhone = finalContactData.phone.replace(/\D/g, '')
+            if ((cleanPhone.length === 10 || cleanPhone.length === 11) && !cleanPhone.startsWith('55')) {
+                cleanPhone = '55' + cleanPhone
+            }
+
+            if (cleanPhone.length >= 10) {
+                whatsappSent = await sendWhatsApp(instanceName, cleanPhone, message, evoKey, evoUrl)
+            }
+        }
 
         return new Response(JSON.stringify({ 
             success: true, 
-            subscription_id: subscription.id, 
-            checkout_url: checkoutUrl 
+            checkout_url: checkoutUrl, 
+            subscription_id: subscription.id,
+            whatsapp_sent: whatsappSent,
+            email_sent: appSettings.loyalty_email_enabled && !!finalContactData.email
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
         })
 
     } catch (error: any) {
         console.error('Loyalty Checkout Error:', error.message)
         return new Response(JSON.stringify({ success: false, error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200 // Always 200 for handle properly in frontend error catch
+            status: 200,
         })
     }
 })
