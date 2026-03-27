@@ -213,18 +213,12 @@ export function QuoteForm() {
             try {
                 const { data, error } = await supabase
                     .from('loyalty_subscriptions')
-                    .select('*, plan:loyalty_plans(id, name, price, discount_percent)')
+                    .select('*, plan:loyalty_plans(id, name, price, discount_percent, included_services)')
                     .eq('contact_id', contactId)
                     .single();
 
                 if (!error && data) {
                     setLoyaltySub(data);
-                    
-                    // Auto-apply discount if active
-                    if (data.status === 'active' && data.plan && data.plan.discount_percent > 0) {
-                        setDiscountType('percentage');
-                        setDiscount(data.plan.discount_percent);
-                    }
                 } else {
                     setLoyaltySub(null);
                 }
@@ -316,13 +310,7 @@ export function QuoteForm() {
             total_price: loyaltySub.plan.price
         });
 
-        // Apply discount since debt is being embedded
-        if (loyaltySub.plan.discount_percent > 0) {
-            setDiscountType('percentage');
-            setDiscount(loyaltySub.plan.discount_percent);
-        }
-
-        alert('Dívida embutida com sucesso e desconto VIP aplicado! Quando este orçamento for pago, a assinatura Clube VIP será reativada automaticamente.');
+        alert('Dívida embutida com sucesso! Quando este orçamento for pago, a assinatura Clube VIP será reativada automaticamente.');
     };
 
     const removeItem = (index: number) => {
@@ -351,13 +339,23 @@ export function QuoteForm() {
         if (type === 'service') {
             selectedItem = services.find(s => s.id === id);
             if (selectedItem) {
+                let unitPrice = selectedItem.price;
+
+                // ITEM-BASED VIP DISCOUNT LOGIC
+                if (loyaltySub?.status === 'active' && loyaltySub.plan) {
+                    const isCovered = loyaltySub.plan.included_services?.includes(id);
+                    if (isCovered && loyaltySub.plan.discount_percent > 0) {
+                        unitPrice = selectedItem.price * (1 - (loyaltySub.plan.discount_percent / 100));
+                    }
+                }
+
                 newItems[index] = {
                     ...newItems[index],
                     service_id: id,
                     product_id: null,
                     description: selectedItem.name,
-                    unit_price: selectedItem.price,
-                    total_price: newItems[index].quantity * selectedItem.price,
+                    unit_price: unitPrice,
+                    total_price: newItems[index].quantity * unitPrice,
                     show_in_pdf: selectedItem.show_in_pdf !== false,
                     codigo_servico_municipal: (selectedItem as any).codigo_servico_municipal,
                     item_lista_servico: (selectedItem as any).item_lista_servico
@@ -593,7 +591,7 @@ export function QuoteForm() {
                             {!loyaltyLoading && loyaltySub && loyaltySub.status === 'active' && (
                                 <div className="mt-2 flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
                                     <Award size={14} className="animate-pulse" />
-                                    <span>Cliente Clube VIP - Desconto de {loyaltySub.plan?.discount_percent}% auto-aplicado!</span>
+                                    <span>Cliente Clube VIP Ativo (Descontos aplicados nos serviços cobertos).</span>
                                 </div>
                             )}
                             {!loyaltyLoading && loyaltySub && (loyaltySub.status === 'past_due' || loyaltySub.status === 'canceled') && (
@@ -742,6 +740,14 @@ export function QuoteForm() {
                                                 className="w-full rounded-md border border-gray-300 bg-[var(--color-surface)] px-2 py-1.5 text-sm text-[var(--color-text-main)] dark:bg-slate-800 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[36px]"
                                                 rows={3}
                                             />
+
+                                            {/* Item VIP Covered Badge */}
+                                            {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (
+                                                <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 w-fit">
+                                                    <Award size={10} />
+                                                    Serviço VIP (-{loyaltySub.plan.discount_percent}%)
+                                                </div>
+                                            )}
 
                                             {isFiscalEnabled && item.service_id && (
                                                 <div className="mt-2 flex gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
