@@ -774,7 +774,9 @@ export function QuoteForm() {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-2 align-bottom">
+                                        <td className="p-2 align-top">
+                                            {/* Spacer to align with VIP info if present */}
+                                            <div className="h-5" />
                                             <Input
                                                 type="number"
                                                 value={item.quantity}
@@ -782,19 +784,21 @@ export function QuoteForm() {
                                                 className="h-9 text-center"
                                             />
                                         </td>
-                                        <td className="p-2 align-bottom text-right">
-                                            <div className="flex flex-col items-end gap-0.5">
-                                                {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
-                                                    const originalService = services.find(s => s.id === item.service_id);
-                                                    if (originalService && originalService.price > item.unit_price) {
-                                                        return (
-                                                            <div className="text-[10px] text-gray-400 line-through pr-2" title="Preço original sem plano VIP">
-                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(originalService.price)}
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
+                                        <td className="p-2 align-top text-right">
+                                            <div className="flex flex-col items-end">
+                                                <div className="h-5 flex items-end">
+                                                    {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
+                                                        const originalService = services.find(s => s.id === item.service_id);
+                                                        if (originalService && originalService.price > item.unit_price) {
+                                                            return (
+                                                                <div className="text-[10px] text-gray-400 line-through pr-2 mb-0.5" title="Preço original sem plano VIP">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(originalService.price)}
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
                                                 <div className="w-full max-w-[120px]">
                                                     <Input
                                                         type="number"
@@ -806,38 +810,46 @@ export function QuoteForm() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-2 align-bottom text-right font-bold text-gray-900 dark:text-white">
-                                            <div className="flex flex-col items-end gap-0.5">
-                                                {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
-                                                    const originalService = services.find(s => s.id === item.service_id);
-                                                    if (originalService && originalService.price > item.unit_price) {
-                                                        return (
-                                                            <div className="text-[10px] text-gray-400 line-through pr-1 font-normal">
-                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * originalService.price)}
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
-                                                <div className="text-sm">
+                                        <td className="p-2 align-top text-right font-bold text-gray-900 dark:text-white">
+                                            <div className="flex flex-col items-end">
+                                                <div className="h-5 flex items-end">
+                                                    {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
+                                                        const originalService = services.find(s => s.id === item.service_id);
+                                                        if (originalService && originalService.price > item.unit_price) {
+                                                            return (
+                                                                <div className="text-[10px] text-gray-400 line-through pr-1 mb-0.5 font-normal">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * originalService.price)}
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
+                                                <div className="h-9 flex items-center text-sm">
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * item.unit_price)}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-2 align-bottom text-center pt-2 pb-2">
-                                            <Tooltip content="Mostrar este item no PDF">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={item.show_in_pdf !== false}
-                                                    onChange={e => updateItem(index, 'show_in_pdf', e.target.checked)}
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
-                                                />
-                                            </Tooltip>
+                                        <td className="p-2 align-top text-center pb-2">
+                                            <div className="h-5" />
+                                            <div className="h-9 flex items-center justify-center">
+                                                <Tooltip content="Mostrar este item no PDF">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={item.show_in_pdf !== false}
+                                                        onChange={e => updateItem(index, 'show_in_pdf', e.target.checked)}
+                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                                                    />
+                                                </Tooltip>
+                                            </div>
                                         </td>
-                                        <td className="p-2 align-bottom text-center pt-1.5 pb-2">
-                                            <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => removeItem(index)}>
-                                                <Trash2 size={16} />
-                                            </Button>
+                                        <td className="p-2 align-top text-center pb-2">
+                                            <div className="h-5" />
+                                            <div className="h-9 flex items-center justify-center">
+                                                <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => removeItem(index)}>
+                                                    <Trash2 size={16} />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
