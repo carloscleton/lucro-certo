@@ -697,8 +697,8 @@ export function QuoteForm() {
                                     <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[20%]">Item (Serviço/Produto)</th>
                                     <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[35%]">Descrição</th>
                                     <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[10%] text-center">Qtd</th>
-                                    <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[12%] text-right">Valor Unit.</th>
-                                    <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[10%] text-right">Total</th>
+                                    <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[15%] text-right">Valor Unit.</th>
+                                    <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[15%] text-right">Total</th>
                                     <th className="py-2 px-2 text-sm font-medium text-gray-500 w-[8%] text-center">
                                         <Tooltip content="Mostrar no PDF">
                                             <span>PDF?</span>
@@ -783,43 +783,43 @@ export function QuoteForm() {
                                             />
                                         </td>
                                         <td className="p-2 align-top text-right">
-                                            <div className="flex flex-col items-end w-full">
+                                            <div className="flex flex-col items-end gap-0.5">
                                                 {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
                                                     const originalService = services.find(s => s.id === item.service_id);
                                                     if (originalService && originalService.price > item.unit_price) {
                                                         return (
-                                                            <div className="text-[10px] text-gray-400 line-through mb-0.5 pr-3" title="Preço original sem plano VIP">
+                                                            <div className="text-[10px] text-gray-400 line-through pr-2" title="Preço original sem plano VIP">
                                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(originalService.price)}
                                                             </div>
                                                         );
                                                     }
                                                     return null;
                                                 })()}
-                                                <div className="w-full">
+                                                <div className="w-full max-w-[120px]">
                                                     <Input
                                                         type="number"
                                                         value={item.unit_price}
                                                         onChange={e => updateItem(index, 'unit_price', parseFloat(e.target.value))}
-                                                        className="h-9 text-right"
-                                                        leftElement={<span className="text-xs font-bold text-gray-400">R$</span>}
+                                                        className="h-9 text-right font-medium"
+                                                        leftElement={<span className="text-[10px] font-bold text-gray-400">R$</span>}
                                                     />
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-2 align-top pt-2 font-medium text-gray-900 dark:text-white">
-                                            <div className="flex flex-col items-end w-full">
+                                        <td className="p-2 align-top text-right pt-2.5 font-bold text-gray-900 dark:text-white">
+                                            <div className="flex flex-col items-end gap-0.5">
                                                 {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
                                                     const originalService = services.find(s => s.id === item.service_id);
                                                     if (originalService && originalService.price > item.unit_price) {
                                                         return (
-                                                            <div className="text-[10px] text-gray-400 line-through mb-0.5 pr-1">
+                                                            <div className="text-[10px] text-gray-400 line-through pr-1 font-normal">
                                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * originalService.price)}
                                                             </div>
                                                         );
                                                     }
                                                     return null;
                                                 })()}
-                                                <div className="pr-1">
+                                                <div className="text-sm">
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * item.unit_price)}
                                                 </div>
                                             </div>
