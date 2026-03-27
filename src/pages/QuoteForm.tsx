@@ -917,11 +917,18 @@ export function QuoteForm() {
                                             <div className="relative flex items-center">
                                                 <span className="absolute left-0 text-xs font-bold text-gray-400">R$</span>
                                                 <input
-                                                    type="number"
-                                                    value={exp.amount}
-                                                    onChange={e => updateExpenseRow(index, 'amount', parseFloat(e.target.value) || 0)}
+                                                    type="text"
+                                                    value={formatBRL(exp.amount)}
+                                                    onChange={e => {
+                                                        const val = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
+                                                        const num = parseFloat(val);
+                                                        updateExpenseRow(index, 'amount', isNaN(num) ? 0 : num);
+                                                    }}
+                                                    onBlur={e => {
+                                                        const num = parseBRL(e.target.value);
+                                                        updateExpenseRow(index, 'amount', num);
+                                                    }}
                                                     className="w-full bg-transparent border-none text-sm outline-none focus:ring-0 text-right font-bold text-red-600 px-6"
-                                                    step="0.01"
                                                 />
                                             </div>
                                         </td>
@@ -1002,10 +1009,23 @@ export function QuoteForm() {
                                         {discountType === 'amount' ? 'R$' : '%'}
                                     </span>
                                     <input
-                                        type="number"
+                                        type={discountType === 'amount' ? 'text' : 'number'}
                                         className="w-24 text-right rounded-md border border-gray-300 bg-[var(--color-surface)] pl-6 pr-2 py-1 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-slate-700 dark:border-slate-600"
-                                        value={discount}
-                                        onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
+                                        value={discountType === 'amount' ? formatBRL(discount) : discount}
+                                        onChange={e => {
+                                            if (discountType === 'amount') {
+                                                const val = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
+                                                const num = parseFloat(val);
+                                                setDiscount(isNaN(num) ? 0 : num);
+                                            } else {
+                                                setDiscount(parseFloat(e.target.value) || 0);
+                                            }
+                                        }}
+                                        onBlur={e => {
+                                            if (discountType === 'amount') {
+                                                setDiscount(parseBRL(e.target.value));
+                                            }
+                                        }}
                                         min="0"
                                     />
                                 </div>
