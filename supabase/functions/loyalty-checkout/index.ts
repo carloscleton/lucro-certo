@@ -25,6 +25,28 @@ async function sendWhatsApp(instanceName: string, targetNumber: string, text: st
     }
 }
 
+async function sendEmail(to: string, subject: string, html: string, apiKey: string) {
+    try {
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                from: 'Clube VIP <notificacoes@lucrocerto.idealzap.com.br>',
+                to: [to],
+                subject,
+                html
+            })
+        })
+        return response.ok
+    } catch (e) {
+        console.error('Error sending Email via Resend:', e)
+        return false
+    }
+}
+
 serve(async (req) => {
     // 0. Handle CORS
     if (req.method === 'OPTIONS') {
@@ -34,6 +56,7 @@ serve(async (req) => {
     try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        const resendKey = Deno.env.get('RESEND_API_KEY')
         const supabaseAdmin = createClient(supabaseUrl, supabaseKey)
 
         // 1. Get Request body
@@ -138,14 +161,14 @@ serve(async (req) => {
 
         const { data: subscription, error: subError } = await supabaseAdmin
             .from('loyalty_subscriptions')
-            .insert([{
+            .upsert([{
                 company_id: companyId,
                 plan_id: planId,
                 contact_id: realContactId,
                 status: 'pending',
                 portal_token: portalToken,
                 next_due_at: nextBilling.toISOString().split('T')[0]
-            }])
+            }], { onConflict: 'company_id,contact_id' })
             .select()
             .single()
 
@@ -199,7 +222,7 @@ serve(async (req) => {
                     cycle: plan.billing_cycle === 'yearly' ? 'YEARLY' : 'MONTHLY',
                     description: `Clube VIP: ${plan.name}`,
                     externalReference: subscription.id,
-                    notificationDisabled: !appSettings.loyalty_email_enabled
+                    notificationDisabled: true // We manually send the email if enabled
                 })
             })
             const asaasSubData = await asaasSubRes.json()
@@ -229,8 +252,12 @@ serve(async (req) => {
             status: 'pending'
         }).eq('id', subscription.id)
 
-        // 9. BACKGROUND NOTIFICATION
+        // 9. BACKGROUND NOTIFICATIONS
         let whatsappSent = false
+        const firstName = finalContactData.name.split(' ')[0]
+        const formattedPrice = Number(plan.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+
+        // 9.1 WhatsApp
         if (appSettings.loyalty_whatsapp_enabled && finalContactData.phone) {
             const evoUrl = Deno.env.get('EVOLUTION_API_URL') || 'https://evo.idealzap.com.br'
             const evoKey = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
@@ -238,9 +265,10 @@ serve(async (req) => {
             
             const template = appSettings.loyalty_whatsapp_template || 'Olá, {name}! 👋 Seu link para ativar o {plan_name} no Clube VIP está pronto: {payment_link}'
             const message = template
-                .replace(/{name}/g, finalContactData.name.split(' ')[0])
+                .replace(/{name}/g, firstName)
                 .replace(/{plan_name}/g, plan.name)
                 .replace(/{payment_link}/g, checkoutUrl)
+                .replace(/{price}/g, formattedPrice)
 
             let cleanPhone = finalContactData.phone.replace(/\D/g, '')
             if ((cleanPhone.length === 10 || cleanPhone.length === 11) && !cleanPhone.startsWith('55')) {
@@ -252,12 +280,30 @@ serve(async (req) => {
             }
         }
 
+        // 9.2 Custom HTML Email
+        let emailSent = false
+        if (appSettings.loyalty_email_enabled && finalContactData.email && resendKey) {
+            const template = appSettings.loyalty_email_template || 'Olá {name}, seu link é {payment_link}'
+            const html = template
+                .replace(/{name}/g, firstName)
+                .replace(/{plan_name}/g, plan.name)
+                .replace(/{payment_link}/g, checkoutUrl)
+                .replace(/{price}/g, formattedPrice)
+
+            emailSent = await sendEmail(
+                finalContactData.email,
+                `Seu Link VIP: ${plan.name}`,
+                html,
+                resendKey
+            )
+        }
+
         return new Response(JSON.stringify({ 
             success: true, 
             checkout_url: checkoutUrl, 
             subscription_id: subscription.id,
             whatsapp_sent: whatsappSent,
-            email_sent: appSettings.loyalty_email_enabled && !!finalContactData.email
+            email_sent: emailSent
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,

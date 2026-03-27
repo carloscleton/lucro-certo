@@ -260,47 +260,28 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                                 throw new Error(data?.error || 'Erro desconhecido ao gerar cobrança.');
                             }
                         } catch (err: any) {
-                            console.error('Error in loyalty-checkout:', err);
-                            notify('error', `Não foi possível gerar a cobrança no gateway: ${err.message}`, 'Erro Gateway');
-                            // Fallback to manual activation without gateway? 
-                            // Or stop here? Let's proceed with manual partial success.
+                            console.error('Checkout Error:', err);
+                            notify('error', err.message || 'Falha ao processar checkout no gateway.', 'Erro no Gateway');
+                            setLoading(false);
+                            return;
                         }
-                    }
-
-                    const { data: existing } = await supabase
-                        .from('loyalty_subscriptions')
-                        .select('id, plan_id')
-                        .eq('contact_id', contactId)
-                        .eq('company_id', currentEntity.id)
-                        .maybeSingle();
-
-                    if (!existing || existing.plan_id !== loyaltyPlanId) {
-                        if (existing) {
-                            await supabase
-                                .from('loyalty_subscriptions')
-                                .update({ plan_id: loyaltyPlanId, status: 'active' })
-                                .eq('id', existing.id);
-                        } else {
-                           const plan = plans.find(p => p.id === loyaltyPlanId);
-                           let nextBilling = new Date();
-                           if (plan?.billing_cycle === 'yearly') {
-                               nextBilling.setFullYear(nextBilling.getFullYear() + 1);
-                           } else {
-                               nextBilling.setMonth(nextBilling.getMonth() + 1);
-                           }
-                           
-                           await supabase
-                               .from('loyalty_subscriptions')
-                               .insert([{
-                                   company_id: currentEntity.id,
-                                   contact_id: contactId,
-                                   plan_id: loyaltyPlanId,
-                                   status: 'active',
-                                   next_due_at: nextBilling.toISOString().split('T')[0],
-                               }]);
-                        }
+                    } else {
+                        // Manual Activation (Local Upsert)
+                        const { error: subError } = await supabase
+                            .from('loyalty_subscriptions')
+                            .upsert([{
+                                company_id: currentEntity.id,
+                                contact_id: contactId,
+                                plan_id: loyaltyPlanId,
+                                status: 'active',
+                                started_at: new Date().toISOString()
+                            }], { onConflict: 'company_id,contact_id' });
+                        
+                        if (subError) throw subError;
+                        notify('success', 'Plano vinculado com sucesso!', 'Clube de Fidelidade');
                     }
                 } else {
+                    // Canceled / No Plan
                     await supabase
                         .from('loyalty_subscriptions')
                         .update({ status: 'canceled' })
