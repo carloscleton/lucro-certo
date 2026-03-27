@@ -21,6 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { storageService } from '../../lib/storageService';
 import { calculateNextDates, formatBrazilianDate } from '../../utils/dateUtils';
 import { useNotification } from '../../context/NotificationContext';
+import { formatBRL, parseBRL } from '../../utils/currencyUtils';
 
 interface TransactionFormProps {
     type: TransactionType;
@@ -89,7 +90,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     useEffect(() => {
         if (initialData) {
             setDescription(initialData.description || '');
-            setAmount(initialData.amount ? initialData.amount.toString() : '');
+            setAmount(initialData.amount ? formatBRL(initialData.amount) : '');
             setDate(initialData.date || new Date().toISOString().split('T')[0]);
             setStatus(initialData.status || 'pending');
             setCategoryId(initialData.category_id || '');
@@ -327,7 +328,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
             if (data && !data.error) {
                 if (data.description) setDescription(data.description);
-                if (data.amount) setAmount(data.amount.toString());
+                if (data.amount) setAmount(formatBRL(data.amount));
                 if (data.date) setDate(data.date);
                 let finalNotes = data.notes_suggestion || '';
                 let paymentBlock = '';
@@ -382,7 +383,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 setOverrides(prev => ({
                     ...prev,
                     [idx]: {
-                        amount: tempOverrideAmount ? parseFloat(tempOverrideAmount) : undefined,
+                        amount: tempOverrideAmount ? parseBRL(tempOverrideAmount) : undefined,
                         date: tempOverrideDate || undefined
                     }
                 }));
@@ -391,14 +392,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 const finalOverrides = {
                     ...overrides,
                     [idx]: {
-                        amount: tempOverrideAmount ? parseFloat(tempOverrideAmount) : undefined,
+                        amount: tempOverrideAmount ? parseBRL(tempOverrideAmount) : undefined,
                         date: tempOverrideDate || undefined
                     }
                 };
 
                 await onSubmit({
                     description,
-                    amount: parseFloat(amount),
+                    amount: parseBRL(amount),
                     date,
                     type,
                     status,
@@ -420,7 +421,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             } else {
                 await onSubmit({
                     description,
-                    amount: parseFloat(amount),
+                    amount: parseBRL(amount),
                     date,
                     type,
                     status,
@@ -453,7 +454,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         setOverrides(prev => ({
             ...prev,
             [idx]: {
-                amount: tempOverrideAmount ? parseFloat(tempOverrideAmount) : undefined,
+                amount: tempOverrideAmount ? parseBRL(tempOverrideAmount) : undefined,
                 date: tempOverrideDate || undefined
             }
         }));
@@ -462,7 +463,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
     const handleStartEditOverride = (idx: number, currentAmount: number, currentDate: string) => {
         setEditingInstallment(idx);
-        setTempOverrideAmount(currentAmount.toString());
+        setTempOverrideAmount(formatBRL(currentAmount));
         setTempOverrideDate(currentDate);
     };
 
@@ -520,7 +521,15 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         <div className="md:col-span-2">
                             <Input label="Descrição" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Ex: Aluguel..." />
                         </div>
-                        <Input label="Valor (R$)" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required placeholder="0,00" />
+                        <Input 
+                            label="Valor (R$)" 
+                            type="text" 
+                            value={amount} 
+                            onChange={e => setAmount(e.target.value)} 
+                            onBlur={() => setAmount(formatBRL(parseBRL(amount)))}
+                            required 
+                            placeholder="0,00" 
+                        />
                         <Input label="Data" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
@@ -608,7 +617,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 const currentOverride = overrides[installmentIdx];
                                                 const realData = dbInstallments[installmentIdx];
                                                 const displayDate = currentOverride?.date || realData?.date || nextDate.toISOString().split('T')[0];
-                                                const displayAmount = currentOverride?.amount !== undefined ? currentOverride.amount : (realData?.amount ?? parseFloat(amount || '0'));
+                                                const displayAmount = currentOverride?.amount !== undefined ? currentOverride.amount : (realData?.amount ?? parseBRL(amount || '0'));
                                                 const isEditing = editingInstallment === installmentIdx;
 
                                                 return (

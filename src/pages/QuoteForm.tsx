@@ -13,6 +13,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
+import { formatBRL, parseBRL } from '../utils/currencyUtils';
 import { useCRM } from '../hooks/useCRM';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -801,9 +802,17 @@ export function QuoteForm() {
                                                 </div>
                                                 <div className="w-full max-w-[120px]">
                                                     <Input
-                                                        type="number"
-                                                        value={item.unit_price}
-                                                        onChange={e => updateItem(index, 'unit_price', parseFloat(e.target.value))}
+                                                        type="text"
+                                                        value={formatBRL(item.unit_price)}
+                                                        onChange={e => {
+                                                            const val = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
+                                                            const num = parseFloat(val);
+                                                            updateItem(index, 'unit_price', isNaN(num) ? 0 : num);
+                                                        }}
+                                                        onBlur={e => {
+                                                            const num = parseBRL(e.target.value);
+                                                            updateItem(index, 'unit_price', num);
+                                                        }}
                                                         className="h-9 text-right font-medium"
                                                         leftElement={<span className="text-[10px] font-bold text-gray-400">R$</span>}
                                                     />
