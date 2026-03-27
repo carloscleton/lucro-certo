@@ -121,7 +121,7 @@ serve(async (req) => {
                 contact_id: realContactId,
                 status: 'active',
                 portal_token: portalToken,
-                next_billing_date: nextBilling.toISOString()
+                next_due_at: nextBilling.toISOString().split('T')[0]
             }])
             .select()
             .single()
@@ -192,7 +192,10 @@ serve(async (req) => {
         // 7. Update Subscription with Gateway ID
         await supabaseAdmin
             .from('loyalty_subscriptions')
-            .update({ gateway_subscription_id: gatewaySubId })
+            .update({ 
+                gateway_sub_id: gatewaySubId,
+                gateway_customer_id: asaasCustomerId 
+            })
             .eq('id', subscription.id)
 
         // 8. Log the initial charge entry

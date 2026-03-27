@@ -292,7 +292,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                                    contact_id: contactId,
                                    plan_id: loyaltyPlanId,
                                    status: 'active',
-                                   next_billing_date: nextBilling.toISOString().split('T')[0],
+                                   next_due_at: nextBilling.toISOString().split('T')[0],
                                }]);
                         }
                     }
