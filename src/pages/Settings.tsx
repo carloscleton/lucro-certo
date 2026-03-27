@@ -6,6 +6,7 @@ import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Us
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { CurrencyInput } from '../components/ui/CurrencyInput';
 import { useSettings } from '../hooks/useSettings';
 import { useAdmin } from '../hooks/useAdmin';
 import { usePresence } from '../hooks/usePresence';
@@ -1295,28 +1296,24 @@ export function Settings() {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <Input
+                                        <CurrencyInput
                                             label={t('settings.monthly_fee')}
-                                            type="number"
                                             value={tempCompanyConfig.settings?.monthly_fee || 0}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                const val = parseFloat(e.target.value) || 0;
+                                            onChange={(num) => {
                                                 setTempCompanyConfig({
                                                     ...tempCompanyConfig,
-                                                    settings: { ...(tempCompanyConfig.settings || {}), monthly_fee: val }
+                                                    settings: { ...(tempCompanyConfig.settings || {}), monthly_fee: num }
                                                 });
                                             }}
                                             placeholder="Ex: 150"
                                         />
-                                        <Input
+                                        <CurrencyInput
                                             label={t('settings.annual_fee')}
-                                            type="number"
                                             value={tempCompanyConfig.settings?.annual_fee || 0}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                const val = parseFloat(e.target.value) || 0;
+                                            onChange={(num) => {
                                                 setTempCompanyConfig({
                                                     ...tempCompanyConfig,
-                                                    settings: { ...(tempCompanyConfig.settings || {}), annual_fee: val }
+                                                    settings: { ...(tempCompanyConfig.settings || {}), annual_fee: num }
                                                 });
                                             }}
                                             placeholder="Ex: 1200"
@@ -2294,13 +2291,11 @@ export function Settings() {
                                     </div>
                                 </div>
 
-                                <Input
+                                <CurrencyInput
                                     label="Valor da Fatura (R$)"
-                                    type="number"
-                                    value={invoiceData.amount}
-                                    onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
-                                    placeholder="0.00"
-                                    step="0.01"
+                                    value={parseFloat(invoiceData.amount) || 0}
+                                    onChange={(num) => setInvoiceData({ ...invoiceData, amount: num.toString() })}
+                                    placeholder="0,00"
                                 />
 
                                 <Input

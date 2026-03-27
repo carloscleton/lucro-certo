@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { useCRM, type CRMStage, type CRMDeal } from '../../hooks/useCRM';
 import { useContacts } from '../../hooks/useContacts';
 import { EntityAgendaList } from '../agenda/EntityAgendaList';
@@ -104,7 +105,7 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
     const { contacts } = useContacts();
 
     const [title, setTitle] = useState('');
-    const [value, setValue] = useState('0');
+    const [value, setValue] = useState(0);
     const [stageId, setStageId] = useState('');
     const [contactId, setContactId] = useState('');
     const [description, setDescription] = useState('');
@@ -141,13 +142,13 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
     useEffect(() => {
         if (deal) {
             setTitle(deal.title);
-            setValue(deal.value.toString());
+            setValue(deal.value);
             setStageId(deal.stage_id || '');
             setContactId(deal.contact_id || '');
             setDescription(deal.description || '');
         } else {
             setTitle('');
-            setValue('0');
+            setValue(0);
             setStageId(initialStageId || (stages[0]?.id || ''));
             setContactId('');
             setDescription('');
@@ -160,7 +161,7 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
         try {
             const dealData = {
                 title,
-                value: parseFloat(value),
+                value,
                 stage_id: stageId || null,
                 contact_id: contactId || null,
                 description,
@@ -212,12 +213,10 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                    <Input
+                    <CurrencyInput
                         label="Valor (R$)"
-                        type="number"
-                        step="0.01"
                         value={value}
-                        onChange={(e) => setValue(e.target.value)}
+                        onChange={(num) => setValue(num)}
                         required
                     />
 

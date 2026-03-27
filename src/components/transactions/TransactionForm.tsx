@@ -654,11 +654,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                                                         {isEditing ? (
                                                             <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-                                                                <input
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    value={tempOverrideAmount}
-                                                                    onChange={e => setTempOverrideAmount(e.target.value)}
+                                                                <CurrencyInput
+                                                                    value={parseBRL(tempOverrideAmount)}
+                                                                    onChange={num => setTempOverrideAmount(formatBRL(num))}
                                                                     className="w-full text-[10px] font-bold p-1 border rounded bg-white dark:bg-slate-900 border-emerald-200"
                                                                     autoFocus
                                                                 />

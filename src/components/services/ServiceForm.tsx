@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Wrench, Wand2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { TextArea } from '../ui/TextArea';
 import { Modal } from '../ui/Modal';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -22,7 +23,7 @@ interface ServiceFormProps {
 export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceFormProps) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [price, setPrice] = useState('');
+    const [price, setPrice] = useState(0);
     const [unit, setUnit] = useState('');
     const [showInPdf, setShowInPdf] = useState(true);
     const [loading, setLoading] = useState(false);
@@ -41,7 +42,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
         if (initialData) {
             setName(initialData.name);
             setDescription(initialData.description || '');
-            setPrice(initialData.price.toString());
+            setPrice(initialData.price);
             setUnit(initialData.unit || '');
             setShowInPdf(initialData.show_in_pdf !== false);
             setMunCode(initialData.codigo_servico_municipal || '');
@@ -50,7 +51,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
         } else {
             setName('');
             setDescription('');
-            setPrice('');
+            setPrice(0);
             setUnit('');
             setShowInPdf(true);
             setMunCode('');
@@ -118,7 +119,7 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
             await onSubmit({
                 name,
                 description,
-                price: parseFloat(price) || 0,
+                price,
                 unit,
                 show_in_pdf: showInPdf,
                 codigo_servico_municipal: munCode,
@@ -174,13 +175,10 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <Input
+                    <CurrencyInput
                         label="Preço Unitário (R$) *"
-                        type="number"
-                        step="0.01"
                         value={price}
-                        onChange={e => setPrice(e.target.value)}
-                        placeholder="0.00"
+                        onChange={num => setPrice(num)}
                         required
                     />
                     <Input
@@ -204,7 +202,7 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                                 helpText="Código de tributação do município"
                             />
                             <Input
-                                label="Item Lista Servico"
+                                label="Item Lista Serviço"
                                 value={lcItem}
                                 onChange={e => setLcItem(e.target.value)}
                                 placeholder="Ex: 01.01"

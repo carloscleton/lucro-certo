@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { Modal } from '../ui/Modal';
 import { Package, Trash2, Edit2, Info } from 'lucide-react';
 import type { LoyaltyPlan } from '../../hooks/useLoyalty';
@@ -111,12 +112,10 @@ export function PlanForm({ isOpen, onClose, onSubmit, initialData }: PlanFormPro
                         />
                     </div>
 
-                    <Input
+                    <CurrencyInput
                         label={t('loyalty.price_label', 'Valor Mensal (R$)*')}
-                        type="number"
-                        step="0.01"
                         value={price}
-                        onChange={e => setPrice(Number(e.target.value))}
+                        onChange={num => setPrice(num)}
                         required
                     />
 

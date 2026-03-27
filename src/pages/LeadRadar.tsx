@@ -31,6 +31,7 @@ import { useEntity } from '../context/EntityContext';
 import { useCRM } from '../context/CRMContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { CurrencyInput } from '../components/ui/CurrencyInput';
 import { EntityAgendaList } from '../components/agenda/EntityAgendaList';
 
 interface AISettings {
@@ -306,7 +307,7 @@ export function LeadRadar() {
             ...settings,
             services_catalog: [
                 ...settings.services_catalog,
-                { name: '', price: '', notes: '' }
+                { name: '', price: 0, notes: '' }
             ]
         });
     };
@@ -318,7 +319,7 @@ export function LeadRadar() {
         });
     };
 
-    const handleServiceChange = (index: number, field: string, value: string) => {
+    const handleServiceChange = (index: number, field: string, value: any) => {
         const newCatalog = [...settings.services_catalog];
         newCatalog[index][field] = value;
         setSettings({ ...settings, services_catalog: newCatalog });
@@ -1179,12 +1180,13 @@ export function LeadRadar() {
                                                 className="bg-white dark:bg-slate-800"
                                             />
                                             <div className="flex gap-2">
-                                                <Input
-                                                    value={service.price}
-                                                    onChange={(e) => handleServiceChange(index, 'price', e.target.value)}
-                                                    placeholder={t('lead_radar.service_price', 'Preço')}
-                                                    className="bg-white dark:bg-slate-800"
-                                                />
+                                                <div className="flex-1 min-w-[120px]">
+                                                    <CurrencyInput
+                                                        placeholder="Preço (R$)"
+                                                        value={typeof service.price === 'string' ? parseFloat(service.price) || 0 : service.price}
+                                                        onChange={(num) => handleServiceChange(index, 'price', num)}
+                                                    />
+                                                </div>
                                                 <Input
                                                     value={service.notes}
                                                     onChange={(e) => handleServiceChange(index, 'notes', e.target.value)}

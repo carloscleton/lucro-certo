@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { DollarSign } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { Modal } from '../ui/Modal';
+import { formatBRL, parseBRL } from '../../utils/currencyUtils';
 
 interface SettleModalProps {
     isOpen: boolean;
@@ -17,16 +19,16 @@ interface SettleModalProps {
 export function SettleModal({ isOpen, onClose, onConfirm, transactionType, transactionAmount, transactionDescription, isVariableAmount }: SettleModalProps) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [paymentMethod, setPaymentMethod] = useState('');
-    const [currentAmount, setCurrentAmount] = useState(transactionAmount.toString());
-    const [interest, setInterest] = useState('');
-    const [penalty, setPenalty] = useState('');
+    const [currentAmount, setCurrentAmount] = useState(transactionAmount);
+    const [interest, setInterest] = useState(0);
+    const [penalty, setPenalty] = useState(0);
     const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
 
-    const baseAmountValue = parseFloat(currentAmount) || 0;
-    const interestValue = parseFloat(interest) || 0;
-    const penaltyValue = parseFloat(penalty) || 0;
+    const baseAmountValue = currentAmount;
+    const interestValue = interest;
+    const penaltyValue = penalty;
     const totalAmount = baseAmountValue + interestValue + penaltyValue;
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -63,12 +65,10 @@ export function SettleModal({ isOpen, onClose, onConfirm, transactionType, trans
 
                     {isVariableAmount ? (
                         <div className="mt-2">
-                            <Input
+                            <CurrencyInput
                                 label="Valor Original (Lançamento Variável)"
-                                type="number"
-                                step="0.01"
                                 value={currentAmount}
-                                onChange={e => setCurrentAmount(e.target.value)}
+                                onChange={num => setCurrentAmount(num)}
                                 className="font-bold text-lg"
                             />
                         </div>
@@ -101,20 +101,16 @@ export function SettleModal({ isOpen, onClose, onConfirm, transactionType, trans
                     />
 
                     <div className="grid grid-cols-2 gap-3">
-                        <Input
+                        <CurrencyInput
                             label="Juros (R$)"
-                            type="number"
-                            step="0.01"
                             value={interest}
-                            onChange={e => setInterest(e.target.value)}
+                            onChange={num => setInterest(num)}
                             placeholder="0,00"
                         />
-                        <Input
+                        <CurrencyInput
                             label="Multa (R$)"
-                            type="number"
-                            step="0.01"
                             value={penalty}
-                            onChange={e => setPenalty(e.target.value)}
+                            onChange={num => setPenalty(num)}
                             placeholder="0,00"
                         />
                     </div>

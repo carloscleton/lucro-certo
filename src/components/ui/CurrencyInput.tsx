@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Input } from './Input';
 import { formatBRL, parseBRL } from '../../utils/currencyUtils';
 
-interface CurrencyInputProps {
+interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
     value: number;
     onChange: (value: number) => void;
-    className?: string;
     leftElement?: React.ReactNode;
     label?: string;
     error?: string;
     required?: boolean;
+    placeholder?: string;
 }
 
 export const CurrencyInput: React.FC<CurrencyInputProps> = ({ 
@@ -19,7 +19,9 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
     leftElement,
     label,
     error,
-    required
+    required,
+    placeholder,
+    ...props
 }) => {
     const [displayValue, setDisplayValue] = useState(formatBRL(value));
     const [isFocused, setIsFocused] = useState(false);
@@ -68,7 +70,8 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
             onChange={handleChange}
             className={className}
             leftElement={leftElement}
-            placeholder="0,00"
+            placeholder={placeholder || "0,00"}
+            {...props}
         />
     );
 };

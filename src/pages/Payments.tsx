@@ -20,6 +20,7 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
+import { CurrencyInput } from '../components/ui/CurrencyInput';
 import { useCharges } from '../hooks/useCharges';
 import { useContacts } from '../hooks/useContacts';
 import { usePaymentGateways } from '../hooks/usePaymentGateways';
@@ -416,12 +417,11 @@ export function Payments() {
                                     ))}
                                 </select>
                             </div>
-                            <Input
+                             <CurrencyInput
                                 label="Valor (R$)"
-                                type="number"
                                 placeholder="0,00"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
+                                value={Number(amount)}
+                                onChange={(num: number) => setAmount(num.toString())}
                             />
                         </div>
 

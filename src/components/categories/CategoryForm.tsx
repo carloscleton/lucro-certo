@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { Modal } from '../ui/Modal';
 import { Tag } from 'lucide-react';
 import type { Category } from '../../hooks/useCategories';
@@ -19,7 +20,7 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
     const [name, setName] = useState('');
     const [type, setType] = useState('expense');
     const [companyId, setCompanyId] = useState('');
-    const [budgetLimit, setBudgetLimit] = useState('');
+    const [budgetLimit, setBudgetLimit] = useState(0);
     const [loading, setLoading] = useState(false);
     const { companies } = useCompanies();
 
@@ -28,12 +29,12 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
             setName(initialData.name);
             setType(initialData.type);
             setCompanyId(initialData.company_id || '');
-            setBudgetLimit(initialData.budget_limit ? initialData.budget_limit.toString() : '');
+            setBudgetLimit(initialData.budget_limit || 0);
         } else {
             setName('');
             setType('expense');
             setCompanyId('');
-            setBudgetLimit('');
+            setBudgetLimit(0);
         }
     }, [initialData, isOpen]);
 
@@ -61,8 +62,8 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
                 scope: companyId ? 'business' : 'personal',
                 entity_type: companyId ? 'company' : 'individual'
             };
-            if (type === 'expense' && budgetLimit) {
-                data.budget_limit = parseFloat(budgetLimit);
+            if (type === 'expense' && budgetLimit > 0) {
+                data.budget_limit = budgetLimit;
             } else {
                 data.budget_limit = null;
             }
@@ -127,13 +128,11 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
 
                 {type === 'expense' && (
                     <div className="pt-2">
-                        <Input
+                        <CurrencyInput
                             label="Meta de Gasto Mensal (Opcional)"
-                            type="number"
-                            step="0.01"
                             placeholder="R$ 0,00"
                             value={budgetLimit}
-                            onChange={e => setBudgetLimit(e.target.value)}
+                            onChange={num => setBudgetLimit(num)}
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Você receberá alertas se os gastos superarem este valor.

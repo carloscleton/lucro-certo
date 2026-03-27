@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Package } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { TextArea } from '../ui/TextArea';
 import { Modal } from '../ui/Modal';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -21,14 +22,14 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [subDescription, setSubDescription] = useState('');
-    const [price, setPrice] = useState('');
+    const [price, setPrice] = useState(0);
     const [unit, setUnit] = useState('');
     const [showInPdf, setShowInPdf] = useState(true);
     const [loading, setLoading] = useState(false);
     const [ncm, setNcm] = useState('');
     const [cest, setCest] = useState('');
     const [origem, setOrigem] = useState('0');
-    const [costPrice, setCostPrice] = useState('');
+    const [costPrice, setCostPrice] = useState(0);
 
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
@@ -40,24 +41,24 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
             setName(initialData.name);
             setDescription(initialData.description || '');
             setSubDescription(initialData.sub_description || '');
-            setPrice(initialData.price.toString());
+            setPrice(initialData.price);
             setUnit(initialData.unit || '');
             setShowInPdf(initialData.show_in_pdf !== false);
             setNcm(initialData.ncm || '');
             setCest(initialData.cest || '');
             setOrigem((initialData.origem ?? 0).toString());
-            setCostPrice(initialData.preco_custo?.toString() || '');
+            setCostPrice(initialData.preco_custo || 0);
         } else {
             setName('');
             setDescription('');
             setSubDescription('');
-            setPrice('');
+            setPrice(0);
             setUnit('');
             setShowInPdf(true);
             setNcm('');
             setCest('');
             setOrigem('0');
-            setCostPrice('');
+            setCostPrice(0);
         }
     }, [initialData, isOpen]);
 
@@ -86,13 +87,13 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
                 name,
                 description,
                 sub_description: subDescription,
-                price: parseFloat(price) || 0,
+                price,
                 unit,
                 show_in_pdf: showInPdf,
                 ncm,
                 cest,
                 origem: parseInt(origem) || 0,
-                preco_custo: parseFloat(costPrice) || 0,
+                preco_custo: costPrice,
             });
             clearCache();
             onClose();
@@ -136,14 +137,12 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                    <Input
+                    <CurrencyInput
                         label="Preço Unitário (R$) *"
-                        type="number"
-                        step="0.01"
                         value={price}
-                        onChange={e => setPrice(e.target.value)}
-                        placeholder="0.00"
+                        onChange={num => setPrice(num)}
                         required
+                        placeholder="0,00"
                     />
                     <Input
                         label="Unidade"
@@ -193,13 +192,11 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
                                     <option value="5">5 - Nacional (Import. &lt; 40%)</option>
                                 </select>
                             </div>
-                            <Input
+                            <CurrencyInput
                                 label="Preço de Custo (R$)"
-                                type="number"
-                                step="0.01"
                                 value={costPrice}
-                                onChange={e => setCostPrice(e.target.value)}
-                                placeholder="0.00"
+                                onChange={num => setCostPrice(num)}
+                                placeholder="0,00"
                             />
                         </div>
                     </div>

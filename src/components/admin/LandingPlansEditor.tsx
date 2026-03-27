@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Save, Plus, Trash2, Edit, Sparkles } from 'lucide-react';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { useAdmin } from '../../hooks/useAdmin';
 import { useEntity } from '../../context/EntityContext';
 import { supabase } from '../../lib/supabase';
@@ -299,11 +300,10 @@ export function LandingPlansEditor() {
                         />
                         <div className="flex gap-2">
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preço (R$)</label>
-                                <input
-                                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-                                    value={plan.price}
-                                    onChange={(e) => updatePlan(pIdx, 'price', e.target.value)}
+                                <CurrencyInput
+                                    label="Preço (R$)"
+                                    value={parseFloat(plan.price) || 0}
+                                    onChange={(num) => updatePlan(pIdx, 'price', num.toString())}
                                 />
                             </div>
                             <div className="w-24">
