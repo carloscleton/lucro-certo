@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { Modal } from '../ui/Modal';
-import { formatBRL, parseBRL } from '../../utils/currencyUtils';
+
 
 interface SettleModalProps {
     isOpen: boolean;

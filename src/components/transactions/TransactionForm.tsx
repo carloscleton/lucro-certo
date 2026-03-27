@@ -23,7 +23,6 @@ import { storageService } from '../../lib/storageService';
 import { calculateNextDates, formatBrazilianDate } from '../../utils/dateUtils';
 import { useNotification } from '../../context/NotificationContext';
 import { formatBRL, parseBRL } from '../../utils/currencyUtils';
-
 interface TransactionFormProps {
     type: TransactionType;
     isOpen: boolean;
