@@ -185,6 +185,26 @@ serve(async (req) => {
             
             checkoutUrl = asaasSubData.checkoutUrl || asaasSubData.invoiceUrl || ''
             gatewaySubId = asaasSubData.id
+
+            if (!checkoutUrl && !gatewaySubId) {
+                throw new Error(`Asaas Error: ${JSON.stringify(asaasSubData)}`)
+            }
+            
+            // Fallback if checkoutUrl is missing but sub was created
+            if (!checkoutUrl && gatewaySubId) {
+                // Try to fetch the first payment to get its invoiceUrl
+                const paymentsRes = await fetch(`${baseUrl}/payments?subscription=${gatewaySubId}`, { 
+                    headers: { 'access_token': apiKey } 
+                })
+                const paymentsData = await paymentsRes.json()
+                if (paymentsData.data && paymentsData.data.length > 0) {
+                    checkoutUrl = paymentsData.data[0].invoiceUrl || paymentsData.data[0].checkoutUrl || ''
+                }
+            }
+
+            if (!checkoutUrl) {
+                throw new Error('Assinatura criada, mas o gateway não retornou um link de pagamento direto.')
+            }
         } else {
             throw new Error(`Gateway ${settings.gateway_type} não suportado ainda para assinaturas automáticas.`)
         }
