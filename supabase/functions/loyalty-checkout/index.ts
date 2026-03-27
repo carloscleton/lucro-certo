@@ -9,6 +9,7 @@ const corsHeaders = {
 
 async function sendWhatsApp(instanceName: string, targetNumber: string, text: string, apiKey: string, baseUrl: string) {
     try {
+        console.log(`[WhatsApp] Sending to ${targetNumber} via ${instanceName}...`)
         const response = await fetch(`${baseUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
@@ -18,9 +19,11 @@ async function sendWhatsApp(instanceName: string, targetNumber: string, text: st
                 textMessage: { text }
             })
         })
+        const resData = await response.json()
+        console.log(`[WhatsApp] Response:`, resData)
         return response.ok
     } catch (e) {
-        console.error('Error sending WhatsApp:', e)
+        console.error('[WhatsApp] Error:', e)
         return false
     }
 }
@@ -67,6 +70,7 @@ serve(async (req) => {
 
         // 1.1 Fetch App Settings (for global templates and keys)
         const { data: appSettings } = await supabaseAdmin.from('app_settings').select('*').eq('id', 1).single()
+        console.log('[Loyalty] App Settings loaded:', appSettings ? 'YES' : 'NO')
         if (!appSettings) throw new Error('Global app settings not found')
 
         // 2. Fetch Plan + Company
@@ -263,6 +267,8 @@ serve(async (req) => {
             const evoKey = Deno.env.get('EVOLUTION_API_KEY') || '7c4678985d13dfd7a89d4e56e7503563'
             const instanceName = appSettings.platform_whatsapp_instance || 'MainAdmin'
             
+            console.log(`[Loyalty] WhatsApp enabled. Instance: ${instanceName}, URL: ${evoUrl}`)
+
             const template = appSettings.loyalty_whatsapp_template || 'Olá, {name}! 👋 Seu link para ativar o {plan_name} no Clube VIP está pronto: {payment_link}'
             const message = template
                 .replace(/{name}/g, firstName)
@@ -277,7 +283,15 @@ serve(async (req) => {
 
             if (cleanPhone.length >= 10) {
                 whatsappSent = await sendWhatsApp(instanceName, cleanPhone, message, evoKey, evoUrl)
+                console.log(`[Loyalty] WhatsApp sent: ${whatsappSent}`)
+            } else {
+                console.warn(`[Loyalty] Phone number too short: ${cleanPhone}`)
             }
+        } else {
+            console.log('[Loyalty] WhatsApp skipped:', {
+                enabled: appSettings?.loyalty_whatsapp_enabled,
+                hasPhone: !!finalContactData?.phone
+            })
         }
 
         // 9.2 Custom HTML Email

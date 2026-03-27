@@ -92,6 +92,10 @@ export function useAdmin() {
         billing_email_template?: string;
         billing_days_before_reminder?: number[];
         landing_plans?: any[];
+        loyalty_whatsapp_enabled?: boolean;
+        loyalty_whatsapp_template?: string;
+        loyalty_email_enabled?: boolean;
+        loyalty_email_template?: string;
     } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -397,6 +401,10 @@ export function useAdmin() {
         billing_email_template: string;
         billing_days_before_reminder: number[];
         landing_plans: any[];
+        loyalty_whatsapp_enabled: boolean;
+        loyalty_whatsapp_template: string;
+        loyalty_email_enabled: boolean;
+        loyalty_email_template: string;
     }>) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 

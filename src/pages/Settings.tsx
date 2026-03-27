@@ -58,6 +58,10 @@ export function Settings() {
     const [autoOverduePrompt, setAutoOverduePrompt] = useState('');
     const [autoOverdueTemplate, setAutoOverdueTemplate] = useState('');
     const [automationWhatsAppNumber, setAutomationWhatsAppNumber] = useState('');
+    const [loyaltyWaEnabled, setLoyaltyWaEnabled] = useState(true);
+    const [loyaltyWaTemplate, setLoyaltyWaTemplate] = useState('');
+    const [loyaltyEmailEnabled, setLoyaltyEmailEnabled] = useState(true);
+    const [loyaltyEmailTemplate, setLoyaltyEmailTemplate] = useState('');
     const [waConnected, setWaConnected] = useState(false);
     const isTrial = useMemo(() => {
         if (isAdmin) return false;
@@ -203,6 +207,15 @@ export function Settings() {
             setAutomationWhatsAppNumber(formatPhoneFromDB(settings.automation_whatsapp_number));
         }
     }, [settings, loading]);
+
+    useEffect(() => {
+        if (appSettings) {
+            setLoyaltyWaEnabled(appSettings.loyalty_whatsapp_enabled ?? true);
+            setLoyaltyWaTemplate(appSettings.loyalty_whatsapp_template || '');
+            setLoyaltyEmailEnabled(appSettings.loyalty_email_enabled ?? true);
+            setLoyaltyEmailTemplate(appSettings.loyalty_email_template || '');
+        }
+    }, [appSettings]);
 
     const handleSave = async () => {
         setSaving(true);
@@ -987,6 +1000,94 @@ export function Settings() {
                                     <AlertTriangle className="text-orange-600 mt-1" size={20} />
                                     <div className="text-sm text-orange-700 dark:text-orange-300 leading-relaxed">
                                         Módulo Inativo. O menu de fidelidade ficará oculto para todos os membros da sua equipe até que você o ative.
+                                    </div>
+                                </div>
+                            )}
+
+                            {isAdmin && (
+                                <div className="pt-8 border-t border-gray-100 dark:border-slate-700 space-y-6">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <Shield className="text-indigo-600" size={20} />
+                                        Configurações de Notificação (Global)
+                                    </h3>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        {/* WhatsApp Loyalty */}
+                                        <div className="space-y-4 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50/30">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 rounded-lg bg-green-100 text-green-600">
+                                                        <MessageSquare size={18} />
+                                                    </div>
+                                                    <h4 className="font-bold text-gray-900 dark:text-white">WhatsApp Automático</h4>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={loyaltyWaEnabled} 
+                                                        onChange={(e) => setLoyaltyWaEnabled(e.target.checked)} 
+                                                    />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                                                </label>
+                                            </div>
+                                            <textarea
+                                                className="w-full h-32 p-3 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                placeholder="Digite o template do WhatsApp..."
+                                                value={loyaltyWaTemplate}
+                                                onChange={(e) => setLoyaltyWaTemplate(e.target.value)}
+                                            />
+                                            <p className="text-[10px] text-gray-400">Variáveis: {'{name}, {plan_name}, {payment_link}, {price}'}</p>
+                                        </div>
+
+                                        {/* Email Loyalty */}
+                                        <div className="space-y-4 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50/30">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                                                        <FileText size={18} />
+                                                    </div>
+                                                    <h4 className="font-bold text-gray-900 dark:text-white">E-mail HTML (Resend)</h4>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={loyaltyEmailEnabled} 
+                                                        onChange={(e) => setLoyaltyEmailEnabled(e.target.checked)} 
+                                                    />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                            <textarea
+                                                className="w-full h-32 p-3 text-[10px] font-mono border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                placeholder="Digite o template HTML do e-mail..."
+                                                value={loyaltyEmailTemplate}
+                                                onChange={(e) => setLoyaltyEmailTemplate(e.target.value)}
+                                            />
+                                            <p className="text-[10px] text-gray-400">Suporta HTML e as mesmas variáveis do WhatsApp.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end">
+                                        <Button
+                                            onClick={async () => {
+                                                setSaving(true);
+                                                const { error } = await updateAppSettings({
+                                                    loyalty_whatsapp_enabled: loyaltyWaEnabled,
+                                                    loyalty_whatsapp_template: loyaltyWaTemplate,
+                                                    loyalty_email_enabled: loyaltyEmailEnabled,
+                                                    loyalty_email_template: loyaltyEmailTemplate
+                                                });
+                                                setSaving(false);
+                                                if (error) alert('Erro ao salvar: ' + error);
+                                                else alert('Configurações globais salvas!');
+                                            }}
+                                            isLoading={saving}
+                                        >
+                                            <Save size={18} className="mr-2" />
+                                            Salvar Configurações Globais
+                                        </Button>
                                     </div>
                                 </div>
                             )}
