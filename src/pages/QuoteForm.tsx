@@ -774,7 +774,7 @@ export function QuoteForm() {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-2 align-top">
+                                        <td className="p-2 align-bottom">
                                             <Input
                                                 type="number"
                                                 value={item.quantity}
@@ -782,7 +782,7 @@ export function QuoteForm() {
                                                 className="h-9 text-center"
                                             />
                                         </td>
-                                        <td className="p-2 align-top text-right">
+                                        <td className="p-2 align-bottom text-right">
                                             <div className="flex flex-col items-end gap-0.5">
                                                 {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
                                                     const originalService = services.find(s => s.id === item.service_id);
@@ -806,7 +806,7 @@ export function QuoteForm() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-2 align-top text-right pt-2.5 font-bold text-gray-900 dark:text-white">
+                                        <td className="p-2 align-bottom text-right font-bold text-gray-900 dark:text-white">
                                             <div className="flex flex-col items-end gap-0.5">
                                                 {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
                                                     const originalService = services.find(s => s.id === item.service_id);
@@ -824,7 +824,7 @@ export function QuoteForm() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-2 align-top text-center pt-2">
+                                        <td className="p-2 align-bottom text-center pt-2 pb-2">
                                             <Tooltip content="Mostrar este item no PDF">
                                                 <input
                                                     type="checkbox"
@@ -834,7 +834,7 @@ export function QuoteForm() {
                                                 />
                                             </Tooltip>
                                         </td>
-                                        <td className="p-2 align-top text-center pt-1.5">
+                                        <td className="p-2 align-bottom text-center pt-1.5 pb-2">
                                             <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => removeItem(index)}>
                                                 <Trash2 size={16} />
                                             </Button>
