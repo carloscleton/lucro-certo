@@ -61,13 +61,16 @@ export function useContacts() {
     };
 
     const updateContact = async (id: string, updates: Partial<Contact>) => {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('contacts')
             .update(updates)
-            .eq('id', id);
+            .eq('id', id)
+            .select()
+            .single();
 
         if (error) throw error;
         await fetchContacts();
+        return data;
     };
 
     const deleteContact = async (id: string) => {

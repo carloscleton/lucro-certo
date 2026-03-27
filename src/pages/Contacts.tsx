@@ -56,9 +56,9 @@ export function Contacts() {
 
     const handleSubmit = async (data: any) => {
         if (editingContact) {
-            await updateContact(editingContact.id, data);
+            return await updateContact(editingContact.id, data);
         } else {
-            await addContact(data);
+            return await addContact(data);
         }
     };
 

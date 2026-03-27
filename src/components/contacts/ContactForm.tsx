@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { UserPlus, Search } from 'lucide-react';
+import { UserPlus, Search, Award } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -8,16 +8,21 @@ import { useNotification } from '../../context/NotificationContext';
 import type { Contact } from '../../hooks/useContacts';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { supabase } from '../../lib/supabase';
+import { useEntity } from '../../context/EntityContext';
+import { useLoyalty } from '../../hooks/useLoyalty';
 
 interface ContactFormProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => Promise<void>;
+    onSubmit: (data: any) => Promise<any>;
     initialData?: Contact | null;
 }
 
 export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactFormProps) {
     const { notify } = useNotification();
+    const { currentEntity } = useEntity();
+    const { plans } = useLoyalty();
     const [name, setName] = useState('');
     const [type, setType] = useState<'client' | 'supplier'>('client');
     const [email, setEmail] = useState('');
@@ -34,6 +39,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [neighborhood, setNeighborhood] = useState('');
     const [city, setCity] = useState('');
     const [state, setState] = useState('');
+    const [loyaltyPlanId, setLoyaltyPlanId] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
@@ -62,6 +68,21 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setNeighborhood(initialData.neighborhood || '');
             setCity(initialData.city || '');
             setState(initialData.state || '');
+
+            const fetchLoyalty = async () => {
+                if (!currentEntity.id) return;
+                const { data } = await supabase
+                    .from('loyalty_subscriptions')
+                    .select('plan_id, status')
+                    .eq('contact_id', initialData.id)
+                    .eq('company_id', currentEntity.id)
+                    .in('status', ['active', 'past_due', 'trialing'])
+                    .maybeSingle();
+                
+                if (data) setLoyaltyPlanId(data.plan_id);
+                else setLoyaltyPlanId('');
+            };
+            fetchLoyalty();
         } else {
             setName('');
             setType('client');
@@ -77,8 +98,9 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setNeighborhood('');
             setCity('');
             setState('');
+            setLoyaltyPlanId('');
         }
-    }, [initialData, isOpen]);
+    }, [initialData, isOpen, currentEntity.id]);
 
     const { clearCache } = useAutoSave(
         'contact_form',
@@ -179,7 +201,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             const finalPhone = cleanPhoneNumber(phone);
             const finalWhatsapp = cleanPhoneNumber(whatsapp);
 
-            await onSubmit({
+            const savedContact = await onSubmit({
                 name,
                 type,
                 email: email || null,
@@ -195,6 +217,54 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 state: state || null,
                 birthday: birthday || null,
             });
+
+            const contactId = initialData?.id || savedContact?.id;
+
+            if (contactId && currentEntity.id) {
+                if (loyaltyPlanId) {
+                    const { data: existing } = await supabase
+                        .from('loyalty_subscriptions')
+                        .select('id, plan_id')
+                        .eq('contact_id', contactId)
+                        .eq('company_id', currentEntity.id)
+                        .maybeSingle();
+
+                    if (!existing || existing.plan_id !== loyaltyPlanId) {
+                        if (existing) {
+                            await supabase
+                                .from('loyalty_subscriptions')
+                                .update({ plan_id: loyaltyPlanId, status: 'active' })
+                                .eq('id', existing.id);
+                        } else {
+                           const plan = plans.find(p => p.id === loyaltyPlanId);
+                           let nextBilling = new Date();
+                           if (plan?.billing_cycle === 'yearly') {
+                               nextBilling.setFullYear(nextBilling.getFullYear() + 1);
+                           } else {
+                               nextBilling.setMonth(nextBilling.getMonth() + 1);
+                           }
+                           
+                           await supabase
+                               .from('loyalty_subscriptions')
+                               .insert([{
+                                   company_id: currentEntity.id,
+                                   contact_id: contactId,
+                                   plan_id: loyaltyPlanId,
+                                   status: 'active',
+                                   next_billing_date: nextBilling.toISOString().split('T')[0],
+                               }]);
+                        }
+                    }
+                } else {
+                    await supabase
+                        .from('loyalty_subscriptions')
+                        .update({ status: 'canceled' })
+                        .eq('contact_id', contactId)
+                        .eq('company_id', currentEntity.id)
+                        .in('status', ['active', 'past_due', 'trialing']);
+                }
+            }
+
             clearCache();
             onClose();
         } catch (error) {
@@ -272,6 +342,29 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         onChange={e => setBirthday(e.target.value)}
                     />
                 </div>
+
+                {currentEntity.loyalty_module_enabled && (
+                    <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
+                        <h3 className="text-sm font-bold text-amber-600 dark:text-amber-500 mb-4 flex items-center gap-2">
+                            <Award size={18} />
+                            Clube de Fidelidade
+                        </h3>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Plano Vinculado</label>
+                            <select
+                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
+                                value={loyaltyPlanId}
+                                onChange={e => setLoyaltyPlanId(e.target.value)}
+                            >
+                                <option value="">Nenhum</option>
+                                {plans.filter(p => p.is_active).map(plan => (
+                                    <option key={plan.id} value={plan.id}>{plan.name}</option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ao selecionar um plano, ele será ativado manualmente para este contato.</p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
