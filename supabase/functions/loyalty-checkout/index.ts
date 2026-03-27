@@ -161,7 +161,7 @@ serve(async (req) => {
         // 6. Register/Update Subscription (Atomic RPC)
         const portalToken = crypto.randomUUID()
         const nextBilling = new Date()
-        nextBilling.setMonth(nextBilling.getMonth() + 1)
+        // nextBilling.setMonth(nextBilling.getMonth() + 1) // Remove this to charge TODAY
         const nextDueStr = nextBilling.toISOString().split('T')[0]
 
         console.log('[Loyalty] Executing atomic upsert for contact:', realContactId)
@@ -232,16 +232,19 @@ serve(async (req) => {
             const asaasSubData = await asaasSubRes.json()
             if (asaasSubData.errors) throw new Error(`Asaas Sub Error: ${asaasSubData.errors[0].description}`)
             
-            checkoutUrl = asaasSubData.checkoutUrl || asaasSubData.invoiceUrl || ''
             gatewaySubId = asaasSubData.id
+            // Prefer checkoutUrl if provided, otherwise we'll fetch the first payment link
+            checkoutUrl = asaasSubData.checkoutUrl || ''
 
-            if (!checkoutUrl && gatewaySubId) {
+            // ALWAYS try to fetch the first payment's public link for better delivery
+            if (gatewaySubId) {
                 const paymentsRes = await fetch(`${baseUrl}/subscriptions/${gatewaySubId}/payments`, {
                     headers: { 'access_token': apiKey }
                 })
                 const paymentsData = await paymentsRes.json()
                 if (paymentsData.data && paymentsData.data.length > 0) {
-                    checkoutUrl = paymentsData.data[0].invoiceUrl || paymentsData.data[0].bankSlipUrl
+                    // invoiceUrl is the public link (.../i/...)
+                    checkoutUrl = paymentsData.data[0].invoiceUrl || paymentsData.data[0].bankSlipUrl || checkoutUrl
                 }
             }
         }
@@ -297,7 +300,21 @@ serve(async (req) => {
         // 9.2 Custom HTML Email
         let emailSent = false
         if (appSettings.loyalty_email_enabled && finalContactData.email && resendKey) {
-            const template = appSettings.loyalty_email_template || 'Olá {name}, seu link é {payment_link}'
+            const template = appSettings.loyalty_email_template || `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h1 style="color: #6366f1; text-align: center;">Seu Link VIP está pronto!</h1>
+                    <p>Olá, <strong>{name}</strong>,</p>
+                    <p>Prepare-se para aproveitar as vantagens exclusivas do <strong>{plan_name}</strong> no nosso Clube VIP.</p>
+                    <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Plano:</strong> {plan_name}</p>
+                        <p style="margin: 5px 0;"><strong>Valor:</strong> R$ {price}</p>
+                    </div>
+                    <p style="text-align: center; margin-top: 30px;">
+                        <a href="{payment_link}" style="background-color: #6366f1; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Ativar Agora</a>
+                    </p>
+                    <p style="font-size: 12px; color: #666; text-align: center; margin-top: 30px;">Se o botão não funcionar, copie este link: {payment_link}</p>
+                </div>
+            `
             const html = template
                 .replace(/{name}/g, firstName)
                 .replace(/{plan_name}/g, plan.name)
