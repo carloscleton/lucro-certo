@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Award, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { TextArea } from '../components/ui/TextArea';
@@ -68,6 +68,12 @@ export function QuoteForm() {
 
     // Expenses State
     const [expenses, setExpenses] = useState<any[]>([]);
+
+    // Loyalty State
+    const [loyaltySub, setLoyaltySub] = useState<any>(null);
+    const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+    const isLoyaltyEnabled = currentEntity.type === 'company' &&
+        companies.find(c => c.id === currentEntity.id)?.loyalty_module_enabled;
 
     const { clearCache } = useAutoSave(
         'quote_form',
@@ -195,6 +201,44 @@ export function QuoteForm() {
         }
     }, [id, searchParams]);
 
+    // Fetch Loyalty Subscription when Contact changes
+    useEffect(() => {
+        const checkLoyalty = async () => {
+            if (!contactId || !isLoyaltyEnabled) {
+                setLoyaltySub(null);
+                return;
+            }
+
+            setLoyaltyLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('loyalty_subscriptions')
+                    .select('*, plan:loyalty_plans(id, name, price, discount_percent)')
+                    .eq('contact_id', contactId)
+                    .single();
+
+                if (!error && data) {
+                    setLoyaltySub(data);
+                    
+                    // Auto-apply discount if active
+                    if (data.status === 'active' && data.plan && data.plan.discount_percent > 0) {
+                        setDiscountType('percentage');
+                        setDiscount(data.plan.discount_percent);
+                    }
+                } else {
+                    setLoyaltySub(null);
+                }
+            } catch (err) {
+                console.error('Error fetching loyalty sub:', err);
+                setLoyaltySub(null);
+            } finally {
+                setLoyaltyLoading(false);
+            }
+        };
+
+        checkLoyalty();
+    }, [contactId, isLoyaltyEnabled]);
+
     // State for discount
 
 
@@ -247,7 +291,7 @@ export function QuoteForm() {
     // Re-writing helper functions to ensure context (though previous step restored them, 
     // I am focused on calculateTotal here mostly)
 
-    const addItem = () => {
+    const addItem = (customItem?: Partial<QuoteItem>) => {
         setItems([
             ...items,
             {
@@ -256,9 +300,29 @@ export function QuoteForm() {
                 unit_price: 0,
                 total_price: 0,
                 service_id: null,
-                product_id: null
+                product_id: null,
+                ...customItem
             }
         ]);
+    };
+
+    const handleEmbedDebt = () => {
+        if (!loyaltySub || !loyaltySub.plan) return;
+        
+        // Add the debt item
+        addItem({
+            description: '[Clube VIP] Regularização da Assinatura Atrasada',
+            unit_price: loyaltySub.plan.price,
+            total_price: loyaltySub.plan.price
+        });
+
+        // Apply discount since debt is being embedded
+        if (loyaltySub.plan.discount_percent > 0) {
+            setDiscountType('percentage');
+            setDiscount(loyaltySub.plan.discount_percent);
+        }
+
+        alert('Dívida embutida com sucesso e desconto VIP aplicado! Quando este orçamento for pago, a assinatura Clube VIP será reativada automaticamente.');
     };
 
     const removeItem = (index: number) => {
@@ -525,6 +589,28 @@ export function QuoteForm() {
                                         </option>
                                     ))}
                             </select>
+                            {loyaltyLoading && <span className="text-xs text-gray-400 mt-1 animate-pulse">Verificando Clube VIP...</span>}
+                            {!loyaltyLoading && loyaltySub && loyaltySub.status === 'active' && (
+                                <div className="mt-2 flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
+                                    <Award size={14} className="animate-pulse" />
+                                    <span>Cliente Clube VIP - Desconto de {loyaltySub.plan?.discount_percent}% auto-aplicado!</span>
+                                </div>
+                            )}
+                            {!loyaltyLoading && loyaltySub && (loyaltySub.status === 'past_due' || loyaltySub.status === 'canceled') && (
+                                <div className="mt-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800/50 flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle size={14} />
+                                        <span>Assinatura do Clube VIP está {loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}.</span>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={handleEmbedDebt}
+                                        className="self-start text-[11px] font-bold bg-white dark:bg-slate-800 border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/40 px-2 py-1 rounded transition-colors"
+                                    >
+                                        Embutir Mensalidade e Liberar Desconto
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <Input
                             label="Validade"
@@ -724,7 +810,7 @@ export function QuoteForm() {
                     </div>
 
                     <div className="mt-4">
-                        <Button type="button" variant="outline" onClick={addItem}>
+                        <Button type="button" variant="outline" onClick={() => addItem()}>
                             <Plus size={18} className="mr-2" />
                             Adicionar Item
                         </Button>

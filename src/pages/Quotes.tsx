@@ -329,6 +329,16 @@ export function Quotes() {
                         .update({ payment_status: 'paid' })
                         .eq('id', quoteToApprove.id);
 
+                    // CLUBE VIP RECOVERY Logic
+                    const { data: quoteItems } = await supabase.from('quote_items').select('description').eq('quote_id', quoteToApprove.id);
+                    if (quoteItems?.some(i => i.description.includes('[Clube VIP] Regularização'))) {
+                        await supabase
+                            .from('loyalty_subscriptions')
+                            .update({ status: 'active', canceled_at: null })
+                            .eq('contact_id', quoteToApprove.contact_id);
+                        notify('success', 'Clube VIP Reativado', 'A assinatura foi reativada automaticamente.');
+                    }
+
                     await refreshQuotes();
                     notify('success', 'Pagamento Registrado', 'Baixa realizada com sucesso!');
                 }

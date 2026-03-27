@@ -319,6 +319,21 @@ export function useQuotes() {
             throw updateError;
         }
 
+        // CLUBE VIP RECOVERY Logic for Auto-Receive (generateTransaction: true && transactionStatus: 'received')
+        if (paymentStatus === 'paid') {
+            const { data: quoteItems } = await supabase.from('quote_items').select('description').eq('quote_id', id);
+            if (quoteItems?.some(i => i.description.includes('[Clube VIP] Regularização'))) {
+                const quoteToUpdate = quotes.find(q => q.id === id);
+                if (quoteToUpdate && quoteToUpdate.contact_id) {
+                    await supabase
+                        .from('loyalty_subscriptions')
+                        .update({ status: 'active', canceled_at: null })
+                        .eq('contact_id', quoteToUpdate.contact_id);
+                    console.log('Clube VIP reativado pelo approveQuote');
+                }
+            }
+        }
+
         // 2. Generate Transaction
         if (generateTransaction) {
             const quote = quotes.find(q => q.id === id);
