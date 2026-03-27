@@ -131,6 +131,7 @@ serve(async (req) => {
         // 6. Generate Gateway Payment
         let checkoutUrl = ''
         let gatewaySubId = ''
+        let asaasCustomerId = ''
         const documentClean = contactData.document.replace(/\D/g, '')
 
         if (settings.gateway_type === 'asaas') {
@@ -145,7 +146,6 @@ serve(async (req) => {
                 throw new Error(`Asaas Search Error [Ambiente: ${isSandbox ? 'Sandbox' : 'Produção'}]: ${searchData.errors[0].description}`)
             }
             
-            let asaasCustomerId = ''
             if (searchData.data && searchData.data.length > 0) {
                 asaasCustomerId = searchData.data[0].id
             } else {
