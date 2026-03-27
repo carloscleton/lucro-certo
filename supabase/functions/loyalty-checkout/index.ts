@@ -158,54 +158,25 @@ serve(async (req) => {
             }
         }
 
-        // 6. Register/Update Subscription
+        // 6. Register/Update Subscription (Atomic RPC)
         const portalToken = crypto.randomUUID()
         const nextBilling = new Date()
         nextBilling.setMonth(nextBilling.getMonth() + 1)
         const nextDueStr = nextBilling.toISOString().split('T')[0]
 
-        // Manual existence check to avoid duplicate key errors even with UNIQUE constraint
-        const { data: existingSub } = await supabaseAdmin
-            .from('loyalty_subscriptions')
-            .select('id')
-            .eq('company_id', companyId)
-            .eq('contact_id', realContactId)
-            .maybeSingle()
+        console.log('[Loyalty] Executing atomic upsert for contact:', realContactId)
+        const { data: subscription, error: subError } = await supabaseAdmin
+            .rpc('upsert_loyalty_subscription', {
+                p_company_id: companyId,
+                p_contact_id: realContactId,
+                p_plan_id: planId,
+                p_status: 'pending',
+                p_portal_token: portalToken,
+                p_next_due_at: nextDueStr
+            })
+            .single()
 
-        let subscription;
-        if (existingSub) {
-            console.log('[Loyalty] Updating existing subscription:', existingSub.id)
-            const { data, error: updateError } = await supabaseAdmin
-                .from('loyalty_subscriptions')
-                .update({
-                    plan_id: planId,
-                    status: 'pending',
-                    portal_token: portalToken,
-                    next_due_at: nextDueStr
-                })
-                .eq('id', existingSub.id)
-                .select()
-                .single()
-            if (updateError) throw updateError
-            subscription = data
-        } else {
-            console.log('[Loyalty] Creating new subscription')
-            const { data, error: createError } = await supabaseAdmin
-                .from('loyalty_subscriptions')
-                .insert([{
-                    company_id: companyId,
-                    plan_id: planId,
-                    contact_id: realContactId,
-                    status: 'pending',
-                    portal_token: portalToken,
-                    next_due_at: nextDueStr,
-                    started_at: new Date().toISOString()
-                }])
-                .select()
-                .single()
-            if (createError) throw createError
-            subscription = data
-        }
+        if (subError) throw subError
 
         // 7. Generate Gateway Payment
         let checkoutUrl = ''

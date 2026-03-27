@@ -266,36 +266,16 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             return;
                         }
                     } else {
-                        // Manual Activation (Local Update/Insert)
-                        const { data: existingSub } = await supabase
-                            .from('loyalty_subscriptions')
-                            .select('id')
-                            .eq('company_id', currentEntity.id)
-                            .eq('contact_id', contactId)
-                            .maybeSingle();
-
-                        if (existingSub) {
-                            const { error: updateError } = await supabase
-                                .from('loyalty_subscriptions')
-                                .update({
-                                    plan_id: loyaltyPlanId,
-                                    status: 'active',
-                                })
-                                .eq('id', existingSub.id);
-                            if (updateError) throw updateError;
-                        } else {
-                            const { error: insertError } = await supabase
-                                .from('loyalty_subscriptions')
-                                .insert([{
-                                    company_id: currentEntity.id,
-                                    contact_id: contactId,
-                                    plan_id: loyaltyPlanId,
-                                    status: 'active',
-                                    started_at: new Date().toISOString()
-                                }]);
-                            if (insertError) throw insertError;
-                        }
+                        // Manual Activation (Atomic RPC)
+                        const { error: rpcError } = await supabase
+                            .rpc('upsert_loyalty_subscription', {
+                                p_company_id: currentEntity.id,
+                                p_contact_id: contactId,
+                                p_plan_id: loyaltyPlanId,
+                                p_status: 'active'
+                            });
                         
+                        if (rpcError) throw rpcError;
                         notify('success', 'Plano vinculado com sucesso!', 'Clube de Fidelidade');
                     }
                 } else {
