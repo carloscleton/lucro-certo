@@ -183,7 +183,7 @@ serve(async (req) => {
             const asaasSubData = await asaasSubRes.json()
             if (asaasSubData.errors) throw new Error(`Asaas Sub Error: ${asaasSubData.errors[0].description}`)
             
-            checkoutUrl = asaasSubData.checkoutUrl || `${asaasSubData.invoiceUrl}` || ''
+            checkoutUrl = asaasSubData.checkoutUrl || asaasSubData.invoiceUrl || ''
             gatewaySubId = asaasSubData.id
         } else {
             throw new Error(`Gateway ${settings.gateway_type} não suportado ainda para assinaturas automáticas.`)
