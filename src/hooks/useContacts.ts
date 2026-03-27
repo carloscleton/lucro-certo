@@ -37,7 +37,7 @@ export function useContacts() {
         try {
             const { data, error } = await supabase
                 .from('contacts')
-                .select('*, loyalty_subscriptions(status, plan:loyalty_plans!plan_id(name))')
+                .select('*, loyalty_subscriptions(status, plan:loyalty_plans(name))')
                 .order('name');
 
             if (error) throw error;

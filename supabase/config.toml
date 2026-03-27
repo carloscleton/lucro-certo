@@ -151,3 +151,8 @@ entrypoint = "./functions/admin-billing-history/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/platform-welcome-notification/index.ts"
+
+[functions.loyalty-checkout]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/loyalty-checkout/index.ts"

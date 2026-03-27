@@ -44,7 +44,7 @@ export function useLoyalty() {
         try {
             const { data: subs, error } = await supabase
                 .from('loyalty_subscriptions')
-                .select('status, plan:loyalty_plans!plan_id(price, billing_cycle)')
+                .select('status, plan:loyalty_plans(price, billing_cycle)')
                 .eq('company_id', currentEntity.id);
 
             if (error) throw error;
