@@ -8,6 +8,7 @@ import { CategoryForm } from '../categories/CategoryForm';
 import { ContactForm } from '../contacts/ContactForm';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { Modal } from '../ui/Modal';
 import type { Transaction, TransactionType } from '../../hooks/useTransactions';
 import { useCategories } from '../../hooks/useCategories';
@@ -521,14 +522,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         <div className="md:col-span-2">
                             <Input label="Descrição" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Ex: Aluguel..." />
                         </div>
-                        <Input 
+                        <CurrencyInput 
                             label="Valor (R$)" 
-                            type="text" 
-                            value={amount} 
-                            onChange={e => setAmount(e.target.value)} 
-                            onBlur={() => setAmount(formatBRL(parseBRL(amount)))}
+                            value={parseBRL(amount)} 
+                            onChange={num => setAmount(formatBRL(num))}
                             required 
-                            placeholder="0,00" 
                         />
                         <Input label="Data" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                         <div className="flex flex-col gap-1.5">

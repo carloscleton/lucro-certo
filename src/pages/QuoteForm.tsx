@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2, Save, ArrowLeft, Award, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { CurrencyInput } from '../components/ui/CurrencyInput';
 import { TextArea } from '../components/ui/TextArea';
 import { Modal } from '../components/ui/Modal';
 import { useQuotes, type Quote, type QuoteItem } from '../hooks/useQuotes';
@@ -13,7 +14,6 @@ import { useSettings } from '../hooks/useSettings';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
-import { formatBRL, parseBRL } from '../utils/currencyUtils';
 import { useCRM } from '../hooks/useCRM';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -801,18 +801,9 @@ export function QuoteForm() {
                                                     })()}
                                                 </div>
                                                 <div className="w-full max-w-[120px]">
-                                                    <Input
-                                                        type="text"
-                                                        value={formatBRL(item.unit_price)}
-                                                        onChange={e => {
-                                                            const val = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
-                                                            const num = parseFloat(val);
-                                                            updateItem(index, 'unit_price', isNaN(num) ? 0 : num);
-                                                        }}
-                                                        onBlur={e => {
-                                                            const num = parseBRL(e.target.value);
-                                                            updateItem(index, 'unit_price', num);
-                                                        }}
+                                                    <CurrencyInput
+                                                        value={item.unit_price}
+                                                        onChange={num => updateItem(index, 'unit_price', num)}
                                                         className="h-9 text-right font-medium"
                                                         leftElement={<span className="text-[10px] font-bold text-gray-400">R$</span>}
                                                     />
@@ -916,18 +907,9 @@ export function QuoteForm() {
                                         <td className="p-2">
                                             <div className="relative flex items-center">
                                                 <span className="absolute left-0 text-xs font-bold text-gray-400">R$</span>
-                                                <input
-                                                    type="text"
-                                                    value={formatBRL(exp.amount)}
-                                                    onChange={e => {
-                                                        const val = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
-                                                        const num = parseFloat(val);
-                                                        updateExpenseRow(index, 'amount', isNaN(num) ? 0 : num);
-                                                    }}
-                                                    onBlur={e => {
-                                                        const num = parseBRL(e.target.value);
-                                                        updateExpenseRow(index, 'amount', num);
-                                                    }}
+                                                <CurrencyInput
+                                                    value={exp.amount}
+                                                    onChange={num => updateExpenseRow(index, 'amount', num)}
                                                     className="w-full bg-transparent border-none text-sm outline-none focus:ring-0 text-right font-bold text-red-600 px-6"
                                                 />
                                             </div>
@@ -1008,26 +990,21 @@ export function QuoteForm() {
                                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">
                                         {discountType === 'amount' ? 'R$' : '%'}
                                     </span>
-                                    <input
-                                        type={discountType === 'amount' ? 'text' : 'number'}
-                                        className="w-24 text-right rounded-md border border-gray-300 bg-[var(--color-surface)] pl-6 pr-2 py-1 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-slate-700 dark:border-slate-600"
-                                        value={discountType === 'amount' ? formatBRL(discount) : discount}
-                                        onChange={e => {
-                                            if (discountType === 'amount') {
-                                                const val = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
-                                                const num = parseFloat(val);
-                                                setDiscount(isNaN(num) ? 0 : num);
-                                            } else {
-                                                setDiscount(parseFloat(e.target.value) || 0);
-                                            }
-                                        }}
-                                        onBlur={e => {
-                                            if (discountType === 'amount') {
-                                                setDiscount(parseBRL(e.target.value));
-                                            }
-                                        }}
-                                        min="0"
-                                    />
+                                    {discountType === 'amount' ? (
+                                        <CurrencyInput
+                                            value={discount}
+                                            onChange={num => setDiscount(num)}
+                                            className="w-24 text-right rounded-md border border-gray-300 bg-[var(--color-surface)] pl-6 pr-2 py-1 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-slate-700 dark:border-slate-600"
+                                        />
+                                    ) : (
+                                        <input
+                                            type="number"
+                                            className="w-24 text-right rounded-md border border-gray-300 bg-[var(--color-surface)] pl-6 pr-2 py-1 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-slate-700 dark:border-slate-600"
+                                            value={discount}
+                                            onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
+                                            min="0"
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </div>
