@@ -74,10 +74,20 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                     </div>
                                     <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
                                         {contact.loyalty_subscriptions?.[0]?.started_at && (
-                                            <span>Início: {new Date(contact.loyalty_subscriptions[0].started_at).toLocaleDateString()}</span>
+                                            <span>Início: {(() => {
+                                                const d = contact.loyalty_subscriptions[0].started_at;
+                                                if (d.includes('T')) return new Date(d).toLocaleDateString();
+                                                const [y, m, day] = d.split('-').map(Number);
+                                                return new Date(y, m - 1, day).toLocaleDateString();
+                                            })()}</span>
                                         )}
                                         {contact.loyalty_subscriptions?.[0]?.next_due_at && (
-                                            <span className="font-bold text-amber-600">Vencimento: {new Date(contact.loyalty_subscriptions[0].next_due_at + 'T00:00:00').toLocaleDateString()}</span>
+                                            <span className="font-bold text-amber-600">Vencimento: {(() => {
+                                                const d = contact.loyalty_subscriptions[0].next_due_at;
+                                                if (d.includes('T')) return new Date(d).toLocaleDateString();
+                                                const [y, m, day] = d.split('-').map(Number);
+                                                return new Date(y, m - 1, day).toLocaleDateString();
+                                            })()}</span>
                                         )}
                                     </div>
                                     <div className="md:hidden text-xs text-gray-500 mt-1">
