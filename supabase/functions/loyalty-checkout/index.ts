@@ -290,12 +290,47 @@ serve(async (req) => {
 
             console.log(`[Loyalty] Notification attempt: ${finalContactData.phone} via ${instanceName}`)
 
-            const template = appSettings.loyalty_whatsapp_template || 'Olá, {name}! 👋 Seu link para ativar o {plan_name} no Clube VIP está pronto: {payment_link}'
-            const message = template
-                .replace(/{name}/g, firstName)
-                .replace(/{plan_name}/g, plan.name)
-                .replace(/{payment_link}/g, checkoutUrl)
-                .replace(/{price}/g, formattedPrice)
+            // ANTI-SPAM DYNAMIC MESSAGE LOGIC
+            const getRandom = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)]
+            
+            const greetings = ["Olá", "Oi", "E aí", "Tudo bem,", "Olá, tudo bem?"]
+            const intros = [
+                `Seu link para ativar o *{plan_name}* no Clube VIP está pronto! 🚀`,
+                `O link de acesso ao seu plano *{plan_name}* já foi gerado. ✅`,
+                `Aqui está o seu link para o nosso Clube VIP (*{plan_name}*). ✨`,
+                `Já preparei o link para você ativar o plano *{plan_name}*! 🎊`
+            ]
+            const priceInfo = [
+                `O valor é de *R$ {price}*.`,
+                `Investimento: *R$ {price}*.`,
+                `Por apenas *R$ {price}*.`,
+                `Valor do plano: *R$ {price}*.`
+            ]
+            const outtros = [
+                "Após o pagamento, o seu acesso ao clube é liberado automaticamente pelo sistema! 🤖",
+                "Basta concluir o pagamento para liberar seus benefícios na hora. ⚡",
+                "O sistema reconhece seu pagamento e libera o acesso sozinho, sem que você precise fazer nada! 💎",
+                "Assim que confirmar o pagamento, seus descontos VIP já estarão valendo! 🎯"
+            ]
+            const closings = [
+                "Qualquer dúvida, é só me chamar aqui! 😊",
+                "Se precisar de ajuda com o pagamento, conte comigo.",
+                "Estamos à disposição para o que precisar!",
+                "Até logo!"
+            ]
+
+            // If user has a custom template, use it, otherwise use randomized
+            let message = ''
+            if (appSettings.loyalty_whatsapp_template && !appSettings.loyalty_whatsapp_template.includes('Seu link para ativar')) {
+                 message = appSettings.loyalty_whatsapp_template
+                    .replace(/{name}/g, firstName)
+                    .replace(/{plan_name}/g, plan.name)
+                    .replace(/{payment_link}/g, checkoutUrl)
+                    .replace(/{price}/g, formattedPrice)
+            } else {
+                 const uniqueRef = Math.random().toString(36).substring(7).toUpperCase()
+                 message = `${getRandom(greetings)} ${firstName}! ${getRandom(intros)}\n\n${getRandom(priceInfo)}\n\nLink seguro: ${checkoutUrl} \n\n${getRandom(outtros)}\n\n${getRandom(closings)}\n\n_Ref: ${uniqueRef}_`
+            }
 
             let cleanPhone = finalContactData.phone.replace(/\D/g, '')
             if ((cleanPhone.length === 10 || cleanPhone.length === 11) && !cleanPhone.startsWith('55')) {
