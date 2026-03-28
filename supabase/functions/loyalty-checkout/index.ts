@@ -224,8 +224,9 @@ serve(async (req) => {
             const platformWalletId = appSettings.platform_asaas_wallet_id || 
                                      appSettings.platform_billing_config?.asaas?.[isSandbox ? 'sandbox' : 'production']?.wallet_id;
             const platformFeePercent = loyaltySettings.platform_fee_percent || 0;
+            const splitEnabled = !!loyaltySettings.split_enabled;
 
-            console.log(`[Loyalty] Split Config: Wallet=${platformWalletId}, Fee=${platformFeePercent}%`)
+            console.log(`[Loyalty] Split Config: Enabled=${splitEnabled}, Wallet=${platformWalletId}, Fee=${platformFeePercent}%`)
 
             const asaasSubRes = await fetch(`${baseUrl}/subscriptions`, {
                 method: 'POST',
@@ -239,12 +240,13 @@ serve(async (req) => {
                     description: `Clube VIP: ${plan.name}`,
                     externalReference: subscription.id,
                     notificationDisabled: true, // We manually send the email if enabled
-                    split: (platformWalletId && platformFeePercent > 0) ? [{
+                    split: (splitEnabled && platformWalletId && platformFeePercent > 0) ? [{
                         walletId: platformWalletId,
                         percentualValue: platformFeePercent
                     }] : undefined
                 })
             })
+
 
             const asaasSubData = await asaasSubRes.json()
             if (asaasSubData.errors) throw new Error(`Asaas Sub Error: ${asaasSubData.errors[0].description}`)

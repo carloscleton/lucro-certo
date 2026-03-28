@@ -33,7 +33,8 @@ RETURNS TABLE (
     trial_ends_at TIMESTAMPTZ,
     total_revenue NUMERIC,
     commission_earned NUMERIC,
-    loyalty_platform_fee NUMERIC
+    loyalty_platform_fee NUMERIC,
+    loyalty_split_enabled BOOLEAN
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -70,7 +71,8 @@ BEGIN
                   FROM public.transactions t 
                   WHERE t.company_id = c.id AND t.type = 'income' AND t.status = 'received'), 0) as commission_earned,
         -- Loyalty Fee
-        COALESCE((SELECT platform_fee_percent FROM public.loyalty_settings ls WHERE ls.company_id = c.id), 5.00) as loyalty_platform_fee
+        COALESCE((SELECT platform_fee_percent FROM public.loyalty_settings ls WHERE ls.company_id = c.id), 5.00) as loyalty_platform_fee,
+        COALESCE((SELECT split_enabled FROM public.loyalty_settings ls WHERE ls.company_id = c.id), false) as loyalty_split_enabled
     FROM public.companies c
     LEFT JOIN public.company_members cm ON cm.company_id = c.id AND cm.role = 'owner'
     LEFT JOIN public.profiles p ON p.id = cm.user_id
@@ -78,8 +80,8 @@ BEGIN
 END;
 $$;
 
--- 2. Update Consolidated Update Function to handle loyalty fee
-DROP FUNCTION IF EXISTS public.admin_update_company_config(uuid,boolean,boolean,boolean,boolean,boolean,boolean,text[],jsonb,boolean);
+-- 2. Update Consolidated Update Function to handle loyalty fee and split
+DROP FUNCTION IF EXISTS public.admin_update_company_config(uuid,boolean,boolean,boolean,boolean,boolean,boolean,text[],jsonb,boolean,numeric);
 CREATE OR REPLACE FUNCTION public.admin_update_company_config(
     target_company_id UUID,
     fiscal_enabled BOOLEAN,
@@ -91,7 +93,8 @@ CREATE OR REPLACE FUNCTION public.admin_update_company_config(
     allowed_types TEXT[],
     settings_input JSONB DEFAULT NULL,
     loyalty_enabled BOOLEAN DEFAULT FALSE,
-    loyalty_fee_input NUMERIC DEFAULT 5.00
+    loyalty_fee_input NUMERIC DEFAULT 5.00,
+    loyalty_split_enabled_input BOOLEAN DEFAULT FALSE
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -112,12 +115,15 @@ BEGIN
         settings = COALESCE(settings_input, settings)
     WHERE id = target_company_id;
 
-    -- Upsert Loyalty Settings (platform_fee_percent)
-    INSERT INTO public.loyalty_settings (company_id, platform_fee_percent)
-    VALUES (target_company_id, loyalty_fee_input)
+    -- Upsert Loyalty Settings (platform_fee_percent and split_enabled)
+    INSERT INTO public.loyalty_settings (company_id, platform_fee_percent, split_enabled)
+    VALUES (target_company_id, loyalty_fee_input, loyalty_split_enabled_input)
     ON CONFLICT (company_id) 
-    DO UPDATE SET platform_fee_percent = EXCLUDED.platform_fee_percent;
+    DO UPDATE SET 
+        platform_fee_percent = EXCLUDED.platform_fee_percent,
+        split_enabled = EXCLUDED.split_enabled;
 
     RETURN jsonb_build_object('success', true);
 END;
 $$;
+

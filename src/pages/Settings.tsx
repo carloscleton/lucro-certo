@@ -1243,7 +1243,7 @@ export function Settings() {
                                     </div>
 
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between mb-3">
                                             <div>
                                                 <h4 className="font-bold text-gray-900 dark:text-white">🏆 Clube de Fidelidade</h4>
                                                 <p className="text-xs text-gray-500">Habilita gestão de planos, recorrência e benefícios para clientes.</p>
@@ -1258,7 +1258,31 @@ export function Settings() {
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-600"></div>
                                             </label>
                                         </div>
+                                        {tempCompanyConfig.loyalty_module_enabled && (
+                                            <div className="pt-3 border-t border-gray-100 dark:border-slate-800/60 mt-2 space-y-3">
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Taxa Plataforma (%)</span>
+                                                    <input
+                                                        type="number"
+                                                        value={tempCompanyConfig.loyalty_platform_fee || 5}
+                                                        onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_platform_fee: Number(e.target.value) })}
+                                                        className="w-16 px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800/50 rounded-lg text-amber-900 dark:text-amber-200 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="split_enabled"
+                                                        checked={!!tempCompanyConfig.loyalty_split_enabled}
+                                                        onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_split_enabled: e.target.checked })}
+                                                        className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                                    />
+                                                    <label htmlFor="split_enabled" className="text-xs font-bold text-amber-700 dark:text-amber-400 cursor-pointer">Habilitar Split Automático no Asaas</label>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+
 
                                     <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
                                         <div className="flex items-center justify-between">
@@ -1623,7 +1647,9 @@ export function Settings() {
                                             !!tempCompanyConfig.loyalty_module_enabled,
                                             tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'],
                                             tempCompanyConfig.settings || {},
-                                            tempCompanyConfig.loyalty_platform_fee || 5
+                                            tempCompanyConfig.loyalty_platform_fee || 5,
+                                            !!tempCompanyConfig.loyalty_split_enabled
+
                                         );
                                         setSavingConfig(false);
                                         if (error) {

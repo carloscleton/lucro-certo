@@ -157,10 +157,10 @@ export function useAdmin() {
             if (!silent) setLoading(false);
         }
     };
-    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, loyalty: boolean, allowedTypes: string[], settings?: any, loyaltyFee: number = 5.00) => {
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, loyalty: boolean, allowedTypes: string[], settings?: any, loyaltyFee: number = 5.00, loyaltySplit: boolean = false) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
-        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, loyalty, allowedTypes, settings, loyaltyFee });
+        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, loyalty, allowedTypes, settings, loyaltyFee, loyaltySplit });
 
         try {
             const { error } = await supabase.rpc('admin_update_company_config', {
@@ -174,7 +174,8 @@ export function useAdmin() {
                 loyalty_enabled: loyalty,
                 allowed_types: allowedTypes,
                 settings_input: settings,
-                loyalty_fee_input: loyaltyFee
+                loyalty_fee_input: loyaltyFee,
+                loyalty_split_enabled_input: loyaltySplit
             });
 
             if (error) throw error;
@@ -193,14 +194,13 @@ export function useAdmin() {
                         loyalty_module_enabled: loyalty,
                         allowed_entity_types: allowedTypes,
                         settings: settings || c.settings,
-                        loyalty_platform_fee: loyaltyFee
+                        loyalty_platform_fee: loyaltyFee,
+                        loyalty_split_enabled: loyaltySplit
                     } 
                     : c
             ));
-
-            // Refresh silently later if really needed, but skip for now to be fast
-            // await fetchAdminData(true); 
             return { error: null };
+
         } catch (err: any) {
             console.error('Error updating company config:', err);
             return { error: err.message };
