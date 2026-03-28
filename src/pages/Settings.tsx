@@ -125,7 +125,7 @@ export function Settings() {
         setSearchParams({ tab });
     };
 
-    const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system'>('users');
+    const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system'>('companies');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
     const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
     const [savingConfig, setSavingConfig] = useState(false);
@@ -1999,8 +1999,8 @@ export function Settings() {
                         {/* Admin Sub-tabs */}
                         <div className="flex gap-2 p-2 bg-gray-100/50 dark:bg-slate-900/50 rounded-xl mb-6">
                             {[
-                                { id: 'users', label: 'Usuários', icon: Users },
                                 { id: 'companies', label: 'Empresas', icon: Building },
+                                { id: 'users', label: 'Usuários', icon: Users },
                                 { id: 'invoices', label: 'Faturas de Cobrança', icon: CreditCard },
                                 { id: 'system', label: 'Sistema', icon: SettingsIcon },
                             ].map((tab) => (
