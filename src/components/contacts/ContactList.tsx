@@ -49,7 +49,7 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                                 ? "Pagamento pendente no Gateway. Link enviado via WhatsApp."
                                                 : `Plano: ${contact.loyalty_subscriptions[0].plan?.name || 'Clube VIP'}`
                                             }>
-                                                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border ${
+                                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border ${
                                                     contact.loyalty_subscriptions[0].status === 'active' 
                                                     ? 'bg-amber-100 text-amber-600 border-amber-200' 
                                                     : contact.loyalty_subscriptions[0].status === 'pending'
@@ -57,12 +57,17 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                                     : 'bg-red-500 text-white animate-pulse border-red-600'
                                                 }`}>
                                                     <Award size={10} />
-                                                    {contact.loyalty_subscriptions[0].status === 'active' 
-                                                        ? 'VIP' 
-                                                        : contact.loyalty_subscriptions[0].status === 'pending'
-                                                        ? 'AGUARDANDO'
-                                                        : 'BLOQUEADO'
-                                                    }
+                                                    <span>
+                                                        {contact.loyalty_subscriptions[0].status === 'active' 
+                                                            ? 'VIP' 
+                                                            : contact.loyalty_subscriptions[0].status === 'pending'
+                                                            ? 'AGUARDANDO'
+                                                            : 'BLOQUEADO'
+                                                        }
+                                                        {contact.loyalty_subscriptions[0].plan?.name && (
+                                                            <span className="ml-1 opacity-70">| {contact.loyalty_subscriptions[0].plan.name}</span>
+                                                        )}
+                                                    </span>
                                                 </div>
                                             </Tooltip>
                                         )}

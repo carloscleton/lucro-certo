@@ -80,7 +80,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     .select('plan_id, status')
                     .eq('contact_id', initialData.id)
                     .eq('company_id', currentEntity.id)
-                    .in('status', ['active', 'past_due', 'trialing'])
+                    .in('status', ['active', 'past_due', 'trialing', 'pending'])
                     .maybeSingle();
                 
                 if (data) setLoyaltyPlanId(data.plan_id);
