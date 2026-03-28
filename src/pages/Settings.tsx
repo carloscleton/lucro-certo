@@ -1132,177 +1132,164 @@ export function Settings() {
                             </div>
 
                             <div className="p-8 overflow-y-auto space-y-10">
-                                {/* Direct Module Toggles */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.fiscal_module')}</h4>
-                                                <p className="text-xs text-gray-500">{t('settings.fiscal_module_desc')}</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={!!tempCompanyConfig.fiscal_module_enabled}
-                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, fiscal_module_enabled: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.payments_module')}</h4>
-                                                <p className="text-xs text-gray-500">{t('settings.payments_module_desc')}</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={!!tempCompanyConfig.payments_module_enabled}
-                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, payments_module_enabled: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.crm_module')}</h4>
-                                                <p className="text-xs text-gray-500">{t('settings.crm_module_desc')}</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={!!tempCompanyConfig.crm_module_enabled}
-                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, crm_module_enabled: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">Marketing: Postagens IA</h4>
-                                                <p className="text-xs text-gray-500">Permite que a IA crie postagens estrategicas automaticamente via WhatsApp/Instagram.</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={!!tempCompanyConfig.has_social_copilot}
-                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_social_copilot: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-pink-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">Automações</h4>
-                                                <p className="text-xs text-gray-500">Habilita lembretes financeiros, aniversários e cobranças automáticas via WhatsApp.</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={!!tempCompanyConfig.automations_module_enabled}
-                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, automations_module_enabled: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">Módulo Radar de Leads</h4>
-                                                <p className="text-xs text-gray-500">Mineração e abordagem automática de clientes em massa via IA.</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={!!tempCompanyConfig.has_lead_radar}
-                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_lead_radar: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-violet-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-violet-600"></div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">🏆 Clube de Fidelidade</h4>
-                                                <p className="text-xs text-gray-500">Habilita gestão de planos, recorrência e benefícios para clientes.</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={!!tempCompanyConfig.loyalty_module_enabled}
-                                                    onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_module_enabled: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-600"></div>
-                                            </label>
-                                        </div>
-                                        {tempCompanyConfig.loyalty_module_enabled && (
-                                            <div className="pt-3 border-t border-gray-100 dark:border-slate-800/60 mt-2 space-y-3">
-                                                <div className="flex items-center justify-between gap-4">
-                                                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Taxa Plataforma (%)</span>
-                                                    <input
-                                                        type="number"
-                                                        value={tempCompanyConfig.loyalty_platform_fee || 5}
-                                                        onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_platform_fee: Number(e.target.value) })}
-                                                        className="w-16 px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800/50 rounded-lg text-amber-900 dark:text-amber-200 focus:ring-1 focus:ring-amber-500 outline-none"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        id="split_enabled"
-                                                        checked={!!tempCompanyConfig.loyalty_split_enabled}
-                                                        onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_split_enabled: e.target.checked })}
-                                                        className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                                                    />
-                                                    <label htmlFor="split_enabled" className="text-xs font-bold text-amber-700 dark:text-amber-400 cursor-pointer">Habilitar Split Automático no Asaas</label>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-
-                                    <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/20">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.data_deletion')}</h4>
-                                                <p className="text-xs text-gray-500">{t('settings.data_deletion_desc')}</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={tempCompanyConfig.settings?.member_can_delete}
-                                                    onChange={(e) => setTempCompanyConfig({
-                                                        ...tempCompanyConfig,
-                                                        settings: { ...tempCompanyConfig.settings, member_can_delete: e.target.checked }
-                                                    })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
-                                            </label>
-                                        </div>
+                                <div className="space-y-8">
+                                    {/* Módulos do Sistema */}
+                                    <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
+                                                <tr>
+                                                    <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-widest text-[10px]">Módulo do Sistema</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 text-center w-32 uppercase tracking-widest text-[10px]">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.fiscal_module')}</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">{t('settings.fiscal_module_desc')}</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.fiscal_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, fiscal_module_enabled: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.payments_module')}</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">{t('settings.payments_module_desc')}</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.payments_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, payments_module_enabled: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.crm_module')}</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">{t('settings.crm_module_desc')}</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.crm_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, crm_module_enabled: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Marketing: Postagens IA</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">Criação estratégica de postagens automáticas via WhatsApp/Instagram.</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.has_social_copilot} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_social_copilot: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-pink-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Automações</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">Lembretes, aniversários e cobranças automáticas via WhatsApp.</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.automations_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, automations_module_enabled: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Radar de Leads</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">Mineração e abordagem automática de clientes em massa via IA.</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.has_lead_radar} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_lead_radar: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-violet-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-violet-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
+                                                        <div className="mb-2">
+                                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">🏆 Clube de Fidelidade</h4>
+                                                            <p className="text-xs text-gray-500 leading-tight">Gestão de planos, recorrência e benefícios para clientes.</p>
+                                                        </div>
+                                                        {tempCompanyConfig.loyalty_module_enabled && (
+                                                            <div className="mt-3 p-3 bg-amber-50/30 dark:bg-amber-900/10 rounded-xl border border-amber-100/50 dark:border-amber-800/20 space-y-3">
+                                                                <div className="flex items-center justify-between gap-4">
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">Taxa Plataforma (%)</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        value={tempCompanyConfig.loyalty_platform_fee || 5}
+                                                                        onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_platform_fee: Number(e.target.value) })}
+                                                                        className="w-16 px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800/50 rounded-lg text-amber-900 dark:text-amber-200 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        id="split_enabled"
+                                                                        checked={!!tempCompanyConfig.loyalty_split_enabled}
+                                                                        onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_split_enabled: e.target.checked })}
+                                                                        className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                                                    />
+                                                                    <label htmlFor="split_enabled" className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 cursor-pointer">Split Automático Asaas</label>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-5 text-center">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.loyalty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_module_enabled: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.data_deletion')}</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">{t('settings.data_deletion_desc')}</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only peer"
+                                                                    checked={tempCompanyConfig.settings?.member_can_delete}
+                                                                    onChange={(e) => setTempCompanyConfig({
+                                                                        ...tempCompanyConfig,
+                                                                        settings: { ...tempCompanyConfig.settings, member_can_delete: e.target.checked }
+                                                                    })}
+                                                                />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
 
@@ -1528,11 +1515,11 @@ export function Settings() {
                                     </h4>
                                     <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
-                                            <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
+                                            <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
                                                 <tr>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200">{t('settings.module')}</th>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">{t('settings.role_admin')}</th>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">{t('settings.role_member')}</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-widest text-[10px]">{t('settings.module')}</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 text-center w-32 uppercase tracking-widest text-[10px]">{t('settings.role_admin')}</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 text-center w-32 uppercase tracking-widest text-[10px]">{t('settings.role_member')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
@@ -1559,13 +1546,17 @@ export function Settings() {
                                                     };
 
                                                     return (
-                                                        <tr key={module.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                                            <td className="px-5 py-4 text-gray-800 dark:text-gray-300 font-medium">{module.label}</td>
-                                                            <td className="px-5 py-4 text-center">
-                                                                <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleMod('admin', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                        <tr key={module.key} className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                            <td className="px-6 py-5 text-gray-800 dark:text-gray-300 font-medium leading-none">{module.label}</td>
+                                                            <td className="px-6 py-5">
+                                                                <div className="flex justify-center">
+                                                                    <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleMod('admin', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                                </div>
                                                             </td>
-                                                            <td className="px-5 py-4 text-center">
-                                                                <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleMod('member', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                            <td className="px-6 py-5">
+                                                                <div className="flex justify-center">
+                                                                    <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleMod('member', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     );
@@ -1581,16 +1572,16 @@ export function Settings() {
                                         <SettingsIcon size={18} className="text-purple-500" />
                                         Matriz de Acesso: Abas de Configuração
                                     </h4>
-                                    <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm">
+                                    <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
-                                            <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
+                                            <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
                                                 <tr>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200">Aba</th>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">Admin</th>
-                                                    <th className="px-5 py-4 font-bold text-gray-700 dark:text-gray-200 text-center">Membro</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-widest text-[10px]">Aba de Configuração</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 text-center w-32 uppercase tracking-widest text-[10px]">Admin</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 text-center w-32 uppercase tracking-widest text-[10px]">Membro</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                                            <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
                                                 {SETTINGS_TABS.map((tab) => {
                                                     const currentSettings = tempCompanyConfig.settings || {};
                                                     const adminEnabled = getTabPermission(tab.key, 'admin', currentSettings);
@@ -1614,13 +1605,17 @@ export function Settings() {
                                                     };
 
                                                     return (
-                                                        <tr key={tab.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                                            <td className="px-5 py-4 text-gray-800 dark:text-gray-300 font-medium">{tab.label}</td>
-                                                            <td className="px-5 py-4 text-center">
-                                                                <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleTb('admin', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                        <tr key={tab.key} className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                            <td className="px-6 py-5 text-gray-800 dark:text-gray-300 font-medium leading-none">{tab.label}</td>
+                                                            <td className="px-6 py-5">
+                                                                <div className="flex justify-center">
+                                                                    <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleTb('admin', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                                </div>
                                                             </td>
-                                                            <td className="px-5 py-4 text-center">
-                                                                <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleTb('member', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                            <td className="px-6 py-5">
+                                                                <div className="flex justify-center">
+                                                                    <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleTb('member', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     );
@@ -1628,6 +1623,7 @@ export function Settings() {
                                             </tbody>
                                         </table>
                                     </div>
+
                                 </div>
                             </div>
 
