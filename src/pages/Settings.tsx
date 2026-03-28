@@ -1274,31 +1274,61 @@ export function Settings() {
 
                                 {/* Platform Commission Setting */}
                                 <div className="p-6 rounded-xl border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/20 dark:bg-emerald-900/10">
-                                    <div className="flex items-center gap-4 mb-4">
+                                    <div className="flex items-center gap-4 mb-6">
                                         <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600">
-                                            <DollarSign size={20} />
+                                            <Percent size={20} />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-900 dark:text-white">{t('settings.platform_fee')}</h4>
-                                            <p className="text-sm text-gray-500">{t('settings.platform_fee_desc')}</p>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">Taxas e Comissões da Plataforma</h4>
+                                            <p className="text-sm text-gray-500">Defina os percentuais que o sistema cobra desta empresa.</p>
                                         </div>
                                     </div>
-                                    <Input
-                                        label={t('settings.commission_rate')}
-                                        type="number"
-                                        value={tempCompanyConfig.settings?.commission_rate || 0}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                            const rate = parseFloat(e.target.value) || 0;
-                                            setTempCompanyConfig({
-                                                ...tempCompanyConfig,
-                                                settings: { ...(tempCompanyConfig.settings || {}), commission_rate: rate }
-                                            });
-                                        }}
-                                        placeholder="Ex: 5"
-                                        step="0.1"
-                                        min="0"
-                                        max="100"
-                                    />
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-1">
+                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-tight">
+                                                Comissão sobre Orçamentos (%)
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                value={tempCompanyConfig.settings?.commission_rate || 0}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                    const rate = parseFloat(e.target.value) || 0;
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        settings: { ...(tempCompanyConfig.settings || {}), commission_rate: rate }
+                                                    });
+                                                }}
+                                                placeholder="Ex: 5"
+                                                step="0.1"
+                                                min="0"
+                                                max="100"
+                                            />
+                                            <p className="text-[10px] text-gray-400">Percentual cobrado sobre o valor total de orçamentos aprovados.</p>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-tight">
+                                                Taxa do Clube VIP (%)
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                value={tempCompanyConfig.loyalty_platform_fee || 0}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                    const rate = parseFloat(e.target.value) || 0;
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        loyalty_platform_fee: rate
+                                                    });
+                                                }}
+                                                placeholder="Ex: 5"
+                                                step="0.1"
+                                                min="0"
+                                                max="100"
+                                            />
+                                            <p className="text-[10px] text-gray-400">Percentual cobrado sobre as mensalidades do Clube de Fidelidade.</p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Tipos de Conta Permitidos (PF / PJ) */}
@@ -1454,53 +1484,7 @@ export function Settings() {
                                     </div>
                                 </div>
 
-                                {/* Commission Settings - Master Restricted */}
-                                <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
-                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                        <Percent size={18} className="text-emerald-500" />
-                                        Configurações de Taxas e Comissões (Restrito ao SISTEMA)
-                                    </h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                                        <div className="space-y-1">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                                Taxa de Comissão (Orçamentos %)
-                                            </label>
-                                            <input 
-                                                type="number"
-                                                value={tempCompanyConfig.settings?.commission_rate || 0}
-                                                onChange={(e) => {
-                                                    const num = parseFloat(e.target.value);
-                                                    setTempCompanyConfig({
-                                                        ...tempCompanyConfig,
-                                                        settings: { ...(tempCompanyConfig.settings || {}), commission_rate: num }
-                                                    });
-                                                }}
-                                                className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                                                placeholder="Ex: 10"
-                                            />
-                                            <p className="text-[10px] text-gray-400 mt-1">Percentual cobrado sobre o valor total de orçamentos aprovados.</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                                Taxa do Clube VIP (Plataforma %)
-                                            </label>
-                                            <input 
-                                                type="number"
-                                                value={tempCompanyConfig.loyalty_platform_fee || 0}
-                                                onChange={(e) => {
-                                                    const num = parseFloat(e.target.value);
-                                                    setTempCompanyConfig({
-                                                        ...tempCompanyConfig,
-                                                        loyalty_platform_fee: num
-                                                    });
-                                                }}
-                                                className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                                                placeholder="Ex: 5"
-                                            />
-                                            <p className="text-[10px] text-gray-400 mt-1">Percentual cobrado sobre as mensalidades do Clube de Fidelidade.</p>
-                                        </div>
-                                    </div>
-                                </div>
+
 
                                 {/* Permissions Matrix */}
                                 <div>
