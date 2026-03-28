@@ -134,6 +134,8 @@ export function Settings() {
     const [generatingInvoice, setGeneratingInvoice] = useState(false);
     const [selectedUserForConfig, setSelectedUserForConfig] = useState<any | null>(null);
     const [editingAutomation, setEditingAutomation] = useState<'financial' | 'birthday' | 'overdue' | null>(null);
+    const [togglingLoyalty, setTogglingLoyalty] = useState(false);
+    const [optimisticLoyalty, setOptimisticLoyalty] = useState<boolean | null>(null);
 
     // Update local state when company settings load
     useEffect(() => {
@@ -964,27 +966,35 @@ export function Settings() {
                                         <p className="text-sm text-gray-500">Ao ativar, você poderá criar planos e faturar assinaturas recorrentes dos seus clientes.</p>
                                     </div>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer scale-125">
+                                <label className={`relative inline-flex items-center cursor-pointer scale-125 ${togglingLoyalty ? 'opacity-50 cursor-wait' : ''}`}>
                                     <input
                                         type="checkbox"
                                         className="sr-only peer"
-                                        checked={currentEntity.loyalty_module_enabled}
+                                        checked={optimisticLoyalty !== null ? optimisticLoyalty : !!currentEntity.loyalty_module_enabled}
+                                        disabled={togglingLoyalty}
                                         onChange={async (e) => {
                                             if (currentEntity.type === 'personal') {
                                                 alert('O Clube de Fidelidade é um módulo exclusivo para Empresas. Mude o contexto no seletor do topo.');
                                                 return;
                                             }
                                             const newVal = e.target.checked;
+                                            setOptimisticLoyalty(newVal);
+                                            setTogglingLoyalty(true);
+                                            
                                             try {
                                                 const { error } = await supabase
                                                     .from('companies')
-                                                    .update({ loyalty_module_enabled: newVal })
-                                                    .eq('id', currentEntity.id);
-                                                
-                                                if (error) throw error;
-                                                refreshEntity();
+                                                     .update({ loyalty_module_enabled: newVal })
+                                                     .eq('id', currentEntity.id);
+                                                 
+                                                 if (error) throw error;
+                                                 await refreshEntity();
                                             } catch (err: any) {
+                                                setOptimisticLoyalty(null);
                                                 alert('Erro ao atualizar módulo: ' + err.message);
+                                            } finally {
+                                                setTogglingLoyalty(false);
+                                                setTimeout(() => setOptimisticLoyalty(null), 1500);
                                             }
                                         }}
                                     />
@@ -992,7 +1002,7 @@ export function Settings() {
                                 </label>
                             </div>
 
-                            {currentEntity.loyalty_module_enabled ? (
+                            {(optimisticLoyalty !== null ? optimisticLoyalty : !!currentEntity.loyalty_module_enabled) ? (
                                 <div className="p-6 rounded-xl border border-blue-100 bg-blue-50/30 dark:border-blue-900/20 dark:bg-blue-900/10 flex items-start gap-3">
                                     <Sparkles className="text-blue-600 mt-1" size={20} />
                                     <div className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
