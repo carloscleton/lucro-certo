@@ -9,17 +9,15 @@ import { usePaymentGateways } from '../../hooks/usePaymentGateways';
 interface LoyaltySettingsProps {
     settings: LoyaltySettingsType;
     onUpdate: (updates: Partial<LoyaltySettingsType>) => Promise<void>;
-    isAdmin?: boolean;
 }
 
-export function LoyaltySettings({ settings, onUpdate, isAdmin }: LoyaltySettingsProps) {
+export function LoyaltySettings({ settings, onUpdate }: LoyaltySettingsProps) {
     const { notify } = useNotification();
     const { gateways } = usePaymentGateways();
     const [enabled, setEnabled] = useState(settings.enabled);
     const [gatewayType, setGatewayType] = useState(settings.gateway_type);
     const [dueDay, setDueDay] = useState(settings.due_day);
     const [graceDays, setGraceDays] = useState(settings.grace_days);
-    const [platformFee, setPlatformFee] = useState(settings.platform_fee_percent);
     const [alertOnCheckin, setAlertOnCheckin] = useState(settings.alert_on_checkin);
     const [loading, setLoading] = useState(false);
 
@@ -28,7 +26,6 @@ export function LoyaltySettings({ settings, onUpdate, isAdmin }: LoyaltySettings
         setGatewayType(settings.gateway_type);
         setDueDay(settings.due_day);
         setGraceDays(settings.grace_days);
-        setPlatformFee(settings.platform_fee_percent);
         setAlertOnCheckin(settings.alert_on_checkin);
     }, [settings]);
 
@@ -40,7 +37,6 @@ export function LoyaltySettings({ settings, onUpdate, isAdmin }: LoyaltySettings
                 gateway_type: gatewayType,
                 due_day: dueDay,
                 grace_days: graceDays,
-                platform_fee_percent: platformFee,
                 alert_on_checkin: alertOnCheckin
             });
             notify('success', 'Configurações salvas com sucesso!', 'Pronto');
@@ -168,25 +164,6 @@ export function LoyaltySettings({ settings, onUpdate, isAdmin }: LoyaltySettings
                         helpText="Dias extras antes de marcar como atrasado"
                     />
 
-                    {isAdmin && (
-                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border-2 border-dashed border-amber-200 dark:border-amber-800/50">
-                            <h4 className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Shield size={14} />
-                                Configurações Administrativas
-                            </h4>
-                            <Input
-                                label="Taxa da Plataforma (%)"
-                                type="number"
-                                min={0}
-                                max={100}
-                                step="0.1"
-                                value={platformFee}
-                                onChange={e => setPlatformFee(Number(e.target.value))}
-                                placeholder="Ex: 5.0"
-                                helpText="Percentual cobrado pela plataforma sobre as assinaturas. Visível apenas para administradores."
-                            />
-                        </div>
-                    )}
 
                     <div className="md:col-span-2 flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
                         <div className="flex-1">

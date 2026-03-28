@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -1454,6 +1454,54 @@ export function Settings() {
                                     </div>
                                 </div>
 
+                                {/* Commission Settings - Master Restricted */}
+                                <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
+                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <Percent size={18} className="text-emerald-500" />
+                                        Configurações de Taxas e Comissões (Restrito ao SISTEMA)
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                Taxa de Comissão (Orçamentos %)
+                                            </label>
+                                            <input 
+                                                type="number"
+                                                value={tempCompanyConfig.settings?.commission_rate || 0}
+                                                onChange={(e) => {
+                                                    const num = parseFloat(e.target.value);
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        settings: { ...(tempCompanyConfig.settings || {}), commission_rate: num }
+                                                    });
+                                                }}
+                                                className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                                placeholder="Ex: 10"
+                                            />
+                                            <p className="text-[10px] text-gray-400 mt-1">Percentual cobrado sobre o valor total de orçamentos aprovados.</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                Taxa do Clube VIP (Plataforma %)
+                                            </label>
+                                            <input 
+                                                type="number"
+                                                value={tempCompanyConfig.loyalty_platform_fee || 0}
+                                                onChange={(e) => {
+                                                    const num = parseFloat(e.target.value);
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        loyalty_platform_fee: num
+                                                    });
+                                                }}
+                                                className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                                placeholder="Ex: 5"
+                                            />
+                                            <p className="text-[10px] text-gray-400 mt-1">Percentual cobrado sobre as mensalidades do Clube de Fidelidade.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Permissions Matrix */}
                                 <div>
                                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -1580,7 +1628,8 @@ export function Settings() {
                                             !!tempCompanyConfig.has_lead_radar,
                                             !!tempCompanyConfig.loyalty_module_enabled,
                                             tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'],
-                                            tempCompanyConfig.settings || {}
+                                            tempCompanyConfig.settings || {},
+                                            tempCompanyConfig.loyalty_platform_fee || 5
                                         );
                                         setSavingConfig(false);
                                         if (error) {
