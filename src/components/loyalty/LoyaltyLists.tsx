@@ -10,6 +10,7 @@ export function SubscriberList() {
     const { t } = useTranslation();
     const { currentEntity } = useEntity();
     const [subscribers, setSubscribers] = useState<any[]>([]);
+    const [platformFee, setPlatformFee] = useState(5);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -21,11 +22,19 @@ export function SubscriberList() {
                     .from('loyalty_subscriptions')
                     .select(`
                         *,
-                        plan:loyalty_plans(name),
+                        plan:loyalty_plans(name, price),
                         contact:contacts(name, phone, email)
                     `)
                     .eq('company_id', currentEntity.id)
                     .order('created_at', { ascending: false });
+
+                const { data: settingsData } = await supabase
+                    .from('loyalty_settings')
+                    .select('platform_fee_percent')
+                    .eq('company_id', currentEntity.id)
+                    .single();
+
+                if (settingsData) setPlatformFee(settingsData.platform_fee_percent);
 
                 if (error) throw error;
                 setSubscribers(data || []);
@@ -138,6 +147,9 @@ export function SubscriberList() {
                         <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-slate-700">
                             <th className="px-6 py-4">Assinante</th>
                             <th className="px-6 py-4">Status</th>
+                            <th className="px-6 py-4 text-center">Valor</th>
+                            <th className="px-6 py-4 text-center">Taxa ({platformFee}%)</th>
+                            <th className="px-6 py-4 text-center">Lucro</th>
                             <th className="px-6 py-4">Plano</th>
                             <th className="px-6 py-4">Adesão</th>
                             <th className="px-6 py-4">Próx. Cobrança</th>
@@ -166,6 +178,21 @@ export function SubscriberList() {
                                         {sub.status === 'active' ? 'Ativo' : 
                                         sub.status === 'past_due' ? 'Atraso' : 'Cancelado'}
                                     </span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <p className="font-bold text-gray-900 dark:text-white">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sub.plan?.price || 0)}
+                                    </p>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <p className="text-red-500 font-medium text-xs">
+                                        -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((sub.plan?.price || 0) * (platformFee / 100))}
+                                    </p>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <p className="font-black text-emerald-600 dark:text-emerald-400">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((sub.plan?.price || 0) * (1 - platformFee / 100))}
+                                    </p>
                                 </td>
                                 <td className="px-6 py-4">
                                     <p className="font-medium text-gray-700 dark:text-gray-300">{sub.plan?.name}</p>
