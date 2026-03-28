@@ -1,4 +1,4 @@
-import { Award, TrendingUp, CreditCard, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Award, TrendingUp, Users, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useLoyalty } from '../../hooks/useLoyalty';
 import { useNavigate } from 'react-router-dom';
 
