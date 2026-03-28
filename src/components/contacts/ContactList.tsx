@@ -44,12 +44,16 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                         </div>
                                         {contact.name}
                                         {contact.loyalty_subscriptions?.[0] && (
-                                            <Tooltip content={`Plano: ${contact.loyalty_subscriptions[0].plan?.name || 'Clube VIP'}`}>
+                                            <Tooltip content={
+                                                contact.loyalty_subscriptions[0].status === 'pending'
+                                                ? "Pagamento pendente no Gateway. Link enviado via WhatsApp."
+                                                : `Plano: ${contact.loyalty_subscriptions[0].plan?.name || 'Clube VIP'}`
+                                            }>
                                                 <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border ${
                                                     contact.loyalty_subscriptions[0].status === 'active' 
                                                     ? 'bg-amber-100 text-amber-600 border-amber-200' 
                                                     : contact.loyalty_subscriptions[0].status === 'pending'
-                                                    ? 'bg-blue-100 text-blue-600 border-blue-200'
+                                                    ? 'bg-blue-100 text-blue-600 border-blue-200 cursor-help'
                                                     : 'bg-red-500 text-white animate-pulse border-red-600'
                                                 }`}>
                                                     <Award size={10} />
@@ -61,6 +65,14 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                                     }
                                                 </div>
                                             </Tooltip>
+                                        )}
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
+                                        {contact.loyalty_subscriptions?.[0]?.started_at && (
+                                            <span>Início: {new Date(contact.loyalty_subscriptions[0].started_at).toLocaleDateString()}</span>
+                                        )}
+                                        {contact.loyalty_subscriptions?.[0]?.next_due_at && (
+                                            <span className="font-bold text-amber-600">Vencimento: {new Date(contact.loyalty_subscriptions[0].next_due_at + 'T00:00:00').toLocaleDateString()}</span>
                                         )}
                                     </div>
                                     <div className="md:hidden text-xs text-gray-500 mt-1">

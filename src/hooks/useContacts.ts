@@ -21,6 +21,8 @@ export interface Contact {
     user_id: string;
     loyalty_subscriptions?: {
         status: string;
+        started_at?: string;
+        next_due_at?: string;
         plan?: {
             name: string;
         };
@@ -37,7 +39,7 @@ export function useContacts() {
         try {
             const { data, error } = await supabase
                 .from('contacts')
-                .select('*, loyalty_subscriptions(status, plan:loyalty_plans(name))')
+                .select('*, loyalty_subscriptions(status, started_at, next_due_at, plan:loyalty_plans(name))')
                 .order('name');
 
             if (error) throw error;
