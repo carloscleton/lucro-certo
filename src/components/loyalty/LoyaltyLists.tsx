@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useEntity } from '../../context/EntityContext';
 import { format } from 'date-fns';
-import { User, CreditCard, ChevronRight, CheckCircle2, Clock, XCircle, Search } from 'lucide-react';
+import { User, CreditCard, ChevronRight, CheckCircle2, Clock, XCircle, Search, Eye, EyeOff } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ export function SubscriberList() {
     const { currentEntity } = useEntity();
     const [subscribers, setSubscribers] = useState<any[]>([]);
     const [platformFee, setPlatformFee] = useState(5);
+    const [showFinancials, setShowFinancials] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -128,16 +129,30 @@ export function SubscriberList() {
                 </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={18} />
-                <input
-                    type="text"
-                    placeholder="Pesquisar por nome, email, telefone ou plano..."
-                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm shadow-sm"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            {/* Search and Privacy Toggle */}
+            <div className="flex gap-4 items-center">
+                <div className="relative group flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Pesquisar por nome, email, telefone ou plano..."
+                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm shadow-sm"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <button
+                    onClick={() => setShowFinancials(!showFinancials)}
+                    className={`p-3 rounded-2xl border transition-all flex items-center gap-2 font-bold text-xs ${
+                        showFinancials 
+                        ? 'bg-amber-50 border-amber-100 text-amber-600 hover:bg-amber-100' 
+                        : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                    }`}
+                    title={showFinancials ? "Ocultar valores" : "Mostrar valores"}
+                >
+                    {showFinancials ? <Eye size={18} /> : <EyeOff size={18} />}
+                    <span className="hidden sm:inline">{showFinancials ? 'Privacidade' : 'Ver Valores'}</span>
+                </button>
             </div>
 
             {/* Subscriber Table */}
@@ -181,17 +196,23 @@ export function SubscriberList() {
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <p className="font-bold text-gray-900 dark:text-white">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sub.plan?.price || 0)}
+                                        {showFinancials 
+                                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sub.plan?.price || 0)
+                                            : 'R$ ••••'}
                                     </p>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <p className="text-red-500 font-medium text-xs">
-                                        -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((sub.plan?.price || 0) * (platformFee / 100))}
+                                        {showFinancials 
+                                            ? `-${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((sub.plan?.price || 0) * (platformFee / 100))}`
+                                            : 'R$ ••'}
                                     </p>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <p className="font-black text-emerald-600 dark:text-emerald-400">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((sub.plan?.price || 0) * (1 - platformFee / 100))}
+                                        {showFinancials 
+                                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((sub.plan?.price || 0) * (1 - platformFee / 100))
+                                            : 'R$ ••••'}
                                     </p>
                                 </td>
                                 <td className="px-6 py-4">
