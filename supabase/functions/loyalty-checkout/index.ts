@@ -330,6 +330,11 @@ serve(async (req) => {
             } else {
                  const uniqueRef = Math.random().toString(36).substring(7).toUpperCase()
                  message = `${getRandom(greetings)} ${firstName}! ${getRandom(intros)}\n\n${getRandom(priceInfo)}\n\nLink seguro: ${checkoutUrl} \n\n${getRandom(outtros)}\n\n${getRandom(closings)}\n\n_Ref: ${uniqueRef}_`
+                 
+                 // Apply replacements to the constructed message
+                 message = message
+                    .replace(/{plan_name}/g, plan.name)
+                    .replace(/{price}/g, formattedPrice)
             }
 
             let cleanPhone = finalContactData.phone.replace(/\D/g, '')

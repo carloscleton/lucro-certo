@@ -3,16 +3,20 @@ import { Award, Plus, Users, CreditCard, Settings, BarChart3, Package, TrendingU
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { useLoyalty } from '../hooks/useLoyalty';
+import { useAuth } from '../context/AuthContext';
 import { PlanForm, PlanList } from '../components/loyalty/PlanCRUD';
 import { LoyaltySettings } from '../components/loyalty/LoyaltySettings';
 import { SubscriberList, ChargeHistory } from '../components/loyalty/LoyaltyLists';
 
 export function Loyalty() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { plans, settings, stats, loading, addPlan, updatePlan, deletePlan, updateSettings } = useLoyalty();
   const [activeTab, setActiveTab] = useState<'overview' | 'plans' | 'subscribers' | 'charges' | 'settings'>('overview');
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
+
+  const isAdmin = user?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
 
   const tabs = [
     { id: 'overview', label: t('loyalty.tab_overview', 'Visão Geral'), icon: BarChart3 },
@@ -123,6 +127,7 @@ export function Loyalty() {
             <LoyaltySettings 
                 settings={settings} 
                 onUpdate={updateSettings} 
+                isAdmin={isAdmin}
             />
         )}
 

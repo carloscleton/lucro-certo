@@ -120,6 +120,17 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                             </button>
                                         </Tooltip>
 
+                                        {!contact.loyalty_subscriptions?.[0] && contact.type === 'client' && (
+                                            <Tooltip content="Convidar para Clube VIP">
+                                                <button
+                                                    onClick={() => onEdit(contact)}
+                                                    className="p-1 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-700 rounded"
+                                                >
+                                                    <Award size={16} />
+                                                </button>
+                                            </Tooltip>
+                                        )}
+
                                         <Tooltip content="Ver Histórico">
                                             <button
                                                 onClick={() => onViewHistory(contact)}

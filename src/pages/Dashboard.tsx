@@ -18,6 +18,7 @@ import { TransactionDetailModal } from '../components/dashboard/TransactionDetai
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { CRMStatsWidget } from '../components/dashboard/CRMStatsWidget';
+import { LoyaltyStatsWidget } from '../components/dashboard/LoyaltyStatsWidget';
 import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
 import { useTransactions } from '../hooks/useTransactions';
 import { useAdmin } from '../hooks/useAdmin';
@@ -144,6 +145,9 @@ export function Dashboard() {
 
     const isCRMEnabled = currentEntity.type === 'company' &&
         companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
+
+    const isLoyaltyEnabled = currentEntity.type === 'company' &&
+        companies.find(c => c.id === currentEntity.id)?.loyalty_module_enabled;
 
     // Click handlers for cards
     const handleCardClick = (type: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected') => {
@@ -302,15 +306,18 @@ export function Dashboard() {
                 </div>
 
                 <div className="space-y-6">
-                    {/* CRM Dashboard 360 Widget */}
-                    {isCRMEnabled && (
-                        <div className="space-y-6">
-                            <AgendaTasksWidget tasks={agendaTasks} />
-                            <CRMStatsWidget receivedIncome={metrics.income} />
-                        </div>
-                    )}
+                    {/* Side Column Widgets */}
+                    <div className="space-y-6">
+                        <AgendaTasksWidget tasks={agendaTasks} />
 
-                    {!isCRMEnabled && <AgendaTasksWidget tasks={agendaTasks} />}
+                        {isCRMEnabled && (
+                            <CRMStatsWidget receivedIncome={metrics.income} />
+                        )}
+
+                        {isLoyaltyEnabled && (
+                            <LoyaltyStatsWidget />
+                        )}
+                    </div>
 
                     {/* Cash Flow Forecast */}
                     <CashFlowForecast
