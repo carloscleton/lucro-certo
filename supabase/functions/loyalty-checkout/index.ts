@@ -16,14 +16,20 @@ async function sendWhatsApp(instanceName: string, targetNumber: string, text: st
             body: JSON.stringify({
                 number: targetNumber,
                 options: { delay: 1200, presence: "composing" },
-                textMessage: { text }
+                textMessage: { text },
+                text: text // Root fallback for some versions
             })
         })
         const resData = await response.json()
-        console.log(`[WhatsApp] Response:`, resData)
+        console.log(`[WhatsApp] Status: ${response.status}`, resData)
+        
+        if (!response.ok) {
+            console.error(`[WhatsApp] Error Response:`, resData)
+        }
+        
         return response.ok
-    } catch (e) {
-        console.error('[WhatsApp] Error:', e)
+    } catch (e: any) {
+        console.error('[WhatsApp] Runtime Error:', e.message)
         return false
     }
 }
