@@ -45,13 +45,20 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                         {contact.name}
                                         {contact.loyalty_subscriptions?.[0] && (
                                             <Tooltip content={`Plano: ${contact.loyalty_subscriptions[0].plan?.name || 'Clube VIP'}`}>
-                                                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm border ${
+                                                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border ${
                                                     contact.loyalty_subscriptions[0].status === 'active' 
                                                     ? 'bg-amber-100 text-amber-600 border-amber-200' 
+                                                    : contact.loyalty_subscriptions[0].status === 'pending'
+                                                    ? 'bg-blue-100 text-blue-600 border-blue-200'
                                                     : 'bg-red-500 text-white animate-pulse border-red-600'
                                                 }`}>
                                                     <Award size={10} />
-                                                    {contact.loyalty_subscriptions[0].status === 'active' ? 'VIP' : 'BLOQUEADO'}
+                                                    {contact.loyalty_subscriptions[0].status === 'active' 
+                                                        ? 'VIP' 
+                                                        : contact.loyalty_subscriptions[0].status === 'pending'
+                                                        ? 'AGUARDANDO'
+                                                        : 'BLOQUEADO'
+                                                    }
                                                 </div>
                                             </Tooltip>
                                         )}
