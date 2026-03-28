@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useEntity } from '../../context/EntityContext';
 import { format } from 'date-fns';
-import { User, CreditCard, ChevronRight, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { User, CreditCard, ChevronRight, CheckCircle2, Clock, XCircle, Search } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +10,7 @@ export function SubscriberList() {
     const { t } = useTranslation();
     const { currentEntity } = useEntity();
     const [subscribers, setSubscribers] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -47,10 +48,20 @@ export function SubscriberList() {
     };
 
     const percentages = {
-        active: (stats.active / stats.total) * 100,
-        past_due: (stats.past_due / stats.total) * 100,
-        cancelled: (stats.cancelled / stats.total) * 100
+        active: stats.total > 0 ? (stats.active / stats.total) * 100 : 0,
+        past_due: stats.total > 0 ? (stats.past_due / stats.total) * 100 : 0,
+        cancelled: stats.total > 0 ? (stats.cancelled / stats.total) * 100 : 0
     };
+
+    const filteredSubscribers = subscribers.filter(sub => {
+        const query = searchQuery.toLowerCase();
+        return (
+            sub.contact?.name?.toLowerCase().includes(query) ||
+            sub.contact?.email?.toLowerCase().includes(query) ||
+            sub.contact?.phone?.includes(query) ||
+            sub.plan?.name?.toLowerCase().includes(query)
+        );
+    });
 
     if (subscribers.length === 0) {
         return (
@@ -65,7 +76,7 @@ export function SubscriberList() {
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <div className="space-y-4">
                 {/* Stats Summary */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -101,62 +112,86 @@ export function SubscriberList() {
                 </div>
 
                 {/* Distribution Bar */}
-                <div className="h-2 w-full flex rounded-full overflow-hidden bg-gray-100 dark:bg-slate-700 shadow-inner">
+                <div className="h-1.5 w-full flex rounded-full overflow-hidden bg-gray-100 dark:bg-slate-700 shadow-inner">
                     <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${percentages.active}%` }} />
                     <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${percentages.past_due}%` }} />
                     <div className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${percentages.cancelled}%` }} />
                 </div>
             </div>
 
-            {/* Subscriber Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {subscribers.map((sub) => (
-                    <div key={sub.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-100 dark:border-slate-700 hover:shadow-md transition-all flex flex-col gap-4 group relative overflow-hidden">
-                        <div className={`absolute top-0 right-0 w-1 h-full ${
-                            sub.status === 'active' ? 'bg-emerald-500' : 
-                            sub.status === 'past_due' ? 'bg-amber-500' : 'bg-red-500'
-                        }`} />
-                        
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 font-bold text-sm">
-                                {sub.contact?.name?.[0]}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <h4 className="font-bold text-gray-900 dark:text-white truncate">
-                                    {sub.contact?.name}
-                                </h4>
-                                <p className="text-[10px] text-gray-500 truncate">{sub.contact?.email}</p>
-                            </div>
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest shrink-0 ${
-                                sub.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 
-                                sub.status === 'past_due' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
-                            }`}>
-                                {sub.status === 'active' ? 'Ativo' : 
-                                sub.status === 'past_due' ? 'Atraso' : 'Cancel'}
-                            </span>
-                        </div>
+            {/* Search Bar */}
+            <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={18} />
+                <input
+                    type="text"
+                    placeholder="Pesquisar por nome, email, telefone ou plano..."
+                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm shadow-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
 
-                        <div className="grid grid-cols-2 gap-4 border-t border-gray-50 dark:border-slate-700/50 pt-4">
-                            <div>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Plano</p>
-                                <p className="font-bold text-xs text-gray-700 dark:text-gray-300 truncate">{sub.plan?.name}</p>
-                            </div>
-                            <div>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Prox. Cobrança</p>
-                                <p className={`font-bold text-xs ${sub.status === 'past_due' ? 'text-red-500' : 'text-amber-600'}`}>
-                                    {sub.next_due_at ? format(new Date(sub.next_due_at), 'dd/MM') : '--/--'}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                            <p className="text-[8px] text-gray-400">Desde {format(new Date(sub.created_at), 'dd/MM/yyyy')}</p>
-                            <button className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
-                                Detalhes <ChevronRight size={12} />
-                            </button>
-                        </div>
+            {/* Subscriber Table */}
+            <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-50/50 dark:bg-slate-900/40">
+                        <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-slate-700">
+                            <th className="px-6 py-4">Assinante</th>
+                            <th className="px-6 py-4">Status</th>
+                            <th className="px-6 py-4">Plano</th>
+                            <th className="px-6 py-4">Adesão</th>
+                            <th className="px-6 py-4">Próx. Cobrança</th>
+                            <th className="px-6 py-4 text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
+                        {filteredSubscribers.map((sub) => (
+                            <tr key={sub.id} className="text-sm hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 font-bold text-xs shrink-0">
+                                            {sub.contact?.name?.[0]}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-gray-900 dark:text-white truncate">{sub.contact?.name}</p>
+                                            <p className="text-[10px] text-gray-500 truncate">{sub.contact?.email}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
+                                        sub.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 
+                                        sub.status === 'past_due' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                                    }`}>
+                                        {sub.status === 'active' ? 'Ativo' : 
+                                        sub.status === 'past_due' ? 'Atraso' : 'Cancelado'}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <p className="font-medium text-gray-700 dark:text-gray-300">{sub.plan?.name}</p>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <p className="text-gray-500 dark:text-gray-400 text-xs">{format(new Date(sub.created_at), 'dd/MM/yyyy')}</p>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <p className={`font-bold text-xs ${sub.status === 'past_due' ? 'text-red-500' : 'text-amber-600'}`}>
+                                        {sub.next_due_at ? format(new Date(sub.next_due_at), 'dd/MM/yyyy') : '--/--/----'}
+                                    </p>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all">
+                                        <ChevronRight size={18} />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {filteredSubscribers.length === 0 && (
+                    <div className="p-12 text-center text-gray-500 italic text-sm">
+                        Nenhum resultado encontrado para "{searchQuery}"
                     </div>
-                ))}
+                )}
             </div>
         </div>
     );
