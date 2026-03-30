@@ -641,13 +641,25 @@ export function QuoteForm() {
                                         <AlertTriangle size={14} />
                                         <span>Assinatura do Clube VIP (<strong>{loyaltySub.plan?.name}</strong>) está {(loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0))) || loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}. O desconto não será aplicado.</span>
                                     </div>
-                                    <button 
-                                        type="button" 
-                                        onClick={handleEmbedDebt}
-                                        className="self-start text-[11px] font-bold bg-white dark:bg-slate-800 border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/40 px-2 py-1 rounded transition-colors"
-                                    >
-                                        Embutir Mensalidade e Liberar Desconto
-                                    </button>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={handleEmbedDebt}
+                                            className="text-[11px] font-bold bg-white dark:bg-slate-800 border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/40 px-2 py-1 rounded transition-colors"
+                                        >
+                                            💳 Embutir Mensalidade e Liberar Desconto
+                                        </button>
+                                        {contactId && (
+                                            <a
+                                                href={`/dashboard/contacts?id=${contactId}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-[11px] font-bold bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/40 px-2 py-1 rounded transition-colors"
+                                            >
+                                                🔗 Ir ao Contato e Gerar Link de Pagamento
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
