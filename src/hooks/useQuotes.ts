@@ -322,14 +322,24 @@ export function useQuotes() {
         // CLUBE VIP RECOVERY Logic for Auto-Receive (generateTransaction: true && transactionStatus: 'received')
         if (paymentStatus === 'paid') {
             const { data: quoteItems } = await supabase.from('quote_items').select('description').eq('quote_id', id);
-            if (quoteItems?.some(i => i.description.includes('[Clube VIP] Regularização'))) {
+            if (quoteItems?.some(i => i.description?.includes('[Clube VIP] Regularização'))) {
                 const quoteToUpdate = quotes.find(q => q.id === id);
                 if (quoteToUpdate && quoteToUpdate.contact_id) {
+                    // Set next due date to 30 days from today
+                    const nextDate = new Date();
+                    nextDate.setDate(nextDate.getDate() + 30);
+                    const nextDateStr = nextDate.toISOString().split('T')[0];
+
                     await supabase
                         .from('loyalty_subscriptions')
-                        .update({ status: 'active', canceled_at: null })
+                        .update({ 
+                            status: 'active', 
+                            canceled_at: null,
+                            next_due_at: nextDateStr 
+                        })
                         .eq('contact_id', quoteToUpdate.contact_id);
-                    console.log('Clube VIP reativado pelo approveQuote');
+                    
+                    console.log('Clube VIP reativado pelo approveQuote. Novo vencimento:', nextDateStr);
                 }
             }
         }

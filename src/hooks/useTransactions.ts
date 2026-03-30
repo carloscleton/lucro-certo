@@ -340,7 +340,7 @@ export function useTransactions(type: TransactionType) {
                 }
             }
 
-            // Sync Quote Payment Status if needed
+            // Sync Quote Payment Status and CLUBE VIP Recovery if needed
             if (updates.status && currentRecord?.quote_id) {
                 const isPaid = updates.status === 'paid' || updates.status === 'received';
                 const paymentStatus = isPaid ? 'paid' : 'pending';
@@ -349,6 +349,30 @@ export function useTransactions(type: TransactionType) {
                     .from('quotes')
                     .update({ payment_status: paymentStatus })
                     .eq('id', currentRecord.quote_id);
+
+                // CLUBE VIP RECOVERY Logic for Transactions
+                if (isPaid) {
+                    const { data: quoteItems } = await supabase.from('quote_items').select('description').eq('quote_id', currentRecord.quote_id);
+                    if (quoteItems?.some(i => i.description?.includes('[Clube VIP] Regularização'))) {
+                        const { data: quote } = await supabase.from('quotes').select('contact_id').eq('id', currentRecord.quote_id).single();
+                        if (quote?.contact_id) {
+                            const nextDate = new Date();
+                            nextDate.setDate(nextDate.getDate() + 30);
+                            const nextDateStr = nextDate.toISOString().split('T')[0];
+
+                            await supabase
+                                .from('loyalty_subscriptions')
+                                .update({ 
+                                    status: 'active', 
+                                    canceled_at: null,
+                                    next_due_at: nextDateStr 
+                                })
+                                .eq('contact_id', quote.contact_id);
+                            
+                            console.log('Clube VIP reativado via Financeiro. Novo vencimento:', nextDateStr);
+                        }
+                    }
+                }
             }
 
             await fetchTransactions();
