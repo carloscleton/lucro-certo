@@ -205,7 +205,7 @@ export function QuoteForm() {
     // Fetch Loyalty Subscription when Contact changes
     useEffect(() => {
         const checkLoyalty = async () => {
-            if (!contactId || !isLoyaltyEnabled) {
+            if (!contactId) {
                 setLoyaltySub(null);
                 return;
             }
@@ -216,7 +216,7 @@ export function QuoteForm() {
                     .from('loyalty_subscriptions')
                     .select('*, plan:loyalty_plans(id, name, price, discount_percent, included_services)')
                     .eq('contact_id', contactId)
-                    .single();
+                    .maybeSingle();
 
                 if (!error && data) {
                     setLoyaltySub(data);
@@ -232,7 +232,7 @@ export function QuoteForm() {
         };
 
         checkLoyalty();
-    }, [contactId, isLoyaltyEnabled]);
+    }, [contactId]);
 
     // State for discount
 
