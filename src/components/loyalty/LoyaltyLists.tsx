@@ -48,20 +48,23 @@ export function SubscriberList() {
         fetchSubscribers();
     }, [currentEntity.id]);
 
-    if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-amber-500" /></div>;
-
     // Derives the real effective status based on next_due_at date, regardless of DB status
     const getEffectiveStatus = (sub: any): 'active' | 'past_due' | 'canceled' => {
         if (sub.status === 'canceled' || sub.status === 'cancelled') return 'canceled';
         if (sub.status === 'active' && sub.next_due_at) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const dueDate = new Date(sub.next_due_at + 'T00:00:00');
-            if (dueDate < today) return 'past_due';
+            try {
+                const dateOnly = sub.next_due_at.toString().split('T')[0];
+                const dueDate = new Date(dateOnly + 'T00:00:00');
+                if (!isNaN(dueDate.getTime()) && dueDate < today) return 'past_due';
+            } catch (_) {}
         }
         if (sub.status === 'past_due') return 'past_due';
         return 'active';
     };
+
+    if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-amber-500" /></div>;
 
     const stats = {
         total: subscribers.length,
@@ -247,7 +250,15 @@ export function SubscriberList() {
                                                 ? 'text-amber-600' 
                                                 : 'text-gray-400'
                                     }`}>
-                                        {sub.next_due_at ? format(new Date(sub.next_due_at + 'T00:00:00'), 'dd/MM/yyyy') : '--/--/----'}
+                                        {sub.next_due_at 
+                                            ? (() => { 
+                                                try { 
+                                                    return format(new Date(sub.next_due_at.toString().split('T')[0] + 'T00:00:00'), 'dd/MM/yyyy'); 
+                                                } catch(_) { 
+                                                    return '--/--/----'; 
+                                                } 
+                                            })()
+                                            : '--/--/----'}
                                     </p>
                                 </td>
                                 <td className="px-6 py-4 text-right">
