@@ -44,6 +44,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [checkoutUrl, setCheckoutUrl] = useState('');
     const [whatsappSent, setWhatsappSent] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
+    const [nextDueAt, setNextDueAt] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
@@ -77,14 +78,21 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 if (!currentEntity.id) return;
                 const { data } = await supabase
                     .from('loyalty_subscriptions')
-                    .select('plan_id, status')
+                    .select('plan_id, status, next_due_at')
                     .eq('contact_id', initialData.id)
                     .eq('company_id', currentEntity.id)
                     .in('status', ['active', 'past_due', 'trialing', 'pending'])
                     .maybeSingle();
                 
-                if (data) setLoyaltyPlanId(data.plan_id);
-                else setLoyaltyPlanId('');
+                if (data) {
+                    setLoyaltyPlanId(data.plan_id);
+                    if (data.next_due_at) {
+                        setNextDueAt(data.next_due_at.substring(0, 10));
+                    }
+                } else {
+                    setLoyaltyPlanId('');
+                    setNextDueAt('');
+                }
             };
             fetchLoyalty();
         } else {
@@ -103,6 +111,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setCity('');
             setState('');
             setLoyaltyPlanId('');
+            setNextDueAt('');
             setGenerateGatewayLink(false);
             setCheckoutUrl('');
         }
@@ -266,16 +275,36 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             return;
                         }
                     } else {
-                        // Manual Activation (Atomic RPC)
-                        const { error: rpcError } = await supabase
-                            .rpc('upsert_loyalty_subscription', {
-                                p_company_id: currentEntity.id,
-                                p_contact_id: contactId,
-                                p_plan_id: loyaltyPlanId,
-                                p_status: 'active'
-                            });
-                        
-                        if (rpcError) throw rpcError;
+                        if (nextDueAt) {
+                            // First upsert to make sure we have the subscription
+                            const { error: rpcError } = await supabase
+                                .rpc('upsert_loyalty_subscription', {
+                                    p_company_id: currentEntity.id,
+                                    p_contact_id: contactId,
+                                    p_plan_id: loyaltyPlanId,
+                                    p_status: 'active',
+                                    p_next_due_at: nextDueAt
+                                });
+                            if (rpcError) throw rpcError;
+                            
+                            // Since COALESCE in upsert might ignore nulls, let's also enforce the exact date with an explicit update
+                            await supabase
+                                .from('loyalty_subscriptions')
+                                .update({ next_due_at: nextDueAt })
+                                .eq('contact_id', contactId)
+                                .eq('company_id', currentEntity.id)
+                                .in('status', ['active', 'past_due', 'trialing', 'pending']);
+                        } else {
+                            const { error: rpcError } = await supabase
+                                .rpc('upsert_loyalty_subscription', {
+                                    p_company_id: currentEntity.id,
+                                    p_contact_id: contactId,
+                                    p_plan_id: loyaltyPlanId,
+                                    p_status: 'active'
+                                });
+                            
+                            if (rpcError) throw rpcError;
+                        }
                         notify('success', 'Plano vinculado com sucesso!', 'Clube de Fidelidade');
                     }
                 } else {
@@ -387,6 +416,21 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             </select>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ao selecionar um plano, ele será ativado manualmente para este contato.</p>
                         </div>
+                        
+                        {loyaltyPlanId && (
+                            <div className="flex flex-col gap-1.5 mt-4">
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Vencimento da Assinatura</label>
+                                <input
+                                    type="date"
+                                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
+                                    value={nextDueAt}
+                                    onChange={e => setNextDueAt(e.target.value)}
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Altere a data para prorrogar ou antecipar o vencimento.
+                                </p>
+                            </div>
+                        )}
 
                         {loyaltyPlanId && (
                             <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1">
