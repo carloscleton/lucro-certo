@@ -619,7 +619,7 @@ export function QuoteForm() {
                                     ))}
                             </select>
                             {loyaltyLoading && <span className="text-xs text-gray-400 mt-1 animate-pulse">Verificando Clube VIP...</span>}
-                            {!loyaltyLoading && loyaltySub && loyaltySub.status === 'active' && (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && (
+                            {!loyaltyLoading && isLoyaltyEnabled && loyaltySub && loyaltySub.status === 'active' && (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && (
                                 <div className="mt-2 flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
                                     <Award size={14} className="animate-pulse" />
                                     <span>Cliente Clube VIP Ativo - <strong>{loyaltySub.plan?.name}</strong> (Descontos aplicados nos serviços cobertos).</span>
