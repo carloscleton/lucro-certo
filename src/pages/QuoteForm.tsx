@@ -303,15 +303,40 @@ export function QuoteForm() {
 
     const handleEmbedDebt = () => {
         if (!loyaltySub || !loyaltySub.plan) return;
-        
-        // Add the debt item
-        addItem({
-            description: '[Clube VIP] Regularização da Assinatura Atrasada',
-            unit_price: loyaltySub.plan.price,
-            total_price: loyaltySub.plan.price
+
+        // Recalculate existing items to apply the discount
+        const newItems = items.map(item => {
+            if (item.service_id && loyaltySub.plan?.included_services?.includes(item.service_id)) {
+                const originalService = services.find(s => s.id === item.service_id);
+                if (originalService) {
+                    const discountedPrice = originalService.price * (1 - (loyaltySub.plan.discount_percent / 100));
+                    return {
+                        ...item,
+                        unit_price: discountedPrice,
+                        total_price: item.quantity * discountedPrice
+                    };
+                }
+            }
+            return item;
         });
 
-        alert('Dívida embutida com sucesso! Quando este orçamento for pago, a assinatura Clube VIP será reativada automaticamente.');
+        // Remove the empty first item if there is one
+        const filteredItems = newItems.filter(i => !(i.description === '' && i.service_id === null && i.product_id === null));
+        
+        // Add the debt item
+        setItems([
+            ...filteredItems,
+            {
+                description: '[Clube VIP] Regularização da Assinatura Atrasada',
+                quantity: 1,
+                unit_price: loyaltySub.plan.price,
+                total_price: loyaltySub.plan.price,
+                service_id: null,
+                product_id: null
+            }
+        ]);
+
+        alert('Dívida embutida com sucesso! Os descontos VIP foram ativados para os itens deste orçamento.');
     };
 
     const removeItem = (index: number) => {
@@ -345,8 +370,10 @@ export function QuoteForm() {
                 // ITEM-BASED VIP DISCOUNT LOGIC
                 const isLoyaltyValid = loyaltySub?.status === 'active' && 
                     (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
+                const isDebtEmbedded = items.some(i => i.description?.includes('[Clube VIP] Regularização'));
+                const finalIsLoyaltyValid = isLoyaltyValid || (loyaltySub?.plan && isDebtEmbedded);
 
-                if (isLoyaltyValid && loyaltySub.plan) {
+                if (finalIsLoyaltyValid && loyaltySub.plan) {
                     const isCovered = loyaltySub.plan.included_services?.includes(id);
                     if (isCovered && loyaltySub.plan.discount_percent > 0) {
                         unitPrice = selectedItem.price * (1 - (loyaltySub.plan.discount_percent / 100));
@@ -598,7 +625,13 @@ export function QuoteForm() {
                                     <span>Cliente Clube VIP Ativo - <strong>{loyaltySub.plan?.name}</strong> (Descontos aplicados nos serviços cobertos).</span>
                                 </div>
                             )}
-                            {!loyaltyLoading && loyaltySub && (
+                            {!loyaltyLoading && loyaltySub && items.some(i => i.description?.includes('[Clube VIP] Regularização')) && (
+                                <div className="mt-2 flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
+                                    <Award size={14} />
+                                    <span>Clube VIP Liberado Temporariamente (Mensalidade embutida neste orçamento).</span>
+                                </div>
+                            )}
+                            {!loyaltyLoading && loyaltySub && !items.some(i => i.description?.includes('[Clube VIP] Regularização')) && (
                                 loyaltySub.status === 'past_due' || 
                                 loyaltySub.status === 'canceled' || 
                                 (loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)))
@@ -750,14 +783,22 @@ export function QuoteForm() {
                                             />
 
                                             {/* Item VIP Covered Badge */}
-                                            {loyaltySub?.status === 'active' && 
-                                             (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && 
-                                             loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (
-                                                <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 w-fit">
-                                                    <Award size={10} />
-                                                    Serviço VIP (-{loyaltySub.plan.discount_percent}%)
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const isLoyaltyValid = loyaltySub?.status === 'active' && 
+                                                    (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
+                                                const isDebtEmbedded = items.some(i => i.description?.includes('[Clube VIP] Regularização'));
+                                                const finalIsLoyaltyValid = isLoyaltyValid || (loyaltySub?.plan && isDebtEmbedded);
+                                                
+                                                if (finalIsLoyaltyValid && loyaltySub?.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id)) {
+                                                    return (
+                                                        <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 w-fit">
+                                                            <Award size={10} />
+                                                            Serviço VIP (-{loyaltySub.plan.discount_percent}%)
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
 
                                             {isFiscalEnabled && item.service_id && (
                                                 <div className="mt-2 flex gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -797,16 +838,21 @@ export function QuoteForm() {
                                         <td className="p-2 align-top text-right">
                                             <div className="flex flex-col items-end">
                                                 <div className="h-5 flex items-end">
-                                                    {loyaltySub?.status === 'active' && 
-                                                     (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && 
-                                                     loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
-                                                        const originalService = services.find(s => s.id === item.service_id);
-                                                        if (originalService && originalService.price > item.unit_price) {
-                                                            return (
-                                                                <div className="text-[10px] text-gray-400 line-through pr-2 mb-0.5" title="Preço original sem plano VIP">
-                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(originalService.price)}
-                                                                </div>
-                                                            );
+                                                    {(() => {
+                                                        const isLoyaltyValid = loyaltySub?.status === 'active' && 
+                                                            (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
+                                                        const isDebtEmbedded = items.some(i => i.description?.includes('[Clube VIP] Regularização'));
+                                                        const finalIsLoyaltyValid = isLoyaltyValid || (loyaltySub?.plan && isDebtEmbedded);
+                                                        
+                                                        if (finalIsLoyaltyValid && loyaltySub?.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id)) {
+                                                            const originalService = services.find(s => s.id === item.service_id);
+                                                            if (originalService && originalService.price > item.unit_price) {
+                                                                return (
+                                                                    <div className="text-[10px] text-gray-400 line-through pr-2 mb-0.5" title="Preço original sem plano VIP">
+                                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(originalService.price)}
+                                                                    </div>
+                                                                );
+                                                            }
                                                         }
                                                         return null;
                                                     })()}
