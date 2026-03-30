@@ -50,11 +50,24 @@ export function SubscriberList() {
 
     if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-amber-500" /></div>;
 
+    // Derives the real effective status based on next_due_at date, regardless of DB status
+    const getEffectiveStatus = (sub: any): 'active' | 'past_due' | 'canceled' => {
+        if (sub.status === 'canceled' || sub.status === 'cancelled') return 'canceled';
+        if (sub.status === 'active' && sub.next_due_at) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dueDate = new Date(sub.next_due_at + 'T00:00:00');
+            if (dueDate < today) return 'past_due';
+        }
+        if (sub.status === 'past_due') return 'past_due';
+        return 'active';
+    };
+
     const stats = {
         total: subscribers.length,
-        active: subscribers.filter(s => s.status === 'active').length,
-        past_due: subscribers.filter(s => s.status === 'past_due').length,
-        cancelled: subscribers.filter(s => s.status === 'cancelled').length
+        active: subscribers.filter(s => getEffectiveStatus(s) === 'active').length,
+        past_due: subscribers.filter(s => getEffectiveStatus(s) === 'past_due').length,
+        cancelled: subscribers.filter(s => getEffectiveStatus(s) === 'canceled').length
     };
 
     const percentages = {
@@ -186,13 +199,18 @@ export function SubscriberList() {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
-                                        sub.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 
-                                        sub.status === 'past_due' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
-                                    }`}>
-                                        {sub.status === 'active' ? 'Ativo' : 
-                                        sub.status === 'past_due' ? 'Atraso' : 'Cancelado'}
-                                    </span>
+                                    {(() => {
+                                        const effectiveStatus = getEffectiveStatus(sub);
+                                        return (
+                                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
+                                                effectiveStatus === 'active' ? 'bg-emerald-100 text-emerald-600' : 
+                                                effectiveStatus === 'past_due' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                                            }`}>
+                                                {effectiveStatus === 'active' ? 'Ativo' : 
+                                                effectiveStatus === 'past_due' ? 'Em Atraso' : 'Cancelado'}
+                                            </span>
+                                        );
+                                    })()}
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <p className="font-bold text-gray-900 dark:text-white">
@@ -222,8 +240,14 @@ export function SubscriberList() {
                                     <p className="text-gray-500 dark:text-gray-400 text-xs">{format(new Date(sub.created_at), 'dd/MM/yyyy')}</p>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <p className={`font-bold text-xs ${sub.status === 'past_due' ? 'text-red-500' : 'text-amber-600'}`}>
-                                        {sub.next_due_at ? format(new Date(sub.next_due_at), 'dd/MM/yyyy') : '--/--/----'}
+                                    <p className={`font-bold text-xs ${
+                                        getEffectiveStatus(sub) === 'past_due' 
+                                            ? 'text-red-500' 
+                                            : getEffectiveStatus(sub) === 'active' 
+                                                ? 'text-amber-600' 
+                                                : 'text-gray-400'
+                                    }`}>
+                                        {sub.next_due_at ? format(new Date(sub.next_due_at + 'T00:00:00'), 'dd/MM/yyyy') : '--/--/----'}
                                     </p>
                                 </td>
                                 <td className="px-6 py-4 text-right">
