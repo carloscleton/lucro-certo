@@ -343,7 +343,10 @@ export function QuoteForm() {
                 let unitPrice = selectedItem.price;
 
                 // ITEM-BASED VIP DISCOUNT LOGIC
-                if (loyaltySub?.status === 'active' && loyaltySub.plan) {
+                const isLoyaltyValid = loyaltySub?.status === 'active' && 
+                    (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
+
+                if (isLoyaltyValid && loyaltySub.plan) {
                     const isCovered = loyaltySub.plan.included_services?.includes(id);
                     if (isCovered && loyaltySub.plan.discount_percent > 0) {
                         unitPrice = selectedItem.price * (1 - (loyaltySub.plan.discount_percent / 100));
@@ -589,17 +592,21 @@ export function QuoteForm() {
                                     ))}
                             </select>
                             {loyaltyLoading && <span className="text-xs text-gray-400 mt-1 animate-pulse">Verificando Clube VIP...</span>}
-                            {!loyaltyLoading && loyaltySub && loyaltySub.status === 'active' && (
+                            {!loyaltyLoading && loyaltySub && loyaltySub.status === 'active' && (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && (
                                 <div className="mt-2 flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
                                     <Award size={14} className="animate-pulse" />
                                     <span>Cliente Clube VIP Ativo - <strong>{loyaltySub.plan?.name}</strong> (Descontos aplicados nos serviços cobertos).</span>
                                 </div>
                             )}
-                            {!loyaltyLoading && loyaltySub && (loyaltySub.status === 'past_due' || loyaltySub.status === 'canceled') && (
+                            {!loyaltyLoading && loyaltySub && (
+                                loyaltySub.status === 'past_due' || 
+                                loyaltySub.status === 'canceled' || 
+                                (loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)))
+                            ) && (
                                 <div className="mt-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800/50 flex flex-col gap-2">
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle size={14} />
-                                        <span>Assinatura do Clube VIP (<strong>{loyaltySub.plan?.name}</strong>) está {loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}.</span>
+                                        <span>Assinatura do Clube VIP (<strong>{loyaltySub.plan?.name}</strong>) está {(loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0))) || loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}. O desconto não será aplicado.</span>
                                     </div>
                                     <button 
                                         type="button" 
@@ -743,7 +750,9 @@ export function QuoteForm() {
                                             />
 
                                             {/* Item VIP Covered Badge */}
-                                            {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (
+                                            {loyaltySub?.status === 'active' && 
+                                             (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && 
+                                             loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (
                                                 <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 w-fit">
                                                     <Award size={10} />
                                                     Serviço VIP (-{loyaltySub.plan.discount_percent}%)
@@ -788,7 +797,9 @@ export function QuoteForm() {
                                         <td className="p-2 align-top text-right">
                                             <div className="flex flex-col items-end">
                                                 <div className="h-5 flex items-end">
-                                                    {loyaltySub?.status === 'active' && loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
+                                                    {loyaltySub?.status === 'active' && 
+                                                     (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && 
+                                                     loyaltySub.plan && item.service_id && loyaltySub.plan.included_services?.includes(item.service_id) && (() => {
                                                         const originalService = services.find(s => s.id === item.service_id);
                                                         if (originalService && originalService.price > item.unit_price) {
                                                             return (
