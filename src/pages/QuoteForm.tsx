@@ -205,7 +205,7 @@ export function QuoteForm() {
     // Fetch Loyalty Subscription when Contact changes
     useEffect(() => {
         const checkLoyalty = async () => {
-            if (!contactId) {
+            if (!contactId || !currentEntity.id) {
                 setLoyaltySub(null);
                 return;
             }
@@ -216,11 +216,15 @@ export function QuoteForm() {
                     .from('loyalty_subscriptions')
                     .select('*, plan:loyalty_plans(id, name, price, discount_percent, included_services)')
                     .eq('contact_id', contactId)
+                    .eq('company_id', currentEntity.id)
                     .maybeSingle();
+
+                console.log('[Clube VIP] checkLoyalty result:', { data, error, contactId });
 
                 if (!error && data) {
                     setLoyaltySub(data);
                 } else {
+                    if (error) console.warn('[Clube VIP] Query error:', error);
                     setLoyaltySub(null);
                 }
             } catch (err) {
@@ -232,7 +236,7 @@ export function QuoteForm() {
         };
 
         checkLoyalty();
-    }, [contactId]);
+    }, [contactId, currentEntity.id]);
 
     // State for discount
 
