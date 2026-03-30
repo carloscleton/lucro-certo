@@ -76,17 +76,15 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                         {contact.loyalty_subscriptions?.[0]?.started_at && (
                                             <span>Início: {(() => {
                                                 const d = contact.loyalty_subscriptions[0].started_at;
-                                                if (d.includes('T')) return new Date(d).toLocaleDateString();
-                                                const [y, m, day] = d.split('-').map(Number);
-                                                return new Date(y, m - 1, day).toLocaleDateString();
+                                                const [y, m, day] = d.split('T')[0].split('-').map(Number);
+                                                return new Date(y, m - 1, day).toLocaleDateString('pt-BR');
                                             })()}</span>
                                         )}
                                         {contact.loyalty_subscriptions?.[0]?.next_due_at && (
                                             <span className="font-bold text-amber-600">Vencimento: {(() => {
                                                 const d = contact.loyalty_subscriptions[0].next_due_at;
-                                                if (d.includes('T')) return new Date(d).toLocaleDateString();
-                                                const [y, m, day] = d.split('-').map(Number);
-                                                return new Date(y, m - 1, day).toLocaleDateString();
+                                                const [y, m, day] = d.split('T')[0].split('-').map(Number);
+                                                return new Date(y, m - 1, day).toLocaleDateString('pt-BR');
                                             })()}</span>
                                         )}
                                     </div>
