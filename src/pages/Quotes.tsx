@@ -135,6 +135,175 @@ export function Quotes() {
         }
     };
 
+    const handleSaveWhatsApp = async () => {
+        if (!waTargetQuote || !waNumber) return;
+        
+        setIsSavingWA(true);
+        try {
+            // Update contact in database
+            const { error } = await supabase
+                .from('contacts')
+                .update({ phone: waNumber })
+                .eq('id', waTargetQuote.contact_id);
+
+            if (error) throw error;
+
+            // Update local quote object with proper type casting to satisfy Quote interface
+            const updatedQuote = { 
+                ...waTargetQuote, 
+                contact: { 
+                    ...waTargetQuote.contact, 
+                    name: waTargetQuote.contact?.name || 'Cliente',
+                    phone: waNumber 
+                } 
+            } as Quote;
+            
+            notify('success', 'Sucesso', 'Telefone atualizado!');
+            setShowWAModal(false);
+
+            // Execute the original action
+            if (waAction === 'proposal') {
+                processSendProposal(updatedQuote);
+            } else {
+                handleSendWhatsApp(updatedQuote, paymentResult);
+            }
+        } catch (err) {
+            console.error('Error saving phone:', err);
+            notify('error', 'Erro', 'Falha ao salvar telefone.');
+        } finally {
+            setIsSavingWA(false);
+        }
+    };
+
+    const processSendProposal = async (quote: Quote) => {
+        try {
+            setSendingProposal(quote.id);
+
+            // Only update status if it's draft
+            if (quote.status === 'draft') {
+                await updateQuoteStatus(quote.id, 'sent');
+            }
+
+            // Fetch complete quote data with items and customer
+            const { data: fullQuote, error: quoteError } = await supabase
+                .from('quotes')
+                .select(`
+                    *,
+                    contact:contact_id(*),
+                    items:quote_items(*)
+                `)
+                .eq('id', quote.id)
+                .single();
+
+            if (quoteError) throw quoteError;
+
+            // Get company data
+            const { data: companyData } = await supabase
+                .from('companies')
+                .select('*')
+                .eq('id', currentEntity.id)
+                .single();
+
+            // Calculate totals
+            const subtotal = fullQuote.items?.reduce((sum: number, item: any) =>
+                sum + item.total_price, 0) || 0;
+
+            const discountAmount = fullQuote.discount_type === 'percentage'
+                ? (subtotal * fullQuote.discount) / 100
+                : fullQuote.discount;
+
+            const total = subtotal - discountAmount;
+
+            // Generate and upload PDF
+            console.log('📄 Generating PDF for quote:', quote.id);
+
+            const pdfUrl = await PDFService.generateAndUploadQuotePDF({
+                quote: {
+                    id: fullQuote.id,
+                    title: fullQuote.title,
+                    created_at: fullQuote.created_at,
+                    valid_until: fullQuote.valid_until,
+                    status: fullQuote.status,
+                    discount: fullQuote.discount || 0,
+                    discount_type: fullQuote.discount_type || 'amount',
+                    notes: fullQuote.notes
+                },
+                customer: {
+                    name: fullQuote.contact?.name || 'Cliente',
+                    email: fullQuote.contact?.email,
+                    phone: fullQuote.contact?.phone,
+                    address: fullQuote.contact?.address
+                },
+                items: fullQuote.items || [],
+                company: {
+                    name: companyData?.name || 'Empresa',
+                    legal_name: companyData?.legal_name,
+                    cnpj: companyData?.cnpj,
+                    cpf: companyData?.cpf,
+                    entity_type: companyData?.entity_type || 'PJ',
+                    email: companyData?.email,
+                    phone: companyData?.phone,
+                    address: companyData?.address
+                },
+                subtotal,
+                total
+            }, currentEntity.id || '');
+
+            // Update quote with PDF URL
+            await supabase
+                .from('quotes')
+                .update({ pdf_url: pdfUrl })
+                .eq('id', quote.id);
+
+            console.log('✅ PDF generated and saved:', pdfUrl);
+
+            // Trigger webhook with complete data
+            await webhookService.triggerWebhooks({
+                eventType: 'QUOTE_SENT',
+                payload: {
+                    quote: {
+                        id: fullQuote.id,
+                        quote_number: fullQuote.quote_number,
+                        status: fullQuote.status,
+                        total,
+                        subtotal,
+                        discount: fullQuote.discount || 0,
+                        discount_type: fullQuote.discount_type || 'amount',
+                        valid_until: fullQuote.valid_until,
+                        notes: fullQuote.notes,
+                        created_at: fullQuote.created_at,
+                        pdf_url: pdfUrl
+                    },
+                    customer: {
+                        id: fullQuote.contact?.id,
+                        name: fullQuote.contact?.name,
+                        email: fullQuote.contact?.email,
+                        phone: fullQuote.contact?.phone,
+                        address: fullQuote.contact?.address
+                    },
+                    items: fullQuote.items || [],
+                    company: {
+                        name: companyData?.name,
+                        email: companyData?.email,
+                        phone: companyData?.phone,
+                        address: companyData?.address
+                    }
+                },
+                companyId: currentEntity.type === 'company' ? currentEntity.id : undefined,
+                userId: user!.id
+            });
+
+            console.log('✅ Proposta enviada com sucesso!');
+            notify('success', 'Sucesso', 'Proposta enviada!');
+            refreshQuotes();
+        } catch (error) {
+            console.error('❌ Error:', error);
+            notify('error', 'Erro', 'Erro ao enviar proposta.');
+        } finally {
+            setSendingProposal(null);
+        }
+    };
+
 
 
     let canDelete = true;
@@ -152,6 +321,11 @@ export function Quotes() {
 
     // State for sending proposal
     const [sendingProposal, setSendingProposal] = useState<string | null>(null);
+    const [showWAModal, setShowWAModal] = useState(false);
+    const [waNumber, setWaNumber] = useState('');
+    const [waTargetQuote, setWaTargetQuote] = useState<Quote | null>(null);
+    const [waAction, setWaAction] = useState<'proposal' | 'payment'>('proposal');
+    const [isSavingWA, setIsSavingWA] = useState(false);
 
     // Helper to get local date ISO string YYYY-MM-DD
     const getLocalDateISO = (date: Date = new Date()) => {
@@ -888,131 +1062,14 @@ export function Quotes() {
                                                     <Tooltip content={quote.status === 'draft' ? 'Enviar Proposta' : 'Reenviar Proposta'}>
                                                         <button
                                                             onClick={async () => {
-                                                                try {
-                                                                    setSendingProposal(quote.id);
-
-                                                                    // Only update status if it's draft
-                                                                    if (quote.status === 'draft') {
-                                                                        await updateQuoteStatus(quote.id, 'sent');
-                                                                    }
-
-                                                                    // Fetch complete quote data with items and customer
-                                                                    const { data: fullQuote, error: quoteError } = await supabase
-                                                                        .from('quotes')
-                                                                        .select(`
-                                                                            *,
-                                                                            contact:contact_id(*),
-                                                                            items:quote_items(*)
-                                                                        `)
-                                                                        .eq('id', quote.id)
-                                                                        .single();
-
-                                                                    if (quoteError) throw quoteError;
-
-                                                                    // Get company data
-                                                                    const { data: companyData } = await supabase
-                                                                        .from('companies')
-                                                                        .select('*')
-                                                                        .eq('id', currentEntity.id)
-                                                                        .single();
-
-                                                                    // Calculate totals
-                                                                    const subtotal = fullQuote.items?.reduce((sum: number, item: any) =>
-                                                                        sum + item.total_price, 0) || 0;
-
-                                                                    const discountAmount = fullQuote.discount_type === 'percentage'
-                                                                        ? (subtotal * fullQuote.discount) / 100
-                                                                        : fullQuote.discount;
-
-                                                                    const total = subtotal - discountAmount;
-
-                                                                    // Generate and upload PDF
-                                                                    console.log('📄 Generating PDF for quote:', quote.id);
-
-                                                                    const pdfUrl = await PDFService.generateAndUploadQuotePDF({
-                                                                        quote: {
-                                                                            id: fullQuote.id,
-                                                                            title: fullQuote.title,
-                                                                            created_at: fullQuote.created_at,
-                                                                            valid_until: fullQuote.valid_until,
-                                                                            status: fullQuote.status,
-                                                                            discount: fullQuote.discount || 0,
-                                                                            discount_type: fullQuote.discount_type || 'amount',
-                                                                            notes: fullQuote.notes
-                                                                        },
-                                                                        customer: {
-                                                                            name: fullQuote.contact?.name || 'Cliente',
-                                                                            email: fullQuote.contact?.email,
-                                                                            phone: fullQuote.contact?.phone,
-                                                                            address: fullQuote.contact?.address
-                                                                        },
-                                                                        items: fullQuote.items || [],
-                                                                        company: {
-                                                                            name: companyData?.name || 'Empresa',
-                                                                            legal_name: companyData?.legal_name,
-                                                                            cnpj: companyData?.cnpj,
-                                                                            cpf: companyData?.cpf,
-                                                                            entity_type: companyData?.entity_type || 'PJ',
-                                                                            email: companyData?.email,
-                                                                            phone: companyData?.phone,
-                                                                            address: companyData?.address
-                                                                        },
-                                                                        subtotal,
-                                                                        total
-                                                                    }, currentEntity.id || '');
-
-                                                                    // Update quote with PDF URL
-                                                                    await supabase
-                                                                        .from('quotes')
-                                                                        .update({ pdf_url: pdfUrl })
-                                                                        .eq('id', quote.id);
-
-                                                                    console.log('✅ PDF generated and saved:', pdfUrl);
-
-                                                                    // Trigger webhook with complete data
-                                                                    await webhookService.triggerWebhooks({
-                                                                        eventType: 'QUOTE_SENT',
-                                                                        payload: {
-                                                                            quote: {
-                                                                                id: fullQuote.id,
-                                                                                quote_number: fullQuote.quote_number,
-                                                                                status: fullQuote.status,
-                                                                                total,
-                                                                                subtotal,
-                                                                                discount: fullQuote.discount || 0,
-                                                                                discount_type: fullQuote.discount_type || 'amount',
-                                                                                valid_until: fullQuote.valid_until,
-                                                                                notes: fullQuote.notes,
-                                                                                created_at: fullQuote.created_at,
-                                                                                pdf_url: pdfUrl
-                                                                            },
-                                                                            customer: {
-                                                                                id: fullQuote.contact?.id,
-                                                                                name: fullQuote.contact?.name,
-                                                                                email: fullQuote.contact?.email,
-                                                                                phone: fullQuote.contact?.phone,
-                                                                                address: fullQuote.contact?.address
-                                                                            },
-                                                                            items: fullQuote.items || [],
-                                                                            company: {
-                                                                                name: companyData?.name,
-                                                                                email: companyData?.email,
-                                                                                phone: companyData?.phone,
-                                                                                address: companyData?.address
-                                                                            }
-                                                                        },
-                                                                        companyId: currentEntity.type === 'company' ? currentEntity.id : undefined,
-                                                                        userId: user!.id
-                                                                    });
-
-                                                                    console.log('✅ Proposta enviada com sucesso!');
-                                                                    alert('✅ Proposta enviada com sucesso!');
-                                                                } catch (error) {
-                                                                    console.error('❌ Error:', error);
-                                                                    alert('❌ Erro ao enviar proposta. Verifique o console.');
-                                                                } finally {
-                                                                    setSendingProposal(null);
+                                                                if (!quote.contact?.phone) {
+                                                                    setWaTargetQuote(quote);
+                                                                    setWaAction('proposal');
+                                                                    setWaNumber('');
+                                                                    setShowWAModal(true);
+                                                                    return;
                                                                 }
+                                                                processSendProposal(quote);
                                                             }}
                                                             className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             disabled={sendingProposal === quote.id}
@@ -1215,7 +1272,7 @@ export function Quotes() {
                                                 <Tooltip content="Copiar Link Proposta (Público)">
                                                     <button
                                                         onClick={() => {
-                                                            const url = `${window.location.origin}/proposal/${quote.id}`;
+                                                            const url = `${window.location.origin}/p/${quote.id}`;
                                                             navigator.clipboard.writeText(url);
                                                             notify('success', 'Copiado', 'Link da proposta copiado!');
                                                         }}
@@ -1621,7 +1678,16 @@ export function Quotes() {
                             className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
                             onClick={() => {
                                 const quote = quotes.find(q => q.id === paymentResult.quote_id);
-                                if (quote) handleSendWhatsApp(quote, paymentResult);
+                                if (!quote) return;
+                                
+                                if (!quote.contact?.phone) {
+                                    setWaTargetQuote(quote);
+                                    setWaAction('payment');
+                                    setWaNumber('');
+                                    setShowWAModal(true);
+                                    return;
+                                }
+                                handleSendWhatsApp(quote, paymentResult);
                             }}
                             disabled={isSendingWhatsApp}
                         >
@@ -1644,6 +1710,52 @@ export function Quotes() {
                         </Button>
                         <Button variant="outline" className="w-full" onClick={() => setPaymentResult(null)}>
                             Fechar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* WhatsApp Missing Number Modal */}
+            <Modal
+                isOpen={showWAModal}
+                onClose={() => setShowWAModal(false)}
+                title="Telefone Faltando"
+                icon={Send}
+                maxWidth="max-w-sm"
+            >
+                <div className="py-4 space-y-4">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                            O contato <strong>{waTargetQuote?.contact?.name}</strong> não possui um número de telefone cadastrado para o envio via WhatsApp.
+                        </p>
+                    </div>
+
+                    <Input
+                        label="Número do WhatsApp"
+                        value={waNumber}
+                        onChange={(e) => {
+                            // Basic mask to help user
+                            const val = e.target.value.replace(/\D/g, '');
+                            setWaNumber(val);
+                        }}
+                        placeholder="EX: 5584999999999"
+                        autoFocus
+                    />
+
+                    <p className="text-[10px] text-gray-500 italic">
+                        * O número será salvo permanentemente no cadastro do contato.
+                    </p>
+
+                    <div className="flex gap-2 pt-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setShowWAModal(false)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                            onClick={handleSaveWhatsApp}
+                            disabled={isSavingWA || waNumber.length < 10}
+                        >
+                            {isSavingWA ? <Loader2 className="animate-spin" size={18} /> : 'Salvar e Enviar'}
                         </Button>
                     </div>
                 </div>
