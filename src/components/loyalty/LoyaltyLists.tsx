@@ -57,7 +57,7 @@ export function SubscriberList() {
             try {
                 const dateOnly = sub.next_due_at.toString().split('T')[0];
                 const dueDate = new Date(dateOnly + 'T00:00:00');
-                if (!isNaN(dueDate.getTime()) && dueDate <= today) return 'past_due';
+                if (!isNaN(dueDate.getTime()) && dueDate < today) return 'past_due';
             } catch (_) {}
         }
         if (sub.status === 'past_due') return 'past_due';

@@ -372,7 +372,7 @@ export function QuoteForm() {
 
                 // ITEM-BASED VIP DISCOUNT LOGIC
                 const isLoyaltyValid = loyaltySub?.status === 'active' && 
-                    (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') > new Date(new Date().setHours(0,0,0,0)));
+                    (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
                 const isDebtEmbedded = items.some(i => i.description?.includes('[Clube VIP] Regularização'));
                 const finalIsLoyaltyValid = isLoyaltyValid || (loyaltySub?.plan && isDebtEmbedded);
 
@@ -622,7 +622,7 @@ export function QuoteForm() {
                                     ))}
                             </select>
                             {loyaltyLoading && <span className="text-xs text-gray-400 mt-1 animate-pulse">Verificando Clube VIP...</span>}
-                            {!loyaltyLoading && isLoyaltyEnabled && loyaltySub && loyaltySub.status === 'active' && (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') > new Date(new Date().setHours(0,0,0,0))) && (
+                            {!loyaltyLoading && isLoyaltyEnabled && loyaltySub && loyaltySub.status === 'active' && (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && (
                                 <div className="mt-2 flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
                                     <Award size={14} className="animate-pulse" />
                                     <span>Cliente Clube VIP Ativo - <strong>{loyaltySub.plan?.name}</strong> (Descontos aplicados nos serviços cobertos).</span>
@@ -637,12 +637,12 @@ export function QuoteForm() {
                             {!loyaltyLoading && loyaltySub && !items.some(i => i.description?.includes('[Clube VIP] Regularização')) && (
                                 loyaltySub.status === 'past_due' || 
                                 loyaltySub.status === 'canceled' || 
-                                (loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') <= new Date(new Date().setHours(0,0,0,0)))
+                                (loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)))
                             ) && (
                                 <div className="mt-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800/50 flex flex-col gap-2">
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle size={14} />
-                                        <span>Assinatura do Clube VIP (<strong>{loyaltySub.plan?.name}</strong>) está {(loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') <= new Date(new Date().setHours(0,0,0,0))) || loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}. O desconto não será aplicado.</span>
+                                        <span>Assinatura do Clube VIP (<strong>{loyaltySub.plan?.name}</strong>) está {(loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0))) || loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}. O desconto não será aplicado.</span>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         <button 
@@ -855,7 +855,7 @@ export function QuoteForm() {
                                                 <div className="h-5 flex items-end">
                                                     {(() => {
                                                         const isLoyaltyValid = loyaltySub?.status === 'active' && 
-                                                            (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') > new Date(new Date().setHours(0,0,0,0)));
+                                                            (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
                                                         const isDebtEmbedded = items.some(i => i.description?.includes('[Clube VIP] Regularização'));
                                                         const finalIsLoyaltyValid = isLoyaltyValid || (loyaltySub?.plan && isDebtEmbedded);
                                                         
