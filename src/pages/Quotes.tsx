@@ -334,17 +334,19 @@ export function Quotes() {
         return localDate.toISOString().split('T')[0];
     };
 
-    // Default to today (Local Time)
-    const today = getLocalDateISO();
-
-    // Default end date to tomorrow (Local Time)
-    const tomorrowDate = new Date();
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrow = getLocalDateISO(tomorrowDate);
-
-    const initialStartDate = searchParams.get('start') || today;
-    const initialEndDate = searchParams.get('end') || tomorrow;
-    const initialShowAll = searchParams.get('all') === 'true';
+    // Default to current month
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    const initialStartDate = searchParams.get('start') || getLocalDateISO(firstDay);
+    const initialEndDate = searchParams.get('end') || getLocalDateISO(lastDay);
+    // Default 'all' to true if not present, otherwise use the value from URL
+    const initialShowAll = searchParams.get('all') !== null 
+        ? searchParams.get('all') === 'true' 
+        : (sessionStorage.getItem('quotes_show_all') !== null 
+            ? sessionStorage.getItem('quotes_show_all') === 'true' 
+            : true);
 
     const [startDate, setStartDate] = useState(initialStartDate);
     const [endDate, setEndDate] = useState(initialEndDate);
