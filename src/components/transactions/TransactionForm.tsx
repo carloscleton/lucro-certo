@@ -355,6 +355,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
+
+        if (!categoryId) {
+            notify('error', 'Por favor, selecione uma categoria.', 'Campo Obrigatório');
+            setLoading(false);
+            return;
+        }
+
         try {
             let attachmentUrl = removedAttachment ? null : (tempAttachmentUrl || initialData?.attachment_url);
             let attachmentPath = removedAttachment ? null : (tempAttachmentPath || initialData?.attachment_path);
@@ -530,7 +537,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         <Input label="Data" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoria <span className="text-red-500">*</span></label>
                                 <button type="button" onClick={() => setShowCategoryModal(true)} className="text-xs text-emerald-600 font-semibold"><Plus className="w-3 h-3 inline mr-1" /> Nova</button>
                             </div>
                             <select className="h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm" value={categoryId} onChange={e => setCategoryId(e.target.value)} required>
