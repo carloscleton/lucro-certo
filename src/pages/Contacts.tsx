@@ -76,6 +76,8 @@ export function Contacts() {
 
     if (loading) return <div>{t('contacts.loading')}</div>;
 
+    const isLoyaltyEnabled = currentEntity.type === 'company' && (currentEntity as any).loyalty_module_enabled;
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -149,6 +151,7 @@ export function Contacts() {
                     }
                 }}
                 canDelete={canDelete}
+                isLoyaltyEnabled={isLoyaltyEnabled}
             />
 
             <ContactForm

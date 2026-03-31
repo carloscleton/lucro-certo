@@ -220,7 +220,7 @@ export function Layout() {
                 (typeof (currentEntity as any)[`${item.key}_module_enabled`] !== 'undefined' ? (currentEntity as any)[`${item.key}_module_enabled`] : true);
 
             // Owner sees everything unless explicitly disabled (checked above)
-            if (!isModuleEnabled && role !== 'owner') return false;
+            if (!isModuleEnabled) return false;
         }
 
         // 5. DEFAULT PERMISSIONS (Fallback to getModulePermission)

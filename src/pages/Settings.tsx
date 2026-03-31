@@ -78,6 +78,7 @@ export function Settings() {
         return false;
     }, [currentEntity, companies, isAdmin, profile]);
     const [generatingMagic, setGeneratingMagic] = useState<string | null>(null);
+    const currentCompany = useMemo(() => companies.find(c => c.id === currentEntity.id), [companies, currentEntity]);
 
     // Company Settings State
 
@@ -444,6 +445,7 @@ export function Settings() {
 
                     // 1. Feature Availability / Plan Check
                     // Trial bypasses these flags
+                    if (tab.key === 'loyalty' && !currentCompany?.loyalty_module_enabled) return false;
                     if (!isTrial) {
                         if (tab.key === 'fiscal' && (currentEntity.type !== 'company' || !currentCompany?.fiscal_module_enabled)) return false;
                         if (tab.key === 'payments' && (currentEntity.type !== 'company' || !currentCompany?.payments_module_enabled)) return false;
@@ -943,7 +945,7 @@ export function Settings() {
                     <PaymentSettings />
                 )}
 
-                {activeTab === 'loyalty' && (
+                {activeTab === 'loyalty' && currentCompany?.loyalty_module_enabled && (
                     <div className="space-y-6">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">

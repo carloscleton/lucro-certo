@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, Save, ArrowLeft, Award, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Award, AlertTriangle, CreditCard } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CurrencyInput } from '../components/ui/CurrencyInput';
@@ -31,8 +31,8 @@ export function QuoteForm() {
     const { settings, loading: settingsLoading } = useSettings();
     const { user } = useAuth();
     const { currentEntity } = useEntity();
-    const { companies } = useCompanies();
     const { deals } = useCRM();
+    const { companies } = useCompanies();
 
     const isCRMEnabled = currentEntity.type === 'company' &&
         companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
@@ -73,8 +73,7 @@ export function QuoteForm() {
     // Loyalty State
     const [loyaltySub, setLoyaltySub] = useState<any>(null);
     const [loyaltyLoading, setLoyaltyLoading] = useState(false);
-    const isLoyaltyEnabled = currentEntity.type === 'company' &&
-        companies.find(c => c.id === currentEntity.id)?.loyalty_module_enabled;
+    const isLoyaltyEnabled = currentEntity.type === 'company' && (currentEntity as any).loyalty_module_enabled;
 
     const { clearCache } = useAutoSave(
         'quote_form',
@@ -204,6 +203,8 @@ export function QuoteForm() {
 
     // Fetch Loyalty Subscription when Contact changes
     useEffect(() => {
+        if (!isLoyaltyEnabled) return;
+
         const checkLoyalty = async () => {
             if (!contactId) {
                 setLoyaltySub(null);
@@ -235,10 +236,11 @@ export function QuoteForm() {
         };
 
         checkLoyalty();
-    }, [contactId]);
+    }, [contactId, isLoyaltyEnabled]);
 
-    // State for discount
-
+    const isVip = loyaltySub?.status === 'active' && (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
+    const isOverdue = loyaltySub && (loyaltySub.status === 'past_due' || (loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0))));
+    const isPending = items.some(i => i.description?.includes('[Clube VIP] Regularização'));
 
     const addExpenseRow = () => {
         setExpenses([
@@ -280,15 +282,6 @@ export function QuoteForm() {
         setExpenses(newExpenses);
     };
 
-    // ... addItem, removeItem, updateItem, handleItemSelect ...
-
-    // Helper function needs to be inside the component to access items state
-    // but typescript might complain if I just use '...' comments in replace_file_content 
-    // without context, so I will stick to targeting specific blocks or re-writing related parts.
-
-    // Re-writing helper functions to ensure context (though previous step restored them, 
-    // I am focused on calculateTotal here mostly)
-
     const addItem = (customItem?: Partial<QuoteItem>) => {
         setItems([
             ...items,
@@ -304,10 +297,9 @@ export function QuoteForm() {
         ]);
     };
 
-    const handleEmbedDebt = () => {
+    const handleEmbedLoyaltyCharge = () => {
         if (!loyaltySub || !loyaltySub.plan) return;
 
-        // Recalculate existing items to apply the discount
         const newItems = items.map(item => {
             if (item.service_id && loyaltySub.plan?.included_services?.includes(item.service_id)) {
                 const originalService = services.find(s => s.id === item.service_id);
@@ -323,10 +315,8 @@ export function QuoteForm() {
             return item;
         });
 
-        // Remove the empty first item if there is one
         const filteredItems = newItems.filter(i => !(i.description === '' && i.service_id === null && i.product_id === null));
         
-        // Add the debt item
         setItems([
             ...filteredItems,
             {
@@ -352,7 +342,6 @@ export function QuoteForm() {
         const newItems = [...items];
         const item = { ...newItems[index], [field]: value };
 
-        // Auto-calculate total
         if (field === 'quantity' || field === 'unit_price') {
             item.total_price = Number(item.quantity) * Number(item.unit_price);
         }
@@ -370,11 +359,7 @@ export function QuoteForm() {
             if (selectedItem) {
                 let unitPrice = selectedItem.price;
 
-                // ITEM-BASED VIP DISCOUNT LOGIC
-                const isLoyaltyValid = loyaltySub?.status === 'active' && 
-                    (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
-                const isDebtEmbedded = items.some(i => i.description?.includes('[Clube VIP] Regularização'));
-                const finalIsLoyaltyValid = isLoyaltyValid || (loyaltySub?.plan && isDebtEmbedded);
+                const finalIsLoyaltyValid = isVip || (loyaltySub?.plan && isPending);
 
                 if (finalIsLoyaltyValid && loyaltySub.plan) {
                     const isCovered = loyaltySub.plan.included_services?.includes(id);
@@ -398,7 +383,6 @@ export function QuoteForm() {
         } else {
             selectedItem = products.find(p => p.id === id);
             if (selectedItem) {
-                // Build complete description: Name + Description + Sub Description
                 let fullDescription = selectedItem.name;
                 if (selectedItem.description) {
                     fullDescription += `\n${selectedItem.description}`;
@@ -460,7 +444,6 @@ export function QuoteForm() {
                 tax_id: newClientTaxId,
                 type: 'client',
 
-                // Optional fields as empty strings
                 zip_code: '',
                 street: '',
                 number: '',
@@ -473,7 +456,6 @@ export function QuoteForm() {
             if (newClient) {
                 setContactId(newClient.id);
                 setShowClientModal(false);
-                // Reset form
                 setNewClientName('');
                 setNewClientPhone('');
                 setNewClientEmail('');
@@ -504,10 +486,6 @@ export function QuoteForm() {
 
         setLoading(true);
         try {
-            // ... inside loadQuote ...
-            // setStatus(data.status);
-
-            // ... inside handleSubmit ...
             const quoteData = {
                 title,
                 contact_id: contactId,
@@ -522,7 +500,6 @@ export function QuoteForm() {
 
             if (id && id !== 'new') {
                 await updateQuote(id, quoteData, items);
-                // Save inline expenses
                 const finalQuoteId = id;
                 for (const exp of expenses) {
                     const { id: expId, ...expData } = exp;
@@ -541,7 +518,6 @@ export function QuoteForm() {
                 }
             } else {
                 const newQuote = await createQuote(quoteData, items);
-                // Save inline expenses for new quote
                 if (newQuote && newQuote.id) {
                     for (const exp of expenses) {
                         const { id: expId, ...expData } = exp;
@@ -567,7 +543,6 @@ export function QuoteForm() {
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto pb-20">
-            {/* ... Header ... */}
             <div className="flex items-center gap-4">
                 <Button variant="ghost" onClick={handleBack}>
                     <ArrowLeft size={20} />
@@ -580,7 +555,6 @@ export function QuoteForm() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Header Card */}
                 <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
@@ -618,36 +592,18 @@ export function QuoteForm() {
                                     ))}
                             </select>
                             {loyaltyLoading && <span className="text-xs text-gray-400 mt-1 animate-pulse">Verificando Clube VIP...</span>}
-                            {!loyaltyLoading && isLoyaltyEnabled && loyaltySub && loyaltySub.status === 'active' && (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0))) && (
-                                <div className="mt-2 flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
-                                    <Award size={14} className="animate-pulse" />
-                                    <span>Cliente Clube VIP Ativo - <strong>{loyaltySub.plan?.name}</strong> (Descontos aplicados nos serviços cobertos).</span>
-                                </div>
-                            )}
-                            {!loyaltyLoading && loyaltySub && items.some(i => i.description?.includes('[Clube VIP] Regularização')) && (
-                                <div className="mt-2 flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 animate-in fade-in slide-in-from-top-1 w-fit">
-                                    <Award size={14} />
-                                    <span>Clube VIP Liberado Temporariamente (Mensalidade embutida neste orçamento).</span>
-                                </div>
-                            )}
-                            {!loyaltyLoading && loyaltySub && !items.some(i => i.description?.includes('[Clube VIP] Regularização')) && (
-                                loyaltySub.status === 'past_due' || 
-                                loyaltySub.status === 'canceled' || 
-                                (loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)))
-                            ) && (
-                                <div className="mt-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800/50 flex flex-col gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <AlertTriangle size={14} />
-                                        <span>Assinatura do Clube VIP (<strong>{loyaltySub.plan?.name}</strong>) está {(loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0))) || loyaltySub.status === 'past_due' ? 'em atraso' : 'cancelada'}. O desconto não será aplicado.</span>
-                                    </div>
+                            {!loyaltyLoading && isLoyaltyEnabled && loyaltySub && (
+                                <div className="mt-2">
                                     <div className="flex flex-wrap gap-2">
-                                        <button 
-                                            type="button" 
-                                            onClick={handleEmbedDebt}
-                                            className="text-[11px] font-bold bg-white dark:bg-slate-800 border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/40 px-2 py-1 rounded transition-colors"
-                                        >
-                                            💳 Embutir Mensalidade e Liberar Desconto
-                                        </button>
+                                        {isOverdue && !isPending && (
+                                            <button 
+                                                type="button" 
+                                                onClick={handleEmbedLoyaltyCharge}
+                                                className="text-[11px] font-bold bg-white dark:bg-slate-800 border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/40 px-2 py-1 rounded transition-colors"
+                                            >
+                                                💳 Embutir Mensalidade e Liberar Desconto
+                                            </button>
+                                        )}
                                         {contactId && (
                                             <a
                                                 href={`/dashboard/contacts?id=${contactId}`}
@@ -737,6 +693,48 @@ export function QuoteForm() {
                         )}
                     </div>
                 </div>
+
+                {isLoyaltyEnabled && isVip && (
+                    <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6 flex items-center justify-between border-l-4 border-amber-500">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg text-amber-600">
+                                <Award size={20} />
+                            </div>
+                            <div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    Assinante Clube VIP
+                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-[9px] text-amber-700 border border-amber-200">
+                                        <Award size={10} />
+                                        <span>VIP {loyaltySub?.plan?.discount_percent}%</span>
+                                    </div>
+                                </div>
+                                <div className="text-[10px] text-gray-500">Este cliente tem direito a descontos automáticos em serviços.</div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {isLoyaltyEnabled && isOverdue && !isPending && (
+                    <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6 flex flex-col gap-3 border-l-4 border-red-500">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded-lg text-red-600">
+                                <AlertTriangle size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <div className="text-sm font-bold text-red-700 dark:text-red-400">Assinatura Clube VIP em Atraso</div>
+                                <div className="text-[10px] text-red-600/70">O desconto VIP não será aplicado enquanto houver pendências.</div>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleEmbedLoyaltyCharge}
+                            className="w-fit px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-2"
+                        >
+                            <CreditCard size={14} />
+                            <span>Embutir Mensalidade e Liberar Desconto</span>
+                        </button>
+                    </div>
+                )}
 
                 {/* Items Card */}
                 <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6">

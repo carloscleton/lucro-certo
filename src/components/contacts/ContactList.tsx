@@ -8,9 +8,10 @@ interface ContactListProps {
     onViewHistory: (contact: Contact) => void;
     onDelete: (id: string) => void;
     canDelete?: boolean;
+    isLoyaltyEnabled?: boolean;
 }
 
-export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDelete = true }: ContactListProps) {
+export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDelete = true, isLoyaltyEnabled = true }: ContactListProps) {
     return (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden transition-colors">
             <table className="w-full text-sm text-left">
@@ -43,7 +44,7 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                             {contact.type === 'client' ? <User size={14} /> : <Truck size={14} />}
                                         </div>
                                         {contact.name}
-                                        {contact.loyalty_subscriptions?.[0] && (
+                                        {isLoyaltyEnabled && contact.loyalty_subscriptions?.[0] && (
                                             <Tooltip content={
                                                 contact.loyalty_subscriptions[0].status === 'pending'
                                                 ? "Pagamento pendente no Gateway. Link enviado via WhatsApp."
@@ -72,22 +73,24 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                             </Tooltip>
                                         )}
                                     </div>
-                                    <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
-                                        {contact.loyalty_subscriptions?.[0]?.started_at && (
-                                            <span>Início: {(() => {
-                                                const d = contact.loyalty_subscriptions[0].started_at;
-                                                const [y, m, day] = d.split('T')[0].split('-').map(Number);
-                                                return new Date(y, m - 1, day).toLocaleDateString('pt-BR');
-                                            })()}</span>
-                                        )}
-                                        {contact.loyalty_subscriptions?.[0]?.next_due_at && (
-                                            <span className="font-bold text-amber-600">Vencimento: {(() => {
-                                                const d = contact.loyalty_subscriptions[0].next_due_at;
-                                                const [y, m, day] = d.split('T')[0].split('-').map(Number);
-                                                return new Date(y, m - 1, day).toLocaleDateString('pt-BR');
-                                            })()}</span>
-                                        )}
-                                    </div>
+                                     {isLoyaltyEnabled && (
+                                        <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
+                                            {contact.loyalty_subscriptions?.[0]?.started_at && (
+                                                <span>Início: {(() => {
+                                                    const d = contact.loyalty_subscriptions[0].started_at;
+                                                    const [y, m, day] = d.split('T')[0].split('-').map(Number);
+                                                    return new Date(y, m - 1, day).toLocaleDateString('pt-BR');
+                                                })()}</span>
+                                            )}
+                                            {contact.loyalty_subscriptions?.[0]?.next_due_at && (
+                                                <span className="font-bold text-amber-600">Vencimento: {(() => {
+                                                    const d = contact.loyalty_subscriptions[0].next_due_at;
+                                                    const [y, m, day] = d.split('T')[0].split('-').map(Number);
+                                                    return new Date(y, m - 1, day).toLocaleDateString('pt-BR');
+                                                })()}</span>
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="md:hidden text-xs text-gray-500 mt-1">
                                         {contact.email} {contact.phone && `• ${contact.phone}`}
                                     </div>
@@ -118,7 +121,7 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                             </button>
                                         </Tooltip>
 
-                                        {!contact.loyalty_subscriptions?.[0] && contact.type === 'client' && (
+                                        {isLoyaltyEnabled && !contact.loyalty_subscriptions?.[0] && contact.type === 'client' && (
                                             <Tooltip content="Convidar para Clube VIP">
                                                 <button
                                                     onClick={() => onEdit(contact)}
