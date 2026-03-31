@@ -528,9 +528,7 @@ export function QuoteForm() {
                     const { id: expId, ...expData } = exp;
                     const payload = {
                         ...expData,
-                        description: expData.description.startsWith('[ORÇ]') 
-                            ? expData.description 
-                            : `[ORÇ] ${expData.description}`,
+                        description: expData.description,
                         user_id: user?.id,
                         quote_id: finalQuoteId,
                         type: 'expense'
@@ -549,9 +547,7 @@ export function QuoteForm() {
                         const { id: expId, ...expData } = exp;
                         await supabase.from('transactions').insert([{
                             ...expData,
-                            description: expData.description.startsWith('[ORÇ]') 
-                                ? expData.description 
-                                : `[ORÇ] ${expData.description}`,
+                            description: expData.description,
                             user_id: user?.id,
                             quote_id: newQuote.id,
                             type: 'expense'
