@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, Save, ArrowLeft, Award, AlertTriangle, CreditCard } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Award, AlertTriangle, CreditCard, Send, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CurrencyInput } from '../components/ui/CurrencyInput';
@@ -18,6 +18,10 @@ import { useCRM } from '../hooks/useCRM';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { TrendingDown } from 'lucide-react';
+import { useCharges } from '../hooks/useCharges';
+import { usePaymentGateways } from '../hooks/usePaymentGateways';
+import { useNotification } from '../context/NotificationContext';
+import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
 
 export function QuoteForm() {
@@ -33,6 +37,9 @@ export function QuoteForm() {
     const { currentEntity } = useEntity();
     const { deals } = useCRM();
     const { companies } = useCompanies();
+    const { createCharge } = useCharges();
+    const { gateways } = usePaymentGateways();
+    const { notify } = useNotification();
 
     const isCRMEnabled = currentEntity.type === 'company' &&
         companies.find(c => c.id === currentEntity.id)?.crm_module_enabled;
@@ -73,6 +80,11 @@ export function QuoteForm() {
     // Loyalty State
     const [loyaltySub, setLoyaltySub] = useState<any>(null);
     const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+    const [isGeneratingLoyaltyPayment, setIsGeneratingLoyaltyPayment] = useState(false);
+    const [loyaltyPaymentResult, setLoyaltyPaymentResult] = useState<any>(null);
+    const [waInstances, setWaInstances] = useState<any[]>([]);
+    const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+
     const isLoyaltyEnabled = currentEntity.type === 'company' && (currentEntity as any).loyalty_module_enabled;
 
     const { clearCache } = useAutoSave(
@@ -237,6 +249,101 @@ export function QuoteForm() {
 
         checkLoyalty();
     }, [contactId, isLoyaltyEnabled]);
+
+    // Fetch WA Instances
+    useEffect(() => {
+        const fetchWA = async () => {
+            const { data } = await supabase
+                .from('instances')
+                .select('*')
+                .eq('status', 'connected');
+
+            if (currentEntity.type === 'company' && currentEntity.id) {
+                setWaInstances(data?.filter(i => i.company_id === currentEntity.id) || []);
+            } else {
+                setWaInstances(data?.filter(i => i.user_id === user?.id && !i.company_id) || []);
+            }
+        };
+        if (isLoyaltyEnabled) fetchWA();
+    }, [currentEntity.id, user?.id, isLoyaltyEnabled]);
+
+    const handleGenerateLoyaltyPayment = async () => {
+        if (!loyaltySub || !loyaltySub.plan) return;
+
+        const activeGateway = gateways.find(g => g.is_active);
+        if (!activeGateway) {
+            notify('warning', 'Atenção', 'Nenhum gateway de pagamento configurado ou ativo.');
+            return;
+        }
+
+        setIsGeneratingLoyaltyPayment(true);
+        try {
+            const contact = contacts.find(c => c.id === contactId);
+            if (!contact) throw new Error('Cliente não encontrado');
+
+            const result = await createCharge({
+                provider: activeGateway.provider,
+                config: activeGateway.config,
+                is_sandbox: activeGateway.is_sandbox,
+                customerId: contactId || undefined,
+                payload: {
+                    amount: loyaltySub.plan.price,
+                    description: `Mensalidade ${loyaltySub.plan.name} - ${contact.name}`,
+                    customer: {
+                        name: contact.name,
+                        email: contact.email || '',
+                        tax_id: contact.tax_id || undefined
+                    }
+                }
+            });
+
+            if (result.success) {
+                setLoyaltyPaymentResult(result);
+                notify('success', 'Sucesso', 'Link de pagamento gerado!');
+            } else {
+                notify('error', 'Erro', result.message || 'Falha ao gerar link.');
+            }
+        } catch (err: any) {
+            console.error(err);
+            notify('error', 'Erro', err.message || 'Erro ao gerar cobrança.');
+        } finally {
+            setIsGeneratingLoyaltyPayment(false);
+        }
+    };
+
+    const handleSendLoyaltyWhatsApp = async () => {
+        if (!loyaltyPaymentResult?.payment_link || !contactId) return;
+
+        const instance = waInstances[0];
+        if (!instance) {
+            notify('warning', 'Atenção', 'Nenhuma instância de WhatsApp conectada.');
+            return;
+        }
+
+        const contact = contacts.find(c => c.id === contactId);
+        const phone = contact?.whatsapp || contact?.phone;
+        if (!phone) {
+            notify('warning', 'Atenção', 'Cliente não possui telefone cadastrado.');
+            return;
+        }
+
+        setIsSendingWhatsApp(true);
+        try {
+            const message = `Olá, ${contact?.name}! Identificamos uma pendência em sua assinatura do Clube VIP. Para regularizar e continuar aproveitando seus benefícios, utilize o link de pagamento abaixo:\n\n🔗 ${loyaltyPaymentResult.payment_link}\n\nObrigado!`;
+
+            await whatsappService.sendMessage({
+                instanceName: instance.instance_name,
+                number: phone,
+                text: message
+            });
+
+            notify('success', 'Sucesso', 'Link enviado via WhatsApp!');
+        } catch (err: any) {
+            notify('error', 'Erro', err.message || 'Falha ao enviar mensagem.');
+        } finally {
+            setIsSendingWhatsApp(false);
+        }
+    };
 
     const isVip = loyaltySub?.status === 'active' && (!loyaltySub.next_due_at || new Date(loyaltySub.next_due_at + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)));
     const isOverdue = loyaltySub && (loyaltySub.status === 'past_due' || (loyaltySub.status === 'active' && loyaltySub.next_due_at && new Date(loyaltySub.next_due_at + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0))));
@@ -604,15 +711,37 @@ export function QuoteForm() {
                                                 💳 Embutir Mensalidade e Liberar Desconto
                                             </button>
                                         )}
-                                        {contactId && (
-                                            <a
-                                                href={`/dashboard/contacts?id=${contactId}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-[11px] font-bold bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/40 px-2 py-1 rounded transition-colors"
+                                        {contactId && !loyaltyPaymentResult && (
+                                            <button
+                                                type="button"
+                                                onClick={handleGenerateLoyaltyPayment}
+                                                disabled={isGeneratingLoyaltyPayment}
+                                                className="text-[11px] font-bold bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
                                             >
-                                                🔗 Ir ao Contato e Gerar Link de Pagamento
-                                            </a>
+                                                {isGeneratingLoyaltyPayment ? <Loader2 size={12} className="animate-spin" /> : <CreditCard size={12} />}
+                                                Gerar Link e Enviar WhatsApp
+                                            </button>
+                                        )}
+                                        {loyaltyPaymentResult && (
+                                            <div className="flex items-center gap-2">
+                                                <a
+                                                    href={loyaltyPaymentResult.payment_link}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 px-2 py-1 rounded transition-colors"
+                                                >
+                                                    ✅ Link Gerado (Abrir)
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSendLoyaltyWhatsApp}
+                                                    disabled={isSendingWhatsApp}
+                                                    className="text-[11px] font-bold bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                                                >
+                                                    {isSendingWhatsApp ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                                                    {isSendingWhatsApp ? 'Enviando...' : 'Reenviar WhatsApp'}
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
