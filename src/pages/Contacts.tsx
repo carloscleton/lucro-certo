@@ -76,7 +76,8 @@ export function Contacts() {
 
     if (loading) return <div>{t('contacts.loading')}</div>;
 
-    const isLoyaltyEnabled = currentEntity.type === 'company' && (currentEntity as any).loyalty_module_enabled;
+    const currentCompany = companies.find(c => c.id === currentEntity.id);
+    const isLoyaltyEnabled = currentEntity.type === 'company' && currentCompany?.loyalty_module_enabled;
 
     return (
         <div className="space-y-6">

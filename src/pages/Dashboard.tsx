@@ -11,6 +11,7 @@ import { ExpenseByCategoryChart } from '../components/dashboard/ExpenseByCategor
 import { CashFlowForecast } from '../components/dashboard/CashFlowForecast';
 import { MonthlyComparison } from '../components/dashboard/MonthlyComparison';
 import { useCategories } from '../hooks/useCategories';
+import { useCompanies } from '../hooks/useCompanies';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -112,6 +113,7 @@ export function Dashboard() {
 
     const { metrics, chartData, alerts, expensesByCategory, agendaTasks, pendingList, transactions, contextMetrics, previousPeriod, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
     const { categories, loading: categoriesLoading } = useCategories();
+    const { companies } = useCompanies();
     const { currentEntity } = useEntity();
 
 
@@ -141,8 +143,9 @@ export function Dashboard() {
     prevDate.setMonth(prevDate.getMonth() - 1);
     const previousMonthLabel = monthNames[prevDate.getMonth()] || '';
 
-    const isCRMEnabled = currentEntity.type === 'company' && (currentEntity as any).crm_module_enabled;
-    const isLoyaltyEnabled = currentEntity.type === 'company' && (currentEntity as any).loyalty_module_enabled;
+    const currentCompany = companies.find(c => c.id === currentEntity.id);
+    const isCRMEnabled = currentEntity.type === 'company' && currentCompany?.crm_module_enabled;
+    const isLoyaltyEnabled = currentEntity.type === 'company' && currentCompany?.loyalty_module_enabled;
 
     // Click handlers for cards
     const handleCardClick = (type: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected') => {
