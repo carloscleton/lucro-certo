@@ -23,6 +23,7 @@ import { usePaymentGateways } from '../hooks/usePaymentGateways';
 import { useNotification } from '../context/NotificationContext';
 import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
+import { ContactForm } from '../components/contacts/ContactForm';
 
 export function QuoteForm() {
     const { id } = useParams();
@@ -63,13 +64,8 @@ export function QuoteForm() {
     // Items State
     const [items, setItems] = useState<QuoteItem[]>([]);
 
-    // Quick Client Modal State
+    // Client Modal State
     const [showClientModal, setShowClientModal] = useState(false);
-    const [newClientName, setNewClientName] = useState('');
-    const [newClientPhone, setNewClientPhone] = useState('');
-    const [newClientEmail, setNewClientEmail] = useState('');
-    const [newClientTaxId, setNewClientTaxId] = useState('');
-    const [addingClient, setAddingClient] = useState(false);
 
     const [discount, setDiscount] = useState(0);
     const [discountType, setDiscountType] = useState<'amount' | 'percentage'>('amount');
@@ -540,39 +536,18 @@ export function QuoteForm() {
         return calculateTotal() - calculateTotalExpenses();
     };
 
-    const handleAddClient = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setAddingClient(true);
+    const handleAddClientData = async (data: any) => {
         try {
-            const newClient = await addContact({
-                name: newClientName,
-                phone: newClientPhone,
-                email: newClientEmail,
-                tax_id: newClientTaxId,
-                type: 'client',
-
-                zip_code: '',
-                street: '',
-                number: '',
-                complement: '',
-                neighborhood: '',
-                city: '',
-                state: ''
-            });
-
+            const newClient = await addContact(data);
             if (newClient) {
                 setContactId(newClient.id);
                 setShowClientModal(false);
-                setNewClientName('');
-                setNewClientPhone('');
-                setNewClientEmail('');
-                setNewClientTaxId('');
             }
+            return newClient;
         } catch (error) {
             console.error('Error adding client:', error);
-            alert('Erro ao cadastrar cliente rápido.');
-        } finally {
-            setAddingClient(false);
+            alert('Erro ao cadastrar cliente.');
+            throw error;
         }
     };
 
@@ -1235,66 +1210,13 @@ export function QuoteForm() {
                 </div>
             </form>
 
-            {/* Quick Client Modal */}
-            <Modal
+            {/* Full Client Modal */}
+            <ContactForm
                 isOpen={showClientModal}
                 onClose={() => setShowClientModal(false)}
-                title="Novo Cliente Rápido"
-                subtitle="Cadastre um cliente sem sair do orçamento"
-                icon={Plus}
-                maxWidth="max-w-md"
-            >
-                <form onSubmit={handleAddClient} className="space-y-4">
-                    <Input
-                        label="Nome Completo *"
-                        value={newClientName}
-                        onChange={e => setNewClientName(e.target.value)}
-                        required
-                        autoFocus
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Telefone / WhatsApp"
-                            value={newClientPhone}
-                            onChange={e => {
-                                const value = e.target.value.replace(/\D/g, '');
-                                let formatted = value;
-                                if (value.length <= 11) {
-                                    formatted = value
-                                        .replace(/^(\d{2})/, '($1) ')
-                                        .replace(/(\d{1})(\d{4})/, '$1 $2')
-                                        .replace(/(\d{4})(\d{4})$/, '$1-$2');
-                                }
-                                setNewClientPhone(formatted);
-                            }}
-                            maxLength={16}
-                            placeholder="(84) 9 9999-9999"
-                        />
-                        <Input
-                            label="CPF / CNPJ"
-                            value={newClientTaxId}
-                            onChange={e => setNewClientTaxId(e.target.value)}
-                        />
-                    </div>
-
-                    <Input
-                        label="Email"
-                        type="email"
-                        value={newClientEmail}
-                        onChange={e => setNewClientEmail(e.target.value)}
-                    />
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setShowClientModal(false)}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" isLoading={addingClient} className="bg-emerald-600 hover:bg-emerald-700 px-6">
-                            Salvar e Selecionar
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
+                onSubmit={handleAddClientData}
+                initialData={null}
+            />
         </div>
     );
 }

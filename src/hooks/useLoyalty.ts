@@ -36,7 +36,7 @@ export function useLoyalty() {
     const { currentEntity } = useEntity();
     const [plans, setPlans] = useState<LoyaltyPlan[]>([]);
     const [settings, setSettings] = useState<LoyaltySettings | null>(null);
-    const [stats, setStats] = useState({ activeSubscribers: 0, mrr: 0, overdueCount: 0 });
+    const [stats, setStats] = useState({ activeSubscribers: 0, mrr: 0, overdueCount: 0, trialingCount: 0, canceledCount: 0 });
     const [loading, setLoading] = useState(true);
 
     const fetchStats = async () => {
@@ -52,6 +52,8 @@ export function useLoyalty() {
             if (subs) {
                 const active = subs.filter(s => s.status === 'active');
                 const overdue = subs.filter(s => s.status === 'overdue' || s.status === 'past_due');
+                const trialing = subs.filter(s => s.status === 'trialing');
+                const canceled = subs.filter(s => s.status === 'canceled');
                 
                 const mrr = active.reduce((acc, sub: any) => {
                     const price = sub.plan?.price || 0;
@@ -61,7 +63,9 @@ export function useLoyalty() {
                 setStats({
                     activeSubscribers: active.length,
                     mrr,
-                    overdueCount: overdue.length
+                    overdueCount: overdue.length,
+                    trialingCount: trialing.length,
+                    canceledCount: canceled.length
                 });
             }
         } catch (err) {

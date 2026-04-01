@@ -1064,7 +1064,8 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
                 if (company.owner_phone || company.phone) {
                     const phone = (company.owner_phone || company.phone).replace(/\D/g, '');
                     try {
-                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${whatsappInstance}`, {
+                        const encodedInstance = encodeURIComponent(whatsappInstance);
+                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedInstance}`, {
                             number: phone,
                             text: message
                         }, {
@@ -1093,9 +1094,11 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
     }
 
     try {
-        console.log(`✉️ Enviando mensagem WhatsApp via "${instanceName}" para ${number}...`);
+        const targetName = await resolveTargetName(instanceName);
+        const encodedName = encodeURIComponent(targetName);
+        console.log(`✉️ Enviando mensagem WhatsApp via "${targetName}" para ${number}...`);
 
-        const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
             number: number,
             text: text,
             linkPreview: true
