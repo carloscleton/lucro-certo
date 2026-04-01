@@ -5,7 +5,6 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CurrencyInput } from '../components/ui/CurrencyInput';
 import { TextArea } from '../components/ui/TextArea';
-import { Modal } from '../components/ui/Modal';
 import { useQuotes, type Quote, type QuoteItem } from '../hooks/useQuotes';
 import { useContacts } from '../hooks/useContacts';
 import { useServices } from '../hooks/useServices';
