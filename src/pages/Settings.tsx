@@ -612,7 +612,7 @@ export function Settings() {
                                 <div className="mt-8 mb-4 border-t border-gray-100 dark:border-slate-700 pt-6 flex items-start gap-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                                     <Calculator className="text-purple-600 mt-1" size={24} />
                                     <div>
-                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Opções Regionais</h3>
+                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t('settings.regional_options', 'Opções Regionais')}</h3>
                                         <p className="text-sm text-gray-600 dark:text-gray-300">
                                             Configure a moeda que o sistema utilizará para exibir orçamentos, faturas, contratos e painéis financeiros. (Afeta a exibição para clientes).
                                         </p>
