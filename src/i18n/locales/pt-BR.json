@@ -70,7 +70,7 @@
         "save_error": "Erro ao salvar.",
         "delete_success": "Excluído com sucesso!",
         "delete_error": "Erro ao excluir.",
-        "currency_symbol": "R$"
+        "currency_symbol": "{{symbol}}"
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -291,8 +291,8 @@
         "commission_rate": "Porcentagem de Comissão (%)",
         "subscription_plan": "Plano de Assinatura (Mensalidade e Licença)",
         "subscription_desc": "Controle os valores fixos de mensalidade e licença anual.",
-        "monthly_fee": "Mensalidade (R$ / mês)",
-        "annual_fee": "Licença Anual (R$ / ano)",
+        "monthly_fee": "Mensalidade ({{symbol}} / mês)",
+        "annual_fee": "Licença Anual ({{symbol}} / ano)",
         "license_expiry": "Vencimento da Licença",
         "renew_one_year": "Renovar 1 Ano",
         "module_access_matrix": "Matriz de Acesso aos Módulos",
@@ -487,7 +487,7 @@
         "link_to_quote": "Vincular a Orçamento Aprovado",
         "no_quote": "Nenhum (Lançamento Avulso)",
         "select_client": "Selecione um cliente...",
-        "amount_label": "Valor (R$)",
+        "amount_label": "Valor ({{symbol}})",
         "description_label": "Descrição/Referência",
         "gateway_label": "Gateway de Saída",
         "unified_checkout": "Checkout Único",
@@ -700,7 +700,7 @@
         "plan_name_placeholder": "Ex: Plano Ouro, Assinatura VIP...",
         "plan_desc_label": "Descrição do Plano",
         "plan_desc_placeholder": "Descreva os benefícios do plano...",
-        "price_label": "Valor Mensal (R$)*",
+        "price_label": "Valor Mensal ({{symbol}})*",
         "discount_label": "Desconto em Serviços (%)",
         "discount_help": "Desconto aplicado automaticamente em orçamentos",
         "included_services_label": "Serviços Inclusos / Com Desconto Especial",

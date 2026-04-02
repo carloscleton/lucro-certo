@@ -149,7 +149,14 @@ export function PublicProposal() {
     }
 
     const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(val);
+        const currency = (proposal as any)?.company?.currency || 'BRL';
+        const localeMap: Record<string, string> = { BRL: 'pt-BR', USD: 'en-US', EUR: 'pt-PT', PYG: 'es-PY', ARS: 'es-AR' };
+        const locale = localeMap[currency] || 'pt-BR';
+        
+        return new Intl.NumberFormat(locale, { 
+            style: 'currency', 
+            currency: currency 
+        }).format(val);
     };
 
     return (

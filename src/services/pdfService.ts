@@ -125,10 +125,13 @@ export class PDFService {
         doc.setFont('helvetica', 'normal');
         doc.text(`Ref: ${data.quote.title}`, margin + 6, yPos + 16);
 
+        const locale = window.__CURRENCY_LOCALE__ || 'pt-BR';
+        const currency = window.__CURRENCY_CODE__ || 'BRL';
+
         // Grid com detalhes do orçamento
         doc.setFontSize(8.5);
-        doc.text(`Emissão: ${new Date(data.quote.created_at).toLocaleDateString('pt-BR')}`, pageWidth - margin - 6, yPos + 8, { align: 'right' });
-        doc.text(`Vencimento: ${new Date(data.quote.valid_until).toLocaleDateString('pt-BR')}`, pageWidth - margin - 6, yPos + 13, { align: 'right' });
+        doc.text(`Emissão: ${new Date(data.quote.created_at).toLocaleDateString(locale)}`, pageWidth - margin - 6, yPos + 8, { align: 'right' });
+        doc.text(`Vencimento: ${new Date(data.quote.valid_until).toLocaleDateString(locale)}`, pageWidth - margin - 6, yPos + 13, { align: 'right' });
         doc.setFont('helvetica', 'bold');
         doc.text(`ID: ${data.quote.id.substring(0, 8).toUpperCase()}`, pageWidth - margin - 6, yPos + 18, { align: 'right' });
 
@@ -173,8 +176,8 @@ export class PDFService {
         doc.setFontSize(8.5);
         doc.text('DESCRIÇÃO', margin + 3, yPos + 5.5);
         doc.text('QTD', pageWidth - margin - 50, yPos + 5.5, { align: 'center' });
-        doc.text(`V. UNIT (\${window.__CURRENCY_SYMBOL__ || 'R$'})`, pageWidth - margin - 30, yPos + 5.5, { align: 'center' });
-        doc.text(`TOTAL (\${window.__CURRENCY_SYMBOL__ || 'R$'})`, pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
+        doc.text(`V. UNIT (${window.__CURRENCY_SYMBOL__ || 'R$'})`, pageWidth - margin - 30, yPos + 5.5, { align: 'center' });
+        doc.text(`TOTAL (${window.__CURRENCY_SYMBOL__ || 'R$'})`, pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
 
         yPos += 8;
         doc.setTextColor(textColor[0], textColor[1], textColor[2]);
@@ -200,8 +203,8 @@ export class PDFService {
             const cellHeight = Math.max(8, (descriptionLines.length * 4.5) + 1.5);
 
             doc.text(item.quantity.toString(), pageWidth - margin - 50, yPos + 5, { align: 'center' });
-            doc.text(item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), pageWidth - margin - 30, yPos + 5, { align: 'center' });
-            doc.text(item.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), pageWidth - margin - 3, yPos + 5, { align: 'right' });
+            doc.text(item.unit_price.toLocaleString(locale, { minimumFractionDigits: 2 }), pageWidth - margin - 30, yPos + 5, { align: 'center' });
+            doc.text(item.total_price.toLocaleString(locale, { minimumFractionDigits: 2 }), pageWidth - margin - 3, yPos + 5, { align: 'right' });
             
             yPos += cellHeight;
             doc.setDrawColor(241, 245, 249);
@@ -223,14 +226,14 @@ export class PDFService {
         doc.setFontSize(8.5);
         doc.setTextColor(textColor[0], textColor[1], textColor[2]);
         doc.text('Subtotal:', resumoX + 4, yPos + 6);
-        doc.text(data.subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), pageWidth - margin - 4, yPos + 6, { align: 'right' });
+        doc.text(data.subtotal.toLocaleString(locale, { style: 'currency', currency: currency }), pageWidth - margin - 4, yPos + 6, { align: 'right' });
 
         if (data.quote.discount > 0) {
             yPos += 5;
             doc.setTextColor(185, 28, 28); // Text-red-700
             const discValue = data.quote.discount_type === 'percentage' ? (data.subtotal * data.quote.discount / 100) : data.quote.discount;
             doc.text('Desconto:', resumoX + 4, yPos + 6);
-            doc.text(`- ${discValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, pageWidth - margin - 4, yPos + 6, { align: 'right' });
+            doc.text(`- ${discValue.toLocaleString(locale, { style: 'currency', currency: currency })}`, pageWidth - margin - 4, yPos + 6, { align: 'right' });
             doc.setTextColor(textColor[0], textColor[1], textColor[2]);
         }
 
@@ -238,7 +241,7 @@ export class PDFService {
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.text('TOTAL:', resumoX + 4, yPos + 6);
-        doc.text(data.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), pageWidth - margin - 4, yPos + 6, { align: 'right' });
+        doc.text(data.total.toLocaleString(locale, { style: 'currency', currency: currency }), pageWidth - margin - 4, yPos + 6, { align: 'right' });
 
         yPos += 15;
 
@@ -275,7 +278,7 @@ export class PDFService {
 
         // Rodapé (Pequeno)
         doc.setFontSize(7);
-        doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')}.`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+        doc.text(`Gerado em ${new Date().toLocaleString(locale)}.`, pageWidth / 2, pageHeight - 8, { align: 'center' });
 
         return doc.output('blob');
     }
