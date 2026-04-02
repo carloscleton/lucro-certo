@@ -2514,7 +2514,7 @@ export function Settings() {
                                 </div>
 
                                 <CurrencyInput
-                                    label="Valor da Fatura (R$)"
+                                    label={`Valor da Fatura (${window.__CURRENCY_SYMBOL__ || 'R$'})`}
                                     value={parseFloat(invoiceData.amount) || 0}
                                     onChange={(num) => setInvoiceData({ ...invoiceData, amount: num.toString() })}
                                     placeholder="0,00"

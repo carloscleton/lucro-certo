@@ -214,7 +214,7 @@ export function DealModal({ isOpen, onClose, deal, initialStageId }: DealModalPr
 
                 <div className="grid grid-cols-2 gap-4">
                     <CurrencyInput
-                        label="Valor (R$)"
+                        label={`Valor (${window.__CURRENCY_SYMBOL__ || 'R$'})`}
                         value={value}
                         onChange={(num) => setValue(num)}
                         required

@@ -176,7 +176,7 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
 
                 <div className="grid grid-cols-2 gap-4">
                     <CurrencyInput
-                        label="Preço Unitário (R$) *"
+                        label={`Preço Unitário (${window.__CURRENCY_SYMBOL__ || 'R$'}) *`}
                         value={price}
                         onChange={num => setPrice(num)}
                         required

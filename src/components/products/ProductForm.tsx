@@ -138,7 +138,7 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
 
                 <div className="grid grid-cols-2 gap-4">
                     <CurrencyInput
-                        label="Preço Unitário (R$) *"
+                        label={`Preço Unitário (${window.__CURRENCY_SYMBOL__ || 'R$'}) *`}
                         value={price}
                         onChange={num => setPrice(num)}
                         required
@@ -193,7 +193,7 @@ export function ProductForm({ isOpen, onClose, onSubmit, initialData }: ProductF
                                 </select>
                             </div>
                             <CurrencyInput
-                                label="Preço de Custo (R$)"
+                                label={`Preço de Custo (${window.__CURRENCY_SYMBOL__ || 'R$'})`}
                                 value={costPrice}
                                 onChange={num => setCostPrice(num)}
                                 placeholder="0,00"

@@ -173,8 +173,8 @@ export class PDFService {
         doc.setFontSize(8.5);
         doc.text('DESCRIÇÃO', margin + 3, yPos + 5.5);
         doc.text('QTD', pageWidth - margin - 50, yPos + 5.5, { align: 'center' });
-        doc.text('V. UNIT (R$)', pageWidth - margin - 30, yPos + 5.5, { align: 'center' });
-        doc.text('TOTAL (R$)', pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
+        doc.text(`V. UNIT (\${window.__CURRENCY_SYMBOL__ || 'R$'})`, pageWidth - margin - 30, yPos + 5.5, { align: 'center' });
+        doc.text(`TOTAL (\${window.__CURRENCY_SYMBOL__ || 'R$'})`, pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
 
         yPos += 8;
         doc.setTextColor(textColor[0], textColor[1], textColor[2]);

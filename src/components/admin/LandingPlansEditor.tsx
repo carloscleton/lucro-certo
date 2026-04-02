@@ -301,7 +301,7 @@ export function LandingPlansEditor() {
                         <div className="flex gap-2">
                             <div className="flex-1">
                                 <CurrencyInput
-                                    label="Preço (R$)"
+                                    label={`Preço (${window.__CURRENCY_SYMBOL__ || 'R$'})`}
                                     value={parseFloat(plan.price) || 0}
                                     onChange={(num) => updatePlan(pIdx, 'price', num.toString())}
                                 />

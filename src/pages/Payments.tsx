@@ -418,7 +418,7 @@ export function Payments() {
                                 </select>
                             </div>
                              <CurrencyInput
-                                label="Valor (R$)"
+                                label={`Valor (${window.__CURRENCY_SYMBOL__ || 'R$'})`}
                                 placeholder="0,00"
                                 value={Number(amount)}
                                 onChange={(num: number) => setAmount(num.toString())}

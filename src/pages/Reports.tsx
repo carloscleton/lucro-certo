@@ -315,7 +315,7 @@ export function Reports() {
                                             <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <RechartsTooltip formatter={(value: any) => [`R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Valor']} />
+                                    <RechartsTooltip formatter={(value: any) => [`\${window.__CURRENCY_SYMBOL__ || 'R$'} \${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Valor']} />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -351,7 +351,7 @@ export function Reports() {
                                             <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <RechartsTooltip formatter={(value: any) => [`R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Pendente']} />
+                                    <RechartsTooltip formatter={(value: any) => [`\${window.__CURRENCY_SYMBOL__ || 'R$'} \${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Pendente']} />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -387,7 +387,7 @@ export function Reports() {
                                             <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <RechartsTooltip formatter={(value: any) => [`R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Valor']} />
+                                    <RechartsTooltip formatter={(value: any) => [`\${window.__CURRENCY_SYMBOL__ || 'R$'} \${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Valor']} />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -426,7 +426,7 @@ export function Reports() {
                                             <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <RechartsTooltip formatter={(value: any) => [`R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Valor']} />
+                                    <RechartsTooltip formatter={(value: any) => [`\${window.__CURRENCY_SYMBOL__ || 'R$'} \${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Valor']} />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -462,7 +462,7 @@ export function Reports() {
                                             <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <RechartsTooltip formatter={(value: any) => [`R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Valor']} />
+                                    <RechartsTooltip formatter={(value: any) => [`\${window.__CURRENCY_SYMBOL__ || 'R$'} \${typeof value === 'number' ? value.toFixed(2) : '0.00'}`, 'Valor']} />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>

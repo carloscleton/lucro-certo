@@ -311,7 +311,7 @@ export function Commissions() {
                                 <BarChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                     <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis fontSize={12} tickFormatter={(value) => `R$ ${value}`} tickLine={false} axisLine={false} />
+                                    <YAxis fontSize={12} tickFormatter={(value) => `\${window.__CURRENCY_SYMBOL__ || 'R$'} \${value}`} tickLine={false} axisLine={false} />
                                     <Tooltip formatter={(value: any) => new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value)} />
                                     <Bar dataKey="comissao" fill="#16a34a" name="Recebido" stackId="a" />
                                     <Bar dataKey="previsao" fill="#eab308" name="Pendente" stackId="a" />

@@ -102,13 +102,13 @@ export function SettleModal({ isOpen, onClose, onConfirm, transactionType, trans
 
                     <div className="grid grid-cols-2 gap-3">
                         <CurrencyInput
-                            label="Juros (R$)"
+                            label={`Juros (${window.__CURRENCY_SYMBOL__ || 'R$'})`}
                             value={interest}
                             onChange={num => setInterest(num)}
                             placeholder="0,00"
                         />
                         <CurrencyInput
-                            label="Multa (R$)"
+                            label={`Multa (${window.__CURRENCY_SYMBOL__ || 'R$'})`}
                             value={penalty}
                             onChange={num => setPenalty(num)}
                             placeholder="0,00"

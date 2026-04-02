@@ -130,7 +130,7 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
                     <div className="pt-2">
                         <CurrencyInput
                             label="Meta de Gasto Mensal (Opcional)"
-                            placeholder="R$ 0,00"
+                            placeholder={`\${window.__CURRENCY_SYMBOL__ || 'R$'} 0,00`}
                             value={budgetLimit}
                             onChange={num => setBudgetLimit(num)}
                         />

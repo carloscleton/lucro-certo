@@ -1182,7 +1182,7 @@ export function LeadRadar() {
                                             <div className="flex gap-2">
                                                 <div className="flex-1 min-w-[120px]">
                                                     <CurrencyInput
-                                                        placeholder="Preço (R$)"
+                                                        placeholder=`Preço (\${window.__CURRENCY_SYMBOL__ || 'R$'})`
                                                         value={typeof service.price === 'string' ? parseFloat(service.price) || 0 : service.price}
                                                         onChange={(num) => handleServiceChange(index, 'price', num)}
                                                     />
