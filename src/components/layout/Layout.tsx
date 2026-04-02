@@ -37,6 +37,7 @@ import { OfflineBanner } from '../ui/OfflineBanner';
 import { LanguageSelector } from '../ui/LanguageSelector';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
 import { ProfileCompletionModal } from '../orientation/ProfileCompletionModal';
+import { ExchangeRatesWidget } from '../ui/ExchangeRatesWidget';
 
 export function Layout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -594,6 +595,9 @@ export function Layout() {
                             )}
                         </div>
                         <div className="flex-1" /> {/* Spacer */}
+                        
+                        <ExchangeRatesWidget />
+                        
                         <LanguageSelector />
                         <Tooltip content={t('layout.toggle_theme')}>
                             <button
