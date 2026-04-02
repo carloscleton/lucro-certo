@@ -1,9 +1,11 @@
 import { Award, TrendingUp, Users, AlertTriangle, ArrowRight, Wallet, Clock, XCircle } from 'lucide-react';
 import { useLoyalty } from '../../hooks/useLoyalty';
+import { useCurrency } from '../../hooks/useCurrency';
 import { useNavigate } from 'react-router-dom';
 
 export function LoyaltyStatsWidget() {
     const { stats, settings, loading } = useLoyalty();
+    const { formatCurrency } = useCurrency();
     const navigate = useNavigate();
 
     if (loading) return (
@@ -15,9 +17,6 @@ export function LoyaltyStatsWidget() {
             </div>
         </div>
     );
-
-    const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const platformFee = settings?.platform_fee_percent || 0;
     const netMrr = stats.mrr * (1 - (platformFee / 100));

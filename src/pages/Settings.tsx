@@ -45,6 +45,7 @@ export function Settings() {
     const [commissionRate, setCommissionRate] = useState(0);
     const [serviceCommissionRate, setServiceCommissionRate] = useState(0);
     const [productCommissionRate, setProductCommissionRate] = useState(0);
+    const [currency, setCurrency] = useState('BRL');
     const [autoFinancial, setAutoFinancial] = useState(false);
     const [autoFinancialTime, setAutoFinancialTime] = useState('08:00');
     const [autoFinancialPrompt, setAutoFinancialPrompt] = useState('');
@@ -209,7 +210,10 @@ export function Settings() {
             setAutoOverdueTemplate(settings.automation_overdue_template || '');
             setAutomationWhatsAppNumber(formatPhoneFromDB(settings.automation_whatsapp_number));
         }
-    }, [settings, loading]);
+        if (currentEntity?.currency) {
+            setCurrency(currentEntity.currency);
+        }
+    }, [settings, loading, currentEntity]);
 
     useEffect(() => {
         if (appSettings) {
@@ -241,6 +245,19 @@ export function Settings() {
             automation_overdue_template: autoOverdueTemplate,
             automation_whatsapp_number: cleanPhoneNumber(automationWhatsAppNumber) || undefined
         });
+
+        // Save currency to company if changed
+        if (currentEntity.type === 'company' && currency !== currentEntity.currency) {
+            const { error: currencyError } = await supabase
+                .from('companies')
+                .update({ currency })
+                .eq('id', currentEntity.id);
+            
+            if (!currencyError) {
+                refreshEntity();
+            }
+        }
+
         setSaving(false);
         if (error) {
             alert(t('settings.save_error'));
@@ -589,6 +606,39 @@ export function Settings() {
                                 />
                             </div>
                         </div>
+
+                        {currentEntity.type === 'company' && (
+                            <>
+                                <div className="mt-8 mb-4 border-t border-gray-100 dark:border-slate-700 pt-6 flex items-start gap-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                    <Calculator className="text-purple-600 mt-1" size={24} />
+                                    <div>
+                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Opções Regionais</h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                                            Configure a moeda que o sistema utilizará para exibir orçamentos, faturas, contratos e painéis financeiros. (Afeta a exibição para clientes).
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div className="w-full md:w-1/2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Moeda Principal da Empresa
+                                    </label>
+                                    <select
+                                        value={currency}
+                                        onChange={(e) => setCurrency(e.target.value)}
+                                        className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                                    >
+                                        <option value="BRL">🇧🇷 Real Brasileiro (BRL)</option>
+                                        <option value="USD">🇺🇸 Dólar Americano (USD)</option>
+                                        <option value="EUR">🇪🇺 Euro (EUR)</option>
+                                        <option value="PYG">🇵🇾 Guarani Paraguaio (PYG)</option>
+                                        <option value="ARS">🇦🇷 Peso Argentino (ARS)</option>
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-2">Gateways de pagamento podem ter restrições dependendo da moeda selecionada.</p>
+                                </div>
+                            </>
+                        )}
+                        
                         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex justify-end">
                             <Button onClick={handleSave} isLoading={saving}>
                                 <Save size={18} className="mr-2" />
