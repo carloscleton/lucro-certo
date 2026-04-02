@@ -23,12 +23,10 @@ export const CurrencyConverter: React.FC = () => {
     const [fromAmount, setFromAmount] = useState<number | string>(30);
     const [toAmount, setToAmount] = useState<number | string>(0);
     const [rates, setRates] = useState<Record<string, number>>(INITIAL_RATES);
-    const [loading, setLoading] = useState(false);
 
     // Fetch real rates from AwesomeAPI
     useEffect(() => {
         const fetchAllRates = async () => {
-            setLoading(true);
             try {
                 // We fetch BRL based rates
                 const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,PYG-BRL,ARS-BRL');
@@ -43,8 +41,6 @@ export const CurrencyConverter: React.FC = () => {
                 }
             } catch (err) {
                 console.error('Failed to fetch rates', err);
-            } finally {
-                setLoading(false);
             }
         };
         fetchAllRates();
