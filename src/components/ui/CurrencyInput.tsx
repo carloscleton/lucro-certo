@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from './Input';
 import { formatBRL, parseBRL } from '../../utils/currencyUtils';
+import clsx from 'clsx';
 
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
     value: number;
@@ -64,26 +65,30 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
     };
 
     return (
-        <div className="group relative">
-            <Input 
-                type="text"
-                label={label}
-                error={error}
-                required={required}
-                value={displayValue}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                onChange={handleChange}
-                className={`${className} pr-20 font-bold text-lg h-12 border-2 focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/10`}
-                leftElement={leftElement}
-                placeholder={placeholder || ( (window.__CURRENCY_LOCALE__ || 'pt-BR').startsWith('en') ? "0.00" : "0,00" )}
-                {...props}
-            />
-            <div className="absolute right-3 top-[32px] flex items-center gap-1.5 bg-gray-50 dark:bg-slate-800/50 px-2 py-1 rounded border border-gray-200 dark:border-slate-700 pointer-events-none select-none transition-transform group-focus-within:scale-105">
-                <span className="text-base">{FLAGS[currencyCode] || '💰'}</span>
-                <span className="text-xs font-black text-gray-500 dark:text-gray-400">{currencyCode}</span>
-            </div>
-        </div>
+        <Input 
+            type="text"
+            label={label}
+            error={error}
+            required={required}
+            value={displayValue}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onChange={handleChange}
+            className={clsx(
+                "font-bold text-base h-11",
+                'pr-14',
+                className
+            )}
+            leftElement={leftElement}
+            rightElement={
+                <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded-md border border-gray-200 dark:border-slate-700 select-none">
+                    <span className="text-xs">{FLAGS[currencyCode] || '💰'}</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">{currencyCode}</span>
+                </div>
+            }
+            placeholder={placeholder || ( (window.__CURRENCY_LOCALE__ || 'pt-BR').startsWith('en') ? "0.00" : "0,00" )}
+            {...props}
+        />
     );
 };
 

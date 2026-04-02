@@ -34,7 +34,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                             error && 'border-red-500 focus:ring-red-500 dark:border-red-500',
                             !['password', 'email', 'date', 'number', 'time', 'datetime-local'].includes(props.type || 'text') && !preserveCase && 'uppercase',
                             leftElement && 'pl-10',
-                            rightElement && 'pr-10',
+                            rightElement && 'pr-14',
                             className
                         )}
                         {...props}
