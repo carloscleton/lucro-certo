@@ -41,7 +41,7 @@ export function ExchangeRatesWidget() {
                     {currency === 'USD' ? <span title="Dólar" className="opacity-90 group-hover:opacity-100 transition-opacity">🇺🇸</span> : <span title="Euro" className="opacity-90 group-hover:opacity-100 transition-opacity">🇪🇺</span>}
                     <span className="text-gray-700 dark:text-gray-300 tracking-tight">{currency}</span>
                     <span className="text-gray-400 font-normal">|</span>
-                    <span className="text-gray-900 dark:text-white">{window.__CURRENCY_SYMBOL__ || 'R$'} {value.replace('.', ',')}</span>
+                    <span className="text-gray-900 dark:text-white">{window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`} {value.replace('.', ',')}</span>
                     {isUp ? (
                         <TrendingUp size={12} className="text-emerald-500 ml-0.5" />
                     ) : (

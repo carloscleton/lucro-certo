@@ -1804,7 +1804,7 @@ export function Marketing() {
                   <div className="flex items-center justify-between mb-6 px-2">
                     <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                       {calendarDate
-                        .toLocaleString("pt-BR", {
+                        .toLocaleString(window.__CURRENCY_LOCALE__ || "pt-BR", {
                           month: "long",
                           year: "numeric",
                         })
@@ -2112,7 +2112,7 @@ export function Marketing() {
                 <div className="text-4xl font-black mb-4">
                   {syncingMetrics
                     ? "..."
-                    : `R$ ${metrics?.summary?.total_roi?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "0,00"}`}
+                    : `R$ ${metrics?.summary?.total_roi?.toLocaleString(window.__CURRENCY_LOCALE__ || "pt-BR", { minimumFractionDigits: 2 }) || "0,00"}`}
                 </div>
                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-50 bg-white/10 p-2 rounded-xl border border-white/10">
                   <Target size={14} />

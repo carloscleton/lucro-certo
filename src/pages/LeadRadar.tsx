@@ -638,7 +638,7 @@ export function LeadRadar() {
                     value={stats.converted.toString()}
                     icon={CheckCircle2}
                     color="emerald"
-                    trend={`R$ ${(stats.converted * 125).toLocaleString('pt-BR')},00`}
+                    trend={`R$ ${(stats.converted * 125).toLocaleString(window.__CURRENCY_LOCALE__ || "pt-BR")},00`}
                     active={leadFilter === 'converted'}
                     onClick={() => setLeadFilter('converted')}
                 />
@@ -1182,7 +1182,7 @@ export function LeadRadar() {
                                             <div className="flex gap-2">
                                                 <div className="flex-1 min-w-[120px]">
                                                     <CurrencyInput
-                                                        placeholder=`Preço (\${window.__CURRENCY_SYMBOL__ || 'R$'})`
+                                                        placeholder={`Preço (${window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`})`}
                                                         value={typeof service.price === 'string' ? parseFloat(service.price) || 0 : service.price}
                                                         onChange={(num) => handleServiceChange(index, 'price', num)}
                                                     />

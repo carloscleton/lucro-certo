@@ -262,10 +262,10 @@ export function Commissions() {
                     <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                         {(() => {
                             if (selectedCompanyId === 'all') return '--';
-                            if (selectedCompanyId === 'personal') return `${((settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}%`;
+                            if (selectedCompanyId === 'personal') return `${((settings.service_commission_rate || 0) + (settings.product_commission_rate || 0) + (settings.commission_rate || 0)).toLocaleString(window.__CURRENCY_LOCALE__ || "pt-BR", { minimumFractionDigits: 2 })}%`;
                             const companyDetails = companiesList.find((c: any) => c.id === selectedCompanyId);
                             const s = companyDetails?.settings || {};
-                            return `${((s.service_commission_rate || 0) + (s.product_commission_rate || 0) + (s.commission_rate || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}%`;
+                            return `${((s.service_commission_rate || 0) + (s.product_commission_rate || 0) + (s.commission_rate || 0)).toLocaleString(window.__CURRENCY_LOCALE__ || "pt-BR", { minimumFractionDigits: 2 })}%`;
                         })()}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">Percentual configurado</p>
@@ -311,7 +311,7 @@ export function Commissions() {
                                 <BarChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                     <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis fontSize={12} tickFormatter={(value) => `\${window.__CURRENCY_SYMBOL__ || 'R$'} \${value}`} tickLine={false} axisLine={false} />
+                                    <YAxis fontSize={12} tickFormatter={(value) => `${window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`} ${value}`} tickLine={false} axisLine={false} />
                                     <Tooltip formatter={(value: any) => new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value)} />
                                     <Bar dataKey="comissao" fill="#16a34a" name="Recebido" stackId="a" />
                                     <Bar dataKey="previsao" fill="#eab308" name="Pendente" stackId="a" />

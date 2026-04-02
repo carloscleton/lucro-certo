@@ -113,7 +113,7 @@ export function PlanForm({ isOpen, onClose, onSubmit, initialData }: PlanFormPro
                     </div>
 
                     <CurrencyInput
-                        label={t('loyalty.price_label', 'Valor Mensal (R$)*')}
+                        label={t('loyalty.price_label', 'Valor Mensal (${window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`})*')}
                         value={price}
                         onChange={num => setPrice(num)}
                         required

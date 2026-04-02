@@ -70,7 +70,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
             onChange={handleChange}
             className={className}
             leftElement={leftElement}
-            placeholder={placeholder || "0,00"}
+            placeholder={placeholder || ( (window.__CURRENCY_LOCALE__ || 'pt-BR').startsWith('en') ? "0.00" : "0,00" )}
             {...props}
         />
     );

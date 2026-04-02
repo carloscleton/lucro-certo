@@ -1049,7 +1049,7 @@ export function QuoteForm() {
                                 <tr className="border-b border-gray-200 dark:border-slate-700">
                                     <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[15%]">Data</th>
                                     <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[55%]">Descrição da Despesa</th>
-                                    <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[20%] text-right">Valor (R$)</th>
+                                    <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[20%] text-right">Valor (${window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`})</th>
                                     <th className="py-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-tighter w-[10%]"></th>
                                 </tr>
                             </thead>
@@ -1157,7 +1157,7 @@ export function QuoteForm() {
                                 </div>
                                 <div className="relative">
                                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">
-                                        {discountType === 'amount' ? 'R$' : '%'}
+                                        {discountType === 'amount' ? `${window.__CURRENCY_SYMBOL__ || "R$"}` : '%'}
                                     </span>
                                     {discountType === 'amount' ? (
                                         <CurrencyInput

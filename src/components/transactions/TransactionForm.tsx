@@ -529,7 +529,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             <Input label="Descrição" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Ex: Aluguel..." />
                         </div>
                         <CurrencyInput 
-                            label={`Valor (${window.__CURRENCY_SYMBOL__ || 'R$'})`} 
+                            label={`Valor (${window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`})`} 
                             value={parseBRL(amount)} 
                             onChange={num => setAmount(formatBRL(num))}
                             required 

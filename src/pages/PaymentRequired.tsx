@@ -214,7 +214,7 @@ export function PaymentRequired() {
                                     <div className="mb-4">
                                         <h3 className="text-sm font-black text-slate-900 mb-0.5 tracking-tight">{plan.name}</h3>
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-2xl font-black text-blue-600">{window.__CURRENCY_SYMBOL__ || 'R$'} {plan.price}</span>
+                                            <span className="text-2xl font-black text-blue-600">{window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`} {plan.price}</span>
                                             <span className="text-slate-400 text-[9px] font-bold uppercase">/{plan.period === 'mensal' ? 'mês' : plan.period}</span>
                                         </div>
                                     </div>
@@ -284,7 +284,7 @@ export function PaymentRequired() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-black text-slate-900 tracking-widest uppercase">Total a Pagar</span>
-                                    <span className="text-2xl font-black text-blue-600">{window.__CURRENCY_SYMBOL__ || 'R$'} {selectedPlan?.price || '0'}</span>
+                                    <span className="text-2xl font-black text-blue-600">{window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`} {selectedPlan?.price || '0'}</span>
                                 </div>
                             </div>
 

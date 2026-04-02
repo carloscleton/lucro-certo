@@ -60,7 +60,7 @@ export const FinancialReport = React.forwardRef<HTMLDivElement, FinancialReportP
                         Período: {formatDate(startDate)} até {formatDate(endDate)}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">
-                        Gerado em: {new Date().toLocaleString('pt-BR')}
+                        Gerado em: {new Date().toLocaleString(window.__CURRENCY_LOCALE__ || "pt-BR")}
                     </div>
                 </div>
             </div>
