@@ -64,6 +64,8 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
         }
     };
 
+    const symbol = (window as any).__CURRENCY_SYMBOL__ || 'R$';
+
     return (
         <Input 
             type="text"
@@ -75,15 +77,13 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
             onBlur={handleBlur}
             onChange={handleChange}
             className={clsx(
-                "font-bold text-base h-11",
-                'pr-14',
+                "font-bold text-base h-11 pl-16",
                 className
             )}
-            leftElement={leftElement}
-            rightElement={
-                <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded-md border border-gray-200 dark:border-slate-700 select-none">
-                    <span className="text-xs">{FLAGS[currencyCode] || '💰'}</span>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">{currencyCode}</span>
+            leftElement={
+                <div className="flex items-center gap-1.5 opacity-60 ml-1 select-none pointer-events-none">
+                    <span className="text-base">{FLAGS[currencyCode] || '💰'}</span>
+                    <span className="text-[10px] font-black uppercase tracking-tighter">{currencyCode === 'BRL' ? 'R$' : currencyCode}</span>
                 </div>
             }
             placeholder={placeholder || ( (window.__CURRENCY_LOCALE__ || 'pt-BR').startsWith('en') ? "0.00" : "0,00" )}
