@@ -45,7 +45,7 @@ export function PendingList({ transactions }: PendingListProps) {
                                 </div>
                             </div>
                             <span className="font-bold text-gray-900 dark:text-white">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount)}
+                                {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(t.amount)}
                             </span>
                         </div>
                     );

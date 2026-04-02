@@ -7,7 +7,7 @@ interface ContextSummaryWidgetProps {
 
 export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetProps) {
     const formatCurrency = (value: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
     const { personal, business } = contextMetrics;
 

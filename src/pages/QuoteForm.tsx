@@ -961,7 +961,7 @@ export function QuoteForm() {
                                                             if (originalService && originalService.price > item.unit_price) {
                                                                 return (
                                                                     <div className="text-[10px] text-gray-400 line-through pr-2 mb-0.5" title="Preço original sem plano VIP">
-                                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(originalService.price)}
+                                                                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(originalService.price)}
                                                                     </div>
                                                                 );
                                                             }
@@ -987,7 +987,7 @@ export function QuoteForm() {
                                                         if (originalService && originalService.price > item.unit_price) {
                                                             return (
                                                                 <div className="text-[10px] text-gray-400 line-through pr-1 mb-0.5 font-normal">
-                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * originalService.price)}
+                                                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(item.quantity * originalService.price)}
                                                                 </div>
                                                             );
                                                         }
@@ -995,7 +995,7 @@ export function QuoteForm() {
                                                     })()}
                                                 </div>
                                                 <div className="h-9 flex items-center text-sm">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.quantity * item.unit_price)}
+                                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(item.quantity * item.unit_price)}
                                                 </div>
                                             </div>
                                         </td>
@@ -1134,7 +1134,7 @@ export function QuoteForm() {
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow min-w-[250px] space-y-2">
                         <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
                             <span>Subtotal</span>
-                            <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateSubtotal())}</span>
+                            <span>{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(calculateSubtotal())}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm text-red-500">
                             <span>Desconto</span>
@@ -1179,14 +1179,14 @@ export function QuoteForm() {
                         </div>
                         <div className="flex justify-between items-center text-xl font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-100 dark:border-slate-700">
                             <span>Total</span>
-                            <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateTotal())}</span>
+                            <span>{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(calculateTotal())}</span>
                         </div>
 
                         {id !== 'new' && (
                             <div className="space-y-2 pt-2 animate-in slide-in-from-bottom-2 duration-500">
                                 <div className="flex justify-between items-center text-sm text-gray-400">
                                     <span className="flex items-center gap-1.5 font-bold uppercase tracking-tighter">(-) Total Despesas</span>
-                                    <span className="font-bold">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateTotalExpenses())}</span>
+                                    <span className="font-bold">-{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(calculateTotalExpenses())}</span>
                                 </div>
                                 <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/40 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800">
                                     <div className="flex flex-col">
@@ -1194,7 +1194,7 @@ export function QuoteForm() {
                                         <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">Fórmula: Total - Despesas</span>
                                     </div>
                                     <span className={`text-xl font-black ${calculateProfit() >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 font-black'}`}>
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateProfit())}
+                                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(calculateProfit())}
                                     </span>
                                 </div>
                             </div>

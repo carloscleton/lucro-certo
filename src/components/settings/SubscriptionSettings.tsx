@@ -142,7 +142,7 @@ export function SubscriptionSettings() {
 
                     <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(subscription?.next_billing_value || 97)}
+                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(subscription?.next_billing_value || 97)}
                         </span>
                         <span className="text-gray-500 text-sm">/mês</span>
                     </div>

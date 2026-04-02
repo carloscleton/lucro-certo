@@ -60,10 +60,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
     };
 
     const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(value);
+        return new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
     };
 
     const formatDate = (dateStr: string) => {

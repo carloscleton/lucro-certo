@@ -685,7 +685,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                         ) : (
                                                             <div className="flex flex-col items-center">
                                                                 <span className={`text-xs font-bold mt-0.5 ${isExcluded ? 'text-red-400 line-through' : currentOverride ? 'text-blue-600 dark:text-blue-400' : ''}`}>
-                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}
+                                                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(displayAmount)}
                                                                 </span>
                                                                 <span className={`text-[10px] text-gray-500 ${isExcluded ? 'text-red-300' : currentOverride ? 'text-blue-500' : ''}`}>
                                                                     {formatBrazilianDate(new Date(displayDate + 'T12:00:00'))}

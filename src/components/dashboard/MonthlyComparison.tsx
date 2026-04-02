@@ -18,7 +18,7 @@ export function MonthlyComparison({
     previousMonthLabel,
 }: MonthlyComparisonProps) {
     const formatCurrency = (value: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
     const calcChange = (current: number, previous: number) => {
         if (previous === 0) return current > 0 ? 100 : 0;

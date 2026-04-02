@@ -68,8 +68,8 @@ export function Payments() {
         const activeLinks = charges.filter(c => c.status === 'pending').length;
 
         return [
-            { label: 'Total Recebido', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approved), color: 'emerald', icon: ArrowDownLeft },
-            { label: 'Pendente', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pending), color: 'amber', icon: Clock },
+            { label: 'Total Recebido', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(approved), color: 'emerald', icon: ArrowDownLeft },
+            { label: 'Pendente', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(pending), color: 'amber', icon: Clock },
             { label: 'Links Ativos', value: activeLinks.toString(), color: 'blue', icon: CreditCard },
         ];
     }, [charges]);
@@ -289,7 +289,7 @@ export function Payments() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(charge.amount)}
+                                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(charge.amount)}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${charge.is_sandbox
@@ -594,7 +594,7 @@ export function Payments() {
                     <div className="py-4 text-center space-y-6">
                         <div className="flex flex-col items-center">
                             <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(viewingCharge.amount)}
+                                {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(viewingCharge.amount)}
                             </span>
                             <span className="text-sm text-gray-500 mt-1">{viewingCharge.customer?.name}</span>
                         </div>

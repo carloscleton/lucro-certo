@@ -84,7 +84,7 @@ export function TransactionDetailModal({
         return acc + (t.type === 'income' ? amount : -amount);
     }, 0);
 
-    const subtitle = `${transactions.length} transação(ões) • Total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)}`;
+    const subtitle = `${transactions.length} transação(ões) • Total: ${new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(total)}`;
 
     return (
         <Modal
@@ -155,13 +155,13 @@ export function TransactionDetailModal({
                                                             ? 'text-emerald-600 dark:text-emerald-400'
                                                             : 'text-rose-600 dark:text-rose-400'
                                                             }`}>
-                                                            {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.paid_amount || transaction.amount)}
+                                                            {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.paid_amount || transaction.amount)}
                                                         </p>
                                                         {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
                                                             <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                                                (Orig: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
-                                                                {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.interest || 0)}`}
-                                                                {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.penalty || 0)}`}
+                                                                (Orig: {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.amount)}
+                                                                {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.interest || 0)}`}
+                                                                {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.penalty || 0)}`}
                                                                 )
                                                             </p>
                                                         )}
@@ -203,7 +203,7 @@ export function TransactionDetailModal({
                                                             {category}
                                                         </span>
                                                         <span className="text-gray-900 dark:text-white font-bold">
-                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(amount))}
+                                                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(Math.abs(amount))}
                                                         </span>
                                                     </div>
                                                     <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">

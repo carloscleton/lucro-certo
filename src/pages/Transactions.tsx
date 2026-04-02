@@ -368,7 +368,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     if (error) return <div className="p-8 text-center text-red-500">{t('common.error')}: {error}</div>;
 
     const formatCurrency = (value: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
     // Calculate breakdown by status
     const paidTotal = filteredTransactions

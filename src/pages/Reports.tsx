@@ -541,7 +541,7 @@ export function Reports() {
                                         const paid = payload.find((p: any) => p.dataKey === 'DespesasPagas')?.value || 0;
                                         const payable = payload.find((p: any) => p.dataKey === 'DespesasPendentes')?.value || 0;
                                         const balance = (received + receivable) - (paid + payable);
-                                        const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+                                        const fmt = (v: number) => new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(v);
 
                                         return (
                                             <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-3 shadow-xl min-w-[200px]">

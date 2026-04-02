@@ -167,7 +167,7 @@ export function LoyaltyCheckout() {
                         <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">Total do Investimento</span>
                         <div className="text-right">
                              <div className="text-4xl font-black italic tracking-tighter">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan?.price)}
+                                {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(plan?.price)}
                              </div>
                              <p className="text-slate-500 font-bold text-[10px] uppercase">Por mês • Sem fidelidade</p>
                         </div>

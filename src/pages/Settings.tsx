@@ -2027,7 +2027,7 @@ export function Settings() {
                                     <DollarSign size={20} />
                                 </div>
                                 <div className="text-3xl font-bold">
-                                    {adminLoading ? '...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.total_revenue || 0)}
+                                    {adminLoading ? '...' : new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(stats?.total_revenue || 0)}
                                 </div>
                                 <div className="text-xs mt-2 opacity-80">
                                     Total de vendas (Recebidas)
@@ -2040,7 +2040,7 @@ export function Settings() {
                                     <Wallet size={20} />
                                 </div>
                                 <div className="text-3xl font-bold">
-                                    {adminLoading ? '...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.total_commission || 0)}
+                                    {adminLoading ? '...' : new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(stats?.total_commission || 0)}
                                 </div>
                                 <div className="text-xs mt-2 opacity-80">
                                     Sua receita estimada
@@ -2231,11 +2231,11 @@ export function Settings() {
                                                             <div className="flex flex-col items-center">
                                                                 <div className="flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400">
                                                                     <span className="text-[10px]">M:</span>
-                                                                    <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.settings?.monthly_fee || 0)}</span>
+                                                                    <span>{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(c.settings?.monthly_fee || 0)}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-medium">
                                                                     <span>A:</span>
-                                                                    <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.settings?.annual_fee || 0)}</span>
+                                                                    <span>{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(c.settings?.annual_fee || 0)}</span>
                                                                 </div>
                                                                 {c.license_expires_at && (
                                                                     <div className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold ${getDaysRemaining(c.license_expires_at)! < 0 ? 'bg-red-50 text-red-600 border border-red-100' :
@@ -2257,13 +2257,13 @@ export function Settings() {
                                                         </td>
                                                         <td className="px-2 py-4 text-center">
                                                             <div className="flex flex-col items-center">
-                                                                <span className="font-bold text-gray-900 dark:text-white text-[12px]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.total_revenue || 0)}</span>
+                                                                <span className="font-bold text-gray-900 dark:text-white text-[12px]">{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(c.total_revenue || 0)}</span>
                                                                 <span className="text-[9px] text-gray-500 font-medium tracking-tight whitespace-nowrap">Recebido</span>
                                                             </div>
                                                         </td>
                                                         <td className="px-2 py-4 text-center">
                                                             <div className="flex flex-col items-center gap-0.5">
-                                                                <span className="font-bold text-emerald-600 dark:text-emerald-400 text-[12px]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.commission_earned || 0)}</span>
+                                                                <span className="font-bold text-emerald-600 dark:text-emerald-400 text-[12px]">{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(c.commission_earned || 0)}</span>
                                                                 {c.settings?.commission_rate > 0 && (
                                                                     <span className="text-[9px] text-gray-500 font-medium">{c.settings.commission_rate}% (Geral)</span>
                                                                 )}
@@ -2380,7 +2380,7 @@ export function Settings() {
                                                             <div className="text-[10px] text-gray-400 font-mono">Ref: {chg.external_reference}</div>
                                                         </td>
                                                         <td className="px-5 py-4 text-center font-bold text-gray-900 dark:text-white">
-                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(chg.amount)}
+                                                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(chg.amount)}
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${chg.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' :
@@ -2501,15 +2501,15 @@ export function Settings() {
                                     <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">Detalhamento da Cobrança</div>
                                     <div className="flex justify-between text-xs">
                                         <span className="text-gray-500">Mensalidade Fixa:</span>
-                                        <span className="font-medium text-gray-900 dark:text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyForInvoice.settings?.monthly_fee || 0)}</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(selectedCompanyForInvoice.settings?.monthly_fee || 0)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs">
                                         <span className="text-gray-500">Comissões Acumuladas:</span>
-                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">+{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyForInvoice.commission_earned || 0)}</span>
+                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">+{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(selectedCompanyForInvoice.commission_earned || 0)}</span>
                                     </div>
                                     <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800 flex justify-between text-sm font-bold">
                                         <span className="text-gray-700 dark:text-gray-300">Total Sugerido:</span>
-                                        <span className="text-gray-900 dark:text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedCompanyForInvoice.settings?.monthly_fee || 0) + (selectedCompanyForInvoice.commission_earned || 0))}</span>
+                                        <span className="text-gray-900 dark:text-white">{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format((selectedCompanyForInvoice.settings?.monthly_fee || 0) + (selectedCompanyForInvoice.commission_earned || 0))}</span>
                                     </div>
                                 </div>
 

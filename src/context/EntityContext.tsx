@@ -244,6 +244,14 @@ export function EntityProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(STORAGE_KEY, key || 'personal');
     };
 
+    // Keep global window synced so legacy components can format currency synchronously
+    useEffect(() => {
+        const code = currentEntity.currency || 'BRL';
+        const locales: Record<string, string> = { BRL: 'pt-BR', USD: 'en-US', EUR: 'pt-PT', PYG: 'es-PY', ARS: 'es-AR' };
+        (window as any).__CURRENCY_CODE__ = code;
+        (window as any).__CURRENCY_LOCALE__ = locales[code] || 'pt-BR';
+    }, [currentEntity.currency]);
+
     const entityValue = useMemo(() => ({
         currentEntity,
         availableEntities,

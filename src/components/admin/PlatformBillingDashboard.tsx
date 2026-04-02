@@ -159,7 +159,7 @@ export function PlatformBillingDashboard() {
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Receita Mensal Est.</span>
                     </div>
                     <div className="text-2xl font-black text-gray-900 dark:text-white">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.estimatedRevenue)}
+                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(stats.estimatedRevenue)}
                     </div>
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
                         <ArrowUpRight size={14} />
@@ -542,7 +542,7 @@ export function PlatformBillingDashboard() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-center font-bold text-gray-900 dark:text-white">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.next_billing_value || 97)}
+                                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(c.next_billing_value || 97)}
                                                 </td>
                                                 <td className="px-4 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
@@ -648,7 +648,7 @@ export function PlatformBillingDashboard() {
                                                             {charge.status === 'paid' ? 'Pago' : charge.status === 'pending' ? 'Pendente' : charge.status}
                                                         </span>
                                                         <span className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
-                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(charge.amount || 0)}
+                                                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(charge.amount || 0)}
                                                         </span>
                                                     </div>
                                                     

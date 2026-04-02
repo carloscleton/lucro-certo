@@ -112,7 +112,7 @@ export function AnalyticalLedger({ startDate, endDate, onSelect, onDelete }: Ana
                                     </div>
                                 </div>
                                 <div className={`text-sm font-black ${group.total >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(group.total)}
+                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(group.total)}
                                 </div>
                             </button>
 
@@ -171,7 +171,7 @@ export function AnalyticalLedger({ startDate, endDate, onSelect, onDelete }: Ana
                                                             )}
                                                         </td>
                                                         <td className={`px-3 py-2 text-right font-bold ${item.type === 'expense' ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount)}
+                                                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(item.amount)}
                                                         </td>
                                                         <td className="px-3 py-2 text-center">
                                                             <div className="flex items-center justify-center gap-2">

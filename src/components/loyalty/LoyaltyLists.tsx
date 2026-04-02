@@ -218,21 +218,21 @@ export function SubscriberList() {
                                 <td className="px-6 py-4 text-center">
                                     <p className="font-bold text-gray-900 dark:text-white">
                                         {showFinancials 
-                                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sub.plan?.price || 0)
+                                            ? new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(sub.plan?.price || 0)
                                             : 'R$ ••••'}
                                     </p>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <p className="text-red-500 font-medium text-xs">
                                         {showFinancials 
-                                            ? `-${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((sub.plan?.price || 0) * (platformFee / 100))}`
+                                            ? `-${new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format((sub.plan?.price || 0) * (platformFee / 100))}`
                                             : 'R$ ••'}
                                     </p>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <p className="font-black text-emerald-600 dark:text-emerald-400">
                                         {showFinancials 
-                                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((sub.plan?.price || 0) * (1 - platformFee / 100))
+                                            ? new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format((sub.plan?.price || 0) * (1 - platformFee / 100))
                                             : 'R$ ••••'}
                                     </p>
                                 </td>
@@ -348,7 +348,7 @@ export function ChargeHistory() {
                             </td>
                             <td className="px-6 py-4">
                                 <p className="font-black italic text-gray-900 dark:text-white">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(charge.amount)}
+                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(charge.amount)}
                                 </p>
                             </td>
                             <td className="px-6 py-4">

@@ -19,7 +19,7 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
     }, []);
 
     const formatCurrency = (value: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
     // Project 3 months based on average income/expense
     const today = new Date();

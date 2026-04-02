@@ -8,7 +8,7 @@ interface DashboardCardsProps {
 
 export function DashboardCards({ metrics, onCardClick }: DashboardCardsProps) {
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+        new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(val);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">

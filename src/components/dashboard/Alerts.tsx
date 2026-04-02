@@ -19,7 +19,7 @@ export function Alerts({ alerts }: AlertsProps) {
     const dueSoonTotal = dueSoonAlerts.reduce((acc, a) => acc + a.amount, 0);
 
     const formatCurrency = (value: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return '';

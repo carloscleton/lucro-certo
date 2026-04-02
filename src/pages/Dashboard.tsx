@@ -336,7 +336,7 @@ export function Dashboard() {
                             <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                                 <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.period_result')}</p>
                                 <p className={`text-xl font-bold ${metrics.income - metrics.expense >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metrics.income - metrics.expense)}
+                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(metrics.income - metrics.expense)}
                                 </p>
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 italic">

@@ -34,7 +34,7 @@ export function BudgetProgress({ categories, expenses }: BudgetProgressProps) {
                             <div className="flex justify-between items-end mb-1">
                                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{category.name}</span>
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)} / {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(limit)}
+                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(spent)} / {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(limit)}
                                 </span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5">

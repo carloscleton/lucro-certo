@@ -74,19 +74,19 @@ export function SettleModal({ isOpen, onClose, onConfirm, transactionType, trans
                         </div>
                     ) : (
                         <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                            Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}
+                            Total: {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(totalAmount)}
                         </p>
                     )}
 
                     {isVariableAmount && (
                         <p className="text-2xl font-bold text-gray-900 dark:text-white mt-4 border-t border-gray-200 dark:border-slate-600 pt-2">
-                            Total Final: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}
+                            Total Final: {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(totalAmount)}
                         </p>
                     )}
 
                     {!isVariableAmount && (interestValue > 0 || penaltyValue > 0) && (
                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium italic">
-                            (Original: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transactionAmount)} + Juros/Multa)
+                            (Original: {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transactionAmount)} + Juros/Multa)
                         </p>
                     )}
                 </div>

@@ -26,7 +26,7 @@ export function CRMStatsWidget({ receivedIncome }: CRMStatsWidgetProps) {
     const weightedPipeline = activeDeals.reduce((sum, deal) => sum + (deal.value * (deal.probability / 100)), 0);
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+        new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(val);
 
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">

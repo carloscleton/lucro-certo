@@ -194,10 +194,10 @@ export function QuotePrint() {
                                     </td>
                                     <td className="py-3 text-gray-600 text-center">{item.quantity}</td>
                                     <td className="py-3 text-gray-600 text-right">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.unit_price)}
+                                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(item.unit_price)}
                                     </td>
                                     <td className="py-3 text-gray-800 font-medium text-right">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.total_price)}
+                                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(item.total_price)}
                                     </td>
                                 </tr>
                             ))}
@@ -206,7 +206,7 @@ export function QuotePrint() {
                             <tr>
                                 <td colSpan={3} className="pt-6 text-right text-gray-600 font-medium">Subtotal</td>
                                 <td className="pt-6 text-right text-gray-800 font-medium">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(
                                         quote.discount_type === 'percentage'
                                             ? (quote.total_amount || 0) / (1 - ((quote.discount || 0) / 100))
                                             : (quote.total_amount || 0) + (quote.discount || 0)
@@ -219,7 +219,7 @@ export function QuotePrint() {
                                         Desconto {quote.discount_type === 'percentage' ? `(${quote.discount}%)` : ''}
                                     </td>
                                     <td className="pt-2 text-right text-red-500 font-medium">
-                                        - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                        - {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(
                                             quote.discount_type === 'percentage'
                                                 ? ((quote.total_amount || 0) / (1 - ((quote.discount || 0) / 100))) - (quote.total_amount || 0)
                                                 : quote.discount
@@ -230,7 +230,7 @@ export function QuotePrint() {
                             <tr>
                                 <td colSpan={3} className="pt-2 text-right text-xl font-bold text-gray-900"> TOTAL</td>
                                 <td className="pt-2 text-right text-xl font-bold text-blue-600">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(quote.total_amount)}
+                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(quote.total_amount)}
                                 </td>
                             </tr>
                         </tfoot>

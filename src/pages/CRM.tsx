@@ -271,7 +271,7 @@ export function CRM() {
                                                                             <div className="flex flex-col">
                                                                                 <span className="text-[10px] text-gray-400 uppercase tracking-tighter">Valor</span>
                                                                                 <span className="text-xs font-black text-gray-900 dark:text-white">
-                                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deal.value)}
+                                                                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(deal.value)}
                                                                                 </span>
                                                                             </div>
                                                                             <div className="flex items-center bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">

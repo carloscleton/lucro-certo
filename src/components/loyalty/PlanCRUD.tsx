@@ -189,7 +189,7 @@ interface PlanListProps {
 export function PlanList({ plans, onEdit, onDelete }: PlanListProps) {
     const { t } = useTranslation();
     const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+        return new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(val);
     };
 
     if (plans.length === 0) {

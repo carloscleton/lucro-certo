@@ -274,7 +274,7 @@ export function Commissions() {
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-green-500 print:shadow-none print:border">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('commissions.received_commissions')}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceivedCommission)}
+                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(totalReceivedCommission)}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">{t('commissions.available_withdrawal')}</p>
                 </div>
@@ -284,7 +284,7 @@ export function Commissions() {
                         <div>
                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('commissions.future_commissions')}</p>
                             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPendingCommission)}
+                                {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(totalPendingCommission)}
                             </p>
                             <p className="text-xs text-gray-400 mt-1">{t('commissions.earnings_estimate')}</p>
                         </div>
@@ -295,7 +295,7 @@ export function Commissions() {
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-blue-500 print:shadow-none print:border">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('commissions.total_sales')}</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceivedAmount)}
+                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(totalReceivedAmount)}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">{t('commissions.calculation_base')}</p>
                 </div>
@@ -312,7 +312,7 @@ export function Commissions() {
                                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                     <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
                                     <YAxis fontSize={12} tickFormatter={(value) => `R$ ${value}`} tickLine={false} axisLine={false} />
-                                    <Tooltip formatter={(value: any) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)} />
+                                    <Tooltip formatter={(value: any) => new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value)} />
                                     <Bar dataKey="comissao" fill="#16a34a" name="Recebido" stackId="a" />
                                     <Bar dataKey="previsao" fill="#eab308" name="Pendente" stackId="a" />
                                 </BarChart>
@@ -374,11 +374,11 @@ export function Commissions() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-3 text-right text-gray-600 dark:text-gray-300">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tx.paid_amount || tx.amount)}
+                                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(tx.paid_amount || tx.amount)}
                                         </td>
                                         <td className={`px-6 py-3 text-right font-bold ${tx.status === 'received' ? 'text-green-600' : 'text-yellow-600'
                                             }`}>
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tx.commission_value)}
+                                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(tx.commission_value)}
                                         </td>
                                     </tr>
                                 ))
@@ -388,7 +388,7 @@ export function Commissions() {
                             <tr>
                                 <td colSpan={3} className="px-6 py-3 text-right text-gray-900 dark:text-white uppercase tracking-wider">{t('commissions.total_paid')}</td>
                                 <td colSpan={2} className="px-6 py-3 text-right text-green-600 dark:text-green-400 text-lg">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceivedCommission)}
+                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(totalReceivedCommission)}
                                 </td>
                             </tr>
                         </tfoot>

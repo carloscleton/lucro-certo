@@ -94,7 +94,7 @@ export function ContactHistoryModal({ isOpen, onClose, contactId, contactName }:
     };
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+        new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(val);
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString('pt-BR');

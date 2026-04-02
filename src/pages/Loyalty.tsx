@@ -85,7 +85,7 @@ export function Loyalty() {
                     <CreditCard className="mb-4 text-emerald-500" size={32} />
                     <p className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-1">{t('loyalty.monthly_revenue', 'MRR (Recorrência Mensal)')}</p>
                     <h3 className="text-4xl font-black italic tracking-tighter text-gray-900 dark:text-white">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.mrr)}
+                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(stats.mrr)}
                     </h3>
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-gray-100 dark:border-slate-700 shadow-sm">

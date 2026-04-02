@@ -188,7 +188,7 @@ export function LoyaltyPortal() {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-black tabular-nums">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(charge.amount)}
+                                                {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(charge.amount)}
                                             </p>
                                             {charge.payment_link && (
                                                 <a href={charge.payment_link} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 flex items-center gap-1 justify-end font-bold uppercase tracking-widest">
