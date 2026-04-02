@@ -64,8 +64,6 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
         }
     };
 
-    const symbol = (window as any).__CURRENCY_SYMBOL__ || 'R$';
-
     return (
         <Input 
             type="text"
