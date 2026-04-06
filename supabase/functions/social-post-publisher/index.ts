@@ -187,32 +187,34 @@ _(Ref: Post ${newPost.id})_`;
     const isVideo = post.image_url.toLowerCase().endsWith('.mp4') || post.image_url.toLowerCase().endsWith('.mov');
     const isStory = post.media_type === 'story';
     
-    let mediaUrlParams = new URLSearchParams({
-      access_token: fb_access_token,
-    })
+    // Configurar parâmetros base
+    const params: any = {
+      access_token: fb_access_token
+    };
 
-    // Stories não suportam legendas no Meta Graph API (elas são sobrepostas depois ou ignoradas)
     if (!isStory) {
-      mediaUrlParams.append('caption', post.content || '')
+      params.caption = post.content || '';
     }
 
     if (isVideo) {
-      mediaUrlParams.append('video_url', post.image_url)
-      if (isStory) {
-        mediaUrlParams.append('media_type', 'STORIES')
-      } else {
-        mediaUrlParams.append('media_type', 'REELS')
-      }
+      params.video_url = post.image_url;
+      params.media_type = isStory ? 'STORIES' : 'REELS';
     } else {
-      mediaUrlParams.append('image_url', post.image_url)
+      params.image_url = post.image_url;
       if (isStory) {
-        mediaUrlParams.append('media_type', 'STORIES')
+        params.media_type = 'STORIES';
       }
     }
 
-    const mediaUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media?${mediaUrlParams.toString()}`
+    console.log(`Criando container de mídia (isVideo: ${isVideo}, isStory: ${isStory})...`)
+    
+    const mediaUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media`
+    const mediaRes = await fetch(mediaUrl, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(params).toString()
+    })
 
-    const mediaRes = await fetch(mediaUrl, { method: 'POST' })
     const mediaData = await mediaRes.json()
 
     if (mediaData.error) {
@@ -223,7 +225,7 @@ _(Ref: Post ${newPost.id})_`;
         customError = "A proporção da imagem não é suportada pelo Instagram. \n\nPara o FEED, use imagens quadradas (1:1) ou verticais de até 4:5. \n\nPara REELS/STORY, use 9:16 vertical.";
       }
 
-      throw new Error('Falha ao gerar preview da foto no Meta: ' + customError)
+      throw new Error(`Erro ao preparar mídia no Instagram (${mediaData.error.code}): ${customError}`)
     }
 
     const creationId = mediaData.id
