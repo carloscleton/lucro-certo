@@ -9,7 +9,7 @@ import { Modal } from '../ui/Modal';
 interface SettleModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, baseAmount?: number) => Promise<void>;
+    onConfirm: (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, notes: string, baseAmount?: number) => Promise<void>;
     transactionType: 'expense' | 'income';
     transactionAmount: number;
     transactionDescription: string;
@@ -22,6 +22,7 @@ export function SettleModal({ isOpen, onClose, onConfirm, transactionType, trans
     const [currentAmount, setCurrentAmount] = useState(transactionAmount);
     const [interest, setInterest] = useState(0);
     const [penalty, setPenalty] = useState(0);
+    const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
@@ -41,6 +42,7 @@ export function SettleModal({ isOpen, onClose, onConfirm, transactionType, trans
                 interestValue,
                 penaltyValue,
                 totalAmount,
+                notes,
                 isVariableAmount ? baseAmountValue : undefined
             );
             onClose();
@@ -132,6 +134,18 @@ export function SettleModal({ isOpen, onClose, onConfirm, transactionType, trans
                             <option value="cash">Dinheiro</option>
                             <option value="transfer">Transferência</option>
                         </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Observação (Opcional)
+                        </label>
+                        <textarea
+                            className="flex min-h-[60px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white resize-none"
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="Informações importantes sobre este pagamento..."
+                        />
                     </div>
 
                     <div className="flex justify-end gap-3 mt-4">

@@ -205,7 +205,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
 
     const { updateDeal, stages: crmStages } = useCRM();
 
-    const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, baseAmount?: number) => {
+    const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, notes: string, baseAmount?: number) => {
         if (!settlingTransaction) return;
 
         const newStatus = type === 'expense' ? 'paid' : 'received';
@@ -215,7 +215,8 @@ function TransactionPage({ type, title }: TransactionPageProps) {
             payment_method: paymentMethod || undefined,
             interest,
             penalty,
-            paid_amount: totalAmount
+            paid_amount: totalAmount,
+            notes: notes || undefined
         };
 
         if (baseAmount !== undefined) {
