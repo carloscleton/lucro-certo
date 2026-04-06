@@ -25,7 +25,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
         setIsModalOpen(true);
     };
 
-    const handleConfirmPayment = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, baseAmount?: number) => {
+    const handleConfirmPayment = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, notes: string, baseAmount?: number) => {
         if (!selectedBill) return;
 
         try {
@@ -37,7 +37,8 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                 payment_date: date,
                 interest,
                 penalty,
-                paid_amount: totalAmount
+                paid_amount: totalAmount,
+                notes: notes || undefined
             };
 
             if (baseAmount !== undefined) {

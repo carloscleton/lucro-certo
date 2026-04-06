@@ -293,6 +293,7 @@ export function useQuotes() {
             interest?: number;
             penalty?: number;
             amount: number;
+            notes?: string;
         }
     }) => {
         if (!user) return;
@@ -376,6 +377,7 @@ export function useQuotes() {
                         interest: paymentDetails?.interest,
                         penalty: paymentDetails?.penalty,
                         paid_amount: transactionStatus === 'received' ? paymentDetails?.amount : null,
+                        notes: paymentDetails?.notes,
                         quote_id: quote.id, // Link the transaction to the quote
                         deal_id: quote.deal_id // Link the transaction to the deal if it exists
                     }]);
@@ -451,7 +453,8 @@ export function useQuotes() {
                         method: paymentDetails.method,
                         interest: paymentDetails.interest,
                         penalty: paymentDetails.penalty,
-                        amount: paymentDetails.amount
+                        amount: paymentDetails.amount,
+                        notes: paymentDetails.notes
                     } : null
                 };
 

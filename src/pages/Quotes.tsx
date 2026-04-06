@@ -463,7 +463,7 @@ export function Quotes() {
         setShowSettleModal(true);
     };
 
-    const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number) => {
+    const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, notes: string) => {
         if (!quoteToApprove) return;
 
         if (isSettlingExisting) {
@@ -481,7 +481,7 @@ export function Quotes() {
                     await approveQuote(quoteToApprove.id, {
                         generateTransaction: true,
                         transactionStatus: 'received',
-                        paymentDetails: { date, method: paymentMethod, interest, penalty, amount: totalAmount }
+                        paymentDetails: { date, method: paymentMethod, interest, penalty, amount: totalAmount, notes }
                     });
                 } else {
                     // Update existing transaction to received
@@ -493,7 +493,8 @@ export function Quotes() {
                             payment_method: paymentMethod,
                             interest: interest || null,
                             penalty: penalty || null,
-                            paid_amount: totalAmount
+                            paid_amount: totalAmount,
+                            notes: notes || undefined
                         })
                         .eq('id', existingTx.id);
 
@@ -528,7 +529,7 @@ export function Quotes() {
             await approveQuote(quoteToApprove.id, {
                 generateTransaction: true,
                 transactionStatus: 'received',
-                paymentDetails: { date, method: paymentMethod, interest, penalty, amount: totalAmount }
+                paymentDetails: { date, method: paymentMethod, interest, penalty, amount: totalAmount, notes }
             });
         }
 
