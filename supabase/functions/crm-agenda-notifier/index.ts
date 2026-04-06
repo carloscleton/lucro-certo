@@ -160,3 +160,17 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 })
+
+// Cron Trigger (Deno) - Executa a cada 30 minutos
+if (typeof (Deno as any).cron === 'function') {
+  (Deno as any).cron('CRM Agenda Notifier', '*/30 * * * *', async () => {
+    console.log("CRM Notifier disparado via Deno Cron Engine");
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    await fetch(`${supabaseUrl}/functions/v1/crm-agenda-notifier`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${supabaseServiceKey}` },
+      body: JSON.stringify({})
+    }).catch(e => console.error("Erro via Cron Engine:", e))
+  })
+}
