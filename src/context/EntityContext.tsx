@@ -180,6 +180,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                 trial_ends_at: profile?.settings?.trial_ends_at || (baseCreatedAt ? new Date(new Date(baseCreatedAt).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined),
                 created_at: baseCreatedAt,
                 phone: profile?.phone,
+                currency: profile?.currency || 'BRL',
                 associated_company_id: profile?.company_id
             };
             
