@@ -711,10 +711,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         <label className="text-sm font-medium flex items-center gap-2"><Paperclip className="w-4 h-4" /> Anexo / Comprovante</label>
                         <div className="flex flex-col gap-1.5 mb-3">
                             <label className="text-xs font-semibold text-gray-500 uppercase flex justify-between items-center w-full">
-                                <span>Observações / Documento</span>
+                                <span>Observação</span>
                                 {notes.length > 0 && <button type="button" onClick={() => setShowNotesModal(true)} className="text-emerald-600 font-bold text-[10px]"><Search className="w-3 h-3 inline mr-1" /> LUPA</button>}
                             </label>
-                            <textarea className="flex min-h-[80px] w-full rounded-lg border px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Descrição ou dados extraídos..." />
+                            <textarea className="flex min-h-[80px] w-full rounded-lg border px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Informações importantes sobre este lançamento..." />
                             {(() => {
                                 const pixMarker = notes.match(/>+PIX_DATA<+([\s\S]*?)>+END_PIX<+/);
                                 const barcodeMarker = notes.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
