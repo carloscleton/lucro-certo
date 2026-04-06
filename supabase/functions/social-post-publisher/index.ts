@@ -184,18 +184,28 @@ _(Ref: Post ${newPost.id})_`;
     }
 
     // 1. Criar container de imagem
-    let isVideo = post.image_url.toLowerCase().endsWith('.mp4') || post.image_url.toLowerCase().endsWith('.mov');
+    const isVideo = post.image_url.toLowerCase().endsWith('.mp4') || post.image_url.toLowerCase().endsWith('.mov');
+    const isStory = post.media_type === 'story';
+    
     let mediaUrlParams = new URLSearchParams({
       access_token: fb_access_token,
-      caption: post.content
     })
 
+    // Stories não suportam legendas no Meta Graph API (elas são sobrepostas depois ou ignoradas)
+    if (!isStory) {
+      mediaUrlParams.append('caption', post.content || '')
+    }
+
     if (isVideo) {
-      mediaUrlParams.append('media_type', 'REELS')
       mediaUrlParams.append('video_url', post.image_url)
+      if (isStory) {
+        mediaUrlParams.append('media_type', 'STORIES')
+      } else {
+        mediaUrlParams.append('media_type', 'REELS')
+      }
     } else {
       mediaUrlParams.append('image_url', post.image_url)
-      if (post.media_type === 'story') {
+      if (isStory) {
         mediaUrlParams.append('media_type', 'STORIES')
       }
     }
@@ -218,7 +228,37 @@ _(Ref: Post ${newPost.id})_`;
 
     const creationId = mediaData.id
 
-    // 2. Publicar o post
+    // 2. Aguardar o processamento (IMPORTANTE para vídeos e stories)
+    console.log(`Container criado (${creationId}). Aguardando processamento...`)
+    let ready = false
+    let attempts = 0
+    const maxAttempts = 15 // ~30-40 segundos total
+    
+    while (!ready && attempts < maxAttempts) {
+      await new Promise(r => setTimeout(r, 3000)) // Espera 3 segundos entre checagens
+      attempts++
+      
+      const statusUrl = `https://graph.facebook.com/${API_VERSION}/${creationId}?fields=status_code,status&access_token=${fb_access_token}`
+      const statusRes = await fetch(statusUrl)
+      const statusData = await statusRes.json()
+      
+      console.log(`Status attempt ${attempts}:`, statusData.status_code)
+      
+      if (statusData.status_code === 'FINISHED') {
+        ready = true
+      } else if (statusData.status_code === 'ERROR') {
+        throw new Error('O Meta falhou ao processar sua mídia: ' + (statusData.error_message || 'Erro Interno no Instagram'))
+      } else if (statusData.error) {
+        // Se der erro de permissão ou algo assim, para logo
+        throw new Error('Erro ao checar status no Meta: ' + statusData.error.message)
+      }
+    }
+
+    if (!ready) {
+      throw new Error('A mídia está demorando muito para ser processada pelo Instagram. Por favor, tente publicar novamente em alguns instantes.')
+    }
+
+    // 3. Publicar o post
     const publishUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media_publish?creation_id=${creationId}&access_token=${fb_access_token}`
 
     const publishRes = await fetch(publishUrl, { method: 'POST' })
