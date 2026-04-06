@@ -34,7 +34,7 @@ export function Settings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies } = useCompanies();
     const { createCharge, charges: recentCharges, loading: chargesLoading, fetchCharges: refreshCharges } = useCharges();
-    const { user, profile } = useAuth();
+    const { user, profile, refreshProfile } = useAuth();
 
     const [saving, setSaving] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -259,6 +259,9 @@ export function Settings() {
                     .eq('id', targetId);
                 
                 if (!currencyError) {
+                    if (currentEntity.type === 'personal') {
+                        await refreshProfile();
+                    }
                     refreshEntity();
                 }
             }
