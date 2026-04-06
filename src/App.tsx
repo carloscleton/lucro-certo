@@ -58,11 +58,15 @@ function SessionTimeoutWrapper({ children }: { children: ReactNode }) {
                 Você está inativo há quase 15 minutos. Por segurança, sua sessão será encerrada em breve.
               </p>
               <button 
-                onClick={resetTimer}
+                onClick={() => {
+                  resetTimer();
+                  window.location.href = '/login';
+                }}
                 className="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-lg transition-all shadow-lg shadow-orange-500/20 active:scale-95"
               >
                 CONTINUAR CONECTADO
               </button>
+
             </div>
           </div>
         </div>
@@ -86,7 +90,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!session) return <Navigate to="/" replace />;
+  if (!session) return <Navigate to="/login" replace />;
 
   // Verifica as condições de pagamento
   const status = currentEntity?.subscription_status || '';
