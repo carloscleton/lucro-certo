@@ -29,7 +29,7 @@ export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
                     <p className="text-xs text-gray-500 dark:text-gray-400">Suas próximas tarefas pendentes</p>
                 </div>
                 <button 
-                    onClick={() => navigate('/agenda')}
+                    onClick={() => navigate('/dashboard/agenda')}
                     className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg text-sky-600 transition-colors"
                 >
                     <ArrowRight size={20} />
@@ -54,7 +54,7 @@ export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
                             <div 
                                 key={task.id} 
                                 className="group flex items-start gap-4 p-3 bg-gray-50/50 dark:bg-slate-900/30 rounded-xl border border-gray-100 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
-                                onClick={() => navigate('/agenda')}
+                                onClick={() => navigate('/dashboard/agenda')}
                             >
                                 <div className="mt-1 p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                                     {getTypeIcon(task.task_type)}
@@ -91,12 +91,13 @@ export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
             
             {tasks.length > 0 && (
                 <button 
-                    onClick={() => navigate('/agenda')}
+                    onClick={() => navigate('/dashboard/agenda')}
                     className="w-full mt-4 py-2 text-xs font-bold text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/10 rounded-lg transition-all"
                 >
                     Ver Agenda Completa
                 </button>
             )}
+
         </div>
     );
 }
