@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from './Input';
-import { formatBRL, parseBRL } from '../../utils/currencyUtils';
+import { formatCurrency, parseCurrency } from '../../utils/currencyUtils';
 import clsx from 'clsx';
 
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
@@ -33,33 +33,41 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
     ...props
 }) => {
     const currencyCode = (window as any).__CURRENCY_CODE__ || 'BRL';
-    const [displayValue, setDisplayValue] = useState(formatBRL(value));
+    const [displayValue, setDisplayValue] = useState(formatCurrency(value));
     const [isFocused, setIsFocused] = useState(false);
 
     // Sync with external value changes
     useEffect(() => {
         if (!isFocused) {
-            setDisplayValue(formatBRL(value));
+            setDisplayValue(formatCurrency(value));
         }
     }, [value, isFocused]);
 
     const handleFocus = () => {
         setIsFocused(true);
-        setDisplayValue(value === 0 ? '' : value.toString().replace('.', ','));
+        const locale = (window as any).__CURRENCY_LOCALE__ || 'pt-BR';
+        const separator = locale.startsWith('en') ? '.' : ',';
+        const decimals = currencyCode === 'PYG' ? 0 : 2;
+        setDisplayValue(value === 0 ? '' : value.toFixed(decimals).replace('.', separator));
     };
 
     const handleBlur = () => {
         setIsFocused(false);
-        const numericValue = parseBRL(displayValue);
-        setDisplayValue(formatBRL(numericValue));
+        const numericValue = parseCurrency(displayValue);
+        setDisplayValue(formatCurrency(numericValue));
         onChange(numericValue);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
-        if (/^[0-9,.]*$/.test(val) || val === '') {
+        const locale = (window as any).__CURRENCY_LOCALE__ || 'pt-BR';
+        const separator = locale.startsWith('en') ? '.' : ',';
+        
+        // Allow numeric entry including dynamic separator
+        const regex = new RegExp(`^[0-9${separator}]*$`);
+        if (regex.test(val) || val === '') {
             setDisplayValue(val);
-            const num = parseBRL(val);
+            const num = parseCurrency(val);
             onChange(num);
         }
     };
