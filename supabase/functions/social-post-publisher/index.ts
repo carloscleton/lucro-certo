@@ -234,39 +234,47 @@ _(Ref: Post ${newPost.id})_`;
 
     const creationId = mediaData.id
 
-    // 2. Aguardar o processamento (IMPORTANTE para vídeos e stories)
-    console.log(`Container criado (${creationId}). Aguardando processamento...`)
-    let ready = false
+    // 2. Aguardar o processamento (polling)
+    // O Instagram processa mídias (especialmente Stories e Vídeos) de forma assíncrona.
     let attempts = 0
-    const maxAttempts = 15 // ~30-40 segundos total
+    let ready = false
+    let lastStatus = ''
+
+    console.log(`Iniciando polling para Creation ID: ${creationId}...`)
     
-    while (!ready && attempts < maxAttempts) {
-      await new Promise(r => setTimeout(r, 3000)) // Espera 3 segundos entre checagens
+    // Max 15 attempts * 3s = 45s + 5s respiro = 50s total (Limite Edge Function é 60s)
+    while (attempts < 15 && !ready) {
       attempts++
+      await new Promise(r => setTimeout(r, 3000))
       
-      const statusUrl = `https://graph.facebook.com/${API_VERSION}/${creationId}?fields=status_code,status&access_token=${fb_access_token}`
+      const statusUrl = `https://graph.facebook.com/${API_VERSION}/${creationId}?fields=status_code,status,error&access_token=${fb_access_token}`
       const statusRes = await fetch(statusUrl)
       const statusData = await statusRes.json()
       
-      console.log(`Status attempt ${attempts}:`, statusData.status_code)
-      
-      if (statusData.status_code === 'FINISHED') {
+      lastStatus = statusData.status_code || 'IN_PROGRESS'
+      console.log(`Tentativa ${attempts}: Status = ${lastStatus}`)
+
+      if (statusData.error) {
+        console.error('Erro no polling do Meta:', statusData.error)
+        throw new Error(`Erro de processamento no Instagram: ${statusData.error.message}`)
+      }
+
+      if (lastStatus === 'FINISHED') {
         ready = true
-      } else if (statusData.status_code === 'ERROR') {
-        throw new Error('O Meta falhou ao processar sua mídia: ' + (statusData.error_message || 'Erro Interno no Instagram'))
-      } else if (statusData.error) {
-        // Se der erro de permissão ou algo assim, para logo
-        throw new Error('Erro ao checar status no Meta: ' + statusData.error.message)
+      } else if (lastStatus === 'ERROR') {
+        const errorMsg = statusData.error?.message || statusData.status || 'A mídia foi rejeitada pelo Instagram.'
+        throw new Error(`O Instagram não conseguiu processar esta mídia: ${errorMsg}`)
       }
     }
 
     if (!ready) {
-      throw new Error(`A mídia (Post ${post_id}) está demorando muito para ser processada pelo Instagram. Por favor, tente publicar novamente em alguns instantes.`)
+      throw new Error(`O Instagram ainda está processando (Status: ${lastStatus}). Por favor, aguarde e tente novamente em instantes.`)
     }
 
     // 2.5 Extra Sleep - Meta bug mitigation (Media ID not available even after FINISHED)
-    console.log("Mídia finalizada. Aguardando respiro final (5s) antes de publicar...")
+    console.log("Mídia finalizada com sucesso. Aguardando respiro final (5s)...")
     await new Promise(r => setTimeout(r, 5000))
+
 
     // 3. Publicar o post
     const publishUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media_publish`
