@@ -185,13 +185,17 @@ _(Ref: Post ${newPost.id})_`;
 
     // 1. Criar container de imagem
     const isVideo = post.image_url.toLowerCase().endsWith('.mp4') || post.image_url.toLowerCase().endsWith('.mov');
-    const isStory = post.media_type === 'story';
+    const mediaTypeStr = (post.media_type || 'feed').toLowerCase();
+    const isStory = mediaTypeStr === 'story';
+    const isReels = mediaTypeStr === 'reels';
     
     // Configurar parâmetros base
     const params: any = {
       access_token: fb_access_token
     };
 
+    // Instagram STORIES não aceitam legenda (caption) via API. 
+    // Legendas em stories resultam em erro no processamento interno do Meta.
     if (!isStory) {
       params.caption = post.content || '';
     }
@@ -206,7 +210,7 @@ _(Ref: Post ${newPost.id})_`;
       }
     }
 
-    console.log(`Criando container de mídia (isVideo: ${isVideo}, isStory: ${isStory})...`)
+    console.log(`Criando container de mídia (Type: ${mediaTypeStr}, isVideo: ${isVideo}, isStory: ${isStory})...`)
     
     const mediaUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media`
     const mediaRes = await fetch(mediaUrl, { 
