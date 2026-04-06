@@ -257,19 +257,31 @@ _(Ref: Post ${newPost.id})_`;
     }
 
     if (!ready) {
-      throw new Error('A mídia está demorando muito para ser processada pelo Instagram. Por favor, tente publicar novamente em alguns instantes.')
+      throw new Error(`A mídia (Post ${post_id}) está demorando muito para ser processada pelo Instagram. Por favor, tente publicar novamente em alguns instantes.`)
     }
 
-    // 3. Publicar o post
-    const publishUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media_publish?creation_id=${creationId}&access_token=${fb_access_token}`
+    // 2.5 Extra Sleep - Meta bug mitigation (Media ID not available even after FINISHED)
+    console.log("Mídia finalizada. Aguardando respiro final (5s) antes de publicar...")
+    await new Promise(r => setTimeout(r, 5000))
 
-    const publishRes = await fetch(publishUrl, { method: 'POST' })
+    // 3. Publicar o post
+    const publishUrl = `https://graph.facebook.com/${API_VERSION}/${ig_account_id}/media_publish`
+    const publishRes = await fetch(publishUrl, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        creation_id: creationId,
+        access_token: fb_access_token
+      }).toString()
+    })
+
     const publishData = await publishRes.json()
 
     if (publishData.error) {
       console.error('Erro Meta (publish):', publishData.error)
-      throw new Error('Falha ao publicar a foto no Meta: ' + publishData.error.message)
+      throw new Error(`Falha ao publicar no Instagram (@${ig_account_id}): ${publishData.error.message}`)
     }
+
 
     // 3. Sucesso! Atualizar status do post e salvar o media_id
     await supabase.from('social_posts').update({
