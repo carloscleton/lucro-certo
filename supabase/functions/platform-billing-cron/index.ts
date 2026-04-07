@@ -201,12 +201,19 @@ async function runBillingCycle() {
                 }
             }
 
-            // Auto-update status to past_due if expired
-            if (diffDays < 0 && company.subscription_status === 'active') {
+            // Auto-update status to past_due if expired or trial ended
+            if (diffDays < 0 && (company.subscription_status === 'active' || company.subscription_plan === 'trial')) {
+                const payload: any = { subscription_status: 'past_due' };
+                
+                // If it was a trial, we might want to change plan to something else or just leave as is but past_due
+                // The App.tsx UI check will block based on isTrialExpired OR subscription_status === 'past_due'
+                
                 await supabase
                     .from('companies')
-                    .update({ subscription_status: 'past_due' })
+                    .update(payload)
                     .eq('id', company.id);
+                
+                console.log(`Auto-blocked/Marked past_due: ${company.trade_name}`);
             }
         }
     } catch (err) {

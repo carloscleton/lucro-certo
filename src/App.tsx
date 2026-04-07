@@ -97,11 +97,11 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const plan = currentEntity?.subscription_plan || '';
   const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();
 
-  // Se o ambiente atual for uma empresa e estiver com pendência ou teste expirado
-  if (currentEntity?.type === 'company') {
-    if (['unpaid', 'past_due'].includes(status) || isTrialExpired) {
-      return <Navigate to="/payment-required" replace />;
-    }
+  // Se o ambiente atual estiver com pendência, teste expirado ou bloqueio manual
+  const isBlocked = (currentEntity as any)?.status === 'blocked';
+  
+  if (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked) {
+    return <Navigate to="/payment-required" replace />;
   }
 
   return children;
