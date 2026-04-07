@@ -103,15 +103,15 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   // Is Admin? (Admin doesn't get blocked)
   const isAdmin = profile?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
   
-  // Verifica se é uma conta pessoal antiga sem plano definido
-  const isOldAccountWithoutPlan = !plan && currentEntity.type === 'personal' && currentEntity.created_at && (
-    (new Date().getTime() - new Date(currentEntity.created_at).getTime()) > 7 * 24 * 60 * 60 * 1000
-  );
+  // Verifica se é uma conta pessoal antiga sem plano definido (Desativado o bloqueio total para evitar problemas com empresas de Cortesia)
+  // const isOldAccountWithoutPlan = !plan && currentEntity.type === 'personal' && currentEntity.created_at && (
+  //   (new Date().getTime() - new Date(currentEntity.created_at).getTime()) > 7 * 24 * 60 * 60 * 1000
+  // );
   
   // Is Exempt (Cortesia)?
   const isExempt = currentEntity.settings?.billing_exempt === true;
   
-  if (!isAdmin && !isExempt && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked || isOldAccountWithoutPlan)) {
+  if (!isAdmin && !isExempt && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked)) {
     return <Navigate to="/payment-required" replace />;
   }
 
