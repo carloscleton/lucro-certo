@@ -14,6 +14,7 @@ export function SubscriberList() {
     const [showFinancials, setShowFinancials] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
+    const [selectedSub, setSelectedSub] = useState<any>(null);
 
     useEffect(() => {
         async function fetchSubscribers() {
@@ -262,7 +263,10 @@ export function SubscriberList() {
                                     </p>
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all">
+                                    <button 
+                                        onClick={() => setSelectedSub(sub)}
+                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"
+                                    >
                                         <ChevronRight size={18} />
                                     </button>
                                 </td>
@@ -276,6 +280,112 @@ export function SubscriberList() {
                     </div>
                 )}
             </div>
+
+            {/* Subscriber Details Modal */}
+            {selectedSub && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-[32px] w-full max-w-lg shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden animate-in zoom-in duration-300">
+                        <div className="p-8 border-b border-gray-50 dark:border-slate-700/50 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center font-black text-xl">
+                                    {selectedSub.contact?.name?.[0]}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black text-gray-900 dark:text-white leading-tight">{selectedSub.contact?.name}</h2>
+                                    <p className="text-sm text-gray-500 font-medium lowercase italic">{selectedSub.contact?.email}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedSub(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                <Search size={24} className="rotate-45" /> {/* Just using search + rotate for X as a hack if X is not here, oh wait X is available */}
+                                <XCircle size={24} className="text-gray-400" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-8 space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-gray-50 dark:bg-slate-900/40 rounded-2xl border border-gray-100 dark:border-slate-700">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Plano Atual</p>
+                                    <p className="font-bold text-gray-900 dark:text-white">{selectedSub.plan?.name}</p>
+                                    <p className="text-xs text-blue-600 font-bold">{new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(selectedSub.plan?.price || 0)}/mês</p>
+                                </div>
+                                <div className="p-4 bg-gray-50 dark:bg-slate-900/40 rounded-2xl border border-gray-100 dark:border-slate-700">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Status</p>
+                                    <div className="mt-1">
+                                        {(() => {
+                                            const status = getEffectiveStatus(selectedSub);
+                                            return (
+                                                <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${
+                                                    status === 'active' ? 'bg-emerald-100 text-emerald-600' : 
+                                                    status === 'past_due' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                                                }`}>
+                                                    {status === 'active' ? 'Ativo' : status === 'past_due' ? 'Em Atraso' : 'Cancelado'}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">Ações Rápidas</h4>
+                                <div className="grid grid-cols-1 gap-3">
+                                    <button 
+                                        className="w-full p-4 flex items-center justify-between bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-2xl transition-all group"
+                                        onClick={() => {
+                                            // Redirect or Filter could go here
+                                            alert("Em breve: Visualização de extrato detalhado para este assinante.");
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-white rounded-xl shadow-sm"><CreditCard size={18} /></div>
+                                            <span className="font-bold">Ver Histórico de Pagamentos</span>
+                                        </div>
+                                        <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    </button>
+
+                                    {selectedSub.status !== 'canceled' && (
+                                        <button 
+                                            className="w-full p-4 flex items-center justify-between bg-red-50 hover:bg-red-100 text-red-700 rounded-2xl transition-all group"
+                                            onClick={async () => {
+                                                if (confirm("Deseja realmente CANCELAR esta assinatura? O cliente não será mais cobrado automaticamente.")) {
+                                                    try {
+                                                        const { error } = await supabase
+                                                            .from('loyalty_subscriptions')
+                                                            .update({ status: 'canceled', updated_at: new Date().toISOString() })
+                                                            .eq('id', selectedSub.id);
+                                                        
+                                                        if (error) throw error;
+                                                        setSubscribers(prev => prev.map(s => s.id === selectedSub.id ? { ...s, status: 'canceled' } : s));
+                                                        setSelectedSub(null);
+                                                        alert("Assinatura cancelada com sucesso.");
+                                                    } catch (err: any) {
+                                                        alert("Erro ao cancelar: " + err.message);
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-white rounded-xl shadow-sm"><XCircle size={18} /></div>
+                                                <span className="font-bold">Cancelar Assinatura</span>
+                                            </div>
+                                            <XCircle size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 bg-gray-50/50 dark:bg-slate-900/50 flex justify-center">
+                            <button 
+                                onClick={() => setSelectedSub(null)}
+                                className="text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors"
+                            >
+                                Fechar Detalhes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
