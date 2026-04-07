@@ -2250,13 +2250,27 @@ export function Settings() {
                                                                         Expira {new Date(c.license_expires_at).toLocaleDateString('pt-BR')}
                                                                     </div>
                                                                 )}
-                                                                <div className="mt-1">
+                                                                <div className="mt-1 flex flex-col items-center gap-1">
                                                                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${c.subscription_status === 'active' ? 'bg-green-50 text-green-600' :
                                                                         c.subscription_status === 'past_due' ? 'bg-red-50 text-red-600' :
                                                                             'bg-gray-50 text-gray-600'
                                                                         }`}>
                                                                         {c.subscription_status?.toUpperCase() || 'Pendente'}
                                                                     </span>
+                                                                    {(() => {
+                                                                        const isTrial = c.subscription_plan === 'trial' || c.settings?.subscription_plan === 'trial';
+                                                                        const isExpired = isTrial && c.trial_ends_at && new Date(c.trial_ends_at) < new Date();
+                                                                        const isBlocked = c.status === 'blocked';
+                                                                        
+                                                                        if (isBlocked || isExpired) {
+                                                                            return (
+                                                                                <span className="px-2 py-0.5 rounded-full text-[8px] font-black bg-red-600 text-white uppercase animate-pulse">
+                                                                                    {isBlocked ? 'Bloqueada' : 'Expirada'}
+                                                                                </span>
+                                                                            );
+                                                                        }
+                                                                        return null;
+                                                                    })()}
                                                                 </div>
                                                             </div>
                                                         </td>
