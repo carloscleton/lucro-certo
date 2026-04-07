@@ -122,11 +122,15 @@ serve(async (req) => {
             const { default: Stripe } = await import('https://esm.sh/stripe@13.10.0?target=deno')
             const stripe = new Stripe(secretKey, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() })
 
+            // Use currency from body or fallback to 'brl'
+            const { currency: bodyCurrency } = await req.clone().json();
+            const currency = (bodyCurrency || 'brl').toLowerCase();
+
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ['card'],
                 line_items: [{
                     price_data: {
-                        currency: 'brl',
+                        currency: currency,
                         product_data: { name: `Assinatura Plano ${plan_name}` },
                         unit_amount: Math.round(numericPrice * 100),
                     },

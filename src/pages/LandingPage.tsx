@@ -165,6 +165,8 @@ export function LandingPage() {
     const isUnpaid = ['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '') || isTrialExpired;
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [landingPlans, setLandingPlans] = useState<any[]>(DEFAULT_PLANS);
+    const [selectedCurrency, setSelectedCurrency] = useState('BRL');
+    const [currencySymbol, setCurrencySymbol] = useState('R$');
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -198,6 +200,12 @@ export function LandingPage() {
         window.scrollTo(0, 0);
     }, []);
 
+    const updateCurrency = (code: string) => {
+        setSelectedCurrency(code);
+        const symbols: Record<string, string> = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': 'Gs.' };
+        setCurrencySymbol(symbols[code] || '$');
+    };
+
     const handleDynamicCheckout = async (plan: any) => {
         if (plan.checkout_url) {
             window.open(plan.checkout_url, '_blank');
@@ -205,7 +213,7 @@ export function LandingPage() {
         }
 
         // Option 2: Redirect to signup with plan details, allowing them to register first
-        navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}`);
+        navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}&currency=${selectedCurrency}`);
     };
 
     return (
@@ -224,6 +232,18 @@ export function LandingPage() {
                     <a href="#features" className="nav-link">Funcionalidades</a>
                     <a href="#ai" className="nav-link">Inteligência Artificial</a>
                     {landingPlans.length > 0 && <a href="#pricing" className="nav-link">Planos</a>}
+                    
+                    <div className="flex items-center gap-1 bg-white/10 p-1 rounded-lg backdrop-blur-md border border-white/20 ml-4">
+                        {['BRL', 'USD', 'EUR', 'PYG'].map(code => (
+                            <button
+                                key={code}
+                                onClick={() => updateCurrency(code)}
+                                className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${selectedCurrency === code ? 'bg-white text-blue-600 shadow-sm' : 'text-white/60 hover:text-white'}`}
+                            >
+                                {code}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     {session ? (
@@ -563,7 +583,7 @@ export function LandingPage() {
                             <div key={idx} className={`pricing-card ${plan.is_popular ? 'popular' : ''}`}>
                                 {plan.is_popular && <div className="popular-badge">Mais Popular</div>}
                                 <h3>{plan.name}</h3>
-                                <div className="price">{window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`} {plan.price}<span>/{plan.period}</span></div>
+                                <div className="price">{currencySymbol} {plan.price}<span>/{plan.period}</span></div>
                                 {plan.observation && (
                                     <div className="text-sm font-medium mb-4 px-2" style={{ color: "var(--primary-color, #2563eb)", marginTop: "-10px" }}>
                                         {plan.observation}

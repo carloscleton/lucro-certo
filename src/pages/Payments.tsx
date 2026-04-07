@@ -50,6 +50,10 @@ export function Payments() {
     const [selectedMethods, setSelectedMethods] = useState<string[]>(['pix', 'credit_card', 'boleto']);
     const [result, setResult] = useState<any>(null);
     const [viewingCharge, setViewingCharge] = useState<any>(null);
+    const [showConverter, setShowConverter] = useState(false);
+    const [convValue, setConvValue] = useState('');
+    const [convRate, setConvRate] = useState('1.00');
+    const [selectedCurrency, setSelectedCurrency] = useState('BRL');
 
     const activeGateways = gateways.filter(g => g.is_active);
     const approvedQuotes = useMemo(() => {
@@ -115,6 +119,7 @@ export function Payments() {
                         provider: 'unified',
                         amount: Number(amount),
                         description,
+                        currency: selectedCurrency,
                         external_reference: `VINX_${Date.now()}`,
                         payment_method: selectedMethods.length === 3 ? 'all' : selectedMethods.join(','),
                         status: 'pending',
@@ -146,6 +151,7 @@ export function Payments() {
                     payload: {
                         amount: Number(amount),
                         description,
+                        currency: selectedCurrency,
                         payment_method: selectedMethod as any,
                         customer: {
                             name: contact.name,
@@ -197,6 +203,7 @@ export function Payments() {
         setDescription('');
         setSelectedProvider(activeGateways[0]?.provider || 'unified');
         setSelectedMethods(['pix', 'credit_card', 'boleto']);
+        setSelectedCurrency('BRL');
         setResult(null);
         setViewingCharge(null);
         setIsModalOpen(false);
@@ -209,6 +216,7 @@ export function Payments() {
             setAmount(quote.total_amount.toString());
             setDescription(`Orçamento #${quote.quote_number || quote.id.slice(0, 8)}: ${quote.title}`);
             setSelectedContactId(quote.contact_id || '');
+            if (quote.currency) setSelectedCurrency(quote.currency);
         }
     };
 
@@ -289,7 +297,11 @@ export function Payments() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(charge.amount)}
+                                            {(() => {
+                                                const currencyCode = charge.currency || 'BRL';
+                                                const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : 'pt-BR'));
+                                                return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(charge.amount);
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${charge.is_sandbox
@@ -403,7 +415,7 @@ export function Payments() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cliente</label>
                                 <select
@@ -417,8 +429,22 @@ export function Payments() {
                                     ))}
                                 </select>
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Moeda</label>
+                                <select
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-slate-700 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                                    value={selectedCurrency}
+                                    onChange={(e) => setSelectedCurrency(e.target.value)}
+                                >
+                                    <option value="BRL">Real (R$)</option>
+                                    <option value="USD">Dólar ($)</option>
+                                    <option value="EUR">Euro (€)</option>
+                                    <option value="PYG">Guarani (Gs.)</option>
+                                    <option value="ARS">Peso Arg ($)</option>
+                                </select>
+                            </div>
                              <CurrencyInput
-                                label={`Valor (${window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`})`}
+                                label={`Valor (${selectedCurrency})`}
                                 placeholder="0,00"
                                 value={Number(amount)}
                                 onChange={(num: number) => setAmount(num.toString())}
@@ -431,6 +457,67 @@ export function Payments() {
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                         />
+
+                        {/* Conversor de Moeda Helper */}
+                        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                    <Smartphone size={14} />
+                                    Conversor de Moeda (Opcional)
+                                </label>
+                                <button 
+                                    type="button"
+                                    onClick={() => {
+                                        setShowConverter(!showConverter);
+                                        if (!showConverter) {
+                                            setConvValue(amount);
+                                            setConvRate('5.00');
+                                        }
+                                    }}
+                                    className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 underline"
+                                >
+                                    {showConverter ? 'Esconder Conversor' : 'Usar Conversor'}
+                                </button>
+                            </div>
+
+                            {showConverter && (
+                                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-gray-500 mb-1">Valor Original</label>
+                                        <input
+                                            type="number"
+                                            value={convValue}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setConvValue(val);
+                                                const calculated = parseFloat(val) * parseFloat(convRate || '0');
+                                                if (!isNaN(calculated)) setAmount(calculated.toFixed(2));
+                                            }}
+                                            className="w-full bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 rounded-lg p-2 text-xs"
+                                            placeholder="Ex: 100.00"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-gray-500 mb-1">Taxa de Câmbio</label>
+                                        <input
+                                            type="number"
+                                            value={convRate}
+                                            onChange={(e) => {
+                                                const rate = e.target.value;
+                                                setConvRate(rate);
+                                                const calculated = parseFloat(convValue || '0') * parseFloat(rate);
+                                                if (!isNaN(calculated)) setAmount(calculated.toFixed(2));
+                                            }}
+                                            className="w-full bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 rounded-lg p-2 text-xs"
+                                            placeholder="Ex: 5.20"
+                                        />
+                                    </div>
+                                    <div className="col-span-2 text-[10px] text-slate-400 italic">
+                                        Obs: O valor final em Real ({window.__CURRENCY_SYMBOL__ || 'R$'}) será atualizado automaticamente acima.
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="p-4 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-700">
                             <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Gateway de Saída</label>
@@ -594,7 +681,11 @@ export function Payments() {
                     <div className="py-4 text-center space-y-6">
                         <div className="flex flex-col items-center">
                             <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                                {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(viewingCharge.amount)}
+                                {(() => {
+                                    const currencyCode = viewingCharge.currency || 'BRL';
+                                    const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : 'pt-BR'));
+                                    return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(viewingCharge.amount);
+                                })()}
                             </span>
                             <span className="text-sm text-gray-500 mt-1">{viewingCharge.customer?.name}</span>
                         </div>

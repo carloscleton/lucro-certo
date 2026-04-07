@@ -287,7 +287,7 @@ serve(async (req) => {
                 payment_method_types: ['card'],
                 line_items: [{
                     price_data: {
-                        currency: 'brl',
+                        currency: (company.currency || 'brl').toLowerCase(),
                         product_data: { name: `Assinatura Lucro Certo - ${company.trade_name}` },
                         unit_amount: Math.round(amount * 100),
                     },

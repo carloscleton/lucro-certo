@@ -17,6 +17,8 @@ export function PaymentRequired() {
     const [phoneStr, setPhoneStr] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [phoneError, setPhoneError] = useState('');
+    const [selectedCurrency, setSelectedCurrency] = useState('BRL');
+    const [currencySymbol, setCurrencySymbol] = useState('R$');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -73,6 +75,12 @@ export function PaymentRequired() {
         return numbers.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').substring(0, 15);
     };
 
+    const updateCurrency = (code: string) => {
+        setSelectedCurrency(code);
+        const symbols: Record<string, string> = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': 'Gs.' };
+        setCurrencySymbol(symbols[code] || '$');
+    };
+
     const handlePayment = async () => {
         if (!selectedPlan) {
             alert('Por favor, selecione um plano.');
@@ -124,7 +132,8 @@ export function PaymentRequired() {
                 .update({ 
                     [isCnpj ? 'cnpj' : 'cpf']: cleanDoc, // Use CPF column if it's 11 digits
                     phone: cleanPhone,
-                    subscription_plan: selectedPlan.name
+                    subscription_plan: selectedPlan.name,
+                    currency: selectedCurrency
                 })
                 .eq('id', targetId);
             
@@ -142,7 +151,8 @@ export function PaymentRequired() {
                 },
                 body: JSON.stringify({
                     company_id: targetId,
-                    access_token: session?.access_token
+                    access_token: session?.access_token,
+                    currency: selectedCurrency
                 })
             });
 
@@ -189,6 +199,20 @@ export function PaymentRequired() {
                     <p className="text-slate-500 text-[12px] md:text-sm max-w-lg mx-auto font-medium">
                         Escolha o plano ideal e libere o poder completo do seu sistema financeiro.
                     </p>
+
+                    <div className="flex justify-center mt-6">
+                        <div className="inline-flex items-center gap-1 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200">
+                            {['BRL', 'USD', 'EUR', 'PYG'].map(code => (
+                                <button
+                                    key={code}
+                                    onClick={() => updateCurrency(code)}
+                                    className={`px-4 py-2 text-[10px] font-black rounded-xl transition-all ${selectedCurrency === code ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-400 hover:bg-slate-50'}`}
+                                >
+                                    {code}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
@@ -214,7 +238,7 @@ export function PaymentRequired() {
                                     <div className="mb-4">
                                         <h3 className="text-sm font-black text-slate-900 mb-0.5 tracking-tight">{plan.name}</h3>
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-2xl font-black text-blue-600">{window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`} {plan.price}</span>
+                                            <span className="text-2xl font-black text-blue-600">{currencySymbol} {plan.price}</span>
                                             <span className="text-slate-400 text-[9px] font-bold uppercase">/{plan.period === 'mensal' ? 'mês' : plan.period}</span>
                                         </div>
                                     </div>
@@ -284,7 +308,7 @@ export function PaymentRequired() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-black text-slate-900 tracking-widest uppercase">Total a Pagar</span>
-                                    <span className="text-2xl font-black text-blue-600">{window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`} {selectedPlan?.price || '0'}</span>
+                                    <span className="text-2xl font-black text-blue-600">{currencySymbol} {selectedPlan?.price || '0'}</span>
                                 </div>
                             </div>
 

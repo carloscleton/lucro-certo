@@ -55,6 +55,7 @@ export interface Quote {
     negotiation_notes?: string | null;
     created_at: string;
     items?: QuoteItem[];
+    currency?: string;
     nfe_id?: string;
     nfe_status?: string;
     nfe_pdf_url?: string;

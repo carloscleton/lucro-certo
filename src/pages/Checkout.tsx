@@ -180,7 +180,11 @@ export function Checkout() {
                             <div className="space-y-6">
                                 <div>
                                     <span className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                        {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(charge.amount)}
+                                        {(() => {
+                                            const currencyCode = charge.currency || window.__CURRENCY_CODE__ || 'BRL';
+                                            const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : 'pt-BR'));
+                                            return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(charge.amount);
+                                        })()}
                                     </span>
                                 </div>
 

@@ -20,6 +20,7 @@ export interface Charge {
     qr_code_base64?: string;
     is_sandbox: boolean;
     quote_id?: string;
+    currency?: string;
     paid_at?: string;
     created_at: string;
     customer?: {
@@ -71,6 +72,7 @@ export function useCharges() {
         payload: {
             amount: number,
             description: string,
+            currency?: string,
             customer: {
                 name: string,
                 email: string,

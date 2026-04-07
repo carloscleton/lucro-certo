@@ -29,7 +29,7 @@ export class StripeAdapter implements PaymentAdapter {
                 payment_method_types: methodTypes,
                 line_items: [{
                     price_data: {
-                        currency: 'brl',
+                        currency: (request.currency || 'brl').toLowerCase(),
                         product_data: {
                             name: request.description,
                         },

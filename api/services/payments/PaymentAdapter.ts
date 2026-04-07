@@ -28,6 +28,7 @@ export interface ChargeRequest {
     };
 
     notification_url?: string;
+    currency: string;
     payment_method?: 'pix' | 'boleto' | 'credit_card' | 'debit_card' | 'all';
 }
 
