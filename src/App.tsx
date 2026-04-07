@@ -108,7 +108,10 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     (new Date().getTime() - new Date(currentEntity.created_at).getTime()) > 7 * 24 * 60 * 60 * 1000
   );
   
-  if (!isAdmin && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked || isOldAccountWithoutPlan)) {
+  // Is Exempt (Cortesia)?
+  const isExempt = currentEntity.settings?.billing_exempt === true;
+  
+  if (!isAdmin && !isExempt && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked || isOldAccountWithoutPlan)) {
     return <Navigate to="/payment-required" replace />;
   }
 
