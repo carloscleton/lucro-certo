@@ -76,7 +76,7 @@ function SessionTimeoutWrapper({ children }: { children: ReactNode }) {
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { session, loading: authLoading } = useAuth();
+  const { session, profile, loading: authLoading } = useAuth();
   const { currentEntity, isLoading: entityLoading } = useEntity();
 
   if (authLoading || entityLoading) {
@@ -100,7 +100,15 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   // Se o ambiente atual estiver com pendência, teste expirado ou bloqueio manual
   const isBlocked = (currentEntity as any)?.status === 'blocked';
   
-  if (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked) {
+  // Is Admin? (Admin doesn't get blocked)
+  const isAdmin = profile?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
+  
+  // Verifica se é uma conta pessoal antiga sem plano definido
+  const isOldAccountWithoutPlan = !plan && currentEntity.type === 'personal' && currentEntity.created_at && (
+    (new Date().getTime() - new Date(currentEntity.created_at).getTime()) > 7 * 24 * 60 * 60 * 1000
+  );
+  
+  if (!isAdmin && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked || isOldAccountWithoutPlan)) {
     return <Navigate to="/payment-required" replace />;
   }
 
