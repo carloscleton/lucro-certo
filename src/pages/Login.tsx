@@ -598,8 +598,12 @@ export function Login() {
 
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Ambiente de Gestão</label>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Moeda</label>
+                                        <Tooltip content="Escolha se usará o sistema para Pessoa Física (PF), Jurídica (PJ) ou ambos. Você poderá alternar livremente lá dentro." position="top">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 cursor-help border-b border-dashed border-gray-300 dark:border-gray-600">Ambiente de Gestão</label>
+                                        </Tooltip>
+                                        <Tooltip content="Escolha em qual moeda suas transações financeiras serão registradas e exibidas no sistema." position="top">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 cursor-help border-b border-dashed border-gray-300 dark:border-gray-600">Moeda Base</label>
+                                        </Tooltip>
                                     </div>
                                     <div className="flex gap-2">
                                         <div className="flex-1 grid grid-cols-3 gap-1">
@@ -666,7 +670,7 @@ export function Login() {
                                 />
 
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-4">
                                     <Input
                                         label="Email"
                                         type="email"
