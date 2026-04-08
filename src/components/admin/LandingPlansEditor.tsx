@@ -141,6 +141,14 @@ export function LandingPlansEditor() {
         setPlans(newPlans);
     };
 
+    const handleReorder = (fromIndex: number, toIndex: number) => {
+        if (isNaN(toIndex) || toIndex < 0 || toIndex >= plans.length || fromIndex === toIndex) return;
+        const newPlans = [...plans];
+        const [movedPlan] = newPlans.splice(fromIndex, 1);
+        newPlans.splice(toIndex, 0, movedPlan);
+        setPlans(newPlans);
+    };
+
     const addPlan = () => {
         const newPlan = {
             name: "Novo Plano",
@@ -257,9 +265,18 @@ export function LandingPlansEditor() {
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                    <Edit size={16} className="text-blue-500" /> #{pIdx + 1}
-                                </h4>
+                                <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800 px-2 py-1 rounded-xl shadow-sm">
+                                    <Edit size={12} className="text-blue-500" />
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Posição</span>
+                                    <input 
+                                        type="number"
+                                        min="1"
+                                        max={plans.length}
+                                        value={pIdx + 1}
+                                        onChange={(e) => handleReorder(pIdx, parseInt(e.target.value) - 1)}
+                                        className="w-8 bg-transparent border-none p-0 text-sm font-black text-blue-600 focus:ring-0 focus:outline-none text-center hover:bg-white/50 rounded transition-colors"
+                                    />
+                                </div>
                                 <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
                                     <input
                                         type="checkbox"
