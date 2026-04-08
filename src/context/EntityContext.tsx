@@ -187,8 +187,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             const allEntities = [personalOption, ...companies];
             setAvailableEntities(allEntities);
 
-            // Restaurar preferência salva do localStorage
-            const savedKey = localStorage.getItem(STORAGE_KEY);
+            // Restaurar preferência salva do localStorage (por usuário)
+            const savedKey = localStorage.getItem(`${STORAGE_KEY}_${user.id}`);
 
             setCurrentEntity(() => {
                 let bestMatch: Entity | null = null;
@@ -224,10 +224,9 @@ export function EntityProvider({ children }: { children: ReactNode }) {
         if (user) {
             fetchCompanies();
         } else {
-            // Se deslogar, reseta TUDO imediatamente
+            // Se deslogar, reseta o estado local imediatamente
             setCurrentEntity({ type: 'personal', name: 'Pessoal', status: 'active' });
             setAvailableEntities([{ type: 'personal', name: 'Pessoal', status: 'active' }]);
-            localStorage.removeItem(STORAGE_KEY);
             setIsLoading(false);
         }
     }, [user, profile]);
@@ -236,7 +235,9 @@ export function EntityProvider({ children }: { children: ReactNode }) {
         setCurrentEntity(entity);
         // Persistir preferência do usuário no localStorage
         const key = entity.type === 'personal' ? 'personal' : entity.id;
-        localStorage.setItem(STORAGE_KEY, key || 'personal');
+        if (user) {
+            localStorage.setItem(`${STORAGE_KEY}_${user.id}`, key || 'personal');
+        }
     };
 
     // Keep global window synced so legacy components can format currency synchronously
