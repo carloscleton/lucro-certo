@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Wallet, ArrowRight, AlertTriangle, X, Eye, EyeOff, CreditCard, User, Building2, Globe } from 'lucide-react';
+import { Wallet, ArrowRight, AlertTriangle, X, Eye, EyeOff, CreditCard, User, Building2 } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
