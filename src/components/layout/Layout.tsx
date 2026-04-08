@@ -494,6 +494,7 @@ export function Layout() {
                         </div>
                         <Tooltip content={t('nav.logout')}>
                             <Button variant="ghost" size="sm" onClick={async () => {
+                                localStorage.setItem('loggingOut', 'true');
                                 await signOut();
                                 window.location.href = '/';
                             }}>
@@ -631,6 +632,7 @@ export function Layout() {
                                 </p>
                                 <div className="mt-8">
                                     <Button onClick={async () => {
+                                        localStorage.setItem('loggingOut', 'true');
                                         await signOut();
                                         window.location.href = '/';
                                     }} variant="outline" className="flex items-center gap-2 mx-auto">
@@ -654,7 +656,7 @@ export function Layout() {
                                 </p>
                                 <div className="mt-8 flex justify-center">
                                     <Button
-                                        onClick={async () => { await signOut(); window.location.href = '/'; }}
+                                        onClick={async () => { localStorage.setItem('loggingOut', 'true'); await signOut(); window.location.href = '/'; }}
                                         variant="outline"
                                         className="flex items-center gap-2"
                                     >

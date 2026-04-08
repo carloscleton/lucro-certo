@@ -159,6 +159,11 @@ export function LandingPage() {
     const navigate = useNavigate();
     const { currentEntity } = useEntity();
     const { session } = useAuth();
+    
+    useEffect(() => {
+        localStorage.removeItem('loggingOut');
+    }, []);
+
     const [currentSlide, setCurrentSlide] = useState(0);
     const plan = currentEntity?.subscription_plan || '';
     const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();

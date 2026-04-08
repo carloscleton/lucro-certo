@@ -90,7 +90,12 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session) {
+    if (localStorage.getItem('loggingOut') === 'true') {
+        return <Navigate to="/" replace />;
+    }
+    return <Navigate to="/login" replace />;
+  }
 
   // Verifica as condições de pagamento
   const status = currentEntity?.subscription_status || '';
