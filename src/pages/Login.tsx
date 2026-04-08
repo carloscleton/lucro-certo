@@ -548,7 +548,7 @@ export function Login() {
                     }}
                 />
 
-                <div className="w-full max-w-sm space-y-10 relative z-10">
+                <div className="w-full max-w-sm space-y-6 relative z-10">
                     <div className="space-y-4">
                         <div className="flex justify-center mb-8">
                             <img src={logoFull} alt="Lucro Certo" className="h-24 w-auto" />
@@ -565,7 +565,7 @@ export function Login() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleAuth} className="space-y-6">
+                    <form onSubmit={handleAuth} className="space-y-3">
                         {isSignUp && (
                             <>
                                 {searchParams.get('checkout-plan') && (
@@ -596,63 +596,44 @@ export function Login() {
                                     className="h-12"
                                 />
 
-                                <div className="space-y-4">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">O que você deseja gerenciar?</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setRegistrationType('PF')}
-                                            className={`flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all ${registrationType === 'PF' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                        >
-                                            <User size={18} />
-                                            <span className="font-bold text-[11px]">Pessoa Física</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setRegistrationType('PJ')}
-                                            className={`flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all ${registrationType === 'PJ' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                        >
-                                            <Building2 size={18} />
-                                            <span className="font-bold text-[11px]">Empresa (PJ)</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setRegistrationType('BOTH')}
-                                            className={`flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all ${registrationType === 'BOTH' ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                        >
-                                            <div className="flex -space-x-1">
-                                                <User size={14} />
-                                                <Building2 size={14} />
-                                            </div>
-                                            <span className="font-bold text-[11px]">PF + PJ</span>
-                                        </button>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Ambiente de Gestão</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Moeda</label>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1 grid grid-cols-3 gap-1">
+                                            {[
+                                                { id: 'PF', icon: <User size={14} />, label: 'PF' },
+                                                { id: 'PJ', icon: <Building2 size={14} />, label: 'PJ' },
+                                                { id: 'BOTH', icon: <div className="flex -space-x-1"><User size={10}/><Building2 size={10}/></div>, label: 'Ambos' }
+                                            ].map(t => (
+                                                <button
+                                                    key={t.id}
+                                                    type="button"
+                                                    onClick={() => setRegistrationType(t.id as any)}
+                                                    className={`flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all ${registrationType === t.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
+                                                >
+                                                    {t.icon}
+                                                    <span className="font-bold text-[9px]">{t.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex-1 grid grid-cols-4 gap-1">
+                                            {['BRL', 'USD', 'EUR', 'PYG'].map(code => (
+                                                <button
+                                                    key={code}
+                                                    type="button"
+                                                    onClick={() => setSelectedCurrency(code)}
+                                                    className={`flex items-center justify-center p-1.5 rounded-xl border-2 transition-all ${selectedCurrency === code ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
+                                                >
+                                                    <span className="text-[10px] font-black">{code === 'PYG' ? '₲' : (code === 'BRL' ? 'R$' : (code === 'USD' ? '$' : '€'))}</span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <Globe size={14} />
-                                        Moeda de Faturamento
-                                    </label>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {[
-                                            { code: 'BRL', symbol: 'R$', label: 'Real' },
-                                            { code: 'USD', symbol: '$', label: 'Dólar' },
-                                            { code: 'EUR', symbol: '€', label: 'Euro' },
-                                            { code: 'PYG', symbol: '₲', label: 'Guarani' },
-                                        ].map((curr) => (
-                                            <button
-                                                key={curr.code}
-                                                type="button"
-                                                onClick={() => setSelectedCurrency(curr.code)}
-                                                className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl border-2 transition-all ${selectedCurrency === curr.code ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                            >
-                                                <span className="text-xs font-black">{curr.symbol}</span>
-                                                <span className="text-[10px] uppercase font-bold">{curr.code}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
 
                                 {(registrationType === 'PJ' || registrationType === 'BOTH') && (
                                     <Input
@@ -685,36 +666,52 @@ export function Login() {
                                 />
 
 
-                                <Input
-                                    label="WhatsApp para avisos"
-                                    value={phoneStr}
-                                    onChange={(e) => setPhoneStr(formatPhoneHelper(e.target.value))}
-                                    placeholder="(00) 00000-0000"
-                                    required={isSignUp}
-                                    className="h-12"
-                                />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <Input
+                                        label="Email"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => {
+                                            setEmail(e.target.value);
+                                            setFieldErrors(prev => ({ ...prev, email: undefined }));
+                                        }}
+                                        onBlur={() => handleCheckEmail(email)}
+                                        placeholder="seu@email.com"
+                                        required
+                                        className={`h-12 ${fieldErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
+                                        error={fieldErrors.email}
+                                    />
+                                    <Input
+                                        label="WhatsApp"
+                                        value={phoneStr}
+                                        onChange={(e) => setPhoneStr(formatPhoneHelper(e.target.value))}
+                                        placeholder="(00) 00000-0000"
+                                        required={isSignUp}
+                                        className="h-12"
+                                    />
+                                </div>
                             </>
                         )}
 
-                        {!isUpdatePassword && (
-                            <Input
-                                label="Email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => {
-                                    setEmail(e.target.value);
-                                    setFieldErrors(prev => ({ ...prev, email: undefined }));
-                                }}
-                                onBlur={() => handleCheckEmail(email)}
-                                placeholder="seu@email.com"
-                                required
-                                autoComplete="email"
-                                className={`h-12 ${fieldErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
-                                error={fieldErrors.email}
-                            />
-                        )}
 
                         <div className="space-y-1">
+                            {!isSignUp && !isUpdatePassword && (
+                                <Input
+                                    label="Email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setFieldErrors(prev => ({ ...prev, email: undefined }));
+                                    }}
+                                    onBlur={() => handleCheckEmail(email)}
+                                    placeholder="seu@email.com"
+                                    required
+                                    autoComplete="email"
+                                    className={`h-12 ${fieldErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
+                                    error={fieldErrors.email}
+                                />
+                            )}
                             <Input
                                 label={isUpdatePassword ? t('login.new_password_title') : t('login.password_label')}
                                 type={showPassword ? 'text' : 'password'}
