@@ -24,6 +24,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useAdmin } from '../hooks/useAdmin';
 import { Users, Building, DollarSign, TrendingUp } from 'lucide-react';
 import { AgendaTasksWidget } from '../components/dashboard/AgendaTasksWidget';
+import { SettleModal } from '../components/transactions/SettleModal';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -75,30 +76,47 @@ export function Dashboard() {
         }
     };
 
-    const handleQuickPay = async (id: string) => {
+    const [settleModalOpen, setSettleModalOpen] = useState(false);
+    const [selectedTransactionForSettle, setSelectedTransactionForSettle] = useState<any>(null);
+
+    const handleQuickPayClick = (id: string) => {
         const transaction = transactions.find(t => t.id === id);
         if (!transaction) return;
+        setSelectedTransactionForSettle(transaction);
+        setSettleModalOpen(true);
+    };
 
-        const newStatus = transaction.type === 'expense' ? 'paid' : 'received';
-        const confirmMsg = transaction.type === 'expense' ? 'Confirmar pagamento deste lançamento?' : 'Confirmar recebimento deste lançamento?';
-
-        if (!confirm(confirmMsg)) return;
+    const handleSettleConfirm = async (date: string, paymentMethod: string, interest: number, penalty: number, totalAmount: number, notes: string, baseAmount?: number) => {
+        if (!selectedTransactionForSettle) return;
+        
+        const type = selectedTransactionForSettle.type;
+        const newStatus = type === 'expense' ? 'paid' : 'received';
 
         try {
-            const updates = {
-                status: newStatus as any,
-                paid_amount: transaction.amount,
-                payment_date: new Date().toISOString()
+            const updates: any = {
+                status: newStatus,
+                paid_amount: totalAmount,
+                payment_date: date,
+                payment_method: paymentMethod,
+                interest,
+                penalty,
+                notes,
             };
 
-            if (transaction.type === 'expense') {
-                await updateExpense(id, updates);
+            if (baseAmount !== undefined) {
+                updates.amount = baseAmount;
+                updates.is_variable_amount = false;
+            }
+
+            if (type === 'expense') {
+                await updateExpense(selectedTransactionForSettle.id, updates);
             } else {
-                await updateIncome(id, updates);
+                await updateIncome(selectedTransactionForSettle.id, updates);
             }
             refreshDashboard();
         } catch (error: any) {
             alert(error.message || 'Erro ao atualizar transação');
+            throw error;
         }
     };
 
@@ -382,9 +400,24 @@ export function Dashboard() {
                 transactions={getFilteredTransactions()}
                 type={modalType}
                 onDelete={handleDelete}
-                onUpdate={handleQuickPay}
+                onUpdate={handleQuickPayClick}
             />
 
+            {/* Settle Modal for Quick Pay */}
+            {selectedTransactionForSettle && (
+                <SettleModal
+                    isOpen={settleModalOpen}
+                    onClose={() => {
+                        setSettleModalOpen(false);
+                        setSelectedTransactionForSettle(null);
+                    }}
+                    onConfirm={handleSettleConfirm}
+                    transactionType={selectedTransactionForSettle.type}
+                    transactionAmount={selectedTransactionForSettle.amount}
+                    transactionDescription={selectedTransactionForSettle.description}
+                    isVariableAmount={selectedTransactionForSettle.is_variable_amount}
+                />
+            )}
         </div>
     );
 }
