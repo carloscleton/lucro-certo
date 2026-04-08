@@ -495,7 +495,7 @@ export function Layout() {
                         <Tooltip content={t('nav.logout')}>
                             <Button variant="ghost" size="sm" onClick={async () => {
                                 await signOut();
-                                navigate('/');
+                                window.location.href = '/';
                             }}>
                                 <LogOut size={18} />
                             </Button>
@@ -632,7 +632,7 @@ export function Layout() {
                                 <div className="mt-8">
                                     <Button onClick={async () => {
                                         await signOut();
-                                        navigate('/');
+                                        window.location.href = '/';
                                     }} variant="outline" className="flex items-center gap-2 mx-auto">
                                         <LogOut size={18} />
                                         Sair da Conta
@@ -654,7 +654,7 @@ export function Layout() {
                                 </p>
                                 <div className="mt-8 flex justify-center">
                                     <Button
-                                        onClick={async () => { await signOut(); navigate('/'); }}
+                                        onClick={async () => { await signOut(); window.location.href = '/'; }}
                                         variant="outline"
                                         className="flex items-center gap-2"
                                     >
