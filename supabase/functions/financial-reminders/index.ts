@@ -141,16 +141,45 @@ serve(async (req) => {
                 const overdue = payables.filter(t => t.date < today)
                 const upcoming = payables.filter(t => t.date >= today)
                 message += `💸 *CONTAS A PAGAR:*\n`
-                if (overdue.length > 0) message += `🔴 *Vencidas:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-                if (upcoming.length > 0) message += `🗓️ *Próximos ${days} dias:* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                if (overdue.length > 0) {
+                    message += `🔴 *Vencidas:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                    overdue.forEach(t => {
+                         const fDate = t.date.split('-').reverse().join('/');
+                         // Trucate desc to avoid huge messages
+                         const desc = t.description.length > 25 ? t.description.substring(0, 25) + '...' : t.description;
+                         message += `   🔸 ${desc} | R$ ${t.amount.toLocaleString('pt-BR')} | ${fDate}\n`
+                    })
+                }
+                if (upcoming.length > 0) {
+                    message += `🗓️ *A Vencer (${days} dias):* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                    upcoming.forEach(t => {
+                         const fDate = t.date.split('-').reverse().join('/');
+                         const desc = t.description.length > 25 ? t.description.substring(0, 25) + '...' : t.description;
+                         message += `   🔹 ${desc} | R$ ${t.amount.toLocaleString('pt-BR')} | ${fDate}\n`
+                    })
+                }
                 message += `\n`
             }
             if (receivables.length > 0) {
                 const overdue = receivables.filter(t => t.date < today)
                 const upcoming = receivables.filter(t => t.date >= today)
                 message += `📈 *CONTAS A RECEBER:*\n`
-                if (overdue.length > 0) message += `🔴 *Em atraso:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
-                if (upcoming.length > 0) message += `🗓️ *A receber (${days} dias):* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                if (overdue.length > 0) {
+                    message += `🔴 *Em atraso:* R$ ${overdue.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                    overdue.forEach(t => {
+                         const fDate = t.date.split('-').reverse().join('/');
+                         const desc = t.description.length > 25 ? t.description.substring(0, 25) + '...' : t.description;
+                         message += `   🔸 ${desc} | R$ ${t.amount.toLocaleString('pt-BR')} | ${fDate}\n`
+                    })
+                }
+                if (upcoming.length > 0) {
+                    message += `🗓️ *A receber (${days} dias):* R$ ${upcoming.reduce((s, t) => s + t.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
+                    upcoming.forEach(t => {
+                         const fDate = t.date.split('-').reverse().join('/');
+                         const desc = t.description.length > 25 ? t.description.substring(0, 25) + '...' : t.description;
+                         message += `   🔹 ${desc} | R$ ${t.amount.toLocaleString('pt-BR')} | ${fDate}\n`
+                    })
+                }
                 message += `\n`
             }
             message += `📊 *SALDO PREVISTO:* R$ ${balance}\n\n`;
