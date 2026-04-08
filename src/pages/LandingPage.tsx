@@ -213,7 +213,12 @@ export function LandingPage() {
         }
 
         // Option 2: Redirect to signup with plan details, allowing them to register first
-        navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}&currency=${selectedCurrency}`);
+        const planSearch = (plan.name?.toLowerCase() || '') + (plan.observation?.toLowerCase() || '');
+        const isBoth = planSearch.includes('pf') && planSearch.includes('pj');
+        const isPJ = planSearch.includes('pj');
+        const regType = isBoth ? 'BOTH' : (isPJ ? 'PJ' : 'PF');
+        
+        navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}&currency=${selectedCurrency}&registration-type=${regType}`);
     };
 
     return (

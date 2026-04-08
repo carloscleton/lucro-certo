@@ -76,10 +76,10 @@ export function Login() {
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [phoneStr, setPhoneStr] = useState('');
-    const [registrationType, setRegistrationType] = useState<'PF' | 'PJ' | 'BOTH'>('PF');
+    const [registrationType, setRegistrationType] = useState<'PF' | 'PJ' | 'BOTH'>((searchParams.get('registration-type') as any) || 'PF');
     const [cnpjStr, setCnpjStr] = useState('');
     const [cpfStr, setCpfStr] = useState('');
-    const [selectedCurrency, setSelectedCurrency] = useState('BRL');
+    const [selectedCurrency, setSelectedCurrency] = useState(searchParams.get('currency') || 'BRL');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
