@@ -77,7 +77,7 @@ export function Login() {
     const [fullName, setFullName] = useState('');
     const [documentStr, setDocumentStr] = useState('');
     const [phoneStr, setPhoneStr] = useState('');
-    const [registrationType, setRegistrationType] = useState<'PF' | 'PJ'>('PF');
+    const [registrationType, setRegistrationType] = useState<'PF' | 'PJ' | 'BOTH'>('PF');
     const [cnpjStr, setCnpjStr] = useState('');
     const [cpfStr, setCpfStr] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
@@ -141,8 +141,13 @@ export function Login() {
                 const cleanCnpj = cnpjStr.replace(/\D/g, '');
                 const cleanDoc = registrationType === 'PF' ? cleanCpf : cleanCnpj;
                 
-                if (!cleanDoc) {
-                    setError(`Por favor, informe o seu ${registrationType === 'PF' ? 'CPF' : 'CNPJ'}.`);
+                if (registrationType === 'PF' && !cleanCpf) {
+                    setError("Por favor, informe o seu CPF.");
+                    setLoading(false);
+                    return;
+                }
+                if ((registrationType === 'PJ' || registrationType === 'BOTH') && !cleanCnpj) {
+                    setError("Por favor, informe o CNPJ da Empresa.");
                     setLoading(false);
                     return;
                 }
@@ -211,9 +216,9 @@ export function Login() {
                             const { data: createData, error: createError } = await supabase.rpc('create_company', {
                                 name_input: fullName,
                                 trade_name_input: fullName,
-                                cnpj_input: registrationType === 'PJ' ? cleanCnpj : null,
+                                cnpj_input: registrationType !== 'PF' ? cleanCnpj : null,
                                 cpf_input: cleanCpf || null,
-                                entity_type_input: registrationType,
+                                entity_type_input: registrationType === 'BOTH' ? 'PJ' : registrationType,
                                 phone_input: finalPhone,
                                 email_input: email,
                                 currency_input: selectedCurrency
@@ -576,28 +581,39 @@ export function Login() {
                                 />
 
                                 <div className="space-y-4">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Tipo de Conta</label>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">O que você deseja gerenciar?</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                         <button
                                             type="button"
                                             onClick={() => setRegistrationType('PF')}
-                                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${registrationType === 'PF' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                            className={`flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all ${registrationType === 'PF' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
                                         >
                                             <User size={18} />
-                                            <span className="font-bold text-sm">Pessoa Física</span>
+                                            <span className="font-bold text-[11px]">Pessoa Física</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setRegistrationType('PJ')}
-                                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${registrationType === 'PJ' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                            className={`flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all ${registrationType === 'PJ' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
                                         >
                                             <Building2 size={18} />
-                                            <span className="font-bold text-sm">Pessoa Jurídica</span>
+                                            <span className="font-bold text-[11px]">Empresa (PJ)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRegistrationType('BOTH')}
+                                            className={`flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all ${registrationType === 'BOTH' ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                        >
+                                            <div className="flex -space-x-1">
+                                                <User size={14} />
+                                                <Building2 size={14} />
+                                            </div>
+                                            <span className="font-bold text-[11px]">PF + PJ</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                {registrationType === 'PJ' && (
+                                {(registrationType === 'PJ' || registrationType === 'BOTH') && (
                                     <Input
                                         label="CNPJ da Empresa"
                                         value={cnpjStr}
@@ -614,17 +630,17 @@ export function Login() {
                                 )}
 
                                 <Input
-                                    label={registrationType === 'PJ' ? "CPF do Responsável (Opcional)" : "Seu CPF"}
+                                    label={registrationType === 'PF' ? "Seu CPF" : "CPF do Responsável"}
                                     value={cpfStr}
                                     onChange={(e) => {
                                         const v = formatDocumentHelper(e.target.value);
                                         setCpfStr(v);
                                     }}
-                                    onBlur={() => registrationType === 'PF' && handleCheckDocument(cpfStr)}
+                                    onBlur={() => (registrationType === 'PF' || registrationType === 'BOTH') && handleCheckDocument(cpfStr)}
                                     placeholder="000.000.000-00"
-                                    required={registrationType === 'PF'}
+                                    required={registrationType !== 'PJ'}
                                     className="h-12"
-                                    error={registrationType === 'PF' && fieldErrors.document && cpfStr.length > 0 ? fieldErrors.document : undefined}
+                                    error={registrationType !== 'PJ' && fieldErrors.document && cpfStr.length > 0 ? fieldErrors.document : undefined}
                                 />
 
                                 <div className="space-y-4">
