@@ -1,12 +1,13 @@
-import { AlertTriangle, Clock, CalendarClock, Calendar, Tag, FileText, Bell, X, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Clock, CalendarClock, Calendar, Tag, FileText, Bell, X, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import type { Alert } from '../../hooks/useDashboard';
 
 interface AlertsProps {
     alerts: Alert[];
+    onQuickPay?: (id: string) => void;
 }
 
-export function Alerts({ alerts }: AlertsProps) {
+export function Alerts({ alerts, onQuickPay }: AlertsProps) {
     const [modalOpen, setModalOpen] = useState(false);
 
     if (alerts.length === 0) return null;
@@ -212,8 +213,8 @@ export function Alerts({ alerts }: AlertsProps) {
                                             )}
                                         </div>
 
-                                        {/* Description + Amount + Date in one row */}
-                                        <div className="flex items-center justify-between gap-3">
+                                        {/* Description + Amount + Date + Action in one row */}
+                                        <div className="flex items-center justify-between gap-3 flex-wrap">
                                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                                 <FileText size={13} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
                                                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
@@ -224,10 +225,26 @@ export function Alerts({ alerts }: AlertsProps) {
                                                 <span className={`text-base font-bold ${config.amountColor}`}>
                                                     {formatCurrency(alert.amount)}
                                                 </span>
-                                                <div className="flex items-center gap-1 text-gray-400 dark:text-gray-500">
+                                                <div className="flex items-center gap-1 text-gray-400 dark:text-gray-500 min-w-[70px]">
                                                     <Calendar size={11} />
                                                     <span className="text-xs font-medium">{formatDate(alert.date)}</span>
                                                 </div>
+                                                
+                                                {onQuickPay && (alert.type === 'overdue' || alert.type === 'due_soon') && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            onQuickPay(alert.id);
+                                                            setModalOpen(false); // Close the alerts modal to show the settle modal
+                                                        }}
+                                                        className="flex items-center justify-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-700 hover:bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 border border-emerald-100 dark:border-slate-600"
+                                                        title="Pagar / Receber"
+                                                    >
+                                                        <CheckCircle2 size={14} />
+                                                        Pagar
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

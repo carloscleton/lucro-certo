@@ -326,7 +326,7 @@ export function Dashboard() {
                 </div>
             </div>
 
-            <Alerts alerts={alerts} />
+            <Alerts alerts={alerts} onQuickPay={handleQuickPayClick} />
 
             <DashboardCards metrics={metrics} onCardClick={handleCardClick} />
 
