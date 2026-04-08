@@ -190,19 +190,11 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             // Restaurar preferência salva do localStorage
             const savedKey = localStorage.getItem(STORAGE_KEY);
 
-            setCurrentEntity(prev => {
-                // Determine the best entity to return
+            setCurrentEntity(() => {
                 let bestMatch: Entity | null = null;
 
-                // 1. Try to maintain current selection with fresh data
-                if (prev.type === 'company') {
-                    bestMatch = companies.find(c => c.id === prev.id) || null;
-                } else {
-                    bestMatch = personalOption;
-                }
-
-                // 2. If no current selection (or lost), check saved preference
-                if (!bestMatch && savedKey) {
+                // 1. Prioridade Máxima: Preferência salva do usuário (localStorage)
+                if (savedKey) {
                     if (savedKey === 'personal') {
                         bestMatch = personalOption;
                     } else {
@@ -210,11 +202,13 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     }
                 }
 
-                // 3. Auto-switch logic (only if no active preference)
-                if (!savedKey && companies.length > 0 && !bestMatch) {
+                // 2. Segunda Prioridade: Se não tem nada salvo, e há empresas, entra direto na PJ 
+                // Isso resolve a experiência de quem acabou de se cadastrar como PJ -> cai direto na Empresa
+                if (!bestMatch && companies.length > 0) {
                     bestMatch = companies[0];
                 }
 
+                // 3. Fallback final: Ambiente Pessoal
                 return bestMatch || personalOption;
             });
 
