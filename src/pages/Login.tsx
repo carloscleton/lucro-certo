@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Wallet, ArrowRight, AlertTriangle, X, Eye, EyeOff, CreditCard } from 'lucide-react';
+import { Wallet, ArrowRight, AlertTriangle, X, Eye, EyeOff, CreditCard, User, Building2, Globe } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -77,6 +77,10 @@ export function Login() {
     const [fullName, setFullName] = useState('');
     const [documentStr, setDocumentStr] = useState('');
     const [phoneStr, setPhoneStr] = useState('');
+    const [registrationType, setRegistrationType] = useState<'PF' | 'PJ'>('PF');
+    const [cnpjStr, setCnpjStr] = useState('');
+    const [cpfStr, setCpfStr] = useState('');
+    const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
@@ -133,7 +137,16 @@ export function Login() {
                 setIsUpdatePassword(false);
                 setPassword('');
             } else if (isSignUp) {
-                const cleanDoc = documentStr.replace(/\D/g, '');
+                const cleanCpf = cpfStr.replace(/\D/g, '');
+                const cleanCnpj = cnpjStr.replace(/\D/g, '');
+                const cleanDoc = registrationType === 'PF' ? cleanCpf : cleanCnpj;
+                
+                if (!cleanDoc) {
+                    setError(`Por favor, informe o seu ${registrationType === 'PF' ? 'CPF' : 'CNPJ'}.`);
+                    setLoading(false);
+                    return;
+                }
+
                 let finalPhone = phoneStr.replace(/\D/g, '');
                 
                 // 1. Verificação de Duplicidade (CPF/CNPJ e E-mail)🛡️
@@ -171,9 +184,11 @@ export function Login() {
                     options: {
                         data: {
                             full_name: fullName,
-                            user_type: cleanDoc.length === 11 ? 'PF' : 'PJ',
+                            user_type: registrationType,
                             document: cleanDoc,
-                            phone: finalPhone
+                            secondary_document: registrationType === 'PJ' ? cleanCpf : null,
+                            phone: finalPhone,
+                            currency: selectedCurrency
                         },
                     },
                 });
@@ -196,11 +211,12 @@ export function Login() {
                             const { data: createData, error: createError } = await supabase.rpc('create_company', {
                                 name_input: fullName,
                                 trade_name_input: fullName,
-                                cnpj_input: isPF ? null : cleanDoc,
-                                cpf_input: isPF ? cleanDoc : null,
-                                entity_type_input: isPF ? 'PF' : 'PJ',
+                                cnpj_input: registrationType === 'PJ' ? cleanCnpj : null,
+                                cpf_input: cleanCpf || null,
+                                entity_type_input: registrationType,
                                 phone_input: finalPhone,
-                                email_input: email
+                                email_input: email,
+                                currency_input: selectedCurrency
                             });
 
                             if (!createError && createData?.success) {
@@ -559,21 +575,82 @@ export function Login() {
                                     className="h-12"
                                 />
 
+                                <div className="space-y-4">
+                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Tipo de Conta</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setRegistrationType('PF')}
+                                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${registrationType === 'PF' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                        >
+                                            <User size={18} />
+                                            <span className="font-bold text-sm">Pessoa Física</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRegistrationType('PJ')}
+                                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${registrationType === 'PJ' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                        >
+                                            <Building2 size={18} />
+                                            <span className="font-bold text-sm">Pessoa Jurídica</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {registrationType === 'PJ' && (
+                                    <Input
+                                        label="CNPJ da Empresa"
+                                        value={cnpjStr}
+                                        onChange={(e) => {
+                                            const v = formatDocumentHelper(e.target.value);
+                                            setCnpjStr(v);
+                                        }}
+                                        onBlur={() => handleCheckDocument(cnpjStr)}
+                                        placeholder="00.000.000/0000-00"
+                                        required
+                                        className="h-12"
+                                        error={fieldErrors.document && cnpjStr.length > 0 ? fieldErrors.document : undefined}
+                                    />
+                                )}
+
                                 <Input
-                                    label="CPF ou CNPJ para faturamento"
-                                    value={documentStr}
+                                    label={registrationType === 'PJ' ? "CPF do Responsável (Opcional)" : "Seu CPF"}
+                                    value={cpfStr}
                                     onChange={(e) => {
                                         const v = formatDocumentHelper(e.target.value);
-                                        setDocumentStr(v);
-                                        setFieldErrors(prev => ({ ...prev, document: undefined }));
+                                        setCpfStr(v);
                                     }}
-                                    onBlur={() => handleCheckDocument(documentStr)}
-                                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                                    required={isSignUp}
-                                    className={`h-12 ${fieldErrors.document ? 'border-red-500 focus:ring-red-500' : ''}`}
-                                    error={fieldErrors.document}
+                                    onBlur={() => registrationType === 'PF' && handleCheckDocument(cpfStr)}
+                                    placeholder="000.000.000-00"
+                                    required={registrationType === 'PF'}
+                                    className="h-12"
+                                    error={registrationType === 'PF' && fieldErrors.document && cpfStr.length > 0 ? fieldErrors.document : undefined}
                                 />
 
+                                <div className="space-y-4">
+                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                        <Globe size={16} />
+                                        Escolha a Moeda de Pagamento
+                                    </label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[
+                                            { code: 'BRL', symbol: 'R$', label: 'Real' },
+                                            { code: 'USD', symbol: '$', label: 'Dólar' },
+                                            { code: 'EUR', symbol: '€', label: 'Euro' },
+                                            { code: 'PYG', symbol: '₲', label: 'Guarani' },
+                                        ].map((curr) => (
+                                            <button
+                                                key={curr.code}
+                                                type="button"
+                                                onClick={() => setSelectedCurrency(curr.code)}
+                                                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all ${selectedCurrency === curr.code ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                            >
+                                                <span className="text-xs font-black">{curr.symbol}</span>
+                                                <span className="text-[10px] uppercase font-bold">{curr.code}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
 
                                 <Input
                                     label="WhatsApp para avisos"
