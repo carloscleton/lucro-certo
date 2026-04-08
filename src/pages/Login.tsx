@@ -75,7 +75,6 @@ export function Login() {
     const [email, setEmail] = useState(emailParam || '');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
-    const [documentStr, setDocumentStr] = useState('');
     const [phoneStr, setPhoneStr] = useState('');
     const [registrationType, setRegistrationType] = useState<'PF' | 'PJ' | 'BOTH'>('PF');
     const [cnpjStr, setCnpjStr] = useState('');
@@ -212,7 +211,6 @@ export function Login() {
 
                     if (!signInError && authData?.user) {
                         try {
-                            const isPF = cleanDoc.length === 11;
                             const { data: createData, error: createError } = await supabase.rpc('create_company', {
                                 name_input: fullName,
                                 trade_name_input: fullName,
