@@ -1,4 +1,4 @@
-import { ListFilter, Coffee, Repeat, Trash2 } from 'lucide-react';
+import { ListFilter, Coffee, Repeat, Trash2, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -7,7 +7,7 @@ import { Modal } from '../ui/Modal';
 interface Transaction {
     id: string;
     type: 'income' | 'expense';
-    status: 'pending' | 'received' | 'paid';
+    status: 'pending' | 'received' | 'paid' | 'late';
     amount: number;
     paid_amount?: number;
     interest?: number;
@@ -35,6 +35,7 @@ interface TransactionDetailModalProps {
     transactions: Transaction[];
     type?: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected';
     onDelete?: (id: string) => void;
+    onUpdate?: (id: string) => void;
 }
 
 export function TransactionDetailModal({
@@ -43,7 +44,8 @@ export function TransactionDetailModal({
     title,
     transactions,
     type = 'balance',
-    onDelete
+    onDelete,
+    onUpdate
 }: TransactionDetailModalProps) {
     if (!isOpen) return null;
 
@@ -166,19 +168,35 @@ export function TransactionDetailModal({
                                                             </p>
                                                         )}
                                                     </div>
-                                                    {onDelete && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                onDelete(transaction.id);
-                                                            }}
-                                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all active:scale-90"
-                                                            title="Excluir"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    )}
+                                                    <div className="flex items-center gap-1">
+                                                        {onUpdate && (transaction.status === 'pending' || transaction.status === 'late') && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    onUpdate(transaction.id);
+                                                                }}
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-xs font-bold transition-all active:scale-95 group/pay border border-emerald-100"
+                                                                title={transaction.type === 'expense' ? 'Marcar como Pago' : 'Marcar como Recebido'}
+                                                            >
+                                                                <CheckCircle size={14} className="group-hover/pay:scale-110 transition-transform" />
+                                                                {transaction.type === 'expense' ? 'Pagar' : 'Receber'}
+                                                            </button>
+                                                        )}
+                                                        {onDelete && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    onDelete(transaction.id);
+                                                                }}
+                                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all active:scale-90"
+                                                                title="Excluir"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}

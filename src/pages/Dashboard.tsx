@@ -29,8 +29,8 @@ export function Dashboard() {
     const { profile } = useAuth();
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { deleteTransaction: deleteExpense } = useTransactions('expense');
-    const { deleteTransaction: deleteIncome } = useTransactions('income');
+    const { deleteTransaction: deleteExpense, updateTransaction: updateExpense } = useTransactions('expense');
+    const { deleteTransaction: deleteIncome, updateTransaction: updateIncome } = useTransactions('income');
 
     const handleDelete = async (id: string) => {
         const transaction = transactions.find(t => t.id === id);
@@ -72,6 +72,33 @@ export function Dashboard() {
             refreshDashboard();
         } catch (error: any) {
             alert(error.message || t('common.delete_error'));
+        }
+    };
+
+    const handleQuickPay = async (id: string) => {
+        const transaction = transactions.find(t => t.id === id);
+        if (!transaction) return;
+
+        const newStatus = transaction.type === 'expense' ? 'paid' : 'received';
+        const confirmMsg = transaction.type === 'expense' ? 'Confirmar pagamento deste lançamento?' : 'Confirmar recebimento deste lançamento?';
+
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const updates = {
+                status: newStatus as any,
+                paid_amount: transaction.amount,
+                payment_date: new Date().toISOString()
+            };
+
+            if (transaction.type === 'expense') {
+                await updateExpense(id, updates);
+            } else {
+                await updateIncome(id, updates);
+            }
+            refreshDashboard();
+        } catch (error: any) {
+            alert(error.message || 'Erro ao atualizar transação');
         }
     };
 
@@ -355,6 +382,7 @@ export function Dashboard() {
                 transactions={getFilteredTransactions()}
                 type={modalType}
                 onDelete={handleDelete}
+                onUpdate={handleQuickPay}
             />
 
         </div>
