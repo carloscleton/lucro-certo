@@ -568,6 +568,24 @@ export function Login() {
                     <form onSubmit={handleAuth} className="space-y-6">
                         {isSignUp && (
                             <>
+                                {searchParams.get('checkout-plan') && (
+                                    <div className="p-4 bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 rounded-[24px] flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 leading-none mb-1">Assinatura Selecionada</p>
+                                            <h3 className="text-sm font-black text-blue-900 dark:text-blue-100 leading-none">{searchParams.get('checkout-plan')}</h3>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xl font-black text-blue-700">
+                                                {(() => {
+                                                    const symbols: any = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': '₲' };
+                                                    return symbols[selectedCurrency] || '$';
+                                                })()} {searchParams.get('checkout-price')}
+                                            </span>
+                                            <p className="text-[10px] font-bold text-gray-400 leading-none">/mês</p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <Input
                                     label={t('login.full_name')}
                                     value={fullName}
@@ -611,6 +629,31 @@ export function Login() {
                                     </div>
                                 </div>
 
+                                <div className="space-y-4">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                        <Globe size={14} />
+                                        Moeda de Faturamento
+                                    </label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[
+                                            { code: 'BRL', symbol: 'R$', label: 'Real' },
+                                            { code: 'USD', symbol: '$', label: 'Dólar' },
+                                            { code: 'EUR', symbol: '€', label: 'Euro' },
+                                            { code: 'PYG', symbol: '₲', label: 'Guarani' },
+                                        ].map((curr) => (
+                                            <button
+                                                key={curr.code}
+                                                type="button"
+                                                onClick={() => setSelectedCurrency(curr.code)}
+                                                className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl border-2 transition-all ${selectedCurrency === curr.code ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                            >
+                                                <span className="text-xs font-black">{curr.symbol}</span>
+                                                <span className="text-[10px] uppercase font-bold">{curr.code}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 {(registrationType === 'PJ' || registrationType === 'BOTH') && (
                                     <Input
                                         label="CNPJ da Empresa"
@@ -641,30 +684,6 @@ export function Login() {
                                     error={registrationType !== 'PJ' && fieldErrors.document && cpfStr.length > 0 ? fieldErrors.document : undefined}
                                 />
 
-                                <div className="space-y-4">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                        <Globe size={16} />
-                                        Escolha a Moeda de Pagamento
-                                    </label>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {[
-                                            { code: 'BRL', symbol: 'R$', label: 'Real' },
-                                            { code: 'USD', symbol: '$', label: 'Dólar' },
-                                            { code: 'EUR', symbol: '€', label: 'Euro' },
-                                            { code: 'PYG', symbol: '₲', label: 'Guarani' },
-                                        ].map((curr) => (
-                                            <button
-                                                key={curr.code}
-                                                type="button"
-                                                onClick={() => setSelectedCurrency(curr.code)}
-                                                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all ${selectedCurrency === curr.code ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                            >
-                                                <span className="text-xs font-black">{curr.symbol}</span>
-                                                <span className="text-[10px] uppercase font-bold">{curr.code}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
 
                                 <Input
                                     label="WhatsApp para avisos"
