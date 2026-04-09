@@ -699,7 +699,7 @@ export function Login() {
                                             value={companyName}
                                             onChange={(e) => setCompanyName(e.target.value)}
                                             placeholder="Ex: Minha Empresa LTDA"
-                                            required={registrationType !== 'PF'}
+                                            required
                                             className="h-12"
                                         />
                                     </>
