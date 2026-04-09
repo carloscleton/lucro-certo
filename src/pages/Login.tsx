@@ -79,6 +79,8 @@ export function Login() {
     const [registrationType, setRegistrationType] = useState<'PF' | 'PJ' | 'BOTH'>((searchParams.get('registration-type') as any) || 'PF');
     const [cnpjStr, setCnpjStr] = useState('');
     const [cpfStr, setCpfStr] = useState('');
+    const [companyName, setCompanyName] = useState('');
+    const [isFetchingCNPJ, setIsFetchingCNPJ] = useState(false);
     const [selectedCurrency, setSelectedCurrency] = useState(searchParams.get('currency') || 'BRL');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -212,8 +214,8 @@ export function Login() {
                     if (!signInError && authData?.user) {
                         try {
                             const { data: createData, error: createError } = await supabase.rpc('create_company', {
-                                name_input: fullName,
-                                trade_name_input: fullName,
+                                name_input: companyName || fullName,
+                                trade_name_input: companyName || fullName,
                                 cnpj_input: registrationType !== 'PF' ? cleanCnpj : null,
                                 cpf_input: cleanCpf || null,
                                 entity_type_input: registrationType === 'BOTH' ? 'PJ' : registrationType,
@@ -503,6 +505,28 @@ export function Login() {
         }
     };
 
+    const handleCNPJLookup = async (cnpj: string) => {
+        const clean = cnpj.replace(/\D/g, '');
+        if (clean.length !== 14) return;
+
+        setIsFetchingCNPJ(true);
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.razao_social || data.nome_fantasia) {
+                    const name = data.nome_fantasia || data.razao_social;
+                    setCompanyName(name);
+                    if (!fullName) setFullName(name);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching CNPJ:', err);
+        } finally {
+            setIsFetchingCNPJ(false);
+        }
+    };
+
     const formatDocumentHelper = (v: string) => {
         const numbers = v.replace(/\D/g, '');
         if (numbers.length <= 11) {
@@ -615,7 +639,14 @@ export function Login() {
                                                 <button
                                                     key={t.id}
                                                     type="button"
-                                                    onClick={() => setRegistrationType(t.id as any)}
+                                                    onClick={() => {
+                                                        setRegistrationType(t.id as any);
+                                                        // Limpa campos para evitar confusão
+                                                        if (t.id === 'PF') {
+                                                            setCnpjStr('');
+                                                            setCompanyName('');
+                                                        }
+                                                    }}
                                                     className={`flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all ${registrationType === t.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
                                                 >
                                                     {t.icon}
@@ -640,19 +671,38 @@ export function Login() {
 
 
                                 {(registrationType === 'PJ' || registrationType === 'BOTH') && (
-                                    <Input
-                                        label="CNPJ da Empresa"
-                                        value={cnpjStr}
-                                        onChange={(e) => {
-                                            const v = formatDocumentHelper(e.target.value);
-                                            setCnpjStr(v);
-                                        }}
-                                        onBlur={() => handleCheckDocument(cnpjStr)}
-                                        placeholder="00.000.000/0000-00"
-                                        required
-                                        className="h-12"
-                                        error={fieldErrors.document && cnpjStr.length > 0 ? fieldErrors.document : undefined}
-                                    />
+                                    <>
+                                        <div className="relative">
+                                            <Input
+                                                label="CNPJ da Empresa"
+                                                value={cnpjStr}
+                                                onChange={(e) => {
+                                                    const v = formatDocumentHelper(e.target.value);
+                                                    setCnpjStr(v);
+                                                }}
+                                                onBlur={() => {
+                                                    handleCheckDocument(cnpjStr);
+                                                    handleCNPJLookup(cnpjStr);
+                                                }}
+                                                placeholder="00.000.000/0000-00"
+                                                required
+                                                className={`h-12 ${isFetchingCNPJ ? 'opacity-50' : ''}`}
+                                                error={fieldErrors.document && cnpjStr.length > 0 ? fieldErrors.document : undefined}
+                                            />
+                                            {isFetchingCNPJ && (
+                                                <div className="absolute right-3 top-[34px] animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" />
+                                            )}
+                                        </div>
+
+                                        <Input
+                                            label="Nome da Empresa"
+                                            value={companyName}
+                                            onChange={(e) => setCompanyName(e.target.value)}
+                                            placeholder="Ex: Minha Empresa LTDA"
+                                            required={registrationType !== 'PF'}
+                                            className="h-12"
+                                        />
+                                    </>
                                 )}
 
                                 <Input
