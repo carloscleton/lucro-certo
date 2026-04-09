@@ -8,6 +8,7 @@ import type { Company } from '../../hooks/useCompanies';
 import { useNotification } from '../../context/NotificationContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { useAuth } from '../../context/AuthContext';
 
 interface CompanyFormProps {
     isOpen: boolean;
@@ -18,6 +19,7 @@ interface CompanyFormProps {
 
 export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyFormProps) {
     const { notify } = useNotification();
+    const { profile } = useAuth();
     const [tradeName, setTradeName] = useState('');
     const [legalName, setLegalName] = useState('');
     const [cnpj, setCnpj] = useState('');
@@ -68,10 +70,30 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setPhone(formatPhoneFromDB(initialData.phone));
             setLoyaltyModuleEnabled(initialData.loyalty_module_enabled || false);
             setLogoFile(null);
-        } else {
-            setTradeName('');
-            setLegalName('');
-            setCnpj('');
+        } else if (isOpen) {
+            // Pre-fill from profile for new company if open
+            const isPFProfile = profile?.user_type === 'PF';
+            setTradeName(profile?.full_name || '');
+            setLegalName(profile?.full_name || '');
+            setEntityType(isPFProfile ? 'PF' : 'PJ');
+            
+            if (isPFProfile) {
+                setCpf(profile?.document || '');
+                setCnpj('');
+            } else {
+                setCnpj(profile?.document || '');
+                setCpf('');
+            }
+            
+            setPhone(profile?.phone ? formatPhoneFromDB(profile.phone) : '');
+            
+            // Generate slug automatically
+            if (profile?.full_name) {
+                setSlug(profile.full_name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+            } else {
+                setSlug('');
+            }
+
             setZipCode('');
             setStreet('');
             setNumber('');
@@ -80,14 +102,10 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setCity('');
             setState('');
             setLogoUrl('');
-            setEntityType('PJ');
-            setCpf('');
-            setSlug('');
-            setPhone('');
             setLoyaltyModuleEnabled(false);
             setLogoFile(null);
         }
-    }, [initialData, isOpen]);
+    }, [initialData, isOpen, profile]);
 
     const { clearCache } = useAutoSave(
         'company_form',

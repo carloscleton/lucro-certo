@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import { usePresence } from '../hooks/usePresence';
 
-type UserType = 'PF' | 'PJ';
+type UserType = 'PF' | 'PJ' | 'BOTH';
 
 interface Profile {
     id: string;
@@ -18,6 +18,7 @@ interface Profile {
     phone?: string;
     created_at?: string;
     currency?: string;
+    document?: string;
 }
 
 interface AuthContextType {
