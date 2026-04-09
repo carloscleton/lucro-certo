@@ -42,6 +42,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [loyaltyModuleEnabled, setLoyaltyModuleEnabled] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
+    const [isFetchingCNPJ, setIsFetchingCNPJ] = useState(false);
 
     // CEP Search State
     const [showCepSearch, setShowCepSearch] = useState(false);
@@ -138,7 +139,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
         try {
             const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
             const data = await response.json();
-
+ 
             if (!data.erro) {
                 setStreet(data.logradouro);
                 setNeighborhood(data.bairro);
@@ -149,6 +150,39 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             console.error('Erro ao buscar CEP:', error);
         } finally {
             setLoadingCep(false);
+        }
+    };
+
+    const handleCNPJLookup = async (cnpjValue: string) => {
+        const clean = cnpjValue.replace(/\D/g, '');
+        if (clean.length !== 14) return;
+
+        setIsFetchingCNPJ(true);
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.razao_social || data.nome_fantasia) {
+                    setTradeName(data.nome_fantasia || data.razao_social);
+                    setLegalName(data.razao_social || data.nome_fantasia);
+                    
+                    if (!slug) {
+                        const name = data.nome_fantasia || data.razao_social;
+                        setSlug(name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                    }
+                }
+                if (data.cep) setZipCode(data.cep);
+                if (data.logradouro) setStreet(data.logradouro);
+                if (data.bairro) setNeighborhood(data.bairro);
+                if (data.municipio) setCity(data.municipio);
+                if (data.uf) setState(data.uf);
+                if (data.numero && data.numero !== 'S/N') setNumber(data.numero);
+                if (data.complemento) setComplement(data.complemento);
+            }
+        } catch (err) {
+            console.error('Error fetching CNPJ:', err);
+        } finally {
+            setIsFetchingCNPJ(false);
         }
     };
 
@@ -326,12 +360,19 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                     </div>
 
                     {entityType === 'PJ' ? (
-                        <Input
-                            label="CNPJ"
-                            value={cnpj}
-                            onChange={e => setCnpj(e.target.value)}
-                            placeholder="00.000.000/0000-00"
-                        />
+                        <div className="relative">
+                            <Input
+                                label="CNPJ"
+                                value={cnpj}
+                                onChange={e => setCnpj(e.target.value)}
+                                onBlur={() => handleCNPJLookup(cnpj)}
+                                placeholder="00.000.000/0000-00"
+                                className={isFetchingCNPJ ? 'opacity-50' : ''}
+                            />
+                            {isFetchingCNPJ && (
+                                <div className="absolute right-3 top-[34px] animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
+                            )}
+                        </div>
                     ) : (
                         <Input
                             label="CPF"
