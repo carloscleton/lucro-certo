@@ -71,4 +71,7 @@ WITH CHECK (user_id = auth.uid());
 NOTIFY pgrst, 'reload schema';
 
 -- VERIFICAÇÃO FINAL: Se você rodar isso e aparecer "Success", o banco está sincronizado!
-RAISE NOTICE 'Sincronização concluída com sucesso!';
+DO $$ 
+BEGIN 
+    RAISE NOTICE 'Sincronização concluída com sucesso!'; 
+END $$;
