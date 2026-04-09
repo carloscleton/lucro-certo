@@ -60,7 +60,7 @@ function SessionTimeoutWrapper({ children }: { children: ReactNode }) {
               <button 
                 onClick={() => {
                   resetTimer();
-                  window.location.href = '/login';
+                  window.location.href = '/';
                 }}
                 className="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-lg transition-all shadow-lg shadow-orange-500/20 active:scale-95"
               >

@@ -52,6 +52,39 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [cepResults, setCepResults] = useState<any[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
 
+    const handleCNPJLookup = async (cnpjValue: string) => {
+        const clean = cnpjValue.replace(/\D/g, '');
+        if (clean.length !== 14) return;
+
+        setIsFetchingCNPJ(true);
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.razao_social || data.nome_fantasia) {
+                    setTradeName(data.nome_fantasia || data.razao_social);
+                    setLegalName(data.razao_social || data.nome_fantasia);
+                    
+                    if (!slug) {
+                        const name = data.nome_fantasia || data.razao_social;
+                        setSlug(name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                    }
+                }
+                if (data.cep) setZipCode(data.cep);
+                if (data.logradouro) setStreet(data.logradouro);
+                if (data.bairro) setNeighborhood(data.bairro);
+                if (data.municipio) setCity(data.municipio);
+                if (data.uf) setState(data.uf);
+                if (data.numero && data.numero !== 'S/N') setNumber(data.numero);
+                if (data.complemento) setComplement(data.complemento);
+            }
+        } catch (err) {
+            console.error('Error fetching CNPJ:', err);
+        } finally {
+            setIsFetchingCNPJ(false);
+        }
+    };
+
     useEffect(() => {
         if (initialData) {
             setTradeName(initialData.trade_name || '');
@@ -82,8 +115,13 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 setCpf(profile?.document || '');
                 setCnpj('');
             } else {
-                setCnpj(profile?.document || '');
+                const doc = profile?.document || '';
+                setCnpj(doc);
                 setCpf('');
+                // TRIGER AUTOMATIC LOOKUP IF CNPJ IS PRESENT
+                if (doc.replace(/\D/g, '').length === 14) {
+                    handleCNPJLookup(doc);
+                }
             }
             
             setPhone(profile?.phone ? formatPhoneFromDB(profile.phone) : '');
@@ -150,39 +188,6 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             console.error('Erro ao buscar CEP:', error);
         } finally {
             setLoadingCep(false);
-        }
-    };
-
-    const handleCNPJLookup = async (cnpjValue: string) => {
-        const clean = cnpjValue.replace(/\D/g, '');
-        if (clean.length !== 14) return;
-
-        setIsFetchingCNPJ(true);
-        try {
-            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.razao_social || data.nome_fantasia) {
-                    setTradeName(data.nome_fantasia || data.razao_social);
-                    setLegalName(data.razao_social || data.nome_fantasia);
-                    
-                    if (!slug) {
-                        const name = data.nome_fantasia || data.razao_social;
-                        setSlug(name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                    }
-                }
-                if (data.cep) setZipCode(data.cep);
-                if (data.logradouro) setStreet(data.logradouro);
-                if (data.bairro) setNeighborhood(data.bairro);
-                if (data.municipio) setCity(data.municipio);
-                if (data.uf) setState(data.uf);
-                if (data.numero && data.numero !== 'S/N') setNumber(data.numero);
-                if (data.complemento) setComplement(data.complemento);
-            }
-        } catch (err) {
-            console.error('Error fetching CNPJ:', err);
-        } finally {
-            setIsFetchingCNPJ(false);
         }
     };
 
