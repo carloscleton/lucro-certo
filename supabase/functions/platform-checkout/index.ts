@@ -165,6 +165,33 @@ serve(async (req) => {
             }
         }
 
+        // 3. Proration Logic (Pro-rata)
+        let discount = 0
+        if (company.subscription_status === 'active' && company.current_period_end) {
+            const now = new Date()
+            const periodEnd = new Date(company.current_period_end)
+            
+            if (periodEnd > now) {
+                const diffTime = periodEnd.getTime() - now.getTime()
+                const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+                
+                // If they have more than 1 day remaining, apply pro-rata discount
+                if (daysRemaining > 1) {
+                    const dailyRate = (company.next_billing_value || 0) / 30
+                    discount = Math.floor(daysRemaining * dailyRate * 100) / 100
+                    
+                    console.log('Proration Applied:', {
+                        daysRemaining,
+                        dailyRate,
+                        discount,
+                        originalAmount: amount
+                    })
+                    
+                    amount = Math.max(1, amount - discount) // Charge at least R$ 1.00 to avoid gateway errors
+                }
+            }
+        }
+
         let checkoutUrl = '';
 
         if (provider === 'asaas') {

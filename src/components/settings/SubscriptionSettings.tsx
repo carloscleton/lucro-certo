@@ -137,6 +137,23 @@ export function SubscriptionSettings() {
         }
     };
 
+    const calculateCredit = () => {
+        if (!subscription?.current_period_end || subscription?.subscription_status !== 'active') return 0;
+        const now = new Date();
+        const periodEnd = new Date(subscription.current_period_end);
+        if (periodEnd <= now) return 0;
+        
+        const diffTime = periodEnd.getTime() - now.getTime();
+        const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        
+        if (daysRemaining <= 1) return 0;
+        
+        const dailyRate = (subscription.next_billing_value || 0) / 30;
+        return Math.floor(daysRemaining * dailyRate * 100) / 100;
+    };
+
+    const currentCredit = calculateCredit();
+
     if (loading) return (
         <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-50/50 dark:bg-slate-900/10 rounded-2xl border border-gray-100 dark:border-slate-800">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mb-4"></div>
@@ -432,9 +449,21 @@ export function SubscriptionSettings() {
                         </div>
                         
                         <div className="p-4 bg-gray-50 dark:bg-slate-800/30 text-center border-t border-gray-100 dark:border-slate-800">
-                            <p className="text-[10px] text-gray-400">
-                                Ao mudar de plano, você será redirecionado para o checkout para processar o novo valor.
-                            </p>
+                            {currentCredit > 0 ? (
+                                <div className="space-y-1">
+                                    <p className="text-[11px] text-emerald-600 font-bold flex items-center justify-center gap-1">
+                                        <Sparkles size={12} />
+                                        Economia Detectada! Você tem R$ {currentCredit.toFixed(2).replace('.', ',')} de crédito pró-rata.
+                                    </p>
+                                    <p className="text-[9px] text-gray-500">
+                                        Esse valor será descontado automaticamente da sua primeira fatura do novo plano.
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-[10px] text-gray-400">
+                                    Ao mudar de plano, você será redirecionado para o checkout para processar o novo valor.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
