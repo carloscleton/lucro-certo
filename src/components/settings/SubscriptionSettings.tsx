@@ -202,17 +202,26 @@ export function SubscriptionSettings() {
 
     const isTrial = subscription?.subscription_plan === 'trial';
     const isPastDue = subscription?.subscription_status === 'past_due';
+    const isUnpaid = subscription?.subscription_status === 'unpaid';
 
     const getStatusColor = () => {
-        if (isPastDue) return 'text-red-500 bg-red-50 border-red-100 dark:bg-red-900/20';
+        if (isPastDue || isUnpaid) return 'text-red-500 bg-red-50 border-red-100 dark:bg-red-900/20';
         if (isTrial) return 'text-blue-500 bg-blue-50 border-blue-100 dark:bg-blue-900/20';
         return 'text-emerald-500 bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20';
     };
 
     const getRemainingDays = () => {
-        const targetDate = isTrial ? subscription?.trial_ends_at : subscription?.current_period_end;
-        if (!targetDate) return 0;
-        const diff = new Date(targetDate).getTime() - new Date().getTime();
+        const now = new Date();
+        const periodEnd = subscription?.current_period_end ? new Date(subscription.current_period_end) : null;
+        const trialEnd = subscription?.trial_ends_at ? new Date(subscription.trial_ends_at) : null;
+        
+        // Use the furthest future date available (either trial or current period)
+        let target: Date | null = null;
+        if (periodEnd && periodEnd > now) target = periodEnd;
+        else if (trialEnd && trialEnd > now) target = trialEnd;
+        
+        if (!target) return 0;
+        const diff = target.getTime() - now.getTime();
         return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     };
 
@@ -276,21 +285,21 @@ export function SubscriptionSettings() {
                 <div className="p-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-4">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Situação da Conta</span>
                     <div className="flex items-center gap-3">
-                        {isPastDue ? (
+                        {isPastDue || isUnpaid ? (
                             <div className="p-2 bg-red-100 text-red-600 rounded-lg">
                                 <AlertTriangle size={24} />
                             </div>
                         ) : (
-                            <div className="p-2 bg-green-100 text-green-600 rounded-lg">
-                                <CheckCircle size={24} />
+                            <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                                <CheckCircle2 size={24} />
                             </div>
                         )}
                         <div>
                             <p className="font-bold text-gray-900 dark:text-white uppercase tracking-tight leading-tight">
-                                {isPastDue ? 'Pagamento Ausente' : 'Pagamento em Dia'}
+                                {isPastDue ? 'Pagamento Ausente' : isUnpaid ? 'Aguardando Pagamento' : 'Pagamento em Dia'}
                             </p>
                             <p className="text-[10px] text-gray-500 leading-tight mt-1">
-                                {isPastDue ? 'Regularize para evitar suspensão' : 'Sua licença está ativa e funcional'}
+                                {isPastDue ? 'Regularize para evitar suspensão' : isUnpaid ? 'Aguardando compensação do novo plano' : 'Sua licença está ativa e funcional'}
                             </p>
                         </div>
                     </div>
