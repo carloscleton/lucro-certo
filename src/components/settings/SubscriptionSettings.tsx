@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, CheckCircle, AlertTriangle, Clock, ExternalLink, Building } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertTriangle, Clock, ExternalLink, Building, X, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useEntity } from '../../context/EntityContext';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +11,9 @@ export function SubscriptionSettings() {
     const [loading, setLoading] = useState(true);
     const [subscription, setSubscription] = useState<any>(null);
     const [effectiveCompanyId, setEffectiveCompanyId] = useState<string | null>(null);
+    const [showPlanModal, setShowPlanModal] = useState(false);
+    const [availablePlans, setAvailablePlans] = useState<any[]>([]);
+    const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
 
     useEffect(() => {
         const resolveCompany = async () => {
@@ -43,15 +46,29 @@ export function SubscriptionSettings() {
     }, [effectiveCompanyId]);
 
     const loadData = async () => {
-        console.log('Fetching subscription for:', effectiveCompanyId);
+        console.log('Fetching subscription and plans for:', effectiveCompanyId);
         setLoading(true);
         try {
-            await fetchSubscription();
+            await Promise.all([
+                fetchSubscription(),
+                fetchAvailablePlans()
+            ]);
         } catch (err) {
             console.error('Error in loadData:', err);
         } finally {
             setLoading(false);
             console.log('Subscription load finished.');
+        }
+    };
+
+    const fetchAvailablePlans = async () => {
+        try {
+            const { data } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+            if (data?.landing_plans) {
+                setAvailablePlans(data.landing_plans.filter((p: any) => p.enabled !== false));
+            }
+        } catch (err) {
+            console.error('Error fetching plans:', err);
         }
     };
 
@@ -67,6 +84,43 @@ export function SubscriptionSettings() {
             if (data) setSubscription(data);
         } catch (error) {
             console.error('Error fetching subscription:', error);
+        }
+    };
+
+    const handleUpgradePlan = async (plan: any) => {
+        setUpgradingPlan(plan.name);
+        try {
+            // 1. Update company plan
+            const { error: updateError } = await supabase
+                .from('companies')
+                .update({
+                    subscription_plan: plan.name,
+                    next_billing_value: parseFloat(plan.price) || 0,
+                    subscription_status: 'unpaid' // Force checkout logic
+                })
+                .eq('id', effectiveCompanyId);
+
+            if (updateError) throw updateError;
+
+            // 2. Invoke checkout
+            const { data: { session: freshSession } } = await supabase.auth.getSession();
+            const res = await supabase.functions.invoke('platform-checkout', {
+                body: { 
+                    company_id: effectiveCompanyId,
+                    access_token: freshSession?.access_token 
+                }
+            });
+
+            if (res.error) throw res.error;
+            if (res.data?.paymentUrl) {
+                window.location.href = res.data.paymentUrl;
+            } else {
+                throw new Error('Falha ao gerar link de pagamento. Contate o suporte.');
+            }
+        } catch (err: any) {
+            alert(err.message || 'Erro ao processar alteração de plano.');
+        } finally {
+            setUpgradingPlan(null);
         }
     };
 
@@ -148,7 +202,11 @@ export function SubscriptionSettings() {
                     </div>
 
                     <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
-                        <Button className="w-full" variant="outline">
+                        <Button 
+                            className="w-full" 
+                            variant="outline"
+                            onClick={() => setShowPlanModal(true)}
+                        >
                             Alterar Plano
                         </Button>
                     </div>
@@ -277,6 +335,97 @@ export function SubscriptionSettings() {
                     </a>
                 </div>
             </div>
+            {/* Plan Selection Modal */}
+            {showPlanModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+                        <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Escolha seu novo plano</h3>
+                                <p className="text-sm text-gray-500">Selecione a melhor opção para a sua empresa</p>
+                            </div>
+                            <button 
+                                onClick={() => setShowPlanModal(false)}
+                                className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full transition-colors"
+                            >
+                                <X size={20} className="text-gray-500" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[70vh] overflow-y-auto">
+                            {availablePlans.length > 0 ? (
+                                availablePlans.map((plan: any, idx: number) => {
+                                    const isCurrent = subscription?.subscription_plan === plan.name;
+                                    return (
+                                        <div 
+                                            key={idx} 
+                                            className={`relative p-5 rounded-2xl border-2 transition-all flex flex-col ${
+                                                isCurrent 
+                                                    ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/10' 
+                                                    : plan.is_popular 
+                                                        ? 'border-blue-500 bg-blue-50/10 dark:bg-blue-900/5 shadow-lg' 
+                                                        : 'border-gray-100 dark:border-slate-800 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            {plan.is_popular && (
+                                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
+                                                    <Sparkles size={10} /> RECOMENDADO
+                                                </div>
+                                            )}
+                                            
+                                            <div className="mb-4">
+                                                <h4 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h4>
+                                                <p className="text-xs text-gray-500 mt-1 min-h-[2.5rem]">{plan.observation || 'Recursos avançados para sua gestão'}</p>
+                                            </div>
+
+                                            <div className="mb-6">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-2xl font-black text-gray-900 dark:text-white">R$ {plan.price}</span>
+                                                    <span className="text-gray-400 text-[10px] font-bold uppercase">/{plan.period || 'mês'}</span>
+                                                </div>
+                                            </div>
+
+                                            <ul className="space-y-2 mb-6 flex-1">
+                                                {plan.features?.slice(0, 4).map((feat: string, fIdx: number) => (
+                                                    <li key={fIdx} className="flex items-start gap-2 text-[11px] text-gray-600 dark:text-gray-400">
+                                                        <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                                                        <span className="line-clamp-2">{feat.replace(/\*\*/g, '')}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+
+                                            <Button 
+                                                className="w-full" 
+                                                variant={isCurrent ? "outline" : plan.is_popular ? "primary" : "outline"}
+                                                disabled={isCurrent || upgradingPlan === plan.name}
+                                                isLoading={upgradingPlan === plan.name}
+                                                onClick={() => handleUpgradePlan(plan)}
+                                            >
+                                                {isCurrent ? 'Plano Atual' : (
+                                                    <span className="flex items-center justify-center gap-2">
+                                                        {plan.button_text || 'Selecionar'}
+                                                        <ArrowRight size={14} />
+                                                    </span>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="col-span-full py-12 text-center text-gray-400">
+                                    Nenhum plano disponível para contratação no momento.
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="p-4 bg-gray-50 dark:bg-slate-800/30 text-center border-t border-gray-100 dark:border-slate-800">
+                            <p className="text-[10px] text-gray-400">
+                                Ao mudar de plano, você será redirecionado para o checkout para processar o novo valor.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
