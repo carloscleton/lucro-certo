@@ -216,6 +216,9 @@ export function SubscriptionSettings() {
         return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     };
 
+    const daysLeft = getRemainingDays();
+    const canChangePlan = subscription?.subscription_status !== 'active' || daysLeft <= 0;
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -257,9 +260,15 @@ export function SubscriptionSettings() {
                             className="w-full" 
                             variant="outline"
                             onClick={() => setShowPlanModal(true)}
+                            disabled={!canChangePlan}
                         >
-                            Alterar Plano
+                            {canChangePlan ? 'Alterar Plano' : 'Troca Bloqueada'}
                         </Button>
+                        {!canChangePlan && (
+                            <p className="text-[10px] text-gray-500 mt-2 text-center italic">
+                                Troca permitida após o vencimento ({daysLeft} dias restantes).
+                            </p>
+                        )}
                     </div>
                 </div>
 
