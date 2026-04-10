@@ -97,12 +97,29 @@ export function useAdmin() {
         loyalty_whatsapp_template?: string;
         loyalty_email_enabled?: boolean;
         loyalty_email_template?: string;
+        loyalty_enabled?: boolean;
     } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const ALLOWED_EMAIL = 'carloscleton.nat@gmail.com';
     const isAdmin = user?.email?.toLowerCase() === ALLOWED_EMAIL;
+
+    const fetchPublicSettings = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('app_settings')
+                .select('*')
+                .eq('id', 1)
+                .maybeSingle();
+
+            if (!error && data) {
+                setAppSettings(data as any);
+            }
+        } catch (err) {
+            console.error('Error fetching public settings:', err);
+        }
+    };
 
     const fetchAdminData = async (silent = false) => {
         if (!isAdmin) return;
@@ -139,16 +156,8 @@ export function useAdmin() {
             if (companiesError) throw companiesError;
             setCompaniesList(companiesData || []);
 
-            // Fetch App Settings
-            const { data: settingsData, error: settingsError } = await supabase
-                .from('app_settings')
-                .select('*')
-                .eq('id', 1)
-                .maybeSingle();
-
-            if (!settingsError && settingsData) {
-                setAppSettings(settingsData as any);
-            }
+            // Fetch App Settings (already fetched by fetchPublicSettings, but ensuring latest here)
+            await fetchPublicSettings();
 
         } catch (err: any) {
             console.error('Error fetching admin data:', err);
@@ -408,6 +417,7 @@ export function useAdmin() {
         loyalty_whatsapp_template: string;
         loyalty_email_enabled: boolean;
         loyalty_email_template: string;
+        loyalty_enabled: boolean;
     }>) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
@@ -433,6 +443,7 @@ export function useAdmin() {
     };
 
     useEffect(() => {
+        fetchPublicSettings(); // Always fetch public settings if logged in
         if (isAdmin) {
             fetchAdminData();
         } else {

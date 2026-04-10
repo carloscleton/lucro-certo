@@ -63,6 +63,7 @@ export function Settings() {
     const [loyaltyWaTemplate, setLoyaltyWaTemplate] = useState('');
     const [loyaltyEmailEnabled, setLoyaltyEmailEnabled] = useState(true);
     const [loyaltyEmailTemplate, setLoyaltyEmailTemplate] = useState('');
+    const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
     const [waConnected, setWaConnected] = useState(false);
     const isTrial = useMemo(() => {
         if (isAdmin) return false;
@@ -221,6 +222,7 @@ export function Settings() {
             setLoyaltyWaTemplate(appSettings.loyalty_whatsapp_template || '');
             setLoyaltyEmailEnabled(appSettings.loyalty_email_enabled ?? true);
             setLoyaltyEmailTemplate(appSettings.loyalty_email_template || '');
+            setLoyaltyEnabled(appSettings.loyalty_enabled ?? true);
         }
     }, [appSettings]);
 
@@ -1082,7 +1084,23 @@ export function Settings() {
                                         Configurações de Notificação (Global)
                                     </h3>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="flex items-center justify-between mb-8 p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                                        <div>
+                                            <h3 className="font-bold text-indigo-900 dark:text-indigo-100">Disponibilidade do Módulo</h3>
+                                            <p className="text-sm text-indigo-600 dark:text-indigo-400">Ative ou desative o Clube de Fidelidade globalmente para todas as empresas.</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only peer" 
+                                                checked={loyaltyEnabled} 
+                                                onChange={(e) => setLoyaltyEnabled(e.target.checked)} 
+                                            />
+                                            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                         {/* WhatsApp Loyalty */}
                                         <div className="space-y-4 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50/30">
                                             <div className="flex items-center justify-between">
@@ -1148,7 +1166,8 @@ export function Settings() {
                                                     loyalty_whatsapp_enabled: loyaltyWaEnabled,
                                                     loyalty_whatsapp_template: loyaltyWaTemplate,
                                                     loyalty_email_enabled: loyaltyEmailEnabled,
-                                                    loyalty_email_template: loyaltyEmailTemplate
+                                                    loyalty_email_template: loyaltyEmailTemplate,
+                                                    loyalty_enabled: loyaltyEnabled
                                                 });
                                                 setSaving(false);
                                                 if (error) alert('Erro ao salvar: ' + error);

@@ -9,6 +9,7 @@ import { useNotification } from '../../context/NotificationContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { useAuth } from '../../context/AuthContext';
+import { useAdmin } from '../../hooks/useAdmin';
 
 interface CompanyFormProps {
     isOpen: boolean;
@@ -20,6 +21,7 @@ interface CompanyFormProps {
 export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyFormProps) {
     const { notify } = useNotification();
     const { profile } = useAuth();
+    const { appSettings } = useAdmin();
     const [tradeName, setTradeName] = useState('');
     const [legalName, setLegalName] = useState('');
     const [cnpj, setCnpj] = useState('');
@@ -526,27 +528,29 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                     </div>
                 </div>
 
-                <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                         Módulos de Expansão
-                    </h3>
+                {appSettings?.loyalty_enabled !== false && initialData?.loyalty_module_enabled && (
+                    <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                             Módulos de Expansão
+                        </h3>
 
-                    <div className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
-                        <div>
-                            <p className="text-sm font-bold text-indigo-900 dark:text-indigo-100">🏆 Clube de Fidelidade</p>
-                            <p className="text-xs text-indigo-600 dark:text-indigo-400">Ativa planos de recorrência e descontos para clientes</p>
+                        <div className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                            <div>
+                                <p className="text-sm font-bold text-indigo-900 dark:text-indigo-100">🏆 Clube de Fidelidade</p>
+                                <p className="text-xs text-indigo-600 dark:text-indigo-400">Ativa planos de recorrência e descontos para clientes</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={loyaltyModuleEnabled}
+                                    onChange={e => setLoyaltyModuleEnabled(e.target.checked)}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                            </label>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={loyaltyModuleEnabled}
-                                onChange={e => setLoyaltyModuleEnabled(e.target.checked)}
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                        </label>
                     </div>
-                </div>
+                )}
 
                 <div className="flex justify-end gap-3 mt-8">
                     <Button type="button" variant="outline" onClick={handleClose} className="px-8">
