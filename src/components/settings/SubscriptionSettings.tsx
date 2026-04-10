@@ -90,19 +90,29 @@ export function SubscriptionSettings() {
     const handleUpgradePlan = async (plan: any) => {
         setUpgradingPlan(plan.name);
         try {
-            // 1. Update company plan
+            // 1. Prepare base update data
+            const updateData: any = {
+                subscription_plan: plan.name,
+                next_billing_value: parseFloat(plan.price) || 0,
+                subscription_status: 'unpaid' // Force checkout logic
+            };
+
+            // 2. Map plan modules to company columns
+            if (plan.modules) {
+                Object.keys(plan.modules).forEach(key => {
+                    updateData[key] = plan.modules[key];
+                });
+            }
+
+            // 3. Update company
             const { error: updateError } = await supabase
                 .from('companies')
-                .update({
-                    subscription_plan: plan.name,
-                    next_billing_value: parseFloat(plan.price) || 0,
-                    subscription_status: 'unpaid' // Force checkout logic
-                })
+                .update(updateData)
                 .eq('id', effectiveCompanyId);
 
             if (updateError) throw updateError;
 
-            // 2. Invoke checkout
+            // 4. Invoke checkout
             const { data: { session: freshSession } } = await supabase.auth.getSession();
             const res = await supabase.functions.invoke('platform-checkout', {
                 body: { 
@@ -113,7 +123,10 @@ export function SubscriptionSettings() {
 
             if (res.error) throw res.error;
             if (res.data?.paymentUrl) {
-                window.location.href = res.data.paymentUrl;
+                // Open in new tab as requested
+                window.open(res.data.paymentUrl, '_blank');
+                setShowPlanModal(false);
+                alert(`Plano ${plan.name} selecionado com sucesso! Já configuramos seus acessos conforme o plano. O link de pagamento foi aberto em uma nova aba.`);
             } else {
                 throw new Error('Falha ao gerar link de pagamento. Contate o suporte.');
             }
