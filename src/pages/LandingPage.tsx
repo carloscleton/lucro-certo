@@ -262,49 +262,6 @@ export function LandingPage() {
                 <div className="glow-3"></div>
             </div>
 
-            {/* Floating Elements */}
-            <div className="landing-elements-layer">
-                {/* Daily Rotating Side Images */}
-                <div className="side-image-container left">
-                    <img src={leftImage} alt="Decor Left" className="side-decor-img" />
-                </div>
-                <div className="side-image-container right">
-                    <img src={rightImage} alt="Decor Right" className="side-decor-img" />
-                </div>
-
-                <div className="floating-glass-card card-left">
-                    <div className="icon-wrap" style={{ background: activities[currentActivity].color }}>
-                        {activities[currentActivity].icon}
-                    </div>
-                    <div className="card-content">
-                        <span className="card-label">{activities[currentActivity].label}</span>
-                        <span key={currentActivity} className="card-text fade-dynamic">
-                            {activities[currentActivity].text}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="floating-glass-card card-right-top">
-                    <div className="icon-wrap" style={{ background: 'rgba(37, 99, 235, 0.1)' }}>
-                        🛡️
-                    </div>
-                    <div className="card-content">
-                        <span className="card-label">SISTEMA SEGURO</span>
-                        <span className="card-text">Uptime 99.9%</span>
-                    </div>
-                </div>
-
-                <div className="floating-glass-card card-right-bottom">
-                    <div className="icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                        ✅
-                    </div>
-                    <div className="card-content">
-                        <span className="card-label">CONEXÃO WHATSAPP</span>
-                        <span className="card-text">API Oficial Ativa</span>
-                    </div>
-                </div>
-            </div>
-
             {/* Navbar */}
             <nav className="landing-nav">
                 <div className="nav-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
@@ -341,6 +298,49 @@ export function LandingPage() {
 
             {/* Hero Carousel Section */}
             <header className="hero-section carousel-mode">
+                {/* Floating Decorative Elements */}
+                <div className="landing-elements-layer">
+                    {/* Daily Rotating Side Images */}
+                    <div className="side-image-container left">
+                        <img src={leftImage} alt="Decor Left" className="side-decor-img" />
+                    </div>
+                    <div className="side-image-container right">
+                        <img src={rightImage} alt="Decor Right" className="side-decor-img" />
+                    </div>
+
+                    <div className="floating-glass-card card-left">
+                        <div className="icon-wrap" style={{ background: activities[currentActivity].color }}>
+                            {activities[currentActivity].icon}
+                        </div>
+                        <div className="card-content">
+                            <span className="card-label">{activities[currentActivity].label}</span>
+                            <span key={currentActivity} className="card-text fade-dynamic">
+                                {activities[currentActivity].text}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="floating-glass-card card-right-top">
+                        <div className="icon-wrap" style={{ background: 'rgba(37, 99, 235, 0.1)' }}>
+                            🛡️
+                        </div>
+                        <div className="card-content">
+                            <span className="card-label">SISTEMA SEGURO</span>
+                            <span className="card-text">Uptime 99.9%</span>
+                        </div>
+                    </div>
+
+                    <div className="floating-glass-card card-right-bottom">
+                        <div className="icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                            ✅
+                        </div>
+                        <div className="card-content">
+                            <span className="card-label">CONEXÃO WHATSAPP</span>
+                            <span className="card-text">API Oficial Ativa</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                     {banners.map((banner, index) => (
                         <div key={index} className="carousel-slide-content" aria-hidden={currentSlide !== index}>
