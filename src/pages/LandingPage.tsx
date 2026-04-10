@@ -226,11 +226,63 @@ export function LandingPage() {
         navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}&currency=${selectedCurrency}&registration-type=${regType}`);
     };
 
+    const [currentActivity, setCurrentActivity] = useState(0);
+    const activities = [
+        { label: 'ATIVIDADE RECENTE', text: '🚀 Novo usuário PJ acaba de entrar', icon: '👤', color: 'rgba(59, 130, 246, 0.1)' },
+        { label: 'COBRANÇA AUTOMÁTICA', text: '💰 R$ 980,00 liquidado via PIX', icon: '⚡', color: 'rgba(16, 185, 129, 0.1)' },
+        { label: 'RADAR DE LEADS IA', text: '🎯 Novo lead: GB Tecnologia qualificado', icon: '🔍', color: 'rgba(139, 92, 246, 0.1)' },
+        { label: 'MARKETING IA', text: '✨ Automação de postagens ativa', icon: '📱', color: 'rgba(236, 72, 153, 0.1)' },
+        { label: 'GOVERNANÇA', text: '📈 Meta de faturamento atingida: +15%', icon: '📊', color: 'rgba(245, 158, 11, 0.1)' }
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentActivity((prev) => (prev + 1) % activities.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <div className="landing-container">
             <div className="landing-bg-glow">
                 <div className={`glow-1 accent-${banners[currentSlide].accent}`}></div>
                 <div className={`glow-2 accent-${banners[currentSlide].accent}`}></div>
+                <div className="glow-3"></div>
+            </div>
+
+            {/* Floating Elements */}
+            <div className="landing-elements-layer">
+                <div className="floating-glass-card card-left">
+                    <div className="icon-wrap" style={{ background: activities[currentActivity].color }}>
+                        {activities[currentActivity].icon}
+                    </div>
+                    <div className="card-content">
+                        <span className="card-label">{activities[currentActivity].label}</span>
+                        <span key={currentActivity} className="card-text fade-dynamic">
+                            {activities[currentActivity].text}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="floating-glass-card card-right-top">
+                    <div className="icon-wrap" style={{ background: 'rgba(37, 99, 235, 0.1)' }}>
+                        🛡️
+                    </div>
+                    <div className="card-content">
+                        <span className="card-label">SISTEMA SEGURO</span>
+                        <span className="card-text">Uptime 99.9%</span>
+                    </div>
+                </div>
+
+                <div className="floating-glass-card card-right-bottom">
+                    <div className="icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                        ✅
+                    </div>
+                    <div className="card-content">
+                        <span className="card-label">CONEXÃO WHATSAPP</span>
+                        <span className="card-text">API Oficial Ativa</span>
+                    </div>
+                </div>
             </div>
 
             {/* Navbar */}
