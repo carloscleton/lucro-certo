@@ -652,6 +652,59 @@
     white-space: nowrap;
 }
 
+/* Side Decorative Images */
+.side-image-container {
+    position: absolute;
+    width: 260px;
+    max-width: 20%;
+    z-index: 5;
+    pointer-events: none;
+    animation: sideFloating 6s ease-in-out infinite;
+}
+
+.side-image-container.left {
+    top: 15%;
+    left: -40px;
+    transform: perspective(1000px) rotateY(15deg) rotateZ(-5deg);
+    animation-delay: 0s;
+}
+
+.side-image-container.right {
+    top: 25%;
+    right: -40px;
+    transform: perspective(1000px) rotateY(-15deg) rotateZ(5deg);
+    animation-delay: 1.5s;
+}
+
+.side-decor-img {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.15));
+    border-radius: 24px;
+}
+
+@keyframes sideFloating {
+    0%, 100% {
+        transform: translateY(0) rotateY(15deg);
+    }
+    50% {
+        transform: translateY(-25px) rotateY(10deg);
+    }
+}
+
+.side-image-container.right {
+    animation: sideFloatingRight 6s ease-in-out infinite;
+}
+
+@keyframes sideFloatingRight {
+    0%, 100% {
+        transform: translateY(0) rotateY(-15deg);
+    }
+    50% {
+        transform: translateY(-25px) rotateY(-10deg);
+    }
+}
+
 /* Specific Positions */
 .card-left {
     bottom: 15%;
@@ -696,7 +749,8 @@
 }
 
 @media (max-width: 1024px) {
-    .floating-glass-card {
+    .floating-glass-card,
+    .side-image-container {
         display: none;
     }
 }

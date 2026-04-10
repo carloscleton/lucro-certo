@@ -32,6 +32,12 @@ import bannerWhatsApp from '../assets/landing/landing_hero_whatsapp.png';
 import bannerMulticompany from '../assets/landing/landing_hero_multicompany.png';
 import bannerLoyalty from '../assets/landing/landing_hero_loyalty.png';
 
+// Import decorative side images
+import decorFinancial from '../assets/decor/financial.png';
+import decorAIRadar from '../assets/decor/ai_radar.png';
+import decorCRM from '../assets/decor/crm.png';
+import decorWhatsApp from '../assets/decor/whatsapp.png';
+
 import '../styles/LandingPage.css';
 
 const banners = [
@@ -235,6 +241,12 @@ export function LandingPage() {
         { label: 'GOVERNANÇA', text: '📈 Meta de faturamento atingida: +15%', icon: '📊', color: 'rgba(245, 158, 11, 0.1)' }
     ];
 
+    // Daily Rotation Logic for Side Images
+    const decorGallery = [decorFinancial, decorAIRadar, decorCRM, decorWhatsApp];
+    const daySeed = new Date().getDate() + (new Date().getMonth() * 31);
+    const leftImage = decorGallery[daySeed % decorGallery.length];
+    const rightImage = decorGallery[(daySeed + 1) % decorGallery.length];
+
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentActivity((prev) => (prev + 1) % activities.length);
@@ -252,6 +264,14 @@ export function LandingPage() {
 
             {/* Floating Elements */}
             <div className="landing-elements-layer">
+                {/* Daily Rotating Side Images */}
+                <div className="side-image-container left">
+                    <img src={leftImage} alt="Decor Left" className="side-decor-img" />
+                </div>
+                <div className="side-image-container right">
+                    <img src={rightImage} alt="Decor Right" className="side-decor-img" />
+                </div>
+
                 <div className="floating-glass-card card-left">
                     <div className="icon-wrap" style={{ background: activities[currentActivity].color }}>
                         {activities[currentActivity].icon}
