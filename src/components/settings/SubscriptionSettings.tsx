@@ -89,18 +89,36 @@ export function SubscriptionSettings() {
 
     const handleUpgradePlan = async (plan: any) => {
         setUpgradingPlan(plan.name);
+        
+        // Whitelist of valid module columns in the companies table
+        const VALID_COMPANY_MODULES = [
+            'fiscal_module_enabled',
+            'payments_module_enabled',
+            'crm_module_enabled',
+            'has_social_copilot',
+            'automations_module_enabled',
+            'has_lead_radar',
+            'loyalty_module_enabled'
+        ];
+
         try {
             // 1. Prepare base update data
+            // Parse price cleanly (handle cases with comma or currency symbols)
+            const cleanPrice = plan.price?.toString().replace('R$', '').replace(/\s/g, '').replace(',', '.') || '0';
+            const numericPrice = parseFloat(cleanPrice);
+
             const updateData: any = {
                 subscription_plan: plan.name,
-                next_billing_value: parseFloat(plan.price) || 0,
+                next_billing_value: isNaN(numericPrice) ? 0 : numericPrice,
                 subscription_status: 'unpaid' // Force checkout logic
             };
 
-            // 2. Map plan modules to company columns
-            if (plan.modules) {
+            // 2. Map ONLY valid plan modules to company columns
+            if (plan.modules && typeof plan.modules === 'object') {
                 Object.keys(plan.modules).forEach(key => {
-                    updateData[key] = plan.modules[key];
+                    if (VALID_COMPANY_MODULES.includes(key)) {
+                        updateData[key] = !!plan.modules[key];
+                    }
                 });
             }
 
@@ -110,7 +128,10 @@ export function SubscriptionSettings() {
                 .update(updateData)
                 .eq('id', effectiveCompanyId);
 
-            if (updateError) throw updateError;
+            if (updateError) {
+                console.error('Update Error Detail:', updateError);
+                throw updateError;
+            }
 
             // 4. Invoke checkout
             const { data: { session: freshSession } } = await supabase.auth.getSession();
