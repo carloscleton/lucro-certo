@@ -32,12 +32,6 @@ import bannerWhatsApp from '../assets/landing/landing_hero_whatsapp.png';
 import bannerMulticompany from '../assets/landing/landing_hero_multicompany.png';
 import bannerLoyalty from '../assets/landing/landing_hero_loyalty.png';
 
-// Import decorative side images
-import decorFinancial from '../assets/decor/financial.png';
-import decorAIRadar from '../assets/decor/ai_radar.png';
-import decorCRM from '../assets/decor/crm.png';
-import decorWhatsApp from '../assets/decor/whatsapp.png';
-
 import '../styles/LandingPage.css';
 
 const banners = [
@@ -232,34 +226,13 @@ export function LandingPage() {
         navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}&currency=${selectedCurrency}&registration-type=${regType}`);
     };
 
-    const [currentActivity, setCurrentActivity] = useState(0);
-    const activities = [
-        { label: 'ATIVIDADE RECENTE', text: '🚀 Novo usuário PJ acaba de entrar', icon: '👤', color: 'rgba(59, 130, 246, 0.1)' },
-        { label: 'COBRANÇA AUTOMÁTICA', text: '💰 R$ 980,00 liquidado via PIX', icon: '⚡', color: 'rgba(16, 185, 129, 0.1)' },
-        { label: 'RADAR DE LEADS IA', text: '🎯 Novo lead: GB Tecnologia qualificado', icon: '🔍', color: 'rgba(139, 92, 246, 0.1)' },
-        { label: 'MARKETING IA', text: '✨ Automação de postagens ativa', icon: '📱', color: 'rgba(236, 72, 153, 0.1)' },
-        { label: 'GOVERNANÇA', text: '📈 Meta de faturamento atingida: +15%', icon: '📊', color: 'rgba(245, 158, 11, 0.1)' }
-    ];
 
-    // Daily Rotation Logic for Side Images
-    const decorGallery = [decorFinancial, decorAIRadar, decorCRM, decorWhatsApp];
-    const daySeed = new Date().getDate() + (new Date().getMonth() * 31);
-    const leftImage = decorGallery[daySeed % decorGallery.length];
-    const rightImage = decorGallery[(daySeed + 1) % decorGallery.length];
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentActivity((prev) => (prev + 1) % activities.length);
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
 
     return (
         <div className="landing-container">
             <div className="landing-bg-glow">
                 <div className={`glow-1 accent-${banners[currentSlide].accent}`}></div>
                 <div className={`glow-2 accent-${banners[currentSlide].accent}`}></div>
-                <div className="glow-3"></div>
             </div>
 
             {/* Navbar */}
@@ -298,49 +271,6 @@ export function LandingPage() {
 
             {/* Hero Carousel Section */}
             <header className="hero-section carousel-mode">
-                {/* Floating Decorative Elements */}
-                <div className="landing-elements-layer">
-                    {/* Daily Rotating Side Images */}
-                    <div className="side-image-container left">
-                        <img src={leftImage} alt="Decor Left" className="side-decor-img" />
-                    </div>
-                    <div className="side-image-container right">
-                        <img src={rightImage} alt="Decor Right" className="side-decor-img" />
-                    </div>
-
-                    <div className="floating-glass-card card-left">
-                        <div className="icon-wrap" style={{ background: activities[currentActivity].color }}>
-                            {activities[currentActivity].icon}
-                        </div>
-                        <div className="card-content">
-                            <span className="card-label">{activities[currentActivity].label}</span>
-                            <span key={currentActivity} className="card-text fade-dynamic">
-                                {activities[currentActivity].text}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="floating-glass-card card-right-top">
-                        <div className="icon-wrap" style={{ background: 'rgba(37, 99, 235, 0.1)' }}>
-                            🛡️
-                        </div>
-                        <div className="card-content">
-                            <span className="card-label">SISTEMA SEGURO</span>
-                            <span className="card-text">Uptime 99.9%</span>
-                        </div>
-                    </div>
-
-                    <div className="floating-glass-card card-right-bottom">
-                        <div className="icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                            ✅
-                        </div>
-                        <div className="card-content">
-                            <span className="card-label">CONEXÃO WHATSAPP</span>
-                            <span className="card-text">API Oficial Ativa</span>
-                        </div>
-                    </div>
-                </div>
-
                 <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                     {banners.map((banner, index) => (
                         <div key={index} className="carousel-slide-content" aria-hidden={currentSlide !== index}>
