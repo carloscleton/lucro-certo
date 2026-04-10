@@ -291,7 +291,7 @@ export function SubscriptionSettings() {
                             </div>
                         ) : (
                             <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-                                <CheckCircle2 size={24} />
+                                <CheckCircle size={24} />
                             </div>
                         )}
                         <div>
