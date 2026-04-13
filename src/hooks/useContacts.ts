@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { webhookService } from '../services/webhookService';
 
 export interface Contact {
     id: string;
@@ -65,6 +66,18 @@ export function useContacts() {
 
         if (error) throw error;
         await fetchContacts();
+
+        // Trigger webhook for contact creation
+        try {
+            await webhookService.triggerWebhooks({
+                eventType: 'CONTACT_CREATED',
+                payload: data,
+                userId: user.id
+            });
+        } catch (whError) {
+            console.error('Error triggering CONTACT_CREATED webhook:', whError);
+        }
+
         return data;
     };
 

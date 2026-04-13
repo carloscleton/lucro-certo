@@ -153,7 +153,12 @@ export const webhookService = {
             await this.logWebhookExecution({
                 webhookId: webhook.id,
                 eventType,
-                payload,
+                payload: {
+                    event: eventType,
+                    timestamp: new Date().toISOString(),
+                    whatsapp: whatsappData,
+                    data: payload
+                },
                 statusCode,
                 response,
                 errorMessage
@@ -186,7 +191,7 @@ export const webhookService = {
                 .insert([{
                     webhook_id: webhookId,
                     event_type: eventType,
-                    payload,
+                    payload, // Now contains the full request body
                     status_code: statusCode,
                     response: response?.substring(0, 5000), // Limit response size
                     error_message: errorMessage

@@ -31,6 +31,8 @@ import bannerCRM from '../assets/landing/landing_hero_crm.png';
 import bannerWhatsApp from '../assets/landing/landing_hero_whatsapp.png';
 import bannerMulticompany from '../assets/landing/landing_hero_multicompany.png';
 import bannerLoyalty from '../assets/landing/landing_hero_loyalty.png';
+import bannerMulticurrency from '../assets/landing/landing_hero_multicurrency.png';
+import bannerMarketingCopilot from '../assets/landing/landing_hero_marketing_copilot.png';
 
 import '../styles/LandingPage.css';
 
@@ -113,13 +115,35 @@ const banners = [
         accent: 'slate'
     },
     {
+        tag: 'CONTROLE GLOBAL 2.0',
+        tagIcon: <DollarSign size={16} />,
+        tagColor: 'rgba(212, 175, 55, 0.1)',
+        tagTextColor: '#d4af37',
+        title: <>Sua Empresa em <span className="text-gradient">Qualquer Moeda</span></>,
+        description: 'BRL, USD, EUR ou PYG. Agora o Lucro Certo aceita transações em múltiplas moedas com conversão inteligente.',
+        points: ['Gestão Multi-Moedas', 'Taxas de Câmbio em Tempo Real', 'Relatórios Globais Consolidados'],
+        image: bannerMulticurrency,
+        accent: 'gold'
+    },
+    {
+        tag: 'MARKETING COPILOT',
+        tagIcon: <Sparkles size={16} />,
+        tagColor: 'rgba(99, 102, 241, 0.1)',
+        tagTextColor: '#6366f1',
+        title: <>Sua Marca no <span className="text-gradient">Piloto Automático</span></>,
+        description: 'Brand Kit completo com logo, cores e IA que gera posts e vídeos sincronizados com seu DNA.',
+        points: ['Brand Kit Personalizado', 'Geração de Vídeos IA (Kling/Google)', 'Postagem Automática Agendada'],
+        image: bannerMarketingCopilot,
+        accent: 'indigo'
+    },
+    {
         tag: 'CLUBE DE FIDELIDADE',
         tagIcon: <Award size={16} />,
         tagColor: 'rgba(79, 70, 229, 0.1)',
         tagTextColor: '#4f46e5',
         title: <>Crie um <span className="text-gradient">Clube de Vantagens</span> Lucrativo</>,
         description: 'Venda assinaturas recorrentes para seus clientes. Planos de cashback, serviços e benefícios automáticos direto no sistema.',
-        points: ['Faturamento Recorrente Mensal', 'Planos de Benefícios VIP', 'Régua de Cobrança (WhatsApp)'],
+        points: ['Faturamento Recorrente Mensal', 'Portal de Assinante Exclusivo', 'Régua de Cobrança (WhatsApp)'],
         image: bannerLoyalty,
         accent: 'indigo'
     }
@@ -372,6 +396,10 @@ export function LandingPage() {
                     <span className="stat-label">Precisão Financeira</span>
                 </div>
                 <div className="stat-item">
+                    <span className="stat-number">+5</span>
+                    <span className="stat-label">Moedas Suportadas</span>
+                </div>
+                <div className="stat-item">
                     <span className="stat-number">24/7</span>
                     <span className="stat-label">Extração de Leads</span>
                 </div>
@@ -479,9 +507,10 @@ export function LandingPage() {
                 <div className="visual-feature reverse">
                     <div className="visual-image-container">
                         <img
-                            src="/images/landing/marketing-ia.png"
-                            alt="Marketing IA Feature"
+                            src={bannerMarketingCopilot}
+                            alt="Marketing Copilot Feature"
                             className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(99, 102, 241, 0.3)' }}
                         />
                     </div>
                     <div className="visual-content">
@@ -489,15 +518,42 @@ export function LandingPage() {
                             <Sparkles size={20} />
                             MARKETING COPILOT
                         </div>
-                        <h3>Suas Redes Sociais no Piloto Automático</h3>
+                        <h3>Sua Marca no Piloto Automático com Brand Kit</h3>
                         <p>
-                            Chega de perder horas pensando no que postar. O Copilot cria cronogramas, artes e legendas profissionais sincronizadas com o DNA da sua marca.
+                            Chega de perder horas pensando no que postar. O Copilot cria cronogramas, artes e legendas profissionais sincronizadas com o seu Brand Kit (logo, cores e tom de voz).
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> Geração de legendas com GPT-4</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Criação de imagens e vídeos com IA</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Postagem direta no Instagram e Facebook</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Brand Kit Centralizado:</strong> Sua logo e cores em tudo.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Geração de Legendas & Vídeos:</strong> IA que entende seu negócio.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Autopilot Agendado:</strong> Postagens automáticas no Instagram.</li>
                         </ul>
+                    </div>
+                </div>
+
+                {/* Multi-Currency Section */}
+                <div className="visual-feature">
+                    <div className="visual-content">
+                        <div style={{ color: '#d4af37', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <DollarSign size={20} />
+                            CONTROLE MULTI-MOEDAS
+                        </div>
+                        <h3>Expanda seus horizontes sem fronteiras</h3>
+                        <p>
+                            O Lucro Certo agora é global. Controle suas contas em BRL, USD, EUR ou PYG com conversão automática e relatórios consolidados em uma única tela.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Conversão Inteligente:</strong> Câmbio atualizado automaticamente.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Faturamento Internacional:</strong> Receba em qualquer moeda.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Visão Global:</strong> Entenda o lucro total do seu império.</li>
+                        </ul>
+                    </div>
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerMulticurrency}
+                            alt="Multi-Currency Feature"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(212, 175, 55, 0.2)' }}
+                        />
                     </div>
                 </div>
 
@@ -564,20 +620,20 @@ export function LandingPage() {
                 </div>
                 <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O sistema aceita moedas estrangeiras?</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim! O Lucro Certo agora suporta BRL, USD, EUR e PYG, permitindo que você gerencie transações internacionais com conversão de câmbio em tempo real e relatórios consolidados.</p>
+                    </div>
+                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Como funciona a integração com Webhooks?</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Nossa API robusta permite que você conecte o Lucro Certo a qualquer ferramenta externa. Com os Webhooks, você recebe notificações automáticas de pagamentos, novos leads e status de cobrança em tempo real.</p>
+                    </div>
+                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                         <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O que é o Clube de Fidelidade?</h4>
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>É um módulo que permite criar planos de assinatura para seus clientes. Eles pagam um valor mensal fixo e têm direito a benefícios como descontos em serviços, cashback ou atendimentos exclusivos, tudo faturado automaticamente.</p>
                     </div>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                         <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O Lucro Certo é seguro?</h4>
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim. Utilizamos criptografia de nível bancário e servidores seguros na AWS e Supabase para garantir que seus dados financeiros e de clientes estejam sempre protegidos.</p>
-                    </div>
-                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Como funciona o Radar de Leads?</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Nossa IA varre fontes públicas e mapas para encontrar empresas no perfil que você definiu. Ela extrai contatos e já pode iniciar o primeiro contato via WhatsApp automaticamente.</p>
-                    </div>
-                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Posso testar antes de assinar?</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Com certeza! Oferecemos 7 dias de teste grátis com acesso total às funcionalidades de gestão financeira para você conhecer o sistema na prática.</p>
                     </div>
                 </div>
             </section>

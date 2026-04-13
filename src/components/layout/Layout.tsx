@@ -249,7 +249,7 @@ export function Layout() {
         return colors[hash % colors.length];
     };
 
-    const currentEntityColor = getEntityColor(currentEntity);
+    const currentEntityColor = currentEntity.type === 'personal' ? '#10b981' : '#3b82f6';
 
     // Color Mapping (Hex values for CSS Variables)
     const MODULE_COLORS: Record<string, string> = {
@@ -308,7 +308,13 @@ export function Layout() {
                         <div className={styles.contextDropdown}>
                             <div className="flex items-center justify-between mb-1.5 px-1">
                                 <span className={styles.contextSectionLabel}>{t('layout.current_environment')}</span>
-                                <div className={`${styles.entityBadge} ${currentEntity.type === 'personal' ? styles.badgePersonal : styles.badgeCompany}`}>
+                                <div 
+                                    className={`${styles.entityBadge} ${currentEntity.type === 'personal' ? styles.badgePersonal : styles.badgeCompany}`}
+                                    style={{ 
+                                        backgroundColor: currentEntity.type === 'personal' ? '#dcfce7' : '#dbeafe',
+                                        color: currentEntity.type === 'personal' ? '#166534' : '#1e40af'
+                                    }}
+                                >
                                     {currentEntity.type === 'personal' ? t('layout.personal_label') : t('layout.company_label')}
                                 </div>
                             </div>
@@ -318,7 +324,11 @@ export function Layout() {
                                 className={`${styles.contextTrigger} ${isEntityMenuOpen ? styles.contextTriggerOpen : ''}`}
                                 onClick={() => setIsEntityMenuOpen(!isEntityMenuOpen)}
                                 disabled={isLoading}
-                                style={{ '--active-color': currentEntityColor } as React.CSSProperties}
+                                style={{ 
+                                    '--active-color': currentEntityColor,
+                                    backgroundColor: currentEntity.type === 'personal' ? '#f0fdf4' : '#eff6ff',
+                                    borderColor: currentEntity.type === 'personal' ? '#bbf7d0' : '#bfdbfe'
+                                } as React.CSSProperties}
                             >
                                 <div className={styles.triggerContent}>
                                     <div 
@@ -552,7 +562,13 @@ export function Layout() {
                                     <div className="flex flex-col">
                                         <span className={styles.headerContextLabel}>{currentEntity.name}</span>
                                         <div className="flex items-center gap-2">
-                                            <span className={`${styles.headerContextType} ${currentEntity.type === 'personal' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-blue-600 bg-blue-50 dark:bg-blue-900/20'}`}>
+                                            <span 
+                                                className={`${styles.headerContextType}`}
+                                                style={{
+                                                    backgroundColor: currentEntity.type === 'personal' ? '#dcfce7' : '#dbeafe',
+                                                    color: currentEntity.type === 'personal' ? '#166534' : '#1e40af'
+                                                }}
+                                            >
                                                 {currentEntity.type === 'personal' ? t('layout.personal_context') : t('layout.company_context')}
                                             </span>
                                             {currentEntity.type === 'personal' && (

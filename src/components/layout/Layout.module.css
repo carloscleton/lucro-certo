@@ -251,8 +251,8 @@
 .contextTrigger:hover {
     border-color: var(--active-color);
     background-color: var(--color-surface);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--active-color), transparent 85%);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 10px 20px -5px color-mix(in srgb, var(--active-color), transparent 85%);
 }
 
 .contextTriggerOpen {
@@ -410,10 +410,11 @@
 
 .headerContextType {
     font-size: 10px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
     text-transform: uppercase;
+    letter-spacing: 0.02em;
 }
 
 @media (max-width: 768px) {

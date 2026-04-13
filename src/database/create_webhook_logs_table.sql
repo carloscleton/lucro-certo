@@ -19,6 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_webhook_logs_created_at ON webhook_logs(created_a
 ALTER TABLE webhook_logs ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for webhook_logs
+DROP POLICY IF EXISTS "Users can view logs for their webhooks" ON webhook_logs;
 CREATE POLICY "Users can view logs for their webhooks"
     ON webhook_logs FOR SELECT
     USING (
@@ -31,6 +32,7 @@ CREATE POLICY "Users can view logs for their webhooks"
         )
     );
 
+DROP POLICY IF EXISTS "System can insert webhook logs" ON webhook_logs;
 CREATE POLICY "System can insert webhook logs"
     ON webhook_logs FOR INSERT
     WITH CHECK (true);

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { calculateNextDates } from '../utils/dateUtils';
 import { storageService } from '../lib/storageService';
+import { webhookService } from '../services/webhookService';
 
 export type TransactionType = 'expense' | 'income';
 export type TransactionStatus = 'pending' | 'paid' | 'received' | 'late';
@@ -163,6 +164,21 @@ export function useTransactions(type: TransactionType) {
             // Only add the first one (or the one matching the current view) to local state if needed
             // Actually, better to just refresh to get all relevant ones for the current filter
             await fetchTransactions();
+
+            // Trigger webhooks for the primary transaction created
+            if (data[0]) {
+                try {
+                    await webhookService.triggerWebhooks({
+                        eventType: 'TRANSACTION_CREATED',
+                        payload: data[0],
+                        companyId: companyId || undefined,
+                        userId: user.id
+                    });
+                } catch (err) {
+                    console.error('Error triggering TRANSACTION_CREATED webhook:', err);
+                }
+            }
+
             return data[0];
         } catch (err: any) {
             setError(err.message);
@@ -349,6 +365,21 @@ export function useTransactions(type: TransactionType) {
                     .from('quotes')
                     .update({ payment_status: paymentStatus })
                     .eq('id', currentRecord.quote_id);
+
+                // Trigger Webhook for Payment
+                if (isPaid) {
+                    try {
+                        const companyId = currentEntity.type === 'company' ? currentEntity.id : undefined;
+                        await webhookService.triggerWebhooks({
+                            eventType: 'TRANSACTION_PAID',
+                            payload: currentRecord,
+                            companyId,
+                            userId: user!.id
+                        });
+                    } catch (whError) {
+                        console.error('Error triggering TRANSACTION_PAID webhook:', whError);
+                    }
+                }
 
                 // CLUBE VIP RECOVERY Logic for Transactions
                 if (isPaid) {
