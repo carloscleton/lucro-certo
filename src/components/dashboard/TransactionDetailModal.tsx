@@ -121,54 +121,61 @@ export function TransactionDetailModal({
                                         .map((transaction) => (
                                             <div
                                                 key={transaction.id}
-                                                className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:shadow-md transition-all group"
+                                                className="group flex flex-col md:flex-row md:items-center justify-between p-4 bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-100 dark:border-slate-700/50 hover:border-purple-200 dark:hover:border-purple-900/50 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 gap-4"
                                             >
-                                                <div className="flex-1">
-                                                    <p className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                                        {transaction.description}
-                                                    </p>
-                                                    <div className="flex items-center gap-3 mt-1.5">
-                                                        <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                                            {format(new Date(transaction.date + 'T12:00:00'), "dd 'de' MMMM", { locale: ptBR })}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-start justify-between md:justify-start gap-2 mb-1">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                                            {transaction.description}
+                                                        </h4>
+                                                    </div>
+                                                    
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-slate-700/50 text-[11px] font-bold text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-slate-600/50">
+                                                            {format(new Date(transaction.date + 'T12:00:00'), "dd 'de' MMM", { locale: ptBR })}
                                                         </span>
+                                                        
                                                         {transaction.category && (
-                                                            <span className="text-[10px] px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full font-medium">
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-[11px] font-bold text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-800/50">
                                                                 {getCategoryName(transaction.category)}
                                                             </span>
                                                         )}
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${transaction.status === 'received' || transaction.status === 'paid'
-                                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300'
-                                                            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300'
-                                                            }`}>
+                                                        
+                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                                                            transaction.status === 'received' || transaction.status === 'paid'
+                                                                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-800/50'
+                                                                : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100/50 dark:border-amber-800/50'
+                                                        }`}>
                                                             {transaction.status === 'received' ? 'Recebido' :
                                                                 transaction.status === 'paid' ? 'Pago' : 'Pendente'}
                                                         </span>
+                                                        
                                                         {(transaction.is_recurring || transaction.recurrence_group_id) && (
-                                                            <span className="text-[10px] px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-full font-bold flex items-center gap-1">
-                                                                <Repeat className="w-2.5 h-2.5" />
-                                                                Recorrente {transaction.installment_number && transaction.recurring_count ? `(${transaction.installment_number}/${transaction.recurring_count})` : ''}
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-[11px] font-extrabold text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-800/50 uppercase tracking-tighter">
+                                                                <Repeat className="w-3 h-3" />
+                                                                {transaction.installment_number && transaction.recurring_count ? `${transaction.installment_number}/${transaction.recurring_count}` : 'Recorr'}
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-4">
+
+                                                <div className="flex items-center justify-between md:justify-end gap-6 md:min-w-[200px]">
                                                     <div className="text-right">
-                                                        <p className={`font-bold text-lg ${transaction.type === 'income'
-                                                            ? 'text-emerald-600 dark:text-emerald-400'
-                                                            : 'text-rose-600 dark:text-rose-400'
-                                                            }`}>
+                                                        <p className={`text-lg font-black tracking-tight ${
+                                                            transaction.type === 'income'
+                                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                                : 'text-rose-600 dark:text-rose-400'
+                                                        }`}>
                                                             {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.paid_amount || transaction.amount)}
                                                         </p>
                                                         {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
-                                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                                                (Orig: {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.amount)}
-                                                                {Number(transaction.interest) > 0 && ` + J: ${new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.interest || 0)}`}
-                                                                {Number(transaction.penalty) > 0 && ` + M: ${new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.penalty || 0)}`}
-                                                                )
+                                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                                                                Base: {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.amount)}
                                                             </p>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-1">
+
+                                                    <div className="flex items-center gap-2">
                                                         {onUpdate && (transaction.status === 'pending' || transaction.status === 'late') && (
                                                             <button
                                                                 onClick={(e) => {
@@ -176,13 +183,13 @@ export function TransactionDetailModal({
                                                                     e.stopPropagation();
                                                                     onUpdate(transaction.id);
                                                                 }}
-                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-xs font-bold transition-all active:scale-95 group/pay border border-emerald-100"
-                                                                title={transaction.type === 'expense' ? 'Marcar como Pago' : 'Marcar como Recebido'}
+                                                                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition-all active:scale-95 shadow-lg shadow-emerald-500/20 group/btn"
                                                             >
-                                                                <CheckCircle size={14} className="group-hover/pay:scale-110 transition-transform" />
-                                                                {transaction.type === 'expense' ? 'Pagar' : 'Receber'}
+                                                                <CheckCircle size={14} className="group-hover/btn:scale-110 transition-transform" />
+                                                                {transaction.type === 'expense' ? 'PAGAR' : 'RECEBER'}
                                                             </button>
                                                         )}
+                                                        
                                                         {onDelete && (
                                                             <button
                                                                 onClick={(e) => {
@@ -190,7 +197,7 @@ export function TransactionDetailModal({
                                                                     e.stopPropagation();
                                                                     onDelete(transaction.id);
                                                                 }}
-                                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all active:scale-90"
+                                                                className="p-2.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all active:scale-90 border border-transparent hover:border-rose-100 dark:hover:border-rose-900/50"
                                                                 title="Excluir"
                                                             >
                                                                 <Trash2 size={18} />
@@ -206,7 +213,7 @@ export function TransactionDetailModal({
                             {/* Category Breakdown */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Por Categoria</h3>
-                                <div className="space-y-5 bg-gray-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                <div className="space-y-5 bg-gray-50/50 dark:bg-slate-900/40 p-5 rounded-3xl border border-gray-100 dark:border-slate-800/60 backdrop-blur-sm">
                                     {Object.entries(categoryTotals)
                                         .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
                                         .map(([category, amount]) => {
@@ -215,27 +222,29 @@ export function TransactionDetailModal({
                                             const percentage = totalAbs > 0 ? (absAmount / totalAbs) * 100 : 0;
 
                                             return (
-                                                <div key={category} className="space-y-2">
-                                                    <div className="flex items-center justify-between text-sm">
-                                                        <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                                <div key={category} className="space-y-2.5">
+                                                    <div className="flex items-center justify-between text-xs px-0.5">
+                                                        <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight">
                                                             {category}
                                                         </span>
-                                                        <span className="text-gray-900 dark:text-white font-bold">
+                                                        <span className="text-gray-900 dark:text-white font-black">
                                                             {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(Math.abs(amount))}
                                                         </span>
                                                     </div>
-                                                    <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                                    <div className="relative w-full bg-gray-200/50 dark:bg-slate-700/50 rounded-full h-2 overflow-hidden border border-gray-100 dark:border-slate-600/30">
                                                         <div
-                                                            className={`h-full rounded-full transition-all duration-500 ${amount >= 0
-                                                                ? 'bg-emerald-500'
-                                                                : 'bg-rose-500'
+                                                            className={`h-full rounded-full transition-all duration-700 ease-out shadow-sm ${amount >= 0
+                                                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                                                                : 'bg-gradient-to-r from-rose-500 to-rose-400'
                                                                 }`}
                                                             style={{ width: `${percentage}%` }}
                                                         />
                                                     </div>
-                                                    <p className="text-[10px] text-gray-500 dark:text-gray-500 text-right font-medium">
-                                                        {percentage.toFixed(1)}% do total
-                                                    </p>
+                                                    <div className="flex justify-end">
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">
+                                                            {percentage.toFixed(1)}% do total
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
