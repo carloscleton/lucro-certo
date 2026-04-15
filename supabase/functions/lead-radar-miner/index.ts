@@ -315,86 +315,91 @@ serve(async (req: any) => {
                         if (res.type === 'link') platformStats.linkedin += found.length;
                     });
 
-                    for (const raw of leadsToInsert) {
-                        try {
-                            // Check for duplicates by name first
-                            const { data: extByName } = await supabase.from('radar_leads')
-                                .select('id')
-                                .eq('company_id', agent.company_id)
-                                .eq('name', raw.name)
-                                .limit(1)
-                                .maybeSingle();
-
-                            if (extByName) {
-                                console.log(`Skipping duplicate lead by name: ${raw.name}`);
-                                continue;
-                            }
-
-                            // Then check by contact number if provided
-                            if (raw.contact_number) {
-                                const { data: extByNum } = await supabase.from('radar_leads')
+                    // --- ITEM 1: PARALLEL PROCESSING WITH CONCURRENCY CONTROL ---
+                    const BATCH_SIZE = 5; // Process 5 leads at a time to avoid rate limits and timeouts
+                    for (let i = 0; i < leadsToInsert.length; i += BATCH_SIZE) {
+                        const batch = leadsToInsert.slice(i, i + BATCH_SIZE);
+                        await Promise.all(batch.map(async (raw) => {
+                            try {
+                                // Check for duplicates by name first
+                                const { data: extByName } = await supabase.from('radar_leads')
                                     .select('id')
                                     .eq('company_id', agent.company_id)
-                                    .eq('contact_number', raw.contact_number)
+                                    .eq('name', raw.name)
                                     .limit(1)
                                     .maybeSingle();
-                                
-                                if (extByNum) {
-                                    console.log(`Skipping duplicate lead by number: ${raw.contact_number}`);
-                                    continue;
+
+                                if (extByName) return;
+
+                                // Then check by contact number if provided
+                                if (raw.contact_number) {
+                                    const { data: extByNum } = await supabase.from('radar_leads')
+                                        .select('id')
+                                        .eq('company_id', agent.company_id)
+                                        .eq('contact_number', raw.contact_number)
+                                        .limit(1)
+                                        .maybeSingle();
+                                    
+                                    if (extByNum) return;
                                 }
-                            }
 
-                            // --- ITEM 1: SCORING / FILTRO DE RELEVÂNCIA ---
-                            const { score, reason } = await scoreLeadWithAI(agent, raw);
-                            if (score < 40) {
-                                console.log(`Skipping low score lead (${score}): ${raw.name} - ${reason}`);
-                                continue;
-                            }
+                                // Scoring / Relevance Filter
+                                const { score, reason } = await scoreLeadWithAI(agent, raw);
+                                if (score < 40) return;
 
-                            const { data: newL } = await supabase.from('radar_leads').insert({
-                                company_id: agent.company_id,
-                                platform: raw.platform,
-                                name: raw.name,
-                                contact_number: raw.contact_number,
-                                description: raw.description,
-                                external_url: raw.external_url,
-                                location: raw.location,
-                                email: raw.email,
-                                score: score,
-                                ai_summary: reason || `IA detectou relevância para "${niche}" no ${raw.platform}.`,
-                                metadata: { ...raw.metadata, contact_number: raw.contact_number, email: raw.email },
-                                status: 'pending',
-                                approach_count: 0
-                            }).select().single();
+                                const { data: newL } = await supabase.from('radar_leads').insert({
+                                    company_id: agent.company_id,
+                                    platform: raw.platform,
+                                    name: raw.name,
+                                    contact_number: raw.contact_number,
+                                    description: raw.description,
+                                    external_url: raw.external_url,
+                                    location: raw.location,
+                                    email: raw.email,
+                                    score: score,
+                                    ai_summary: reason || `IA detectou relevância para "${niche}" no ${raw.platform}.`,
+                                    metadata: { ...raw.metadata, contact_number: raw.contact_number, email: raw.email },
+                                    status: 'pending',
+                                    approach_count: 0
+                                }).select().single();
 
-                            if (newL) {
-                                insertedThisRun++;
-                                leadsFoundTotal++;
-                                if (agent.auto_approach && raw.contact_number) {
-                                    const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', agent.company_id).eq('status', 'connected').limit(1)
-                                    if (inst?.length) {
-                                        const msg = await generateAIApproach(agent, raw, 1);
-                                        const approachRes = await sendWhatsAppMessage(inst[0].instance_name, raw.contact_number, msg);
+                                if (newL) {
+                                    insertedThisRun++;
+                                    leadsFoundTotal++;
+                                    
+                                    // Auto Approach logic
+                                    if (agent.auto_approach && raw.contact_number) {
+                                        const { data: inst } = await supabase.from('instances')
+                                            .select('instance_name')
+                                            .eq('company_id', agent.company_id)
+                                            .eq('status', 'connected')
+                                            .limit(1);
 
-                                        if (!approachRes.ok) {
-                                            const errTxt = await approachRes.text();
-                                            console.error(`Failed to send approach to ${raw.contact_number}:`, errTxt);
+                                        if (inst?.length) {
+                                            const msg = await generateAIApproach(agent, raw, 1);
+                                            const approachRes = await sendWhatsAppMessage(inst[0].instance_name, raw.contact_number, msg);
+
+                                            if (approachRes.ok) {
+                                                await supabase.from('radar_leads').update({ 
+                                                    status: 'approached',
+                                                    approach_count: 1,
+                                                    last_approach_at: new Date().toISOString()
+                                                }).eq('id', newL.id);
+                                            } else {
+                                                const errTxt = await approachRes.text();
+                                                console.error(`Failed to send approach to ${raw.contact_number}:`, errTxt);
+                                            }
                                         }
-
-                                        // Marca como abordado agora que enviamos
-                                        await supabase.from('radar_leads').update({ 
-                                            status: 'approached',
-                                            approach_count: 1,
-                                            last_approach_at: new Date().toISOString()
-                                        }).eq('id', newL.id);
-
-                                        // Pausa de Segurança
-                                        await new Promise(res => setTimeout(res, 1200));
                                     }
                                 }
+                            } catch (err) {
+                                console.error("Error processing single lead in batch:", err);
                             }
-                        } catch {}
+                        }));
+                        // Small safety pause between batches if many leads
+                        if (leadsToInsert.length > BATCH_SIZE) {
+                            await new Promise(r => setTimeout(r, 500));
+                        }
                     }
                 }
                 await supabase.from('company_ai_settings').update({ last_mining_at: new Date().toISOString() }).eq('company_id', agent.company_id)
@@ -458,27 +463,31 @@ serve(async (req: any) => {
 
             if (!pendingFollowups?.length) return new Response(JSON.stringify({ message: "Nenhum follow-up pendente." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+            const BATCH_SIZE = 5;
             let processed = 0;
-            for (const lead of pendingFollowups) {
-                const agent = lead.company_ai_settings;
-                if (!agent || !agent.auto_approach || !lead.contact_number) continue;
 
-                const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', lead.company_id).eq('status', 'connected').limit(1);
-                if (!inst?.length) continue;
+            for (let i = 0; i < pendingFollowups.length; i += BATCH_SIZE) {
+                const batch = pendingFollowups.slice(i, i + BATCH_SIZE);
+                await Promise.all(batch.map(async (lead) => {
+                    const agent = lead.company_ai_settings;
+                    if (!agent || !agent.auto_approach || !lead.contact_number) return;
 
-                const nextStep = (lead.approach_count || 1) + 1;
-                const msg = await generateAIApproach(agent, lead, nextStep);
-                const res = await sendWhatsAppMessage(inst[0].instance_name, lead.contact_number, msg);
+                    const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', lead.company_id).eq('status', 'connected').limit(1);
+                    if (!inst?.length) return;
 
-                if (res.ok) {
-                    await supabase.from('radar_leads').update({ 
-                        approach_count: nextStep,
-                        last_approach_at: new Date().toISOString()
-                    }).eq('id', lead.id);
-                    processed++;
-                    // Pausa de Segurança entre mensagens de follow-up
-                    await new Promise(res => setTimeout(res, 2000));
-                }
+                    const nextStep = (lead.approach_count || 1) + 1;
+                    const msg = await generateAIApproach(agent, lead, nextStep);
+                    const res = await sendWhatsAppMessage(inst[0].instance_name, lead.contact_number, msg);
+
+                    if (res.ok) {
+                        await supabase.from('radar_leads').update({ 
+                            approach_count: nextStep,
+                            last_approach_at: new Date().toISOString()
+                        }).eq('id', lead.id);
+                        processed++;
+                    }
+                }));
+                if (pendingFollowups.length > BATCH_SIZE) await new Promise(r => setTimeout(r, 1000));
             }
 
             return new Response(JSON.stringify({ status: 'completed', followups_sent: processed }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -500,31 +509,36 @@ serve(async (req: any) => {
 
             if (!pending?.length) return 0;
 
+            const BATCH_SIZE = 5;
             let sent = 0;
-            for (const lead of pending) {
-                const agent = lead.company_ai_settings;
-                if (!agent?.is_active || !agent?.auto_approach || !lead.contact_number) continue;
 
-                const { data: inst } = await supabase.from('instances')
-                    .select('instance_name')
-                    .eq('company_id', lead.company_id)
-                    .eq('status', 'connected')
-                    .limit(1);
+            for (let i = 0; i < pending.length; i += BATCH_SIZE) {
+                const batch = pending.slice(i, i + BATCH_SIZE);
+                await Promise.all(batch.map(async (lead) => {
+                    const agent = lead.company_ai_settings;
+                    if (!agent?.is_active || !agent?.auto_approach || !lead.contact_number) return;
 
-                if (!inst?.length) continue;
+                    const { data: inst } = await supabase.from('instances')
+                        .select('instance_name')
+                        .eq('company_id', lead.company_id)
+                        .eq('status', 'connected')
+                        .limit(1);
 
-                const nextStep = (lead.approach_count || 1) + 1;
-                const msg = await generateAIApproach(agent, lead, nextStep);
-                const res = await sendWhatsAppMessage(inst[0].instance_name, lead.contact_number, msg);
+                    if (!inst?.length) return;
 
-                if (res.ok) {
-                    await supabase.from('radar_leads').update({ 
-                        approach_count: nextStep,
-                        last_approach_at: new Date().toISOString()
-                    }).eq('id', lead.id);
-                    sent++;
-                    await new Promise(r => setTimeout(r, 2000));
-                }
+                    const nextStep = (lead.approach_count || 1) + 1;
+                    const msg = await generateAIApproach(agent, lead, nextStep);
+                    const res = await sendWhatsAppMessage(inst[0].instance_name, lead.contact_number, msg);
+
+                    if (res.ok) {
+                        await supabase.from('radar_leads').update({ 
+                            approach_count: nextStep,
+                            last_approach_at: new Date().toISOString()
+                        }).eq('id', lead.id);
+                        sent++;
+                    }
+                }));
+                if (pending.length > BATCH_SIZE) await new Promise(r => setTimeout(r, 1000));
             }
             return sent;
         }

@@ -543,16 +543,11 @@ export function LeadRadar() {
 
                                 setIsMining(true);
 
-                                // 2. Limpa os leads antigos dessa empresa para garantir resultados frescos
-                                await supabase.from('radar_leads').delete().eq('company_id', companyId);
-
                                 // 3. Se o agente estiver offline, ativa ele automaticamente antes de minerar
                                 if (!settings.is_active) {
                                     const confirmActive = confirm("O Agente está OFFLINE. Gostaria de ATIVÁ-LO e iniciar a mineração agora?");
                                     if (!confirmActive) {
                                         setIsMining(false);
-                                        // Busca os leads de volta se cancelou (embora o delete já tenha acontecido)
-                                        fetchLeads();
                                         return;
                                     }
 
@@ -572,12 +567,21 @@ export function LeadRadar() {
                                     body: { company_id: companyId }
                                 });
 
-                                if (error) throw error;
+                                if (error) {
+                                    // Trata erro 540 (Project/Function Paused) de forma amigável
+                                    if (error.message?.includes('540')) {
+                                        throw new Error("O servidor (Supabase) retornou erro 540. Isso geralmente significa que a função está pausada ou em manutenção no painel do Supabase. Por favor, verifique o status do projeto.");
+                                    }
+                                    throw error;
+                                }
+
                                 if (data?.status === 'completed') {
                                     const log = data.logs?.[0];
                                     if (log?.error) {
                                         alert(`Ops! Algo deu errado: ${log.error}`);
                                     } else {
+                                        // Apenas agora que deu certo, poderíamos limpar se fizesse sentido, 
+                                        // mas como o backend já evita duplicatas, manter os dados é mais seguro.
                                         const statsMsg = log?.stats 
                                             ? `\n\nResultados por fonte:\n📍 Maps: ${log.stats.maps}\n👥 Facebook: ${log.stats.facebook}\n📸 Instagram: ${log.stats.instagram}\n💼 LinkedIn: ${log.stats.linkedin}`
                                             : '';
@@ -591,7 +595,8 @@ export function LeadRadar() {
                                 fetchLeads();
                             } catch (e: any) {
                                 console.error('Mining/Activation Error:', e);
-                                alert(`Erro ao iniciar mineração: ${e.message || 'Erro de conexão'}`);
+                                const errorMsg = e.message || 'Erro de conexão';
+                                alert(`Erro ao iniciar mineração: ${errorMsg}`);
                             } finally {
                                 setIsMining(false);
                             }
