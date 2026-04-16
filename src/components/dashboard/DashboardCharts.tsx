@@ -6,6 +6,14 @@ import { useMemo, useState, useEffect } from 'react';
 function aggregateByWeek(data: ChartData[]): { name: string; income: number; expense: number; balance: number }[] {
     if (data.length === 0) return [];
 
+    // If data represents roughly a month or less (<= 31 days), show daily resolution
+    if (data.length <= 31) {
+        return data.map(d => ({
+            ...d,
+            balance: d.income - d.expense
+        }));
+    }
+
     const weeks: { name: string; income: number; expense: number }[] = [];
     let weekIncome = 0;
     let weekExpense = 0;
@@ -38,7 +46,7 @@ function aggregateByWeek(data: ChartData[]): { name: string; income: number; exp
 const formatCurrency = (value: number) =>
     new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
     if (!active || !payload?.length) return null;
 
     const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
@@ -48,7 +56,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
         <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-3 shadow-xl min-w-[180px]">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
-                Semana de {label}
+                {isDaily ? `Dia ${label}` : `Semana de ${label}`}
             </p>
             <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-4">
@@ -95,6 +103,7 @@ const CustomLegend = () => (
 
 export function DashboardCharts({ data }: { data: ChartData[] }) {
     const weeklyData = useMemo(() => aggregateByWeek(data), [data]);
+    const isDaily = data.length <= 31;
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -120,7 +129,7 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
                             <BarChart
                                 data={weeklyData}
                                 margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                                barGap={4}
+                                barGap={isDaily ? 2 : 4}
                             >
                                 <defs>
                                     <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -144,7 +153,9 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
                                     axisLine={false}
                                     tickLine={false}
                                     dy={8}
-                                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                                    interval={isDaily ? 'preserveStartEnd' : 0}
+                                    minTickGap={isDaily ? 10 : 0}
                                 />
                                 <YAxis
                                     axisLine={false}
@@ -155,7 +166,7 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
                                 />
                                 <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
                                 <Tooltip
-                                    content={<CustomTooltip />}
+                                    content={<CustomTooltip isDaily={isDaily} />}
                                     cursor={{ fill: 'rgba(0,0,0,0.04)' }}
                                 />
                                 <Legend content={<CustomLegend />} />
@@ -163,15 +174,15 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
                                     dataKey="income"
                                     name="Receitas"
                                     fill="url(#incomeGradient)"
-                                    radius={[6, 6, 0, 0]}
-                                    maxBarSize={48}
+                                    radius={[4, 4, 0, 0]}
+                                    maxBarSize={isDaily ? 16 : 48}
                                 />
                                 <Bar
                                     dataKey="expense"
                                     name="Despesas"
                                     fill="url(#expenseGradient)"
-                                    radius={[6, 6, 0, 0]}
-                                    maxBarSize={48}
+                                    radius={[4, 4, 0, 0]}
+                                    maxBarSize={isDaily ? 16 : 48}
                                 />
                             </BarChart>
                         </ResponsiveContainer>
