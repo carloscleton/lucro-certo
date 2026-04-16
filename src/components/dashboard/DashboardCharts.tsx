@@ -43,42 +43,77 @@ function aggregateByWeek(data: ChartData[]): { name: string; income: number; exp
     }));
 }
 
+import { formatDateString } from '../../utils/dateUtils';
+
 const formatCurrency = (value: number) =>
     new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
 const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
     if (!active || !payload?.length) return null;
 
-    const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
-    const expense = payload.find((p: any) => p.dataKey === 'expense')?.value || 0;
+    const data = payload[0].payload;
+    const income = data.income || 0;
+    const expense = data.expense || 0;
     const balance = income - expense;
+    const details = data.details || [];
 
     return (
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-3 shadow-xl min-w-[180px]">
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-3 shadow-xl min-w-[220px] max-w-[300px]">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                 {isDaily ? `Dia ${label}` : `Semana de ${label}`}
             </p>
-            <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                        <span className="text-xs text-gray-600 dark:text-gray-300">Receitas</span>
+            
+            <div className="space-y-3">
+                {/* Metrics Summary */}
+                <div className="space-y-1.5 pb-2 border-b border-gray-100 dark:border-slate-700">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                            <span className="text-xs text-gray-600 dark:text-gray-300">Receitas</span>
+                        </div>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(income)}
+                        </span>
                     </div>
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(income)}
-                    </span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                        <span className="text-xs text-gray-600 dark:text-gray-300">Despesas</span>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                            <span className="text-xs text-gray-600 dark:text-gray-300">Despesas</span>
+                        </div>
+                        <span className="text-xs font-bold text-red-600 dark:text-red-400">
+                            {formatCurrency(expense)}
+                        </span>
                     </div>
-                    <span className="text-xs font-bold text-red-600 dark:text-red-400">
-                        {formatCurrency(expense)}
-                    </span>
                 </div>
-                <div className="pt-1.5 mt-1.5 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Saldo</span>
+
+                {/* Transaction Details (Specific Dates) */}
+                {details.length > 0 && (
+                    <div className="space-y-2">
+                        {details.map((t: any, idx: number) => (
+                            <div key={idx} className="bg-gray-50 dark:bg-slate-900/40 p-2 rounded-lg border border-gray-100 dark:border-slate-700/50">
+                                <p className="text-[10px] font-bold text-gray-700 dark:text-gray-200 truncate mb-1">
+                                    {t.description}
+                                </p>
+                                <div className="grid grid-cols-2 gap-2 text-[9px] text-gray-500 dark:text-gray-400">
+                                    <div>
+                                        <span className="block opacity-60 uppercase">Vencimento</span>
+                                        <span className="font-medium">{formatDateString(t.dueDate)}</span>
+                                    </div>
+                                    {(t.status === 'paid' || t.status === 'received') && (
+                                        <div>
+                                            <span className="block opacity-60 uppercase">Pagamento</span>
+                                            <span className="font-medium text-blue-600 dark:text-blue-400">{formatDateString(t.paymentDate)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Final Balance */}
+                <div className="pt-1.5 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Saldo do Dia</span>
                     <span className={`text-xs font-bold ${balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                         {formatCurrency(balance)}
                     </span>

@@ -108,12 +108,13 @@ export function useDashboard(startDate: string, endDate: string) {
             }
 
             // Fetch all user transactions for the period (for personal vs business breakdown)
+            // Including items where either due date (date) or payment date is in range
             const allTxQuery = supabase
                 .from('transactions')
-                .select('type, status, amount, paid_amount, company_id, date')
+                .select('type, status, amount, paid_amount, company_id, date, payment_date, description')
                 .eq('user_id', user.id)
-                .gte('date', start)
-                .lte('date', end);
+                .or(`date.gte.${start},payment_date.gte.${start}`)
+                .or(`date.lte.${end},payment_date.lte.${end}`);
 
             // Previous period query (one month back)
             const prevStart = new Date(start);
@@ -125,9 +126,9 @@ export function useDashboard(startDate: string, endDate: string) {
 
             let prevTxQuery = supabase
                 .from('transactions')
-                .select('type, status, amount, paid_amount')
-                .gte('date', prevStartStr)
-                .lte('date', prevEndStr);
+                .select('type, status, amount, paid_amount, date, payment_date')
+                .or(`date.gte.${prevStartStr},payment_date.gte.${prevStartStr}`)
+                .or(`date.lte.${prevEndStr},payment_date.lte.${prevEndStr}`);
 
             if (currentEntity.type === 'company' && currentEntity.id) {
                 prevTxQuery = prevTxQuery.eq('company_id', currentEntity.id);
@@ -229,31 +230,46 @@ export function useDashboard(startDate: string, endDate: string) {
                 rejectedCount
             });
 
-            // Chart Data
-            const incomeData = transactions
-                .filter(t => t.type === 'income' && t.status === 'received' && t.date >= start && t.date <= end);
-            const expenseData = transactions
-                .filter(t => t.type === 'expense' && t.status === 'paid' && t.date >= start && t.date <= end);
-
-            const daysMap = new Map<string, { income: 0, expense: 0 }>();
+            // Chart Data - Using Cash Basis for Paid Transactions
+            const daysMap = new Map<string, { income: number, expense: number, details: any[] }>();
             let curr = new Date(start);
             const endD = new Date(end);
             while (curr <= endD) {
-                daysMap.set(curr.toISOString().split('T')[0], { income: 0, expense: 0 });
+                daysMap.set(curr.toISOString().split('T')[0], { income: 0, expense: 0, details: [] });
                 curr.setDate(curr.getDate() + 1);
             }
 
-            incomeData.forEach(t => {
-                if (daysMap.has(t.date)) daysMap.get(t.date)!.income += Number(t.paid_amount || t.amount);
-            });
-            expenseData.forEach(t => {
-                if (daysMap.has(t.date)) daysMap.get(t.date)!.expense += Number(t.paid_amount || t.amount);
+            transactions.forEach(t => {
+                const isPaid = t.status === 'paid' || t.status === 'received';
+                // For paid transactions, we use payment_date for the "Cash Flow" chart. 
+                // Fallback to due date if payment_date is missing.
+                const effectiveDate = (isPaid && t.payment_date) ? t.payment_date : t.date;
+                
+                if (daysMap.has(effectiveDate)) {
+                    const day = daysMap.get(effectiveDate)!;
+                    const amount = Number(t.paid_amount || t.amount);
+                    if (t.type === 'income') {
+                        day.income += amount;
+                    } else {
+                        day.expense += amount;
+                    }
+                    // Keep track of details for tooltips
+                    day.details.push({
+                        description: t.description,
+                        amount,
+                        type: t.type,
+                        dueDate: t.date,
+                        paymentDate: t.payment_date,
+                        status: t.status
+                    });
+                }
             });
 
             const chart = Array.from(daysMap.entries()).map(([date, val]) => ({
                 name: format(new Date(date + 'T12:00:00'), 'dd/MM'),
                 income: val.income,
-                expense: val.expense
+                expense: val.expense,
+                details: val.details // Pass details for smarter tooltips
             }));
             setChartData(chart);
 
