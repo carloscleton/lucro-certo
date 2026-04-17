@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import type { ChartData } from '../../hooks/useDashboard';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { SafeChartContainer } from './SafeChartContainer';
 
 // Aggregate daily data into weeks for better visualization
@@ -139,7 +139,6 @@ const CustomLegend = () => (
 
 export function DashboardCharts({ data }: { data: ChartData[] }) {
     const weeklyData = useMemo(() => aggregateByWeek(data), [data]);
-    const isDaily = data.length <= 31;
     const isDaily = data.length <= 31;
 
     if (weeklyData.length === 0) {

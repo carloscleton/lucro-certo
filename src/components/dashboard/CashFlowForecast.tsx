@@ -1,6 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
-import { useState, useEffect } from 'react';
 import { SafeChartContainer } from './SafeChartContainer';
 
 interface CashFlowForecastProps {

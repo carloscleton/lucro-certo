@@ -1,6 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Category } from '../../hooks/useCategories';
-import { useState, useEffect } from 'react';
 import { SafeChartContainer } from './SafeChartContainer';
 
 interface ExpenseByCategoryChartProps {
@@ -15,11 +14,6 @@ const COLORS = [
 ];
 
 export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCategoryChartProps) {
-    const [dataState, setDataState] = useState(expenses);
-    
-    useEffect(() => {
-        setDataState(expenses);
-    }, [expenses]);
 
     if (expenses.length === 0) return null;
 
