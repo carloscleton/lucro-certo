@@ -374,6 +374,7 @@
     "contacts": {
         "title": "Clients & Suppliers",
         "subtitle": "Manage your business contacts.",
+        "search_placeholder": "Search by name, email or phone...",
         "new_contact": "New Contact",
         "loading": "Loading contacts...",
         "clients": "Clients",

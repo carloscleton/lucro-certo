@@ -383,6 +383,7 @@
     "contacts": {
         "title": "Clientes e Fornecedores",
         "subtitle": "Gerencie seus contatos comerciais.",
+        "search_placeholder": "Pesquisar por nome, email ou telefone...",
         "new_contact": "Novo Contato",
         "loading": "Carregando contatos...",
         "clients": "Clientes",

@@ -369,6 +369,7 @@
     "contacts": {
         "title": "Clientes y Proveedores",
         "subtitle": "Gestione sus contactos comerciales.",
+        "search_placeholder": "Buscar por nombre, correo electrónico o teléfono...",
         "new_contact": "Nuevo Contacto",
         "loading": "Cargando contactos...",
         "clients": "Clientes",

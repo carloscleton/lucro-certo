@@ -369,6 +369,7 @@
     "contacts": {
         "title": "Clients et Fournisseurs",
         "subtitle": "Gérez vos contacts commerciaux.",
+        "search_placeholder": "Rechercher par nom, e-mail ou téléphone...",
         "new_contact": "Nouveau contact",
         "loading": "Chargement des contacts...",
         "clients": "Clients",

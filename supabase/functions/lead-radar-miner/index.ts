@@ -111,16 +111,31 @@ serve(async (req: any) => {
         }
 
         async function sendWhatsAppMessage(instanceName: string, number: string, text: string) {
-            const num = number.startsWith('55') ? number : `55${number}`;
+            const num = number.replace(/\D/g, ''); // Garantir número limpo
+            const actualNum = num.startsWith('55') ? num : `55${num}`;
+            
+            console.log(`[Lead Radar] Enviando para ${actualNum} via ${instanceName}...`);
+            
             const res = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'apikey': EVO_API_KEY 
+                },
                 body: JSON.stringify({ 
-                    number: num, 
-                    options: { delay: 1000, presence: "composing" },
-                    textMessage: { text } 
+                    number: actualNum,
+                    text: text,
+                    linkPreview: true
                 })
             });
+
+            if (!res.ok) {
+                const errTxt = await res.text();
+                console.error(`[Lead Radar] Erro na Evolution API (Status ${res.status}):`, errTxt);
+            } else {
+                console.log(`[Lead Radar] Mensagem enviada com sucesso para ${actualNum}`);
+            }
+
             return res;
         }
 
@@ -432,17 +447,28 @@ serve(async (req: any) => {
             const { data: inst } = await supabase.from('instances').select('instance_name').eq('company_id', company_id).eq('status', 'connected').limit(1);
             if (!inst?.length) throw new Error("WhatsApp desconectado.");
 
-            const num = lead.contact_number.startsWith('55') ? lead.contact_number : `55${lead.contact_number}`;
+            const num = lead.contact_number.replace(/\D/g, '');
+            const actualNum = num.startsWith('55') ? num : `55${num}`;
             const msg = await generateAIApproach(agent, lead);
-            await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
+            
+            const res = await fetch(`${EVO_API_URL}/message/sendText/${encodeURIComponent(inst[0].instance_name)}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': EVO_API_KEY },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'apikey': EVO_API_KEY 
+                },
                 body: JSON.stringify({ 
-                    number: num, 
-                    options: { delay: 1000, presence: "composing" },
-                    textMessage: { text: msg } 
+                    number: actualNum, 
+                    text: msg,
+                    linkPreview: true
                 })
             });
+
+            if (!res.ok) {
+                const errTxt = await res.text();
+                throw new Error(`Erro na Evolution API: ${errTxt}`);
+            }
+
             await supabase.from('radar_leads').update({ status: 'approached' }).eq('id', lead_id);
             return new Response(JSON.stringify({ status: 'success' }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
