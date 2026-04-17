@@ -4,14 +4,10 @@ import {
     Radar,
     Sparkles,
     BarChart3,
-    ChevronRight,
-    PlayCircle,
     CheckCircle2,
     DollarSign,
     Users,
     CreditCard,
-    ArrowLeft,
-    ArrowRight,
     X,
     Award,
     Gift
@@ -22,11 +18,16 @@ import { supabase } from '../lib/supabase';
 import { PaymentRequired } from './PaymentRequired';
 import logoFull from '../assets/logo-full.png';
 
+// Import images used in detailed feature sections
+import bannerMarketingCopilot from '../assets/landing/landing_hero_marketing_copilot.png';
+import bannerMulticurrency from '../assets/landing/landing_hero_multicurrency.png';
+import bannerLoyalty from '../assets/landing/landing_hero_loyalty.png';
+
 import { HeroCarousel } from '../components/landing/HeroCarousel';
 
 import '../styles/LandingPage.css';
 
-const DEFAULT_PLANS = [
+const DEFAULT_PLANS: any[] = [
 // ... (lines 152-180 kept as is)
 ];
 
