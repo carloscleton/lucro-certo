@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import type { ChartData } from '../../hooks/useDashboard';
 import { useMemo, useState, useEffect } from 'react';
+import { SafeChartContainer } from './SafeChartContainer';
 
 // Aggregate daily data into weeks for better visualization
 function aggregateByWeek(data: ChartData[]): { name: string; income: number; expense: number; balance: number }[] {
@@ -139,12 +140,7 @@ const CustomLegend = () => (
 export function DashboardCharts({ data }: { data: ChartData[] }) {
     const weeklyData = useMemo(() => aggregateByWeek(data), [data]);
     const isDaily = data.length <= 31;
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setIsMounted(true), 500);
-        return () => clearTimeout(timer);
-    }, []);
+    const isDaily = data.length <= 31;
 
     if (weeklyData.length === 0) {
         return (
@@ -157,77 +153,73 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 h-[400px] flex flex-col transition-colors">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Fluxo de Caixa</h3>
-            <div className="flex-1 w-full relative min-h-[300px] min-w-0 overflow-hidden">
-                {isMounted && (
-                    <div className="absolute inset-0 w-full h-full flex flex-col" style={{ minHeight: '1px', minWidth: '1px' }}>
-                        <ResponsiveContainer key="chart-fluxo" width="100%" height="100%" minHeight={1} debounce={50}>
-                            <BarChart
-                                data={weeklyData}
-                                margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                                barGap={isDaily ? 2 : 4}
-                            >
-                                <defs>
-                                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
-                                        <stop offset="100%" stopColor="#34d399" stopOpacity={0.7} />
-                                    </linearGradient>
-                                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.9} />
-                                        <stop offset="100%" stopColor="#f87171" stopOpacity={0.7} />
-                                    </linearGradient>
-                                </defs>
+            <div className="flex-1 w-full min-h-[300px] min-w-0">
+                <SafeChartContainer 
+                    key={weeklyData.length} // Force re-render if data count changed
+                    className="w-full h-full"
+                >
+                    <ResponsiveContainer key="chart-fluxo" width="100%" height="100%" minHeight={1} debounce={50}>
+                        <BarChart
+                            data={weeklyData}
+                            margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
+                            barGap={isDaily ? 2 : 4}
+                        >
+                            <defs>
+                                <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
+                                    <stop offset="100%" stopColor="#34d399" stopOpacity={0.7} />
+                                </linearGradient>
+                                <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.9} />
+                                    <stop offset="100%" stopColor="#f87171" stopOpacity={0.7} />
+                                </linearGradient>
+                            </defs>
 
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    vertical={false}
-                                    stroke="currentColor"
-                                    className="text-gray-100 dark:text-slate-700"
-                                />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    dy={8}
-                                    tick={{ fontSize: 10, fill: '#9ca3af' }}
-                                    interval={isDaily ? 'preserveStartEnd' : 0}
-                                    minTickGap={isDaily ? 10 : 0}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 11, fill: '#9ca3af' }}
-                                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toString()}
-                                    width={45}
-                                />
-                                <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
-                                <Tooltip
-                                    content={<CustomTooltip isDaily={isDaily} />}
-                                    cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                                />
-                                <Legend content={<CustomLegend />} />
-                                <Bar
-                                    dataKey="income"
-                                    name="Receitas"
-                                    fill="url(#incomeGradient)"
-                                    radius={[4, 4, 0, 0]}
-                                    maxBarSize={isDaily ? 16 : 48}
-                                />
-                                <Bar
-                                    dataKey="expense"
-                                    name="Despesas"
-                                    fill="url(#expenseGradient)"
-                                    radius={[4, 4, 0, 0]}
-                                    maxBarSize={isDaily ? 16 : 48}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                )}
-                {!isMounted && (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <div className="animate-pulse text-gray-400">Carregando gráfico...</div>
-                    </div>
-                )}
+                            <CartesianGrid
+                                strokeDasharray="3 3"
+                                vertical={false}
+                                stroke="currentColor"
+                                className="text-gray-100 dark:text-slate-700"
+                            />
+                            <XAxis
+                                dataKey="name"
+                                axisLine={false}
+                                tickLine={false}
+                                dy={8}
+                                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                                interval={isDaily ? 'preserveStartEnd' : 0}
+                                minTickGap={isDaily ? 10 : 0}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toString()}
+                                width={45}
+                            />
+                            <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
+                            <Tooltip
+                                content={<CustomTooltip isDaily={isDaily} />}
+                                cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                            />
+                            <Legend content={<CustomLegend />} />
+                            <Bar
+                                dataKey="income"
+                                name="Receitas"
+                                fill="url(#incomeGradient)"
+                                radius={[4, 4, 0, 0]}
+                                maxBarSize={isDaily ? 16 : 48}
+                            />
+                            <Bar
+                                dataKey="expense"
+                                name="Despesas"
+                                fill="url(#expenseGradient)"
+                                radius={[4, 4, 0, 0]}
+                                maxBarSize={isDaily ? 16 : 48}
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </SafeChartContainer>
             </div>
         </div>
     );

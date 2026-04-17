@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Category } from '../../hooks/useCategories';
 import { useState, useEffect } from 'react';
+import { SafeChartContainer } from './SafeChartContainer';
 
 interface ExpenseByCategoryChartProps {
     expenses: { category_id: string; amount: number }[];
@@ -14,12 +15,11 @@ const COLORS = [
 ];
 
 export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCategoryChartProps) {
-    const [isMounted, setIsMounted] = useState(false);
-
+    const [dataState, setDataState] = useState(expenses);
+    
     useEffect(() => {
-        const timer = setTimeout(() => setIsMounted(true), 500);
-        return () => clearTimeout(timer);
-    }, []);
+        setDataState(expenses);
+    }, [expenses]);
 
     if (expenses.length === 0) return null;
 
@@ -56,35 +56,28 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Despesas por Categoria</h3>
             <div className="flex flex-col lg:flex-row items-center gap-4">
                 {/* Chart */}
-                <div className="w-full lg:w-1/2 relative min-h-[220px] min-w-0 overflow-hidden">
-                    {isMounted && (
-                        <div className="absolute inset-0 w-full h-full flex flex-col" style={{ minHeight: '1px', minWidth: '1px' }}>
-                            <ResponsiveContainer key="chart-cat" width="100%" height="100%" minHeight={1} debounce={50}>
-                                <PieChart>
-                                    <Pie
-                                        data={data}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={55}
-                                        outerRadius={90}
-                                        paddingAngle={3}
-                                        dataKey="value"
-                                        stroke="none"
-                                    >
-                                        {data.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip content={<CustomTooltip />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                    {!isMounted && (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <div className="animate-pulse text-gray-400">Carregando gráfico...</div>
-                        </div>
-                    )}
+                <div className="w-full lg:w-1/2 min-h-[220px] min-w-0">
+                    <SafeChartContainer className="w-full h-full">
+                        <ResponsiveContainer key="chart-cat" width="100%" height="100%" minHeight={1} debounce={50}>
+                            <PieChart>
+                                <Pie
+                                    data={data}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={55}
+                                    outerRadius={90}
+                                    paddingAngle={3}
+                                    dataKey="value"
+                                    stroke="none"
+                                >
+                                    {data.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </SafeChartContainer>
                 </div>
                 {/* Legend */}
                 <div className="w-full lg:w-1/2 space-y-2 max-h-[220px] overflow-y-auto">

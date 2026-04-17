@@ -1,6 +1,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { SafeChartContainer } from './SafeChartContainer';
 
 interface CashFlowForecastProps {
     currentBalance: number;
@@ -11,12 +12,7 @@ interface CashFlowForecastProps {
 }
 
 export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense, pendingReceivable, pendingPayable }: CashFlowForecastProps) {
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setIsMounted(true), 500);
-        return () => clearTimeout(timer);
-    }, []);
+    // Effect removed, replaced by ResizeObserver in SafeChartContainer
 
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
@@ -79,38 +75,31 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
                 )}
             </div>
 
-            <div className="relative min-h-[200px] min-w-0 overflow-hidden">
-                {isMounted && (
-                    <div className="absolute inset-0 w-full h-full flex flex-col" style={{ minHeight: '1px', minWidth: '1px' }}>
-                        <ResponsiveContainer key="chart-forecast" width="100%" height="100%" minHeight={1} debounce={50}>
-                            <LineChart data={projections} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 11 }}
-                                    tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-                                />
-                                <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={1.5} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Line
-                                    type="monotone"
-                                    dataKey="balance"
-                                    stroke="#3b82f6"
-                                    strokeWidth={2.5}
-                                    dot={{ r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
-                                    activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                )}
-                {!isMounted && (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <div className="animate-pulse text-gray-400">Carregando gráfico...</div>
-                    </div>
-                )}
+            <div className="min-h-[200px] min-w-0">
+                <SafeChartContainer className="w-full h-full">
+                    <ResponsiveContainer key="chart-forecast" width="100%" height="100%" minHeight={1} debounce={50}>
+                        <LineChart data={projections} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 11 }}
+                                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                            />
+                            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={1.5} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Line
+                                type="monotone"
+                                dataKey="balance"
+                                stroke="#3b82f6"
+                                strokeWidth={2.5}
+                                dot={{ r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                                activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2 }}
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </SafeChartContainer>
             </div>
 
             {/* Legend */}
