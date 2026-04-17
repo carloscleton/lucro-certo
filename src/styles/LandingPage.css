@@ -110,7 +110,7 @@
     color: var(--text-muted);
     text-decoration: none;
     font-weight: 500;
-    transition: all 0.3s ease;
+    transition: color 0.3s ease, background-color 0.3s ease;
     font-size: 0.95rem;
 }
 
@@ -125,7 +125,7 @@
     color: white;
     font-weight: 600;
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
     box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
 }
 
@@ -258,7 +258,8 @@
     grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: 4rem;
-    transition: opacity 0.5s ease;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    contain: layout paint;
 }
 
 .carousel-slide-content[aria-hidden="true"] {
@@ -638,11 +639,12 @@
     border: 1px solid var(--glass-border);
     padding: 2.5rem;
     border-radius: 32px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+    contain: layout;
 }
 
 .feature-card:hover {
