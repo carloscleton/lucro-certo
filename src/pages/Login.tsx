@@ -340,7 +340,8 @@ export function Login() {
                         .eq('id', authData.user.id)
                         .maybeSingle();
 
-                    if (profileData?.status === 'blocked') {
+                    const isSystemAdmin = authData.user.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
+                    if (profileData?.status === 'blocked' && !isSystemAdmin) {
                         await supabase.auth.signOut();
                         setShowBannedModal(true);
                         setLoading(false);
@@ -357,7 +358,7 @@ export function Login() {
                         .maybeSingle();
 
                     const castedMembership = membershipData as any;
-                    if (castedMembership?.company?.status === 'blocked') {
+                    if (castedMembership?.company?.status === 'blocked' && !isSystemAdmin) {
                         await supabase.auth.signOut();
                         setShowBannedModal(true);
                         setLoading(false);

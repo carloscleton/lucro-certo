@@ -89,7 +89,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
             if (data) {
-                if (data.status === 'blocked') {
+                const isSystemAdmin = data.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
+                if (data.status === 'blocked' && !isSystemAdmin) {
                     await supabase.auth.signOut();
                     return;
                 }
