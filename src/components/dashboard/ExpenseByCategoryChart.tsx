@@ -51,7 +51,7 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
             <div className="flex flex-col lg:flex-row items-center gap-4">
                 {/* Chart */}
                 <div className="w-full lg:w-1/2 min-h-[220px] min-w-0">
-                    <SafeChartContainer className="w-full h-full">
+                    <SafeChartContainer className="w-full h-[220px]">
                         <ResponsiveContainer key="chart-cat" width="100%" height="100%" minHeight={1} debounce={50}>
                             <PieChart>
                                 <Pie
