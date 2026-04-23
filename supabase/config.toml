@@ -156,3 +156,8 @@ entrypoint = "./functions/platform-welcome-notification/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/loyalty-checkout/index.ts"
+
+[functions.automation-dispatcher]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/automation-dispatcher/index.ts"

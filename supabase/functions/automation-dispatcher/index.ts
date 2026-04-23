@@ -40,48 +40,53 @@ serve(async (req) => {
         const results = []
 
         for (const comp of companies) {
-            const settings = comp.settings as any
+            try {
+                const settings = comp.settings as any
+                console.log(`[Dispatcher] Processando empresa: ${comp.trade_name} (${comp.id})`);
 
-            // Verificação 1: Resumo Financeiro
-            if (settings.automation_financial_reminders === true) {
-                const setTime = settings.automation_financial_time || '08:00'
-                const setHour = setTime.split(':')[0]
+                // Verificação 1: Resumo Financeiro
+                if (settings.automation_financial_reminders === true) {
+                    const setTime = settings.automation_financial_time || '08:00'
+                    const setHour = setTime.split(':')[0]
 
-                if (setHour === currentHour) {
-                    console.log(`[FINANCEIRO] Disparando para: ${comp.trade_name}`)
-                    await supabase.functions.invoke('financial-reminders', {
-                        body: { company_id: comp.id, days: 7 }
-                    })
-                    results.push(`${comp.trade_name}: Financeiro enviado`)
+                    if (setHour === currentHour) {
+                        console.log(`   [FINANCEIRO] Disparando para: ${comp.trade_name}`)
+                        await supabase.functions.invoke('financial-reminders', {
+                            body: { company_id: comp.id, days: 7 }
+                        })
+                        results.push(`${comp.trade_name}: Financeiro enviado`)
+                    }
                 }
-            }
 
-            // Verificação 2: Aniversários
-            if (settings.automation_birthday_reminders === true) {
-                const setTime = settings.automation_birthday_time || '09:00'
-                const setHour = setTime.split(':')[0]
+                // Verificação 2: Aniversários
+                if (settings.automation_birthday_reminders === true) {
+                    const setTime = settings.automation_birthday_time || '09:00'
+                    const setHour = setTime.split(':')[0]
 
-                if (setHour === currentHour) {
-                    console.log(`[ANIVERSÁRIO] Disparando para: ${comp.trade_name}`)
-                    await supabase.functions.invoke('birthday-reminders', {
-                        body: { company_id: comp.id }
-                    })
-                    results.push(`${comp.trade_name}: Aniversários enviado`)
+                    if (setHour === currentHour) {
+                        console.log(`   [ANIVERSÁRIO] Disparando para: ${comp.trade_name}`)
+                        await supabase.functions.invoke('birthday-reminders', {
+                            body: { company_id: comp.id }
+                        })
+                        results.push(`${comp.trade_name}: Aniversários enviado`)
+                    }
                 }
-            }
 
-            // Verificação 3: Pagamentos Atrasados
-            if (settings.automation_overdue_reminders === true) {
-                const setTime = settings.automation_overdue_time || '10:00'
-                const setHour = setTime.split(':')[0]
+                // Verificação 3: Pagamentos Atrasados
+                if (settings.automation_overdue_reminders === true) {
+                    const setTime = settings.automation_overdue_time || '10:00'
+                    const setHour = setTime.split(':')[0]
 
-                if (setHour === currentHour) {
-                    console.log(`[ATRASO] Disparando para: ${comp.trade_name}`)
-                    await supabase.functions.invoke('overdue-reminders', {
-                        body: { company_id: comp.id }
-                    })
-                    results.push(`${comp.trade_name}: Atrasos enviado`)
+                    if (setHour === currentHour) {
+                        console.log(`   [ATRASO] Disparando para: ${comp.trade_name}`)
+                        await supabase.functions.invoke('overdue-reminders', {
+                            body: { company_id: comp.id }
+                        })
+                        results.push(`${comp.trade_name}: Atrasos enviado`)
+                    }
                 }
+            } catch (err: any) {
+                console.error(`[Dispatcher] Erro ao processar empresa ${comp.trade_name}:`, err.message);
             }
         }
 
