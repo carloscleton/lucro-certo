@@ -21,13 +21,13 @@ export const FinancialReport = React.forwardRef<HTMLDivElement, FinancialReportP
     logoUrl
 }, ref) => {
 
-    const total = transactions.reduce((acc, t) => acc + (t.amount || 0), 0);
     const paidTotal = transactions
         .filter(t => t.status === 'paid' || t.status === 'received')
-        .reduce((acc, t) => acc + (t.amount || 0), 0);
+        .reduce((acc, t) => acc + (t.paid_amount || t.amount || 0), 0);
     const pendingTotal = transactions
         .filter(t => t.status === 'pending' || t.status === 'late')
         .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const total = paidTotal + pendingTotal;
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr + 'T00:00:00').toLocaleDateString('pt-BR');
@@ -94,34 +94,46 @@ export const FinancialReport = React.forwardRef<HTMLDivElement, FinancialReportP
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                        {transactions.map((t) => (
-                            <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700">
-                                    {formatDate(t.date)}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <div className="font-bold text-slate-900">{t.description}</div>
-                                    <div className="text-[10px] text-slate-500">{(t.contact as any)?.name || 'N/A'}</div>
-                                </td>
-                                <td className="px-4 py-3 text-slate-500 font-medium">
-                                    {(t.category as any)?.name || 'Sem categoria'}
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${t.status === 'paid' || t.status === 'received'
+                        {transactions.map((t) => {
+                            const isPaid = t.status === 'paid' || t.status === 'received';
+                            const finalValue = isPaid ? (t.paid_amount || t.amount || 0) : (t.amount || 0);
+
+                            return (
+                                <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700">
+                                        {formatDate(t.date)}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="font-bold text-slate-900">{t.description}</div>
+                                        <div className="text-[10px] text-slate-500">{(t.contact as any)?.name || 'N/A'}</div>
+                                        {isPaid && ((t.interest || 0) > 0 || (t.penalty || 0) > 0) ? (
+                                            <div className="text-[9px] text-amber-600 mt-1 font-medium italic">
+                                                {t.interest! > 0 && `+ Juros: ${formatCurrency(t.interest!)}`}
+                                                {t.interest! > 0 && t.penalty! > 0 && ' | '}
+                                                {t.penalty! > 0 && `+ Multa: ${formatCurrency(t.penalty!)}`}
+                                            </div>
+                                        ) : null}
+                                    </td>
+                                    <td className="px-4 py-3 text-slate-500 font-medium">
+                                        {(t.category as any)?.name || 'Sem categoria'}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${t.status === 'paid' || t.status === 'received'
                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                             : t.status === 'pending'
                                                 ? 'bg-amber-50 text-amber-700 border-amber-200'
                                                 : 'bg-rose-50 text-rose-700 border-rose-200'
+                                            }`}>
+                                            {t.status === 'received' ? 'RECEBIDO' : t.status.toUpperCase()}
+                                        </span>
+                                    </td>
+                                    <td className={`px-4 py-3 text-right font-bold ${type === 'income' ? 'text-emerald-700' : 'text-slate-900'
                                         }`}>
-                                        {t.status === 'received' ? 'RECEBIDO' : t.status.toUpperCase()}
-                                    </span>
-                                </td>
-                                <td className={`px-4 py-3 text-right font-bold ${type === 'income' ? 'text-emerald-700' : 'text-slate-900'
-                                    }`}>
-                                    {formatCurrency(t.amount || 0)}
-                                </td>
-                            </tr>
-                        ))}
+                                        {formatCurrency(finalValue)}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                     <tfoot>
                         <tr className="bg-slate-50 border-t-2 border-slate-200">
