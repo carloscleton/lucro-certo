@@ -1,5 +1,6 @@
 import { Trophy, TrendingUp } from 'lucide-react';
 import type { Category } from '../../hooks/useCategories';
+import { useNavigate } from 'react-router-dom';
 
 interface TopPerformingWidgetProps {
     expensesByCategory: { category_id: string; amount: number }[];
@@ -7,6 +8,7 @@ interface TopPerformingWidgetProps {
 }
 
 export function TopPerformingWidget({ expensesByCategory, categories }: TopPerformingWidgetProps) {
+    const navigate = useNavigate();
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
@@ -75,7 +77,10 @@ export function TopPerformingWidget({ expensesByCategory, categories }: TopPerfo
             </div>
 
             <div className="mt-auto pt-6">
-                <button className="w-full py-3 rounded-xl bg-blue-500/10 dark:bg-blue-400/10 border border-blue-200/50 dark:border-blue-800/30 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-sm hover:shadow-blue-200 dark:hover:shadow-none">
+                <button 
+                    onClick={() => navigate('/dashboard/reports')}
+                    className="w-full py-3 rounded-xl bg-blue-500/10 dark:bg-blue-400/10 border border-blue-200/50 dark:border-blue-800/30 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-sm hover:shadow-blue-200 dark:hover:shadow-none"
+                >
                     Ver Relatório Completo
                 </button>
             </div>
