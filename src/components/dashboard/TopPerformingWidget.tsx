@@ -74,8 +74,8 @@ export function TopPerformingWidget({ expensesByCategory, categories }: TopPerfo
                 ))}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-800">
-                <button className="w-full py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity">
+            <div className="mt-auto pt-6">
+                <button className="w-full py-3 rounded-xl bg-blue-500/10 dark:bg-blue-400/10 border border-blue-200/50 dark:border-blue-800/30 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-sm hover:shadow-blue-200 dark:hover:shadow-none">
                     Ver Relatório Completo
                 </button>
             </div>
