@@ -1,5 +1,5 @@
-import { Trophy, TrendingUp, TrendingDown } from 'lucide-react';
-import { Category } from '../../hooks/useCategories';
+import { Trophy, TrendingUp } from 'lucide-react';
+import type { Category } from '../../hooks/useCategories';
 
 interface TopPerformingWidgetProps {
     expensesByCategory: { category_id: string; amount: number }[];

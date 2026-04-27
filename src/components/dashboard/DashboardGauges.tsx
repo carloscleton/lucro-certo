@@ -8,11 +8,6 @@ interface GaugeProps {
     color?: string;
 }
 
-const GAUGE_COLORS = {
-    profit: ['#10b981', '#34d399', '#f1f5f9'], // Green palette
-    health: ['#6366f1', '#8b5cf6', '#f1f5f9'], // Indigo/Violet
-};
-
 function Gauge({ value, label, description, color = '#10b981' }: GaugeProps) {
     const data = [
         { value: value },
