@@ -1,103 +1,130 @@
-import { ArrowDownCircle, ArrowUpCircle, DollarSign, Wallet } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, DollarSign, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import type { DashboardMetrics } from '../../hooks/useDashboard';
 
 interface DashboardCardsProps {
     metrics: DashboardMetrics;
+    previousPeriod?: { income: number; expense: number };
     onCardClick?: (type: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected') => void;
 }
 
-export function DashboardCards({ metrics, onCardClick }: DashboardCardsProps) {
+export function DashboardCards({ metrics, previousPeriod, onCardClick }: DashboardCardsProps) {
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(val);
 
+    const calculateGrowth = (current: number, previous: number) => {
+        if (!previous || previous === 0) return null;
+        const growth = ((current - previous) / previous) * 100;
+        return growth.toFixed(1);
+    };
+
+    const incomeGrowth = previousPeriod ? calculateGrowth(metrics.income, previousPeriod.income) : null;
+    const expenseGrowth = previousPeriod ? calculateGrowth(metrics.expense, previousPeriod.expense) : null;
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Receitas */}
             <div
                 onClick={() => onCardClick?.('income')}
-                className="bg-green-50 dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-green-100 dark:border-green-900/50 transition-all cursor-pointer hover:shadow-md hover:scale-105 hover:bg-green-100 dark:hover:bg-slate-800/80"
+                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-green-700 dark:text-gray-400 text-sm font-medium">Receitas (Mês)</p>
-                        <p className="text-[10px] text-green-600/60 dark:text-green-500/50">Valores já recebidos</p>
-                        <h3 className="text-2xl font-bold mt-1 text-green-700 dark:text-green-400">
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">Receitas (Efetuado)</p>
+                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.income)}
                         </h3>
+                        {incomeGrowth && (
+                            <div className={`flex items-center gap-1 mt-2 text-[10px] font-bold ${Number(incomeGrowth) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                {Number(incomeGrowth) >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                {incomeGrowth}% <span className="opacity-60 font-medium">vs mês anterior</span>
+                            </div>
+                        )}
                     </div>
-                    <div className="p-2 bg-white/60 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400 backdrop-blur-sm">
-                        <ArrowUpCircle size={24} />
+                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                        <ArrowUpCircle size={22} />
                     </div>
                 </div>
             </div>
 
+            {/* Despesas */}
             <div
                 onClick={() => onCardClick?.('expense')}
-                className="bg-red-50 dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-red-100 dark:border-red-900/50 transition-all cursor-pointer hover:shadow-md hover:scale-105 hover:bg-red-100 dark:hover:bg-slate-800/80"
+                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-red-700 dark:text-gray-400 text-sm font-medium">Despesas (Mês)</p>
-                        <p className="text-[10px] text-red-600/60 dark:text-red-500/50">Valores já pagos</p>
-                        <h3 className="text-2xl font-bold mt-1 text-red-700 dark:text-red-400">
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">Despesas (Pago)</p>
+                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.expense)}
                         </h3>
+                        {expenseGrowth && (
+                            <div className={`flex items-center gap-1 mt-2 text-[10px] font-bold ${Number(expenseGrowth) <= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                {Number(expenseGrowth) <= 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
+                                {Math.abs(Number(expenseGrowth))}% <span className="opacity-60 font-medium">vs mês anterior</span>
+                            </div>
+                        )}
                     </div>
-                    <div className="p-2 bg-white/60 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 backdrop-blur-sm">
-                        <ArrowDownCircle size={24} />
+                    <div className="p-2.5 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
+                        <ArrowDownCircle size={22} />
                     </div>
                 </div>
             </div>
 
+            {/* A Pagar */}
             <div
                 onClick={() => onCardClick?.('payable')}
-                className="bg-orange-50 dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-orange-100 dark:border-orange-900/50 transition-all cursor-pointer hover:shadow-md hover:scale-105 hover:bg-orange-100 dark:hover:bg-slate-800/80"
+                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-orange-800 dark:text-gray-400 text-sm font-medium">A Pagar (Pendente)</p>
-                        <p className="text-[10px] text-orange-600/60 dark:text-orange-500/50">Contas em aberto no período</p>
-                        <h3 className="text-2xl font-bold mt-1 text-orange-700 dark:text-orange-400">
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">Compromissos</p>
+                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.totalPayable)}
                         </h3>
+                        <p className="text-[10px] text-gray-400 mt-2 font-medium">Pendentes no período</p>
                     </div>
-                    <div className="p-2 bg-white/60 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-400 backdrop-blur-sm">
-                        <DollarSign size={24} />
+                    <div className="p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
+                        <DollarSign size={22} />
                     </div>
                 </div>
             </div>
 
+            {/* A Receber */}
             <div
                 onClick={() => onCardClick?.('receivable')}
-                className="bg-blue-50 dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-blue-100 dark:border-blue-900/50 transition-all cursor-pointer hover:shadow-md hover:scale-105 hover:bg-blue-100 dark:hover:bg-slate-800/80"
+                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-blue-700 dark:text-gray-400 text-sm font-medium">A Receber (Pendente)</p>
-                        <p className="text-[10px] text-blue-600/60 dark:text-blue-500/50">Receitas pendentes no período</p>
-                        <h3 className="text-2xl font-bold mt-1 text-blue-700 dark:text-blue-400">
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">A Receber</p>
+                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.totalReceivable)}
                         </h3>
+                        <p className="text-[10px] text-gray-400 mt-2 font-medium">Expectativa de entrada</p>
                     </div>
-                    <div className="p-2 bg-white/60 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 backdrop-blur-sm">
-                        <Wallet size={24} />
+                    <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                        <Wallet size={22} />
                     </div>
                 </div>
             </div>
 
+            {/* Recuperação */}
             <div
                 onClick={() => onCardClick?.('rejected')}
-                className="bg-pink-50 dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-pink-100 dark:border-pink-900/50 transition-all cursor-pointer hover:shadow-md hover:scale-105 hover:bg-pink-100 dark:hover:bg-slate-800/80"
+                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-pink-700 dark:text-gray-400 text-sm font-medium">Recuperação</p>
-                        <h3 className="text-2xl font-bold mt-1 text-pink-700 dark:text-pink-400">
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">Recuperação</p>
+                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.rejectedTotal)}
                         </h3>
-                        <p className="text-xs text-pink-600/70 dark:text-gray-500 mt-1">{metrics.rejectedCount} orçamentos</p>
+                        <p className="text-[10px] text-pink-500 mt-2 font-bold uppercase tracking-tighter">
+                            {metrics.rejectedCount} Oportunidade{metrics.rejectedCount !== 1 ? 's' : ''}
+                        </p>
                     </div>
-                    <div className="p-2 bg-white/60 dark:bg-pink-900/30 rounded-lg text-pink-600 dark:text-pink-400 backdrop-blur-sm">
-                        <ArrowDownCircle size={24} className="rotate-45" />
+                    <div className="p-2.5 bg-pink-50 dark:bg-pink-900/20 rounded-xl text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform">
+                        <ArrowDownCircle size={22} className="rotate-45" />
                     </div>
                 </div>
             </div>

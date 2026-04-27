@@ -25,6 +25,8 @@ import { useAdmin } from '../hooks/useAdmin';
 import { Users, Building, DollarSign, TrendingUp } from 'lucide-react';
 import { AgendaTasksWidget } from '../components/dashboard/AgendaTasksWidget';
 import { SettleModal } from '../components/transactions/SettleModal';
+import { DashboardGauges } from '../components/dashboard/DashboardGauges';
+import { TopPerformingWidget } from '../components/dashboard/TopPerformingWidget';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -244,44 +246,44 @@ export function Dashboard() {
     const firstName = profile?.full_name?.split(' ')[0] || t('common.user');
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 max-w-[1600px] mx-auto w-full pb-10">
             {isAdmin && adminStats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm group hover:border-blue-200 transition-all">
+                    <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-sm group hover:border-blue-200 transition-all">
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Usuários</span>
                             <Users size={14} className="text-blue-500" />
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{adminStats.total_users}</div>
+                        <div className="text-lg font-black text-gray-900 dark:text-white leading-tight">{adminStats.total_users}</div>
                         <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Plataforma Global</div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm group hover:border-purple-200 transition-all">
+                    <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-sm group hover:border-purple-200 transition-all">
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Empresas</span>
                             <Building size={14} className="text-purple-500" />
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{adminStats.total_companies}</div>
+                        <div className="text-lg font-black text-gray-900 dark:text-white leading-tight">{adminStats.total_companies}</div>
                         <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Contas corporativas</div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm group hover:border-emerald-200 transition-all">
+                    <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-sm group hover:border-emerald-200 transition-all">
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Comissões</span>
                             <DollarSign size={14} className="text-emerald-500" />
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                        <div className="text-lg font-black text-gray-900 dark:text-white leading-tight">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(adminStats.total_commission || 0)}
                         </div>
                         <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Líquido estimado</div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm group hover:border-blue-300 transition-all">
+                    <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-sm group hover:border-blue-300 transition-all">
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Volume</span>
                             <TrendingUp size={14} className="text-blue-600" />
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                        <div className="text-lg font-black text-gray-900 dark:text-white leading-tight">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(adminStats.total_revenue || 0)}
                         </div>
                         <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Total processado</div>
@@ -292,35 +294,33 @@ export function Dashboard() {
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{greeting}, {firstName}</h1>
-                    <p className="text-gray-500 dark:text-gray-400">{t('dashboard.financial_summary')}</p>
+                    <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{greeting}, {firstName}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">Informativo financeiro para o período selecionado</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    {/* Month Picker Quick Select */}
                     <Tooltip content={t('dashboard.quick_month_select')}>
                         <input
                             type="month"
                             value={monthFilter}
                             onChange={handleMonthChange}
-                            className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
+                            className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md px-3 py-2 border border-white/20 dark:border-slate-700/30 rounded-xl dark:text-white text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                         />
                     </Tooltip>
-                    <span className="text-gray-400 hidden md:inline">|</span>
-                    {/* Manual Date Range */}
-                    <div className="flex items-center gap-2">
+                    <span className="text-gray-300 hidden md:inline opacity-50">|</span>
+                    <div className="flex items-center gap-2 bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm p-1 rounded-xl border border-white/20 dark:border-slate-700/30">
                         <input
                             type="date"
                             value={startDate}
                             onChange={handleStartDateChange}
-                            className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
+                            className="bg-transparent px-2 py-1 dark:text-white text-xs font-bold focus:outline-none"
                         />
-                        <span className="text-gray-500">{t('common.to')}</span>
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest px-1">Até</span>
                         <input
                             type="date"
                             value={endDate}
                             onChange={handleEndDateChange}
-                            className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
+                            className="bg-transparent px-2 py-1 dark:text-white text-xs font-bold focus:outline-none"
                         />
                     </div>
                 </div>
@@ -328,7 +328,17 @@ export function Dashboard() {
 
             <Alerts alerts={alerts} onQuickPay={handleQuickPayClick} />
 
-            <DashboardCards metrics={metrics} onCardClick={handleCardClick} />
+            <DashboardCards metrics={metrics} previousPeriod={previousPeriod} onCardClick={handleCardClick} />
+
+            {/* Performance Grid Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 scale-in-center">
+                <div className="lg:col-span-8">
+                    <DashboardGauges income={metrics.income} expense={metrics.expense} />
+                </div>
+                <div className="lg:col-span-4">
+                    <TopPerformingWidget expensesByCategory={expensesByCategory} categories={categories} />
+                </div>
+            </div>
 
             <ContextSummaryWidget contextMetrics={contextMetrics} />
 
@@ -349,20 +359,16 @@ export function Dashboard() {
                 </div>
 
                 <div className="space-y-6">
-                    {/* Side Column Widgets */}
-                    <div className="space-y-6">
-                        <AgendaTasksWidget tasks={agendaTasks} />
+                    <AgendaTasksWidget tasks={agendaTasks} />
 
-                        {isCRMEnabled && (
-                            <CRMStatsWidget receivedIncome={metrics.income} />
-                        )}
+                    {isCRMEnabled && (
+                        <CRMStatsWidget receivedIncome={metrics.income} />
+                    )}
 
-                        {isLoyaltyEnabled && (
-                            <LoyaltyStatsWidget />
-                        )}
-                    </div>
+                    {isLoyaltyEnabled && (
+                        <LoyaltyStatsWidget />
+                    )}
 
-                    {/* Cash Flow Forecast */}
                     <CashFlowForecast
                         currentBalance={metrics.balance}
                         monthlyIncome={metrics.income}
@@ -371,20 +377,18 @@ export function Dashboard() {
                         pendingPayable={metrics.totalPayable}
                     />
 
-                    {/* Upcoming Bills Widget */}
                     <UpcomingBillsWidget onRefreshMetrics={refreshDashboard} />
 
-                    {/* Quick Summary Card */}
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('dashboard.quick_summary')}</h3>
+                    <div className="glass-card p-6 rounded-2xl transition-all hover:shadow-2xl">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-widest">{t('dashboard.quick_summary')}</h3>
                         <div className="space-y-4">
-                            <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.period_result')}</p>
-                                <p className={`text-xl font-bold ${metrics.income - metrics.expense >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            <div className="p-4 bg-gray-50/50 dark:bg-slate-900/30 rounded-xl border border-gray-100 dark:border-slate-800">
+                                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter mb-1">{t('dashboard.period_result')}</p>
+                                <p className={`text-2xl font-black ${metrics.income - metrics.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                     {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(metrics.income - metrics.expense)}
                                 </p>
                             </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 italic leading-relaxed">
                                 {t('dashboard.quote_tip')}
                             </p>
                         </div>

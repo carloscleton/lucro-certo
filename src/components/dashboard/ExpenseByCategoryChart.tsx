@@ -46,53 +46,68 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Despesas por Categoria</h3>
-            <div className="flex flex-col lg:flex-row items-center gap-4">
+        <div className="glass-card p-6 rounded-2xl transition-all hover:shadow-2xl hover:translate-y-[-2px] duration-300">
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                        Distribuição de Despedas
+                    </h3>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Visão proporcional por categoria no período</p>
+                </div>
+            </div>
+
+            <div className="flex flex-col lg:flex-row items-center gap-8">
                 {/* Chart */}
-                <div className="w-full lg:w-1/2 min-h-[220px] min-w-0">
-                    <SafeChartContainer className="w-full h-[220px]">
+                <div className="w-full lg:w-1/2 min-h-[240px] min-w-0 relative">
+                    <SafeChartContainer className="w-full h-[240px]">
                         <ResponsiveContainer key="chart-cat" width="100%" height="100%" minHeight={1} debounce={50}>
                             <PieChart>
                                 <Pie
                                     data={data}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={55}
-                                    outerRadius={90}
-                                    paddingAngle={3}
+                                    innerRadius={65}
+                                    outerRadius={95}
+                                    paddingAngle={4}
                                     dataKey="value"
                                     stroke="none"
                                 >
                                     {data.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                        <Cell 
+                                            key={`cell-${index}`} 
+                                            fill={entry.color} 
+                                            className="hover:opacity-80 transition-opacity"
+                                        />
                                     ))}
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
                             </PieChart>
                         </ResponsiveContainer>
                     </SafeChartContainer>
+                    {/* Central Total */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">Total</span>
+                        <span className="text-lg font-black text-gray-900 dark:text-white">{formatCurrency(total)}</span>
+                    </div>
                 </div>
+
                 {/* Legend */}
-                <div className="w-full lg:w-1/2 space-y-2 max-h-[220px] overflow-y-auto">
+                <div className="w-full lg:w-1/2 space-y-2.5 max-h-[240px] overflow-y-auto custom-scrollbar pr-2">
                     {data.map((d, i) => (
-                        <div key={i} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
-                                <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{d.name}</span>
+                        <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-xl group hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-all border border-transparent hover:border-gray-100 dark:hover:border-slate-700/50">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: d.color }} />
+                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{d.name}</span>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(d.value)}</span>
-                                <span className="text-[10px] text-gray-400 dark:text-gray-500">{d.percentage}%</span>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                                <span className="text-xs font-black text-gray-900 dark:text-white">{formatCurrency(d.value)}</span>
+                                <div className="w-10 text-right">
+                                    <span className="text-[10px] font-black text-gray-400 group-hover:text-indigo-500 transition-colors">{d.percentage}%</span>
+                                </div>
                             </div>
                         </div>
                     ))}
-                    <div className="pt-2 mt-2 border-t border-gray-100 dark:border-slate-700 px-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Total</span>
-                            <span className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(total)}</span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
