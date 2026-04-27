@@ -60,41 +60,48 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
+        <div className="glass-card p-6 rounded-2xl transition-all hover:shadow-2xl hover:translate-y-[-2px] duration-300">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                    <TrendingUp size={20} className="text-blue-600" />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Previsão de Fluxo</h3>
+                    <TrendingUp size={20} className="text-blue-500" />
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">Previsão de Fluxo</h3>
                 </div>
                 {willGoNegative && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-full">
-                        <AlertTriangle size={14} className="text-red-600 dark:text-red-400" />
-                        <span className="text-xs font-semibold text-red-700 dark:text-red-300">Saldo negativo previsto</span>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-full">
+                        <AlertTriangle size={14} className="text-rose-600 dark:text-rose-400" />
+                        <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-tighter">Risco de Caixa</span>
                     </div>
                 )}
             </div>
 
-            <div className="min-h-[200px] min-w-0">
-                <SafeChartContainer className="w-full h-full">
-                    <ResponsiveContainer key="chart-forecast" width="100%" height="100%" minHeight={1} debounce={50}>
-                        <LineChart data={projections} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+            <div className="h-[250px] w-full min-w-0">
+                <SafeChartContainer className="w-full h-full relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={projections} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                            <XAxis 
+                                dataKey="name" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} 
+                                dy={10}
+                            />
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fontSize: 11 }}
-                                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                                tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
+                                tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
                             />
-                            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={1.5} />
-                            <Tooltip content={<CustomTooltip />} />
+                            <ReferenceLine y={0} stroke="#f43f5e" strokeDasharray="3 3" strokeWidth={1} />
+                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '5 5' }} />
                             <Line
                                 type="monotone"
                                 dataKey="balance"
                                 stroke="#3b82f6"
-                                strokeWidth={2.5}
-                                dot={{ r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
-                                activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2 }}
+                                strokeWidth={3}
+                                dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                                activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
+                                animationDuration={1500}
                             />
                         </LineChart>
                     </ResponsiveContainer>
@@ -102,13 +109,13 @@ export function CashFlowForecast({ currentBalance, monthlyIncome, monthlyExpense
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-center gap-6 mt-3 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-gray-100 dark:border-slate-800/50 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                 <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-0.5 bg-blue-500 rounded" />
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                     <span>Saldo projetado</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-0.5 bg-red-500 rounded" style={{ borderTop: '1px dashed #ef4444' }} />
+                    <div className="w-2 h-2 rounded-full border border-rose-500" />
                     <span>Linha zero</span>
                 </div>
             </div>
