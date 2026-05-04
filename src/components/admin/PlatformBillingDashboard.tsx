@@ -493,6 +493,7 @@ export function PlatformBillingDashboard() {
                                         <th className="px-4 py-3 font-bold text-gray-500 text-[10px] uppercase">Empresa / Dono</th>
                                         <th className="px-4 py-3 font-bold text-gray-500 text-[10px] uppercase text-center">Plano</th>
                                         <th className="px-4 py-3 font-bold text-gray-500 text-[10px] uppercase text-center">Status</th>
+                                        <th className="px-4 py-3 font-bold text-gray-500 text-[10px] uppercase text-center">Período de Uso</th>
                                         <th className="px-4 py-3 font-bold text-gray-500 text-[10px] uppercase text-center">Valor</th>
                                         <th className="px-4 py-3 font-bold text-gray-500 text-[10px] uppercase text-right">Ação</th>
                                     </tr>
@@ -500,7 +501,7 @@ export function PlatformBillingDashboard() {
                                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                                     {filteredCompanies.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="px-4 py-8 text-center text-gray-500 animate-pulse">
+                                            <td colSpan={6} className="px-4 py-8 text-center text-gray-500 animate-pulse">
                                                 Nenhum associado encontrado para este filtro.
                                             </td>
                                         </tr>
@@ -542,11 +543,25 @@ export function PlatformBillingDashboard() {
                                                             }
                                                             return null;
                                                         })()}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 text-center">
+                                                    <div className="flex flex-col items-center gap-1.5">
+                                                        <div className="flex items-center justify-between w-full max-w-[130px] text-[10px] bg-gray-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-slate-700">
+                                                            <span className="text-gray-500 font-medium">Início:</span>
+                                                            <span className="text-gray-900 dark:text-gray-100 font-bold">{new Date(c.created_at).toLocaleDateString()}</span>
+                                                        </div>
                                                         {c.trial_ends_at && c.subscription_plan === 'trial' && (
-                                                            <span className="text-[9px] text-gray-400">Expira {new Date(c.trial_ends_at).toLocaleDateString()}</span>
+                                                            <div className="flex items-center justify-between w-full max-w-[130px] text-[10px] bg-amber-50 dark:bg-amber-900/10 px-2 py-1 rounded-md border border-amber-100 dark:border-amber-900/30">
+                                                                <span className="text-amber-600/70 font-medium">Expira:</span>
+                                                                <span className="text-amber-600 font-bold">{new Date(c.trial_ends_at).toLocaleDateString()}</span>
+                                                            </div>
                                                         )}
                                                         {c.current_period_end && c.subscription_plan !== 'trial' && (
-                                                            <span className="text-[9px] text-blue-500 font-medium">Vence {new Date(c.current_period_end).toLocaleDateString()}</span>
+                                                            <div className="flex items-center justify-between w-full max-w-[130px] text-[10px] bg-blue-50 dark:bg-blue-900/10 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-900/30">
+                                                                <span className="text-blue-500/70 font-medium">Vence:</span>
+                                                                <span className="text-blue-500 font-bold">{new Date(c.current_period_end).toLocaleDateString()}</span>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </td>
