@@ -434,6 +434,25 @@ export function LandingPlansEditor() {
                                 </div>
 
                                 <div>
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Tipo de Cadastro Permitido</label>
+                                    <div className="flex gap-2">
+                                        {['PF', 'PJ', 'BOTH'].map(type => (
+                                            <button
+                                                key={type}
+                                                onClick={() => updatePlan(pIdx, 'allowed_entity_type', type)}
+                                                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
+                                                    (plan.allowed_entity_type || 'BOTH') === type 
+                                                        ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800' 
+                                                        : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
+                                                }`}
+                                            >
+                                                {type === 'BOTH' ? 'AMBOS' : type}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
                                     <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Módulos Ativos (Empresa)</label>
                                     <div className="grid grid-cols-2 gap-2 p-2 bg-emerald-50/30 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
                                         {COMPANY_MODULE_OPTIONS.map((mod) => {

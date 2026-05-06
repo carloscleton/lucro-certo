@@ -103,6 +103,8 @@ export function Login() {
         }
     }, [session, navigate, loading, pendingCompanyId]);
 
+    const [allowedRegistrationType, setAllowedRegistrationType] = useState<'PF' | 'PJ' | 'BOTH' | null>(null);
+
     // Check for recovery hash in URL
     useEffect(() => {
         const hash = window.location.hash;
@@ -111,6 +113,30 @@ export function Login() {
             setMessage(t('login.set_new_password'));
         }
     }, []);
+
+    // Fetch plan restrictions if checking out
+    useEffect(() => {
+        const checkoutPlan = searchParams.get('checkout-plan');
+        if (checkoutPlan && isSignUp) {
+            const fetchPlanSettings = async () => {
+                const { data } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+                if (data?.landing_plans) {
+                    const foundPlan = data.landing_plans.find((p: any) => 
+                        p.name?.toLowerCase() === checkoutPlan.toLowerCase()
+                    );
+                    if (foundPlan?.allowed_entity_type) {
+                        setAllowedRegistrationType(foundPlan.allowed_entity_type);
+                        
+                        // Set the default registration type to the allowed one if not BOTH
+                        if (foundPlan.allowed_entity_type === 'PF' || foundPlan.allowed_entity_type === 'PJ') {
+                            setRegistrationType(foundPlan.allowed_entity_type);
+                        }
+                    }
+                }
+            };
+            fetchPlanSettings();
+        }
+    }, [searchParams, isSignUp]);
 
     if (authLoading) {
         return (
@@ -631,29 +657,35 @@ export function Login() {
                                         </Tooltip>
                                     </div>
                                     <div className="flex gap-2">
-                                        <div className="flex-1 grid grid-cols-3 gap-1">
+                                        <div className="flex-1 flex gap-1">
                                             {[
                                                 { id: 'PF', icon: <User size={14} />, label: 'PF' },
                                                 { id: 'PJ', icon: <Building2 size={14} />, label: 'PJ' },
                                                 { id: 'BOTH', icon: <div className="flex -space-x-1"><User size={10}/><Building2 size={10}/></div>, label: 'Ambos' }
-                                            ].map(t => (
-                                                <button
-                                                    key={t.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setRegistrationType(t.id as any);
-                                                        // Limpa campos para evitar confusão
-                                                        if (t.id === 'PF') {
-                                                            setCnpjStr('');
-                                                            setCompanyName('');
-                                                        }
-                                                    }}
-                                                    className={`flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all ${registrationType === t.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
-                                                >
-                                                    {t.icon}
-                                                    <span className="font-bold text-[9px]">{t.label}</span>
-                                                </button>
-                                            ))}
+                                            ].map(t => {
+                                                const isAllowed = !allowedRegistrationType || allowedRegistrationType === 'BOTH' || allowedRegistrationType === t.id;
+                                                
+                                                if (!isAllowed) return null;
+                                                
+                                                return (
+                                                    <button
+                                                        key={t.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setRegistrationType(t.id as any);
+                                                            // Limpa campos para evitar confusão
+                                                            if (t.id === 'PF') {
+                                                                setCnpjStr('');
+                                                                setCompanyName('');
+                                                            }
+                                                        }}
+                                                        className={`flex-1 flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all ${registrationType === t.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
+                                                    >
+                                                        {t.icon}
+                                                        <span className="font-bold text-[9px]">{t.label}</span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                         <div className="flex-1 grid grid-cols-4 gap-1">
                                             {['BRL', 'USD', 'EUR', 'PYG'].map(code => (
