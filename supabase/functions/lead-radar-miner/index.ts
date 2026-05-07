@@ -125,7 +125,8 @@ serve(async (req: any) => {
                 body: JSON.stringify({ 
                     number: actualNum,
                     text: text,
-                    linkPreview: true
+                    linkPreview: true,
+                    delay: 1500 // Adiciona delay para simular digitação e evitar block
                 })
             });
 
@@ -392,6 +393,10 @@ serve(async (req: any) => {
 
                                         if (inst?.length) {
                                             const msg = await generateAIApproach(agent, raw, 1);
+                                            
+                                            // Sleep aleatório entre 1 e 3 segundos para evitar disparos 100% simultâneos no Evolution API
+                                            await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 1000));
+                                            
                                             const approachRes = await sendWhatsAppMessage(inst[0].instance_name, raw.contact_number, msg);
 
                                             if (approachRes.ok) {
@@ -460,7 +465,8 @@ serve(async (req: any) => {
                 body: JSON.stringify({ 
                     number: actualNum, 
                     text: msg,
-                    linkPreview: true
+                    linkPreview: true,
+                    delay: 1500
                 })
             });
 

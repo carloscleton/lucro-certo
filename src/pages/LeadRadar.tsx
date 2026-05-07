@@ -543,25 +543,26 @@ export function LeadRadar() {
 
                                 setIsMining(true);
 
-                                // 3. Se o agente estiver offline, ativa ele automaticamente antes de minerar
+                                // 3. Se o agente estiver offline, pede confirmação
                                 if (!settings.is_active) {
                                     const confirmActive = confirm("O Agente está OFFLINE. Gostaria de ATIVÁ-LO e iniciar a mineração agora?");
                                     if (!confirmActive) {
                                         setIsMining(false);
                                         return;
                                     }
-
-                                    const { error: updateError } = await supabase
-                                        .from('company_ai_settings')
-                                        .upsert({
-                                            company_id: companyId,
-                                            ...settings,
-                                            is_active: true
-                                        }, { onConflict: 'company_id' });
-
-                                    if (updateError) throw updateError;
-                                    setSettings(prev => ({ ...prev, is_active: true }));
                                 }
+
+                                // 4. Salvar TODAS as configurações antes de minerar para garantir sincronia (ex: Abordagem Automática recém ativada)
+                                const { error: updateError } = await supabase
+                                    .from('company_ai_settings')
+                                    .upsert({
+                                        company_id: companyId,
+                                        ...settings,
+                                        is_active: true
+                                    }, { onConflict: 'company_id' });
+
+                                if (updateError) throw updateError;
+                                setSettings(prev => ({ ...prev, is_active: true }));
 
                                 const { data, error } = await supabase.functions.invoke('lead-radar-miner', {
                                     body: { company_id: companyId }
