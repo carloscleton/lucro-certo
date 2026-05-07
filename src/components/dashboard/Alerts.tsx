@@ -31,6 +31,15 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
         return dateStr;
     };
 
+    const getDaysDifference = (dateStr: string) => {
+        if (!dateStr || !dateStr.includes('-')) return 0;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const targetDate = new Date(y, m - 1, d);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return Math.floor((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+    };
+
     const getAlertConfig = (type: Alert['type']) => {
         switch (type) {
             case 'overdue':
@@ -229,6 +238,15 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                                                     <Calendar size={11} />
                                                     <span className="text-xs font-medium">{formatDate(alert.date)}</span>
                                                 </div>
+                                                
+                                                {alert.type === 'overdue' && (
+                                                    <span className="text-[10px] font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-md border border-red-100 dark:border-red-800/50 flex-shrink-0 whitespace-nowrap">
+                                                        {(() => {
+                                                            const days = getDaysDifference(alert.date);
+                                                            return `${days} dia${days !== 1 ? 's' : ''} de atraso`;
+                                                        })()}
+                                                    </span>
+                                                )}
                                                 
                                                 {onQuickPay && (alert.type === 'overdue' || alert.type === 'due_soon') && (
                                                     <button
