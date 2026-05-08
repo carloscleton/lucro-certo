@@ -190,8 +190,8 @@ export function Layout() {
     
     // Unified Sidebar Filter
     const finalNavItems = APP_MODULES.filter(item => {
-        // 0. Super Admin Bypass: Always see everything
-        if (isSystemAdmin) return true;
+        // 0. Super Admin Bypass moved below to respect module toggles
+        // if (isSystemAdmin) return true;
 
         // 1. Get settings and role for the current context (Personal Profile or Company)
         const settings = currentEntity.settings || {};
@@ -220,9 +220,12 @@ export function Layout() {
                 (item.key === 'loyalty' && (availableEntities.find(c => c.id === currentEntity.id) as any)?.loyalty_module_enabled) ||
                 (item.key === 'invoices' ? !!currentEntity.fiscal_module_enabled : (typeof (currentEntity as any)[`${item.key}_module_enabled`] !== 'undefined' ? (currentEntity as any)[`${item.key}_module_enabled`] : true));
 
-            // Owner sees everything unless explicitly disabled (checked above)
+            // Respect module disabled status even for system admins
             if (!isModuleEnabled) return false;
         }
+
+        // 5. Super Admin Bypass (For permissions, after module check)
+        if (isSystemAdmin) return true;
 
         // 5. DEFAULT PERMISSIONS (Fallback to getModulePermission)
         return getModulePermission(item.key, roleForMatrix as 'admin' | 'member', settings);
