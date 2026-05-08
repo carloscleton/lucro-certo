@@ -136,7 +136,21 @@ app.get('/fiscal/issuer-status/:cpfCnpj', authenticate, async (req, res) => {
             headers: { 'x-api-key': apiKey }
         });
 
-        res.json(response.data);
+        const issuerData = response.data;
+        
+        // Se houver um ID de certificado, buscar os detalhes dele
+        if (issuerData.data?.certificado && typeof issuerData.data.certificado === 'string') {
+            try {
+                const certResponse = await axios.get(`${baseUrl}/certificado/${issuerData.data.certificado}`, {
+                    headers: { 'x-api-key': apiKey }
+                });
+                issuerData.data.certificado_detalhes = certResponse.data.data;
+            } catch (certErr) {
+                console.warn('⚠️ Não foi possível carregar detalhes do certificado:', issuerData.data.certificado);
+            }
+        }
+
+        res.json(issuerData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         const statusCode = error.response?.status || 500;

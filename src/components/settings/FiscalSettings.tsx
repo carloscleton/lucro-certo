@@ -180,8 +180,11 @@ export function FiscalSettings() {
 
             const result = await fiscalService.checkIssuerStatus(currentEntity.id, config.cnpj.replace(/\D/g, ''), token);
             
-            if (result.data?.certificado) {
-                alert(`✅ Emissor encontrado!\nStatus Certificado: ${result.data.certificado.status}\nValidade: ${result.data.certificado.vencimento}`);
+            const cert = result.data?.certificado_detalhes || result.data?.certificado;
+            if (cert && typeof cert === 'object') {
+                alert(`✅ Emissor encontrado!\nCertificado: ${cert.nome || cert.id}\nVencimento: ${cert.vencimento}`);
+            } else if (result.data?.certificado) {
+                alert(`✅ Emissor encontrado!\nID Certificado: ${result.data.certificado}\n(Detalhes não carregados)`);
             } else {
                 alert('⚠️ Emissor encontrado, mas sem certificado configurado no PlugNotas.');
             }
