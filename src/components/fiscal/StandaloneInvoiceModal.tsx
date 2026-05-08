@@ -22,6 +22,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [errorDetail, setErrorDetail] = useState('');
     
     // Form State
     const [contactId, setContactId] = useState('');
@@ -33,6 +34,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setErrorDetail('');
 
         if (!contactId || !description || !amount || !taxCode) {
             setError('Preencha todos os campos obrigatórios.');
@@ -131,7 +133,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
             onSuccess();
         } catch (err: any) {
             console.error('Erro ao emitir avulsa:', err);
-            setError(err.response?.data?.error || err.message || 'Erro ao emitir nota fiscal.');
+            
+            const apiError = err.response?.data;
+            const detailMessage = apiError?.detail?.message || apiError?.detail?.erros?.[0]?.message || JSON.stringify(apiError?.detail);
+            
+            setError(apiError?.error || err.message || 'Erro ao emitir nota fiscal.');
+            if (detailMessage) {
+                setErrorDetail(detailMessage);
+                console.warn('Detalhe do erro fiscal:', detailMessage);
+            }
         } finally {
             setLoading(false);
         }
@@ -141,9 +151,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
         <Modal isOpen={true} onClose={onClose} title="Nova Nota Fiscal Avulsa" icon={Receipt}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                    <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-start gap-2 text-sm border border-red-200">
-                        <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                        <p>{error}</p>
+                    <div className="bg-red-50 text-red-700 p-3 rounded-lg flex flex-col gap-1 text-sm border border-red-200">
+                        <div className="flex items-start gap-2">
+                            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                            <p className="font-bold">{error}</p>
+                        </div>
+                        {errorDetail && <p className="ml-6 text-xs opacity-80">{errorDetail}</p>}
                     </div>
                 )}
 

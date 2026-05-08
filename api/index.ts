@@ -181,8 +181,9 @@ async function getCompanyFiscalConfig(authHeader: string, companyId: string) {
         });
 
         const company = response.data?.[0];
-        if (!company) throw new Error('Empresa não encontrada ou acesso negado.');
+        if (!company) throw new Error('Empresa não encontrada ou acesso negado no Supabase.');
         if (!company.fiscal_module_enabled) throw new Error('Módulo fiscal não habilitado para esta empresa.');
+        if (!company.tecnospeed_config) throw new Error('Configuração da TecnoSpeed não encontrada para esta empresa. Verifique as configurações fiscais.');
 
         return company.tecnospeed_config;
     } catch (error: any) {
@@ -562,6 +563,9 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
 
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId);
+        if (!config || !config.tecnospeed_api_key) {
+            return res.status(400).json({ error: 'Configuração TecnoSpeed incompleta (API Key ausente).' });
+        }
         const apiKey = config.tecnospeed_api_key;
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -603,11 +607,19 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
             }
         }
 
-        res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro na emissão fiscal:', JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({ error: 'Erro na comunicação com TecnoSpeed', detail: errorDetail });
+        const statusCode = error.response?.status || 500;
+        
+        console.error(`❌ Erro na emissão fiscal (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
+        
+        // Se o PlugNotas retornou um erro específico, vamos repassar a mensagem dele
+        const message = error.response?.data?.message || error.response?.data?.error || 'Erro na comunicação com TecnoSpeed';
+        
+        res.status(statusCode).json({ 
+            error: message, 
+            detail: errorDetail 
+        });
     }
 });
 
