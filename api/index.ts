@@ -574,8 +574,16 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
         const finalPayload = Array.isArray(payload) ? payload : [payload];
 
-        console.log(`🧾 Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'}) para empresa ${companyId}...`);
-        console.log(`📦 Payload:`, JSON.stringify(finalPayload, null, 2));
+        console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
+        console.log(`📦 [FISCAL] Payload Completo:`, JSON.stringify(finalPayload, null, 2));
+        
+        // Log de tipos para depurar "Tipo Inválido"
+        if (endpoint === 'nfse' && finalPayload[0]?.servico) {
+            const servicos = Array.isArray(finalPayload[0].servico) ? finalPayload[0].servico : [finalPayload[0].servico];
+            servicos.forEach((s: any, idx: number) => {
+                console.log(`   🔹 Item ${idx}: valor=${s.valor} (type: ${typeof s.valor}), quantidade=${s.quantidade} (type: ${typeof s.quantidade})`);
+            });
+        }
 
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {

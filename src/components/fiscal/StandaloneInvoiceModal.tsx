@@ -101,16 +101,22 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         }
                     },
                     servico: items.map(i => {
-                        const val = Number(parseFloat(i.amount.replace(/\./g, '').replace(',', '.')).toFixed(2));
+                        // Converte string "1.234,56" para number 1234.56
+                        const cleanValue = i.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+                        const val = parseFloat(cleanValue);
+                        
                         return {
                             codigo: i.taxCode,
                             descricao: i.description,
-                            valor: val,
+                            valor: {
+                                servico: isNaN(val) ? 0 : val
+                            },
                             quantidade: i.quantity,
                             itemListaServico: '01.01'
                         };
                     })
                 };
+                console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
                 await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
             } else {
                 payload = {
@@ -130,13 +136,16 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         }
                     },
                     itens: items.map((i, idx) => {
-                        const val = Number(parseFloat(i.amount.replace(/\./g, '').replace(',', '.')).toFixed(2));
+                        const cleanValue = i.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+                        const val = parseFloat(cleanValue);
+                        const numVal = isNaN(val) ? 0 : val;
+                        
                         return {
                             codigo: String(idx + 1).padStart(3, '0'),
                             descricao: i.description,
                             ncm: i.taxCode.replace(/\D/g, ''),
                             cfop: '5102',
-                            valorUnitario: { comercial: val },
+                            valorUnitario: { comercial: numVal },
                             quantidade: { comercial: i.quantity },
                             unidade: { comercial: 'UN' },
                             tributos: {
@@ -150,6 +159,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         { meio: '90', valor: totalAmount }
                     ]
                 };
+                console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
                 await fiscalService.emitirNFe(currentEntity.id!, payload, token);
             }
 
