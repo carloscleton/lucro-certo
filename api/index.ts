@@ -115,11 +115,33 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         });
 
         res.json(response.data);
+    }
+});
+
+app.get('/fiscal/issuer-status/:cpfCnpj', authenticate, async (req, res) => {
+    const { cpfCnpj } = req.params;
+    const { companyId } = req.query;
+    const authHeader = req.headers.authorization;
+
+    try {
+        const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const apiKey = config.tecnospeed_api_key;
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
+
+        console.log(`🔍 Checking status for issuer ${cpfCnpj} in ${isSandbox ? 'SANDBOX' : 'PROD'}...`);
+
+        const response = await axios.get(`${baseUrl}/empresa/${cpfCnpj}`, {
+            headers: { 'x-api-key': apiKey }
+        });
+
+        res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         const statusCode = error.response?.status || 500;
-        console.error(`❌ Erro no upload do certificado (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
-        res.status(statusCode).json({ error: 'Erro ao enviar certificado para TecnoSpeed', detail: errorDetail });
+        console.error(`❌ Erro ao consultar emissor (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
+        res.status(statusCode).json({ error: 'Erro ao consultar emissor na TecnoSpeed', detail: errorDetail });
     }
 });
 

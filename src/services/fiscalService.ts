@@ -100,5 +100,15 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+    
+    async checkIssuerStatus(companyId: string, cpfCnpj: string, token: string) {
+        const response = await axios.get(getFiscalUrl(`issuer-status/${cpfCnpj}`), {
+            params: { companyId },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };

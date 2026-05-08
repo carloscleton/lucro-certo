@@ -162,6 +162,40 @@ export function FiscalSettings() {
         }
     };
 
+    const [checkingStatus, setCheckingStatus] = useState(false);
+    const [issuerStatus, setIssuerStatus] = useState<any>(null);
+
+    const handleCheckIssuerStatus = async () => {
+        if (!currentEntity.id || !config.cnpj) {
+            alert('CNPJ é obrigatório para verificar status.');
+            return;
+        }
+
+        setCheckingStatus(true);
+        setIssuerStatus(null);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.checkIssuerStatus(currentEntity.id, config.cnpj.replace(/\D/g, ''), token);
+            setIssuerStatus(result);
+            
+            if (result.data?.certificado) {
+                alert(`✅ Emissor encontrado!\nStatus Certificado: ${result.data.certificado.status}\nValidade: ${result.data.certificado.vencimento}`);
+            } else {
+                alert('⚠️ Emissor encontrado, mas sem certificado configurado no PlugNotas.');
+            }
+        } catch (error: any) {
+            console.error(error);
+            const detail = error.response?.data?.detail;
+            const msg = detail?.message || error.response?.data?.error || error.message;
+            alert('Erro ao consultar emissor: ' + msg);
+        } finally {
+            setCheckingStatus(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Módulo Toggle */}
@@ -473,6 +507,15 @@ export function FiscalSettings() {
                     Acessar Painel TecnoSpeed <ExternalLink size={14} />
                 </a>
                 <div className="flex gap-2">
+                    <Button
+                        variant="ghost"
+                        onClick={handleCheckIssuerStatus}
+                        isLoading={checkingStatus}
+                        className="text-gray-600 hover:bg-gray-100"
+                    >
+                        <RefreshCw size={18} className={`mr-2 ${checkingStatus ? 'animate-spin' : ''}`} />
+                        Verificar Status
+                    </Button>
                     <Button
                         variant="outline"
                         onClick={handleSyncIssuer}
