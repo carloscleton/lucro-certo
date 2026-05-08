@@ -18,6 +18,7 @@ import { usePaymentGateways } from '../hooks/usePaymentGateways';
 import { useNotification } from '../context/NotificationContext';
 import { webhookService } from '../services/webhookService';
 import { fiscalService } from '../services/fiscalService';
+import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
 import { API_BASE_URL } from '../lib/constants';
 import { PDFService } from '../services/pdfService';
@@ -257,6 +258,27 @@ export function Quotes() {
 
             console.log('✅ PDF generated and saved:', pdfUrl);
 
+            // 📱 Native WhatsApp Send (Priority: Direct send if instance connected)
+            const instance = waInstances[0];
+            const phone = fullQuote.contact?.phone?.replace(/\D/g, '');
+
+            if (instance && phone) {
+                console.log('📱 Sending native WhatsApp message...');
+                const message = `Olá, ${fullQuote.contact?.name || 'cliente'}! Segue o link para visualizar sua proposta:\n\n🔗 ${window.location.origin}/p/${fullQuote.id}\n\nObrigado pela confiança!`;
+                
+                try {
+                    await whatsappService.sendMessage({
+                        instanceName: instance.instance_name,
+                        number: phone,
+                        text: message
+                    });
+                    console.log('✅ Native WhatsApp message sent!');
+                } catch (waError) {
+                    console.error('❌ Failed to send native WA message:', waError);
+                    // Don't throw, we'll still notify that PDF was generated
+                }
+            }
+
             // Trigger webhook with complete data
             await webhookService.triggerWebhooks({
                 eventType: 'QUOTE_SENT',
@@ -289,7 +311,7 @@ export function Quotes() {
                         address: companyData?.address
                     }
                 },
-                companyId: currentEntity.type === 'company' ? currentEntity.id : undefined,
+                companyId: fullQuote.company_id || undefined, // Use quote's own company_id
                 userId: user!.id
             });
 
