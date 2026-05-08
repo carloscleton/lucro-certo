@@ -377,6 +377,7 @@ export function FiscalSettings() {
                             value={config.tecnospeed_api_key?.toLowerCase() || ''}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value.toLowerCase() })}
                             placeholder="Insira sua chave"
+                            preserveCase={true}
                         />
                         <button
                             type="button"
@@ -450,6 +451,7 @@ export function FiscalSettings() {
                                     value={config.endpoint_homologacao?.toLowerCase() || ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_homologacao: e.target.value.toLowerCase() })}
                                     placeholder="Ex: https://api.sandbox.plugnotas.com.br"
+                                    preserveCase={true}
                                 />
                             ) : (
                                 <Input
@@ -457,6 +459,7 @@ export function FiscalSettings() {
                                     value={config.endpoint_producao?.toLowerCase() || ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_producao: e.target.value.toLowerCase() })}
                                     placeholder="Ex: https://api.plugnotas.com.br"
+                                    preserveCase={true}
                                 />
                             )}
                             <p className="text-xs text-gray-500 mt-2">
