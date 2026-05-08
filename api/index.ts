@@ -572,10 +572,11 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
         const baseUrl = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
 
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
+        const finalPayload = Array.isArray(payload) ? payload : [payload];
 
         console.log(`🧾 Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'}) para empresa ${companyId}...`);
 
-        const response = await axios.post(`${baseUrl}/${endpoint}`, payload, {
+        const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey
@@ -614,7 +615,13 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
         console.error(`❌ Erro na emissão fiscal (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
         
         // Se o PlugNotas retornou um erro específico, vamos repassar a mensagem dele
-        const message = error.response?.data?.message || error.response?.data?.error || 'Erro na comunicação com TecnoSpeed';
+        const data = error.response?.data;
+        let message = 'Erro na comunicação com TecnoSpeed';
+        
+        if (typeof data?.message === 'string') message = data.message;
+        else if (typeof data?.error === 'string') message = data.error;
+        else if (data?.error?.message) message = data.error.message;
+        else if (error.message) message = error.message;
         
         res.status(statusCode).json({ 
             error: message, 

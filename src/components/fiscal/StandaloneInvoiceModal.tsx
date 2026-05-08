@@ -135,9 +135,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
             console.error('Erro ao emitir avulsa:', err);
             
             const apiError = err.response?.data;
-            const detailMessage = apiError?.detail?.message || apiError?.detail?.erros?.[0]?.message || JSON.stringify(apiError?.detail);
+            const detailMessage = apiError?.detail?.message || apiError?.detail?.erros?.[0]?.message || (typeof apiError?.detail === 'string' ? apiError.detail : JSON.stringify(apiError?.detail));
             
-            setError(apiError?.error || err.message || 'Erro ao emitir nota fiscal.');
+            const errorMessage = typeof apiError?.error === 'string' 
+                ? apiError.error 
+                : (apiError?.error?.message || err.message || 'Erro ao emitir nota fiscal.');
+
+            setError(errorMessage);
             if (detailMessage) {
                 setErrorDetail(detailMessage);
                 console.warn('Detalhe do erro fiscal:', detailMessage);
