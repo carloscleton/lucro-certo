@@ -125,10 +125,12 @@ export function FiscalSettings() {
             if (fileInputRef.current) fileInputRef.current.value = '';
             setCertPassword('');
         } catch (error: any) {
-            console.error(error);
-            const detail = error.response?.data?.detail;
-            const errorMsg = typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.response?.data?.error || error.message);
-            alert('Erro ao enviar certificado: ' + errorMsg);
+            console.error('Cert upload error:', error);
+            const data = error.response?.data;
+            const msg = data?.detail ? (typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail) : 
+                        data?.error ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) : 
+                        error.message;
+            alert('Erro ao enviar certificado: ' + msg);
         } finally {
             setUploadingCert(false);
         }
