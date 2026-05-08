@@ -93,7 +93,7 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
 
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId);
-        const apiKey = config.tecnospeed_api_key?.trim();
+        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
@@ -131,7 +131,7 @@ app.get('/fiscal/issuer-status/:cpfCnpj', authenticate, async (req, res) => {
 
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
-        const apiKey = config.tecnospeed_api_key;
+        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
@@ -608,7 +608,7 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
         if (!config || !config.tecnospeed_api_key) {
             return res.status(400).json({ error: 'Configuração TecnoSpeed incompleta (API Key ausente).' });
         }
-        const apiKey = config.tecnospeed_api_key;
+        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
@@ -686,7 +686,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
     const authHeader = req.headers.authorization;
 
     try {
-        const apiKey = config.tecnospeed_api_key;
+        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
@@ -769,7 +769,7 @@ app.get('/fiscal/status/:id', authenticate, async (req, res) => {
 
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
-        const apiKey = config.tecnospeed_api_key;
+        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
@@ -812,7 +812,7 @@ app.get('/fiscal/nfe/:id/pdf', authenticate, async (req, res) => {
 
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
-        const apiKey = config.tecnospeed_api_key;
+        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
@@ -836,7 +836,7 @@ app.get('/fiscal/nfe/:id/xml', authenticate, async (req, res) => {
 
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
-        const apiKey = config.tecnospeed_api_key;
+        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
