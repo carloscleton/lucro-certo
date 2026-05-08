@@ -156,7 +156,9 @@ export function FiscalSettings() {
             alert('Emitente sincronizado com sucesso no PlugNotas!\n\nID: ' + (result.data?.id || 'OK'));
         } catch (error: any) {
             console.error(error);
-            alert('Erro ao sincronizar emitente: ' + (error.response?.data?.error || error.message));
+            const detail = error.response?.data?.detail;
+            const msg = detail?.message || error.response?.data?.error || error.message;
+            alert('Erro ao sincronizar emitente: ' + msg);
         } finally {
             setSyncing(false);
         }
