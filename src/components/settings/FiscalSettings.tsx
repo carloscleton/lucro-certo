@@ -127,7 +127,7 @@ export function FiscalSettings() {
         } catch (error: any) {
             console.error(error);
             const detail = error.response?.data?.detail;
-            const errorMsg = detail?.error?.message || detail?.message || error.response?.data?.error || error.message;
+            const errorMsg = typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.response?.data?.error || error.message);
             alert('Erro ao enviar certificado: ' + errorMsg);
         } finally {
             setUploadingCert(false);

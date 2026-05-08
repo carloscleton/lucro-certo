@@ -115,6 +115,10 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         });
 
         res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));
+        res.status(error.response?.status || 500).json({ error: 'Erro no upload do certificado', detail: errorDetail });
     }
 });
 
