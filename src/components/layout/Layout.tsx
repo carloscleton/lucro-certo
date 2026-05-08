@@ -202,16 +202,7 @@ export function Layout() {
         // If the module is explicitly disabled for this role in settings, return false
         if (settings?.modules?.[item.key]?.[roleForMatrix as 'admin' | 'member'] === false) return false;
 
-        // 3. TRIAL BYPASS: If not explicitly disabled, show everything in trial
-        // (Except modules that require a Company ID like CRM, Marketing, Lead Radar and Agenda)
-        if (isTrial) {
-            if (currentEntity.type === 'personal' && (item.key === 'crm' || item.key === 'marketing' || item.key === 'lead_radar' || item.key === 'agenda')) {
-                return false;
-            }
-            return true;
-        }
-
-        // 4. PLAN & FEATURE CHECK (For non-trial users)
+        // 3. PLAN & FEATURE CHECK (Prioritized to respect toggles even in trial)
         if (currentEntity.type === 'company') {
             const isModuleEnabled = 
                 (item.key === 'crm' && currentEntity.crm_module_enabled) ||
@@ -220,8 +211,16 @@ export function Layout() {
                 (item.key === 'loyalty' && (availableEntities.find(c => c.id === currentEntity.id) as any)?.loyalty_module_enabled) ||
                 (item.key === 'invoices' ? !!currentEntity.fiscal_module_enabled : (typeof (currentEntity as any)[`${item.key}_module_enabled`] !== 'undefined' ? (currentEntity as any)[`${item.key}_module_enabled`] : true));
 
-            // Respect module disabled status even for system admins
+            // Respect module disabled status
             if (!isModuleEnabled) return false;
+        }
+
+        // 4. TRIAL BYPASS: If not explicitly disabled (checked above), show everything in trial
+        if (isTrial) {
+            if (currentEntity.type === 'personal' && (item.key === 'crm' || item.key === 'marketing' || item.key === 'lead_radar' || item.key === 'agenda')) {
+                return false;
+            }
+            return true;
         }
 
         // 5. Super Admin Bypass (For permissions, after module check)

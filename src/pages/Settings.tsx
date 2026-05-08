@@ -466,13 +466,8 @@ export function Settings() {
                         { key: 'admin', label: t('settings.tab_admin'), icon: Shield, color: 'purple' }
                     ] : [])
                 ].filter(tab => {
-                    // 0. Super Admin Bypass (Carlos)
-                    if (isAdmin) return true;
-
                     const currentCompany = companies.find(c => c.id === currentEntity.id);
-
                     // 1. Feature Availability / Plan Check
-                    // Trial bypasses these flags
                     if (tab.key === 'loyalty' && !currentCompany?.loyalty_module_enabled) return false;
                     if (tab.key === 'fiscal' && (currentEntity.type !== 'company' || !currentCompany?.fiscal_module_enabled)) return false;
                     
@@ -480,6 +475,9 @@ export function Settings() {
                         if (tab.key === 'payments' && (currentEntity.type !== 'company' || !currentCompany?.payments_module_enabled)) return false;
                         if (tab.key === 'automations' && (currentEntity.type === 'company' && !currentCompany?.automations_module_enabled)) return false;
                     }
+
+                    // 0. Super Admin Bypass (Moved down to respect module toggles)
+                    if (isAdmin) return true;
 
                     // 2. Personal Context Restrictions
                     // Hide company-specific tabs in personal context UNLESS on trial
