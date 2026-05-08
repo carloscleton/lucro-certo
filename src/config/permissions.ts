@@ -19,7 +19,8 @@ import {
     BarChart3,
     Percent,
     Calendar,
-    Award
+    Award,
+    Calculator
 } from 'lucide-react';
 
 export interface ModuleDefinition {
