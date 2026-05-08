@@ -218,8 +218,7 @@ export function Layout() {
                 (item.key === 'marketing' && currentEntity.has_social_copilot) ||
                 (item.key === 'lead_radar' && currentEntity.has_lead_radar) ||
                 (item.key === 'loyalty' && (availableEntities.find(c => c.id === currentEntity.id) as any)?.loyalty_module_enabled) ||
-                (item.key === 'invoices' && currentEntity.fiscal_module_enabled) ||
-                (typeof (currentEntity as any)[`${item.key}_module_enabled`] !== 'undefined' ? (currentEntity as any)[`${item.key}_module_enabled`] : true);
+                (item.key === 'invoices' ? !!currentEntity.fiscal_module_enabled : (typeof (currentEntity as any)[`${item.key}_module_enabled`] !== 'undefined' ? (currentEntity as any)[`${item.key}_module_enabled`] : true));
 
             // Owner sees everything unless explicitly disabled (checked above)
             if (!isModuleEnabled) return false;
