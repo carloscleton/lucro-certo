@@ -93,16 +93,18 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
 
     try {
         const config = await getCompanyFiscalConfig(authHeader!, companyId);
-        const apiKey = config.tecnospeed_api_key;
+        const apiKey = config.tecnospeed_api_key?.trim();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        console.log(`🔐 Uploading certificate for company ${companyId} (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
+        console.log(`🔐 Uploading certificate for company ${companyId} to ${baseUrl}...`);
 
         const form = new FormData();
+        const sanitizedFilename = (file.originalname || 'certificado.pfx').replace(/\s+/g, '_').replace(/[^\w.-]/g, '').toLowerCase();
+        
         form.append('arquivo', file.buffer, {
-            filename: file.originalname || 'certificado.pfx',
+            filename: sanitizedFilename,
             contentType: file.mimetype || 'application/x-pkcs12',
         });
         form.append('senha', senha);
