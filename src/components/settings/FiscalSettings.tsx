@@ -54,6 +54,11 @@ export function FiscalSettings() {
 
             Object.assign(newConfig, tc);
 
+            // Forçar minúsculas em campos sensíveis
+            if (newConfig.tecnospeed_api_key) newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.toLowerCase();
+            if (newConfig.endpoint_homologacao) newConfig.endpoint_homologacao = newConfig.endpoint_homologacao.toLowerCase();
+            if (newConfig.endpoint_producao) newConfig.endpoint_producao = newConfig.endpoint_producao.toLowerCase();
+
             if (!newConfig.cnpj && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
             if (!newConfig.razao_social && currentCompany.legal_name) newConfig.razao_social = currentCompany.legal_name;
             if (!newConfig.nome_fantasia && currentCompany.trade_name) newConfig.nome_fantasia = currentCompany.trade_name;
@@ -369,7 +374,7 @@ export function FiscalSettings() {
                         <Input
                             label="TecnoSpeed API Key"
                             type={showApiKey ? 'text' : 'password'}
-                            value={config.tecnospeed_api_key}
+                            value={config.tecnospeed_api_key?.toLowerCase() || ''}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value.toLowerCase() })}
                             placeholder="Insira sua chave"
                         />
@@ -442,14 +447,14 @@ export function FiscalSettings() {
                             {config.ambiente === 'homologacao' ? (
                                 <Input
                                     label="Endpoint Personalizado (Homologação)"
-                                    value={config.endpoint_homologacao || ''}
+                                    value={config.endpoint_homologacao?.toLowerCase() || ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_homologacao: e.target.value.toLowerCase() })}
                                     placeholder="Ex: https://api.sandbox.plugnotas.com.br"
                                 />
                             ) : (
                                 <Input
                                     label="Endpoint Personalizado (Produção)"
-                                    value={config.endpoint_producao || ''}
+                                    value={config.endpoint_producao?.toLowerCase() || ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_producao: e.target.value.toLowerCase() })}
                                     placeholder="Ex: https://api.plugnotas.com.br"
                                 />
