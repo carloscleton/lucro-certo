@@ -95,7 +95,8 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         const config = await getCompanyFiscalConfig(authHeader!, companyId);
         const apiKey = config.tecnospeed_api_key;
         const isSandbox = config.ambiente === 'homologacao';
-        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
 
         console.log(`🔐 Uploading certificate for company ${companyId} (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
 
@@ -563,7 +564,8 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
         const config = await getCompanyFiscalConfig(authHeader!, companyId);
         const apiKey = config.tecnospeed_api_key;
         const isSandbox = config.ambiente === 'homologacao';
-        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
 
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
 
@@ -616,7 +618,8 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
     try {
         const apiKey = config.tecnospeed_api_key;
         const isSandbox = config.ambiente === 'homologacao';
-        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
 
         console.log(`🏢 Sincronizando Emitente (${config.cnpj}) no PlugNotas...`);
 
@@ -663,7 +666,8 @@ app.get('/fiscal/status/:id', authenticate, async (req, res) => {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key;
         const isSandbox = config.ambiente === 'homologacao';
-        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
 
         const response = await axios.get(`${baseUrl}/nfe/${id}`, {
             headers: { 'x-api-key': apiKey }
@@ -705,7 +709,8 @@ app.get('/fiscal/nfe/:id/pdf', authenticate, async (req, res) => {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key;
         const isSandbox = config.ambiente === 'homologacao';
-        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
 
         const response = await axios.get(`${baseUrl}/nfe/${id}/pdf`, {
             headers: { 'x-api-key': apiKey },
@@ -728,7 +733,8 @@ app.get('/fiscal/nfe/:id/xml', authenticate, async (req, res) => {
         const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key;
         const isSandbox = config.ambiente === 'homologacao';
-        const baseUrl = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
 
         const response = await axios.get(`${baseUrl}/nfe/${id}/xml`, {
             headers: { 'x-api-key': apiKey }

@@ -21,9 +21,24 @@ export function FiscalSettings() {
         cnpj: '',
         inscricao_estadual: '',
         inscricao_municipal: '',
+        razao_social: '',
+        nome_fantasia: '',
+        email: '',
+        telefone: '',
+        endereco: {
+            logradouro: '',
+            numero: '',
+            complemento: '',
+            bairro: '',
+            cep: '',
+            codigoCidade: '',
+            uf: ''
+        },
         regime_tributario: '1', // 1 - Simples Nacional, 3 - Regime Normal
         tecnospeed_api_key: '',
-        ambiente: 'homologacao'
+        ambiente: 'homologacao',
+        endpoint_homologacao: '',
+        endpoint_producao: ''
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -150,6 +165,18 @@ export function FiscalSettings() {
                     </select>
                 </div>
                 <Input
+                    label="Razão Social"
+                    value={config.razao_social}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, razao_social: e.target.value })}
+                    placeholder="Sua Empresa LTDA"
+                />
+                <Input
+                    label="Nome Fantasia"
+                    value={config.nome_fantasia}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, nome_fantasia: e.target.value })}
+                    placeholder="Nome da sua loja/empresa"
+                />
+                <Input
                     label="Inscrição Estadual"
                     value={config.inscricao_estadual}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, inscricao_estadual: e.target.value })}
@@ -161,6 +188,72 @@ export function FiscalSettings() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, inscricao_municipal: e.target.value })}
                     placeholder="Obrigatório para NFS-e"
                 />
+                <Input
+                    label="E-mail"
+                    type="email"
+                    value={config.email}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, email: e.target.value })}
+                    placeholder="contato@empresa.com"
+                />
+                <Input
+                    label="Telefone"
+                    value={config.telefone}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, telefone: e.target.value })}
+                    placeholder="(00) 00000-0000"
+                />
+            </div>
+
+            <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Endereço (Obrigatório)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Input
+                        label="CEP"
+                        value={config.endereco?.cep || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, cep: e.target.value } })}
+                        placeholder="00000-000"
+                    />
+                    <div className="md:col-span-2">
+                        <Input
+                            label="Logradouro"
+                            value={config.endereco?.logradouro || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, logradouro: e.target.value } })}
+                            placeholder="Rua, Avenida, etc."
+                        />
+                    </div>
+                    <Input
+                        label="Número"
+                        value={config.endereco?.numero || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, numero: e.target.value } })}
+                        placeholder="123"
+                    />
+                    <div className="md:col-span-2">
+                        <Input
+                            label="Complemento"
+                            value={config.endereco?.complemento || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, complemento: e.target.value } })}
+                            placeholder="Sala 1, Apto 2, etc."
+                        />
+                    </div>
+                    <Input
+                        label="Bairro"
+                        value={config.endereco?.bairro || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, bairro: e.target.value } })}
+                        placeholder="Centro"
+                    />
+                    <Input
+                        label="Código Cidade (IBGE)"
+                        value={config.endereco?.codigoCidade || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, codigoCidade: e.target.value } })}
+                        placeholder="Ex: 3550308 (São Paulo)"
+                    />
+                    <Input
+                        label="UF"
+                        value={config.endereco?.uf || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, uf: e.target.value } })}
+                        placeholder="SP, RJ, MG"
+                        maxLength={2}
+                    />
+                </div>
             </div>
 
             <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
@@ -213,6 +306,21 @@ export function FiscalSettings() {
                             </label>
                         </div>
                     </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <Input
+                        label="Endpoint Personalizado (Homologação)"
+                        value={config.endpoint_homologacao || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_homologacao: e.target.value })}
+                        placeholder="Opcional. Padrão: https://api.sandbox.plugnotas.com.br"
+                    />
+                    <Input
+                        label="Endpoint Personalizado (Produção)"
+                        value={config.endpoint_producao || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_producao: e.target.value })}
+                        placeholder="Opcional. Padrão: https://api.plugnotas.com.br"
+                    />
                 </div>
             </div>
 
