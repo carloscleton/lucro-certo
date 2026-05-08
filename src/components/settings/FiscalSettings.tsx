@@ -177,7 +177,6 @@ export function FiscalSettings() {
             if (!token) throw new Error('Sessão expirada.');
 
             const result = await fiscalService.checkIssuerStatus(currentEntity.id, config.cnpj.replace(/\D/g, ''), token);
-            setIssuerStatus(result);
             
             if (result.data?.certificado) {
                 alert(`✅ Emissor encontrado!\nStatus Certificado: ${result.data.certificado.status}\nValidade: ${result.data.certificado.vencimento}`);
