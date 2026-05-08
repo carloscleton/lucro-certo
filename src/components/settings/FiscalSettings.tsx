@@ -163,7 +163,6 @@ export function FiscalSettings() {
     };
 
     const [checkingStatus, setCheckingStatus] = useState(false);
-    const [issuerStatus, setIssuerStatus] = useState<any>(null);
 
     const handleCheckIssuerStatus = async () => {
         if (!currentEntity.id || !config.cnpj) {
@@ -172,7 +171,6 @@ export function FiscalSettings() {
         }
 
         setCheckingStatus(true);
-        setIssuerStatus(null);
         try {
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
