@@ -157,7 +157,7 @@ export function FiscalSettings() {
         } catch (error: any) {
             console.error(error);
             const detail = error.response?.data?.detail;
-            const msg = detail?.message || error.response?.data?.error || error.message;
+            const msg = typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.response?.data?.error || error.message);
             alert('Erro ao sincronizar emitente: ' + msg);
         } finally {
             setSyncing(false);

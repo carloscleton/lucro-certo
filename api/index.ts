@@ -703,14 +703,17 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
                 numero: config.telefone?.replace(/\D/g, '').substring(2) || '000000000'
             },
             endereco: {
+                tipoLogradouro: 'Rua',
                 logradouro: config.endereco?.logradouro || '',
                 numero: config.endereco?.numero || 'S/N',
                 bairro: config.endereco?.bairro || '',
+                tipoBairro: 'Bairro',
                 cep: config.endereco?.cep?.replace(/\D/g, '') || '',
                 codigoCidade: config.endereco?.codigoCidade || '',
                 uf: config.endereco?.uf || '',
                 complemento: config.endereco?.complemento || ''
             },
+            regimeTributarioEspecial: 0,
             nfse: {
                 ativo: true,
                 config: {
