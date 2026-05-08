@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -14,7 +14,7 @@ export function FiscalSettings() {
     const [saving, setSaving] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [uploadingCert, setUploadingCert] = useState(false);
-    const [certFile, setCertFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [certPassword, setCertPassword] = useState('');
 
     const [config, setConfig] = useState({
@@ -91,7 +91,9 @@ export function FiscalSettings() {
     };
 
     const handleUploadCertificate = async () => {
-        if (!currentEntity.id || currentEntity.type === 'personal' || !certFile || !certPassword) {
+        const file = fileInputRef.current?.files?.[0];
+        
+        if (!currentEntity.id || currentEntity.type === 'personal' || !file || !certPassword) {
             if (currentEntity.type === 'personal') {
                 alert('O Certificado Digital deve ser vinculado a uma empresa. Mude o contexto no topo.');
             } else {
@@ -106,9 +108,9 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            await fiscalService.uploadCertificate(currentEntity.id, certFile, certPassword, token);
+            await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token);
             alert('Certificado Digital enviado com sucesso!');
-            setCertFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
             setCertPassword('');
         } catch (error: any) {
             console.error(error);
@@ -397,7 +399,7 @@ export function FiscalSettings() {
                         <input
                             type="file"
                             accept=".pfx,.p12"
-                            onChange={(e) => setCertFile(e.target.files?.[0] || null)}
+                            ref={fileInputRef}
                             className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                         />
                     </div>
