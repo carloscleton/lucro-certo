@@ -35,6 +35,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     // Form State
     const [contactId, setContactId] = useState('');
     const [type, setType] = useState<'nfse' | 'nfe'>('nfse');
+    const [cityCode, setCityCode] = useState('3106200');
     const [items, setItems] = useState<InvoiceItem[]>([
         { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }
     ]);
@@ -95,7 +96,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             numero: contact.number || 'S/N',
                             bairro: contact.neighborhood || '',
                             cep: contact.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: '3106200',
+                            codigoCidade: cityCode,
                             uf: contact.state || ''
                         }
                     },
@@ -124,7 +125,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             numero: contact.number || 'S/N',
                             bairro: contact.neighborhood || '',
                             cep: contact.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: '3106200',
+                            codigoCidade: cityCode,
                             uf: contact.state || ''
                         }
                     },
@@ -186,6 +187,19 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                     </div>
                 )}
 
+                {currentCompany?.tecnospeed_config?.ambiente === 'producao' && !currentCompany?.tecnospeed_config?.certificado_enviado && (
+                    <div className="bg-amber-50 text-amber-800 p-4 rounded-xl border border-amber-200 flex items-start gap-3">
+                        <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                        <div>
+                            <p className="text-sm font-bold">Certificado Digital não detectado!</p>
+                            <p className="text-xs opacity-90 mt-1">
+                                Você está em ambiente de <strong>PRODUÇÃO</strong>. A emissão de notas reais exige um Certificado Digital A1 válido. 
+                                <br />Suba seu certificado nas <strong>Configurações Fiscais</strong> antes de prosseguir.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Nota</label>
@@ -213,6 +227,16 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                 <option key={c.id} value={c.id}>{c.name} {c.tax_id ? `(${c.tax_id})` : '(Sem CPF/CNPJ)'}</option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <Input
+                            label="Cód. IBGE da Cidade (Tomador)"
+                            value={cityCode}
+                            onChange={(e: any) => setCityCode(e.target.value)}
+                            placeholder="Ex: 3106200"
+                            required
+                        />
                     </div>
                 </div>
 

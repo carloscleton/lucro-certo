@@ -113,6 +113,14 @@ export function FiscalSettings() {
             if (!token) throw new Error('Sessão expirada.');
 
             await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token);
+            
+            // Atualizar config local para marcar que o certificado foi enviado
+            const newConfig = { ...config, certificado_enviado: true, certificado_data_upload: new Date().toISOString() };
+            await updateCompany(currentEntity.id, {
+                tecnospeed_config: newConfig
+            });
+            setConfig(newConfig);
+            
             alert('Certificado Digital enviado com sucesso!');
             if (fileInputRef.current) fileInputRef.current.value = '';
             setCertPassword('');
