@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useEntity } from '../../context/EntityContext';
 import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
-import { RefreshCw } from 'lucide-react';
 
 export function FiscalSettings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
@@ -17,6 +16,7 @@ export function FiscalSettings() {
     const [uploadingCert, setUploadingCert] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [certPassword, setCertPassword] = useState('');
+    const [showApiKey, setShowApiKey] = useState(false);
 
     const [config, setConfig] = useState({
         cnpj: '',
@@ -365,13 +365,22 @@ export function FiscalSettings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Input
-                        label="TecnoSpeed API Key"
-                        type="password"
-                        value={config.tecnospeed_api_key}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value })}
-                        placeholder="Insira sua chave"
-                    />
+                    <div className="relative">
+                        <Input
+                            label="TecnoSpeed API Key"
+                            type={showApiKey ? 'text' : 'password'}
+                            value={config.tecnospeed_api_key}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value })}
+                            placeholder="Insira sua chave"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                            {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
                     <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Ambiente de Emissão
