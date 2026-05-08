@@ -44,13 +44,31 @@ export function FiscalSettings() {
     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
     useEffect(() => {
-        if (currentCompany?.tecnospeed_config) {
-            setConfig((prev: any) => ({ ...prev, ...currentCompany.tecnospeed_config }));
-        }
-        // Fallback for CNPJ if not in config but in company
-        if (currentCompany?.cnpj && !currentCompany.tecnospeed_config?.cnpj) {
-            setConfig((prev: any) => ({ ...prev, cnpj: currentCompany.cnpj }));
-        }
+        if (!currentCompany) return;
+
+        setConfig((prev: any) => {
+            const newConfig = { ...prev };
+            const tc = currentCompany.tecnospeed_config || {};
+
+            Object.assign(newConfig, tc);
+
+            if (!newConfig.cnpj && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
+            if (!newConfig.razao_social && currentCompany.legal_name) newConfig.razao_social = currentCompany.legal_name;
+            if (!newConfig.nome_fantasia && currentCompany.trade_name) newConfig.nome_fantasia = currentCompany.trade_name;
+            if (!newConfig.telefone && currentCompany.phone) newConfig.telefone = currentCompany.phone;
+
+            if (!newConfig.endereco) {
+                newConfig.endereco = {};
+            }
+            if (!newConfig.endereco.logradouro && currentCompany.street) newConfig.endereco.logradouro = currentCompany.street;
+            if (!newConfig.endereco.numero && currentCompany.number) newConfig.endereco.numero = currentCompany.number;
+            if (!newConfig.endereco.complemento && currentCompany.complement) newConfig.endereco.complemento = currentCompany.complement;
+            if (!newConfig.endereco.bairro && currentCompany.neighborhood) newConfig.endereco.bairro = currentCompany.neighborhood;
+            if (!newConfig.endereco.cep && currentCompany.zip_code) newConfig.endereco.cep = currentCompany.zip_code;
+            if (!newConfig.endereco.uf && currentCompany.state) newConfig.endereco.uf = currentCompany.state;
+
+            return newConfig;
+        });
     }, [currentCompany]);
 
     const handleSave = async () => {
