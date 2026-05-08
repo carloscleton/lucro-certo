@@ -688,6 +688,8 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
         console.log(`🏢 Sincronizando Emitente (${config.cnpj}) no PlugNotas...`);
 
         // Payload simplificado para o PlugNotas
+        const isSandbox = config.ambiente === 'homologacao';
+        
         const issuerPayload = {
             cpfCnpj: config.cnpj.replace(/\D/g, ''),
             inscricaoEstadual: config.inscricao_estadual?.replace(/\D/g, '') || '',
@@ -696,8 +698,35 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
             nomeFantasia: config.nome_fantasia,
             regimeTributario: parseInt(config.regime_tributario),
             email: config.email,
-            telefone: config.telefone?.replace(/\D/g, ''),
-            endereco: config.endereco
+            telefone: {
+                ddd: config.telefone?.replace(/\D/g, '').substring(0, 2) || '00',
+                numero: config.telefone?.replace(/\D/g, '').substring(2) || '000000000'
+            },
+            endereco: {
+                logradouro: config.endereco?.logradouro || '',
+                numero: config.endereco?.numero || 'S/N',
+                bairro: config.endereco?.bairro || '',
+                cep: config.endereco?.cep?.replace(/\D/g, '') || '',
+                codigoCidade: config.endereco?.codigoCidade || '',
+                uf: config.endereco?.uf || '',
+                complemento: config.endereco?.complemento || ''
+            },
+            nfse: {
+                ativo: true,
+                config: {
+                    producao: !isSandbox,
+                    rps: {
+                        numeracaoAutomatica: true
+                    }
+                }
+            },
+            nfe: {
+                ativo: true,
+                config: {
+                    producao: !isSandbox,
+                    numeracaoAutomatica: true
+                }
+            }
         };
 
         const response = await axios.post(`${baseUrl}/emitente`, issuerPayload, {
