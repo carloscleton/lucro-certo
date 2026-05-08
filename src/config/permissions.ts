@@ -66,19 +66,19 @@ export const APP_MODULES: ModuleDefinition[] = [
         defaultPermissions: { admin: true, member: true }
     },
     {
-        key: 'invoices',
-        label: 'Notas Fiscais',
-        icon: Receipt,
-        path: '/dashboard/invoices',
-        desc: 'Emissão e Histórico de NFe/NFSe',
-        defaultPermissions: { admin: true, member: true }
-    },
-    {
         key: 'receivables',
         label: 'A Receber',
         icon: ArrowUpCircle,
         path: '/dashboard/receivables',
         desc: 'Faturamento e receitas',
+        defaultPermissions: { admin: true, member: true }
+    },
+    {
+        key: 'invoices',
+        label: 'Notas Fiscais',
+        icon: Receipt,
+        path: '/dashboard/invoices',
+        desc: 'Emissão e Histórico de NFe/NFSe',
         defaultPermissions: { admin: true, member: true }
     },
     {

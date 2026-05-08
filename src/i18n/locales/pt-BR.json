@@ -75,6 +75,7 @@
     "nav": {
         "dashboard": "Dashboard",
         "quotes": "Orçamentos",
+        "invoices": "Notas Fiscais",
         "receivables": "A Receber",
         "payables": "A Pagar",
         "categories": "Categorias",
@@ -98,6 +99,7 @@
     "nav_desc": {
         "dashboard": "Visão geral e gráficos",
         "quotes": "Propostas comerciais",
+        "invoices": "Emissão e Histórico de NFe/NFSe",
         "receivables": "Faturamento e receitas",
         "payables": "Contas e despesas",
         "categories": "Gestão financeira",
