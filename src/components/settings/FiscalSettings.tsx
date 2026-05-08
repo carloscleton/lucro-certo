@@ -79,7 +79,9 @@ export function FiscalSettings() {
             setCertPassword('');
         } catch (error: any) {
             console.error(error);
-            alert('Erro ao enviar certificado: ' + (error.response?.data?.error || error.message));
+            const detail = error.response?.data?.detail;
+            const errorMsg = detail?.error?.message || detail?.message || error.response?.data?.error || error.message;
+            alert('Erro ao enviar certificado: ' + errorMsg);
         } finally {
             setUploadingCert(false);
         }

@@ -96,8 +96,7 @@ export const fiscalService = {
 
         const response = await axios.post(getFiscalUrl('upload-certificate'), formData, {
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'multipart/form-data'
+                'Authorization': `Bearer ${token}`
             }
         });
         return response.data;

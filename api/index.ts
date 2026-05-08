@@ -99,11 +99,10 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
 
         console.log(`🔐 Uploading certificate for company ${companyId} (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
 
-        // Usando form-data (Package) para garantir compatibilidade no Node
         const form = new FormData();
         form.append('arquivo', file.buffer, {
-            filename: file.originalname,
-            contentType: file.mimetype,
+            filename: file.originalname || 'certificado.pfx',
+            contentType: file.mimetype || 'application/x-pkcs12',
         });
         form.append('senha', senha);
 
@@ -117,8 +116,9 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({ error: 'Erro ao enviar certificado para TecnoSpeed', detail: errorDetail });
+        const statusCode = error.response?.status || 500;
+        console.error(`❌ Erro no upload do certificado (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
+        res.status(statusCode).json({ error: 'Erro ao enviar certificado para TecnoSpeed', detail: errorDetail });
     }
 });
 
