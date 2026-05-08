@@ -676,20 +676,14 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
         // Payload simplificado para o PlugNotas
         const issuerPayload = {
             cpfCnpj: config.cnpj.replace(/\D/g, ''),
-            inscricaoEstadual: config.inscricao_estadual,
-            inscricaoMunicipal: config.inscricao_municipal,
-            razaoSocial: config.razao_social || 'Empresa Vinx', // Idealmente viria do banco
-            nomeFantasia: config.nome_fantasia || 'Vinx Store',
+            inscricaoEstadual: config.inscricao_estadual?.replace(/\D/g, '') || '',
+            inscricaoMunicipal: config.inscricao_municipal?.replace(/\D/g, '') || '',
+            razaoSocial: config.razao_social,
+            nomeFantasia: config.nome_fantasia,
             regimeTributario: parseInt(config.regime_tributario),
             email: config.email,
-            endereco: config.endereco || {
-                logradouro: 'Rua Exemplo',
-                numero: '123',
-                bairro: 'Centro',
-                cep: '00000000',
-                codigoCidade: '3106200', // BH Default para teste
-                uf: 'MG'
-            }
+            telefone: config.telefone?.replace(/\D/g, ''),
+            endereco: config.endereco
         };
 
         const response = await axios.post(`${baseUrl}/emitente`, issuerPayload, {
