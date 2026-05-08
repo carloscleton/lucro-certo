@@ -696,11 +696,20 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
             inscricaoMunicipal: config.inscricao_municipal?.replace(/\D/g, '') || '',
             razaoSocial: config.razao_social,
             nomeFantasia: config.nome_fantasia,
+            simplesNacional: config.regime_tributario === '1',
             regimeTributario: parseInt(config.regime_tributario),
             email: config.email,
             telefone: {
-                ddd: config.telefone?.replace(/\D/g, '').substring(0, 2) || '00',
-                numero: config.telefone?.replace(/\D/g, '').substring(2) || '000000000'
+                ddd: (() => {
+                    const clean = config.telefone?.replace(/\D/g, '') || '';
+                    const without55 = clean.startsWith('55') && clean.length > 10 ? clean.substring(2) : clean;
+                    return without55.substring(0, 2) || '00';
+                })(),
+                numero: (() => {
+                    const clean = config.telefone?.replace(/\D/g, '') || '';
+                    const without55 = clean.startsWith('55') && clean.length > 10 ? clean.substring(2) : clean;
+                    return without55.substring(2) || '000000000';
+                })()
             },
             endereco: {
                 tipoLogradouro: 'Rua',
