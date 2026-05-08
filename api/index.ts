@@ -575,6 +575,7 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
         const finalPayload = Array.isArray(payload) ? payload : [payload];
 
         console.log(`🧾 Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'}) para empresa ${companyId}...`);
+        console.log(`📦 Payload:`, JSON.stringify(finalPayload, null, 2));
 
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {

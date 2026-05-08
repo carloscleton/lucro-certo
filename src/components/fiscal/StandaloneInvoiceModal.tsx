@@ -57,7 +57,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const numAmount = parseFloat(amount.replace(',', '.'));
+            const cleanAmount = amount.replace(/\./g, '').replace(',', '.');
+            const numAmount = Number(parseFloat(cleanAmount).toFixed(2));
+            
+            if (isNaN(numAmount)) throw new Error('Valor inválido. Use o formato 0,00');
             let payload: any;
 
             if (type === 'nfse') {
