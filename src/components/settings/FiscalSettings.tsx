@@ -308,19 +308,53 @@ export function FiscalSettings() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <Input
-                        label="Endpoint Personalizado (Homologação)"
-                        value={config.endpoint_homologacao || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_homologacao: e.target.value })}
-                        placeholder="Opcional. Padrão: https://api.sandbox.plugnotas.com.br"
-                    />
-                    <Input
-                        label="Endpoint Personalizado (Produção)"
-                        value={config.endpoint_producao || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_producao: e.target.value })}
-                        placeholder="Opcional. Padrão: https://api.plugnotas.com.br"
-                    />
+                <div className="mt-6 border-t border-gray-100 dark:border-slate-800 pt-4">
+                    <label className="flex items-center gap-2 cursor-pointer mb-4 w-fit">
+                        <input
+                            type="checkbox"
+                            checked={!!(config.ambiente === 'homologacao' ? config.endpoint_homologacao : config.endpoint_producao)}
+                            onChange={(e) => {
+                                if (!e.target.checked) {
+                                    setConfig({
+                                        ...config,
+                                        ...(config.ambiente === 'homologacao' ? { endpoint_homologacao: '' } : { endpoint_producao: '' })
+                                    });
+                                } else {
+                                    setConfig({
+                                        ...config,
+                                        ...(config.ambiente === 'homologacao' ? { endpoint_homologacao: 'https://api.sandbox.plugnotas.com.br' } : { endpoint_producao: 'https://api.plugnotas.com.br' })
+                                    });
+                                }
+                            }}
+                            className="rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Usar Endpoint Personalizado</span>
+                    </label>
+
+                    {(config.ambiente === 'homologacao' && config.endpoint_homologacao !== '') || 
+                     (config.ambiente === 'producao' && config.endpoint_producao !== '') || 
+                     (config.endpoint_homologacao || config.endpoint_producao) ? (
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                            {config.ambiente === 'homologacao' ? (
+                                <Input
+                                    label="Endpoint Personalizado (Homologação)"
+                                    value={config.endpoint_homologacao || ''}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_homologacao: e.target.value })}
+                                    placeholder="Ex: https://api.sandbox.plugnotas.com.br"
+                                />
+                            ) : (
+                                <Input
+                                    label="Endpoint Personalizado (Produção)"
+                                    value={config.endpoint_producao || ''}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_producao: e.target.value })}
+                                    placeholder="Ex: https://api.plugnotas.com.br"
+                                />
+                            )}
+                            <p className="text-xs text-gray-500 mt-2">
+                                Deixe desmarcado para usar a URL padrão da TecnoSpeed.
+                            </p>
+                        </div>
+                    ) : null}
                 </div>
             </div>
 
