@@ -370,7 +370,7 @@ export function FiscalSettings() {
                             label="TecnoSpeed API Key"
                             type={showApiKey ? 'text' : 'password'}
                             value={config.tecnospeed_api_key}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value.toLowerCase() })}
                             placeholder="Insira sua chave"
                         />
                         <button
@@ -443,14 +443,14 @@ export function FiscalSettings() {
                                 <Input
                                     label="Endpoint Personalizado (Homologação)"
                                     value={config.endpoint_homologacao || ''}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_homologacao: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_homologacao: e.target.value.toLowerCase() })}
                                     placeholder="Ex: https://api.sandbox.plugnotas.com.br"
                                 />
                             ) : (
                                 <Input
                                     label="Endpoint Personalizado (Produção)"
                                     value={config.endpoint_producao || ''}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_producao: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_producao: e.target.value.toLowerCase() })}
                                     placeholder="Ex: https://api.plugnotas.com.br"
                                 />
                             )}
