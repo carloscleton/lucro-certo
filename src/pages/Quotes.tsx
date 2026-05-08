@@ -682,7 +682,7 @@ export function Quotes() {
                     servico: fullQuote.items.map((item: any) => ({
                         codigo: item.codigo_servico_municipal || '001',
                         descricao: item.description,
-                        valorUnitario: item.unit_price,
+                        valor: item.unit_price,
                         quantidade: item.quantity,
                         itemListaServico: item.item_lista_servico || '01.01'
                     }))

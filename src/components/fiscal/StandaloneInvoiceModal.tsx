@@ -82,7 +82,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         {
                             codigo: taxCode,
                             descricao: description,
-                            valorUnitario: numAmount,
+                            valor: numAmount,
                             quantidade: 1,
                             itemListaServico: '01.01' // Default generic service item
                         }
