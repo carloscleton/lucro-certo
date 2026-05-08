@@ -267,6 +267,14 @@ export const SETTINGS_TABS: TabDefinition[] = [
         defaultPermissions: { admin: true, member: false }
     },
     {
+        key: 'fiscal',
+        label: 'Fiscal',
+        icon: Calculator,
+        color: 'indigo',
+        desc: 'Configurações de notas fiscais',
+        defaultPermissions: { admin: true, member: false }
+    },
+    {
         key: 'loyalty',
         label: 'Clube de Fidelidade',
         icon: Award,
