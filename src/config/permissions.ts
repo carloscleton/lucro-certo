@@ -20,7 +20,8 @@ import {
     Percent,
     Calendar,
     Award,
-    Calculator
+    Calculator,
+    Receipt
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -62,6 +63,14 @@ export const APP_MODULES: ModuleDefinition[] = [
         icon: FileText,
         path: '/dashboard/quotes',
         desc: 'Propostas comerciais',
+        defaultPermissions: { admin: true, member: true }
+    },
+    {
+        key: 'invoices',
+        label: 'Notas Fiscais',
+        icon: Receipt,
+        path: '/dashboard/invoices',
+        desc: 'Emissão e Histórico de NFe/NFSe',
         defaultPermissions: { admin: true, member: true }
     },
     {

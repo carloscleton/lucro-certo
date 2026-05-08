@@ -14,6 +14,7 @@ import { Products } from './pages/Products';
 import { Quotes } from './pages/Quotes';
 import { QuoteForm } from './pages/QuoteForm';
 import { QuotePrint } from './pages/QuotePrint';
+import { Invoices } from './pages/Invoices';
 import { Settings } from './pages/Settings';
 import { Commissions } from './pages/Commissions';
 import { WhatsApp } from './pages/WhatsApp';
@@ -154,6 +155,7 @@ function AppRoutes() {
         <Route path="quotes/new" element={<QuoteForm />} />
         <Route path="quotes/:id" element={<QuoteForm />} />
         <Route path="quotes/:id/print" element={<QuotePrint />} />
+        <Route path="invoices" element={<Invoices />} />
         <Route path="settings" element={<Settings />} />
         <Route path="commissions" element={<Commissions />} />
         <Route path="whatsapp" element={<WhatsApp />} />

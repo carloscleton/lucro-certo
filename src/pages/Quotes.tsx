@@ -632,6 +632,12 @@ export function Quotes() {
             let result;
 
             if (isServiceOnly) {
+                // Validate if any service is missing the municipal code
+                const missingServiceCode = fullQuote.items.find((item: any) => !item.codigo_servico_municipal);
+                if (missingServiceCode) {
+                    throw new Error(`O serviço "${missingServiceCode.description}" não possui o Código de Serviço Municipal preenchido. Acesse Serviços > Editar e preencha este dado obrigatório para a emissão da NFS-e.`);
+                }
+
                 // Map to PlugNotas format (NFS-e)
                 const payload = {
                     idIntegracao: fullQuote.id,
@@ -663,6 +669,12 @@ export function Quotes() {
                 setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e (Serviços)...' });
                 result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
             } else {
+                // Validate if any product is missing the NCM
+                const missingNcm = fullQuote.items.find((item: any) => !item.service_id && !item.ncm);
+                if (missingNcm) {
+                    throw new Error(`O produto "${missingNcm.description}" não possui o NCM preenchido. Acesse o cadastro do produto e preencha o NCM obrigatório para a emissão da NF-e.`);
+                }
+
                 // Map to PlugNotas format (NF-e - Products)
                 const payload = {
                     idIntegracao: fullQuote.id,

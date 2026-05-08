@@ -218,6 +218,7 @@ export function Layout() {
                 (item.key === 'marketing' && currentEntity.has_social_copilot) ||
                 (item.key === 'lead_radar' && currentEntity.has_lead_radar) ||
                 (item.key === 'loyalty' && (availableEntities.find(c => c.id === currentEntity.id) as any)?.loyalty_module_enabled) ||
+                (item.key === 'invoices' && currentEntity.fiscal_module_enabled) ||
                 (typeof (currentEntity as any)[`${item.key}_module_enabled`] !== 'undefined' ? (currentEntity as any)[`${item.key}_module_enabled`] : true);
 
             // Owner sees everything unless explicitly disabled (checked above)
@@ -272,6 +273,7 @@ export function Layout() {
         marketing: '#f43f5e', // rose-500
         lead_radar: '#8b5cf6', // violet-500
         loyalty: '#f59e0b',    // amber-500
+        invoices: '#3b82f6',   // blue-500
     };
 
     return (
