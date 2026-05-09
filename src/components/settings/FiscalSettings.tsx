@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -65,6 +65,7 @@ export function FiscalSettings() {
             numero: '',
             complemento: '',
             bairro: '',
+            cidade: '',
             cep: '',
             codigoCidade: '',
             uf: ''
@@ -108,6 +109,7 @@ export function FiscalSettings() {
             if (!newConfig.endereco.numero && currentCompany.number) newConfig.endereco.numero = currentCompany.number;
             if (!newConfig.endereco.complemento && currentCompany.complement) newConfig.endereco.complemento = currentCompany.complement;
             if (!newConfig.endereco.bairro && currentCompany.neighborhood) newConfig.endereco.bairro = currentCompany.neighborhood;
+            if (!newConfig.endereco.cidade && currentCompany.city) newConfig.endereco.cidade = currentCompany.city;
             if (!newConfig.endereco.cep && currentCompany.zip_code) newConfig.endereco.cep = currentCompany.zip_code;
             if (!newConfig.endereco.uf && currentCompany.state) newConfig.endereco.uf = currentCompany.state;
 
@@ -418,6 +420,68 @@ export function FiscalSettings() {
         }
     };
 
+    const [isLookingUpIBGE, setIsLookingUpIBGE] = useState(false);
+
+    const handleLookupIBGE = async () => {
+        const { cidade, uf } = config.endereco;
+        if (!cidade || !uf) {
+            setResultModal({
+                isOpen: true,
+                title: 'Dados Incompletos',
+                message: 'Preencha a Cidade e UF para buscar o código IBGE.',
+                type: 'info'
+            });
+            return;
+        }
+
+        setIsLookingUpIBGE(true);
+        try {
+            // 1. Get State ID
+            const statesRes = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados');
+            const states = await statesRes.json();
+            const state = states.find((s: any) => s.sigla.toUpperCase() === uf.toUpperCase());
+
+            if (!state) throw new Error('UF não encontrada.');
+
+            // 2. Get Cities for that State
+            const citiesRes = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${state.id}/municipios`);
+            const cities = await citiesRes.json();
+            
+            // 3. Find matching city (case insensitive and removing accents)
+            const city = cities.find((c: any) => 
+                c.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 
+                cidade.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            );
+
+            if (city) {
+                setConfig({
+                    ...config,
+                    endereco: {
+                        ...config.endereco,
+                        codigoCidade: city.id.toString()
+                    }
+                });
+                setResultModal({
+                    isOpen: true,
+                    title: 'Código Encontrado',
+                    message: `O código IBGE para ${city.nome} é ${city.id}.`,
+                    type: 'success'
+                });
+            } else {
+                throw new Error('Município não encontrado para esta UF.');
+            }
+        } catch (error: any) {
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Busca',
+                message: error.message || 'Não foi possível localizar o código IBGE.',
+                type: 'error'
+            });
+        } finally {
+            setIsLookingUpIBGE(false);
+        }
+    };
+
     return (
         <>
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
@@ -568,20 +632,42 @@ export function FiscalSettings() {
                                 autoComplete="off"
                             />
                             <Input
-                                label="Código Cidade (IBGE)"
-                                value={config.endereco?.codigoCidade || ''}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, codigoCidade: e.target.value } })}
-                                placeholder="Ex: 3550308 (São Paulo)"
+                                label="Cidade"
+                                value={config.endereco?.cidade || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, cidade: e.target.value } })}
+                                placeholder="Nome da cidade"
                                 autoComplete="off"
                             />
                             <Input
                                 label="UF"
                                 value={config.endereco?.uf || ''}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, uf: e.target.value } })}
-                                placeholder="SP, RJ, MG"
+                                placeholder="SP"
                                 maxLength={2}
                                 autoComplete="address-level1"
                             />
+                            <div className="relative">
+                                <Input
+                                    label="Código Cidade (IBGE)"
+                                    value={config.endereco?.codigoCidade || ''}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, codigoCidade: e.target.value } })}
+                                    placeholder="Ex: 3550308"
+                                    autoComplete="off"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleLookupIBGE}
+                                    disabled={isLookingUpIBGE}
+                                    className="absolute right-2 top-[32px] p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+                                    title="Buscar Código IBGE"
+                                >
+                                    {isLookingUpIBGE ? (
+                                        <RefreshCw size={18} className="animate-spin" />
+                                    ) : (
+                                        <Search size={18} />
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
