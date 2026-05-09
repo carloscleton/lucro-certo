@@ -96,21 +96,21 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         const bodyConfig = req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config) : req.body.config) : null;
         const config = bodyConfig || await getCompanyFiscalConfig(authHeader!, companyId);
 
-        // Função para limpar possíveis "sujeiras" de JSON colado por engano
-        const sanitize = (val: any) => {
-            if (!val) return '';
-            let s = String(val).trim();
-            // Remover aspas se for um JSON stringificado por engano
-            if (s.startsWith('"') && s.endsWith('"')) s = s.slice(1, -1);
-            // Remover chaves se colaram o objeto inteiro
-            if (s.includes('{') || s.includes(':')) {
-                const match = s.match(/[a-f0-9-]{36}/i); // Tenta achar um UUID
-                if (match) s = match[0];
-            }
-            return s.trim().toLowerCase();
-        };
+// Função para limpar possíveis "sujeiras" de JSON colado por engano
+const sanitizeKey = (val: any) => {
+    if (!val) return '';
+    let s = String(val).trim();
+    // Remover aspas se for um JSON stringificado por engano
+    if (s.startsWith('"') && s.endsWith('"')) s = s.slice(1, -1);
+    // Remover chaves se colaram o objeto inteiro
+    if (s.includes('{') || s.includes(':')) {
+        const match = s.match(/[a-f0-9-]{36}/i); // Tenta achar um UUID
+        if (match) s = match[0];
+    }
+    return s.trim().toLowerCase();
+};
 
-        const apiKey = sanitize(config.tecnospeed_api_key);
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
@@ -762,12 +762,14 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
     const authHeader = req.headers.authorization;
 
     try {
-        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         console.log(`🏢 Sincronizando Empresa (${config.cnpj}) no PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
+        console.log(`📡 URL Alvo: ${baseUrl}`);
+        console.log(`🔐 API Key (Sanitized): ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
 
         const issuerPayload = {
             cpfCnpj: config.cnpj.replace(/\D/g, ''),
@@ -845,7 +847,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
 
         res.json({
             ...response.data,
-            proxy_version: '1.0.2',
+            proxy_version: '1.0.3',
             synced_id: issuerPayload.certificado
         });
     } catch (error: any) {
