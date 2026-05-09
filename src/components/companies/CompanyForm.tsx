@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
-import { Building2, Search, MapPin, Upload } from 'lucide-react';
+import { Building2, Search, MapPin, Upload, ShieldCheck, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import type { Company } from '../../hooks/useCompanies';
 import { useNotification } from '../../context/NotificationContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
@@ -53,6 +53,16 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [searchStreet, setSearchStreet] = useState('');
     const [cepResults, setCepResults] = useState<any[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
+    
+    // Fiscal Module State
+    const [fiscalModuleEnabled, setFiscalModuleEnabled] = useState(false);
+    const [inscricaoEstadual, setInscricaoEstadual] = useState('');
+    const [inscricaoMunicipal, setInscricaoMunicipal] = useState('');
+    const [regimeTributario, setRegimeTributario] = useState('1');
+    const [tecnospeedApiKey, setTecnospeedApiKey] = useState('');
+    const [ambiente, setAmbiente] = useState<'homologacao' | 'producao'>('homologacao');
+    const [fiscalEmail, setFiscalEmail] = useState('');
+    const [showApiKey, setShowApiKey] = useState(false);
 
     const handleCNPJLookup = async (cnpjValue: string) => {
         const clean = cnpjValue.replace(/\D/g, '');
@@ -106,6 +116,26 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setPhone(formatPhoneFromDB(initialData.phone));
             setLoyaltyModuleEnabled(initialData.loyalty_module_enabled || false);
             setLogoFile(null);
+
+            // Load fiscal config
+            if (initialData.tecnospeed_config) {
+                const config = initialData.tecnospeed_config as any;
+                setFiscalModuleEnabled(initialData.fiscal_module_enabled || false);
+                setInscricaoEstadual(config.inscricao_estadual || '');
+                setInscricaoMunicipal(config.inscricao_municipal || '');
+                setRegimeTributario(config.regime_tributario || '1');
+                setTecnospeedApiKey(config.tecnospeed_api_key || '');
+                setAmbiente(config.ambiente || 'homologacao');
+                setFiscalEmail(config.email || '');
+            } else {
+                setFiscalModuleEnabled(false);
+                setInscricaoEstadual('');
+                setInscricaoMunicipal('');
+                setRegimeTributario('1');
+                setTecnospeedApiKey('');
+                setAmbiente('homologacao');
+                setFiscalEmail('');
+            }
         } else if (isOpen) {
             // Pre-fill from profile for new company if open
             const isPFProfile = profile?.user_type === 'PF';
@@ -150,12 +180,20 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
 
     const { clearCache } = useAutoSave(
         'company_form',
-        { tradeName, legalName, cnpj, entityType, cpf, zipCode, street, number, complement, neighborhood, city, state, phone, loyaltyModuleEnabled },
+        { 
+            tradeName, legalName, cnpj, entityType, cpf, zipCode, street, number, complement, 
+            neighborhood, city, state, phone, loyaltyModuleEnabled, 
+            fiscalModuleEnabled, inscricaoEstadual, inscricaoMunicipal, regimeTributario, 
+            tecnospeedApiKey, ambiente, fiscalEmail 
+        },
         {
             tradeName: setTradeName, legalName: setLegalName, cnpj: setCnpj, entityType: setEntityType as any,
             cpf: setCpf, zipCode: setZipCode, street: setStreet, number: setNumber,
             complement: setComplement, neighborhood: setNeighborhood, city: setCity,
-            state: setState, phone: setPhone, loyaltyModuleEnabled: setLoyaltyModuleEnabled
+            state: setState, phone: setPhone, loyaltyModuleEnabled: setLoyaltyModuleEnabled,
+            fiscalModuleEnabled: setFiscalModuleEnabled, inscricaoEstadual: setInscricaoEstadual, 
+            inscricaoMunicipal: setInscricaoMunicipal, regimeTributario: setRegimeTributario,
+            tecnospeedApiKey: setTecnospeedApiKey, ambiente: setAmbiente as any, fiscalEmail: setFiscalEmail
         },
         !initialData,
         isOpen
@@ -259,8 +297,30 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 city: city || null,
                 state: state || null,
                 loyalty_module_enabled: loyaltyModuleEnabled,
+                fiscal_module_enabled: fiscalModuleEnabled,
                 logo_url: logoUrl || null,
                 logo_file: logoFile,
+                tecnospeed_config: fiscalModuleEnabled ? {
+                    cnpj: (entityType === 'PJ' ? cnpj : cpf)?.replace(/\D/g, ''),
+                    razao_social: legalName,
+                    nome_fantasia: tradeName,
+                    inscricao_estadual: inscricaoEstadual,
+                    inscricao_municipal: inscricaoMunicipal,
+                    regime_tributario: regimeTributario,
+                    email: fiscalEmail || null,
+                    telefone: cleanPhoneNumber(phone),
+                    tecnospeed_api_key: tecnospeedApiKey,
+                    ambiente: ambiente,
+                    endereco: {
+                        cep: zipCode?.replace(/\D/g, ''),
+                        logradouro: street,
+                        numero: number,
+                        complemento: complement,
+                        bairro: neighborhood,
+                        codigoCidade: '', // Should be filled if possible, or left for later
+                        uf: state
+                    }
+                } : (initialData?.tecnospeed_config || {})
             });
             clearCache();
             onClose();
@@ -528,29 +588,138 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                     </div>
                 </div>
 
-                {appSettings?.loyalty_enabled !== false && initialData?.loyalty_module_enabled && (
-                    <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                             Módulos de Expansão
-                        </h3>
+                <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                         Módulos de Expansão
+                    </h3>
 
-                        <div className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                    <div className="space-y-4">
+                        {appSettings?.loyalty_enabled !== false && initialData?.loyalty_module_enabled && (
+                            <div className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                                <div>
+                                    <p className="text-sm font-bold text-indigo-900 dark:text-indigo-100">🏆 Clube de Fidelidade</p>
+                                    <p className="text-xs text-indigo-600 dark:text-indigo-400">Ativa planos de recorrência e descontos para clientes</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={loyaltyModuleEnabled}
+                                        onChange={e => setLoyaltyModuleEnabled(e.target.checked)}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30">
                             <div>
-                                <p className="text-sm font-bold text-indigo-900 dark:text-indigo-100">🏆 Clube de Fidelidade</p>
-                                <p className="text-xs text-indigo-600 dark:text-indigo-400">Ativa planos de recorrência e descontos para clientes</p>
+                                <p className="text-sm font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                                    <ShieldCheck size={18} className="text-blue-600" />
+                                    Módulo Fiscal (TecnoSpeed)
+                                </p>
+                                <p className="text-xs text-blue-600 dark:text-blue-400">Ativa emissão de NF-e e NFS-e via PlugNotas</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input
                                     type="checkbox"
                                     className="sr-only peer"
-                                    checked={loyaltyModuleEnabled}
-                                    onChange={e => setLoyaltyModuleEnabled(e.target.checked)}
+                                    checked={fiscalModuleEnabled}
+                                    onChange={e => setFiscalModuleEnabled(e.target.checked)}
                                 />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                             </label>
                         </div>
+
+                        {fiscalModuleEnabled && (
+                            <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Input
+                                        label="Inscrição Estadual"
+                                        value={inscricaoEstadual}
+                                        onChange={e => setInscricaoEstadual(e.target.value)}
+                                        placeholder="Número ou 'Isento'"
+                                    />
+                                    <Input
+                                        label="Inscrição Municipal"
+                                        value={inscricaoMunicipal}
+                                        onChange={e => setInscricaoMunicipal(e.target.value)}
+                                        placeholder="Obrigatório para NFS-e"
+                                    />
+                                    
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Regime Tributário</label>
+                                        <select
+                                            value={regimeTributario}
+                                            onChange={e => setRegimeTributario(e.target.value)}
+                                            className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                                        >
+                                            <option value="1">Simples Nacional</option>
+                                            <option value="2">Simples Nacional (Excesso)</option>
+                                            <option value="3">Regime Normal (Real/Presumido)</option>
+                                        </select>
+                                    </div>
+
+                                    <Input
+                                        label="E-mail para Notas"
+                                        type="email"
+                                        value={fiscalEmail}
+                                        onChange={e => setFiscalEmail(e.target.value)}
+                                        placeholder="contato@empresa.com"
+                                    />
+
+                                    <div className="relative">
+                                        <Input
+                                            label="PlugNotas API Key"
+                                            type={showApiKey ? 'text' : 'password'}
+                                            value={tecnospeedApiKey}
+                                            onChange={e => setTecnospeedApiKey(e.target.value)}
+                                            placeholder="Chave da TecnoSpeed"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowApiKey(!showApiKey)}
+                                            className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ambiente</label>
+                                        <div className="flex gap-4 mt-2">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    checked={ambiente === 'homologacao'}
+                                                    onChange={() => setAmbiente('homologacao')}
+                                                    className="text-blue-600"
+                                                />
+                                                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Homologação</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    checked={ambiente === 'producao'}
+                                                    onChange={() => setAmbiente('producao')}
+                                                    className="text-rose-600"
+                                                />
+                                                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Produção</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/20">
+                                    <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-amber-800 dark:text-amber-400 leading-relaxed font-medium">
+                                        <strong>Nota:</strong> O certificado digital (A1) deve ser enviado posteriormente na aba "Configurações &gt; Fiscal" para que as notas possam ser assinadas e transmitidas.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
 
                 <div className="flex justify-end gap-3 mt-8">
                     <Button type="button" variant="outline" onClick={handleClose} className="px-8">
