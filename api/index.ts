@@ -842,9 +842,20 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
 
         res.json(response.data);
     } catch (error: any) {
-        const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro ao sincronizar emitente:', JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({ error: 'Erro ao sincronizar emitente', detail: errorDetail });
+        const statusCode = error.response?.status || 500;
+        const errorData = error.response?.data;
+        
+        console.error(`❌ Erro ao sincronizar emitente (Status ${statusCode}):`, JSON.stringify(errorData, null, 2));
+        
+        let errorMessage = 'Erro ao sincronizar com PlugNotas';
+        if (errorData?.message) errorMessage = errorData.message;
+        else if (errorData?.error?.message) errorMessage = errorData.error.message;
+        else if (errorData?.error) errorMessage = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
+
+        res.status(statusCode).json({ 
+            error: errorMessage, 
+            detail: errorData 
+        });
     }
 });
 

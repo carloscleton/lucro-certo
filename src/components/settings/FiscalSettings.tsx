@@ -303,25 +303,23 @@ export function FiscalSettings() {
             setResultModal({
                 isOpen: true,
                 title: 'Sincronização Concluída',
-                message: 'Os dados do emitente foram atualizados com sucesso no PlugNotas.',
-                type: 'success',
-                data: {
-                    'CNPJ': config.cnpj,
-                    'ID Interno': result.data?.id || 'Vinculado',
-                    'Status': 'Empresa Sincronizada'
-                }
+                message: 'Os dados do emitente foram enviados para a TecnoSpeed.',
+                type: 'success'
             });
         } catch (error: any) {
-            console.error(error);
+            console.error('Sync error:', error);
             const data = error.response?.data;
-            const detail = data?.detail || data;
-            const msg = detail && typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.message);
+            const detail = data?.detail || data?.error || error.message;
+            const msg = typeof detail === 'object' ? JSON.stringify(detail) : detail;
             
             setResultModal({
                 isOpen: true,
                 title: 'Erro na Sincronização',
-                message: msg,
-                type: 'error'
+                message: 'Ocorreu um erro ao vincular os dados com a TecnoSpeed.',
+                type: 'error',
+                data: {
+                    'Detalhe Técnico': msg
+                }
             });
         } finally {
             setSyncing(false);
@@ -349,49 +347,70 @@ export function FiscalSettings() {
 
             const result = await fiscalService.checkIssuerStatus(currentEntity.id, config.cnpj.replace(/\D/g, ''), token);
             
-            const cert = result.data?.certificado_detalhes || result.data?.certificado;
+            const issuer = result.data;
+            const cert = issuer?.certificado_detalhes || issuer?.certificado;
+            
+            // ATUALIZAÇÃO AUTOMÁTICA: Se encontramos dados novos, vamos atualizar o estado local
             if (cert && typeof cert === 'object') {
+                const updatedConfig = {
+                    ...config,
+                    certificado_id: issuer.certificado || config.certificado_id,
+                    certificado_vencimento: cert.vencimento || config.certificado_vencimento,
+                    certificado_sujeito: cert.sujeito || cert.nome || config.certificado_sujeito,
+                    certificado_status: 'ativo'
+                };
+                setConfig(updatedConfig);
+                
+                // Persistir no banco para não perder a informação do vencimento
+                await updateCompany(currentEntity.id, {
+                    tecnospeed_config: updatedConfig
+                });
+                await refreshEntity();
+
                 setResultModal({
                     isOpen: true,
                     title: 'Emissor Encontrado',
-                    message: 'O cadastro do emissor está ativo e com certificado vinculado.',
+                    message: 'Dados do emissor e certificado atualizados com sucesso.',
                     type: 'success',
                     data: {
-                        'Certificado': cert.nome || cert.id,
+                        'Certificado': cert.nome || cert.sujeito || cert.id,
                         'Vencimento': cert.vencimento ? new Date(cert.vencimento).toLocaleDateString('pt-BR') : 'Não informado',
                         'Status': 'Ativo'
                     }
                 });
-            } else if (result.data?.certificado) {
+            } else if (issuer?.certificado) {
                 setResultModal({
                     isOpen: true,
-                    title: 'Emissor com Certificado',
-                    message: 'Emissor encontrado, mas os detalhes estendidos do certificado não foram carregados.',
+                    title: 'Vínculo Detectado',
+                    message: 'O emissor possui um certificado vinculado, mas os detalhes (vencimento) não foram retornados pela API.',
                     type: 'info',
                     data: {
-                        'ID Certificado': result.data.certificado,
+                        'ID Certificado': issuer.certificado,
                         'Status': 'Vinculado'
                     }
                 });
             } else {
                 setResultModal({
                     isOpen: true,
-                    title: 'Vínculo Pendente',
-                    message: 'A empresa foi encontrada na TecnoSpeed, mas o certificado ainda não foi vinculado.',
+                    title: 'Sem Certificado',
+                    message: 'A empresa foi encontrada na TecnoSpeed, mas não há um certificado digital vinculado a este CNPJ.',
                     type: 'info'
                 });
             }
         } catch (error: any) {
-            console.error(error);
+            console.error('Check status error:', error);
             const data = error.response?.data;
-            const detail = data?.detail || data;
-            const msg = detail && typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.message);
+            const detail = data?.detail || data?.error || error.message;
+            const msg = typeof detail === 'object' ? JSON.stringify(detail) : detail;
             
             setResultModal({
                 isOpen: true,
                 title: 'Erro na Consulta',
-                message: msg,
-                type: 'error'
+                message: 'Não foi possível obter o status do emissor.',
+                type: 'error',
+                data: {
+                    'Detalhe Técnico': msg
+                }
             });
         } finally {
             setCheckingStatus(false);
