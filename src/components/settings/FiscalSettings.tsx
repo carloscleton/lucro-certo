@@ -258,6 +258,7 @@ export function FiscalSettings() {
     };
 
     return (
+        <>
         <div className="space-y-6">
             {/* Módulo Toggle */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -680,5 +681,6 @@ export function FiscalSettings() {
                 </div>
             </div>
         )}
+        </>
     );
 }
