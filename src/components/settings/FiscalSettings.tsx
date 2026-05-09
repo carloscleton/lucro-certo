@@ -227,21 +227,10 @@ export function FiscalSettings() {
             
             if (fileInputRef.current) fileInputRef.current.value = '';
             setCertPassword('');
-            
             await refreshEntity();
-            
-            // Removemos o setTimeout automático para o modal não "fugir"
-            setResultModal({
-                isOpen: true,
-                title: 'Processo Concluído',
-                message: 'O certificado foi enviado e o vínculo com o emitente foi solicitado.',
-                type: 'success',
-                data: {
-                    'ID PlugNotas': response.data?.id,
-                    'Vencimento': response.data?.vencimento ? new Date(response.data.vencimento).toLocaleDateString('pt-BR') : 'Não informado',
-                    'Vínculo': 'Solicitado (Auto-Sync)'
-                }
-            });
+
+            // NOTA: Não abrimos o ResultModal aqui para não sobrepor o diagnóstico.
+            // O usuário clicará no botão "Ver Resultado" no modal de diagnóstico.
         } catch (error: any) {
             console.error('Cert upload error:', error);
             const data = error.response?.data;
@@ -252,15 +241,8 @@ export function FiscalSettings() {
             setDiagnostic(prev => ({
                 ...prev,
                 steps: prev.steps.map(s => s.status === 'loading' ? { ...s, status: 'error', msg } : s),
-                logs: [...prev.logs, `ERRO: ${msg}`]
+                logs: [...prev.logs, `ERRO CRÍTICO: ${msg}`]
             }));
-            
-            setResultModal({
-                isOpen: true,
-                title: 'Falha no Upload',
-                message: msg,
-                type: 'error'
-            });
         } finally {
             setUploadingCert(false);
         }
@@ -868,6 +850,35 @@ export function FiscalSettings() {
                              >
                                  Copiar Logs de Diagnóstico
                              </Button>
+                             
+                             {/* Botão de Ver Resultado Final - Só aparece quando termina */}
+                             {!diagnostic.steps.some(s => s.status === 'loading' || s.status === 'pending') && (
+                                 <Button 
+                                     onClick={() => {
+                                         const hasError = diagnostic.steps.some(s => s.status === 'error');
+                                         setDiagnostic(prev => ({ ...prev, isOpen: false }));
+                                         setResultModal({
+                                             isOpen: true,
+                                             title: hasError ? 'Processo com Avisos' : 'Sucesso!',
+                                             message: hasError 
+                                                 ? 'O processo terminou, mas houve problemas em alguns passos. Verifique os logs.'
+                                                 : 'O certificado foi enviado e o vínculo automático foi processado.',
+                                             type: hasError ? 'error' : 'success',
+                                             data: {
+                                                 'ID Certificado': config.certificado_id || 'ID pendente',
+                                                 'Vencimento': config.certificado_vencimento ? new Date(config.certificado_vencimento).toLocaleDateString('pt-BR') : 'N/A',
+                                                 'Auto-Vínculo': hasError ? 'Falhou' : 'Concluído'
+                                             }
+                                         });
+                                     }}
+                                     className={clsx(
+                                         "text-xs h-8 ml-2 shadow-sm",
+                                         diagnostic.steps.some(s => s.status === 'error') ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
+                                     )}
+                                 >
+                                     {diagnostic.steps.some(s => s.status === 'error') ? 'Ver Detalhes do Erro' : 'Ver Resultado Final'}
+                                 </Button>
+                             )}
                          </div>
                      </div>
                  </div>
