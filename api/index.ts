@@ -822,8 +822,8 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
             const postErrorData = postErr.response?.data;
             console.error('❌ Erro no POST /empresa:', JSON.stringify(postErrorData, null, 2));
 
-            // Se já existir, tentar atualizar (PUT)
-            if (postErrorData?.error?.message?.includes('já existe') || postErr.response?.status === 400 || postErrorData?.message?.includes('já cadastrada')) {
+            // Se já existir (409 Conflict) ou erro de validação (400), tentar atualizar (PUT)
+            if (postErr.response?.status === 409 || postErr.response?.status === 400 || postErrorData?.error?.message?.includes('já existe') || postErrorData?.message?.includes('já cadastrada')) {
                 console.log(`📝 Empresa já existe ou erro de validação, tentando atualizar via PUT...`);
                 try {
                     response = await axios.put(`${baseUrl}/empresa/${issuerPayload.cpfCnpj}`, issuerPayload, {
@@ -843,7 +843,11 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
             }
         }
 
-        res.json(response.data);
+        res.json({
+            ...response.data,
+            proxy_version: '1.0.2',
+            synced_id: issuerPayload.certificado
+        });
     } catch (error: any) {
         const statusCode = error.response?.status || 500;
         const errorData = error.response?.data;
