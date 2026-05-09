@@ -8,6 +8,7 @@ import { useContacts } from '../../hooks/useContacts';
 import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
 import { useCompanies } from '../../hooks/useCompanies';
+import { ResultModal } from '../ui/ResultModal';
 
 interface StandaloneInvoiceModalProps {
     onClose: () => void;
@@ -31,6 +32,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [errorDetail, setErrorDetail] = useState('');
+    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error'}>({
+        isOpen: false, title: '', message: '', type: 'success'
+    });
     
     // Form State
     const [contactId, setContactId] = useState('');
@@ -163,7 +167,17 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 await fiscalService.emitirNFe(currentEntity.id!, payload, token);
             }
 
-            alert('Nota emitida com sucesso! Ela aparecerá na listagem com status "Processando".');
+            setResultModal({
+                isOpen: true,
+                title: 'Nota Emitida!',
+                message: 'A nota fiscal avulsa foi gerada com sucesso e aparecerá na listagem com status "Processando" em instantes.',
+                type: 'success'
+            });
+            // We don't close immediately to let user see the result if they want, 
+            // but usually onSuccess handles the refresh and closure.
+            // In this case, we'll wait for user to close the result modal.
+            // So we'll call onSuccess() only after ResultModal is closed.
+            // Or better, we call it now but keep our modal state until result is closed.
             onSuccess();
         } catch (err: any) {
             console.error('Erro ao emitir avulsa:', err);
@@ -188,148 +202,214 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
         <Modal isOpen={true} onClose={onClose} title="Nova Nota Fiscal Avulsa" icon={Receipt} maxWidth="max-w-3xl">
             <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
-                    <div className="bg-red-50 text-red-700 p-3 rounded-lg flex flex-col gap-1 text-sm border border-red-200">
-                        <div className="flex items-start gap-2">
-                            <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                            <p className="font-bold">{error}</p>
+                    <div className="bg-rose-50 dark:bg-rose-900/10 p-5 rounded-[2rem] border border-rose-100 dark:border-rose-900/20 animate-in shake duration-500">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-xl">
+                                <AlertCircle size={20} className="text-rose-600 dark:text-rose-400" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-rose-700 dark:text-rose-400">Falha na Emissão</p>
+                                <p className="text-xs text-rose-600/80 dark:text-rose-400/60 mt-1 font-medium leading-relaxed">
+                                    {error}
+                                </p>
+                                {errorDetail && (
+                                    <div className="mt-3 pt-3 border-t border-rose-200/30 dark:border-rose-900/30 font-mono text-[10px] text-rose-500/70 break-all bg-white/30 dark:bg-black/20 p-2 rounded-lg">
+                                        DETALHE TÉCNICO: {errorDetail}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        {errorDetail && <p className="ml-6 text-xs opacity-80">{errorDetail}</p>}
                     </div>
                 )}
 
                 {currentCompany?.tecnospeed_config?.ambiente === 'producao' && !currentCompany?.tecnospeed_config?.certificado_enviado && (
-                    <div className="bg-amber-50 text-amber-800 p-4 rounded-xl border border-amber-200 flex items-start gap-3">
-                        <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
-                        <div>
-                            <p className="text-sm font-bold">Certificado Digital não detectado!</p>
-                            <p className="text-xs opacity-90 mt-1">
-                                Você está em ambiente de <strong>PRODUÇÃO</strong>. A emissão de notas reais exige um Certificado Digital A1 válido. 
-                                <br />Suba seu certificado nas <strong>Configurações Fiscais</strong> antes de prosseguir.
-                            </p>
+                    <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-[2rem] border border-amber-100 dark:border-amber-900/20">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
+                                <AlertCircle className="text-amber-600 dark:text-amber-400" size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-amber-900 dark:text-amber-400">Certificado Digital Requerido</p>
+                                <p className="text-xs text-amber-700/80 dark:text-amber-400/60 mt-1 leading-relaxed">
+                                    Você está operando em ambiente de <strong>PRODUÇÃO</strong>. A emissão de notas fiscais reais exige um certificado digital válido vinculado à sua empresa.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Nota</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 dark:bg-slate-800/30 p-6 rounded-3xl border border-gray-100 dark:border-slate-800">
+                    <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Tipo de Nota</label>
                         <select
                             value={type}
                             onChange={(e) => setType(e.target.value as any)}
-                            className="w-full h-10 px-3 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                            className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
                             required
                         >
-                            <option value="nfse">NFS-e (Nota de Serviço)</option>
-                            <option value="nfe">NF-e (Nota de Produto)</option>
+                            <option value="nfse">NFS-e (Serviço)</option>
+                            <option value="nfe">NF-e (Produto)</option>
                         </select>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cliente</label>
+                    <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cliente / Destinatário</label>
                         <select
                             value={contactId}
                             onChange={(e) => setContactId(e.target.value)}
-                            className="w-full h-10 px-3 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                            className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
                             required
                         >
                             <option value="">Selecione um cliente...</option>
                             {contacts.map(c => (
-                                <option key={c.id} value={c.id}>{c.name} {c.tax_id ? `(${c.tax_id})` : '(Sem CPF/CNPJ)'}</option>
+                                <option key={c.id} value={c.id}>{c.name} {c.tax_id ? `(${c.tax_id})` : ''}</option>
                             ))}
                         </select>
                     </div>
 
                     <div className="md:col-span-2">
                         <Input
-                            label="Cód. IBGE da Cidade (Tomador)"
+                            label="Código IBGE da Cidade (Onde o serviço/venda ocorre)"
                             value={cityCode}
                             onChange={(e: any) => setCityCode(e.target.value)}
                             placeholder="Ex: 3106200"
                             required
+                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm"
                         />
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            Itens da Nota ({items.length})
-                        </h3>
-                        <Button type="button" variant="outline" size="sm" onClick={addItem} className="h-8 py-0">
-                            <Plus size={14} className="mr-1" /> Add Item
+                <div className="space-y-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-gray-50 dark:border-slate-800 pb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                                <Plus size={16} className="text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                                Itens da Nota ({items.length})
+                            </h3>
+                        </div>
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={addItem} 
+                            className="h-9 px-4 border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-[10px] uppercase tracking-widest"
+                        >
+                            <Plus size={14} className="mr-1" /> Adicionar Item
                         </Button>
                     </div>
 
-                    <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+                    <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                         {items.map((item, index) => (
-                            <div key={item.id} className="p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 space-y-3 relative">
+                            <div key={item.id} className="p-5 rounded-[2rem] border border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/20 space-y-4 relative group">
                                 {items.length > 1 && (
                                     <button
                                         type="button"
                                         onClick={() => removeItem(item.id)}
-                                        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors"
+                                        className="absolute top-4 right-4 p-2 text-gray-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
                                     >
-                                        <Trash2 size={16} />
+                                        <Trash2 size={18} />
                                     </button>
                                 )}
                                 
-                                <Input
-                                    label={`Descrição do ${type === 'nfse' ? 'Serviço' : 'Produto'} #${index + 1}`}
-                                    value={item.description}
-                                    onChange={(e: any) => updateItem(item.id, 'description', e.target.value)}
-                                    placeholder="Ex: Consultoria Técnica"
-                                    required
-                                />
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                                        Descrição do {type === 'nfse' ? 'Serviço' : 'Produto'}
+                                    </label>
+                                    <Input
+                                        value={item.description}
+                                        onChange={(e: any) => updateItem(item.id, 'description', e.target.value)}
+                                        placeholder="Ex: Consultoria Técnica Mensal"
+                                        required
+                                        className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
+                                    />
+                                </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    <Input
-                                        label={type === 'nfse' ? 'Cód. Municipal' : 'NCM'}
-                                        value={item.taxCode}
-                                        onChange={(e: any) => updateItem(item.id, 'taxCode', e.target.value)}
-                                        placeholder={type === 'nfse' ? '01.01' : '84713019'}
-                                        required
-                                    />
-                                    <Input
-                                        label="Valor Unit."
-                                        type="text"
-                                        value={item.amount}
-                                        onChange={(e: any) => updateItem(item.id, 'amount', e.target.value)}
-                                        placeholder="0,00"
-                                        required
-                                    />
-                                    <Input
-                                        label="Qtd"
-                                        type="number"
-                                        min="1"
-                                        value={item.quantity}
-                                        onChange={(e: any) => updateItem(item.id, 'quantity', parseInt(e.target.value))}
-                                        required
-                                    />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                                            {type === 'nfse' ? 'Cód. Municipal' : 'NCM'}
+                                        </label>
+                                        <Input
+                                            value={item.taxCode}
+                                            onChange={(e: any) => updateItem(item.id, 'taxCode', e.target.value)}
+                                            placeholder={type === 'nfse' ? '01.01' : '84713019'}
+                                            required
+                                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Valor Unitário</label>
+                                        <Input
+                                            type="text"
+                                            value={item.amount}
+                                            onChange={(e: any) => updateItem(item.id, 'amount', e.target.value)}
+                                            placeholder="0,00"
+                                            required
+                                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Quantidade</label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            value={item.quantity}
+                                            onChange={(e: any) => updateItem(item.id, 'quantity', parseInt(e.target.value))}
+                                            required
+                                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="pt-4 flex justify-between items-center border-t border-gray-200 dark:border-slate-700">
-                    <div className="text-sm">
-                        <span className="text-gray-500">Total:</span>
-                        <span className="ml-2 font-bold text-lg text-blue-600 dark:text-blue-400">
+                <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-gray-100 dark:border-slate-800">
+                    <div className="flex flex-col items-center md:items-start">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Valor Total da Emissão</span>
+                        <span className="font-black text-3xl text-blue-600 dark:text-blue-400 tracking-tighter">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                                 items.reduce((acc, i) => acc + (parseFloat(i.amount.replace(/\./g, '').replace(',', '.') || '0') * i.quantity), 0)
                             )}
                         </span>
                     </div>
-                    <div className="flex gap-2">
-                        <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
+                    <div className="flex gap-3 w-full md:w-auto">
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            onClick={onClose} 
+                            disabled={loading}
+                            className="flex-1 md:flex-none h-14 px-8 rounded-2xl font-bold text-gray-500 text-sm"
+                        >
                             Cancelar
                         </Button>
-                        <Button type="submit" variant="primary" isLoading={loading} className="bg-blue-600 hover:bg-blue-700 min-w-[120px]">
-                            {loading ? 'Emitindo...' : 'Emitir Nota'}
+                        <Button 
+                            type="submit" 
+                            variant="primary" 
+                            isLoading={loading} 
+                            className="flex-1 md:flex-none h-14 px-10 bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 rounded-2xl font-bold text-sm tracking-wide"
+                        >
+                            {loading ? 'Processando...' : 'Confirmar Emissão'}
                         </Button>
                     </div>
                 </div>
             </form>
+
+            <ResultModal
+                isOpen={resultModal.isOpen}
+                onClose={() => {
+                    setResultModal(prev => ({ ...prev, isOpen: false }));
+                    if (resultModal.type === 'success') {
+                        onClose();
+                    }
+                }}
+                title={resultModal.title}
+                message={resultModal.message}
+                type={resultModal.type}
+            />
         </Modal>
     );
 }
