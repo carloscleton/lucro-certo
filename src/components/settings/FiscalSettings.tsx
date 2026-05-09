@@ -11,6 +11,86 @@ import { supabase } from '../../lib/supabase';
 export function FiscalSettings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies, updateCompany } = useCompanies();
+    const [saving, setSaving] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const [moduleEnabled, setModuleEnabled] = useState(false);
+    const [uploadingCert, setUploadingCert] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [certPassword, setCertPassword] = useState('');
+    const [showApiKey, setShowApiKey] = useState(false);
+    const [diagnostic, setDiagnostic] = useState<{
+        isOpen: boolean;
+        steps: { title: string; status: 'pending' | 'loading' | 'success' | 'error'; msg?: string }[];
+        logs: string[];
+    }>({
+        isOpen: false,
+        steps: [],
+        logs: []
+    });
+
+    const [config, setConfig] = useState({
+        cnpj: '',
+        inscricao_estadual: '',
+        inscricao_municipal: '',
+        razao_social: '',
+        nome_fantasia: '',
+        email: '',
+        telefone: '',
+        endereco: {
+            logradouro: '',
+            numero: '',
+            complemento: '',
+            bairro: '',
+            cep: '',
+            codigoCidade: '',
+            uf: ''
+        },
+        regime_tributario: '1', 
+        tecnospeed_api_key: '',
+        ambiente: 'homologacao',
+        endpoint_homologacao: '',
+        endpoint_producao: '',
+        certificado_id: '',
+        certificado_vencimento: '',
+        certificado_sujeito: '',
+        certificado_status: ''
+    });
+
+    const currentCompany = companies.find(c => c.id === currentEntity.id);
+
+    useEffect(() => {
+        if (!currentCompany) return;
+
+        setModuleEnabled(!!currentCompany.fiscal_module_enabled);
+        setConfig((prev: any) => {
+            const newConfig = { ...prev };
+            const tc = currentCompany.tecnospeed_config || {};
+
+            Object.assign(newConfig, tc);
+
+            if (newConfig.tecnospeed_api_key) newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.toLowerCase();
+            if (newConfig.endpoint_homologacao) newConfig.endpoint_homologacao = newConfig.endpoint_homologacao.toLowerCase();
+            if (newConfig.endpoint_producao) newConfig.endpoint_producao = newConfig.endpoint_producao.toLowerCase();
+
+            if (!newConfig.cnpj && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
+            if (!newConfig.razao_social && currentCompany.legal_name) newConfig.razao_social = currentCompany.legal_name;
+            if (!newConfig.nome_fantasia && currentCompany.trade_name) newConfig.nome_fantasia = currentCompany.trade_name;
+            if (!newConfig.telefone && currentCompany.phone) newConfig.telefone = currentCompany.phone;
+
+            if (!newConfig.endereco) {
+                newConfig.endereco = {};
+            }
+            if (!newConfig.endereco.logradouro && currentCompany.street) newConfig.endereco.logradouro = currentCompany.street;
+            if (!newConfig.endereco.numero && currentCompany.number) newConfig.endereco.numero = currentCompany.number;
+            if (!newConfig.endereco.complemento && currentCompany.complement) newConfig.endereco.complemento = currentCompany.complement;
+            if (!newConfig.endereco.bairro && currentCompany.neighborhood) newConfig.endereco.bairro = currentCompany.neighborhood;
+            if (!newConfig.endereco.cep && currentCompany.zip_code) newConfig.endereco.cep = currentCompany.zip_code;
+            if (!newConfig.endereco.uf && currentCompany.state) newConfig.endereco.uf = currentCompany.state;
+
+            return newConfig;
+        });
+    }, [currentCompany]);
+
     const [resultModal, setResultModal] = useState<{
         isOpen: boolean;
         title: string;
