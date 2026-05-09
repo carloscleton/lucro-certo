@@ -438,6 +438,7 @@ export function FiscalSettings() {
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value.toLowerCase() })}
                                     placeholder="Insira sua chave"
                                     preserveCase={true}
+                                    autoComplete="one-time-code"
                                 />
                                 <button
                                     type="button"
@@ -512,6 +513,7 @@ export function FiscalSettings() {
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_homologacao: e.target.value.toLowerCase() })}
                                             placeholder="Ex: https://api.sandbox.plugnotas.com.br"
                                             preserveCase={true}
+                                            autoComplete="off"
                                         />
                                     ) : (
                                         <Input
@@ -520,6 +522,7 @@ export function FiscalSettings() {
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endpoint_producao: e.target.value.toLowerCase() })}
                                             placeholder="Ex: https://api.plugnotas.com.br"
                                             preserveCase={true}
+                                            autoComplete="off"
                                         />
                                     )}
                                     <p className="text-xs text-gray-500 mt-2">
@@ -604,6 +607,7 @@ export function FiscalSettings() {
                                         value={certPassword}
                                         onChange={(e: any) => setCertPassword(e.target.value)}
                                         placeholder="Sua senha"
+                                        autoComplete="current-password"
                                     />
                                 </div>
                                 <Button
