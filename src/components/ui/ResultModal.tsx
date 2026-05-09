@@ -1,5 +1,4 @@
-import React from 'react';
-import { X, CheckCircle2, AlertCircle, Info, Copy, ExternalLink, ChevronRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
 

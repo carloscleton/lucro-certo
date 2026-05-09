@@ -1,5 +1,4 @@
-import React from 'react';
-import { X, AlertTriangle, HelpCircle } from 'lucide-react';
+import { AlertTriangle, HelpCircle } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
 

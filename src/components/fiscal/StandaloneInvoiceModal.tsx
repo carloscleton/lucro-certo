@@ -301,7 +301,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                     </div>
 
                     <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                        {items.map((item, index) => (
+                        {items.map((item) => (
                             <div key={item.id} className="p-5 rounded-[2rem] border border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/20 space-y-4 relative group">
                                 {items.length > 1 && (
                                     <button

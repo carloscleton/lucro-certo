@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Loader2, Building2 } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
+import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
 import { useEntity } from '../context/EntityContext';

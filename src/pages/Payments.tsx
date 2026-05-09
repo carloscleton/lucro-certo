@@ -27,6 +27,7 @@ import { usePaymentGateways } from '../hooks/usePaymentGateways';
 import { useQuotes } from '../hooks/useQuotes';
 import { useNotification } from '../context/NotificationContext';
 import { useEntity } from '../context/EntityContext';
+import { formatCurrency } from '../utils/currencyUtils';
 import { supabase } from '../lib/supabase';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { ResultModal } from '../components/ui/ResultModal';
@@ -59,9 +60,6 @@ export function Payments() {
     const [selectedMethods, setSelectedMethods] = useState<string[]>(['pix', 'credit_card', 'boleto']);
     const [result, setResult] = useState<any>(null);
     const [viewingCharge, setViewingCharge] = useState<any>(null);
-    const [showConverter, setShowConverter] = useState(false);
-    const [convValue, setConvValue] = useState('');
-    const [convRate, setConvRate] = useState('1.00');
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
 
     const activeGateways = gateways.filter(g => g.is_active);

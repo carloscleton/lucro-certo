@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Copy, ChevronRight, Terminal } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';

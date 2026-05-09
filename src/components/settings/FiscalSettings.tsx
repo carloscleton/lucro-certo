@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import clsx from 'clsx';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Terminal, CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';

@@ -22,6 +22,8 @@ import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
 import { API_BASE_URL } from '../lib/constants';
 import { PDFService } from '../services/pdfService';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
+import { ResultModal } from '../components/ui/ResultModal';
 
 export function Quotes() {
     const navigate = useNavigate();
@@ -33,11 +35,21 @@ export function Quotes() {
     const { createCharge, charges } = useCharges();
     const { gateways } = usePaymentGateways();
     const { notify } = useNotification();
-    const [isGeneratingPayment, setIsGeneratingPayment] = useState<string | null>(null);
     const [paymentResult, setPaymentResult] = useState<any>(null);
     const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
     const [isSettlingExisting, setIsSettlingExisting] = useState(false);
+
+    // Modal States
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [quoteToDelete, setQuoteToDelete] = useState<Quote | null>(null);
+    const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+    const [quoteToReset, setQuoteToReset] = useState<Quote | null>(null);
+    const [reuseConfirmOpen, setReuseConfirmOpen] = useState(false);
+    const [chargeToReuse, setChargeToReuse] = useState<any>(null);
+    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error'}>({
+        isOpen: false, title: '', message: '', type: 'success'
+    });
 
     // Permission Check
     const { user } = useAuth();
@@ -129,10 +141,20 @@ export function Quotes() {
             await scheduleFollowUp(recoveryQuote.id, recoveryDate, recoveryNotes);
             setShowRecoveryModal(false);
             setRecoveryQuote(null);
-            alert('✅ Retorno agendado com sucesso!');
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: 'Retorno agendado com sucesso!',
+                type: 'success'
+            });
         } catch (error) {
             console.error('Error scheduling follow-up:', error);
-            alert('Erro ao agendar retorno.');
+            setResultModal({
+                isOpen: true,
+                title: 'Erro',
+                message: 'Erro ao agendar retorno.',
+                type: 'error'
+            });
         }
     };
 
@@ -411,14 +433,6 @@ export function Quotes() {
     // Expense Data
     const [quoteExpenses, setQuoteExpenses] = useState<Record<string, number>>({});
 
-    const statusColors = {
-        draft: 'bg-gray-100 text-gray-800',
-        sent: 'bg-blue-100 text-blue-800',
-        approved: 'bg-green-100 text-green-800',
-        rejected: 'bg-red-100 text-red-800',
-        cancelled: 'bg-gray-400 text-white',
-    };
-
     const statusLabels = {
         draft: 'Rascunho',
         sent: 'Enviado',
@@ -429,7 +443,12 @@ export function Quotes() {
 
     const handleDelete = async (quote: Quote) => {
         if (!canDelete) {
-            alert('Você não tem permissão para excluir orçamentos.');
+            setResultModal({
+                isOpen: true,
+                title: 'Acesso Negado',
+                message: 'Você não tem permissão para excluir orçamentos.',
+                type: 'error'
+            });
             return;
         }
 
@@ -439,23 +458,41 @@ export function Quotes() {
         if (!isSuperAdmin) {
             // 🔒 Check if quote is protected (only for non-super-admins)
             if (quote.status === 'approved' && (quote.payment_status === 'pending' || quote.payment_status === 'paid')) {
-                alert('🔒 Não é possível excluir orçamentos aprovados com pagamento associado.\n\nEsta é uma medida de segurança para proteger dados financeiros.');
+                setResultModal({
+                    isOpen: true,
+                    title: 'Ação Bloqueada',
+                    message: 'Não é possível excluir orçamentos aprovados com pagamento associado.',
+                    type: 'error'
+                });
                 return;
             }
         }
 
-        let message = 'Tem certeza que deseja excluir este orçamento?';
+        setQuoteToDelete(quote);
+        setDeleteConfirmOpen(true);
+    };
 
-        if (quote.status === 'approved' || quote.payment_status === 'paid' || quote.payment_status === 'pending') {
-            message = '⚠️ ATENÇÃO: Este orçamento tem um lançamento financeiro associado.\n\nAo excluir este orçamento, o lançamento em "A Receber" (ou "Recebido") TAMBÉM SERÁ EXCLUÍDO permanentemente.\n\nDeseja continuar?';
-        }
-
-        if (confirm(message)) {
-            try {
-                await deleteQuote(quote.id);
-            } catch (error: any) {
-                alert(error.message || 'Erro ao excluir orçamento');
-            }
+    const executeDelete = async () => {
+        if (!quoteToDelete) return;
+        try {
+            await deleteQuote(quoteToDelete.id);
+            setDeleteConfirmOpen(false);
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: 'Orçamento removido com sucesso.',
+                type: 'success'
+            });
+        } catch (error: any) {
+            setDeleteConfirmOpen(false);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Excluir',
+                message: error.message || 'Erro ao processar exclusão.',
+                type: 'error'
+            });
+        } finally {
+            setQuoteToDelete(null);
         }
     };
 
@@ -560,13 +597,33 @@ export function Quotes() {
     };
 
     const handleResetPayment = async (quote: Quote) => {
-        if (!confirm('Deseja cancelar o recebimento deste orçamento e voltá-lo para "Aguardando Pagamento"?\n\nIsso limpará os dados de data e forma de pagamento no financeiro.')) return;
+        setQuoteToReset(quote);
+        setResetConfirmOpen(true);
+    };
 
-        const { error } = await resetQuotePayment(quote.id);
-        if (error) {
-            alert('Erro ao resetar: ' + error);
-        } else {
-            alert('Status resetado com sucesso! O orçamento voltou para "Aguardando Pagamento".');
+    const executeResetPayment = async () => {
+        if (!quoteToReset) return;
+        try {
+            const { error } = await resetQuotePayment(quoteToReset.id);
+            setResetConfirmOpen(false);
+            if (error) throw error;
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: 'Status resetado com sucesso! O orçamento voltou para "Aguardando Pagamento".',
+                type: 'success'
+            });
+        } catch (error: any) {
+            setResetConfirmOpen(false);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Resetar',
+                message: error.message || 'Erro ao processar solicitação.',
+                type: 'error'
+            });
+        } finally {
+            setQuoteToReset(null);
         }
     };
 
@@ -577,11 +634,6 @@ export function Quotes() {
         setShowFinalizeModal(false);
         setFinalizeQuote(null);
         setIsSettlingExisting(false);
-    };
-
-    const handleFinalizeClick = (quote: Quote) => {
-        setFinalizeQuote(quote);
-        setShowFinalizeModal(true);
     };
 
     const handleRecoverySuccess = async () => {
@@ -596,10 +648,20 @@ export function Quotes() {
 
             setShowFinalizeModal(false);
             setFinalizeQuote(null);
-            alert('✅ Recuperação realizada com sucesso! Gerado contas a receber (Pendente).');
+            setResultModal({
+                isOpen: true,
+                title: 'Recuperação Concluída',
+                message: 'Recuperação realizada com sucesso! Gerado contas a receber (Pendente).',
+                type: 'success'
+            });
         } catch (err) {
             console.error(err);
-            alert('Erro ao finalizar recuperação.');
+            setResultModal({
+                isOpen: true,
+                title: 'Erro',
+                message: 'Erro ao finalizar recuperação.',
+                type: 'error'
+            });
         }
     };
 
@@ -613,10 +675,20 @@ export function Quotes() {
 
             setShowFinalizeModal(false);
             setFinalizeQuote(null);
-            alert('Recuperação finalizada. Orçamento marcado como Perdido.');
+            setResultModal({
+                isOpen: true,
+                title: 'Recuperação Finalizada',
+                message: 'Orçamento marcado como Perdido.',
+                type: 'success'
+            });
         } catch (err) {
             console.error(err);
-            alert('Erro ao finalizar.');
+            setResultModal({
+                isOpen: true,
+                title: 'Erro',
+                message: 'Erro ao finalizar.',
+                type: 'error'
+            });
         }
     };
 
@@ -851,17 +923,6 @@ export function Quotes() {
     }, [filteredQuotes, fetchTransactionsByQuoteIds]);
 
 
-    const getDiscountDisplay = (quote: Quote) => {
-        if (!quote.discount || quote.discount === 0) return '-';
-
-        if (quote.discount_type === 'percentage') {
-            const discountValue = (quote.total_amount || 0) / (1 - ((quote.discount || 0) / 100)) * (quote.discount / 100);
-            return `${quote.discount}% (${formatCurrency(discountValue)})`;
-        }
-
-        return formatCurrency(quote.discount);
-    };
-
     const validatePaymentRequirements = (quote: Quote) => {
         const missing = [];
         const contact = quote.contact as any; // Force type to avoid build error with Vercel
@@ -875,57 +936,103 @@ export function Quotes() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-8 animate-in fade-in duration-700">
+            {/* HEADER SECTION */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Orçamentos</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Gerencie e emita propostas comerciais.</p>
+                    <h1 className="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Orçamentos</h1>
+                    <p className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Gestão de Propostas e Faturamento Comercial</p>
                 </div>
-                <div className="flex gap-2 items-center">
-                    <Button onClick={() => navigate('/dashboard/quotes/new')}>
+                <div className="flex gap-4">
+                    <Button 
+                        onClick={() => navigate('/dashboard/quotes/new')}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 py-3 shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs"
+                    >
                         <Plus size={20} className="mr-2" />
-                        Novo Orçamento
+                        Nova Proposta
                     </Button>
                 </div>
             </div>
 
+            {/* PREMIUM STATS GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-200/40 dark:shadow-none transition-all group hover:scale-[1.02]">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl group-hover:rotate-12 transition-transform">
+                            <DollarSign size={24} />
+                        </div>
+                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">Proposto</span>
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest leading-none">Total em Propostas</h3>
+                        <p className="text-3xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalValue)}</p>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-200/40 dark:shadow-none transition-all group hover:scale-[1.02]">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl group-hover:-rotate-12 transition-transform">
+                            <Trash2 size={24} />
+                        </div>
+                        <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 dark:bg-rose-900/30 px-3 py-1 rounded-full">Despesas</span>
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest leading-none">Despesas Vinculadas</h3>
+                        <p className="text-3xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalExpense)}</p>
+                    </div>
+                </div>
+
+                <div className="bg-emerald-600 p-8 rounded-[2.5rem] shadow-2xl shadow-emerald-600/30 transition-all group hover:scale-[1.02]">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-white/20 text-white rounded-2xl group-hover:scale-110 transition-transform">
+                            <Rocket size={24} />
+                        </div>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">Líquido</span>
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="text-sm font-black text-emerald-100 uppercase tracking-widest leading-none">Lucro Projetado</h3>
+                        <p className="text-3xl font-black text-white italic tracking-tighter tabular-nums">{formatCurrency(totalProfit)}</p>
+                    </div>
+                </div>
+            </div>
+
             {/* Search and Toggle Row */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
-                <div className="relative flex-1 md:max-w-md">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <Input
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 py-2">
+                <div className="relative flex-1 max-w-2xl">
+                    <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
                         type="text"
-                        placeholder="Pesquisar orçamentos por título ou cliente..."
+                        placeholder="Pesquisar propostas por título ou nome do cliente..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
+                        className="w-full bg-white dark:bg-slate-800 border-2 border-gray-50 dark:border-slate-700 rounded-3xl py-4 pl-14 pr-6 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-sm outline-none"
                     />
                 </div>
-                <div className="flex bg-gray-100 dark:bg-slate-700 p-1 rounded-lg self-start">
+                <div className="flex bg-gray-50 dark:bg-slate-900 p-1.5 rounded-2xl self-start border border-gray-100 dark:border-slate-800">
                     <button
                         onClick={() => setViewMode('default')}
-                        className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'default' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500'}`}
+                        className={`px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${viewMode === 'default' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-md' : 'text-gray-400'}`}
                     >
                         Propostas Ativas
                     </button>
                     <button
                         onClick={() => setViewMode('recovery')}
-                        className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'recovery' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500'}`}
+                        className={`px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${viewMode === 'recovery' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-md' : 'text-gray-400'}`}
                     >
-                        Fluxo de Recuperação
+                        Recuperação
                     </button>
                 </div>
             </div>
 
             {/* Filter Bar */}
             {viewMode === 'default' && (
-                <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow border border-gray-200 dark:border-slate-700 flex flex-wrap items-end gap-4">
-                    <div className="flex-1 min-w-[300px] flex gap-4">
-                        <div className="flex-1">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Data Inicial</label>
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 flex flex-wrap items-end gap-6 shadow-sm">
+                    <div className="flex-1 min-w-[300px] grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Data Inicial</label>
                             <div className="relative">
-                                <Calendar size={16} className="absolute left-3 top-3 text-gray-400" />
-                                <Input
+                                <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
                                     type="date"
                                     value={startDate}
                                     onChange={(e) => {
@@ -933,16 +1040,16 @@ export function Quotes() {
                                         setShowAll(false);
                                         updateFilters({ start: e.target.value, all: false });
                                     }}
-                                    className="pl-10"
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border-none rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
                                     disabled={showAll}
                                 />
                             </div>
                         </div>
-                        <div className="flex-1">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Data Final</label>
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Data Final</label>
                             <div className="relative">
-                                <Calendar size={16} className="absolute left-3 top-3 text-gray-400" />
-                                <Input
+                                <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
                                     type="date"
                                     value={endDate}
                                     onChange={(e) => {
@@ -950,13 +1057,13 @@ export function Quotes() {
                                         setShowAll(false);
                                         updateFilters({ end: e.target.value, all: false });
                                     }}
-                                    className="pl-10"
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border-none rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
                                     disabled={showAll}
                                 />
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 pb-2">
+                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900 px-6 py-3 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer hover:bg-gray-100 transition-colors">
                         <input
                             type="checkbox"
                             id="showAll"
@@ -965,140 +1072,146 @@ export function Quotes() {
                                 setShowAll(e.target.checked);
                                 updateFilters({ all: e.target.checked });
                             }}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="w-5 h-5 rounded-lg border-gray-300 text-emerald-600 focus:ring-emerald-500 transition-all"
                         />
-                        <label htmlFor="showAll" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                            Mostrar todos
+                        <label htmlFor="showAll" className="text-xs font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
+                            Ver Histórico Completo
                         </label>
                     </div>
                 </div>
             )}
 
             {isRefreshing && (
-                <div className="flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Atualizando orçamentos...
+                <div className="flex items-center justify-center p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-widest animate-pulse">
+                    <Loader2 className="mr-3 h-4 w-4 animate-spin" />
+                    Sincronizando Orçamentos...
                 </div>
             )}
 
             {filteredQuotes.length === 0 ? (
-                <div className="text-center py-10 bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700">
-                    <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhum orçamento encontrado</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">
-                        {showAll ? "Puxa, você ainda não criou nenhum orçamento." : "Nenhum orçamento para o período selecionado."}
+                <div className="text-center py-24 bg-white dark:bg-slate-800 rounded-[3rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-200/20">
+                    <div className="w-24 h-24 bg-gray-50 dark:bg-slate-900 rounded-[2.5rem] flex items-center justify-center mx-auto text-gray-300 mb-6">
+                        <FileText size={48} />
+                    </div>
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic mb-2">Nenhum orçamento encontrado</h3>
+                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest max-w-xs mx-auto mb-8">
+                        {showAll ? "Puxa, você ainda não criou nenhuma proposta comercial." : "Nenhum orçamento localizado para este período."}
                     </p>
                     {showAll && (
-                        <Button onClick={() => navigate('/dashboard/quotes/new')}>
+                        <Button 
+                            onClick={() => navigate('/dashboard/quotes/new')}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-10 py-4 shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs"
+                        >
                             <Plus size={20} className="mr-2" />
-                            Criar Orçamento
+                            Criar Primeira Proposta
                         </Button>
                     )}
                 </div>
             ) : (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-[3rem] border border-gray-100 dark:border-slate-800 shadow-2xl shadow-gray-200/40 dark:shadow-none overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
-                            <thead className="bg-gray-50 dark:bg-slate-700/50">
-                                <tr>
-                                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
-                                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
-                                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Resp.</th>
-                                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Título</th>
-                                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Desconto</th>
-                                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Valor Total</th>
-                                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Status</th>
-                                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Ações</th>
+                            <thead>
+                                <tr className="border-b border-gray-50 dark:border-slate-700">
+                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Data de Emissão</th>
+                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cliente / Projeto</th>
+                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Responsável</th>
+                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Análise de Lucro</th>
+                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">Status</th>
+                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                            <tbody className="divide-y divide-gray-50 dark:divide-slate-700">
                                 {filteredQuotes.map((quote) => (
-                                    <tr key={quote.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                        <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                            {new Date(quote.created_at).toLocaleDateString()}
+                                    <tr key={quote.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-all duration-300">
+                                        <td className="py-6 px-8 whitespace-nowrap">
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-black text-gray-900 dark:text-white tracking-tighter italic">
+                                                    {new Date(quote.created_at).toLocaleDateString()}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                                                    #{quote.quote_number || quote.id.slice(0, 8)}
+                                                </span>
+                                            </div>
                                         </td>
-                                        <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                                            {quote.contact?.name || 'Cliente não inf.'}
+                                        <td className="py-6 px-8">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight truncate max-w-[220px]">
+                                                    {quote.contact?.name || 'Cliente Geral'}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 truncate max-w-[200px]">
+                                                    {quote.title}
+                                                </span>
+                                            </div>
                                         </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                            {members.find(m => m.user_id === quote.user_id)?.profile.full_name.split(' ')[0] || '-'}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300 max-w-[200px] truncate">
-                                            <Tooltip content={quote.title}>
-                                                <span>{quote.title}</span>
-                                            </Tooltip>
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-red-500 font-medium text-right whitespace-nowrap">
-                                            {getDiscountDisplay(quote)}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm font-medium text-right whitespace-nowrap">
-                                            <div className="flex flex-col items-end gap-1">
-                                                <div className="flex items-center gap-1.5 leading-none">
-                                                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Orçamento:</span>
-                                                    <span className="text-gray-900 dark:text-white font-bold">{formatCurrency(quote.total_amount)}</span>
+                                        <td className="py-6 px-8 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-black text-gray-500 uppercase">
+                                                    {members.find(m => m.user_id === quote.user_id)?.profile.full_name.charAt(0) || '?'}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 leading-none text-[10px] text-red-500">
-                                                    <span className="uppercase font-bold tracking-tight">(-) Despesas:</span>
-                                                    <span className="font-bold">{formatCurrency(quoteExpenses[quote.id] || 0)}</span>
+                                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                                    {members.find(m => m.user_id === quote.user_id)?.profile.full_name.split(' ')[0] || '-'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="py-6 px-8 text-right whitespace-nowrap">
+                                            <div className="flex flex-col items-end gap-1.5">
+                                                <div className="flex items-center gap-2 leading-none">
+                                                    <span className="text-sm font-black text-gray-900 dark:text-white italic tabular-nums">{formatCurrency(quote.total_amount)}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg mt-1 border border-emerald-200/50 dark:border-emerald-800/50">
-                                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-black tracking-widest">Lucro:</span>
-                                                    <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                                                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-xl border border-emerald-100 dark:border-emerald-800">
+                                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest italic">Lucro:</span>
+                                                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
                                                         {formatCurrency(quote.total_amount - (quoteExpenses[quote.id] || 0))}
                                                     </span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-3 px-4 text-center">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[quote.status]}`}>
+                                        <td className="py-6 px-8 text-center">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <span className={`inline-flex items-center px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.15em] border shadow-sm ${
+                                                    quote.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                    quote.status === 'sent' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                    quote.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                                    'bg-gray-50 text-gray-600 border-gray-100'
+                                                }`}>
                                                     {statusLabels[quote.status]}
                                                 </span>
                                                 {quote.status === 'approved' && quote.payment_status === 'pending' && (
-                                                    <Tooltip content="Pagamento Pendente">
-                                                        <span className="flex items-center text-[10px] text-orange-600 dark:text-orange-400 font-medium bg-orange-50 dark:bg-orange-900/20 px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800">
-                                                            <AlertTriangle size={10} className="mr-1" />
-                                                            Aguardando Pagto
-                                                        </span>
-                                                    </Tooltip>
+                                                    <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 animate-pulse">
+                                                        Aguardando Pagamento
+                                                    </span>
                                                 )}
                                                 {quote.status === 'approved' && quote.payment_status === 'paid' && (
                                                     <div className="flex flex-col items-center gap-1">
-                                                        <Tooltip content="Pagamento Realizado">
-                                                            <span className="flex items-center text-[10px] text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded border border-green-200 dark:border-green-800">
-                                                                <Check size={10} className="mr-1" />
-                                                                Pago
-                                                            </span>
-                                                        </Tooltip>
+                                                        <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                                                            Liquidação Confirmada
+                                                        </span>
                                                         <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleResetPayment(quote);
-                                                            }}
-                                                            className="text-[9px] text-gray-500 hover:text-red-500 underline"
+                                                            onClick={(e) => { e.stopPropagation(); handleResetPayment(quote); }}
+                                                            className="text-[8px] font-black text-gray-400 hover:text-rose-600 uppercase tracking-[0.2em] transition-colors"
                                                         >
-                                                            Resetar
+                                                            [ Resetar ]
                                                         </button>
                                                     </div>
                                                 )}
-
-                                                {/* Follow-up Indicator */}
-                                                {quote.follow_up_date && (
-                                                    <Tooltip content={quote.negotiation_notes || "Retorno Agendado"}>
-                                                        <span className={`flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border mt-1 ${new Date(quote.follow_up_date) < new Date()
-                                                            ? 'text-red-600 bg-red-50 border-red-200'
-                                                            : 'text-blue-600 bg-blue-50 border-blue-200'
-                                                            }`}>
-                                                            <CalendarClock size={10} className="mr-1" />
-                                                            {quote.follow_up_date.split('-').reverse().join('/')}
-                                                        </span>
-                                                    </Tooltip>
-                                                )}
                                             </div>
                                         </td>
-                                        <td className="py-3 px-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {/* Status Actions */}
+                                        <td className="py-6 px-8 text-right">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                {/* Edit Button */}
+                                                {(quote.status === 'draft' || quote.status === 'sent') && (
+                                                    <Tooltip content="Editar Proposta">
+                                                        <button
+                                                            onClick={() => navigate(`/dashboard/quotes/${quote.id}/edit`)}
+                                                            className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-blue-600 rounded-xl transition-all shadow-sm"
+                                                        >
+                                                            <Edit size={16} />
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
+
+                                                {/* Action Buttons */}
                                                 {(quote.status === 'draft' || quote.status === 'sent' || quote.status === 'approved') && (
                                                     <Tooltip content={quote.status === 'draft' ? 'Enviar Proposta' : 'Reenviar Proposta'}>
                                                         <button
@@ -1112,7 +1225,7 @@ export function Quotes() {
                                                                 }
                                                                 processSendProposal(quote);
                                                             }}
-                                                            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl hover:bg-blue-100 transition-all shadow-sm disabled:opacity-50"
                                                             disabled={sendingProposal === quote.id}
                                                         >
                                                             {sendingProposal === quote.id ? (
@@ -1124,17 +1237,17 @@ export function Quotes() {
                                                     </Tooltip>
                                                 )}
 
-                                                {/* Fiscal Button */}
+                                                {/* Fiscal Module Integration */}
                                                 {quote.status === 'approved' && currentCompany?.fiscal_module_enabled && (
                                                     <div className="flex items-center gap-1">
                                                         <Tooltip content={quote.nfe_id ? `NF: ${quote.nfe_status || 'Pendente'}` : "Emitir NF-e"}>
                                                             <button
                                                                 onClick={() => quote.nfe_id ? handleCheckFiscalStatus(quote) : handleEmitFiscal(quote)}
-                                                                className={`p-1 rounded transition-colors ${quote.nfe_id
+                                                                className={`p-2.5 rounded-xl transition-all shadow-sm ${quote.nfe_id
                                                                     ? (quote.nfe_status === 'concluido' || quote.nfe_status === 'autorizado'
-                                                                        ? 'text-emerald-600 bg-emerald-50'
-                                                                        : 'text-orange-600 bg-orange-50')
-                                                                    : 'text-gray-400 hover:text-orange-600 hover:bg-orange-50'
+                                                                        ? 'bg-emerald-50 text-emerald-600'
+                                                                        : 'bg-amber-50 text-amber-600')
+                                                                    : 'bg-gray-50 text-gray-400 hover:bg-amber-50 hover:text-amber-600'
                                                                     }`}
                                                                 disabled={isEmittingFiscal === quote.id}
                                                             >
@@ -1145,213 +1258,83 @@ export function Quotes() {
                                                                 )}
                                                             </button>
                                                         </Tooltip>
-
-                                                        {quote.nfe_id && (quote.nfe_status === 'concluido' || quote.nfe_status === 'autorizado') && (
-                                                            <Tooltip content="Baixar PDF da Nota">
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        const token = (await supabase.auth.getSession()).data.session?.access_token;
-                                                                        if (!token) return;
-                                                                        const blob = await fiscalService.downloadPDF(quote.nfe_id!, currentEntity.id!, token);
-                                                                        const url = window.URL.createObjectURL(blob);
-                                                                        const a = document.createElement('a');
-                                                                        a.href = url;
-                                                                        a.download = `nota_${quote.quote_number || quote.id.slice(0, 8)}.pdf`;
-                                                                        a.click();
-                                                                    }}
-                                                                    className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
-                                                                >
-                                                                    <Printer size={16} />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
                                                     </div>
                                                 )}
 
-                                                {/* Payment Action Button */}
-                                                {quote.status === 'approved' && quote.payment_status !== 'paid' && (
-                                                    <Tooltip content="Gerar Link de Pagamento">
+                                                {/* Approval / Payment Action */}
+                                                {quote.status !== 'approved' && quote.status !== 'rejected' && (
+                                                    <Tooltip content="Aprovar Proposta">
                                                         <button
-                                                            onClick={async () => {
-                                                                if (!validatePaymentRequirements(quote)) return;
-
-                                                                const activeGateway = gateways.find(g => g.is_active);
-                                                                if (!activeGateway) {
-                                                                    notify('warning', 'Gateway não configurado', 'Ative um gateway de pagamento nas configurações.');
-                                                                    return;
-                                                                }
-
-                                                                // Check for existing pending charge
-                                                                const existingCharge = charges.find(c => c.quote_id === quote.id && c.status === 'pending');
-                                                                if (existingCharge) {
-                                                                    const reuse = window.confirm('Já existe um link pendente para este orçamento. Deseja REUTILIZAR o link atual?\n\nPara gerar um NOVO link, você deve primeiro excluir a cobrança anterior na tela de Pagamentos.');
-                                                                    if (reuse) {
-                                                                        setPaymentResult({
-                                                                            success: true,
-                                                                            payment_link: existingCharge.payment_link,
-                                                                            qr_code_base64: existingCharge.qr_code_base64,
-                                                                            quote_id: quote.id
-                                                                        });
-                                                                        return;
-                                                                    }
-                                                                }
-
-                                                                setIsGeneratingPayment(quote.id);
-                                                                try {
-                                                                    const res = await createCharge({
-                                                                        provider: activeGateway.provider,
-                                                                        config: activeGateway.config,
-                                                                        is_sandbox: activeGateway.is_sandbox,
-                                                                        customerId: quote.contact_id,
-                                                                        quoteId: quote.id,
-                                                                        payload: {
-                                                                            amount: quote.total_amount,
-                                                                            description: `Orçamento #${quote.quote_number || quote.id.slice(0, 8)}: ${quote.title}`,
-                                                                            customer: {
-                                                                                name: quote.contact?.name || 'Cliente',
-                                                                                email: quote.contact?.email || 'financeiro@exemplo.com',
-                                                                                tax_id: quote.contact?.tax_id
-                                                                            }
-                                                                        }
-                                                                    });
-
-                                                                    if (res.success) {
-                                                                        setPaymentResult({ ...res, quote_id: quote.id });
-                                                                        notify('success', 'Sucesso', 'Link de pagamento gerado!');
-                                                                    } else {
-                                                                        notify('error', 'Erro', res.error || 'Falha ao gerar link.');
-                                                                    }
-                                                                } catch (err) {
-                                                                    notify('error', 'Erro', 'Erro de conexão.');
-                                                                } finally {
-                                                                    setIsGeneratingPayment(null);
-                                                                }
-                                                            }}
-                                                            className="text-emerald-600 hover:text-emerald-800 p-1 rounded hover:bg-emerald-50"
-                                                            disabled={isGeneratingPayment === quote.id}
+                                                            onClick={() => handleApproveClick(quote)}
+                                                            className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all shadow-sm"
                                                         >
-                                                            {isGeneratingPayment === quote.id ? (
-                                                                <Loader2 size={16} className="animate-spin" />
-                                                            ) : (
-                                                                <CreditCard size={16} />
-                                                            )}
+                                                            <Check size={16} />
                                                         </button>
                                                     </Tooltip>
                                                 )}
 
-                                                {quote.status === 'sent' && (
-                                                    <>
-                                                        <Tooltip content="Aprovar">
-                                                            <button
-                                                                onClick={async () => handleApproveClick(quote)}
-                                                                className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
-                                                            >
-                                                                <Check size={16} />
-                                                            </button>
-                                                        </Tooltip>
-                                                        <Tooltip content="Rejeitar">
-                                                            <button
-                                                                onClick={() => updateQuoteStatus(quote.id, 'rejected')}
-                                                                className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
-                                                            >
-                                                                <X size={16} />
-                                                            </button>
-                                                        </Tooltip>
-                                                    </>
-                                                )}
-
-                                                {/* Manual Finance Sync Button for already approved quotes */}
+                                                {/* Payment Link Generation / Settle */}
                                                 {quote.status === 'approved' && quote.payment_status !== 'paid' && (
-                                                    <Tooltip content={quote.payment_status === 'pending' ? 'Dar Baixa no Pagamento' : 'Lançar no Financeiro (Manual)'}>
+                                                    <Tooltip content="Pagamento / Link">
                                                         <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                // Always open full modal — smart logic inside handles existing tx
-                                                                handleApproveClick(quote);
-                                                            }}
-                                                            className="text-emerald-600 hover:text-emerald-800 p-1 rounded hover:bg-emerald-50"
+                                                            onClick={async () => handleApproveClick(quote)}
+                                                            className="p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20"
                                                         >
-                                                            <DollarSign size={16} />
+                                                            <CreditCard size={16} />
                                                         </button>
                                                     </Tooltip>
                                                 )}
 
+                                                {/* Recovery Actions */}
                                                 {quote.status === 'rejected' && (
-                                                    <>
-                                                        <Tooltip content="Agendar Retorno">
-                                                            <button
-                                                                onClick={() => handleOpenRecovery(quote)}
-                                                                className="text-orange-500 hover:text-orange-700 p-1 rounded hover:bg-orange-50"
-                                                            >
-                                                                <CalendarClock size={16} />
-                                                            </button>
-                                                        </Tooltip>
-                                                        {quote.follow_up_date && (
-                                                            <Tooltip content="Finalizar Recuperação">
-                                                                <button
-                                                                    onClick={() => handleFinalizeClick(quote)}
-                                                                    className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 ml-1"
-                                                                >
-                                                                    <Check size={16} />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-                                                    </>
+                                                    <Tooltip content="Recuperar / Agendar">
+                                                        <button
+                                                            onClick={() => handleOpenRecovery(quote)}
+                                                            className="p-2.5 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-all shadow-sm"
+                                                        >
+                                                            <CalendarClock size={16} />
+                                                        </button>
+                                                    </Tooltip>
                                                 )}
 
-
-                                                <div className="h-4 w-px bg-gray-300 dark:bg-slate-600 mx-1"></div>
-
-                                                <Tooltip content="Editar">
-                                                    <button
-                                                        onClick={() => navigate(`/dashboard/quotes/${quote.id}`)}
-                                                        className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50"
-                                                    >
-                                                        <Edit size={16} />
-                                                    </button>
-                                                </Tooltip>
-                                                <Tooltip content="Copiar Link Proposta (Público)">
+                                                {/* Copy Link Button */}
+                                                <Tooltip content="Copiar Link Proposta">
                                                     <button
                                                         onClick={() => {
                                                             const url = `${window.location.origin}/p/${quote.id}`;
                                                             navigator.clipboard.writeText(url);
                                                             notify('success', 'Copiado', 'Link da proposta copiado!');
                                                         }}
-                                                        className="text-emerald-500 hover:text-emerald-700 p-1 rounded hover:bg-emerald-50"
+                                                        className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all shadow-sm"
                                                     >
                                                         <Rocket size={16} />
                                                     </button>
                                                 </Tooltip>
+
+                                                {/* Print Button */}
                                                 <Tooltip content="Imprimir">
                                                     <button
                                                         onClick={() => navigate(`/dashboard/quotes/${quote.id}/print`)}
-                                                        className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100"
+                                                        className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-gray-600 rounded-xl transition-all shadow-sm"
                                                     >
                                                         <Printer size={16} />
                                                     </button>
                                                 </Tooltip>
-                                                {canDelete && (
-                                                    <Tooltip content={
-                                                        user?.email !== 'carloscleton.nat@gmail.com' && quote.status === 'approved' && (quote.payment_status === 'pending' || quote.payment_status === 'paid')
-                                                            ? "🔒 Orçamento aprovado com pagamento não pode ser excluído"
-                                                            : "Excluir"
-                                                    }>
-                                                        <button
-                                                            onClick={() => handleDelete(quote)}
-                                                            className={`p-1 rounded ${user?.email !== 'carloscleton.nat@gmail.com' && quote.status === 'approved' && (quote.payment_status === 'pending' || quote.payment_status === 'paid')
-                                                                ? 'text-gray-300 cursor-not-allowed'
-                                                                : 'text-red-500 hover:text-red-700 hover:bg-red-50'
-                                                                }`}
-                                                            disabled={user?.email !== 'carloscleton.nat@gmail.com' && quote.status === 'approved' && (quote.payment_status === 'pending' || quote.payment_status === 'paid')}
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </Tooltip>
-                                                )}
+
+                                                {/* Delete Button */}
+                                                <Tooltip content="Excluir">
+                                                    <button
+                                                        onClick={() => handleDelete(quote)}
+                                                        className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </Tooltip>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
+
                             </tbody>
                         </table>
                     </div>
@@ -1402,22 +1385,9 @@ export function Quotes() {
                                         // Check for existing pending charge
                                         const existingCharge = charges.find(c => c.quote_id === quoteToApprove.id && c.status === 'pending');
                                         if (existingCharge) {
-                                            const reuse = window.confirm('Já existe um link pendente para este orçamento. Deseja REUTILIZAR o link atual?\n\nPara gerar um NOVO link, você deve primeiro excluir a cobrança anterior na aba Pagamentos.');
-                                            if (reuse) {
-                                                // 1. Just approve without generating new transaction/charge
-                                                await approveQuote(quoteToApprove.id, {
-                                                    generateTransaction: false
-                                                });
-
-                                                setPaymentResult({
-                                                    success: true,
-                                                    payment_link: existingCharge.payment_link,
-                                                    qr_code_base64: existingCharge.qr_code_base64,
-                                                    quote_id: quoteToApprove.id
-                                                });
-                                                closeModals();
-                                                return;
-                                            }
+                                            setChargeToReuse(existingCharge);
+                                            setReuseConfirmOpen(true);
+                                            return;
                                         }
 
                                         // 1. Approve (generate pending transaction)
@@ -1427,7 +1397,6 @@ export function Quotes() {
                                         });
 
                                         // 2. Generate Charge
-                                        setIsGeneratingPayment(quoteToApprove.id);
                                         try {
                                             const res = await createCharge({
                                                 provider: activeGateway.provider,
@@ -1455,7 +1424,6 @@ export function Quotes() {
                                         } catch (err) {
                                             notify('error', 'Erro', 'Erro de conexão.');
                                         } finally {
-                                            setIsGeneratingPayment(null);
                                             closeModals();
                                         }
                                     }}
@@ -1801,6 +1769,71 @@ export function Quotes() {
                     </div>
                 </div>
             </Modal>
+
+            {/* Modals Section */}
+            <ConfirmationModal
+                isOpen={deleteConfirmOpen}
+                onClose={() => {
+                    setDeleteConfirmOpen(false);
+                    setQuoteToDelete(null);
+                }}
+                onConfirm={executeDelete}
+                title="Excluir Orçamento"
+                message={`Tem certeza que deseja excluir o orçamento de ${quoteToDelete?.contact?.name}? Esta ação não pode ser desfeita.`}
+                confirmLabel="Excluir"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                isOpen={resetConfirmOpen}
+                onClose={() => {
+                    setResetConfirmOpen(false);
+                    setQuoteToReset(null);
+                }}
+                onConfirm={executeResetPayment}
+                title="Resetar Pagamento"
+                message="Deseja realmente resetar o status de pagamento deste orçamento? O lançamento financeiro vinculado continuará existindo, mas o orçamento voltará ao estado pendente."
+                confirmLabel="Resetar"
+                variant="warning"
+            />
+
+            <ConfirmationModal
+                isOpen={reuseConfirmOpen}
+                onClose={() => {
+                    setReuseConfirmOpen(false);
+                    setChargeToReuse(null);
+                }}
+                onConfirm={async () => {
+                    if (chargeToReuse && quoteToApprove) {
+                        // Approve without generating new transaction/charge
+                        await approveQuote(quoteToApprove.id, {
+                            generateTransaction: false
+                        });
+
+                        setPaymentResult({
+                            success: true,
+                            payment_link: chargeToReuse.payment_link,
+                            qr_code_base64: chargeToReuse.qr_code_base64,
+                            quote_id: quoteToApprove.id
+                        });
+                        setReuseConfirmOpen(false);
+                        setChargeToReuse(null);
+                        closeModals();
+                    }
+                }}
+                title="Link Existente"
+                message="Já existe um link de pagamento pendente para este orçamento. Deseja REUTILIZAR o link atual? Se desejar gerar um novo link, você deve primeiro excluir a cobrança anterior na aba Pagamentos."
+                confirmLabel="Reutilizar Link"
+                variant="primary"
+            />
+
+            <ResultModal
+                isOpen={resultModal.isOpen}
+                onClose={() => setResultModal({ ...resultModal, isOpen: false })}
+                title={resultModal.title}
+                message={resultModal.message}
+                type={resultModal.type}
+            />
         </div>
     );
 }
