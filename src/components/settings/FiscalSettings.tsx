@@ -226,8 +226,9 @@ export function FiscalSettings() {
             alert('Emitente sincronizado com sucesso no PlugNotas!\n\nID: ' + (result.data?.id || 'OK'));
         } catch (error: any) {
             console.error(error);
-            const detail = error.response?.data?.detail;
-            const msg = typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.response?.data?.error || error.message);
+            const data = error.response?.data;
+            const detail = data?.detail || data;
+            const msg = detail && typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.message);
             alert('Erro ao sincronizar emitente: ' + msg);
         } finally {
             setSyncing(false);
@@ -260,8 +261,9 @@ export function FiscalSettings() {
             }
         } catch (error: any) {
             console.error(error);
-            const detail = error.response?.data?.detail;
-            const msg = detail?.message || error.response?.data?.error || error.message;
+            const data = error.response?.data;
+            const detail = data?.detail || data;
+            const msg = detail && typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.message);
             alert('Erro ao consultar emissor: ' + msg);
         } finally {
             setCheckingStatus(false);
