@@ -3,6 +3,7 @@ import { CreditCard, CheckCircle, AlertTriangle, Clock, ExternalLink, Building, 
 import { Button } from '../ui/Button';
 import { useEntity } from '../../context/EntityContext';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import { supabase } from '../../lib/supabase';
 
 export function SubscriptionSettings() {
@@ -87,6 +88,8 @@ export function SubscriptionSettings() {
         }
     };
 
+    const { notify } = useNotification();
+
     const handleUpgradePlan = async (plan: any) => {
         setUpgradingPlan(plan.name);
         
@@ -147,12 +150,12 @@ export function SubscriptionSettings() {
                 // Open in new tab as requested
                 window.open(res.data.paymentUrl, '_blank');
                 setShowPlanModal(false);
-                alert(`Plano ${plan.name} selecionado com sucesso! Já configuramos seus acessos conforme o plano. O link de pagamento foi aberto em uma nova aba.`);
+                notify('success', `O link de pagamento foi aberto em uma nova aba. Já configuramos seus acessos conforme o plano ${plan.name}.`, 'Plano Selecionado!');
             } else {
                 throw new Error('Falha ao gerar link de pagamento. Contate o suporte.');
             }
         } catch (err: any) {
-            alert(err.message || 'Erro ao processar alteração de plano.');
+            notify('error', err.message || 'Erro ao processar alteração de plano.', 'Falha na Cobrança');
         } finally {
             setUpgradingPlan(null);
         }
@@ -323,7 +326,7 @@ export function SubscriptionSettings() {
                                         throw new Error('Falha ao gerar link. Contate o suporte.');
                                     }
                                 } catch (err: any) {
-                                    alert(err.message || 'Erro ao gerar pagamento.');
+                                    notify('error', err.message || 'Erro ao gerar pagamento.', 'Falha no Checkout');
                                 }
                             }}
                         >
