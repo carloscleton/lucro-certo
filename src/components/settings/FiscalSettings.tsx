@@ -227,10 +227,9 @@ export function FiscalSettings() {
             
             if (fileInputRef.current) fileInputRef.current.value = '';
             setCertPassword('');
-            await refreshEntity();
-
-            // NOTA: Não abrimos o ResultModal aqui para não sobrepor o diagnóstico.
-            // O usuário clicará no botão "Ver Resultado" no modal de diagnóstico.
+            // REMOVIDO: await refreshEntity(); 
+            // Movido para o clique do botão "Ver Resultado Final" no modal de diagnóstico
+            // para evitar que o componente remonte e feche o modal sozinho.
         } catch (error: any) {
             console.error('Cert upload error:', error);
             const data = error.response?.data;
@@ -276,8 +275,8 @@ export function FiscalSettings() {
             if (!token) throw new Error('Sessão expirada.');
 
             const result = await fiscalService.syncIssuer(currentEntity.id, config, token);
-            await refreshEntity();
-
+            // REMOVIDO: await refreshEntity(); - Evita fechar modal por remount
+            
             setResultModal({
                 isOpen: true,
                 title: 'Sincronização Concluída',
@@ -854,8 +853,12 @@ export function FiscalSettings() {
                              {/* Botão de Ver Resultado Final - Só aparece quando termina */}
                              {!diagnostic.steps.some(s => s.status === 'loading' || s.status === 'pending') && (
                                  <Button 
-                                     onClick={() => {
+                                     onClick={async () => {
                                          const hasError = diagnostic.steps.some(s => s.status === 'error');
+                                         
+                                         // Atualizamos os dados antes de fechar o diagnóstico
+                                         await refreshEntity();
+                                         
                                          setDiagnostic(prev => ({ ...prev, isOpen: false }));
                                          setResultModal({
                                              isOpen: true,
