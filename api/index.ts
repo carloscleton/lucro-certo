@@ -101,18 +101,23 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         console.log(`🔐 Uploading certificate for company ${companyId} to ${baseUrl}...`);
 
         const form = new FormData();
-        // Forçar um nome extremamente simples para evitar erros de leitura na TecnoSpeed
         const simpleFilename = 'certificado.pfx';
         
-        form.append('arquivo', file.buffer, simpleFilename);
+        form.append('arquivo', file.buffer, {
+            filename: simpleFilename,
+            contentType: 'application/x-pkcs12',
+            knownLength: file.size
+        });
         form.append('senha', String(senha));
 
-        // Tentar enviar sem contentType explícito no append, deixando o form-data decidir
         const response = await axios.post(`${baseUrl}/certificado`, form, {
             headers: {
                 ...form.getHeaders(),
-                'X-API-KEY': apiKey
-            }
+                'X-API-KEY': apiKey,
+                'x-api-key': apiKey
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
         });
 
         res.json(response.data);
