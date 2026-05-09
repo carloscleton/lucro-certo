@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { User, CreditCard, ChevronRight, CheckCircle2, Clock, XCircle, Search, Eye, EyeOff } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ConfirmationModal } from '../ui/ConfirmationModal';
+import { ResultModal } from '../ui/ResultModal';
 
 export function SubscriberList() {
     const { t } = useTranslation();
@@ -15,6 +17,12 @@ export function SubscriberList() {
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [selectedSub, setSelectedSub] = useState<any>(null);
+
+    // Modal States
+    const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error'}>({
+        isOpen: false, title: '', message: '', type: 'success'
+    });
 
     useEffect(() => {
         async function fetchSubscribers() {
@@ -345,30 +353,14 @@ export function SubscriberList() {
 
                                     {selectedSub.status !== 'canceled' && (
                                         <button 
-                                            className="w-full p-4 flex items-center justify-between bg-red-50 hover:bg-red-100 text-red-700 rounded-2xl transition-all group"
-                                            onClick={async () => {
-                                                if (confirm("Deseja realmente CANCELAR esta assinatura? O cliente não será mais cobrado automaticamente.")) {
-                                                    try {
-                                                        const { error } = await supabase
-                                                            .from('loyalty_subscriptions')
-                                                            .update({ status: 'canceled', updated_at: new Date().toISOString() })
-                                                            .eq('id', selectedSub.id);
-                                                        
-                                                        if (error) throw error;
-                                                        setSubscribers(prev => prev.map(s => s.id === selectedSub.id ? { ...s, status: 'canceled' } : s));
-                                                        setSelectedSub(null);
-                                                        alert("Assinatura cancelada com sucesso.");
-                                                    } catch (err: any) {
-                                                        alert("Erro ao cancelar: " + err.message);
-                                                    }
-                                                }
-                                            }}
+                                            className="w-full p-4 flex items-center justify-between bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-2xl transition-all group"
+                                            onClick={() => setCancelConfirmOpen(true)}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-white rounded-xl shadow-sm"><XCircle size={18} /></div>
                                                 <span className="font-bold">Cancelar Assinatura</span>
                                             </div>
-                                            <XCircle size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                         </button>
                                     )}
                                 </div>
@@ -386,6 +378,50 @@ export function SubscriberList() {
                     </div>
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={cancelConfirmOpen}
+                onClose={() => setCancelConfirmOpen(false)}
+                onConfirm={async () => {
+                    if (!selectedSub) return;
+                    try {
+                        const { error } = await supabase
+                            .from('loyalty_subscriptions')
+                            .update({ status: 'canceled', updated_at: new Date().toISOString() })
+                            .eq('id', selectedSub.id);
+                        
+                        if (error) throw error;
+                        setSubscribers(prev => prev.map(s => s.id === selectedSub.id ? { ...s, status: 'canceled' } : s));
+                        setSelectedSub(null);
+                        setCancelConfirmOpen(false);
+                        setResultModal({
+                            isOpen: true,
+                            title: 'Sucesso',
+                            message: 'Assinatura cancelada com sucesso.',
+                            type: 'success'
+                        });
+                    } catch (err: any) {
+                        setResultModal({
+                            isOpen: true,
+                            title: 'Erro',
+                            message: 'Erro ao cancelar: ' + err.message,
+                            type: 'error'
+                        });
+                    }
+                }}
+                title="Cancelar Assinatura"
+                message={`Deseja realmente CANCELAR a assinatura de ${selectedSub?.contact?.name}? O cliente não será mais cobrado automaticamente.`}
+                variant="danger"
+                confirmLabel="Confirmar Cancelamento"
+            />
+
+            <ResultModal
+                isOpen={resultModal.isOpen}
+                onClose={() => setResultModal(prev => ({ ...prev, isOpen: false }))}
+                title={resultModal.title}
+                message={resultModal.message}
+                type={resultModal.type}
+            />
         </div>
     );
 }

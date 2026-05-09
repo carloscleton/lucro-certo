@@ -194,54 +194,66 @@ export function PlanList({ plans, onEdit, onDelete }: PlanListProps) {
 
     if (plans.length === 0) {
         return (
-            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700">
-                <Package className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={48} />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t('loyalty.no_plans', 'Nenhum plano criado')}</h3>
-                <p className="text-gray-500 dark:text-gray-400">{t('loyalty.no_plans_desc', 'Comece criando seu primeiro plano de fidelidade clicando no botão acima.')}</p>
+            <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 border-dashed border-gray-100 dark:border-slate-800">
+                <div className="w-20 h-20 bg-gray-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                    <Package className="text-gray-300 dark:text-gray-600" size={40} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('loyalty.no_plans', 'Crie seu primeiro plano')}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">{t('loyalty.no_plans_desc', 'Defina os benefícios e o valor mensal para começar a fidelizar seus clientes.')}</p>
             </div>
         );
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {plans.map(plan => (
-                <div key={plan.id} className={`bg-white dark:bg-slate-800 rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${plan.is_active ? 'border-amber-100 dark:border-amber-900/30' : 'border-gray-100 dark:border-slate-700 bg-gray-50/50 grayscale'}`}>
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="bg-amber-100 dark:bg-amber-900/30 p-3 rounded-xl">
-                            <Package className="text-amber-600 dark:text-amber-400" size={24} />
+                <div key={plan.id} className={`group bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-gray-100 dark:border-slate-800 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-1 ${!plan.is_active && 'grayscale opacity-60'}`}>
+                    <div className="flex justify-between items-start mb-8">
+                        <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl shadow-sm group-hover:scale-110 transition-transform duration-500">
+                            <Package className="text-amber-600 dark:text-amber-400" size={28} />
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => onEdit(plan)} className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                            <button 
+                                onClick={() => onEdit(plan)} 
+                                className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-colors"
+                                title="Editar"
+                            >
                                 <Edit2 size={18} />
                             </button>
-                            <button onClick={() => onDelete(plan.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                            <button 
+                                onClick={() => onDelete(plan.id)} 
+                                className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition-colors"
+                                title="Excluir"
+                            >
                                 <Trash2 size={18} />
                             </button>
                         </div>
                     </div>
 
-                    <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1 uppercase tracking-tight">{plan.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 line-clamp-2 h-10">{plan.description}</p>
+                    <div className="space-y-1 mb-8">
+                        <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">{plan.name}</h3>
+                        <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-[0.2em]">
+                            {plan.billing_cycle === 'monthly' ? t('loyalty.monthly_cycle', 'Assinatura Mensal') : t('loyalty.yearly_cycle', 'Assinatura Anual')}
+                        </p>
+                    </div>
+
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 line-clamp-2 h-10 font-medium">
+                        {plan.description || 'Sem descrição definida para este plano de fidelidade.'}
+                    </p>
                     
-                    <div className="space-y-3 pt-4 border-t border-gray-100 dark:border-slate-700">
-                        <div className="flex justify-between items-center text-sm font-medium">
-                            <span className="text-gray-500">{t('loyalty.monthly_value', 'Valor Mensal')}:</span>
-                            <span className="text-amber-600 dark:text-amber-400 font-black text-lg tabular-nums italic">
+                    <div className="space-y-4 pt-6 border-t border-gray-50 dark:border-slate-800">
+                        <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('loyalty.monthly_value', 'Mensalidade')}</span>
+                            <span className="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter italic">
                                 {formatCurrency(plan.price)}
                             </span>
                         </div>
-                        <div className="flex justify-between items-center text-sm font-medium">
-                            <span className="text-gray-500">{t('loyalty.service_discount_label', 'Desconto em Serviços')}:</span>
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/10 p-3 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
+                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">{t('loyalty.service_discount_label', 'Desconto VIP')}</span>
+                            <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 italic">
                                 {plan.discount_percent}%
                             </span>
                         </div>
-                    </div>
-
-                    <div className="mt-6">
-                       <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-widest bg-gray-100 dark:bg-slate-700 text-gray-500`}>
-                           {plan.billing_cycle === 'monthly' ? t('loyalty.monthly_cycle', 'Ciclo Mensal') : t('loyalty.yearly_cycle', 'Ciclo Anual')}
-                       </span>
                     </div>
                 </div>
             ))}

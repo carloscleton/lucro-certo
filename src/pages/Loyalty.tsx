@@ -6,6 +6,8 @@ import { useLoyalty } from '../hooks/useLoyalty';
 import { PlanForm, PlanList } from '../components/loyalty/PlanCRUD';
 import { LoyaltySettings } from '../components/loyalty/LoyaltySettings';
 import { SubscriberList, ChargeHistory } from '../components/loyalty/LoyaltyLists';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
+import { ResultModal } from '../components/ui/ResultModal';
 
 export function Loyalty() {
   const { t } = useTranslation();
@@ -13,6 +15,13 @@ export function Loyalty() {
   const [activeTab, setActiveTab] = useState<'overview' | 'plans' | 'subscribers' | 'charges' | 'settings'>('overview');
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
+
+  // Modal States
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
+  const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error'}>({
+    isOpen: false, title: '', message: '', type: 'success'
+  });
 
 
   const tabs = [
@@ -116,7 +125,10 @@ export function Loyalty() {
             <PlanList 
                 plans={plans} 
                 onEdit={handleOpenPlanModal} 
-                onDelete={deletePlan} 
+                onDelete={(id) => {
+                    setPlanToDelete(id);
+                    setDeleteConfirmOpen(true);
+                }} 
             />
         )}
 
@@ -141,6 +153,44 @@ export function Loyalty() {
         onClose={() => setIsPlanModalOpen(false)}
         initialData={editingPlan}
         onSubmit={editingPlan ? (data) => updatePlan(editingPlan.id, data) : addPlan}
+      />
+
+      <ConfirmationModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={async () => {
+            if (!planToDelete) return;
+            try {
+                await deletePlan(planToDelete);
+                setDeleteConfirmOpen(false);
+                setPlanToDelete(null);
+                setResultModal({
+                    isOpen: true,
+                    title: t('common.success') || 'Sucesso',
+                    message: 'Plano removido com sucesso.',
+                    type: 'success'
+                });
+            } catch (error: any) {
+                setResultModal({
+                    isOpen: true,
+                    title: t('common.error') || 'Erro',
+                    message: error.message || 'Erro ao excluir plano',
+                    type: 'error'
+                });
+            }
+        }}
+        title={t('loyalty.confirm_delete_plan', 'Excluir Plano')}
+        message="Tem certeza que deseja excluir este plano? Novos assinantes não poderão aderir a ele, mas assinaturas existentes continuarão ativas."
+        variant="danger"
+        confirmLabel="Sim, Excluir"
+      />
+
+      <ResultModal
+        isOpen={resultModal.isOpen}
+        onClose={() => setResultModal(prev => ({ ...prev, isOpen: false }))}
+        title={resultModal.title}
+        message={resultModal.message}
+        type={resultModal.type}
       />
     </div>
   );
