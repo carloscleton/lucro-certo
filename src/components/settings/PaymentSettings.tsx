@@ -301,6 +301,7 @@ export function PaymentSettings() {
                                         value={config[field.key] || ''}
                                         onChange={e => setConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
                                         placeholder={`${isSandbox ? '[Sandbox] ' : ''}${field.placeholder}`}
+                                        autoComplete="off"
                                     />
                                 ))}
 
