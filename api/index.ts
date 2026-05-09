@@ -780,17 +780,17 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
             email: config.email,
             certificado: config.certificado_id,
             telefone: {
-                ddd: config.telefone?.replace(/\D/g, '').substring(0, 2) || '00',
-                numero: config.telefone?.replace(/\D/g, '').substring(2) || '000000000'
+                ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '00',
+                numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '000000000'
             },
             endereco: {
-                logradouro: config.endereco?.logradouro || config.logradouro || '',
-                numero: config.endereco?.numero || config.numero || 'SN',
-                bairro: config.endereco?.bairro || config.bairro || '',
-                cep: (config.endereco?.cep || config.cep)?.replace(/\D/g, '') || '',
-                codigoCidade: config.endereco?.codigoCidade || config.codigo_municipio || '',
-                uf: config.endereco?.uf || config.uf || '',
-                complemento: config.endereco?.complemento || config.complemento || ''
+                logradouro: (config.endereco?.logradouro || config.logradouro || '').trim(),
+                numero: (config.endereco?.numero || config.numero || 'SN').trim(),
+                bairro: (config.endereco?.bairro || config.bairro || 'Centro').trim(),
+                cep: (config.endereco?.cep || config.cep || '').replace(/\D/g, ''),
+                codigoCidade: (config.endereco?.codigoCidade || config.codigo_municipio || '').trim(),
+                uf: (config.endereco?.uf || config.uf || '').trim().toUpperCase(),
+                complemento: (config.endereco?.complemento || config.complemento || '').trim()
             },
             nfse: {
                 ativo: true,
@@ -801,6 +801,11 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
                 config: { producao: !isSandbox }
             }
         };
+
+        // Validação básica pré-envio para evitar 500 genérico
+        if (!issuerPayload.endereco.cep || !issuerPayload.endereco.codigoCidade || !issuerPayload.endereco.uf) {
+            console.warn('⚠️ [FISCAL] Dados de endereço incompletos detectados antes do envio.');
+        }
 
         let response;
         try {

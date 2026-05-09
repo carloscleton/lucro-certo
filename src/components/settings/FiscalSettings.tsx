@@ -28,6 +28,29 @@ export function FiscalSettings() {
         logs: []
     });
 
+    // Persistência do diagnóstico em caso de troca de aba ou refresh
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        const saved = sessionStorage.getItem(`fiscal_diag_${currentEntity.id}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setDiagnostic(parsed);
+            } catch (e) {
+                sessionStorage.removeItem(`fiscal_diag_${currentEntity.id}`);
+            }
+        }
+    }, [currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        if (diagnostic.isOpen) {
+            sessionStorage.setItem(`fiscal_diag_${currentEntity.id}`, JSON.stringify(diagnostic));
+        } else {
+            sessionStorage.removeItem(`fiscal_diag_${currentEntity.id}`);
+        }
+    }, [diagnostic, currentEntity.id]);
+
     const [config, setConfig] = useState({
         cnpj: '',
         inscricao_estadual: '',
