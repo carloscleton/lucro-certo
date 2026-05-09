@@ -804,6 +804,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
 
         let response;
         try {
+            console.log('📤 Enviando payload para PlugNotas:', JSON.stringify(issuerPayload, null, 2));
             response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
                 headers: {
                     'Content-Type': 'application/json',
@@ -811,15 +812,24 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
                 }
             });
         } catch (postErr: any) {
+            const postErrorData = postErr.response?.data;
+            console.error('❌ Erro no POST /empresa:', JSON.stringify(postErrorData, null, 2));
+
             // Se já existir, tentar atualizar (PUT)
-            if (postErr.response?.data?.error?.message?.includes('já existe') || postErr.response?.status === 400) {
-                console.log(`📝 Empresa já existe, tentando atualizar via PUT...`);
-                response = await axios.put(`${baseUrl}/empresa/${issuerPayload.cpfCnpj}`, issuerPayload, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': apiKey
-                    }
-                });
+            if (postErrorData?.error?.message?.includes('já existe') || postErr.response?.status === 400 || postErrorData?.message?.includes('já cadastrada')) {
+                console.log(`📝 Empresa já existe ou erro de validação, tentando atualizar via PUT...`);
+                try {
+                    response = await axios.put(`${baseUrl}/empresa/${issuerPayload.cpfCnpj}`, issuerPayload, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': apiKey
+                        }
+                    });
+                } catch (putErr: any) {
+                    const putErrorData = putErr.response?.data;
+                    console.error('❌ Erro no PUT /empresa:', JSON.stringify(putErrorData, null, 2));
+                    throw putErr;
+                }
             } else {
                 throw postErr;
             }
