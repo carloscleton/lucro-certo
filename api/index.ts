@@ -138,9 +138,10 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
             timeout: 30000
         });
 
-        const certId = response.data?.data?.id || response.data?.id;
+        const certData = response.data?.data || response.data;
+        const certId = certData?.id;
 
-        // SALVAR O ID DO CERTIFICADO NO BANCO DE DADOS LOCAL (JSONB na tabela companies)
+        // SALVAR O ID E METADADOS DO CERTIFICADO NO BANCO DE DADOS LOCAL (JSONB na tabela companies)
         if (certId && SUPABASE_URL) {
             try {
                 // 1. Buscar config atual para não sobrescrever outros campos
@@ -148,6 +149,8 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
                 const updatedConfig = {
                     ...currentConfig,
                     certificado_id: certId,
+                    certificado_vencimento: certData?.vencimento,
+                    certificado_sujeito: certData?.sujeito || certData?.nome,
                     certificado_status: 'ativo',
                     ultima_atualizacao: new Date().toISOString()
                 };
@@ -162,13 +165,20 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
                         'Content-Type': 'application/json'
                     }
                 });
-                console.log(`✅ ID do Certificado (${certId}) salvo no JSONB da empresa.`);
+                console.log(`✅ Certificado (${certId}) e metadados salvos no JSONB.`);
             } catch (dbErr: any) {
-                console.warn('⚠️ Não foi possível salvar o ID do certificado no banco local:', dbErr.message);
+                console.warn('⚠️ Não foi possível salvar metadados no banco local:', dbErr.message);
             }
         }
 
-        res.json(response.data);
+        // Retornar os dados completos para o frontend mostrar na hora
+        res.json({
+            message: 'Certificado processado com sucesso',
+            id: certId,
+            vencimento: certData?.vencimento,
+            sujeito: certData?.sujeito || certData?.nome,
+            status: 'ativo'
+        });
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));

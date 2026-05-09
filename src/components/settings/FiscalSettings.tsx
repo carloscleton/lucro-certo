@@ -533,21 +533,59 @@ export function FiscalSettings() {
                             </p>
                         </div>
                     ) : null}
-                </div>
-            </div>
-
             <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
                 <div className="flex items-center gap-2 mb-4">
                     <ShieldCheck className="text-blue-600" size={20} />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Certificado Digital (A1)</h3>
+                    <div className="flex-1">
+                        <h4 className="font-medium text-gray-900 dark:text-white">Certificado Digital (A1)</h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {config.certificado_id 
+                                ? 'Certificado configurado e pronto para uso.'
+                                : 'O envio do certificado digital A1 (.pfx ou .p12) é obrigatório para a emissão de notas em produção.'
+                            }
+                        </p>
+                    </div>
                 </div>
 
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6 border border-blue-100 dark:border-blue-900/30">
-                    <p className="text-sm text-blue-800 dark:text-blue-400">
-                        O envio do certificado digital A1 (.pfx ou .p12) é obrigatório para a emissão de notas em produção.
-                        Sua senha é transmitida de forma segura e não fica armazenada em nossos servidores.
-                    </p>
-                </div>
+                {config.certificado_id && (
+                    <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 rounded-xl">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Status</p>
+                                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    {config.certificado_status === 'ativo' ? 'Ativo' : 'Pendente'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Vencimento</p>
+                                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+                                    {config.certificado_vencimento ? new Date(config.certificado_vencimento).toLocaleDateString('pt-BR') : 'Não informado'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Sujeito</p>
+                                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 truncate" title={config.certificado_sujeito}>
+                                    {config.certificado_sujeito || 'Certificado A1'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">ID PlugNotas</p>
+                                <p className="text-sm font-mono text-emerald-700 dark:text-emerald-300">
+                                    {config.certificado_id.substring(0, 8)}...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {!config.certificado_id && (
+                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-xl">
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                            Sua senha é transmitida de forma segura e não fica armazenada em nossos servidores.
+                        </p>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                     <div className="space-y-1">
