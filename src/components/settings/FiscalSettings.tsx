@@ -606,6 +606,7 @@ export function FiscalSettings() {
                 </div>
             </div>
         </div>
+    </div>
 
         {/* Modal de Diagnóstico */}
         {diagnostic.isOpen && (
