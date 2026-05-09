@@ -761,12 +761,28 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
             }
         };
 
-        const response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey
+        let response;
+        try {
+            response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey
+                }
+            });
+        } catch (postErr: any) {
+            // Se já existir, tentar atualizar (PUT)
+            if (postErr.response?.data?.error?.message?.includes('já existe') || postErr.response?.status === 400) {
+                console.log(`📝 Empresa já existe, tentando atualizar via PUT...`);
+                response = await axios.put(`${baseUrl}/empresa/${issuerPayload.cpfCnpj}`, issuerPayload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey
+                    }
+                });
+            } else {
+                throw postErr;
             }
-        });
+        }
 
         res.json(response.data);
     } catch (error: any) {
