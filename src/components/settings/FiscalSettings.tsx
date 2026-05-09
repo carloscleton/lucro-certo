@@ -11,89 +11,27 @@ import { supabase } from '../../lib/supabase';
 export function FiscalSettings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies, updateCompany } = useCompanies();
-    const [saving, setSaving] = useState(false);
-    const [syncing, setSyncing] = useState(false);
-    const [moduleEnabled, setModuleEnabled] = useState(false);
-    const [uploadingCert, setUploadingCert] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [certPassword, setCertPassword] = useState('');
-    const [showApiKey, setShowApiKey] = useState(false);
-    const [diagnostic, setDiagnostic] = useState<{
+    const [resultModal, setResultModal] = useState<{
         isOpen: boolean;
-        steps: { title: string; status: 'pending' | 'loading' | 'success' | 'error'; msg?: string }[];
-        logs: string[];
+        title: string;
+        message: string;
+        type: 'success' | 'error' | 'info';
+        data?: Record<string, any>;
     }>({
         isOpen: false,
-        steps: [],
-        logs: []
+        title: '',
+        message: '',
+        type: 'info'
     });
-
-    const [config, setConfig] = useState({
-        cnpj: '',
-        inscricao_estadual: '',
-        inscricao_municipal: '',
-        razao_social: '',
-        nome_fantasia: '',
-        email: '',
-        telefone: '',
-        endereco: {
-            logradouro: '',
-            numero: '',
-            complemento: '',
-            bairro: '',
-            cep: '',
-            codigoCidade: '',
-            uf: ''
-        },
-        regime_tributario: '1', 
-        tecnospeed_api_key: '',
-        ambiente: 'homologacao',
-        endpoint_homologacao: '',
-        endpoint_producao: '',
-        certificado_id: '',
-        certificado_vencimento: '',
-        certificado_sujeito: '',
-        certificado_status: ''
-    });
-
-    const currentCompany = companies.find(c => c.id === currentEntity.id);
-
-    useEffect(() => {
-        if (!currentCompany) return;
-
-        setModuleEnabled(!!currentCompany.fiscal_module_enabled);
-        setConfig((prev: any) => {
-            const newConfig = { ...prev };
-            const tc = currentCompany.tecnospeed_config || {};
-
-            Object.assign(newConfig, tc);
-
-            if (newConfig.tecnospeed_api_key) newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.toLowerCase();
-            if (newConfig.endpoint_homologacao) newConfig.endpoint_homologacao = newConfig.endpoint_homologacao.toLowerCase();
-            if (newConfig.endpoint_producao) newConfig.endpoint_producao = newConfig.endpoint_producao.toLowerCase();
-
-            if (!newConfig.cnpj && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
-            if (!newConfig.razao_social && currentCompany.legal_name) newConfig.razao_social = currentCompany.legal_name;
-            if (!newConfig.nome_fantasia && currentCompany.trade_name) newConfig.nome_fantasia = currentCompany.trade_name;
-            if (!newConfig.telefone && currentCompany.phone) newConfig.telefone = currentCompany.phone;
-
-            if (!newConfig.endereco) {
-                newConfig.endereco = {};
-            }
-            if (!newConfig.endereco.logradouro && currentCompany.street) newConfig.endereco.logradouro = currentCompany.street;
-            if (!newConfig.endereco.numero && currentCompany.number) newConfig.endereco.numero = currentCompany.number;
-            if (!newConfig.endereco.complemento && currentCompany.complement) newConfig.endereco.complemento = currentCompany.complement;
-            if (!newConfig.endereco.bairro && currentCompany.neighborhood) newConfig.endereco.bairro = currentCompany.neighborhood;
-            if (!newConfig.endereco.cep && currentCompany.zip_code) newConfig.endereco.cep = currentCompany.zip_code;
-            if (!newConfig.endereco.uf && currentCompany.state) newConfig.endereco.uf = currentCompany.state;
-
-            return newConfig;
-        });
-    }, [currentCompany]);
 
     const handleSave = async () => {
         if (!currentEntity.id || currentEntity.type === 'personal') {
-            alert('Configurações fiscais são exclusivas para empresas. Mude o contexto no topo.');
+            setResultModal({
+                isOpen: true,
+                title: 'Aviso',
+                message: 'Configurações fiscais são exclusivas para empresas. Mude o contexto no topo.',
+                type: 'info'
+            });
             return;
         }
         setSaving(true);
@@ -103,10 +41,20 @@ export function FiscalSettings() {
                 fiscal_module_enabled: moduleEnabled
             });
             await refreshEntity();
-            alert('Configurações fiscais salvas com sucesso!');
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: 'As configurações fiscais foram salvas corretamente.',
+                type: 'success'
+            });
         } catch (error) {
             console.error(error);
-            alert('Erro ao salvar configurações fiscais.');
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Salvar',
+                message: 'Não foi possível salvar as configurações locais.',
+                type: 'error'
+            });
         } finally {
             setSaving(false);
         }
@@ -116,11 +64,14 @@ export function FiscalSettings() {
         const file = fileInputRef.current?.files?.[0];
         
         if (!currentEntity.id || currentEntity.type === 'personal' || !file || !certPassword) {
-            if (currentEntity.type === 'personal') {
-                alert('O Certificado Digital deve ser vinculado a uma empresa. Mude o contexto no topo.');
-            } else {
-                alert('Selecione o arquivo e informe a senha do certificado.');
-            }
+            setResultModal({
+                isOpen: true,
+                title: 'Dados Incompletos',
+                message: currentEntity.type === 'personal' 
+                    ? 'O Certificado Digital deve ser vinculado a uma empresa. Mude o contexto no topo.'
+                    : 'Selecione o arquivo e informe a senha do certificado.',
+                type: 'info'
+            });
             return;
         }
 
@@ -173,13 +124,25 @@ export function FiscalSettings() {
                 logs: [...prev.logs, 'Resposta recebida do Backend: ' + JSON.stringify(response)]
             }));
             
-            alert('Certificado Digital enviado com sucesso!');
             if (fileInputRef.current) fileInputRef.current.value = '';
             setCertPassword('');
             
             await refreshEntity();
             
-            setTimeout(() => setDiagnostic(prev => ({ ...prev, isOpen: false })), 2000);
+            setTimeout(() => {
+                setDiagnostic(prev => ({ ...prev, isOpen: false }));
+                setResultModal({
+                    isOpen: true,
+                    title: 'Certificado Enviado',
+                    message: 'O certificado digital foi processado com sucesso pela TecnoSpeed.',
+                    type: 'success',
+                    data: {
+                        'ID PlugNotas': response.data?.id,
+                        'Vencimento': response.data?.vencimento ? new Date(response.data.vencimento).toLocaleDateString('pt-BR') : 'Não informado',
+                        'Titular': response.data?.sujeito || 'N/A'
+                    }
+                });
+            }, 1000);
         } catch (error: any) {
             console.error('Cert upload error:', error);
             const data = error.response?.data;
@@ -192,7 +155,13 @@ export function FiscalSettings() {
                 steps: prev.steps.map(s => s.status === 'loading' ? { ...s, status: 'error', msg } : s),
                 logs: [...prev.logs, `ERRO: ${msg}`]
             }));
-            alert('Erro ao enviar certificado: ' + msg);
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Falha no Upload',
+                message: msg,
+                type: 'error'
+            });
         } finally {
             setUploadingCert(false);
         }
@@ -200,12 +169,22 @@ export function FiscalSettings() {
 
     const handleSyncIssuer = async () => {
         if (!currentEntity.id || currentEntity.type === 'personal') {
-            alert('A sincronização de emitente é exclusiva para empresas.');
+            setResultModal({
+                isOpen: true,
+                title: 'Aviso',
+                message: 'A sincronização de emitente é exclusiva para empresas.',
+                type: 'info'
+            });
             return;
         }
 
         if (!config.cnpj || !config.tecnospeed_api_key) {
-            alert('CNPJ e API Key são obrigatórios para sincronizar.');
+            setResultModal({
+                isOpen: true,
+                title: 'Dados Incompletos',
+                message: 'CNPJ e API Key são obrigatórios para sincronizar.',
+                type: 'info'
+            });
             return;
         }
 
@@ -216,14 +195,31 @@ export function FiscalSettings() {
             if (!token) throw new Error('Sessão expirada.');
 
             const result = await fiscalService.syncIssuer(currentEntity.id, config, token);
-            alert('Emitente sincronizado com sucesso no PlugNotas!\n\nID: ' + (result.data?.id || 'OK'));
             await refreshEntity();
+
+            setResultModal({
+                isOpen: true,
+                title: 'Sincronização Concluída',
+                message: 'Os dados do emitente foram atualizados com sucesso no PlugNotas.',
+                type: 'success',
+                data: {
+                    'CNPJ': config.cnpj,
+                    'ID Interno': result.data?.id || 'Vinculado',
+                    'Status': 'Empresa Sincronizada'
+                }
+            });
         } catch (error: any) {
             console.error(error);
             const data = error.response?.data;
             const detail = data?.detail || data;
             const msg = detail && typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.message);
-            alert('Erro ao sincronizar emitente: ' + msg);
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Sincronização',
+                message: msg,
+                type: 'error'
+            });
         } finally {
             setSyncing(false);
         }
@@ -233,7 +229,12 @@ export function FiscalSettings() {
 
     const handleCheckIssuerStatus = async () => {
         if (!currentEntity.id || !config.cnpj) {
-            alert('CNPJ é obrigatório para verificar status.');
+            setResultModal({
+                isOpen: true,
+                title: 'CNPJ Requerido',
+                message: 'Preencha o CNPJ para verificar o status.',
+                type: 'info'
+            });
             return;
         }
 
@@ -247,18 +248,48 @@ export function FiscalSettings() {
             
             const cert = result.data?.certificado_detalhes || result.data?.certificado;
             if (cert && typeof cert === 'object') {
-                alert(`✅ Emissor encontrado!\nCertificado: ${cert.nome || cert.id}\nVencimento: ${cert.vencimento}`);
+                setResultModal({
+                    isOpen: true,
+                    title: 'Emissor Encontrado',
+                    message: 'O cadastro do emissor está ativo e com certificado vinculado.',
+                    type: 'success',
+                    data: {
+                        'Certificado': cert.nome || cert.id,
+                        'Vencimento': cert.vencimento ? new Date(cert.vencimento).toLocaleDateString('pt-BR') : 'Não informado',
+                        'Status': 'Ativo'
+                    }
+                });
             } else if (result.data?.certificado) {
-                alert(`✅ Emissor encontrado!\nID Certificado: ${result.data.certificado}\n(Detalhes não carregados)`);
+                setResultModal({
+                    isOpen: true,
+                    title: 'Emissor com Certificado',
+                    message: 'Emissor encontrado, mas os detalhes estendidos do certificado não foram carregados.',
+                    type: 'info',
+                    data: {
+                        'ID Certificado': result.data.certificado,
+                        'Status': 'Vinculado'
+                    }
+                });
             } else {
-                alert('⚠️ Emissor encontrado, mas sem certificado configurado no PlugNotas.');
+                setResultModal({
+                    isOpen: true,
+                    title: 'Vínculo Pendente',
+                    message: 'A empresa foi encontrada na TecnoSpeed, mas o certificado ainda não foi vinculado.',
+                    type: 'info'
+                });
             }
         } catch (error: any) {
             console.error(error);
             const data = error.response?.data;
             const detail = data?.detail || data;
             const msg = detail && typeof detail === 'object' ? JSON.stringify(detail) : (detail || error.message);
-            alert('Erro ao consultar emissor: ' + msg);
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Consulta',
+                message: msg,
+                type: 'error'
+            });
         } finally {
             setCheckingStatus(false);
         }
@@ -723,15 +754,77 @@ export function FiscalSettings() {
 
                         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
                             <Button 
-                                onClick={() => {
-                                    const text = diagnostic.logs.join('\n');
-                                    navigator.clipboard.writeText(text);
-                                    alert('Logs copiados para a área de transferência!');
-                                }}
-                                variant="outline"
-                                className="text-xs h-8"
+                                 onClick={() => {
+                                     const text = diagnostic.logs.join('\n');
+                                     navigator.clipboard.writeText(text);
+                                     setResultModal({
+                                         isOpen: true,
+                                         title: 'Copiado',
+                                         message: 'Logs de diagnóstico copiados para a área de transferência.',
+                                         type: 'success'
+                                     });
+                                 }}
+                                 variant="outline"
+                                 className="text-xs h-8"
+                             >
+                                 Copiar Logs de Diagnóstico
+                             </Button>
+                         </div>
+                     </div>
+                 </div>
+             )}
+
+            {/* Modal de Resultado */}
+            {resultModal.isOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 overflow-hidden transform transition-all scale-100 animate-in fade-in zoom-in duration-200">
+                        <div className={clsx(
+                            "p-8 flex flex-col items-center text-center",
+                            resultModal.type === 'success' ? "bg-emerald-50/50 dark:bg-emerald-900/10" :
+                            resultModal.type === 'error' ? "bg-red-50/50 dark:bg-red-900/10" : "bg-blue-50/50 dark:bg-blue-900/10"
+                        )}>
+                            <div className={clsx(
+                                "w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-sm",
+                                resultModal.type === 'success' ? "bg-emerald-100 text-emerald-600" :
+                                resultModal.type === 'error' ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
+                            )}>
+                                {resultModal.type === 'success' && <CheckCircle size={40} />}
+                                {resultModal.type === 'error' && <XCircle size={40} />}
+                                {resultModal.type === 'info' && <Info size={40} />}
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+                                {resultModal.title}
+                            </h3>
+                            <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed">
+                                {resultModal.message}
+                            </p>
+                        </div>
+
+                        {resultModal.data && (
+                            <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+                                <div className="space-y-4">
+                                    {Object.entries(resultModal.data).map(([key, value]) => (
+                                        <div key={key} className="flex flex-col gap-1">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{key}</span>
+                                            <span className="text-sm text-slate-900 dark:text-slate-200 font-mono bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/50 break-all">
+                                                {value || '---'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+                            <Button 
+                                onClick={() => setResultModal(prev => ({ ...prev, isOpen: false }))}
+                                className={clsx(
+                                    "w-full py-3 text-base font-bold transition-all shadow-md active:scale-95",
+                                    resultModal.type === 'success' ? "bg-emerald-600 hover:bg-emerald-700 text-white" :
+                                    resultModal.type === 'error' ? "bg-red-600 hover:bg-red-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                )}
                             >
-                                Copiar Logs de Diagnóstico
+                                OK, Entendido
                             </Button>
                         </div>
                     </div>
