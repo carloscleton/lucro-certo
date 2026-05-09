@@ -727,63 +727,41 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        console.log(`🏢 Sincronizando Emitente (${config.cnpj}) no PlugNotas...`);
+        console.log(`🏢 Sincronizando Empresa (${config.cnpj}) no PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
 
-        // Payload simplificado para o PlugNotas
-        const isSandbox = config.ambiente === 'homologacao';
-        
         const issuerPayload = {
             cpfCnpj: config.cnpj.replace(/\D/g, ''),
-            inscricaoEstadual: config.inscricao_estadual?.replace(/\D/g, '') || '',
+            inscricaoEstadual: config.inscricao_estadual?.replace(/\D/g, '') || 'ISENTO',
             inscricaoMunicipal: config.inscricao_municipal?.replace(/\D/g, '') || '',
             razaoSocial: config.razao_social,
-            nomeFantasia: config.nome_fantasia,
+            nomeFantasia: config.nome_fantasia || config.razao_social,
             simplesNacional: config.regime_tributario === '1',
-            regimeTributario: parseInt(config.regime_tributario),
+            regimeTributario: parseInt(config.regime_tributario) || 1,
             email: config.email,
             telefone: {
-                ddd: (() => {
-                    const clean = config.telefone?.replace(/\D/g, '') || '';
-                    const without55 = clean.startsWith('55') && clean.length > 10 ? clean.substring(2) : clean;
-                    return without55.substring(0, 2) || '00';
-                })(),
-                numero: (() => {
-                    const clean = config.telefone?.replace(/\D/g, '') || '';
-                    const without55 = clean.startsWith('55') && clean.length > 10 ? clean.substring(2) : clean;
-                    return without55.substring(2) || '000000000';
-                })()
+                ddd: config.telefone?.replace(/\D/g, '').substring(0, 2) || '00',
+                numero: config.telefone?.replace(/\D/g, '').substring(2) || '000000000'
             },
             endereco: {
-                tipoLogradouro: 'Rua',
-                logradouro: config.endereco?.logradouro || '',
-                numero: config.endereco?.numero || 'S/N',
-                bairro: config.endereco?.bairro || '',
-                tipoBairro: 'Bairro',
-                cep: config.endereco?.cep?.replace(/\D/g, '') || '',
-                codigoCidade: config.endereco?.codigoCidade || '',
-                uf: config.endereco?.uf || '',
-                complemento: config.endereco?.complemento || ''
+                logradouro: config.logradouro || '',
+                numero: config.numero || 'SN',
+                bairro: config.bairro || '',
+                cep: config.cep?.replace(/\D/g, '') || '',
+                codigoCidade: config.codigo_municipio || '',
+                estado: config.uf || '',
+                complemento: config.complemento || ''
             },
-            regimeTributarioEspecial: 0,
             nfse: {
                 ativo: true,
-                config: {
-                    producao: !isSandbox,
-                    rps: {
-                        numeracaoAutomatica: true
-                    }
-                }
+                config: { producao: !isSandbox }
             },
             nfe: {
                 ativo: true,
-                config: {
-                    producao: !isSandbox,
-                    numeracaoAutomatica: true
-                }
+                config: { producao: !isSandbox }
             }
         };
 
-        const response = await axios.post(`${baseUrl}/emitente`, issuerPayload, {
+        const response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey
