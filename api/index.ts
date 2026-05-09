@@ -104,16 +104,14 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         // Forçar um nome extremamente simples para evitar erros de leitura na TecnoSpeed
         const simpleFilename = 'certificado.pfx';
         
-        form.append('arquivo', file.buffer, {
-            filename: simpleFilename,
-            contentType: 'application/x-pkcs12',
-        });
-        form.append('senha', senha);
+        form.append('arquivo', file.buffer, simpleFilename);
+        form.append('senha', String(senha));
 
+        // Tentar enviar sem contentType explícito no append, deixando o form-data decidir
         const response = await axios.post(`${baseUrl}/certificado`, form, {
             headers: {
                 ...form.getHeaders(),
-                'x-api-key': apiKey
+                'X-API-KEY': apiKey
             }
         });
 
@@ -140,7 +138,7 @@ app.get('/fiscal/issuer-status/:cpfCnpj', authenticate, async (req, res) => {
         console.log(`🔍 Checking status for issuer ${cpfCnpj} in ${isSandbox ? 'SANDBOX' : 'PROD'}...`);
 
         const response = await axios.get(`${baseUrl}/empresa/${cpfCnpj}`, {
-            headers: { 'x-api-key': apiKey }
+            headers: { 'X-API-KEY': apiKey }
         });
 
         const issuerData = response.data;
@@ -149,7 +147,7 @@ app.get('/fiscal/issuer-status/:cpfCnpj', authenticate, async (req, res) => {
         if (issuerData.data?.certificado && typeof issuerData.data.certificado === 'string') {
             try {
                 const certResponse = await axios.get(`${baseUrl}/certificado/${issuerData.data.certificado}`, {
-                    headers: { 'x-api-key': apiKey }
+                    headers: { 'X-API-KEY': apiKey }
                 });
                 issuerData.data.certificado_detalhes = certResponse.data.data;
             } catch (certErr) {
@@ -776,7 +774,7 @@ app.get('/fiscal/status/:id', authenticate, async (req, res) => {
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         const response = await axios.get(`${baseUrl}/nfe/${id}`, {
-            headers: { 'x-api-key': apiKey }
+            headers: { 'X-API-KEY': apiKey }
         });
 
         const statusData = response.data;
@@ -819,7 +817,7 @@ app.get('/fiscal/nfe/:id/pdf', authenticate, async (req, res) => {
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         const response = await axios.get(`${baseUrl}/nfe/${id}/pdf`, {
-            headers: { 'x-api-key': apiKey },
+            headers: { 'X-API-KEY': apiKey },
             responseType: 'arraybuffer'
         });
 
@@ -843,7 +841,7 @@ app.get('/fiscal/nfe/:id/xml', authenticate, async (req, res) => {
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         const response = await axios.get(`${baseUrl}/nfe/${id}/xml`, {
-            headers: { 'x-api-key': apiKey }
+            headers: { 'X-API-KEY': apiKey }
         });
 
         res.contentType('application/xml');
