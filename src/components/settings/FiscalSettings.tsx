@@ -462,6 +462,7 @@ export function FiscalSettings() {
                             value={config.cnpj}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, cnpj: e.target.value })}
                             placeholder="00.000.000/0000-00"
+                            autoComplete="off"
                         />
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -471,6 +472,7 @@ export function FiscalSettings() {
                                 value={config.regime_tributario}
                                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConfig({ ...config, regime_tributario: e.target.value })}
                                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                autoComplete="off"
                             >
                                 <option value="1">Simples Nacional</option>
                                 <option value="2">Simples Nacional (Excesso de Sublimite)</option>
@@ -482,24 +484,28 @@ export function FiscalSettings() {
                             value={config.razao_social}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, razao_social: e.target.value })}
                             placeholder="Sua Empresa LTDA"
+                            autoComplete="off"
                         />
                         <Input
                             label="Nome Fantasia"
                             value={config.nome_fantasia}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, nome_fantasia: e.target.value })}
                             placeholder="Nome da sua loja/empresa"
+                            autoComplete="off"
                         />
                         <Input
                             label="Inscrição Estadual"
                             value={config.inscricao_estadual}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, inscricao_estadual: e.target.value })}
                             placeholder="Isento ou Número"
+                            autoComplete="off"
                         />
                         <Input
                             label="Inscrição Municipal"
                             value={config.inscricao_municipal}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, inscricao_municipal: e.target.value })}
                             placeholder="Obrigatório para NFS-e"
+                            autoComplete="off"
                         />
                         <Input
                             label="E-mail"
@@ -507,12 +513,14 @@ export function FiscalSettings() {
                             value={config.email}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, email: e.target.value })}
                             placeholder="contato@empresa.com"
+                            autoComplete="email"
                         />
                         <Input
                             label="Telefone"
                             value={config.telefone}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, telefone: e.target.value })}
                             placeholder="(00) 00000-0000"
+                            autoComplete="tel"
                         />
                     </div>
 
@@ -524,6 +532,7 @@ export function FiscalSettings() {
                                 value={config.endereco?.cep || ''}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, cep: e.target.value } })}
                                 placeholder="00000-000"
+                                autoComplete="postal-code"
                             />
                             <div className="md:col-span-2">
                                 <Input
@@ -531,6 +540,7 @@ export function FiscalSettings() {
                                     value={config.endereco?.logradouro || ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, logradouro: e.target.value } })}
                                     placeholder="Rua, Avenida, etc."
+                                    autoComplete="street-address"
                                 />
                             </div>
                             <Input
@@ -538,6 +548,7 @@ export function FiscalSettings() {
                                 value={config.endereco?.numero || ''}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, numero: e.target.value } })}
                                 placeholder="123"
+                                autoComplete="off"
                             />
                             <div className="md:col-span-2">
                                 <Input
@@ -545,6 +556,7 @@ export function FiscalSettings() {
                                     value={config.endereco?.complemento || ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, complemento: e.target.value } })}
                                     placeholder="Sala 1, Apto 2, etc."
+                                    autoComplete="off"
                                 />
                             </div>
                             <Input
@@ -552,12 +564,14 @@ export function FiscalSettings() {
                                 value={config.endereco?.bairro || ''}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, bairro: e.target.value } })}
                                 placeholder="Centro"
+                                autoComplete="off"
                             />
                             <Input
                                 label="Código Cidade (IBGE)"
                                 value={config.endereco?.codigoCidade || ''}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, codigoCidade: e.target.value } })}
                                 placeholder="Ex: 3550308 (São Paulo)"
+                                autoComplete="off"
                             />
                             <Input
                                 label="UF"
@@ -565,6 +579,7 @@ export function FiscalSettings() {
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, endereco: { ...config.endereco, uf: e.target.value } })}
                                 placeholder="SP, RJ, MG"
                                 maxLength={2}
+                                autoComplete="address-level1"
                             />
                         </div>
                     </div>
