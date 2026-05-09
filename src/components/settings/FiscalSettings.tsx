@@ -7,6 +7,8 @@ import { useCompanies } from '../../hooks/useCompanies';
 import { useEntity } from '../../context/EntityContext';
 import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
+import { ResultModal } from '../ui/ResultModal';
+import { DiagnosticModal } from '../ui/DiagnosticModal';
 
 export function FiscalSettings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
@@ -832,174 +834,47 @@ export function FiscalSettings() {
             </form>
 
             {/* Modal de Diagnóstico */}
-            {diagnostic.isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                            <div className="flex items-center gap-2">
-                                <Terminal size={20} className="text-indigo-600" />
-                                <h3 className="font-bold text-slate-800 dark:text-white">Diagnóstico de Envio</h3>
-                            </div>
-                            <button 
-                                onClick={() => setDiagnostic(prev => ({ ...prev, isOpen: false }))}
-                                className="text-slate-400 hover:text-slate-600"
-                            >
-                                <XCircle size={24} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 space-y-6">
-                            {/* Passos */}
-                            <div className="space-y-4">
-                                {diagnostic.steps.map((step, idx) => (
-                                    <div key={idx} className="flex items-start gap-3">
-                                        <div className="mt-0.5">
-                                            {step.status === 'loading' && <Loader2 size={18} className="text-blue-500 animate-spin" />}
-                                            {step.status === 'success' && <CheckCircle size={18} className="text-green-500" />}
-                                            {step.status === 'error' && <XCircle size={18} className="text-red-500" />}
-                                            {step.status === 'pending' && <div className="w-[18px] h-[18px] rounded-full border-2 border-slate-200 dark:border-slate-700" />}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className={clsx(
-                                                "text-sm font-medium",
-                                                step.status === 'loading' ? "text-blue-600" :
-                                                step.status === 'success' ? "text-green-600" :
-                                                step.status === 'error' ? "text-red-600" : "text-slate-400"
-                                            )}>
-                                                {step.title}
-                                            </p>
-                                            {step.msg && <p className="text-xs text-red-400 mt-1">{step.msg}</p>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Logs */}
-                            <div className="bg-slate-950 rounded-lg p-4 font-mono text-[10px] text-slate-300 h-40 overflow-y-auto border border-slate-800">
-                                <div className="flex items-center gap-2 mb-2 text-slate-500 border-b border-slate-800 pb-1">
-                                    <Info size={12} />
-                                    <span>LOGS TÉCNICOS</span>
-                                </div>
-                                {diagnostic.logs.map((log, idx) => (
-                                    <div key={idx} className="mb-1 leading-relaxed">
-                                        <span className="text-indigo-500 mr-2">[{new Date().toLocaleTimeString()}]</span>
-                                        {log}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
-                            <Button 
-                                 onClick={() => {
-                                     const text = diagnostic.logs.join('\n');
-                                     navigator.clipboard.writeText(text);
-                                     setResultModal({
-                                         isOpen: true,
-                                         title: 'Copiado',
-                                         message: 'Logs de diagnóstico copiados para a área de transferência.',
-                                         type: 'success'
-                                     });
-                                 }}
-                                 variant="outline"
-                                 className="text-xs h-8"
-                             >
-                                 Copiar Logs de Diagnóstico
-                             </Button>
-                             
-                             {/* Botão de Ver Resultado Final - Só aparece quando termina */}
-                             {!diagnostic.steps.some(s => s.status === 'loading' || s.status === 'pending') && (
-                                 <Button 
-                                     onClick={async () => {
-                                         const hasError = diagnostic.steps.some(s => s.status === 'error');
-                                         
-                                         // Atualizamos os dados antes de fechar o diagnóstico
-                                         await refreshEntity();
-                                         
-                                         setDiagnostic(prev => ({ ...prev, isOpen: false }));
-                                         setResultModal({
-                                             isOpen: true,
-                                             title: hasError ? 'Processo com Avisos' : 'Sucesso!',
-                                             message: hasError 
-                                                 ? 'O processo terminou, mas houve problemas em alguns passos. Verifique os logs.'
-                                                 : 'O certificado foi enviado e o vínculo automático foi processado.',
-                                             type: hasError ? 'error' : 'success',
-                                             data: {
-                                                 'ID Certificado': config.certificado_id || 'ID pendente',
-                                                 'Vencimento': config.certificado_vencimento ? new Date(config.certificado_vencimento).toLocaleDateString('pt-BR') : 'N/A',
-                                                 'Auto-Vínculo': hasError ? 'Falhou' : 'Concluído'
-                                             }
-                                         });
-                                     }}
-                                     className={clsx(
-                                         "text-xs h-8 ml-2 shadow-sm",
-                                         diagnostic.steps.some(s => s.status === 'error') ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
-                                     )}
-                                 >
-                                     {diagnostic.steps.some(s => s.status === 'error') ? 'Ver Detalhes do Erro' : 'Ver Resultado Final'}
-                                 </Button>
-                             )}
-                         </div>
-                     </div>
-                 </div>
-             )}
+            <DiagnosticModal
+                isOpen={diagnostic.isOpen}
+                onClose={() => setDiagnostic(prev => ({ ...prev, isOpen: false }))}
+                title="Diagnóstico de Envio"
+                description="Status da integração com PlugNotas"
+                steps={diagnostic.steps}
+                logs={diagnostic.logs}
+                action={{
+                    label: diagnostic.steps.some(s => s.status === 'error') ? 'Ver Detalhes do Erro' : 'Ver Resultado Final',
+                    visible: !diagnostic.steps.some(s => s.status === 'loading' || s.status === 'pending'),
+                    variant: diagnostic.steps.some(s => s.status === 'error') ? 'warning' : 'success',
+                    onClick: async () => {
+                        const hasError = diagnostic.steps.some(s => s.status === 'error');
+                        await refreshEntity();
+                        setDiagnostic(prev => ({ ...prev, isOpen: false }));
+                        setResultModal({
+                            isOpen: true,
+                            title: hasError ? 'Processo com Avisos' : 'Sucesso!',
+                            message: hasError 
+                                ? 'O processo terminou, mas houve problemas em alguns passos. Verifique os logs.'
+                                : 'O certificado foi enviado e o vínculo automático foi processado.',
+                            type: hasError ? 'error' : 'success',
+                            data: {
+                                'ID Certificado': config.certificado_id || 'ID pendente',
+                                'Vencimento': config.certificado_vencimento ? new Date(config.certificado_vencimento).toLocaleDateString('pt-BR') : 'N/A',
+                                'Auto-Vínculo': hasError ? 'Falhou' : 'Concluído'
+                            }
+                        });
+                    }
+                }}
+            />
 
             {/* Modal de Resultado */}
-            {resultModal.isOpen && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 overflow-hidden transform transition-all scale-100 animate-in fade-in zoom-in duration-200">
-                        <div className={clsx(
-                            "p-8 flex flex-col items-center text-center",
-                            resultModal.type === 'success' ? "bg-emerald-50/50 dark:bg-emerald-900/10" :
-                            resultModal.type === 'error' ? "bg-red-50/50 dark:bg-red-900/10" : "bg-blue-50/50 dark:bg-blue-900/10"
-                        )}>
-                            <div className={clsx(
-                                "w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-sm",
-                                resultModal.type === 'success' ? "bg-emerald-100 text-emerald-600" :
-                                resultModal.type === 'error' ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
-                            )}>
-                                {resultModal.type === 'success' && <CheckCircle size={40} />}
-                                {resultModal.type === 'error' && <XCircle size={40} />}
-                                {resultModal.type === 'info' && <Info size={40} />}
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
-                                {resultModal.title}
-                            </h3>
-                            <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed">
-                                {resultModal.message}
-                            </p>
-                        </div>
-
-                        {resultModal.data && (
-                            <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-                                <div className="space-y-4">
-                                    {Object.entries(resultModal.data).map(([key, value]) => (
-                                        <div key={key} className="flex flex-col gap-1">
-                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{key}</span>
-                                            <span className="text-sm text-slate-900 dark:text-slate-200 font-mono bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/50 break-all">
-                                                {value || '---'}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-center">
-                            <Button 
-                                onClick={() => setResultModal(prev => ({ ...prev, isOpen: false }))}
-                                className={clsx(
-                                    "w-full py-3 text-base font-bold transition-all shadow-md active:scale-95",
-                                    resultModal.type === 'success' ? "bg-emerald-600 hover:bg-emerald-700 text-white" :
-                                    resultModal.type === 'error' ? "bg-red-600 hover:bg-red-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                                )}
-                            >
-                                OK, Entendido
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ResultModal
+                isOpen={resultModal.isOpen}
+                onClose={() => setResultModal(prev => ({ ...prev, isOpen: false }))}
+                title={resultModal.title}
+                message={resultModal.message}
+                type={resultModal.type}
+                data={resultModal.data}
+            />
         </>
     );
 }

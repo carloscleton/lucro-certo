@@ -27,6 +27,10 @@ import { AgendaTasksWidget } from '../components/dashboard/AgendaTasksWidget';
 import { SettleModal } from '../components/transactions/SettleModal';
 import { DashboardGauges } from '../components/dashboard/DashboardGauges';
 import { TopPerformingWidget } from '../components/dashboard/TopPerformingWidget';
+import { ChoiceModal } from '../components/ui/ChoiceModal';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
+import { ResultModal } from '../components/ui/ResultModal';
+import { Trash2, CalendarRange, ListChecks } from 'lucide-react';
 
 export function Dashboard() {
     const { profile } = useAuth();
@@ -35,51 +39,63 @@ export function Dashboard() {
     const { deleteTransaction: deleteExpense, updateTransaction: updateExpense } = useTransactions('expense');
     const { deleteTransaction: deleteIncome, updateTransaction: updateIncome } = useTransactions('income');
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = (id: string) => {
         const transaction = transactions.find(t => t.id === id);
         if (!transaction) return;
 
-        let scope: 'single' | 'future' | 'all' = 'single';
-
+        setTransactionToDelete(transaction);
         if (transaction.recurrence_group_id) {
-            const choice = window.prompt(
-                'Lançamento Recorrente detectado. O que deseja apagar?\n\n' +
-                '1 - APENAS este Lançamento\n' +
-                '2 - Este e os FUTUROS (A partir desta data)\n' +
-                '3 - TODOS (Histórico completo desta repetição)\n\n' +
-                'Digite o número da opção desejada:'
-            );
-
-            if (choice === null) return; // Cancelled
-
-            if (choice === '2') {
-                scope = 'future';
-            } else if (choice === '3') {
-                scope = 'all';
-            } else if (choice !== '1') {
-                alert('Opção inválida. Operação cancelada.');
-                return;
-            }
+            setRecurrenceChoiceOpen(true);
         } else {
-            if (!confirm(t('common.confirm_delete'))) {
-                return;
-            }
+            setDeleteConfirmOpen(true);
         }
+    };
 
+    const executeDelete = async (scope: 'single' | 'future' | 'all' = 'single') => {
+        if (!transactionToDelete) return;
+
+        setIsDeleting(true);
         try {
-            if (transaction.type === 'expense') {
-                await deleteExpense(id, scope);
+            if (transactionToDelete.type === 'expense') {
+                await deleteExpense(transactionToDelete.id, scope);
             } else {
-                await deleteIncome(id, scope);
+                await deleteIncome(transactionToDelete.id, scope);
             }
+            
+            setDeleteConfirmOpen(false);
+            setRecurrenceChoiceOpen(false);
+            setTransactionToDelete(null);
+            
             refreshDashboard();
+            setResultModal({
+                isOpen: true,
+                title: 'Lançamento Removido',
+                message: 'A operação foi concluída com sucesso.',
+                type: 'success'
+            });
         } catch (error: any) {
-            alert(error.message || t('common.delete_error'));
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Exclusão',
+                message: error.message || t('common.delete_error'),
+                type: 'error'
+            });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     const [settleModalOpen, setSettleModalOpen] = useState(false);
     const [selectedTransactionForSettle, setSelectedTransactionForSettle] = useState<any>(null);
+
+    // Modal States for Deletion
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [recurrenceChoiceOpen, setRecurrenceChoiceOpen] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error'}>({
+        isOpen: false, title: '', message: '', type: 'success'
+    });
 
     const handleQuickPayClick = (id: string) => {
         const transaction = transactions.find(t => t.id === id);
@@ -117,7 +133,12 @@ export function Dashboard() {
             }
             refreshDashboard();
         } catch (error: any) {
-            alert(error.message || 'Erro ao atualizar transação');
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Operação',
+                message: error.message || 'Erro ao atualizar transação',
+                type: 'error'
+            });
             throw error;
         }
     };
@@ -422,6 +443,59 @@ export function Dashboard() {
                     isVariableAmount={selectedTransactionForSettle.is_variable_amount}
                 />
             )}
+
+            {/* Premium Confirmation for Deletion */}
+            <ConfirmationModal
+                isOpen={deleteConfirmOpen}
+                onClose={() => setDeleteConfirmOpen(false)}
+                onConfirm={() => executeDelete('single')}
+                title="Confirmar Exclusão"
+                message={t('common.confirm_delete') || 'Deseja realmente remover este lançamento? Esta ação não pode ser desfeita.'}
+                variant="danger"
+                confirmLabel="Sim, Excluir"
+                isLoading={isDeleting}
+            />
+
+            {/* Premium Choice for Recurrence */}
+            <ChoiceModal
+                isOpen={recurrenceChoiceOpen}
+                onClose={() => setRecurrenceChoiceOpen(false)}
+                title="Lançamento Recorrente"
+                description="Identificamos que este item faz parte de uma série. O que deseja apagar?"
+                choices={[
+                    { 
+                        id: 'single', 
+                        label: 'Apenas este lançamento', 
+                        description: 'Remove somente a data selecionada.',
+                        icon: <Trash2 size={18} />,
+                        variant: 'danger'
+                    },
+                    { 
+                        id: 'future', 
+                        label: 'Este e os futuros', 
+                        description: 'Preserva o histórico, remove daqui para frente.',
+                        icon: <CalendarRange size={18} />,
+                        variant: 'danger'
+                    },
+                    { 
+                        id: 'all', 
+                        label: 'Todos da série', 
+                        description: 'Remove o histórico completo desta repetição.',
+                        icon: <ListChecks size={18} />,
+                        variant: 'danger'
+                    }
+                ]}
+                onSelect={(id) => executeDelete(id as any)}
+            />
+
+            {/* Result Reporting Modal */}
+            <ResultModal
+                isOpen={resultModal.isOpen}
+                onClose={() => setResultModal(prev => ({ ...prev, isOpen: false }))}
+                title={resultModal.title}
+                message={resultModal.message}
+                type={resultModal.type}
+            />
         </div>
     );
 }
