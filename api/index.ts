@@ -120,24 +120,22 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
 
         const form = new FormData();
         
-        // Configuração ultra-estrita conforme documentação
+        // Envio simplificado para compatibilidade máxima com Sandbox
         form.append('arquivo', file.buffer, {
-            filename: 'certificado.pfx',
-            contentType: 'application/x-pkcs12'
+            filename: 'certificado.pfx'
         });
         form.append('senha', String(senha));
+        form.append('email', 'suporte@lucrocerto.com.br'); // Campo as vezes exigido em sandbox
 
-        console.log(`📡 [REFATORADO] Enviando para: ${baseUrl}/certificado`);
+        console.log(`📡 [COMPATIBILIDADE] Enviando para: ${baseUrl}/certificado`);
 
         const response = await axios.post(`${baseUrl}/certificado`, form, {
             headers: {
                 ...form.getHeaders(),
-                'x-api-key': apiKey
+                'x-api-key': apiKey,
+                'X-API-KEY': apiKey
             },
-            // Aumentar o timeout e limites para garantir o envio
-            timeout: 30000,
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity
+            timeout: 30000
         });
 
         res.json(response.data);
