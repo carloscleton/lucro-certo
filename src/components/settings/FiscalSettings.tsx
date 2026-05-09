@@ -297,7 +297,7 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const result = await fiscalService.syncIssuer(currentEntity.id, config, token);
+            await fiscalService.syncIssuer(currentEntity.id, config, token);
             // REMOVIDO: await refreshEntity(); - Evita fechar modal por remount
             
             setResultModal({
