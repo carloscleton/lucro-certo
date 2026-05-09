@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
-import { Building2, Search, MapPin, Upload, ShieldCheck } from 'lucide-react';
+import { Building2, Search, MapPin, Upload } from 'lucide-react';
 import type { Company } from '../../hooks/useCompanies';
 import { useNotification } from '../../context/NotificationContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
@@ -53,9 +53,6 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [searchStreet, setSearchStreet] = useState('');
     const [cepResults, setCepResults] = useState<any[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
-    
-    // Fiscal Module State
-    const [fiscalModuleEnabled, setFiscalModuleEnabled] = useState(false);
 
     const handleCNPJLookup = async (cnpjValue: string) => {
         const clean = cnpjValue.replace(/\D/g, '');
@@ -109,7 +106,6 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setPhone(formatPhoneFromDB(initialData.phone));
             setLoyaltyModuleEnabled(initialData.loyalty_module_enabled || false);
             setLogoFile(null);
-            setFiscalModuleEnabled(initialData.fiscal_module_enabled || false);
         } else if (isOpen) {
             // Pre-fill from profile for new company if open
             const isPFProfile = profile?.user_type === 'PF';
@@ -156,15 +152,13 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
         'company_form',
         { 
             tradeName, legalName, cnpj, entityType, cpf, zipCode, street, number, complement, 
-            neighborhood, city, state, phone, loyaltyModuleEnabled, 
-            fiscalModuleEnabled
+            neighborhood, city, state, phone, loyaltyModuleEnabled
         },
         {
             tradeName: setTradeName, legalName: setLegalName, cnpj: setCnpj, entityType: setEntityType as any,
             cpf: setCpf, zipCode: setZipCode, street: setStreet, number: setNumber,
             complement: setComplement, neighborhood: setNeighborhood, city: setCity,
-            state: setState, phone: setPhone, loyaltyModuleEnabled: setLoyaltyModuleEnabled,
-            fiscalModuleEnabled: setFiscalModuleEnabled
+            state: setState, phone: setPhone, loyaltyModuleEnabled: setLoyaltyModuleEnabled
         },
         !initialData,
         isOpen
@@ -268,7 +262,6 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 city: city || null,
                 state: state || null,
                 loyalty_module_enabled: loyaltyModuleEnabled,
-                fiscal_module_enabled: fiscalModuleEnabled,
                 logo_url: logoUrl || null,
                 logo_file: logoFile,
             });
@@ -561,25 +554,6 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                                 </label>
                             </div>
                         )}
-
-                        <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                            <div>
-                                <p className="text-sm font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                                    <ShieldCheck size={18} className="text-blue-600" />
-                                    Módulo Fiscal (TecnoSpeed)
-                                </p>
-                                <p className="text-xs text-blue-600 dark:text-blue-400">Ativa emissão de NF-e e NFS-e via PlugNotas</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={fiscalModuleEnabled}
-                                    onChange={e => setFiscalModuleEnabled(e.target.checked)}
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                            </label>
-                        </div>
                     </div>
                 </div>
 
