@@ -266,7 +266,7 @@ export function FiscalSettings() {
 
     return (
         <>
-            <div className="space-y-6">
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
                 {/* Módulo Toggle */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <div className="p-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50 flex items-center justify-between">
@@ -607,6 +607,7 @@ export function FiscalSettings() {
                                     />
                                 </div>
                                 <Button
+                                    type="button"
                                     variant="outline"
                                     onClick={handleUploadCertificate}
                                     isLoading={uploadingCert}
@@ -630,6 +631,7 @@ export function FiscalSettings() {
                         </a>
                         <div className="flex gap-2">
                             <Button
+                                type="button"
                                 variant="ghost"
                                 onClick={handleCheckIssuerStatus}
                                 isLoading={checkingStatus}
@@ -639,6 +641,7 @@ export function FiscalSettings() {
                                 Verificar Status
                             </Button>
                             <Button
+                                type="button"
                                 variant="outline"
                                 onClick={handleSyncIssuer}
                                 isLoading={syncing}
@@ -647,14 +650,14 @@ export function FiscalSettings() {
                                 <RefreshCw size={18} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
                                 Sincronizar Emitente
                             </Button>
-                            <Button onClick={handleSave} isLoading={saving} className="bg-indigo-600 hover:bg-indigo-700">
+                            <Button type="submit" isLoading={saving} className="bg-indigo-600 hover:bg-indigo-700">
                                 <Save size={18} className="mr-2" />
                                 Salvar Configurações
                             </Button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </form>
 
             {/* Modal de Diagnóstico */}
             {diagnostic.isOpen && (
