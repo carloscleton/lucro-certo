@@ -106,18 +106,20 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         const { Blob } = await import('buffer');
         
         const formData = new FormData();
-        const blob = new Blob([file.buffer], { type: 'application/octet-stream' });
+        // Usar o buffer diretamente como Blob sem especificar o type
+        const blob = new Blob([file.buffer]);
         
         formData.append('arquivo', blob as any, 'certificado.pfx');
         formData.append('senha', String(senha));
 
-        console.log(`🚀 Sending to PlugNotas via NATIVE FETCH & FORMDATA: ${baseUrl}/certificado`);
+        console.log(`🚀 Final attempt via NATIVE FETCH: ${baseUrl}/certificado`);
 
         const response = await fetch(`${baseUrl}/certificado`, {
             method: 'POST',
             headers: {
                 'X-API-KEY': apiKey,
-                'x-api-key': apiKey
+                'x-api-key': apiKey,
+                'Accept': 'application/json'
             },
             body: formData as any
         });
