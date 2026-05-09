@@ -778,7 +778,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
             simplesNacional: config.regime_tributario === '1',
             regimeTributario: parseInt(config.regime_tributario) || 1,
             email: config.email,
-            certificado: config.certificado_id,
+            certificado: config.certificado_id || config.certificado, // Aceita ambos os formatos por segurança
             telefone: {
                 ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '00',
                 numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '000000000'
@@ -809,6 +809,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
 
         let response;
         try {
+            console.log(`📤 [FISCAL] Vinculando Certificado: ${issuerPayload.certificado || 'NÃO INFORMADO'}`);
             console.log('📤 Enviando payload para PlugNotas:', JSON.stringify(issuerPayload, null, 2));
             response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
                 headers: {
@@ -816,6 +817,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
                     'x-api-key': apiKey
                 }
             });
+            console.log('✅ [FISCAL] Resposta Sucesso (POST):', response.data?.message || 'Empresa criada/vinculada');
         } catch (postErr: any) {
             const postErrorData = postErr.response?.data;
             console.error('❌ Erro no POST /empresa:', JSON.stringify(postErrorData, null, 2));
@@ -830,6 +832,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
                             'x-api-key': apiKey
                         }
                     });
+                    console.log('✅ [FISCAL] Resposta Sucesso (PUT):', response.data?.message || 'Empresa atualizada');
                 } catch (putErr: any) {
                     const putErrorData = putErr.response?.data;
                     console.error('❌ Erro no PUT /empresa:', JSON.stringify(putErrorData, null, 2));

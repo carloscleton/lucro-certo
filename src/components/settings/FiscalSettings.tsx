@@ -234,9 +234,19 @@ export function FiscalSettings() {
             try {
                 const syncResult = await fiscalService.syncIssuer(currentEntity.id, {
                     ...config,
-                    certificado_id: response.data?.id
+                    certificado_id: response.id
                 }, token);
-                
+
+                // ATUALIZAR ESTADO LOCAL IMEDIATAMENTE
+                const updatedConfig = {
+                    ...config,
+                    certificado_id: response.id, // O backend retorna 'id' na raiz do objeto
+                    certificado_vencimento: response.vencimento,
+                    certificado_sujeito: response.sujeito,
+                    certificado_status: 'ativo'
+                };
+                setConfig(updatedConfig);
+
                 setDiagnostic(prev => ({
                     ...prev,
                     steps: prev.steps.map((s, i) => i === 3 ? { ...s, status: 'success' } : s),
@@ -244,6 +254,16 @@ export function FiscalSettings() {
                 }));
             } catch (syncErr: any) {
                 console.warn('Falha no auto-sync, mas o certificado foi enviado:', syncErr);
+                
+                // Mesmo se o sync falhar, vamos atualizar o estado com o ID que subiu
+                setConfig(prev => ({
+                    ...prev,
+                    certificado_id: response.id,
+                    certificado_vencimento: response.vencimento,
+                    certificado_sujeito: response.sujeito,
+                    certificado_status: 'ativo'
+                }));
+
                 setDiagnostic(prev => ({
                     ...prev,
                     steps: prev.steps.map((s, i) => i === 3 ? { ...s, status: 'error', msg: 'Vínculo manual necessário' } : s),
