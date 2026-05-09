@@ -200,29 +200,48 @@ export function FiscalSettings() {
             
             setDiagnostic(prev => ({
                 ...prev,
-                steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'success' } : s),
-                logs: [...prev.logs, 'Resposta recebida do Backend: ' + JSON.stringify(response)]
+                steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'loading' } : s),
+                logs: [...prev.logs, 'Certificado recebido! Iniciando vínculo automático com a TecnoSpeed...']
             }));
+            
+            // Vincular automaticamente o certificado ao emitente
+            try {
+                const syncResult = await fiscalService.syncIssuer(currentEntity.id, {
+                    ...config,
+                    certificado_id: response.data?.id
+                }, token);
+                
+                setDiagnostic(prev => ({
+                    ...prev,
+                    steps: prev.steps.map((s, i) => i === 3 ? { ...s, status: 'success' } : s),
+                    logs: [...prev.logs, 'Vínculo concluído com sucesso!', 'Resposta Sync: ' + JSON.stringify(syncResult)]
+                }));
+            } catch (syncErr: any) {
+                console.warn('Falha no auto-sync, mas o certificado foi enviado:', syncErr);
+                setDiagnostic(prev => ({
+                    ...prev,
+                    steps: prev.steps.map((s, i) => i === 3 ? { ...s, status: 'error', msg: 'Vínculo manual necessário' } : s),
+                    logs: [...prev.logs, 'AVISO: O certificado subiu, mas falhou ao vincular automaticamente. Clique em "Sincronizar Emitente" manualmente.']
+                }));
+            }
             
             if (fileInputRef.current) fileInputRef.current.value = '';
             setCertPassword('');
             
             await refreshEntity();
             
-            setTimeout(() => {
-                setDiagnostic(prev => ({ ...prev, isOpen: false }));
-                setResultModal({
-                    isOpen: true,
-                    title: 'Certificado Enviado',
-                    message: 'O certificado digital foi processado com sucesso pela TecnoSpeed.',
-                    type: 'success',
-                    data: {
-                        'ID PlugNotas': response.data?.id,
-                        'Vencimento': response.data?.vencimento ? new Date(response.data.vencimento).toLocaleDateString('pt-BR') : 'Não informado',
-                        'Titular': response.data?.sujeito || 'N/A'
-                    }
-                });
-            }, 1000);
+            // Removemos o setTimeout automático para o modal não "fugir"
+            setResultModal({
+                isOpen: true,
+                title: 'Processo Concluído',
+                message: 'O certificado foi enviado e o vínculo com o emitente foi solicitado.',
+                type: 'success',
+                data: {
+                    'ID PlugNotas': response.data?.id,
+                    'Vencimento': response.data?.vencimento ? new Date(response.data.vencimento).toLocaleDateString('pt-BR') : 'Não informado',
+                    'Vínculo': 'Solicitado (Auto-Sync)'
+                }
+            });
         } catch (error: any) {
             console.error('Cert upload error:', error);
             const data = error.response?.data;
