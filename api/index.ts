@@ -101,11 +101,12 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         console.log(`🔐 Uploading certificate for company ${companyId} to ${baseUrl}...`);
 
         const form = new FormData();
-        const sanitizedFilename = (file.originalname || 'certificado.pfx').replace(/\s+/g, '_').replace(/[^\w.-]/g, '').toLowerCase();
+        // Forçar um nome extremamente simples para evitar erros de leitura na TecnoSpeed
+        const simpleFilename = 'certificado.pfx';
         
         form.append('arquivo', file.buffer, {
-            filename: sanitizedFilename,
-            contentType: file.mimetype || 'application/x-pkcs12',
+            filename: simpleFilename,
+            contentType: 'application/x-pkcs12',
         });
         form.append('senha', senha);
 
