@@ -138,6 +138,28 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
             timeout: 30000
         });
 
+        const certId = response.data?.data?.id || response.data?.id;
+
+        // SALVAR O ID DO CERTIFICADO NO BANCO DE DADOS LOCAL
+        if (certId && SUPABASE_URL) {
+            try {
+                await axios.patch(`${SUPABASE_URL}/rest/v1/company_fiscal_configs?company_id=eq.${companyId}`, {
+                    certificado_id: certId,
+                    certificado_status: 'ativo',
+                    ultima_atualizacao: new Date().toISOString()
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log(`✅ ID do Certificado (${certId}) salvo no banco de dados local.`);
+            } catch (dbErr: any) {
+                console.warn('⚠️ Não foi possível salvar o ID do certificado no banco local:', dbErr.message);
+            }
+        }
+
         res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
@@ -738,6 +760,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
             simplesNacional: config.regime_tributario === '1',
             regimeTributario: parseInt(config.regime_tributario) || 1,
             email: config.email,
+            certificado: config.certificado_id,
             telefone: {
                 ddd: config.telefone?.replace(/\D/g, '').substring(0, 2) || '00',
                 numero: config.telefone?.replace(/\D/g, '').substring(2) || '000000000'
