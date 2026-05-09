@@ -118,34 +118,29 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         console.log(`🔐 DEBUG: Usando API Key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
         console.log(`🔐 DEBUG: Enviando para: ${baseUrl}`);
 
-        const { Blob } = await import('buffer');
+        const form = new FormData();
         
-        const formData = new FormData();
-        // Usar o buffer diretamente como Blob sem especificar o type
-        const blob = new Blob([file.buffer]);
-        
-        formData.append('arquivo', blob as any, 'certificado.pfx');
-        formData.append('senha', String(senha));
+        // Configuração ultra-estrita conforme documentação
+        form.append('arquivo', file.buffer, {
+            filename: 'certificado.pfx',
+            contentType: 'application/x-pkcs12'
+        });
+        form.append('senha', String(senha));
 
-        console.log(`🚀 Final attempt via NATIVE FETCH: ${baseUrl}/certificado`);
+        console.log(`📡 [REFATORADO] Enviando para: ${baseUrl}/certificado`);
 
-        const response = await fetch(`${baseUrl}/certificado`, {
-            method: 'POST',
+        const response = await axios.post(`${baseUrl}/certificado`, form, {
             headers: {
-                'X-API-KEY': apiKey,
-                'x-api-key': apiKey,
-                'Accept': 'application/json'
+                ...form.getHeaders(),
+                'x-api-key': apiKey
             },
-            body: formData as any
+            // Aumentar o timeout e limites para garantir o envio
+            timeout: 30000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
         });
 
-        const responseData = await response.json();
-
-        if (!response.ok) {
-            throw { response: { status: response.status, data: responseData } };
-        }
-
-        res.json(responseData);
+        res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));
