@@ -103,27 +103,23 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
 
         console.log(`🔐 Uploading certificate for company ${companyId} to ${baseUrl} (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
 
-        const form = new FormData();
-        const simpleFilename = 'certificado.pfx';
+        const { Blob } = await import('buffer');
         
-        form.append('arquivo', file.buffer, {
-            filename: simpleFilename,
-            contentType: 'application/x-pkcs12',
-            knownLength: file.size
-        });
-        form.append('senha', String(senha));
+        const formData = new FormData();
+        const blob = new Blob([file.buffer], { type: 'application/octet-stream' });
+        
+        formData.append('arquivo', blob as any, 'certificado.pfx');
+        formData.append('senha', String(senha));
 
-        console.log(`🚀 Sending to PlugNotas via FETCH: ${baseUrl}/certificado`);
+        console.log(`🚀 Sending to PlugNotas via NATIVE FETCH & FORMDATA: ${baseUrl}/certificado`);
 
-        // Usar fetch nativo para maior compatibilidade com multipart no Vercel
         const response = await fetch(`${baseUrl}/certificado`, {
             method: 'POST',
             headers: {
                 'X-API-KEY': apiKey,
-                'x-api-key': apiKey,
-                ...form.getHeaders()
+                'x-api-key': apiKey
             },
-            body: form as any
+            body: formData as any
         });
 
         const responseData = await response.json();
