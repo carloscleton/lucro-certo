@@ -784,13 +784,13 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
                 numero: config.telefone?.replace(/\D/g, '').substring(2) || '000000000'
             },
             endereco: {
-                logradouro: config.logradouro || '',
-                numero: config.numero || 'SN',
-                bairro: config.bairro || '',
-                cep: config.cep?.replace(/\D/g, '') || '',
-                codigoCidade: config.codigo_municipio || '',
-                estado: config.uf || '',
-                complemento: config.complemento || ''
+                logradouro: config.endereco?.logradouro || config.logradouro || '',
+                numero: config.endereco?.numero || config.numero || 'SN',
+                bairro: config.endereco?.bairro || config.bairro || '',
+                cep: (config.endereco?.cep || config.cep)?.replace(/\D/g, '') || '',
+                codigoCidade: config.endereco?.codigoCidade || config.codigo_municipio || '',
+                uf: config.endereco?.uf || config.uf || '',
+                complemento: config.endereco?.complemento || config.complemento || ''
             },
             nfse: {
                 ativo: true,
