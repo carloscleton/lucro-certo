@@ -152,7 +152,7 @@ export function FiscalSettings() {
                 logs: [...prev.logs, 'Sessão autenticada']
             }));
 
-            const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token);
+            const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token, config);
             
             setDiagnostic(prev => ({
                 ...prev,

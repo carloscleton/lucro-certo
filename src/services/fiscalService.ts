@@ -88,11 +88,14 @@ export const fiscalService = {
         return response.data;
     },
 
-    async uploadCertificate(companyId: string, certificateFile: File, password: string, token: string) {
+    async uploadCertificate(companyId: string, certificateFile: File, password: string, token: string, config?: any) {
         const formData = new FormData();
         formData.append('companyId', companyId);
         formData.append('arquivo', certificateFile);
         formData.append('senha', password);
+        if (config) {
+            formData.append('config', JSON.stringify(config));
+        }
 
         const response = await axios.post(getFiscalUrl('upload-certificate'), formData, {
             headers: {
