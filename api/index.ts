@@ -140,13 +140,21 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
 
         const certId = response.data?.data?.id || response.data?.id;
 
-        // SALVAR O ID DO CERTIFICADO NO BANCO DE DADOS LOCAL
+        // SALVAR O ID DO CERTIFICADO NO BANCO DE DADOS LOCAL (JSONB na tabela companies)
         if (certId && SUPABASE_URL) {
             try {
-                await axios.patch(`${SUPABASE_URL}/rest/v1/company_fiscal_configs?company_id=eq.${companyId}`, {
+                // 1. Buscar config atual para não sobrescrever outros campos
+                const currentConfig = config || {};
+                const updatedConfig = {
+                    ...currentConfig,
                     certificado_id: certId,
                     certificado_status: 'ativo',
                     ultima_atualizacao: new Date().toISOString()
+                };
+
+                // 2. Atualizar no Supabase
+                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                    tecnospeed_config: updatedConfig
                 }, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY!,
@@ -154,7 +162,7 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
                         'Content-Type': 'application/json'
                     }
                 });
-                console.log(`✅ ID do Certificado (${certId}) salvo no banco de dados local.`);
+                console.log(`✅ ID do Certificado (${certId}) salvo no JSONB da empresa.`);
             } catch (dbErr: any) {
                 console.warn('⚠️ Não foi possível salvar o ID do certificado no banco local:', dbErr.message);
             }
