@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import clsx from 'clsx';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Terminal, CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -17,6 +18,15 @@ export function FiscalSettings() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [certPassword, setCertPassword] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
+    const [diagnostic, setDiagnostic] = useState<{
+        isOpen: boolean;
+        steps: { title: string; status: 'pending' | 'loading' | 'success' | 'error'; msg?: string }[];
+        logs: string[];
+    }>({
+        isOpen: false,
+        steps: [],
+        logs: []
+    });
 
     const [config, setConfig] = useState({
         cnpj: '',
@@ -112,14 +122,44 @@ export function FiscalSettings() {
         }
 
         setUploadingCert(true);
+        setDiagnostic({
+            isOpen: true,
+            steps: [
+                { title: 'Validando dados locais', status: 'loading' },
+                { title: 'Autenticando sessão', status: 'pending' },
+                { title: 'Enviando para Backend', status: 'pending' },
+                { title: 'Processando na TecnoSpeed', status: 'pending' }
+            ],
+            logs: [`Iniciando upload de ${file.name}`]
+        });
+
         try {
+            // Passo 1: Validar dados locais
+            if (!certPassword) throw new Error('Senha do certificado não informada');
+            setDiagnostic(prev => ({
+                ...prev,
+                steps: prev.steps.map((s, i) => i === 0 ? { ...s, status: 'success' } : i === 1 ? { ...s, status: 'loading' } : s),
+                logs: [...prev.logs, 'Dados locais validados']
+            }));
+
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token);
+            setDiagnostic(prev => ({
+                ...prev,
+                steps: prev.steps.map((s, i) => i === 1 ? { ...s, status: 'success' } : i === 2 ? { ...s, status: 'loading' } : s),
+                logs: [...prev.logs, 'Sessão autenticada']
+            }));
+
+            const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token);
             
-            // Atualizar config local para marcar que o certificado foi enviado
+            setDiagnostic(prev => ({
+                ...prev,
+                steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'success' } : s),
+                logs: [...prev.logs, 'Resposta recebida do Backend: ' + JSON.stringify(response)]
+            }));
+            
             const newConfig = { ...config, certificado_enviado: true, certificado_data_upload: new Date().toISOString() };
             await updateCompany(currentEntity.id, {
                 tecnospeed_config: newConfig
@@ -129,12 +169,24 @@ export function FiscalSettings() {
             alert('Certificado Digital enviado com sucesso!');
             if (fileInputRef.current) fileInputRef.current.value = '';
             setCertPassword('');
+            setTimeout(() => setDiagnostic(prev => ({ ...prev, isOpen: false })), 2000);
         } catch (error: any) {
             console.error('Cert upload error:', error);
             const data = error.response?.data;
+            const debug = data?.debug;
             const msg = data?.detail ? (typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail) : 
                         data?.error ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) : 
                         error.message;
+
+            setDiagnostic(prev => ({
+                ...prev,
+                steps: prev.steps.map(s => s.status === 'loading' ? { ...s, status: 'error', msg } : s),
+                logs: [
+                    ...prev.logs, 
+                    `ERRO: ${msg}`,
+                    debug ? `DEBUG INFO: ${JSON.stringify(debug, null, 2)}` : 'Sem info de debug adicional'
+                ]
+            }));
             alert('Erro ao enviar certificado: ' + msg);
         } finally {
             setUploadingCert(false);
@@ -552,7 +604,81 @@ export function FiscalSettings() {
                     </Button>
                 </div>
             </div>
-            </div>
         </div>
+
+        {/* Modal de Diagnóstico */}
+        {diagnostic.isOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                        <div className="flex items-center gap-2">
+                            <Terminal size={20} className="text-indigo-600" />
+                            <h3 className="font-bold text-slate-800 dark:text-white">Diagnóstico de Envio</h3>
+                        </div>
+                        <button 
+                            onClick={() => setDiagnostic(prev => ({ ...prev, isOpen: false }))}
+                            className="text-slate-400 hover:text-slate-600"
+                        >
+                            <XCircle size={24} />
+                        </button>
+                    </div>
+
+                    <div className="p-6 space-y-6">
+                        {/* Passos */}
+                        <div className="space-y-4">
+                            {diagnostic.steps.map((step, idx) => (
+                                <div key={idx} className="flex items-start gap-3">
+                                    <div className="mt-0.5">
+                                        {step.status === 'loading' && <Loader2 size={18} className="text-blue-500 animate-spin" />}
+                                        {step.status === 'success' && <CheckCircle size={18} className="text-green-500" />}
+                                        {step.status === 'error' && <XCircle size={18} className="text-red-500" />}
+                                        {step.status === 'pending' && <div className="w-[18px] h-[18px] rounded-full border-2 border-slate-200 dark:border-slate-700" />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className={clsx(
+                                            "text-sm font-medium",
+                                            step.status === 'loading' ? "text-blue-600" :
+                                            step.status === 'success' ? "text-green-600" :
+                                            step.status === 'error' ? "text-red-600" : "text-slate-400"
+                                        )}>
+                                            {step.title}
+                                        </p>
+                                        {step.msg && <p className="text-xs text-red-400 mt-1">{step.msg}</p>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Logs */}
+                        <div className="bg-slate-950 rounded-lg p-4 font-mono text-[10px] text-slate-300 h-40 overflow-y-auto border border-slate-800">
+                            <div className="flex items-center gap-2 mb-2 text-slate-500 border-b border-slate-800 pb-1">
+                                <Info size={12} />
+                                <span>LOGS TÉCNICOS</span>
+                            </div>
+                            {diagnostic.logs.map((log, idx) => (
+                                <div key={idx} className="mb-1 leading-relaxed">
+                                    <span className="text-indigo-500 mr-2">[{new Date().toLocaleTimeString()}]</span>
+                                    {log}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+                        <Button 
+                            onClick={() => {
+                                const text = diagnostic.logs.join('\n');
+                                navigator.clipboard.writeText(text);
+                                alert('Logs copiados para a área de transferência!');
+                            }}
+                            variant="outline"
+                            className="text-xs h-8"
+                        >
+                            Copiar Logs de Diagnóstico
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )}
     );
 }
