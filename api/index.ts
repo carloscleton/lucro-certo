@@ -113,17 +113,26 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         });
         form.append('senha', String(senha));
 
-        const response = await axios.post(`${baseUrl}/certificado`, form, {
+        console.log(`🚀 Sending to PlugNotas via FETCH: ${baseUrl}/certificado`);
+
+        // Usar fetch nativo para maior compatibilidade com multipart no Vercel
+        const response = await fetch(`${baseUrl}/certificado`, {
+            method: 'POST',
             headers: {
-                ...form.getHeaders(),
                 'X-API-KEY': apiKey,
-                'x-api-key': apiKey
+                'x-api-key': apiKey,
+                ...form.getHeaders()
             },
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity
+            body: form as any
         });
 
-        res.json(response.data);
+        const responseData = await response.json();
+
+        if (!response.ok) {
+            throw { response: { status: response.status, data: responseData } };
+        }
+
+        res.json(responseData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro no upload do certificado:', JSON.stringify(errorDetail, null, 2));

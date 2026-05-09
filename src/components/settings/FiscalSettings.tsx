@@ -136,10 +136,21 @@ export function FiscalSettings() {
         try {
             // Passo 1: Validar dados locais
             if (!certPassword) throw new Error('Senha do certificado não informada');
+            const isSandbox = config.ambiente === 'homologacao';
+            const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+            const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+            const maskedKey = config.tecnospeed_api_key ? `${config.tecnospeed_api_key.substring(0, 4)}...${config.tecnospeed_api_key.substring(config.tecnospeed_api_key.length - 4)}` : 'NÃO INFORMADA';
+
             setDiagnostic(prev => ({
                 ...prev,
                 steps: prev.steps.map((s, i) => i === 0 ? { ...s, status: 'success' } : i === 1 ? { ...s, status: 'loading' } : s),
-                logs: [...prev.logs, 'Dados locais validados']
+                logs: [
+                    ...prev.logs, 
+                    'Dados locais validados',
+                    `Ambiente: ${config.ambiente?.toUpperCase()}`,
+                    `URL Alvo: ${baseUrl}/certificado`,
+                    `API Key: ${maskedKey}`
+                ]
             }));
 
             const session = await supabase.auth.getSession();
