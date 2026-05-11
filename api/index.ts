@@ -405,6 +405,13 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 }
             }
         } catch (error: any) {
+            const errorDetail = error.response?.data || error.message;
+            console.error('❌ [FISCAL-SYNC] Erro na TecnoSpeed:', JSON.stringify(errorDetail, null, 2));
+            return res.status(error.response?.status || 500).json({ 
+                error: error.message, 
+                detail: errorDetail 
+            });
+        }
 
         // --- PERSISTÊNCIA: Salvar configuração atualizada no Supabase ---
         if (companyId && SUPABASE_URL) {
@@ -425,14 +432,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         }
 
         res.json({ ...response.data, proxy_version: '1.0.10', synced_id: issuerPayload.certificado });
-    } catch (error: any) {
-        const errorDetail = error.response?.data || error.message;
-        console.error('❌ [FISCAL-SYNC] Erro na TecnoSpeed:', JSON.stringify(errorDetail, null, 2));
-        
-        res.status(error.response?.status || 500).json({ 
-            error: error.message, 
-            detail: errorDetail
-        });
+    } catch (outerError: any) {
+        res.status(500).json({ error: outerError.message });
     }
 });
 
