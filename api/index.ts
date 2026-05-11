@@ -44,7 +44,7 @@ app.use((req, res, next) => {
         req.url = '/';
     }
     
-    console.log(`[Proxy] ${req.method} ${oldUrl} -> ${req.url}`);
+    console.log(`[Proxy] ${req.method} | Path: ${req.path} | URL: ${oldUrl} -> ${req.url}`);
     next();
 });
 
@@ -94,11 +94,11 @@ const sanitizeKey = (val: any) => {
 // --- ENDPOINTS FISCAIS (TecnoSpeed PlugNotas) ---
 // Movidos para o topo para garantir prioridade e depuração
 
-app.get('/fiscal/health', (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date() });
+app.get(['/fiscal/health', '/api/fiscal/health'], (req, res) => {
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.6' });
 });
 
-app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), async (req: any, res) => {
+app.post(['/fiscal/upload-certificate', '/api/fiscal/upload-certificate'], authenticate, upload.single('arquivo'), async (req: any, res) => {
     const { companyId, senha } = req.body;
     const authHeader = req.headers.authorization;
     const file = req.file;
@@ -760,7 +760,7 @@ app.post('/fiscal/emitir', authenticate, async (req, res) => {
     }
 });
 
-app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
+app.post(['/fiscal/sync-issuer', '/api/fiscal/sync-issuer'], authenticate, async (req, res) => {
     const { companyId, config } = req.body;
     const authHeader = req.headers.authorization;
 
@@ -860,7 +860,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
 
         res.json({
             ...response.data,
-            proxy_version: '1.0.5',
+            proxy_version: '1.0.6',
             synced_id: issuerPayload.certificado
         });
     } catch (error: any) {
