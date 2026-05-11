@@ -78,7 +78,8 @@ export function FiscalSettings() {
         certificado_id: '',
         certificado_vencimento: '',
         certificado_sujeito: '',
-        certificado_status: ''
+        certificado_status: '',
+        use_test_data: false
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -751,6 +752,28 @@ export function FiscalSettings() {
                                         <span className="text-sm">Produção (Real)</span>
                                     </label>
                                 </div>
+
+                                {config.ambiente === 'homologacao' && (
+                                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!config.use_test_data}
+                                                onChange={(e) => setConfig({ ...config, use_test_data: e.target.checked })}
+                                                className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                            />
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-blue-900 dark:text-blue-100">
+                                                    Ativar Dados de Teste TecnoSpeed (Maringá)
+                                                </span>
+                                                <span className="text-xs text-blue-700 dark:text-blue-300">
+                                                    Ao marcar, o sistema usará o CNPJ (08.184.315/0001-04) e endereço de teste da TecnoSpeed automaticamente. 
+                                                    Ideal para quando o IBGE da sua cidade não é aceito no Sandbox.
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
