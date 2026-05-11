@@ -255,24 +255,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const firstItem = Array.isArray(payload) ? payload[0] : payload;
         const targetCnpj = (firstItem?.prestador?.cpfCnpj || '').replace(/\D/g, '');
 
+        // --- AUTODESCORBERTA DE CERTIFICADO ---
+        let certId = config.certificado_id || config.certificadoId || config.certificado;
+        
         // --- DETECÇÃO DE MODO TESTE ---
-        const TEST_CNPJ = '08187168000160'; // CNPJ de Teste da TecnoSpeed S/A
+        const TEST_CNPJ = '08187168000160'; 
         const TEST_IM = '8214100099';
         
-        // Autodescoberta de certificado (já feita acima)
+        const hasCert = !!certId && certId !== 'null' && certId !== 'undefined';
         
-        // Modo teste é ativo se:
-        // 1. O usuário marcou explicitamente "Ativar Dados de Teste"
-        // 2. Estamos em Sandbox e NÃO temos um certificado (para evitar o erro que o usuário está vendo)
-        // 3. O CNPJ enviado já é um CNPJ de teste conhecido
+        // Se estivermos em Sandbox, a prioridade é FUNCIONAR. 
+        // Ativamos modo teste se:
+        // - config.use_test_data for true
+        // - isSandbox for true E não tivermos um certificado válido
+        // - O CNPJ já for um de teste
         const useTestData = (config.use_test_data === true) || 
-                          (isSandbox && !certId) || 
+                          (isSandbox && !hasCert) || 
                           (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
 
-        console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
-        
-        // --- CERTIFICADO ---
-        let certId = config.certificado_id || config.certificadoId || config.certificado;
+        console.log(`🧾 [FISCAL-EMITIR] Ambiente: ${config.ambiente} | Sandbox: ${isSandbox} | HasCert: ${hasCert} (${certId}) | UseTestData: ${useTestData}`);
 
         if (targetCnpj) {
             try {
