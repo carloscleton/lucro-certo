@@ -293,36 +293,38 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                     // 2. Mapear Prestador e Certificado
                     if (item.prestador) {
-                        // Usar o CNPJ real que veio do frontend (não forçar Maringá se a chave for privada)
-                        const itemCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
-                        item.prestador.cpfCnpj = itemCnpj;
-
-                        // Se for modo teste manual (config.use_test_data), podemos injetar IM de Maringá se estiver vazio
-                        if (useTestData && !item.prestador.inscricaoMunicipal) {
+                        if (useTestData) {
+                            console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Forçando CNPJ de Maringá).`);
+                            
+                            // Forçar CNPJ e IM de Maringá para garantir sucesso no Sandbox sem certificado
+                            item.prestador.cpfCnpj = TEST_CNPJ;
                             item.prestador.inscricaoMunicipal = '123456';
+                            
+                            // Maringá no Sandbox NÃO aceita o campo certificado (nem mesmo vazio)
+                            delete item.prestador.certificado; 
+                        } else {
+                            // Usar o CNPJ real que veio do frontend
+                            const itemCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
+                            item.prestador.cpfCnpj = itemCnpj;
+                            
+                            // Usar o certificado (prioridade para o descoberto/banco)
+                            item.prestador.certificado = certId || item.prestador.certificado;
                         }
-
-                        // USAR CERTIFICADO: 
-                        // Prioridade: 1. certId (pode ter vindo do banco ou autodescoberto) | 2. O que já estava no item
-                        const finalCertId = certId || item.prestador.certificado;
-                        item.prestador.certificado = finalCertId;
                         
-                        console.log(`🧾 [FISCAL-EMITIR] Prestador: ${item.prestador.cpfCnpj} | CertID Final: ${finalCertId || 'NÃO DEFINIDO'}`);
-                        
-                        if (!finalCertId && !useTestData) {
-                            console.warn(`⚠️ [FISCAL-EMITIR] AVISO: Nenhum ID de certificado encontrado para emissão em ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}.`);
-                        }
+                        console.log(`🧾 [FISCAL-EMITIR] Prestador: ${item.prestador.cpfCnpj} | CertID: ${item.prestador.certificado || 'N/A'}`);
                     }
 
-                // 3. Sanitizar e Completar Tomador (Cliente)
-                if (item.tomador) {
-                    if (item.tomador.cpfCnpj) {
-                        item.tomador.cpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
-                    }
+                // 3. Sanitizar Tomador (Cliente)
+                if (item.tomador && item.tomador.cpfCnpj) {
+                    item.tomador.cpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
                 }
 
-                // 4. Mapear Código IBGE da Cidade (Obrigatório)
-                if (item.servico && !item.servico.codigoIbge && item.codigoIbge) {
+                // 4. Mapear Código IBGE da Cidade (Obrigatório para NFS-e)
+                if (useTestData) {
+                    // Forçar o código de Maringá se for teste
+                    if (item.servico) item.servico.codigoIbge = '4115200';
+                    if (item.codigoIbge) item.codigoIbge = '4115200';
+                } else if (item.servico && !item.servico.codigoIbge && item.codigoIbge) {
                     item.servico.codigoIbge = item.codigoIbge;
                 }
 
