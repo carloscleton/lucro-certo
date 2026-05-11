@@ -293,19 +293,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 // 2. Mapear Prestador e Certificado
                 if (item.prestador) {
-                    if (useTestData) {
-                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Forçando dados de Maringá).`);
-                        
-                        // Forçar CNPJ e IM de Maringá para garantir sucesso no Sandbox
-                        item.prestador.cpfCnpj = TEST_CNPJ;
+                    // Usar o CNPJ real que veio do frontend (não forçar Maringá se a chave for privada)
+                    const itemCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
+                    item.prestador.cpfCnpj = itemCnpj;
+
+                    // Se for modo teste manual (config.use_test_data), podemos injetar IM de Maringá se estiver vazio
+                    if (useTestData && !item.prestador.inscricaoMunicipal) {
                         item.prestador.inscricaoMunicipal = '123456';
-                        
-                        // Maringá não aceita nem vazio em algumas versões de sandbox
-                        delete item.prestador.certificado; 
-                    } else {
-                        item.prestador.certificado = certId;
                     }
-                    console.log(`🧾 [DEBUG] Prestador final: ${item.prestador.cpfCnpj} | Cert: ${item.prestador.certificado || 'N/A'}`);
+
+                    // SEMPRE usar o certificado se tivermos um, pois a chave do usuário exige
+                    item.prestador.certificado = certId || item.prestador.certificado;
+                    
+                    console.log(`🧾 [DEBUG] Prestador: ${item.prestador.cpfCnpj} | Cert: ${item.prestador.certificado || 'N/A'}`);
                 }
 
                 // 3. Sanitizar e Completar Tomador (Cliente)
@@ -313,32 +313,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     if (item.tomador.cpfCnpj) {
                         item.tomador.cpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
                     }
-
-                    // Se for modo teste e o endereço estiver vazio, injetamos dados de teste
-                    if (useTestData && (!item.tomador.endereco?.logradouro || item.tomador.endereco.logradouro === '')) {
-                        console.log(`🛠️ [FISCAL-EMITIR] Tomador sem endereço no modo teste. Injetando fallback.`);
-                        item.tomador.endereco = {
-                            logradouro: 'Avenida Duque de Caxias',
-                            numero: '882',
-                            bairro: 'Zona 07',
-                            cep: '87020025',
-                            codigoCidade: '4115200',
-                            uf: 'PR',
-                            complemento: 'SALA 01'
-                        };
-                    }
                 }
 
                 // 4. Mapear Código IBGE da Cidade (Obrigatório)
-                // Se for teste, forçamos o de Maringá (4115200)
-                if (useTestData) {
-                    if (item.servico) {
-                        item.servico.codigoIbge = '4115200';
-                    }
-                    // Em algumas versões o código IBGE fica na raiz do item
-                    if (item.codigoIbge) {
-                        item.codigoIbge = '4115200';
-                    }
+                if (item.servico && !item.servico.codigoIbge && item.codigoIbge) {
+                    item.servico.codigoIbge = item.codigoIbge;
                 }
 
                 return item;
