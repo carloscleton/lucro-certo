@@ -250,7 +250,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
-        const useTestData = config.use_test_data === true && isSandbox;
+        
+        // --- DETECÇÃO DE MODO TESTE ---
+        // Se config.use_test_data for true OU se o CNPJ do prestador for o de Maringá, tratamos como teste.
+        const TEST_CNPJ = '08184315000104';
+        const isMaringa = targetCnpj === TEST_CNPJ;
+        const useTestData = (config.use_test_data === true && isSandbox) || isMaringa;
         
         console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
         console.log(`🧾 [DEBUG] useTestData: ${useTestData} (config.use_test_data: ${config.use_test_data}, isSandbox: ${isSandbox})`);
@@ -292,19 +297,37 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 // 2. Mapear Prestador e Certificado
                 if (item.prestador) {
-                    // Se for modo teste (Maringá), não envia certificado
-                    // Caso contrário, usa o certId (que pode ter sido autodescoberto acima)
-                    item.prestador.certificado = useTestData ? '' : certId;
-                    
                     if (useTestData) {
-                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Maringá não exige certificado).`);
+                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Removendo campo certificado e injetando IM de Maringá).`);
+                        delete item.prestador.certificado; // Maringá não aceita nem vazio em algumas versões de sandbox
+                        if (!item.prestador.inscricaoMunicipal) {
+                            item.prestador.inscricaoMunicipal = '123456';
+                        }
+                    } else {
+                        item.prestador.certificado = certId;
                     }
                     console.log(`🧾 [DEBUG] Prestador: ${item.prestador.cpfCnpj} | Certificado: ${item.prestador.certificado || 'N/A'}`);
                 }
 
-                // 3. Sanitizar Tomador
-                if (item.tomador && item.tomador.cpfCnpj) {
-                    item.tomador.cpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
+                // 3. Sanitizar e Completar Tomador (Cliente)
+                if (item.tomador) {
+                    if (item.tomador.cpfCnpj) {
+                        item.tomador.cpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
+                    }
+
+                    // Se for modo teste e o endereço estiver vazio, injetamos dados de teste
+                    if (useTestData && (!item.tomador.endereco?.logradouro || item.tomador.endereco.logradouro === '')) {
+                        console.log(`🛠️ [FISCAL-EMITIR] Tomador sem endereço no modo teste. Injetando fallback.`);
+                        item.tomador.endereco = {
+                            logradouro: 'Avenida Duque de Caxias',
+                            numero: '882',
+                            bairro: 'Zona 07',
+                            cep: '87020025',
+                            codigoCidade: '4115200',
+                            uf: 'PR',
+                            complemento: 'SALA 01'
+                        };
+                    }
                 }
 
                 return item;
