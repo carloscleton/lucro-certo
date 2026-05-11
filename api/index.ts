@@ -291,22 +291,28 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     item.idIntegracao = `NFSE_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
                 }
 
-                // 2. Mapear Prestador e Certificado
-                if (item.prestador) {
-                    // Usar o CNPJ real que veio do frontend (não forçar Maringá se a chave for privada)
-                    const itemCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
-                    item.prestador.cpfCnpj = itemCnpj;
+                    // 2. Mapear Prestador e Certificado
+                    if (item.prestador) {
+                        // Usar o CNPJ real que veio do frontend (não forçar Maringá se a chave for privada)
+                        const itemCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
+                        item.prestador.cpfCnpj = itemCnpj;
 
-                    // Se for modo teste manual (config.use_test_data), podemos injetar IM de Maringá se estiver vazio
-                    if (useTestData && !item.prestador.inscricaoMunicipal) {
-                        item.prestador.inscricaoMunicipal = '123456';
+                        // Se for modo teste manual (config.use_test_data), podemos injetar IM de Maringá se estiver vazio
+                        if (useTestData && !item.prestador.inscricaoMunicipal) {
+                            item.prestador.inscricaoMunicipal = '123456';
+                        }
+
+                        // USAR CERTIFICADO: 
+                        // Prioridade: 1. certId (pode ter vindo do banco ou autodescoberto) | 2. O que já estava no item
+                        const finalCertId = certId || item.prestador.certificado;
+                        item.prestador.certificado = finalCertId;
+                        
+                        console.log(`🧾 [FISCAL-EMITIR] Prestador: ${item.prestador.cpfCnpj} | CertID Final: ${finalCertId || 'NÃO DEFINIDO'}`);
+                        
+                        if (!finalCertId && !useTestData) {
+                            console.warn(`⚠️ [FISCAL-EMITIR] AVISO: Nenhum ID de certificado encontrado para emissão em ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}.`);
+                        }
                     }
-
-                    // SEMPRE usar o certificado se tivermos um, pois a chave do usuário exige
-                    item.prestador.certificado = certId || item.prestador.certificado;
-                    
-                    console.log(`🧾 [DEBUG] Prestador: ${item.prestador.cpfCnpj} | Cert: ${item.prestador.certificado || 'N/A'}`);
-                }
 
                 // 3. Sanitizar e Completar Tomador (Cliente)
                 if (item.tomador) {
