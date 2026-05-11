@@ -447,51 +447,11 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         };
 
-        // Voltando a usar o CNPJ REAL enviado pelo frontend.
-        // Se o modo teste estiver ativo, o frontend agora já envia o CNPJ de Maringá.
+        // Voltando a usar o CNPJ REAL do usuário, pois a API Key é privada.
         const effectiveCnpj = cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
-        // Reutilizar o helper de endereço para o emissor também
-        const extractStreetType = (str: string) => {
-            if (!str) return 'Rua';
-            const parts = str.trim().split(/\s+/);
-            const first = parts[0].toLowerCase();
-            const types: Record<string, string> = {
-                'rua': 'Rua', 'r': 'Rua',
-                'avenida': 'Avenida', 'av': 'Avenida',
-                'alameda': 'Alameda', 'al': 'Alameda',
-                'travessa': 'Travessa', 'tv': 'Travessa',
-                'praca': 'Praça', 'praça': 'Praça',
-                'rodovia': 'Rodovia', 'rod': 'Rodovia',
-                'estrada': 'Estrada', 'est': 'Estrada',
-                'viela': 'Viela', 'loteamento': 'Loteamento',
-                'quadra': 'Quadra', 'q': 'Quadra',
-                'bloco': 'Bloco', 'b': 'Bloco'
-            };
-            return types[first] || 'Rua';
-        };
-
-        const mapAddress = (addr: any) => {
-            const rawLogradouro = (addr?.logradouro || addr?.endereco || '').trim();
-            const uf = (addr?.uf || addr?.estado || '').trim().toUpperCase();
-            
-            return {
-                tipoLogradouro: extractStreetType(rawLogradouro),
-                logradouro: rawLogradouro || 'Não Informado',
-                numero: (addr?.numero || 'SN').trim(),
-                bairro: (addr?.bairro || 'Centro').trim(),
-                cep: String(addr?.cep || '').replace(/\D/g, '').padStart(8, '0').substring(0, 8),
-                codigoCidade: String(addr?.codigoCidade || addr?.codigo_municipio || '').trim(),
-                estado: uf,
-                uf: uf,
-                complemento: (addr?.complemento || '').trim(),
-                codigoPais: '1058',
-                descricaoCidade: (addr?.cidade || addr?.descricaoCidade || '').trim()
-            };
-        };
-
-        const issuerPayload: any = {
+        const issuerPayload = {
             cpfCnpj: effectiveCnpjUrl,
             cnpj: effectiveCnpjUrl,
             cpf_cnpj: effectiveCnpjUrl, 
@@ -499,22 +459,32 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             inscricaoMunicipal: useTestData ? TECNOSPEED_TEST_DATA.inscricaoMunicipal : ((config.inscricao_municipal || '').replace(/\D/g, '') || ''),
             razaoSocial: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.razao_social || ''),
             nomeFantasia: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.nome_fantasia || config.razao_social || ''),
-            simplesNacional: useTestData ? true : Boolean(config.regime_tributario === '1'),
-            regimeTributario: useTestData ? 1 : (parseInt(config.regime_tributario) || 1),
+            simplesNacional: config.regime_tributario === '1',
+            regimeTributario: parseInt(config.regime_tributario) || 1,
             email: config.email || 'suporte@lucrocerto.com.br',
-            certificado: useTestData ? '' : (config.certificado_id || config.certificadoId || config.certificado || ''),
+            certificado: config.certificado_id || config.certificadoId || config.certificado || '',
             telefone: {
                 ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '44',
                 numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '30379500'
             },
-            endereco: useTestData ? TECNOSPEED_TEST_DATA.endereco : mapAddress(config.endereco || config)
+            endereco: useTestData ? TECNOSPEED_TEST_DATA.endereco : {
+                logradouro: (config.endereco?.logradouro || config.logradouro || '').trim(),
+                numero: (config.endereco?.numero || config.numero || 'SN').trim(),
+                bairro: (config.endereco?.bairro || config.bairro || 'Centro').trim(),
+                cep: (config.endereco?.cep || config.cep || '').replace(/\D/g, ''),
+                codigoCidade: (config.endereco?.codigoCidade || config.codigo_municipio || '').trim(),
+                uf: (config.endereco?.uf || config.uf || '').trim().toUpperCase(),
+                complemento: (config.endereco?.complemento || config.complemento || '').trim()
+            },
+            nfse: {
+                ativo: true,
+                config: { producao: false }
+            },
+            nfe: {
+                ativo: true,
+                config: { producao: false }
+            }
         };
-
-        // Só adicionar ativação de módulos se não for modo de teste (já ativo no sandbox)
-        if (!useTestData) {
-            issuerPayload.nfse = { ativo: true, config: { producao: false } };
-            issuerPayload.nfe = { ativo: true, config: { producao: false } };
-        }
 
         console.log('🚀 [FISCAL-SYNC] Enviando Payload para TecnoSpeed:', JSON.stringify({
             url: `${baseUrl}/empresa`,
@@ -522,7 +492,6 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             is_test_mode: useTestData
         }, null, 2));
 
-        // Já definido na linha 335
         let response;
         try {
             if (useTestData) {
@@ -562,6 +531,30 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 detail: errorDetail 
             });
         }
+
+        // --- PERSISTÊNCIA: Salvar configuração atualizada no Supabase ---
+        if (companyId && SUPABASE_URL) {
+            try {
+                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                    tecnospeed_config: config
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log('✅ Configuração fiscal persistida no Supabase após sincronização.');
+            } catch (dbErr: any) {
+                console.warn('⚠️ Falha ao salvar config no banco:', dbErr.message);
+            }
+        }
+
+        res.json({ ...response.data, proxy_version: '1.0.10', synced_id: issuerPayload.certificado });
+    } catch (outerError: any) {
+        res.status(500).json({ error: outerError.message });
+    }
+});
 
         // --- PERSISTÊNCIA: Salvar configuração atualizada no Supabase ---
         if (companyId && SUPABASE_URL) {
