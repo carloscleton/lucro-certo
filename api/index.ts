@@ -272,15 +272,20 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     headers: { 'x-api-key': apiKey }
                 });
                 console.log(`📡 [FISCAL-EMITIR] Dados da empresa na TecnoSpeed:`, JSON.stringify(issuerInfo.data, null, 2));
-                const discoverId = issuerInfo.data?.data?.certificado;
+                
+                // Procurar em ambos os formatos de resposta possíveis
+                const discoverId = issuerInfo.data?.data?.certificado || issuerInfo.data?.certificado || issuerInfo.data?.data?.certificadoId;
+                
                 if (discoverId) {
-                    console.log(`🎯 [FISCAL-EMITIR] Certificado descoberto na TecnoSpeed: ${discoverId}`);
+                    console.log(`🎯 [FISCAL-EMITIR] Certificado descoberto via API: ${discoverId}`);
                     certId = discoverId;
                 }
             } catch (discoverErr: any) {
-                console.warn(`⚠️ [FISCAL-EMITIR] Não foi possível autodescobrir o certificado:`, discoverErr.message);
+                console.warn(`⚠️ [FISCAL-EMITIR] Não foi possível autodescobrir o certificado (Pode ser que a empresa não esteja cadastrada no Sandbox):`, discoverErr.message);
             }
         }
+
+        console.log(`🧾 [FISCAL-EMITIR] CertID da Config: ${config.certificado_id || 'N/A'} | CertID Final: ${certId || 'N/A'}`);
 
         // Injetar o certificado no payload se for NFSe
         let finalPayload = Array.isArray(payload) ? payload : [payload];
