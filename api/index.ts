@@ -342,6 +342,14 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 codigoCidade: (config.endereco?.codigoCidade || config.codigo_municipio || '').trim(),
                 uf: (config.endereco?.uf || config.uf || '').trim().toUpperCase(),
                 complemento: (config.endereco?.complemento || config.complemento || '').trim()
+            },
+            nfse: {
+                ativo: true,
+                config: { producao: !isSandbox }
+            },
+            nfe: {
+                ativo: true,
+                config: { producao: !isSandbox }
             }
         };
 
