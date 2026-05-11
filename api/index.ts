@@ -375,8 +375,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         const TEST_CNPJ_FORMATTED = '08.184.315/0001-04';
         const TEST_CNPJ_CLEAN = '08184315000104';
 
-        // Se o modo teste estiver ativo, usamos o CNPJ de Maringá da TecnoSpeed.
-        const effectiveCnpj = useTestData ? TEST_CNPJ_CLEAN : cnpj; 
+        // Voltando a usar o CNPJ REAL do usuário, pois a API Key é privada e vinculada ao CNPJ dele.
+        const effectiveCnpj = cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
         const issuerPayload = {
