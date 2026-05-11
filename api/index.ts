@@ -250,9 +250,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
-        const finalPayload = Array.isArray(payload) ? payload : [payload];
+        const useTestData = config.use_test_data === true && isSandbox;
+        
+        // Injetar o certificado no payload se for NFSe e estiver faltando
+        let finalPayload = Array.isArray(payload) ? payload : [payload];
+        
+        if (endpoint === 'nfse') {
+            finalPayload = finalPayload.map((item: any) => {
+                if (item.prestador) {
+                    // Só injeta se não tiver certificado OU se estivermos forçando o do banco
+                    // No modo de teste (Maringá), a TecnoSpeed sandbox às vezes aceita sem certificado, 
+                    // mas para o CNPJ real do usuário, o certificado É OBRIGATÓRIO.
+                    item.prestador.certificado = item.prestador.certificado || config.certificado_id || config.certificado;
+                }
+                return item;
+            });
+        }
 
         console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
+        console.log(`🧾 [DEBUG] Certificado Injetado: ${config.certificado_id || 'Nenhum'}`);
         
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
