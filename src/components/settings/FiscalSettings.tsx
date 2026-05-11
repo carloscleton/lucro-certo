@@ -746,7 +746,7 @@ export function FiscalSettings() {
                                             name="ambiente"
                                             value="producao"
                                             checked={config.ambiente === 'producao'}
-                                            onChange={(e) => setConfig({ ...config, ambiente: e.target.value })}
+                                            onChange={(e) => setConfig({ ...config, ambiente: e.target.value, use_test_data: false })}
                                             className="text-red-600 focus:ring-red-500"
                                         />
                                         <span className="text-sm">Produção (Real)</span>
