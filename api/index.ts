@@ -249,45 +249,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        // --- HELPERS DE MAPEAMENTO ---
-        const extractStreetType = (str: string) => {
-            if (!str) return 'Rua';
-            const parts = str.trim().split(/\s+/);
-            const first = parts[0].toLowerCase();
-            const types: Record<string, string> = {
-                'rua': 'Rua', 'r': 'Rua',
-                'avenida': 'Avenida', 'av': 'Avenida',
-                'alameda': 'Alameda', 'al': 'Alameda',
-                'travessa': 'Travessa', 'tv': 'Travessa',
-                'praca': 'Praça', 'praça': 'Praça',
-                'rodovia': 'Rodovia', 'rod': 'Rodovia',
-                'estrada': 'Estrada', 'est': 'Estrada',
-                'viela': 'Viela', 'loteamento': 'Loteamento',
-                'quadra': 'Quadra', 'q': 'Quadra',
-                'bloco': 'Bloco', 'b': 'Bloco'
-            };
-            return types[first] || 'Rua';
-        };
-
-        const mapAddress = (addr: any) => {
-            const rawLogradouro = (addr?.logradouro || addr?.endereco || '').trim();
-            const uf = (addr?.uf || addr?.estado || '').trim().toUpperCase();
-            
-            return {
-                tipoLogradouro: extractStreetType(rawLogradouro),
-                logradouro: rawLogradouro || 'Não Informado',
-                numero: (addr?.numero || 'SN').trim(),
-                bairro: (addr?.bairro || 'Centro').trim(),
-                cep: String(addr?.cep || '').replace(/\D/g, '').padStart(8, '0').substring(0, 8),
-                codigoCidade: String(addr?.codigoCidade || addr?.codigo_municipio || '').trim(),
-                estado: uf,
-                uf: uf,
-                complemento: (addr?.complemento || '').trim(),
-                codigoPais: '1058',
-                descricaoCidade: (addr?.cidade || addr?.descricaoCidade || '').trim()
-            };
-        };
-
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
         const useTestData = config.use_test_data === true && isSandbox;
         
@@ -297,17 +258,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // Log completo para depuração (Remover após fix)
         // console.log(`🔐 [DEBUG] Configuração recuperada:`, JSON.stringify(config, null, 2));
 
-        // --- AUTODESCOBERTA DE CERTIFICADO ---
+        // --- AUTODESCORBERTA DE CERTIFICADO ---
         let certId = config.certificado_id || config.certificadoId || config.certificado;
         
         const firstItem = Array.isArray(payload) ? payload[0] : payload;
         const targetCnpj = firstItem?.prestador?.cpfCnpj;
 
-        // Se estiver em modo de teste, não precisamos de certificado (usando Maringá)
-        const TEST_CNPJ = '08184315000104';
-        const useTestData = config.use_test_data === true && isSandbox;
-
-        if (targetCnpj && !useTestData) {
+        if (targetCnpj) {
             try {
                 console.log(`🔍 [FISCAL-EMITIR] Tentando descobrir certificado oficial para ${targetCnpj}...`);
                 const issuerInfo = await axios.get(`${baseUrl}/empresa/${targetCnpj}`, {
@@ -328,52 +285,20 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         
         if (endpoint === 'nfse') {
             finalPayload = finalPayload.map((item: any) => {
-                // 1. Garantir idIntegracao (Obrigatório e Único)
-                // Usando timestamp + random para evitar duplicidade no PlugNotas
-                if (!item.idIntegracao) {
-                    item.idIntegracao = `NFSE_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
-                }
-
-                // 2. Mapear Prestador e Certificado
                 if (item.prestador) {
+                    // Forçar o certificado descoberto ou o que temos no banco
+                    item.prestador.certificado = certId;
+                    
                     if (useTestData) {
-                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Usando endereço de Maringá no CNPJ do usuário).`);
-                        item.prestador.certificado = ''; // Maringá não exige cert no sandbox
-                    } else {
-                        item.prestador.certificado = certId;
+                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo com dados de Maringá.`);
                     }
+                    console.log(`🧾 [DEBUG] Prestador final: ${item.prestador.cpfCnpj} | Certificado: ${item.prestador.certificado || 'NÃO ENCONTRADO'}`);
                 }
-
-                // 3. Mapear Tomador (Cliente)
-                if (item.tomador) {
-                    item.tomador.cpfCnpj = String(item.tomador.cpfCnpj || '').replace(/\D/g, '');
-                    if (item.tomador.endereco) {
-                        item.tomador.endereco = mapAddress(item.tomador.endereco);
-                    }
-                }
-
-                // 4. Mapear Serviços (Traduzir campos do frontend para PlugNotas)
-                if (item.servico && Array.isArray(item.servico)) {
-                    item.servico = item.servico.map((s: any) => ({
-                        codigo: s.codigo || s.itemListaServico || '01.01',
-                        discriminacao: s.discriminacao || s.descricao || 'Prestação de serviço',
-                        valorUnitario: s.valorUnitario || (s.valor && s.valor.servico) || s.valor || 0,
-                        unidade: s.unidade || 'UN',
-                        quantidade: s.quantidade || 1,
-                        iss: s.iss || {
-                            tipoTributacao: 7, // Simples Nacional
-                            exigibilidade: 1,
-                            aliquota: 2
-                        }
-                    }));
-                }
-
-                console.log(`🧾 [DEBUG] Item mapeado: ${item.idIntegracao} | Cert: ${item.prestador?.certificado || 'N/A'}`);
                 return item;
             });
         }
 
-        console.log(`🧾 [DEBUG] Payload Final Mapeado:`, JSON.stringify(finalPayload, null, 2));
+        console.log(`🧾 [DEBUG] Enviando para TecnoSpeed...`);
         
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
@@ -447,9 +372,11 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         };
 
+        const TEST_CNPJ_FORMATTED = '08.184.315/0001-04';
+        const TEST_CNPJ_CLEAN = '08184315000104';
+
         // Se o modo teste estiver ativo, usamos o CNPJ de Maringá da TecnoSpeed.
-        // Isso é o que permite a sincronização funcionar sem erros no Sandbox.
-        const effectiveCnpj = useTestData ? TEST_CNPJ : cnpj; 
+        const effectiveCnpj = useTestData ? TEST_CNPJ_CLEAN : cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
         const issuerPayload = {
@@ -493,6 +420,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             is_test_mode: useTestData
         }, null, 2));
 
+        // Já definido na linha 335
         let response;
         try {
             if (useTestData) {
@@ -532,30 +460,6 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 detail: errorDetail 
             });
         }
-
-        // --- PERSISTÊNCIA: Salvar configuração atualizada no Supabase ---
-        if (companyId && SUPABASE_URL) {
-            try {
-                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
-                    tecnospeed_config: config
-                }, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY!,
-                        'Authorization': authHeader!,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                console.log('✅ Configuração fiscal persistida no Supabase após sincronização.');
-            } catch (dbErr: any) {
-                console.warn('⚠️ Falha ao salvar config no banco:', dbErr.message);
-            }
-        }
-
-        res.json({ ...response.data, proxy_version: '1.0.10', synced_id: issuerPayload.certificado });
-    } catch (outerError: any) {
-        res.status(500).json({ error: outerError.message });
-    }
-});
 
         // --- PERSISTÊNCIA: Salvar configuração atualizada no Supabase ---
         if (companyId && SUPABASE_URL) {

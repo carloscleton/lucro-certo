@@ -94,8 +94,9 @@ export function FiscalSettings() {
 
             Object.assign(newConfig, tc);
 
-            // Remover o toLowerCase das keys e endpoints, pois podem ser case-sensitive
-            // Manter os valores originais vindos do banco
+            if (newConfig.tecnospeed_api_key) newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.trim();
+            if (newConfig.endpoint_homologacao) newConfig.endpoint_homologacao = newConfig.endpoint_homologacao.toLowerCase();
+            if (newConfig.endpoint_producao) newConfig.endpoint_producao = newConfig.endpoint_producao.toLowerCase();
 
             if (!newConfig.cnpj && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
             if (!newConfig.razao_social && currentCompany.legal_name) newConfig.razao_social = currentCompany.legal_name;
@@ -758,10 +759,7 @@ export function FiscalSettings() {
                                             <input
                                                 type="checkbox"
                                                 checked={!!config.use_test_data}
-                                                onChange={(e) => setConfig({ 
-                                                    ...config, 
-                                                    use_test_data: e.target.checked
-                                                })}
+                                                onChange={(e) => setConfig({ ...config, use_test_data: e.target.checked })}
                                                 className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
                                             />
                                             <div className="flex flex-col">
