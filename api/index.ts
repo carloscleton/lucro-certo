@@ -258,30 +258,47 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // Log completo para depuração (Remover após fix)
         // console.log(`🔐 [DEBUG] Configuração recuperada:`, JSON.stringify(config, null, 2));
 
-        const certId = config.certificado_id || config.certificadoId || config.certificado;
-        console.log(`🧾 [DEBUG] ID de Certificado encontrado: ${certId || 'Nenhum'}`);
+        // --- AUTODESCORBERTA DE CERTIFICADO ---
+        let certId = config.certificado_id || config.certificadoId || config.certificado;
         
-        // Injetar o certificado no payload se for NFSe e estiver faltando
+        const firstItem = Array.isArray(payload) ? payload[0] : payload;
+        const targetCnpj = firstItem?.prestador?.cpfCnpj;
+
+        if (targetCnpj) {
+            try {
+                console.log(`🔍 [FISCAL-EMITIR] Tentando descobrir certificado oficial para ${targetCnpj}...`);
+                const issuerInfo = await axios.get(`${baseUrl}/empresa/${targetCnpj}`, {
+                    headers: { 'x-api-key': apiKey }
+                });
+                const discoverId = issuerInfo.data?.data?.certificado;
+                if (discoverId) {
+                    console.log(`🎯 [FISCAL-EMITIR] Certificado descoberto na TecnoSpeed: ${discoverId}`);
+                    certId = discoverId;
+                }
+            } catch (discoverErr: any) {
+                console.warn(`⚠️ [FISCAL-EMITIR] Não foi possível autodescobrir o certificado:`, discoverErr.message);
+            }
+        }
+
+        // Injetar o certificado no payload se for NFSe
         let finalPayload = Array.isArray(payload) ? payload : [payload];
         
         if (endpoint === 'nfse') {
             finalPayload = finalPayload.map((item: any) => {
                 if (item.prestador) {
+                    // Forçar o certificado descoberto ou o que temos no banco
+                    item.prestador.certificado = certId;
+                    
                     if (useTestData) {
-                        // NO MODO DE TESTE, usamos seu CNPJ mas com dados de Maringá
-                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste: Usando seu CNPJ com dados de Maringá.`);
-                        item.prestador.certificado = certId; 
-                    } else {
-                        // USAR DADOS REAIS
-                        item.prestador.certificado = item.prestador.certificado || certId;
+                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo com dados de Maringá.`);
                     }
-                    console.log(`🧾 [DEBUG] Prestador após injeção:`, JSON.stringify(item.prestador, null, 2));
+                    console.log(`🧾 [DEBUG] Prestador final: ${item.prestador.cpfCnpj} | Certificado: ${item.prestador.certificado || 'NÃO ENCONTRADO'}`);
                 }
                 return item;
             });
         }
 
-        console.log(`🧾 [DEBUG] Payload Final para TecnoSpeed:`, JSON.stringify(finalPayload, null, 2));
+        console.log(`🧾 [DEBUG] Enviando para TecnoSpeed...`);
         
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
