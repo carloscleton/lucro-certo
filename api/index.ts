@@ -317,25 +317,43 @@ app.post('/fiscal-module/sync-issuer', authenticate, async (req, res) => {
         }
 
         const isSandbox = config.ambiente === 'homologacao';
+        const useTestData = config.use_test_data === true && isSandbox;
+
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
         const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
+        // DADOS DE TESTE DA TECNOSPEED (MARINGÁ)
+        const TECNOSPEED_TEST_DATA = {
+            cnpj: '08184315000104',
+            razaoSocial: 'TECNOSPEED TECNOLOGIA DA INFORMACAO LTDA',
+            inscricaoMunicipal: '123456',
+            endereco: {
+                logradouro: 'Avenida Duque de Caxias',
+                numero: '882',
+                bairro: 'Zona 07',
+                cep: '87020025',
+                codigoCidade: '4115200',
+                uf: 'PR',
+                complemento: 'SALA 01'
+            }
+        };
+
         const issuerPayload = {
-            cpfCnpj: cnpj,
-            inscricaoEstadual: (config.inscricao_estadual || '').replace(/\D/g, '') || 'ISENTO',
-            inscricaoMunicipal: (config.inscricao_municipal || '').replace(/\D/g, '') || '',
-            razaoSocial: config.razao_social || '',
-            nomeFantasia: config.nome_fantasia || config.razao_social || '',
+            cpfCnpj: useTestData ? TECNOSPEED_TEST_DATA.cnpj : cnpj,
+            inscricaoEstadual: useTestData ? 'ISENTO' : ((config.inscricao_estadual || '').replace(/\D/g, '') || 'ISENTO'),
+            inscricaoMunicipal: useTestData ? TECNOSPEED_TEST_DATA.inscricaoMunicipal : ((config.inscricao_municipal || '').replace(/\D/g, '') || ''),
+            razaoSocial: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.razao_social || ''),
+            nomeFantasia: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.nome_fantasia || config.razao_social || ''),
             simplesNacional: config.regime_tributario === '1',
             regimeTributario: parseInt(config.regime_tributario) || 1,
-            email: config.email || '',
+            email: config.email || 'suporte@lucrocerto.com.br',
             certificado: config.certificado_id || config.certificado || '',
             telefone: {
-                ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '00',
-                numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '000000000'
+                ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '44',
+                numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '30379500'
             },
-            endereco: {
+            endereco: useTestData ? TECNOSPEED_TEST_DATA.endereco : {
                 logradouro: (config.endereco?.logradouro || config.logradouro || '').trim(),
                 numero: (config.endereco?.numero || config.numero || 'SN').trim(),
                 bairro: (config.endereco?.bairro || config.bairro || 'Centro').trim(),
