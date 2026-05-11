@@ -258,13 +258,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // Log completo para depuração (Remover após fix)
         // console.log(`🔐 [DEBUG] Configuração recuperada:`, JSON.stringify(config, null, 2));
 
-        // --- AUTODESCORBERTA DE CERTIFICADO ---
+        // --- AUTODESCOBERTA DE CERTIFICADO ---
         let certId = config.certificado_id || config.certificadoId || config.certificado;
         
         const firstItem = Array.isArray(payload) ? payload[0] : payload;
         const targetCnpj = firstItem?.prestador?.cpfCnpj;
 
-        if (targetCnpj) {
+        // Se estiver em modo de teste, não precisamos de certificado (usando Maringá)
+        const TEST_CNPJ = '08184315000104';
+        const useTestData = config.use_test_data === true && isSandbox;
+
+        if (targetCnpj && !useTestData) {
             try {
                 console.log(`🔍 [FISCAL-EMITIR] Tentando descobrir certificado oficial para ${targetCnpj}...`);
                 const issuerInfo = await axios.get(`${baseUrl}/empresa/${targetCnpj}`, {
@@ -285,20 +289,45 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         
         if (endpoint === 'nfse') {
             finalPayload = finalPayload.map((item: any) => {
-                if (item.prestador) {
-                    // Forçar o certificado descoberto ou o que temos no banco
-                    item.prestador.certificado = certId;
-                    
-                    if (useTestData) {
-                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo com dados de Maringá.`);
-                    }
-                    console.log(`🧾 [DEBUG] Prestador final: ${item.prestador.cpfCnpj} | Certificado: ${item.prestador.certificado || 'NÃO ENCONTRADO'}`);
+                // 1. Garantir idIntegracao (Obrigatório e Único)
+                // Usando timestamp + random para evitar duplicidade no PlugNotas
+                if (!item.idIntegracao) {
+                    item.idIntegracao = `NFSE_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
                 }
+
+                // 2. Mapear Prestador e Certificado
+                if (item.prestador) {
+                    if (useTestData) {
+                        console.log(`🛠️ [FISCAL-EMITIR] Forçando CNPJ de teste (Maringá)`);
+                        item.prestador.cpfCnpj = TEST_CNPJ;
+                        item.prestador.certificado = ''; // Maringá não exige cert no sandbox
+                    } else {
+                        item.prestador.certificado = certId;
+                    }
+                }
+
+                // 3. Mapear Serviços (Traduzir campos do frontend para PlugNotas)
+                if (item.servico && Array.isArray(item.servico)) {
+                    item.servico = item.servico.map((s: any) => ({
+                        codigo: s.codigo || s.itemListaServico || '01.01',
+                        discriminacao: s.discriminacao || s.descricao || 'Prestação de serviço',
+                        valorUnitario: s.valorUnitario || (s.valor && s.valor.servico) || s.valor || 0,
+                        unidade: s.unidade || 'UN',
+                        quantidade: s.quantidade || 1,
+                        iss: s.iss || {
+                            tipoTributacao: 7, // Simples Nacional
+                            exigibilidade: 1,
+                            aliquota: 2
+                        }
+                    }));
+                }
+
+                console.log(`🧾 [DEBUG] Item mapeado: ${item.idIntegracao} | Cert: ${item.prestador?.certificado || 'N/A'}`);
                 return item;
             });
         }
 
-        console.log(`🧾 [DEBUG] Enviando para TecnoSpeed...`);
+        console.log(`🧾 [DEBUG] Payload Final Mapeado:`, JSON.stringify(finalPayload, null, 2));
         
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
@@ -375,8 +404,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         const TEST_CNPJ_FORMATTED = '08.184.315/0001-04';
         const TEST_CNPJ_CLEAN = '08184315000104';
 
-        // Voltando a usar o CNPJ REAL do usuário, pois a API Key é privada.
-        const effectiveCnpj = cnpj; 
+        // Voltando a usar o CNPJ REAL do usuário, exceto se for teste.
+        const effectiveCnpj = useTestData ? TEST_CNPJ : cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
         const issuerPayload = {
