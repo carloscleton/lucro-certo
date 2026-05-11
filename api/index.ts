@@ -269,6 +269,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
         console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
         console.log(`🧾 [DEBUG] Certificado Injetado: ${config.certificado_id || 'Nenhum'}`);
+        console.log(`🧾 [DEBUG] Payload Final:`, JSON.stringify(finalPayload, null, 2));
         
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
