@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertCircle, Receipt, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -43,6 +43,23 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const [items, setItems] = useState<InvoiceItem[]>([
         { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }
     ]);
+
+    // Auto-fill for Sandbox/Homologação
+    useEffect(() => {
+        const isHomolog = currentCompany?.tecnospeed_config?.ambiente === 'homologacao' || currentCompany?.tecnospeed_config?.use_test_data;
+        if (isHomolog) {
+            console.log('🛠️ [FISCAL] Preenchendo campos de teste (Homologação ativa)');
+            setCityCode('4115200'); // Maringá (TecnoSpeed)
+            
+            setItems(prev => prev.map((item, idx) => {
+                // Só preenche o primeiro item se estiver vazio
+                if (idx === 0 && (!item.taxCode || item.taxCode === '')) {
+                    return { ...item, taxCode: type === 'nfse' ? '01.01' : '84713019' };
+                }
+                return item;
+            }));
+        }
+    }, [currentCompany, type]);
 
     const addItem = () => {
         setItems([...items, { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }]);
