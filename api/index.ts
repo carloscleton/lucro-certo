@@ -249,6 +249,45 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
+        // --- HELPERS DE MAPEAMENTO ---
+        const extractStreetType = (str: string) => {
+            if (!str) return 'Rua';
+            const parts = str.trim().split(/\s+/);
+            const first = parts[0].toLowerCase();
+            const types: Record<string, string> = {
+                'rua': 'Rua', 'r': 'Rua',
+                'avenida': 'Avenida', 'av': 'Avenida',
+                'alameda': 'Alameda', 'al': 'Alameda',
+                'travessa': 'Travessa', 'tv': 'Travessa',
+                'praca': 'Praça', 'praça': 'Praça',
+                'rodovia': 'Rodovia', 'rod': 'Rodovia',
+                'estrada': 'Estrada', 'est': 'Estrada',
+                'viela': 'Viela', 'loteamento': 'Loteamento',
+                'quadra': 'Quadra', 'q': 'Quadra',
+                'bloco': 'Bloco', 'b': 'Bloco'
+            };
+            return types[first] || 'Rua';
+        };
+
+        const mapAddress = (addr: any) => {
+            const rawLogradouro = (addr?.logradouro || addr?.endereco || '').trim();
+            const uf = (addr?.uf || addr?.estado || '').trim().toUpperCase();
+            
+            return {
+                tipoLogradouro: extractStreetType(rawLogradouro),
+                logradouro: rawLogradouro || 'Não Informado',
+                numero: (addr?.numero || 'SN').trim(),
+                bairro: (addr?.bairro || 'Centro').trim(),
+                cep: String(addr?.cep || '').replace(/\D/g, '').padStart(8, '0').substring(0, 8),
+                codigoCidade: String(addr?.codigoCidade || addr?.codigo_municipio || '').trim(),
+                estado: uf,
+                uf: uf,
+                complemento: (addr?.complemento || '').trim(),
+                codigoPais: '1058',
+                descricaoCidade: (addr?.cidade || addr?.descricaoCidade || '').trim()
+            };
+        };
+
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
         const useTestData = config.use_test_data === true && isSandbox;
         
@@ -306,7 +345,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
                 }
 
-                // 3. Mapear Serviços (Traduzir campos do frontend para PlugNotas)
+                // 3. Mapear Tomador (Cliente)
+                if (item.tomador) {
+                    item.tomador.cpfCnpj = String(item.tomador.cpfCnpj || '').replace(/\D/g, '');
+                    if (item.tomador.endereco) {
+                        item.tomador.endereco = mapAddress(item.tomador.endereco);
+                    }
+                }
+
+                // 4. Mapear Serviços (Traduzir campos do frontend para PlugNotas)
                 if (item.servico && Array.isArray(item.servico)) {
                     item.servico = item.servico.map((s: any) => ({
                         codigo: s.codigo || s.itemListaServico || '01.01',
@@ -396,27 +443,65 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 bairro: 'Zona 07',
                 cep: '87020025',
                 codigoCidade: '4115200',
+                estado: 'PR',
                 uf: 'PR',
-                complemento: 'SALA 01'
+                complemento: 'SALA 01',
+                tipoLogradouro: 'Avenida',
+                codigoPais: '1058',
+                descricaoCidade: 'Maringá'
             }
         };
-
-        const TEST_CNPJ_FORMATTED = '08.184.315/0001-04';
-        const TEST_CNPJ_CLEAN = '08184315000104';
 
         // Voltando a usar o CNPJ REAL do usuário, exceto se for teste.
         const effectiveCnpj = useTestData ? TEST_CNPJ : cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
+        // Reutilizar o helper de endereço para o emissor também
+        const extractStreetType = (str: string) => {
+            if (!str) return 'Rua';
+            const parts = str.trim().split(/\s+/);
+            const first = parts[0].toLowerCase();
+            const types: Record<string, string> = {
+                'rua': 'Rua', 'r': 'Rua',
+                'avenida': 'Avenida', 'av': 'Avenida',
+                'alameda': 'Alameda', 'al': 'Alameda',
+                'travessa': 'Travessa', 'tv': 'Travessa',
+                'praca': 'Praça', 'praça': 'Praça',
+                'rodovia': 'Rodovia', 'rod': 'Rodovia',
+                'estrada': 'Estrada', 'est': 'Estrada',
+                'viela': 'Viela', 'loteamento': 'Loteamento',
+                'quadra': 'Quadra', 'q': 'Quadra',
+                'bloco': 'Bloco', 'b': 'Bloco'
+            };
+            return types[first] || 'Rua';
+        };
+
+        const mapAddress = (addr: any) => {
+            const rawLogradouro = (addr?.logradouro || addr?.endereco || '').trim();
+            const uf = (addr?.uf || addr?.estado || '').trim().toUpperCase();
+            
+            return {
+                tipoLogradouro: extractStreetType(rawLogradouro),
+                logradouro: rawLogradouro || 'Não Informado',
+                numero: (addr?.numero || 'SN').trim(),
+                bairro: (addr?.bairro || 'Centro').trim(),
+                cep: String(addr?.cep || '').replace(/\D/g, '').padStart(8, '0').substring(0, 8),
+                codigoCidade: String(addr?.codigoCidade || addr?.codigo_municipio || '').trim(),
+                estado: uf,
+                uf: uf,
+                complemento: (addr?.complemento || '').trim(),
+                codigoPais: '1058',
+                descricaoCidade: (addr?.cidade || addr?.descricaoCidade || '').trim()
+            };
+        };
+
         const issuerPayload = {
             cpfCnpj: effectiveCnpjUrl,
-            cnpj: effectiveCnpjUrl,
-            cpf_cnpj: effectiveCnpjUrl, 
             inscricaoEstadual: useTestData ? '' : ((config.inscricao_estadual || '').replace(/\D/g, '') || ''),
             inscricaoMunicipal: useTestData ? TECNOSPEED_TEST_DATA.inscricaoMunicipal : ((config.inscricao_municipal || '').replace(/\D/g, '') || ''),
             razaoSocial: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.razao_social || ''),
             nomeFantasia: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.nome_fantasia || config.razao_social || ''),
-            simplesNacional: config.regime_tributario === '1',
+            simplesNacional: Boolean(config.regime_tributario === '1'),
             regimeTributario: parseInt(config.regime_tributario) || 1,
             email: config.email || 'suporte@lucrocerto.com.br',
             certificado: config.certificado_id || config.certificadoId || config.certificado || '',
@@ -424,15 +509,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '44',
                 numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '30379500'
             },
-            endereco: useTestData ? TECNOSPEED_TEST_DATA.endereco : {
-                logradouro: (config.endereco?.logradouro || config.logradouro || '').trim(),
-                numero: (config.endereco?.numero || config.numero || 'SN').trim(),
-                bairro: (config.endereco?.bairro || config.bairro || 'Centro').trim(),
-                cep: (config.endereco?.cep || config.cep || '').replace(/\D/g, ''),
-                codigoCidade: (config.endereco?.codigoCidade || config.codigo_municipio || '').trim(),
-                uf: (config.endereco?.uf || config.uf || '').trim().toUpperCase(),
-                complemento: (config.endereco?.complemento || config.complemento || '').trim()
-            },
+            endereco: useTestData ? mapAddress(TECNOSPEED_TEST_DATA.endereco) : mapAddress(config.endereco || config),
             nfse: {
                 ativo: true,
                 config: { producao: false }
