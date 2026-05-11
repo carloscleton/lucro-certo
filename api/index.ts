@@ -272,8 +272,31 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         }
 
         console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
-        console.log(`🧾 [DEBUG] Certificado Injetado: ${config.certificado_id || 'Nenhum'}`);
-        console.log(`🧾 [DEBUG] Payload Final:`, JSON.stringify(finalPayload, null, 2));
+        
+        // Log completo para depuração (Remover após fix)
+        console.log(`🔐 [DEBUG] Configuração recuperada:`, JSON.stringify(config, null, 2));
+
+        const certId = config.certificado_id || config.certificadoId || config.certificado;
+        console.log(`🧾 [DEBUG] ID de Certificado encontrado: ${certId || 'Nenhum'}`);
+        
+        // Injetar o certificado no payload se for NFSe e estiver faltando
+        let finalPayload = Array.isArray(payload) ? payload : [payload];
+        
+        if (endpoint === 'nfse') {
+            finalPayload = finalPayload.map((item: any) => {
+                if (item.prestador) {
+                    if (!useTestData) {
+                        item.prestador.certificado = item.prestador.certificado || certId;
+                        console.log(`🧾 [DEBUG] Injetando certificado ${certId} no prestador ${item.prestador.cpfCnpj}`);
+                    } else {
+                        delete item.prestador.certificado;
+                    }
+                }
+                return item;
+            });
+        }
+
+        console.log(`🧾 [DEBUG] Payload Final que será enviado:`, JSON.stringify(finalPayload, null, 2));
         
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
