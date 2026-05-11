@@ -75,6 +75,20 @@ const authenticate = (req: any, res: any, next: any) => {
     next();
 };
 
+// Função global para limpar possíveis "sujeiras" de JSON colado por engano
+const sanitizeKey = (val: any) => {
+    if (!val) return '';
+    let s = String(val).trim();
+    // Remover aspas se for um JSON stringificado por engano
+    if (s.startsWith('"') && s.endsWith('"')) s = s.slice(1, -1);
+    // Remover chaves se colaram o objeto inteiro
+    if (s.includes('{') || s.includes(':')) {
+        const match = s.match(/[a-f0-9-]{36}/i); // Tenta achar um UUID
+        if (match) s = match[0];
+    }
+    return s.trim().toLowerCase();
+};
+
 // --- ENDPOINTS FISCAIS (TecnoSpeed PlugNotas) ---
 // Movidos para o topo para garantir prioridade e depuração
 
@@ -96,19 +110,6 @@ app.post('/fiscal/upload-certificate', authenticate, upload.single('arquivo'), a
         const bodyConfig = req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config) : req.body.config) : null;
         const config = bodyConfig || await getCompanyFiscalConfig(authHeader!, companyId);
 
-// Função para limpar possíveis "sujeiras" de JSON colado por engano
-const sanitizeKey = (val: any) => {
-    if (!val) return '';
-    let s = String(val).trim();
-    // Remover aspas se for um JSON stringificado por engano
-    if (s.startsWith('"') && s.endsWith('"')) s = s.slice(1, -1);
-    // Remover chaves se colaram o objeto inteiro
-    if (s.includes('{') || s.includes(':')) {
-        const match = s.match(/[a-f0-9-]{36}/i); // Tenta achar um UUID
-        if (match) s = match[0];
-    }
-    return s.trim().toLowerCase();
-};
 
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
