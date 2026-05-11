@@ -758,7 +758,11 @@ export function FiscalSettings() {
                                             <input
                                                 type="checkbox"
                                                 checked={!!config.use_test_data}
-                                                onChange={(e) => setConfig({ ...config, use_test_data: e.target.checked })}
+                                                onChange={(e) => setConfig({ 
+                                                    ...config, 
+                                                    use_test_data: e.target.checked,
+                                                    cnpj: e.target.checked ? '08.184.315/0001-04' : config.cnpj 
+                                                })}
                                                 className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
                                             />
                                             <div className="flex flex-col">

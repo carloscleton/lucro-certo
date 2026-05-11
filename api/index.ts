@@ -447,9 +447,9 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         };
 
-        // Voltando a usar o CNPJ de teste da TecnoSpeed se o modo teste estiver ativo.
-        // O usuário confirmou que isso funcionava antes.
-        const effectiveCnpj = useTestData ? TEST_CNPJ : cnpj; 
+        // Voltando a usar o CNPJ REAL enviado pelo frontend.
+        // Se o modo teste estiver ativo, o frontend agora já envia o CNPJ de Maringá.
+        const effectiveCnpj = cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
         // Reutilizar o helper de endereço para o emissor também
@@ -493,6 +493,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
 
         const issuerPayload: any = {
             cpfCnpj: effectiveCnpjUrl,
+            cnpj: effectiveCnpjUrl,
+            cpf_cnpj: effectiveCnpjUrl, 
             inscricaoEstadual: useTestData ? '' : ((config.inscricao_estadual || '').replace(/\D/g, '') || ''),
             inscricaoMunicipal: useTestData ? TECNOSPEED_TEST_DATA.inscricaoMunicipal : ((config.inscricao_municipal || '').replace(/\D/g, '') || ''),
             razaoSocial: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.razao_social || ''),
