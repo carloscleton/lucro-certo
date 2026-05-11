@@ -285,15 +285,28 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         
         if (endpoint === 'nfse') {
             finalPayload = finalPayload.map((item: any) => {
+                // 1. Garantir idIntegracao (Obrigatório e Único)
+                if (!item.idIntegracao) {
+                    item.idIntegracao = `NFSE_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+                }
+
+                // 2. Mapear Prestador e Certificado
                 if (item.prestador) {
-                    // Forçar o certificado descoberto ou o que temos no banco
-                    item.prestador.certificado = certId;
+                    // Se for modo teste (Maringá), não envia certificado
+                    // Caso contrário, usa o certId (que pode ter sido autodescoberto acima)
+                    item.prestador.certificado = useTestData ? '' : certId;
                     
                     if (useTestData) {
-                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo com dados de Maringá.`);
+                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Maringá não exige certificado).`);
                     }
-                    console.log(`🧾 [DEBUG] Prestador final: ${item.prestador.cpfCnpj} | Certificado: ${item.prestador.certificado || 'NÃO ENCONTRADO'}`);
+                    console.log(`🧾 [DEBUG] Prestador: ${item.prestador.cpfCnpj} | Certificado: ${item.prestador.certificado || 'N/A'}`);
                 }
+
+                // 3. Sanitizar Tomador
+                if (item.tomador && item.tomador.cpfCnpj) {
+                    item.tomador.cpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
+                }
+
                 return item;
             });
         }
