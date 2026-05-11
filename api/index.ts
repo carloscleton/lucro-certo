@@ -326,10 +326,14 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         };
 
+        const TEST_CNPJ_FORMATTED = '08.184.315/0001-04';
+        const TEST_CNPJ_CLEAN = '08184315000104';
+
         const issuerPayload = {
-            cpfCnpj: useTestData ? TEST_CNPJ : cnpj,
-            cnpj: useTestData ? TEST_CNPJ : cnpj, // Campo redundante para compatibilidade
-            inscricaoEstadual: useTestData ? 'ISENTO' : ((config.inscricao_estadual || '').replace(/\D/g, '') || 'ISENTO'),
+            cpfCnpj: useTestData ? TEST_CNPJ_CLEAN : cnpj,
+            cnpj: useTestData ? TEST_CNPJ_CLEAN : cnpj,
+            cpf_cnpj: useTestData ? TEST_CNPJ_CLEAN : cnpj, 
+            inscricaoEstadual: useTestData ? '' : ((config.inscricao_estadual || '').replace(/\D/g, '') || ''),
             inscricaoMunicipal: useTestData ? TECNOSPEED_TEST_DATA.inscricaoMunicipal : ((config.inscricao_municipal || '').replace(/\D/g, '') || ''),
             razaoSocial: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.razao_social || ''),
             nomeFantasia: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.nome_fantasia || config.razao_social || ''),
