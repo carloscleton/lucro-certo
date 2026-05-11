@@ -256,9 +256,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const targetCnpj = (firstItem?.prestador?.cpfCnpj || '').replace(/\D/g, '');
 
         // --- DETECÇÃO DE MODO TESTE ---
-        const TEST_CNPJ = '08184315000104';
-        const isMaringa = targetCnpj === TEST_CNPJ;
-        const useTestData = (config.use_test_data === true && isSandbox) || isMaringa;
+        const TEST_CNPJ = '08187168000160'; // CNPJ de Teste da TecnoSpeed S/A
+        const TEST_IM = '8214100099';
+        const isTestCnpj = targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104';
+        const useTestData = (config.use_test_data === true && isSandbox) || isTestCnpj;
 
         console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
         
@@ -299,19 +300,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                     // 2. Mapear Prestador e Certificado
                     if (item.prestador) {
-                        // Voltamos para o seu CNPJ real, pois sua chave não permite o de Maringá
-                        const itemCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
-                        item.prestador.cpfCnpj = itemCnpj;
-
-                        if (useTestData && !item.prestador.inscricaoMunicipal) {
-                            item.prestador.inscricaoMunicipal = '123456';
+                        if (useTestData) {
+                            console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Forçando dados da TecnoSpeed S/A).`);
+                            
+                            // Forçar CNPJ e IM de Teste que NÃO exigem certificado no Sandbox
+                            item.prestador.cpfCnpj = TEST_CNPJ;
+                            item.prestador.inscricaoMunicipal = TEST_IM;
+                            
+                            // Remover campo certificado para evitar erro de validação no Sandbox
+                            delete item.prestador.certificado; 
+                        } else {
+                            // Usar o CNPJ real que veio do frontend
+                            const itemCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
+                            item.prestador.cpfCnpj = itemCnpj;
+                            
+                            // Usar o certificado (prioridade para o descoberto/banco)
+                            item.prestador.certificado = certId || item.prestador.certificado;
                         }
-
-                        // USAR CERTIFICADO: 
-                        const finalCertId = certId || item.prestador.certificado;
-                        item.prestador.certificado = finalCertId;
                         
-                        console.log(`🧾 [FISCAL-EMITIR] Usando CNPJ Real: ${item.prestador.cpfCnpj} | CertID: ${finalCertId || 'N/A'}`);
+                        console.log(`🧾 [FISCAL-EMITIR] Prestador Final: ${item.prestador.cpfCnpj} | CertID: ${item.prestador.certificado || 'N/A'}`);
                     }
 
                 // 3. Sanitizar Tomador (Cliente)
