@@ -268,10 +268,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             finalPayload = finalPayload.map((item: any) => {
                 if (item.prestador) {
                     if (useTestData) {
-                        // FORÇAR CNPJ DE MARINGÁ NO MODO DE TESTE
-                        console.log(`🛠️ [FISCAL-EMITIR] Forçando CNPJ de Maringá para homologação.`);
-                        item.prestador.cpfCnpj = '08184315000104';
-                        delete item.prestador.certificado;
+                        // NO MODO DE TESTE, usamos seu CNPJ mas com dados de Maringá (já configurado no sync)
+                        console.log(`🛠️ [FISCAL-EMITIR] Usando seu CNPJ com dados de Maringá para homologação.`);
+                        delete item.prestador.certificado; // No modo de teste puro da Tecnospeed, tentamos sem primeiro
+                        // Se falhar, o próximo passo seria injetar o seu certificado mesmo em modo de teste
+                        item.prestador.certificado = certId; 
                     } else {
                         // USAR DADOS REAIS
                         item.prestador.certificado = item.prestador.certificado || certId;
@@ -359,9 +360,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         const TEST_CNPJ_FORMATTED = '08.184.315/0001-04';
         const TEST_CNPJ_CLEAN = '08184315000104';
 
-        // No modo de teste, usamos o CNPJ de Maringá para TUDO (Sync e Emissão)
-        // para permitir o teste sem certificado digital.
-        const effectiveCnpj = useTestData ? TEST_CNPJ_CLEAN : cnpj; 
+        // Voltando a usar o CNPJ REAL do usuário, pois a API Key é privada.
+        const effectiveCnpj = cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
         const issuerPayload = {
