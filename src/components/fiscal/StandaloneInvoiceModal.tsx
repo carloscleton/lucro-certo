@@ -46,7 +46,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
 
     // Auto-fill for Sandbox/Homologação
     useEffect(() => {
-        const isHomolog = currentCompany?.tecnospeed_config?.ambiente === 'homologacao' || currentCompany?.tecnospeed_config?.use_test_data;
+        const config = currentCompany?.tecnospeed_config;
+        const isHomolog = config?.ambiente === 'homologacao' || config?.use_test_data;
+        const isNacional = config?.nfse?.config?.nfseNacional;
+
         if (isHomolog) {
             console.log('🛠️ [FISCAL] Preenchendo campos de teste (Homologação ativa)');
             setCityCode('4115200'); // Maringá (TecnoSpeed)
@@ -54,7 +57,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
             setItems(prev => prev.map((item, idx) => {
                 // Só preenche o primeiro item se estiver vazio
                 if (idx === 0 && (!item.taxCode || item.taxCode === '')) {
-                    return { ...item, taxCode: type === 'nfse' ? '01.01' : '84713019' };
+                    if (type === 'nfse') {
+                        // NFSe Nacional exige 6 dígitos, NFSe Municipal geralmente 4 (01.01)
+                        return { ...item, taxCode: isNacional ? '010101' : '01.01' };
+                    } else {
+                        return { ...item, taxCode: '84713019' };
+                    }
                 }
                 return item;
             }));
@@ -363,7 +371,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                         <Input
                                             value={item.taxCode}
                                             onChange={(e: any) => updateItem(item.id, 'taxCode', e.target.value)}
-                                            placeholder={type === 'nfse' ? '01.01' : '84713019'}
+                                            placeholder={type === 'nfse' ? (currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional ? '010101 (6 dígitos)' : '01.01') : '84713019'}
                                             required
                                             className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
                                         />
