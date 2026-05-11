@@ -396,7 +396,24 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
 
         res.json({ ...response.data, proxy_version: '1.0.10', synced_id: issuerPayload.certificado });
     } catch (error: any) {
-        res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
+        const errorDetail = error.response?.data || error.message;
+        console.error('❌ [FISCAL-SYNC] Erro na TecnoSpeed:', JSON.stringify({
+            status: error.response?.status,
+            data: errorDetail,
+            sent_cnpj: useTestData ? TECNOSPEED_TEST_DATA.cnpj : cnpj,
+            is_sandbox: isSandbox,
+            baseUrl: baseUrl
+        }, null, 2));
+        
+        res.status(error.response?.status || 500).json({ 
+            error: error.message, 
+            detail: errorDetail,
+            debug_info: {
+                cnpj_sent: useTestData ? TECNOSPEED_TEST_DATA.cnpj : cnpj,
+                ambiente: isSandbox ? 'homologacao' : 'producao',
+                endpoint: baseUrl
+            }
+        });
     }
 });
 
