@@ -443,12 +443,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 bairro: 'Zona 07',
                 cep: '87020025',
                 codigoCidade: '4115200',
-                estado: 'PR',
                 uf: 'PR',
-                complemento: 'SALA 01',
-                tipoLogradouro: 'Avenida',
-                codigoPais: '1058',
-                descricaoCidade: 'Maringá'
+                complemento: 'SALA 01'
             }
         };
 
@@ -501,15 +497,15 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             inscricaoMunicipal: useTestData ? TECNOSPEED_TEST_DATA.inscricaoMunicipal : ((config.inscricao_municipal || '').replace(/\D/g, '') || ''),
             razaoSocial: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.razao_social || ''),
             nomeFantasia: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.nome_fantasia || config.razao_social || ''),
-            simplesNacional: Boolean(config.regime_tributario === '1'),
-            regimeTributario: parseInt(config.regime_tributario) || 1,
+            simplesNacional: useTestData ? true : Boolean(config.regime_tributario === '1'),
+            regimeTributario: useTestData ? 1 : (parseInt(config.regime_tributario) || 1),
             email: config.email || 'suporte@lucrocerto.com.br',
-            certificado: config.certificado_id || config.certificadoId || config.certificado || '',
+            certificado: useTestData ? '' : (config.certificado_id || config.certificadoId || config.certificado || ''),
             telefone: {
                 ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '44',
                 numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '30379500'
             },
-            endereco: useTestData ? mapAddress(TECNOSPEED_TEST_DATA.endereco) : mapAddress(config.endereco || config),
+            endereco: useTestData ? TECNOSPEED_TEST_DATA.endereco : mapAddress(config.endereco || config),
             nfse: {
                 ativo: true,
                 config: { producao: false }
