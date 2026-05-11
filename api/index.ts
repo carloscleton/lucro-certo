@@ -258,8 +258,16 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // --- DETECÇÃO DE MODO TESTE ---
         const TEST_CNPJ = '08187168000160'; // CNPJ de Teste da TecnoSpeed S/A
         const TEST_IM = '8214100099';
-        const isTestCnpj = targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104';
-        const useTestData = (config.use_test_data === true && isSandbox) || isTestCnpj;
+        
+        // Autodescoberta de certificado (já feita acima)
+        
+        // Modo teste é ativo se:
+        // 1. O usuário marcou explicitamente "Ativar Dados de Teste"
+        // 2. Estamos em Sandbox e NÃO temos um certificado (para evitar o erro que o usuário está vendo)
+        // 3. O CNPJ enviado já é um CNPJ de teste conhecido
+        const useTestData = (config.use_test_data === true) || 
+                          (isSandbox && !certId) || 
+                          (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
 
         console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
         
