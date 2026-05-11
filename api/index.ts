@@ -35,14 +35,16 @@ app.use(express.json());
 
 // Middleware para lidar com o prefixo /api de forma robusta
 app.use((req, res, next) => {
+    const oldUrl = req.url;
+    
     // Logger simples para depurar chamadas que chegam ao proxy
-    console.log(`[Proxy] ${req.method} ${req.url}`);
-
     if (req.url.startsWith('/api/')) {
         req.url = req.url.replace(/^\/api/, '');
     } else if (req.url === '/api') {
         req.url = '/';
     }
+    
+    console.log(`[Proxy] ${req.method} ${oldUrl} -> ${req.url}`);
     next();
 });
 
@@ -858,7 +860,7 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
 
         res.json({
             ...response.data,
-            proxy_version: '1.0.4',
+            proxy_version: '1.0.5',
             synced_id: issuerPayload.certificado
         });
     } catch (error: any) {
