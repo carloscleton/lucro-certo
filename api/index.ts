@@ -252,29 +252,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
         const useTestData = config.use_test_data === true && isSandbox;
         
-        // Injetar o certificado no payload se for NFSe e estiver faltando
-        let finalPayload = Array.isArray(payload) ? payload : [payload];
-        
-        if (endpoint === 'nfse') {
-            finalPayload = finalPayload.map((item: any) => {
-                if (item.prestador) {
-                    // SÓ injeta o certificado se NÃO estivermos no modo de teste da TecnoSpeed (Maringá)
-                    // Se for o CNPJ real do usuário, o certificado é obrigatório.
-                    if (!useTestData) {
-                        item.prestador.certificado = item.prestador.certificado || config.certificado_id || config.certificado;
-                    } else {
-                        // No modo de teste, garantimos que o certificado esteja vazio para evitar erro de conflito
-                        delete item.prestador.certificado;
-                    }
-                }
-                return item;
-            });
-        }
-
         console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
         
         // Log completo para depuração (Remover após fix)
-        console.log(`🔐 [DEBUG] Configuração recuperada:`, JSON.stringify(config, null, 2));
+        // console.log(`🔐 [DEBUG] Configuração recuperada:`, JSON.stringify(config, null, 2));
 
         const certId = config.certificado_id || config.certificadoId || config.certificado;
         console.log(`🧾 [DEBUG] ID de Certificado encontrado: ${certId || 'Nenhum'}`);
@@ -289,6 +270,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         item.prestador.certificado = item.prestador.certificado || certId;
                         console.log(`🧾 [DEBUG] Injetando certificado ${certId} no prestador ${item.prestador.cpfCnpj}`);
                     } else {
+                        // No modo de teste (Maringá), removemos o certificado para evitar conflito de CNPJ
                         delete item.prestador.certificado;
                     }
                 }
