@@ -447,9 +447,9 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         };
 
-        // Voltando a usar o CNPJ REAL do usuário, mesmo em teste.
-        // O que define o "modo teste" é o endereço de Maringá, não o CNPJ da TecnoSpeed.
-        const effectiveCnpj = cnpj; 
+        // Voltando a usar o CNPJ de teste da TecnoSpeed se o modo teste estiver ativo.
+        // O usuário confirmou que isso funcionava antes.
+        const effectiveCnpj = useTestData ? TEST_CNPJ : cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
         // Reutilizar o helper de endereço para o emissor também
@@ -491,7 +491,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             };
         };
 
-        const issuerPayload = {
+        const issuerPayload: any = {
             cpfCnpj: effectiveCnpjUrl,
             inscricaoEstadual: useTestData ? '' : ((config.inscricao_estadual || '').replace(/\D/g, '') || ''),
             inscricaoMunicipal: useTestData ? TECNOSPEED_TEST_DATA.inscricaoMunicipal : ((config.inscricao_municipal || '').replace(/\D/g, '') || ''),
@@ -505,16 +505,14 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '44',
                 numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '30379500'
             },
-            endereco: useTestData ? TECNOSPEED_TEST_DATA.endereco : mapAddress(config.endereco || config),
-            nfse: {
-                ativo: true,
-                config: { producao: false }
-            },
-            nfe: {
-                ativo: true,
-                config: { producao: false }
-            }
+            endereco: useTestData ? TECNOSPEED_TEST_DATA.endereco : mapAddress(config.endereco || config)
         };
+
+        // Só adicionar ativação de módulos se não for modo de teste (já ativo no sandbox)
+        if (!useTestData) {
+            issuerPayload.nfse = { ativo: true, config: { producao: false } };
+            issuerPayload.nfe = { ativo: true, config: { producao: false } };
+        }
 
         console.log('🚀 [FISCAL-SYNC] Enviando Payload para TecnoSpeed:', JSON.stringify({
             url: `${baseUrl}/empresa`,
