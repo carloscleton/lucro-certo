@@ -358,6 +358,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         };
 
+        const effectiveCnpj = useTestData ? TECNOSPEED_TEST_DATA.cnpj : cnpj;
+
         let response;
         try {
             response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
@@ -365,7 +367,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             });
         } catch (error: any) {
             if (error.response?.status === 409) {
-                response = await axios.put(`${baseUrl}/empresa/${cnpj}`, issuerPayload, {
+                // Em caso de conflito, usar o CNPJ efetivo (que pode ser o de teste) na URL do PUT
+                response = await axios.put(`${baseUrl}/empresa/${effectiveCnpj}`, issuerPayload, {
                     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
                 });
             } else {
