@@ -337,8 +337,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // 2. Mapear Prestador e Certificado
                 if (item.prestador) {
                     if (useTestData) {
-                        console.log(`🛠️ [FISCAL-EMITIR] Forçando CNPJ de teste (Maringá)`);
-                        item.prestador.cpfCnpj = TEST_CNPJ;
+                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Usando endereço de Maringá no CNPJ do usuário).`);
                         item.prestador.certificado = ''; // Maringá não exige cert no sandbox
                     } else {
                         item.prestador.certificado = certId;
@@ -448,8 +447,9 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         };
 
-        // Voltando a usar o CNPJ REAL do usuário, exceto se for teste.
-        const effectiveCnpj = useTestData ? TEST_CNPJ : cnpj; 
+        // Voltando a usar o CNPJ REAL do usuário, mesmo em teste.
+        // O que define o "modo teste" é o endereço de Maringá, não o CNPJ da TecnoSpeed.
+        const effectiveCnpj = cnpj; 
         const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
 
         // Reutilizar o helper de endereço para o emissor também
