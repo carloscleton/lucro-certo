@@ -375,7 +375,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             is_test_mode: useTestData
         }, null, 2));
 
-        const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
+        // Já definido na linha 335
         let response;
         try {
             if (useTestData) {
