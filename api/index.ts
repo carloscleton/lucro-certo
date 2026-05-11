@@ -336,7 +336,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             simplesNacional: config.regime_tributario === '1',
             regimeTributario: parseInt(config.regime_tributario) || 1,
             email: config.email || 'suporte@lucrocerto.com.br',
-            certificado: config.certificado_id || config.certificado || '',
+            certificado: useTestData ? '' : (config.certificado_id || config.certificado || ''),
             telefone: {
                 ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '44',
                 numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '30379500'
