@@ -329,10 +329,12 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         const TEST_CNPJ_FORMATTED = '08.184.315/0001-04';
         const TEST_CNPJ_CLEAN = '08184315000104';
 
+        const effectiveCnpj = useTestData ? TEST_CNPJ_FORMATTED : cnpj;
+
         const issuerPayload = {
-            cpfCnpj: useTestData ? TEST_CNPJ_CLEAN : cnpj,
-            cnpj: useTestData ? TEST_CNPJ_CLEAN : cnpj,
-            cpf_cnpj: useTestData ? TEST_CNPJ_CLEAN : cnpj, 
+            cpfCnpj: effectiveCnpj,
+            cnpj: effectiveCnpj,
+            cpf_cnpj: effectiveCnpj, 
             inscricaoEstadual: useTestData ? '' : ((config.inscricao_estadual || '').replace(/\D/g, '') || ''),
             inscricaoMunicipal: useTestData ? TECNOSPEED_TEST_DATA.inscricaoMunicipal : ((config.inscricao_municipal || '').replace(/\D/g, '') || ''),
             razaoSocial: useTestData ? TECNOSPEED_TEST_DATA.razaoSocial : (config.razao_social || ''),
@@ -366,11 +368,9 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
 
         console.log('🚀 [FISCAL-SYNC] Enviando Payload para TecnoSpeed:', JSON.stringify({
             url: `${baseUrl}/empresa`,
-            cnpj: useTestData ? TEST_CNPJ : cnpj,
+            cnpj: effectiveCnpj,
             is_sandbox: isSandbox
         }, null, 2));
-
-        const effectiveCnpj = useTestData ? TEST_CNPJ : cnpj;
 
         let response;
         try {
