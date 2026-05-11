@@ -253,6 +253,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const useTestData = config.use_test_data === true && isSandbox;
         
         console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
+        console.log(`🧾 [DEBUG] useTestData: ${useTestData} (config.use_test_data: ${config.use_test_data}, isSandbox: ${isSandbox})`);
         
         // Log completo para depuração (Remover após fix)
         // console.log(`🔐 [DEBUG] Configuração recuperada:`, JSON.stringify(config, null, 2));
