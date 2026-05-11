@@ -251,23 +251,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
         
+        // --- DADOS DO PRESTADOR ---
+        const firstItem = Array.isArray(payload) ? payload[0] : payload;
+        const targetCnpj = (firstItem?.prestador?.cpfCnpj || '').replace(/\D/g, '');
+
         // --- DETECÇÃO DE MODO TESTE ---
-        // Se config.use_test_data for true OU se o CNPJ do prestador for o de Maringá, tratamos como teste.
         const TEST_CNPJ = '08184315000104';
         const isMaringa = targetCnpj === TEST_CNPJ;
         const useTestData = (config.use_test_data === true && isSandbox) || isMaringa;
-        
-        console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
-        console.log(`🧾 [DEBUG] useTestData: ${useTestData} (config.use_test_data: ${config.use_test_data}, isSandbox: ${isSandbox})`);
-        
-        // Log completo para depuração (Remover após fix)
-        // console.log(`🔐 [DEBUG] Configuração recuperada:`, JSON.stringify(config, null, 2));
 
-        // --- AUTODESCORBERTA DE CERTIFICADO ---
-        let certId = config.certificado_id || config.certificadoId || config.certificado;
+        console.log(`🧾 [FISCAL] Emitindo ${endpoint.toUpperCase()} via PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})`);
         
-        const firstItem = Array.isArray(payload) ? payload[0] : payload;
-        const targetCnpj = firstItem?.prestador?.cpfCnpj;
+        // --- CERTIFICADO ---
+        let certId = config.certificado_id || config.certificadoId || config.certificado;
 
         if (targetCnpj) {
             try {
