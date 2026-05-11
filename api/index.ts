@@ -266,12 +266,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         if (endpoint === 'nfse') {
             finalPayload = finalPayload.map((item: any) => {
                 if (item.prestador) {
-                    if (!useTestData) {
-                        item.prestador.certificado = item.prestador.certificado || certId;
-                        console.log(`🧾 [DEBUG] Injetando certificado ${certId} no prestador ${item.prestador.cpfCnpj}`);
-                    } else {
-                        // No modo de teste (Maringá), removemos o certificado para evitar conflito de CNPJ
+                    if (useTestData) {
+                        // FORÇAR CNPJ DE MARINGÁ NO MODO DE TESTE
+                        console.log(`🛠️ [FISCAL-EMITIR] Forçando CNPJ de Maringá para homologação.`);
+                        item.prestador.cpfCnpj = '08184315000104';
                         delete item.prestador.certificado;
+                    } else {
+                        // USAR DADOS REAIS
+                        item.prestador.certificado = item.prestador.certificado || certId;
+                        console.log(`🧾 [FISCAL-EMITIR] Usando certificado ${certId} para o prestador ${item.prestador.cpfCnpj}`);
                     }
                 }
                 return item;
