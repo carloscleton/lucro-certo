@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -251,6 +251,18 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                     Você está operando em ambiente de <strong>PRODUÇÃO</strong>. A emissão de notas fiscais reais exige um certificado digital válido vinculado à sua empresa.
                                 </p>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional && type === 'nfse' && (
+                    <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                            <Globe size={18} className="text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-blue-900 dark:text-blue-400 uppercase tracking-wider">Padrão Nacional Ativo</p>
+                            <p className="text-[10px] text-blue-600/70 dark:text-blue-400/60 font-medium">Esta nota será emitida seguindo o novo padrão nacional (NFSe-N).</p>
                         </div>
                     </div>
                 )}
