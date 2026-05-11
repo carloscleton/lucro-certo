@@ -258,10 +258,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         if (endpoint === 'nfse') {
             finalPayload = finalPayload.map((item: any) => {
                 if (item.prestador) {
-                    // Só injeta se não tiver certificado OU se estivermos forçando o do banco
-                    // No modo de teste (Maringá), a TecnoSpeed sandbox às vezes aceita sem certificado, 
-                    // mas para o CNPJ real do usuário, o certificado É OBRIGATÓRIO.
-                    item.prestador.certificado = item.prestador.certificado || config.certificado_id || config.certificado;
+                    // SÓ injeta o certificado se NÃO estivermos no modo de teste da TecnoSpeed (Maringá)
+                    // Se for o CNPJ real do usuário, o certificado é obrigatório.
+                    if (!useTestData) {
+                        item.prestador.certificado = item.prestador.certificado || config.certificado_id || config.certificado;
+                    } else {
+                        // No modo de teste, garantimos que o certificado esteja vazio para evitar erro de conflito
+                        delete item.prestador.certificado;
+                    }
                 }
                 return item;
             });
