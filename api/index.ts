@@ -762,25 +762,35 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
     const authHeader = req.headers.authorization;
 
     try {
+        const cnpj = (config.cnpj || '').replace(/\D/g, '');
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        
+        if (!cnpj || !apiKey) {
+            return res.status(400).json({ 
+                error: 'CNPJ e Chave API são obrigatórios para sincronizar.',
+                detail: { cnpj: !!cnpj, apiKey: !!apiKey }
+            });
+        }
+
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+        const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
+        const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
-        console.log(`🏢 Sincronizando Empresa (${config.cnpj}) no PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
+        console.log(`🏢 Sincronizando Empresa (${cnpj}) no PlugNotas (${isSandbox ? 'SANDBOX' : 'PROD'})...`);
         console.log(`📡 URL Alvo: ${baseUrl}`);
-        console.log(`🔐 API Key (Sanitized): ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
+        console.log(`🔐 API Key (Sanitized): ${apiKey.length > 8 ? apiKey.substring(0, 4) + '...' + apiKey.substring(apiKey.length - 4) : '***'}`);
 
         const issuerPayload = {
-            cpfCnpj: config.cnpj.replace(/\D/g, ''),
-            inscricaoEstadual: config.inscricao_estadual?.replace(/\D/g, '') || 'ISENTO',
-            inscricaoMunicipal: config.inscricao_municipal?.replace(/\D/g, '') || '',
-            razaoSocial: config.razao_social,
-            nomeFantasia: config.nome_fantasia || config.razao_social,
+            cpfCnpj: cnpj,
+            inscricaoEstadual: (config.inscricao_estadual || '').replace(/\D/g, '') || 'ISENTO',
+            inscricaoMunicipal: (config.inscricao_municipal || '').replace(/\D/g, '') || '',
+            razaoSocial: config.razao_social || '',
+            nomeFantasia: config.nome_fantasia || config.razao_social || '',
             simplesNacional: config.regime_tributario === '1',
             regimeTributario: parseInt(config.regime_tributario) || 1,
-            email: config.email,
-            certificado: config.certificado_id || config.certificado, // Aceita ambos os formatos por segurança
+            email: config.email || '',
+            certificado: config.certificado_id || config.certificado || '',
             telefone: {
                 ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '00',
                 numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '000000000'
@@ -847,16 +857,16 @@ app.post('/fiscal/sync-issuer', authenticate, async (req, res) => {
 
         res.json({
             ...response.data,
-            proxy_version: '1.0.3',
+            proxy_version: '1.0.4',
             synced_id: issuerPayload.certificado
         });
     } catch (error: any) {
         const statusCode = error.response?.status || 500;
         const errorData = error.response?.data;
         
-        console.error(`❌ Erro ao sincronizar emitente (Status ${statusCode}):`, JSON.stringify(errorData, null, 2));
+        console.error(`❌ Erro ao sincronizar emitente (Status ${statusCode}):`, JSON.stringify(errorData || error.message, null, 2));
         
-        let errorMessage = 'Erro ao sincronizar com PlugNotas';
+        let errorMessage = error.message || 'Erro ao sincronizar com PlugNotas';
         if (errorData?.message) errorMessage = errorData.message;
         else if (errorData?.error?.message) errorMessage = errorData.error.message;
         else if (errorData?.error) errorMessage = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
