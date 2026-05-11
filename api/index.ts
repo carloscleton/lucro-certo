@@ -372,21 +372,39 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             is_sandbox: isSandbox
         }, null, 2));
 
+        const effectiveCnpjUrl = effectiveCnpj.replace(/\D/g, '');
         let response;
         try {
-            response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
-                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
-            });
-        } catch (error: any) {
-            if (error.response?.status === 409) {
-                // Em caso de conflito, usar o CNPJ efetivo (que pode ser o de teste) na URL do PUT
-                response = await axios.put(`${baseUrl}/empresa/${effectiveCnpj}`, issuerPayload, {
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
-                });
+            if (useTestData) {
+                try {
+                    response = await axios.get(`${baseUrl}/empresa/${effectiveCnpjUrl}`, {
+                        headers: { 'x-api-key': apiKey }
+                    });
+                } catch (getErr: any) {
+                    if (getErr.response?.status === 404) {
+                        response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
+                            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+                        });
+                    } else {
+                        throw getErr;
+                    }
+                }
             } else {
-                throw error;
+                try {
+                    response = await axios.post(`${baseUrl}/empresa`, issuerPayload, {
+                        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+                    });
+                } catch (error: any) {
+                    if (error.response?.status === 409) {
+                        response = await axios.put(`${baseUrl}/empresa/${effectiveCnpjUrl}`, issuerPayload, {
+                            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+                        });
+                    } else {
+                        throw error;
+                    }
+                }
             }
-        }
+        } catch (error: any) {
 
         // --- PERSISTÊNCIA: Salvar configuração atualizada no Supabase ---
         if (companyId && SUPABASE_URL) {
