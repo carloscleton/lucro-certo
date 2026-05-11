@@ -33,21 +33,7 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Middleware para lidar com o prefixo /api de forma robusta
-app.use((req, res, next) => {
-    const oldUrl = req.url;
-    
-    // Logger simples para depurar chamadas que chegam ao proxy
-    if (req.url.startsWith('/api/')) {
-        req.url = req.url.replace(/^\/api/, '');
-    } else if (req.url.startsWith('/api')) {
-        req.url = req.url.replace(/^\/api/, '');
-    }
-    
-    // Garantir que a URL comece com / se estiver vazia
-    if (!req.url) req.url = '/';
-    next();
-});
+// Roteamento robusto: todas as rotas fiscais suportam prefixo /api ou direto.
 
 // Evolution API Config
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, '');
@@ -95,11 +81,11 @@ const sanitizeKey = (val: any) => {
 // --- BLOCO FISCAL ---
 // Movidos para o topo para garantir prioridade e depuração
 
-app.get('/fiscal-module/health', (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.9' });
+app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.10' });
 });
 
-app.post('/fiscal-module/upload-certificate', authenticate, upload.single('arquivo'), async (req: any, res) => {
+app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certificate'], authenticate, upload.single('arquivo'), async (req: any, res) => {
     const { companyId, senha } = req.body;
     const authHeader = req.headers.authorization;
     const file = req.file;
@@ -204,7 +190,7 @@ app.post('/fiscal-module/upload-certificate', authenticate, upload.single('arqui
     }
 });
 
-app.get('/fiscal-module/issuer-status/:cpfCnpj', authenticate, async (req, res) => {
+app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-status/:cpfCnpj'], authenticate, async (req, res) => {
     const { cpfCnpj } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
@@ -245,7 +231,7 @@ app.get('/fiscal-module/issuer-status/:cpfCnpj', authenticate, async (req, res) 
     }
 });
 
-app.post('/fiscal-module/emitir', authenticate, async (req, res) => {
+app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, async (req, res) => {
     const { companyId, payload, type, quoteId } = req.body;
     const authHeader = req.headers.authorization;
 
@@ -298,13 +284,13 @@ app.post('/fiscal-module/emitir', authenticate, async (req, res) => {
             }
         }
 
-        res.json({ ...response.data, proxy_version: '1.0.8' });
+        res.json({ ...response.data, proxy_version: '1.0.10' });
     } catch (error: any) {
         res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
     }
 });
 
-app.post('/fiscal-module/sync-issuer', authenticate, async (req, res) => {
+app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authenticate, async (req, res) => {
     const { companyId, config } = req.body;
     const authHeader = req.headers.authorization;
 
@@ -405,13 +391,13 @@ app.post('/fiscal-module/sync-issuer', authenticate, async (req, res) => {
             }
         }
 
-        res.json({ ...response.data, proxy_version: '1.0.9', synced_id: issuerPayload.certificado });
+        res.json({ ...response.data, proxy_version: '1.0.10', synced_id: issuerPayload.certificado });
     } catch (error: any) {
         res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
     }
 });
 
-app.post('/fiscal-module/save-config', authenticate, async (req, res) => {
+app.post(['/fiscal-module/save-config', '/api/fiscal-module/save-config'], authenticate, async (req, res) => {
     const { companyId, config } = req.body;
     const authHeader = req.headers.authorization;
 
@@ -475,7 +461,7 @@ async function resolveTargetName(requestedName: string, token?: string): Promise
     }
 }
 
-app.get('/fiscal-module/status/:id', authenticate, async (req, res) => {
+app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
@@ -509,7 +495,7 @@ app.get('/fiscal-module/status/:id', authenticate, async (req, res) => {
     }
 });
 
-app.get('/fiscal-module/nfe/:id/pdf', authenticate, async (req, res) => {
+app.get(['/fiscal-module/nfe/:id/pdf', '/api/fiscal-module/nfe/:id/pdf'], authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
@@ -532,7 +518,7 @@ app.get('/fiscal-module/nfe/:id/pdf', authenticate, async (req, res) => {
     }
 });
 
-app.get('/fiscal-module/nfe/:id/xml', authenticate, async (req, res) => {
+app.get(['/fiscal-module/nfe/:id/xml', '/api/fiscal-module/nfe/:id/xml'], authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
