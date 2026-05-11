@@ -40,11 +40,12 @@ app.use((req, res, next) => {
     // Logger simples para depurar chamadas que chegam ao proxy
     if (req.url.startsWith('/api/')) {
         req.url = req.url.replace(/^\/api/, '');
-    } else if (req.url === '/api') {
-        req.url = '/';
+    } else if (req.url.startsWith('/api')) {
+        req.url = req.url.replace(/^\/api/, '');
     }
     
-    console.log(`[Proxy] ${req.method} | Path: ${req.path} | URL: ${oldUrl} -> ${req.url}`);
+    // Garantir que a URL comece com / se estiver vazia
+    if (!req.url) req.url = '/';
     next();
 });
 
@@ -94,11 +95,11 @@ const sanitizeKey = (val: any) => {
 // --- BLOCO FISCAL ---
 // Movidos para o topo para garantir prioridade e depuração
 
-app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.8' });
+app.get('/fiscal-module/health', (req, res) => {
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.9' });
 });
 
-app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certificate'], authenticate, upload.single('arquivo'), async (req: any, res) => {
+app.post('/fiscal-module/upload-certificate', authenticate, upload.single('arquivo'), async (req: any, res) => {
     const { companyId, senha } = req.body;
     const authHeader = req.headers.authorization;
     const file = req.file;
@@ -203,7 +204,7 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
     }
 });
 
-app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-status/:cpfCnpj'], authenticate, async (req, res) => {
+app.get('/fiscal-module/issuer-status/:cpfCnpj', authenticate, async (req, res) => {
     const { cpfCnpj } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
@@ -244,7 +245,7 @@ app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-sta
     }
 });
 
-app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, async (req, res) => {
+app.post('/fiscal-module/emitir', authenticate, async (req, res) => {
     const { companyId, payload, type, quoteId } = req.body;
     const authHeader = req.headers.authorization;
 
@@ -303,7 +304,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     }
 });
 
-app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authenticate, async (req, res) => {
+app.post('/fiscal-module/sync-issuer', authenticate, async (req, res) => {
     const { companyId, config } = req.body;
     const authHeader = req.headers.authorization;
 
@@ -368,9 +369,53 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         }
 
-        res.json({ ...response.data, proxy_version: '1.0.8', synced_id: issuerPayload.certificado });
+        // --- PERSISTÊNCIA: Salvar configuração atualizada no Supabase ---
+        if (companyId && SUPABASE_URL) {
+            try {
+                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                    tecnospeed_config: config
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log('✅ Configuração fiscal persistida no Supabase após sincronização.');
+            } catch (dbErr: any) {
+                console.warn('⚠️ Falha ao salvar config no banco:', dbErr.message);
+            }
+        }
+
+        res.json({ ...response.data, proxy_version: '1.0.9', synced_id: issuerPayload.certificado });
     } catch (error: any) {
         res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
+    }
+});
+
+app.post('/fiscal-module/save-config', authenticate, async (req, res) => {
+    const { companyId, config } = req.body;
+    const authHeader = req.headers.authorization;
+
+    if (!companyId || !config) {
+        return res.status(400).json({ error: 'companyId e config são obrigatórios' });
+    }
+
+    try {
+        console.log(`💾 Salvando configuração fiscal para empresa: ${companyId}`);
+        await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+            tecnospeed_config: config
+        }, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY!,
+                'Authorization': authHeader!,
+                'Content-Type': 'application/json'
+            }
+        });
+        res.json({ success: true, message: 'Configuração salva com sucesso.' });
+    } catch (error: any) {
+        console.error('❌ Erro ao salvar config:', error.response?.data || error.message);
+        res.status(500).json({ error: 'Erro ao salvar configuração no banco', detail: error.response?.data });
     }
 });
 
@@ -412,7 +457,7 @@ async function resolveTargetName(requestedName: string, token?: string): Promise
     }
 }
 
-app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenticate, async (req, res) => {
+app.get('/fiscal-module/status/:id', authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
@@ -446,7 +491,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
     }
 });
 
-app.get(['/fiscal-module/nfe/:id/pdf', '/api/fiscal-module/nfe/:id/pdf'], authenticate, async (req, res) => {
+app.get('/fiscal-module/nfe/:id/pdf', authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
@@ -469,7 +514,7 @@ app.get(['/fiscal-module/nfe/:id/pdf', '/api/fiscal-module/nfe/:id/pdf'], authen
     }
 });
 
-app.get(['/fiscal-module/nfe/:id/xml', '/api/fiscal-module/nfe/:id/xml'], authenticate, async (req, res) => {
+app.get('/fiscal-module/nfe/:id/xml', authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;

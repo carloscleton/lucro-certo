@@ -113,5 +113,17 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async saveConfig(companyId: string, config: any, token: string) {
+        const response = await axios.post(getFiscalUrl('save-config'), {
+            companyId,
+            config
+        }, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };
