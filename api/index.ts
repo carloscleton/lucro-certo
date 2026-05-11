@@ -304,6 +304,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
 
         const isSandbox = config.ambiente === 'homologacao';
         const useTestData = config.use_test_data === true && isSandbox;
+        const TEST_CNPJ = '08184315000104';
 
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
@@ -311,7 +312,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
 
         // DADOS DE TESTE DA TECNOSPEED (MARINGÁ)
         const TECNOSPEED_TEST_DATA = {
-            cnpj: '08184315000104',
+            cnpj: TEST_CNPJ,
             razaoSocial: 'TECNOSPEED TECNOLOGIA DA INFORMACAO LTDA',
             inscricaoMunicipal: '123456',
             endereco: {
@@ -358,7 +359,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         };
 
-        const effectiveCnpj = useTestData ? TECNOSPEED_TEST_DATA.cnpj : cnpj;
+        const effectiveCnpj = useTestData ? TEST_CNPJ : cnpj;
 
         let response;
         try {
@@ -397,22 +398,11 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         res.json({ ...response.data, proxy_version: '1.0.10', synced_id: issuerPayload.certificado });
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        console.error('❌ [FISCAL-SYNC] Erro na TecnoSpeed:', JSON.stringify({
-            status: error.response?.status,
-            data: errorDetail,
-            sent_cnpj: useTestData ? TECNOSPEED_TEST_DATA.cnpj : cnpj,
-            is_sandbox: isSandbox,
-            baseUrl: baseUrl
-        }, null, 2));
+        console.error('❌ [FISCAL-SYNC] Erro na TecnoSpeed:', JSON.stringify(errorDetail, null, 2));
         
         res.status(error.response?.status || 500).json({ 
             error: error.message, 
-            detail: errorDetail,
-            debug_info: {
-                cnpj_sent: useTestData ? TECNOSPEED_TEST_DATA.cnpj : cnpj,
-                ambiente: isSandbox ? 'homologacao' : 'producao',
-                endpoint: baseUrl
-            }
+            detail: errorDetail
         });
     }
 });
