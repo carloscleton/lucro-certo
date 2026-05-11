@@ -268,22 +268,20 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             finalPayload = finalPayload.map((item: any) => {
                 if (item.prestador) {
                     if (useTestData) {
-                        // NO MODO DE TESTE, usamos seu CNPJ mas com dados de Maringá (já configurado no sync)
-                        console.log(`🛠️ [FISCAL-EMITIR] Usando seu CNPJ com dados de Maringá para homologação.`);
-                        delete item.prestador.certificado; // No modo de teste puro da Tecnospeed, tentamos sem primeiro
-                        // Se falhar, o próximo passo seria injetar o seu certificado mesmo em modo de teste
+                        // NO MODO DE TESTE, usamos seu CNPJ mas com dados de Maringá
+                        console.log(`🛠️ [FISCAL-EMITIR] Modo de teste: Usando seu CNPJ com dados de Maringá.`);
                         item.prestador.certificado = certId; 
                     } else {
                         // USAR DADOS REAIS
                         item.prestador.certificado = item.prestador.certificado || certId;
-                        console.log(`🧾 [FISCAL-EMITIR] Usando certificado ${certId} para o prestador ${item.prestador.cpfCnpj}`);
                     }
+                    console.log(`🧾 [DEBUG] Prestador após injeção:`, JSON.stringify(item.prestador, null, 2));
                 }
                 return item;
             });
         }
 
-        console.log(`🧾 [DEBUG] Payload Final que será enviado:`, JSON.stringify(finalPayload, null, 2));
+        console.log(`🧾 [DEBUG] Payload Final para TecnoSpeed:`, JSON.stringify(finalPayload, null, 2));
         
         const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
