@@ -75,7 +75,7 @@ const sanitizeKey = (val: any) => {
         const match = s.match(/[a-f0-9-]{36}/i); // Tenta achar um UUID
         if (match) s = match[0];
     }
-    return s.trim().toLowerCase();
+    return s.trim();
 };
 
 // --- BLOCO FISCAL ---

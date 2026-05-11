@@ -94,9 +94,8 @@ export function FiscalSettings() {
 
             Object.assign(newConfig, tc);
 
-            if (newConfig.tecnospeed_api_key) newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.toLowerCase();
-            if (newConfig.endpoint_homologacao) newConfig.endpoint_homologacao = newConfig.endpoint_homologacao.toLowerCase();
-            if (newConfig.endpoint_producao) newConfig.endpoint_producao = newConfig.endpoint_producao.toLowerCase();
+            // Remover o toLowerCase das keys e endpoints, pois podem ser case-sensitive
+            // Manter os valores originais vindos do banco
 
             if (!newConfig.cnpj && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
             if (!newConfig.razao_social && currentCompany.legal_name) newConfig.razao_social = currentCompany.legal_name;
@@ -710,8 +709,8 @@ export function FiscalSettings() {
                                 <Input
                                     label="TecnoSpeed API Key"
                                     type={showApiKey ? 'text' : 'password'}
-                                    value={config.tecnospeed_api_key?.toLowerCase() || ''}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value.toLowerCase() })}
+                                    value={config.tecnospeed_api_key || ''}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, tecnospeed_api_key: e.target.value })}
                                     placeholder="Insira sua chave"
                                     preserveCase={true}
                                     autoComplete="one-time-code"
