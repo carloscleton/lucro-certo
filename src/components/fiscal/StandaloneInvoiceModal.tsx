@@ -57,6 +57,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const [sendEmail, setSendEmail] = useState(false);
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
+    const [notes, setNotes] = useState('');
 
     const config = currentCompany?.tecnospeed_config as any;
     const isNacional = config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false;
@@ -273,6 +274,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         return item;
                     })
                 };
+                if (notes) {
+                    payload.informacoesComplementares = notes;
+                }
+
                 if (sendEmail) {
                     payload.configuracao = {
                         email: {
@@ -341,6 +346,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         { meio: '90', valor: totalAmount }
                     ]
                 };
+
+                if (notes) {
+                    payload.informacoesComplementares = {
+                        interesseContribuinte: notes
+                    };
+                }
 
                 if (sendEmail) {
                     payload.configuracao = {
@@ -626,6 +637,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             </div>
                         ))}
                     </div>
+                </div>
+
+                {/* Corpo da Nota / Informações Complementares */}
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                        Corpo da Nota / Informações Complementares
+                    </label>
+                    <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Detalhes adicionais, condições de pagamento, observações fiscais..."
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-2xl border-2 border-transparent bg-gray-50/50 dark:bg-slate-800/30 text-gray-900 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none resize-none"
+                    />
                 </div>
 
                 {/* Controles de Automação */}
