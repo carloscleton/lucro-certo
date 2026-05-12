@@ -31,6 +31,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     const [loading, setLoading] = useState(false);
     const [munCode, setMunCode] = useState('');
     const [lcItem, setLcItem] = useState('');
+    const [natCode, setNatCode] = useState('');
     const [isLoyalty, setIsLoyalty] = useState(false);
     const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
 
@@ -39,6 +40,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     const { notify } = useNotification();
     const currentCompany = companies.find(c => c.id === currentEntity.id);
     const isFiscalEnabled = currentEntity.type === 'company' && currentCompany?.fiscal_module_enabled;
+    const isNacional = !!(currentCompany?.tecnospeed_config?.nfse_nacional || currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional);
 
     useEffect(() => {
         if (initialData) {
@@ -49,6 +51,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
             setShowInPdf(initialData.show_in_pdf !== false);
             setMunCode(initialData.codigo_servico_municipal || '');
             setLcItem(initialData.item_lista_servico || '');
+            setNatCode(initialData.codigo_tributacao_nacional || '');
             setIsLoyalty(initialData.is_loyalty || false);
         } else {
             setName('');
@@ -58,17 +61,19 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
             setShowInPdf(true);
             setMunCode('');
             setLcItem('');
+            setNatCode('');
             setIsLoyalty(false);
         }
     }, [initialData, isOpen]);
 
     const { clearCache } = useAutoSave(
         'service_form',
-        { name, description, price, unit, showInPdf, munCode, lcItem },
+        { name, description, price, unit, showInPdf, munCode, lcItem, natCode },
         {
             name: setName, description: setDescription, price: setPrice,
             unit: setUnit, showInPdf: setShowInPdf, munCode: setMunCode,
             lcItem: setLcItem,
+            natCode: setNatCode,
             isLoyalty: setIsLoyalty
         },
         !initialData,
@@ -132,6 +137,7 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                 show_in_pdf: showInPdf,
                 codigo_servico_municipal: munCode,
                 item_lista_servico: lcItem,
+                codigo_tributacao_nacional: natCode,
                 is_loyalty: isLoyalty,
             });
             clearCache();
@@ -216,24 +222,28 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                                 <Input
                                     value={munCode}
                                     onChange={e => setMunCode(e.target.value)}
-                                    placeholder="Ex: 1.01 / 0101"
-                                    helpText="Código de tributação do município"
+                                    placeholder={isNacional ? "Ex: 6 dígitos" : "Ex: 1.01 / 0101"}
+                                    helpText={isNacional ? "Cód. Municipal (Exatamente 6 dígitos)" : "Código de tributação do município"}
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Item Lista Serviço (LC 116)</label>
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    {isNacional ? "Código Nacional (9 dígitos)" : "Item Lista Serviço (LC 116)"}
+                                </label>
                                 <Input
-                                    value={lcItem}
-                                    onChange={e => setLcItem(e.target.value)}
-                                    placeholder="Ex: 01.01"
-                                    list="lc116-items"
-                                    helpText="Item da Lei Complementar 116/2003"
+                                    value={isNacional ? natCode : lcItem}
+                                    onChange={e => isNacional ? setNatCode(e.target.value) : setLcItem(e.target.value)}
+                                    placeholder={isNacional ? "010101001" : "Ex: 01.01"}
+                                    list={isNacional ? "" : "lc116-items"}
+                                    helpText={isNacional ? "Código de Tributação Nacional" : "Item da Lei Complementar 116/2003"}
                                 />
-                                <datalist id="lc116-items">
-                                    {LC116_ITEMS.map(item => (
-                                        <option key={item.id} value={item.id}>{item.description}</option>
-                                    ))}
-                                </datalist>
+                                {!isNacional && (
+                                    <datalist id="lc116-items">
+                                        {LC116_ITEMS.map(item => (
+                                            <option key={item.id} value={item.id}>{item.description}</option>
+                                        ))}
+                                    </datalist>
+                                )}
                             </div>
                         </div>
                     </div>

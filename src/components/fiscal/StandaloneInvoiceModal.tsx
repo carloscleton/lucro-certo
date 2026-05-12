@@ -26,6 +26,7 @@ interface InvoiceItem {
     quantity: number;
     cnae?: string;
     taxationCode?: string;
+    codigoTributacaoNacional?: string;
     issAliquota?: string;
     issExigibilidade?: string;
     issTipo?: string;
@@ -154,6 +155,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         if (service) {
                             updated.taxCode = service.codigo_servico_municipal || service.item_lista_servico || '';
                             updated.taxationCode = service.codigo_servico_municipal || service.item_lista_servico || '';
+                            updated.codigoTributacaoNacional = service.codigo_tributacao_nacional || '';
                             updated.amount = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(service.price);
                         }
                     } else {
@@ -238,7 +240,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         const val = parseFloat(cleanValue);
                         
                         const item: any = {
-                            codigo: i.taxCode,
+                            codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
                             descricao: i.description,
                             valor: {
                                 servico: isNaN(val) ? 0 : val,
@@ -251,10 +253,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
 
                         // Campos Avançados
                         if (i.cnae) item.cnae = i.cnae.replace(/\D/g, '');
-                        if (i.taxationCode) {
-                            // Para NFSe Nacional, deve ser exatamente 9 dígitos numéricos
-                            const cleanCode = i.taxationCode.replace(/\D/g, '').substring(0, 9);
-                            item.codigoTributacao = cleanCode;
+                        
+                        if (isNacional) {
+                            // Para NFSe Nacional, códigoTributacao deve ter 9 dígitos
+                            const natCode = (i.codigoTributacaoNacional || i.taxationCode || i.taxCode || '').replace(/\D/g, '').substring(0, 9);
+                            item.codigoTributacao = natCode;
+                        } else if (i.taxationCode) {
+                            item.codigoTributacao = i.taxationCode;
                         }
                         
                         if (i.issAliquota || i.issExigibilidade || i.issTipo) {
