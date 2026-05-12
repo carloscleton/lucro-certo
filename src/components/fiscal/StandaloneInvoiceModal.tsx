@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { useEntity } from '../../context/EntityContext';
 import { useContacts } from '../../hooks/useContacts';
 import { fiscalService } from '../../services/fiscalService';
+import { whatsappService } from '../../services/whatsappService';
 import { supabase } from '../../lib/supabase';
 import { useCompanies } from '../../hooks/useCompanies';
 import { ResultModal } from '../ui/ResultModal';
@@ -48,12 +49,19 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const [items, setItems] = useState<InvoiceItem[]>([
         { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }
     ]);
+    const [sendEmail, setSendEmail] = useState(false);
+    const [sendWhatsApp, setSendWhatsApp] = useState(false);
 
     // Auto-fill for Sandbox/Homologação
     useEffect(() => {
         const config = currentCompany?.tecnospeed_config;
         const isHomolog = config?.ambiente === 'homologacao' || config?.use_test_data;
         const isNacional = config?.nfse?.config?.nfseNacional;
+
+        if (config) {
+            setSendEmail(config.send_email_automatically || false);
+            setSendWhatsApp(config.send_whatsapp_automatically || false);
+        }
 
         if (isHomolog) {
             console.log('🛠️ [FISCAL] Preenchendo campos de teste (Homologação ativa)');
@@ -192,8 +200,26 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         return item;
                     })
                 };
+                if (sendEmail) {
+                    payload.configuracao = {
+                        email: {
+                            envio: true,
+                            destinatarios: [contact.email]
+                        }
+                    };
+                }
                 console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
-                await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
+                const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
+                
+                // Envio de WhatsApp se habilitado
+                if (sendWhatsApp && contact.phone) {
+                    try {
+                        const message = `Olá ${contact.name}! Sua Nota Fiscal de Serviço foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
+                        await whatsappService.sendMessage(currentEntity.id!, contact.phone, message);
+                    } catch (wsError) {
+                        console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
+                    }
+                }
             } else {
                 payload = {
                     presenca: 1,
@@ -235,8 +261,28 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         { meio: '90', valor: totalAmount }
                     ]
                 };
+
+                if (sendEmail) {
+                    payload.configuracao = {
+                        email: {
+                            envio: true,
+                            destinatarios: [contact.email]
+                        }
+                    };
+                }
+
                 console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
-                await fiscalService.emitirNFe(currentEntity.id!, payload, token);
+                const response = await fiscalService.emitirNFe(currentEntity.id!, payload, token);
+
+                // Envio de WhatsApp se habilitado
+                if (sendWhatsApp && contact.phone) {
+                    try {
+                        const message = `Olá ${contact.name}! Sua Nota Fiscal de Produto foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
+                        await whatsappService.sendMessage(currentEntity.id!, contact.phone, message);
+                    } catch (wsError) {
+                        console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
+                    }
+                }
             }
 
             setResultModal({
@@ -484,6 +530,61 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+
+                {/* Controles de Automação */}
+                <div className="pt-6 border-t border-gray-100 dark:border-slate-800">
+                    <div className="flex flex-wrap gap-4">
+                        <div 
+                            className={`flex-1 min-w-[200px] p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                                sendEmail 
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                                : 'border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30'
+                            }`}
+                            onClick={() => setSendEmail(!sendEmail)}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-xl ${sendEmail ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-400'}`}>
+                                    <Mail size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">E-mail</p>
+                                    <p className="text-xs font-black text-gray-700 dark:text-white leading-none">Automático</p>
+                                </div>
+                            </div>
+                            <input 
+                                type="checkbox" 
+                                checked={sendEmail} 
+                                readOnly
+                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        <div 
+                            className={`flex-1 min-w-[200px] p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                                sendWhatsApp 
+                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                                : 'border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30'
+                            }`}
+                            onClick={() => setSendWhatsApp(!sendWhatsApp)}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-xl ${sendWhatsApp ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-400'}`}>
+                                    <MessageCircle size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">WhatsApp</p>
+                                    <p className="text-xs font-black text-gray-700 dark:text-white leading-none">Automático</p>
+                                </div>
+                            </div>
+                            <input 
+                                type="checkbox" 
+                                checked={sendWhatsApp} 
+                                readOnly
+                                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                            />
+                        </div>
                     </div>
                 </div>
 

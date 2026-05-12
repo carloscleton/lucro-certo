@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search, DollarSign, ShieldCheck, Globe } from 'lucide-react';
+import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search, DollarSign, ShieldCheck, Globe, Mail, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useQuotes, type Quote } from '../hooks/useQuotes';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -430,6 +430,11 @@ export function Quotes() {
     const [showFinalizeModal, setShowFinalizeModal] = useState(false);
     const [finalizeQuote, setFinalizeQuote] = useState<Quote | null>(null);
 
+    // Automation states
+    const [sendEmail, setSendEmail] = useState(false);
+    const [sendWhatsApp, setSendWhatsApp] = useState(false);
+    const [fiscalQuote, setFiscalQuote] = useState<Quote | null>(null);
+
     // Expense Data
     const [quoteExpenses, setQuoteExpenses] = useState<Record<string, number>>({});
 
@@ -695,8 +700,14 @@ export function Quotes() {
     const handleEmitFiscal = async (quote: Quote) => {
         if (!currentEntity.id) return;
 
+        // Initialize automation states from company config
+        const config = currentCompany?.tecnospeed_config as any;
+        setSendEmail(config?.send_email_after_emission || false);
+        setSendWhatsApp(config?.send_whatsapp_after_emission || false);
+        setFiscalQuote(quote);
+
         setIsEmittingFiscal(quote.id);
-        setFiscalStatus({ status: 'loading', message: 'Preparando dados para o SEFAZ...' });
+        setFiscalStatus({ status: 'idle' });
         setShowFiscalModal(true);
 
         try {
@@ -816,6 +827,16 @@ export function Quotes() {
                     nfe_id: externalId,
                     nfe_status: 'processando'
                 }).eq('id', quote.id);
+
+                // Automations
+                if (sendWhatsApp && fullQuote.contact?.phone) {
+                    try {
+                        const waMsg = `Olá *${fullQuote.contact.name}*, sua nota fiscal referente ao orçamento *${fullQuote.title}* foi emitida e está sendo processada. Em breve você receberá o link para download.`;
+                        await whatsappService.sendMessage(fullQuote.contact.phone, waMsg, currentEntity.id, token);
+                    } catch (waErr) {
+                        console.error('Erro ao enviar WhatsApp:', waErr);
+                    }
+                }
             }
 
         } catch (error: any) {
@@ -1547,6 +1568,57 @@ export function Quotes() {
                         )}
 
                         <div className="space-y-4 py-4">
+                            {fiscalStatus.status === 'idle' && (
+                                <div className="space-y-4">
+                                    <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/20">
+                                        <p className="text-xs text-blue-900 dark:text-blue-400 font-medium mb-4">
+                                            Deseja automatizar o envio após a emissão?
+                                        </p>
+                                        <div className="space-y-3">
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <div className={`p-2 rounded-lg transition-colors ${sendEmail ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'}`}>
+                                                    <Mail size={18} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Enviar por E-mail</p>
+                                                    <p className="text-[10px] text-gray-500">O PDF e XML serão enviados automaticamente</p>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={sendEmail}
+                                                    onChange={(e) => setSendEmail(e.target.checked)}
+                                                    className="w-5 h-5 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                            </label>
+
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <div className={`p-2 rounded-lg transition-colors ${sendWhatsApp ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'}`}>
+                                                    <MessageCircle size={18} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Notificar via WhatsApp</p>
+                                                    <p className="text-[10px] text-gray-500">Enviar link da nota via Evolution API</p>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={sendWhatsApp}
+                                                    onChange={(e) => setSendWhatsApp(e.target.checked)}
+                                                    className="w-5 h-5 rounded-lg border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <Button 
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-2xl shadow-lg shadow-blue-500/20 font-bold"
+                                        onClick={() => fiscalQuote && executeEmitFiscal(fiscalQuote)}
+                                    >
+                                        <Rocket className="mr-2" size={20} />
+                                        Confirmar e Emitir Nota Fiscal
+                                    </Button>
+                                </div>
+                            )}
+
                             {fiscalStatus.status === 'loading' && (
                                 <div className="flex flex-col items-center justify-center py-8">
                                     <Loader2 size={48} className="animate-spin text-blue-500 mb-4" />

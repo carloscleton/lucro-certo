@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -84,7 +84,9 @@ export function FiscalSettings() {
         default_taxation_code: '',
         default_iss_aliquota: '',
         default_iss_exigibilidade: '1',
-        default_iss_tipo: '7'
+        default_iss_tipo: '7',
+        send_email_automatically: false,
+        send_whatsapp_automatically: false
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -746,6 +748,59 @@ export function FiscalSettings() {
                                     <option value="6">Exigibilidade Suspensa por Decisão Judicial</option>
                                     <option value="7">Exigibilidade Suspensa por Processo Administrativo</option>
                                 </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Send className="text-purple-600" size={20} />
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Automação de Envio</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+                            Configure como seus clientes receberão as notas fiscais após a autorização.
+                        </p>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+                                        <Mail size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Enviar E-mail Automaticamente</p>
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400">O PlugNotas enviará o PDF e XML diretamente para o e-mail do cliente.</p>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={config.send_email_automatically || false}
+                                        onChange={(e) => setConfig({ ...config, send_email_automatically: e.target.checked })}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl">
+                                        <MessageCircle size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Enviar WhatsApp Automaticamente</p>
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400">O sistema enviará o link da nota pelo WhatsApp (Evolution API).</p>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={config.send_whatsapp_automatically || false}
+                                        onChange={(e) => setConfig({ ...config, send_whatsapp_automatically: e.target.checked })}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                                </label>
                             </div>
                         </div>
                     </div>
