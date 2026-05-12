@@ -251,7 +251,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         const val = parseFloat(cleanValue);
                         
                         const item: any = {
-                            codigo: isNacional ? (i.taxCode?.replace(/\D/g, '')) : i.taxCode,
+                            codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
                             descricao: i.description,
                             valor: {
                                 servico: isNaN(val) ? 0 : val,
