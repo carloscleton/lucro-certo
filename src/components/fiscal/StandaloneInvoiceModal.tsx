@@ -626,19 +626,35 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                     </datalist>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className={`grid grid-cols-1 ${isNacional && type === 'nfse' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
                                     <div className="space-y-1.5">
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                                            {type === 'nfse' ? 'Cód. Municipal' : 'NCM'}
+                                            {type === 'nfse' ? (isNacional ? 'Cód. Municipal (6)' : 'Cód. Municipal') : 'NCM'}
                                         </label>
                                         <Input
                                             value={item.taxCode}
                                             onChange={(e: any) => updateItem(item.id, 'taxCode', e.target.value)}
-                                            placeholder={type === 'nfse' ? (isNacional ? '010101001 (9 dígitos)' : '01.01') : '84713019'}
+                                            placeholder={type === 'nfse' ? (isNacional ? 'Ex: 123456' : 'Ex: 01.01') : '84713019'}
                                             required
                                             className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
                                         />
                                     </div>
+
+                                    {isNacional && type === 'nfse' && (
+                                        <div className="space-y-1.5 animate-in fade-in zoom-in duration-300">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                                                Cód. Nacional (9)
+                                            </label>
+                                            <Input
+                                                value={item.codigoTributacaoNacional}
+                                                onChange={(e: any) => updateItem(item.id, 'codigoTributacaoNacional', e.target.value)}
+                                                placeholder="Ex: 010101001"
+                                                required
+                                                className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-indigo-500/20 shadow-sm h-11"
+                                            />
+                                        </div>
+                                    )}
+
                                     <div className="space-y-1.5">
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Valor Unitário</label>
                                         <Input
