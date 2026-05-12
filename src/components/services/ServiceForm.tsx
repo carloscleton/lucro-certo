@@ -13,7 +13,7 @@ import { useAutoSave } from '../../hooks/useAutoSave';
 import { supabase } from '../../lib/supabase';
 import { useNotification } from '../../context/NotificationContext';
 import { LC116_ITEMS } from '../../constants/fiscal';
-import { Search, ExternalLink } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface ServiceFormProps {
     isOpen: boolean;
