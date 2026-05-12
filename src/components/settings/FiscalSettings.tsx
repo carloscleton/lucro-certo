@@ -79,7 +79,12 @@ export function FiscalSettings() {
         certificado_vencimento: '',
         certificado_sujeito: '',
         certificado_status: '',
-        use_test_data: false
+        use_test_data: false,
+        default_cnae: '',
+        default_taxation_code: '',
+        default_iss_aliquota: '',
+        default_iss_exigibilidade: '1',
+        default_iss_tipo: '7'
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -688,6 +693,59 @@ export function FiscalSettings() {
                                         <Search size={18} />
                                     )}
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                        <div className="flex items-center gap-2 mb-4">
+                            <ShieldCheck className="text-blue-600" size={20} />
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Configurações Fiscais Padrão (NFS-e)</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+                            Estes valores serão usados como padrão ao criar novas Notas Fiscais Avulsas, mas podem ser alterados em cada nota se necessário.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Input
+                                label="CNAE Principal"
+                                value={config.default_cnae || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_cnae: e.target.value })}
+                                placeholder="Ex: 7490104"
+                                autoComplete="off"
+                            />
+                            <Input
+                                label="Cód. Tributação Padrão"
+                                value={config.default_taxation_code || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_taxation_code: e.target.value })}
+                                placeholder="Ex: 14.10"
+                                autoComplete="off"
+                            />
+                            <Input
+                                label="Alíquota ISS Padrão (%)"
+                                type="number"
+                                value={config.default_iss_aliquota || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_iss_aliquota: e.target.value })}
+                                placeholder="Ex: 3"
+                                autoComplete="off"
+                            />
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Exigibilidade ISS Padrão
+                                </label>
+                                <select
+                                    value={config.default_iss_exigibilidade || '1'}
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConfig({ ...config, default_iss_exigibilidade: e.target.value })}
+                                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    autoComplete="off"
+                                >
+                                    <option value="1">Exigível</option>
+                                    <option value="2">Não Incidência</option>
+                                    <option value="3">Isenção</option>
+                                    <option value="4">Exportação</option>
+                                    <option value="5">Imunidade</option>
+                                    <option value="6">Exigibilidade Suspensa por Decisão Judicial</option>
+                                    <option value="7">Exigibilidade Suspensa por Processo Administrativo</option>
+                                </select>
                             </div>
                         </div>
                     </div>

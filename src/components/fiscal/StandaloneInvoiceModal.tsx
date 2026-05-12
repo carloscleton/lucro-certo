@@ -66,15 +66,33 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         // NFSe Nacional exige 6 dígitos, NFSe Municipal geralmente 4 (01.01)
                         return { 
                             ...item, 
-                            taxCode: isNacional ? '010101' : '01.01',
-                            cnae: '7490104',
-                            taxationCode: isNacional ? '010101' : '01.01',
-                            issAliquota: '3',
-                            issExigibilidade: '1',
-                            issTipo: '7'
+                            taxCode: isNacional ? (config.default_taxation_code || '010101') : (config.default_taxation_code || '01.01'),
+                            cnae: config.default_cnae || '7490104',
+                            taxationCode: config.default_taxation_code || (isNacional ? '010101' : '01.01'),
+                            issAliquota: config.default_iss_aliquota || '3',
+                            issExigibilidade: config.default_iss_exigibilidade || '1',
+                            issTipo: config.default_iss_tipo || '7'
                         };
                     } else {
                         return { ...item, taxCode: '84713019' };
+                    }
+                }
+                return item;
+            }));
+        } else if (config) {
+            // Se não for homologação, mas tivermos configurações padrão, preenchemos também
+            setItems(prev => prev.map((item, idx) => {
+                if (idx === 0 && (!item.taxCode || item.taxCode === '')) {
+                    if (type === 'nfse') {
+                        return { 
+                            ...item, 
+                            taxCode: config.default_taxation_code || (isNacional ? '010101' : '01.01'),
+                            cnae: config.default_cnae || '',
+                            taxationCode: config.default_taxation_code || '',
+                            issAliquota: config.default_iss_aliquota || '',
+                            issExigibilidade: config.default_iss_exigibilidade || '1',
+                            issTipo: config.default_iss_tipo || '7'
+                        };
                     }
                 }
                 return item;
