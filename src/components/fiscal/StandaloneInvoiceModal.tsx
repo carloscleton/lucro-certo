@@ -9,6 +9,8 @@ import { fiscalService } from '../../services/fiscalService';
 import { whatsappService } from '../../services/whatsappService';
 import { supabase } from '../../lib/supabase';
 import { useCompanies } from '../../hooks/useCompanies';
+import { useServices } from '../../hooks/useServices';
+import { useProducts } from '../../hooks/useProducts';
 import { ResultModal } from '../ui/ResultModal';
 
 interface StandaloneInvoiceModalProps {
@@ -33,6 +35,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const { currentEntity } = useEntity();
     const { contacts } = useContacts();
     const { companies } = useCompanies();
+    const { services } = useServices();
+    const { products } = useProducts();
     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
     const [loading, setLoading] = useState(false);
@@ -137,10 +141,31 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
         setItems(items.map(i => {
             if (i.id === id) {
                 const updated = { ...i, [field]: value };
-                // Keep taxationCode in sync with taxCode if that's what's being edited
+                
+                // Keep taxationCode in sync with taxCode
                 if (field === 'taxCode') {
                     updated.taxationCode = value;
                 }
+
+                // If description changed, check for auto-fill
+                if (field === 'description') {
+                    if (type === 'nfse') {
+                        const service = services.find(s => s.name === value);
+                        if (service) {
+                            updated.taxCode = service.codigo_servico_municipal || service.item_lista_servico || '';
+                            updated.taxationCode = service.codigo_servico_municipal || service.item_lista_servico || '';
+                            updated.amount = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(service.price);
+                        }
+                    } else {
+                        const product = products.find(p => p.name === value);
+                        if (product) {
+                            updated.taxCode = product.ncm || '';
+                            updated.taxationCode = product.ncm || '';
+                            updated.amount = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(product.price);
+                        }
+                    }
+                }
+                
                 return updated;
             }
             return i;
@@ -543,10 +568,18 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                     <Input
                                         value={item.description}
                                         onChange={(e: any) => updateItem(item.id, 'description', e.target.value)}
-                                        placeholder="Ex: Consultoria Técnica Mensal"
+                                        placeholder={type === 'nfse' ? "Ex: Consultoria Técnica Mensal" : "Ex: Teclado Mecânico RGB"}
+                                        list="invoice-items-list"
                                         required
                                         className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
                                     />
+                                    <datalist id="invoice-items-list">
+                                        {type === 'nfse' ? (
+                                            services.map(s => <option key={s.id} value={s.name}>{s.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.price)}</option>)
+                                        ) : (
+                                            products.map(p => <option key={p.id} value={p.name}>{p.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.price)}</option>)
+                                        )}
+                                    </datalist>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
