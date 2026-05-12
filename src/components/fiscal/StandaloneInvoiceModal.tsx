@@ -446,65 +446,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                         />
                                     </div>
                                 </div>
-
-                                {type === 'nfse' && (
-                                    <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
-                                        <details className="group">
-                                            <summary className="flex items-center gap-2 cursor-pointer text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-600 transition-colors list-none">
-                                                <div className="p-1 bg-blue-50 dark:bg-blue-900/30 rounded-lg group-open:rotate-180 transition-transform">
-                                                    <Plus size={12} />
-                                                </div>
-                                                Informações Fiscais (Avançado)
-                                            </summary>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 animate-in slide-in-from-top-2 duration-300">
-                                                <div className="space-y-1.5">
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">CNAE</label>
-                                                    <Input
-                                                        value={item.cnae || ''}
-                                                        onChange={(e: any) => updateItem(item.id, 'cnae', e.target.value)}
-                                                        placeholder="Ex: 7490104"
-                                                        className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cód. Tributação</label>
-                                                    <Input
-                                                        value={item.taxationCode || ''}
-                                                        onChange={(e: any) => updateItem(item.id, 'taxationCode', e.target.value)}
-                                                        placeholder="Ex: 14.10"
-                                                        className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Alíquota ISS (%)</label>
-                                                    <Input
-                                                        type="number"
-                                                        value={item.issAliquota || ''}
-                                                        onChange={(e: any) => updateItem(item.id, 'issAliquota', e.target.value)}
-                                                        placeholder="Ex: 3"
-                                                        className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Exigibilidade ISS</label>
-                                                    <select
-                                                        value={item.issExigibilidade || '1'}
-                                                        onChange={(e) => updateItem(item.id, 'issExigibilidade', e.target.value)}
-                                                        className="w-full h-11 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-xs font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
-                                                    >
-                                                        <option value="1">Exigível</option>
-                                                        <option value="2">Não Incidência</option>
-                                                        <option value="3">Isenção</option>
-                                                        <option value="4">Exportação</option>
-                                                        <option value="5">Imunidade</option>
-                                                        <option value="6">Exigibilidade Suspensa por Decisão Judicial</option>
-                                                        <option value="7">Exigibilidade Suspensa por Processo Administrativo</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </details>
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>
