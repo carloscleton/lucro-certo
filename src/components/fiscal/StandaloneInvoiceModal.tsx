@@ -30,6 +30,11 @@ interface InvoiceItem {
     issAliquota?: string;
     issExigibilidade?: string;
     issTipo?: string;
+    pisAliquota?: string;
+    cofinsAliquota?: string;
+    csllAliquota?: string;
+    irrfAliquota?: string;
+    inssAliquota?: string;
 }
 
 export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoiceModalProps) {
@@ -58,6 +63,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
     const [notes, setNotes] = useState('');
+    const [showAdvanced, setShowAdvanced] = useState(false);
 
     const config = currentCompany?.tecnospeed_config as any;
     const isNacional = config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false;
@@ -105,10 +111,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             taxCode: isNacional ? (config.default_taxation_code || '010101001').replace(/\D/g, '').substring(0, 9) : (config.default_taxation_code || '01.01'),
                             cnae: config.default_cnae || '',
                             taxationCode: isNacional ? (config.default_taxation_code || '010101001').replace(/\D/g, '').substring(0, 9) : (config.default_taxation_code || '01.01'),
-                            issAliquota: config.default_iss_aliquota || '',
-                            issExigibilidade: config.default_iss_exigibilidade || '1',
-                            issTipo: config.default_iss_tipo || '7'
-                        };
+                             issAliquota: config.default_iss_aliquota || '',
+                             issExigibilidade: config.default_iss_exigibilidade || '1',
+                             issTipo: config.default_iss_tipo || '7',
+                             pisAliquota: config.default_pis_aliquota || '',
+                             cofinsAliquota: config.default_cofins_aliquota || '',
+                             csllAliquota: config.default_csll_aliquota || '',
+                             irrfAliquota: config.default_irrf_aliquota || ''
+                         };
                     }
                 }
                 return item;
@@ -241,7 +251,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         const val = parseFloat(cleanValue);
                         
                         const item: any = {
-                            codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
+                            codigo: isNacional ? (i.taxCode?.replace(/\D/g, '')) : i.taxCode,
                             descricao: i.description,
                             valor: {
                                 servico: isNaN(val) ? 0 : val,
@@ -268,12 +278,30 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                 aliquota: parseFloat(i.issAliquota || '0'),
                                 exigibilidade: parseInt(i.issExigibilidade || '1'),
                                 tipoTributacao: parseInt(i.issTipo || '7')
+                             };
+                         }
+ 
+                        // Retenções Federais
+                        if (i.pisAliquota || i.cofinsAliquota || i.csllAliquota || i.irrfAliquota || i.inssAliquota) {
+                            item.valor = {
+                                ...item.valor,
+                                pis: { aliquota: parseFloat(i.pisAliquota || '0') },
+                                cofins: { aliquota: parseFloat(i.cofinsAliquota || '0') },
+                                csll: { aliquota: parseFloat(i.csllAliquota || '0') },
+                                ir: { aliquota: parseFloat(i.irrfAliquota || '0') },
+                                inss: { aliquota: parseFloat(i.inssAliquota || '0') }
                             };
                         }
 
                         return item;
                     })
                 };
+
+                // Regime Especial de Tributação
+                if (config.default_regime_especial && config.default_regime_especial !== '0') {
+                    payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
+                }
+
                 if (notes) {
                     payload.informacoesComplementares = notes;
                 }
@@ -634,6 +662,57 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                         />
                                     </div>
                                 </div>
+                                {showAdvanced && (
+                                    <div className="pt-4 mt-4 border-t border-gray-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
+                                        <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">Retenções de Impostos Federais (%)</h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <Input
+                                                label="PIS"
+                                                type="number"
+                                                step="0.01"
+                                                value={item.pisAliquota}
+                                                onChange={(e: any) => updateItem(item.id, 'pisAliquota', e.target.value)}
+                                                placeholder="0.65"
+                                                className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                            />
+                                            <Input
+                                                label="COFINS"
+                                                type="number"
+                                                step="0.01"
+                                                value={item.cofinsAliquota}
+                                                onChange={(e: any) => updateItem(item.id, 'cofinsAliquota', e.target.value)}
+                                                placeholder="3.00"
+                                                className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                            />
+                                            <Input
+                                                label="CSLL"
+                                                type="number"
+                                                step="0.01"
+                                                value={item.csllAliquota}
+                                                onChange={(e: any) => updateItem(item.id, 'csllAliquota', e.target.value)}
+                                                placeholder="1.00"
+                                                className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                            />
+                                            <Input
+                                                label="IRRF"
+                                                type="number"
+                                                step="0.01"
+                                                value={item.irrfAliquota}
+                                                onChange={(e: any) => updateItem(item.id, 'irrfAliquota', e.target.value)}
+                                                placeholder="1.50"
+                                                className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdvanced(!showAdvanced)}
+                                    className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-wider flex items-center gap-1 mt-2"
+                                >
+                                    {showAdvanced ? 'Ocultar Opções Avançadas' : 'Mostrar Opções Avançadas (Impostos)'}
+                                </button>
                             </div>
                         ))}
                     </div>
