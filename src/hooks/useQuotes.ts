@@ -20,6 +20,8 @@ export interface QuoteItem {
     origem?: number;
     codigo_servico_municipal?: string;
     item_lista_servico?: string;
+    codigo_tributacao?: string;
+    codigo_tributacao_nacional?: string;
 }
 
 export interface Quote {
@@ -199,7 +201,9 @@ export function useQuotes() {
                 ...item,
                 quote_id: newQuote.id,
                 total_price: item.quantity * item.unit_price,
-                show_in_pdf: item.show_in_pdf !== undefined ? item.show_in_pdf : true
+                show_in_pdf: item.show_in_pdf !== undefined ? item.show_in_pdf : true,
+                codigo_tributacao: item.codigo_tributacao,
+                codigo_tributacao_nacional: item.codigo_tributacao_nacional
             }));
 
             const { error: itemsError } = await supabase
@@ -508,7 +512,9 @@ export function useQuotes() {
                 cest: item.cest,
                 origem: item.origem,
                 codigo_servico_municipal: item.codigo_servico_municipal,
-                item_lista_servico: item.item_lista_servico
+                item_lista_servico: item.item_lista_servico,
+                codigo_tributacao: item.codigo_tributacao,
+                codigo_tributacao_nacional: item.codigo_tributacao_nacional
             }));
 
             const { error: insertError } = await supabase

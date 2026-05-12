@@ -86,7 +86,8 @@ export function FiscalSettings() {
         default_iss_exigibilidade: '1',
         default_iss_tipo: '7',
         send_email_automatically: false,
-        send_whatsapp_automatically: false
+        send_whatsapp_automatically: false,
+        nfse_nacional: false
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -719,8 +720,10 @@ export function FiscalSettings() {
                                 label="Cód. Tributação Padrão"
                                 value={config.default_taxation_code || ''}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_taxation_code: e.target.value })}
-                                placeholder="Ex: 14.10"
+                                placeholder={config.nfse_nacional ? "Ex: 010101001 (9 dígitos)" : "Ex: 14.10"}
                                 autoComplete="off"
+                                helpText={config.nfse_nacional ? "Para o padrão Nacional, use o código de 9 dígitos sem pontos." : "Código municipal ou LC 116."}
+                                error={config.nfse_nacional && config.default_taxation_code && config.default_taxation_code.replace(/\D/g, '').length !== 9 ? "O código nacional deve ter exatamente 9 dígitos numéricos." : undefined}
                             />
                             <Input
                                 label="Alíquota ISS Padrão (%)"
@@ -758,9 +761,30 @@ export function FiscalSettings() {
                             <h3 className="text-lg font-medium text-gray-900 dark:text-white">Automação de Envio</h3>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
-                            Configure como seus clientes receberão as notas fiscais após a autorização.
+                            Configure como seus clientes receberão as notas fiscais após a autorização e o padrão de emissão.
                         </p>
                         <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl">
+                                        <Globe size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Padrão NFS-e Nacional</p>
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400">Ative se sua cidade já utiliza o novo padrão nacional da Receita Federal.</p>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={config.nfse_nacional || false}
+                                        onChange={(e) => setConfig({ ...config, nfse_nacional: e.target.checked })}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+
                             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">

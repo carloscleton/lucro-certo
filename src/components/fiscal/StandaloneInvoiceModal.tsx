@@ -57,7 +57,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     useEffect(() => {
         const config = currentCompany?.tecnospeed_config;
         const isHomolog = config?.ambiente === 'homologacao' || config?.use_test_data;
-        const isNacional = config?.nfse?.config?.nfseNacional;
+        const isNacional = config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false;
 
         if (config) {
             setSendEmail(config.send_email_automatically || false);
@@ -75,9 +75,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         // NFSe Nacional exige 6 dígitos, NFSe Municipal geralmente 4 (01.01)
                         return { 
                             ...item, 
-                            taxCode: isNacional ? (config.default_taxation_code || '010101') : (config.default_taxation_code || '01.01'),
+                            taxCode: isNacional ? (config.default_taxation_code || '010101001') : (config.default_taxation_code || '01.01'),
                             cnae: config.default_cnae || '7490104',
-                            taxationCode: config.default_taxation_code || (isNacional ? '010101' : '01.01'),
+                            taxationCode: isNacional ? (config.default_taxation_code || '010101001') : (config.default_taxation_code || '01.01'),
                             issAliquota: config.default_iss_aliquota || '3',
                             issExigibilidade: config.default_iss_exigibilidade || '1',
                             issTipo: config.default_iss_tipo || '7'
@@ -95,9 +95,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                     if (type === 'nfse') {
                         return { 
                             ...item, 
-                            taxCode: config.default_taxation_code || (isNacional ? '010101' : '01.01'),
+                            taxCode: isNacional ? (config.default_taxation_code || '010101001').replace(/\D/g, '').substring(0, 9) : (config.default_taxation_code || '01.01'),
                             cnae: config.default_cnae || '',
-                            taxationCode: config.default_taxation_code || '',
+                            taxationCode: isNacional ? (config.default_taxation_code || '010101001').replace(/\D/g, '').substring(0, 9) : (config.default_taxation_code || '01.01'),
                             issAliquota: config.default_iss_aliquota || '',
                             issExigibilidade: config.default_iss_exigibilidade || '1',
                             issTipo: config.default_iss_tipo || '7'
@@ -133,7 +133,17 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     };
 
     const updateItem = (id: string, field: keyof InvoiceItem, value: any) => {
-        setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
+        setItems(items.map(i => {
+            if (i.id === id) {
+                const updated = { ...i, [field]: value };
+                // Keep taxationCode in sync with taxCode if that's what's being edited
+                if (field === 'taxCode') {
+                    updated.taxationCode = value;
+                }
+                return updated;
+            }
+            return i;
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -155,6 +165,19 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
         if (!currentCompany || !currentCompany.tecnospeed_config) {
             setError('Configurações fiscais da empresa não encontradas.');
             return;
+        }
+
+        const isNacional = currentCompany.tecnospeed_config.nfse_nacional || currentCompany.tecnospeed_config.nfse?.config?.nfseNacional || false;
+
+        if (type === 'nfse' && isNacional) {
+            const invalidItem = items.find(i => {
+                const code = i.taxationCode || i.taxCode;
+                return !code || code.replace(/\D/g, '').length !== 9;
+            });
+            if (invalidItem) {
+                setError(`O item "${invalidItem.description}" deve ter um código de tributação de exatamente 9 dígitos para o Padrão Nacional.`);
+                return;
+            }
         }
 
         setLoading(true);
@@ -202,7 +225,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
 
                         // Campos Avançados
                         if (i.cnae) item.cnae = i.cnae.replace(/\D/g, '');
-                        if (i.taxationCode) item.codigoTributacao = i.taxationCode;
+                        if (i.taxationCode) {
+                            // Para NFSe Nacional, deve ser exatamente 9 dígitos numéricos
+                            const cleanCode = i.taxationCode.replace(/\D/g, '').substring(0, 9);
+                            item.codigoTributacao = cleanCode;
+                        }
                         
                         if (i.issAliquota || i.issExigibilidade || i.issTipo) {
                             item.iss = {
@@ -529,7 +556,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                         <Input
                                             value={item.taxCode}
                                             onChange={(e: any) => updateItem(item.id, 'taxCode', e.target.value)}
-                                            placeholder={type === 'nfse' ? (currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional ? '010101 (6 dígitos)' : '01.01') : '84713019'}
+                                            placeholder={type === 'nfse' ? (isNacional ? '010101001 (9 dígitos)' : '01.01') : '84713019'}
                                             required
                                             className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
                                         />

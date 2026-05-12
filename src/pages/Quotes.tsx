@@ -702,8 +702,8 @@ export function Quotes() {
 
         // Initialize automation states from company config
         const config = currentCompany?.tecnospeed_config as any;
-        setSendEmail(config?.send_email_after_emission || false);
-        setSendWhatsApp(config?.send_whatsapp_after_emission || false);
+        setSendEmail(config?.send_email_automatically || false);
+        setSendWhatsApp(config?.send_whatsapp_automatically || false);
         setFiscalQuote(quote);
 
         setIsEmittingFiscal(quote.id);
@@ -750,6 +750,21 @@ export function Quotes() {
                     throw new Error(`O serviço "${missingServiceCode.description}" não possui o Código de Serviço Municipal preenchido. Acesse Serviços > Editar e preencha este dado obrigatório para a emissão da NFS-e.`);
                 }
 
+                const isNacional = (currentCompany.tecnospeed_config as any)?.nfse_nacional || false;
+                
+                if (isNacional) {
+                    const invalidItem = fullQuote.items.find((item: any) => {
+                        const code = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code;
+                        return !code || code.replace(/\D/g, '').length !== 9;
+                    });
+                    if (invalidItem) {
+                        throw new Error(`O serviço "${invalidItem.description}" não possui um Código de Tributação Nacional válido (9 dígitos). Verifique o cadastro do serviço ou o padrão nas Configurações Fiscais.`);
+                    }
+                }
+
+                const isHomolog = (currentCompany.tecnospeed_config as any)?.ambiente === 'homologacao' || (currentCompany.tecnospeed_config as any)?.use_test_data;
+                const defaultCityCode = isHomolog ? '4115200' : ((currentCompany.tecnospeed_config as any)?.endereco?.codigoCidade || '3106200');
+
                 // Map to PlugNotas format (NFS-e)
                 const payload: any = {
                     idIntegracao: fullQuote.id,
@@ -765,19 +780,29 @@ export function Quotes() {
                             numero: fullQuote.contact?.number || 'S/N',
                             bairro: fullQuote.contact?.neighborhood || '',
                             cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: '3106200', // BH Default para teste, idealmente viria do endereço do cliente
+                            codigoCidade: defaultCityCode,
                             uf: fullQuote.contact?.state || ''
                         }
                     },
-                    servico: fullQuote.items.map((item: any) => ({
-                        codigo: item.codigo_servico_municipal || '001',
-                        descricao: item.description,
-                        valor: {
-                            servico: item.unit_price
-                        },
-                        quantidade: item.quantity,
-                        itemListaServico: item.item_lista_servico || '01.01'
-                    }))
+                    servico: fullQuote.items.map((item: any) => {
+                        const payloadItem: any = {
+                            codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, ''),
+                            descricao: item.description,
+                            valor: {
+                                servico: item.unit_price
+                            },
+                            quantidade: item.quantity,
+                            itemListaServico: item.item_lista_servico || '01.01'
+                        };
+
+                        if (isNacional) {
+                            // Para NFSe Nacional, codigoTributacao é obrigatório e deve ter 9 dígitos
+                            const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
+                            payloadItem.codigoTributacao = rawTaxCode.replace(/\D/g, '').substring(0, 9);
+                        }
+
+                        return payloadItem;
+                    })
                 };
 
                 // Add email automation
@@ -804,6 +829,7 @@ export function Quotes() {
                     idIntegracao: fullQuote.id,
                     presenca: 1,
                     natureza: 'Venda de Mercadoria',
+                    isHomolog: (currentCompany.tecnospeed_config as any)?.ambiente === 'homologacao',
                     destinatario: {
                         cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
                         razaoSocial: fullQuote.contact?.name,
@@ -813,7 +839,7 @@ export function Quotes() {
                             numero: fullQuote.contact?.number || 'S/N',
                             bairro: fullQuote.contact?.neighborhood || '',
                             cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: '3106200',
+                            codigoCidade: (currentCompany.tecnospeed_config as any)?.ambiente === 'homologacao' || (currentCompany.tecnospeed_config as any)?.use_test_data ? '4115200' : ((currentCompany.tecnospeed_config as any)?.endereco?.codigoCidade || '3106200'),
                             uf: fullQuote.contact?.state || ''
                         }
                     },
