@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -318,6 +318,42 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         <div>
                             <p className="text-xs font-bold text-blue-900 dark:text-blue-400 uppercase tracking-wider">Padrão Nacional Ativo</p>
                             <p className="text-[10px] text-blue-600/70 dark:text-blue-400/60 font-medium">Esta nota será emitida seguindo o novo padrão nacional (NFSe-N).</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Resumo Fiscal da Empresa */}
+                {type === 'nfse' && currentCompany?.tecnospeed_config && (
+                    <div className="bg-gray-50/50 dark:bg-slate-800/30 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck size={14} className="text-blue-500" />
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Configuração Fiscal Ativa:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800">
+                                <span className="text-[9px] font-medium text-gray-400">CNAE:</span>
+                                <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300">
+                                    {currentCompany.tecnospeed_config.default_cnae || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '7490104' : 'N/A')}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800">
+                                <span className="text-[9px] font-medium text-gray-400">ISS:</span>
+                                <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300">
+                                    {currentCompany.tecnospeed_config.default_iss_aliquota || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '3' : '0')}%
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800">
+                                <span className="text-[9px] font-medium text-gray-400">Exigibilidade:</span>
+                                <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                                    {currentCompany.tecnospeed_config.default_iss_exigibilidade === '1' ? 'Exigível' : 
+                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '2' ? 'Não Incidência' :
+                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '3' ? 'Isenção' :
+                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '4' ? 'Exportação' :
+                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '5' ? 'Imunidade' :
+                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '6' ? 'Susp. Judicial' :
+                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '7' ? 'Susp. Admin' : 'Exigível'}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 )}

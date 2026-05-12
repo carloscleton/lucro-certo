@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search, DollarSign } from 'lucide-react';
+import { Plus, FileText, Check, X, Printer, Trash2, Edit, Calendar, AlertTriangle, Send, Loader2, CalendarClock, CreditCard, Copy, Rocket, Search, DollarSign, ShieldCheck, Globe } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useQuotes, type Quote } from '../hooks/useQuotes';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -1500,6 +1500,51 @@ export function Quotes() {
                                 <p className="text-sm text-gray-500">TecnoSpeed PlugNotas v2</p>
                             </div>
                         </div>
+
+                        {/* Resumo Fiscal da Empresa */}
+                        {currentCompany?.tecnospeed_config && (
+                            <div className="space-y-3 mb-6">
+                                {currentCompany.tecnospeed_config.nfse?.config?.nfseNacional && (
+                                    <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-900/20 flex items-center gap-3">
+                                        <Globe size={14} className="text-blue-600 dark:text-blue-400" />
+                                        <p className="text-[10px] font-bold text-blue-900 dark:text-blue-400 uppercase tracking-wider">Padrão Nacional Ativo</p>
+                                    </div>
+                                )}
+                                
+                                <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <ShieldCheck size={14} className="text-blue-500" />
+                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Configuração Fiscal Ativa:</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
+                                            <span className="text-[9px] font-medium text-gray-400 block mb-0.5">CNAE Principal</span>
+                                            <span className="text-xs font-black text-gray-700 dark:text-white tracking-tight">
+                                                {currentCompany.tecnospeed_config.default_cnae || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '7490104' : 'N/A')}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
+                                            <span className="text-[9px] font-medium text-gray-400 block mb-0.5">Alíquota ISS</span>
+                                            <span className="text-xs font-black text-gray-700 dark:text-white tracking-tight">
+                                                {currentCompany.tecnospeed_config.default_iss_aliquota || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '3' : '0')}%
+                                            </span>
+                                        </div>
+                                        <div className="col-span-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
+                                            <span className="text-[9px] font-medium text-gray-400 block mb-0.5">Exigibilidade</span>
+                                            <span className="text-xs font-black text-gray-700 dark:text-white uppercase tracking-tighter">
+                                                {currentCompany.tecnospeed_config.default_iss_exigibilidade === '1' ? 'Exigível' : 
+                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '2' ? 'Não Incidência' :
+                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '3' ? 'Isenção' :
+                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '4' ? 'Exportação' :
+                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '5' ? 'Imunidade' :
+                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '6' ? 'Suspensa (Judicial)' :
+                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '7' ? 'Suspensa (Administrativo)' : 'Exigível'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-4 py-4">
                             {fiscalStatus.status === 'loading' && (
