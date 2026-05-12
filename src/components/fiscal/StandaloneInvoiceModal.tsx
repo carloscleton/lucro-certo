@@ -53,11 +53,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
 
+    const config = currentCompany?.tecnospeed_config as any;
+    const isNacional = config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false;
+
     // Auto-fill for Sandbox/Homologação
     useEffect(() => {
-        const config = currentCompany?.tecnospeed_config;
         const isHomolog = config?.ambiente === 'homologacao' || config?.use_test_data;
-        const isNacional = config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false;
 
         if (config) {
             setSendEmail(config.send_email_automatically || false);
