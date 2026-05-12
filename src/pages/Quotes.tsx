@@ -709,6 +709,13 @@ export function Quotes() {
         setIsEmittingFiscal(quote.id);
         setFiscalStatus({ status: 'idle' });
         setShowFiscalModal(true);
+    };
+
+    const executeEmitFiscal = async (quote: Quote) => {
+        if (!currentEntity.id) return;
+
+        setIsEmittingFiscal(quote.id);
+        setFiscalStatus({ status: 'loading' });
 
         try {
             if (!currentCompany || !currentCompany.tecnospeed_config) {
@@ -744,10 +751,10 @@ export function Quotes() {
                 }
 
                 // Map to PlugNotas format (NFS-e)
-                const payload = {
+                const payload: any = {
                     idIntegracao: fullQuote.id,
                     prestador: {
-                        cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || currentCompany.tecnospeed_config?.cnpj?.replace(/\D/g, '')
+                        cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
                     },
                     tomador: {
                         cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
@@ -773,6 +780,16 @@ export function Quotes() {
                     }))
                 };
 
+                // Add email automation
+                if (sendEmail && fullQuote.contact?.email) {
+                    payload.configuracao = {
+                        email: {
+                            envio: true,
+                            destinatarios: [fullQuote.contact.email]
+                        }
+                    };
+                }
+
                 setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e (Serviços)...' });
                 result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
             } else {
@@ -783,10 +800,23 @@ export function Quotes() {
                 }
 
                 // Map to PlugNotas format (NF-e - Products)
-                const payload = {
+                const payload: any = {
                     idIntegracao: fullQuote.id,
                     presenca: 1,
                     natureza: 'Venda de Mercadoria',
+                    destinatario: {
+                        cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
+                        razaoSocial: fullQuote.contact?.name,
+                        email: fullQuote.contact?.email,
+                        endereco: {
+                            logradouro: fullQuote.contact?.street || '',
+                            numero: fullQuote.contact?.number || 'S/N',
+                            bairro: fullQuote.contact?.neighborhood || '',
+                            cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
+                            codigoCidade: '3106200',
+                            uf: fullQuote.contact?.state || ''
+                        }
+                    },
                     itens: fullQuote.items.map((item: any) => ({
                         codigo: item.service_id || item.product_id || '001',
                         descricao: item.description,
@@ -794,6 +824,9 @@ export function Quotes() {
                         cest: item.cest || '',
                         cfop: item.service_id ? '5933' : '5102', // 5933 para servico em NFe
                         valorUnitario: { comercial: item.unit_price },
+                        total: {
+                            vProd: item.total_price
+                        },
                         quantidade: { comercial: item.quantity },
                         unidade: { comercial: 'UN' },
                         tributos: {
@@ -809,6 +842,16 @@ export function Quotes() {
                         }
                     ]
                 };
+
+                // Add email automation
+                if (sendEmail && fullQuote.contact?.email) {
+                    payload.configuracao = {
+                        email: {
+                            envio: true,
+                            destinatarios: [fullQuote.contact.email]
+                        }
+                    };
+                }
 
                 setFiscalStatus({ status: 'loading', message: 'Enviando NF-e (Produtos)...' });
                 result = await fiscalService.emitirNFe(currentEntity.id, payload, token, quote.id);
@@ -832,7 +875,14 @@ export function Quotes() {
                 if (sendWhatsApp && fullQuote.contact?.phone) {
                     try {
                         const waMsg = `Olá *${fullQuote.contact.name}*, sua nota fiscal referente ao orçamento *${fullQuote.title}* foi emitida e está sendo processada. Em breve você receberá o link para download.`;
-                        await whatsappService.sendMessage(fullQuote.contact.phone, waMsg, currentEntity.id, token);
+                        const instance = waInstances[0];
+                        if (instance) {
+                            await whatsappService.sendMessage({
+                                instanceName: instance.instance_name,
+                                number: fullQuote.contact.phone.replace(/\D/g, ''),
+                                text: waMsg
+                            });
+                        }
                     } catch (waErr) {
                         console.error('Erro ao enviar WhatsApp:', waErr);
                     }

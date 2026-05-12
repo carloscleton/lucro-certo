@@ -51,6 +51,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     ]);
     const [sendEmail, setSendEmail] = useState(false);
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
+    const [waInstances, setWaInstances] = useState<any[]>([]);
 
     // Auto-fill for Sandbox/Homologação
     useEffect(() => {
@@ -106,7 +107,21 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 return item;
             }));
         }
-    }, [currentCompany, type]);
+    }, [currentCompany, type, currentEntity.id]);
+
+    useEffect(() => {
+        const fetchWA = async () => {
+            const { data } = await supabase
+                .from('instances')
+                .select('*')
+                .eq('status', 'connected');
+
+            if (currentEntity.id) {
+                setWaInstances(data?.filter(i => i.company_id === currentEntity.id) || []);
+            }
+        };
+        fetchWA();
+    }, [currentEntity.id]);
 
     const addItem = () => {
         setItems([...items, { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }]);
@@ -209,13 +224,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                     };
                 }
                 console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
-                const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
+                await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
                 
                 // Envio de WhatsApp se habilitado
                 if (sendWhatsApp && contact.phone) {
                     try {
-                        const message = `Olá ${contact.name}! Sua Nota Fiscal de Serviço foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
-                        await whatsappService.sendMessage(currentEntity.id!, contact.phone, message);
+                        const instance = waInstances[0];
+                        if (instance) {
+                            const message = `Olá ${contact.name}! Sua Nota Fiscal de Serviço foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
+                            await whatsappService.sendMessage({
+                                instanceName: instance.name,
+                                number: contact.phone,
+                                text: message
+                            });
+                        }
                     } catch (wsError) {
                         console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
                     }
@@ -272,13 +294,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 }
 
                 console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
-                const response = await fiscalService.emitirNFe(currentEntity.id!, payload, token);
+                await fiscalService.emitirNFe(currentEntity.id!, payload, token);
 
                 // Envio de WhatsApp se habilitado
                 if (sendWhatsApp && contact.phone) {
                     try {
-                        const message = `Olá ${contact.name}! Sua Nota Fiscal de Produto foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
-                        await whatsappService.sendMessage(currentEntity.id!, contact.phone, message);
+                        const instance = waInstances[0];
+                        if (instance) {
+                            const message = `Olá ${contact.name}! Sua Nota Fiscal de Produto foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
+                            await whatsappService.sendMessage({
+                                instanceName: instance.name,
+                                number: contact.phone,
+                                text: message
+                            });
+                        }
                     } catch (wsError) {
                         console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
                     }
