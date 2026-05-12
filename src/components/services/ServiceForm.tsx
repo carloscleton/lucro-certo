@@ -12,6 +12,8 @@ import type { Service } from '../../hooks/useServices';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { supabase } from '../../lib/supabase';
 import { useNotification } from '../../context/NotificationContext';
+import { LC116_ITEMS } from '../../constants/fiscal';
+import { Search, ExternalLink } from 'lucide-react';
 
 interface ServiceFormProps {
     isOpen: boolean;
@@ -112,6 +114,12 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
         }
     };
 
+    const handleConsultarPrefeitura = () => {
+        const city = currentCompany?.tecnospeed_config?.endereco?.cidade || currentCompany?.city || '';
+        const query = `codigo servico municipal ${city} ${name}`;
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -194,20 +202,39 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                         <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Dados Fiscais (NFS-e)</h4>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <Input
-                                label="Cód. Serviço Municipal"
-                                value={munCode}
-                                onChange={e => setMunCode(e.target.value)}
-                                placeholder="Consultar Prefeitura"
-                                helpText="Código de tributação do município"
-                            />
-                            <Input
-                                label="Item Lista Serviço"
-                                value={lcItem}
-                                onChange={e => setLcItem(e.target.value)}
-                                placeholder="Ex: 01.01"
-                                helpText="Item da Lei Complementar 116/2003"
-                            />
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Cód. Serviço Municipal</label>
+                                    <button 
+                                        type="button"
+                                        onClick={handleConsultarPrefeitura}
+                                        className="text-[10px] text-blue-600 font-bold flex items-center gap-1 hover:underline"
+                                    >
+                                        <Search size={10} /> CONSULTAR
+                                    </button>
+                                </div>
+                                <Input
+                                    value={munCode}
+                                    onChange={e => setMunCode(e.target.value)}
+                                    placeholder="Ex: 1.01 / 0101"
+                                    helpText="Código de tributação do município"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Item Lista Serviço (LC 116)</label>
+                                <Input
+                                    value={lcItem}
+                                    onChange={e => setLcItem(e.target.value)}
+                                    placeholder="Ex: 01.01"
+                                    list="lc116-items"
+                                    helpText="Item da Lei Complementar 116/2003"
+                                />
+                                <datalist id="lc116-items">
+                                    {LC116_ITEMS.map(item => (
+                                        <option key={item.id} value={item.id}>{item.description}</option>
+                                    ))}
+                                </datalist>
+                            </div>
                         </div>
                     </div>
                 )}

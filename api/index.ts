@@ -456,11 +456,18 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             },
             nfse: {
                 ativo: true,
-                config: { producao: false }
+                config: { 
+                    producao: config.ambiente === 'producao',
+                    numeracaoAutomatica: true,
+                    nfseNacional: !!config.nfse_nacional
+                }
             },
             nfe: {
                 ativo: true,
-                config: { producao: false }
+                config: { 
+                    producao: config.ambiente === 'producao',
+                    numeracaoAutomatica: true
+                }
             }
         };
 
