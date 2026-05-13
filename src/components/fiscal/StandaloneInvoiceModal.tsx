@@ -219,14 +219,30 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     };
 
     const showSuccessMessage = (result: any, token?: string) => {
-        const invoiceId = result.id || result.protocolo || 'N/A';
-        setResultModal({
-            isOpen: true,
-            title: 'Emissão Iniciada',
-            message: `A nota fiscal (ID: ${invoiceId}) foi enviada com sucesso e está sendo processada pela prefeitura.`,
-            type: 'success',
-            data: wrapFiscalLinks(result, currentEntity.id!, token)
-        });
+        try {
+            console.log('🎉 [showSuccessMessage] Chamado com result:', JSON.stringify(result, null, 2));
+            const invoiceId = result.id || result.protocolo || result.data?.id || 'N/A';
+            const links = wrapFiscalLinks(result, currentEntity.id!, token);
+            console.log('🔗 [showSuccessMessage] Links processados:', JSON.stringify(links, null, 2));
+
+            setResultModal({
+                isOpen: true,
+                title: 'Emissão Iniciada',
+                message: `A nota fiscal (ID: ${invoiceId}) foi enviada com sucesso e está sendo processada pela prefeitura.`,
+                type: 'success',
+                data: links
+            });
+        } catch (err) {
+            console.error('❌ [showSuccessMessage] Erro ao preparar modal de sucesso:', err);
+            // Fallback para não travar o usuário
+            setResultModal({
+                isOpen: true,
+                title: 'Emissão Concluída',
+                message: 'A nota foi enviada com sucesso, mas houve um erro ao processar os links de visualização.',
+                type: 'success',
+                data: result
+            });
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -393,37 +409,54 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                         if (currentEntity.cnpj && (!realCompanyId || !isUUID)) {
                             console.log(`🔍 [DB-SAVE] Resolvendo UUID via CNPJ: ${currentEntity.cnpj}`);
+                            const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
+                            
                             const { data: compData } = await supabase
                                 .from('companies')
                                 .select('id')
-                                .eq('cnpj', currentEntity.cnpj.replace(/\D/g, ''))
+                                .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
                                 .maybeSingle();
                             
                             if (compData?.id) {
                                 realCompanyId = compData.id;
+                                console.log(`🎯 [DB-SAVE] UUID resolvido: ${realCompanyId}`);
+                            } else {
+                                console.warn(`⚠️ [DB-SAVE] Não foi possível resolver UUID para o CNPJ ${currentEntity.cnpj}. Usando ID original.`);
                             }
                         }
 
-                        await supabase.from('fiscal_invoices').insert({
-                            company_id: realCompanyId,
-                            external_id: externalId,
-                            type: 'nfse',
-                            status: 'processando',
-                            payload: payload
-                        });
+                        // Só tenta inserir se for um UUID válido
+                        const finalIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
+                        
+                        if (finalIsUUID) {
+                            console.log(`💾 [DB-SAVE] Dados para insert:`, {
+                                company_id: realCompanyId,
+                                external_id: externalId,
+                                type: 'nfse'
+                            });
+
+                            const { error: dbError } = await supabase.from('fiscal_invoices').insert({
+                                company_id: realCompanyId,
+                                external_id: externalId,
+                                type: 'nfse',
+                                status: 'processando',
+                                payload: payload
+                            });
+
+                            if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
+                        } else {
+                            console.error(`❌ [DB-SAVE] Abortando gravação: ID da empresa não é um UUID válido (${realCompanyId})`);
+                        }
 
                         console.log('✅ [DB-SAVE] Nota registrada no histórico.');
-                        onSuccess();
-                        onClose();
+                        showSuccessMessage(result, token);
                         return;
                     } catch (dbErr: any) {
                         console.error('❌ [DB-SAVE] Erro inesperado na gravação:', dbErr);
                     }
                 }
-
                 setLoading(false);
-                onSuccess();
-                onClose();
+                showSuccessMessage(result, token);
             } else {
                 payload = {
                     presenca: 1,
@@ -515,10 +548,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     try {
                         let realCompanyId = currentEntity.id;
                         if (currentEntity.cnpj) {
+                            const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
                             const { data: compData } = await supabase
                                 .from('companies')
                                 .select('id')
-                                .eq('cnpj', currentEntity.cnpj.replace(/\D/g, ''))
+                                .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
                                 .maybeSingle();
                             
                             if (compData?.id) {
@@ -526,24 +560,38 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             }
                         }
 
-                        await supabase.from('fiscal_invoices').insert({
-                            company_id: realCompanyId,
-                            external_id: externalId,
-                            type: type,
-                            status: 'concluido',
-                            payload: {}
-                        });
+                        const finalIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
+                        
+                        if (finalIsUUID) {
+                            console.log(`💾 [409-DB] Dados para insert (nota existente):`, {
+                                company_id: realCompanyId,
+                                external_id: externalId,
+                                type: type
+                            });
+
+                            await supabase.from('fiscal_invoices').insert({
+                                company_id: realCompanyId,
+                                external_id: externalId,
+                                type: type,
+                                status: 'concluido',
+                                payload: {}
+                            });
+                        } else {
+                            console.error(`❌ [409-DB] Abortando: ID da empresa não é um UUID válido (${realCompanyId})`);
+                        }
                         
                         onSuccess();
                         onClose();
                         return;
                     } catch (dbErr) {
                         console.error('❌ [409-DB] Erro:', dbErr);
+                        // No erro 409, mesmo que a gravação falhe, mostramos a mensagem de sucesso com os dados existentes
+                        showSuccessMessage(error.response?.data?.data || {}, token);
+                        return;
                     }
                 }
                 
-                onSuccess();
-                onClose();
+                showSuccessMessage(error.response?.data?.data || {}, token);
                 return;
             }
 
@@ -953,6 +1001,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     setResultModal(prev => ({ ...prev, isOpen: false }));
                     if (resultModal.type === 'success') {
                         onSuccess();
+                        onClose(); // Fecha o modal principal após o sucesso
                     }
                 }}
                 title={resultModal.title}

@@ -38,16 +38,22 @@ export function useInvoices() {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filterId || '');
 
             if (currentEntity.cnpj && (!filterId || !isUUID)) {
+                const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
                 const { data: compData } = await supabase
                     .from('companies')
                     .select('id')
-                    .eq('cnpj', currentEntity.cnpj.replace(/\D/g, ''))
+                    .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
                     .maybeSingle();
                 
                 if (compData?.id) {
                     filterId = compData.id;
+                    console.log(`🎯 [useInvoices] ID resolvido via CNPJ: ${filterId}`);
+                } else {
+                    console.warn(`⚠️ [useInvoices] Não foi possível resolver UUID para CNPJ: ${currentEntity.cnpj}`);
                 }
             }
+
+            console.log(`🔍 [useInvoices] Buscando notas para company_id: ${filterId}`);
 
             const { data, error } = await supabase
                 .from('fiscal_invoices')
