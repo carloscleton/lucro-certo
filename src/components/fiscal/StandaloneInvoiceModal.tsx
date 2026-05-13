@@ -183,6 +183,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
             }
             return i;
         }));
+    const showSuccessMessage = (result: any) => {
+        const invoiceId = result.id || result.protocolo || 'N/A';
+        setResultModal({
+            isOpen: true,
+            title: 'Emissão Iniciada',
+            message: `A nota fiscal (ID: ${invoiceId}) foi enviada com sucesso e está sendo processada pela prefeitura. O PDF estará disponível em instantes na aba de histórico.`,
+            type: 'success'
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -332,7 +340,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                     };
                 }
                 console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
-                await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
+                const result = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
                 
                 // Envio de WhatsApp se habilitado
                 if (sendWhatsApp && contact.phone) {
@@ -350,6 +358,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
                     }
                 }
+                
+                showSuccessMessage(result);
             } else {
                 payload = {
                     presenca: 1,
@@ -408,7 +418,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 }
 
                 console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
-                await fiscalService.emitirNFe(currentEntity.id!, payload, token);
+                const result = await fiscalService.emitirNFe(currentEntity.id!, payload, token);
 
                 // Envio de WhatsApp se habilitado
                 if (sendWhatsApp && contact.phone) {
@@ -426,31 +436,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
                     }
                 }
+                
+                showSuccessMessage(result);
             }
 
-            const invoiceId = result.id || result.protocolo || 'N/A';
-            const isSandbox = config?.ambiente === 'homologacao';
-            const viewerUrl = isSandbox 
-                ? `https://api.sandbox.plugnotas.com.br/nfse/pdf/${invoiceId}`
-                : `https://api.plugnotas.com.br/nfse/pdf/${invoiceId}`;
-
-            setResultModal({
-                isOpen: true,
-                title: 'Emissão Iniciada',
-                message: 'A nota fiscal foi enviada para a prefeitura e está sendo processada.',
-                type: 'success',
-                data: {
-                    'ID da Nota': invoiceId,
-                    'Status': 'Em Processamento',
-                    'Aviso': 'O PDF estará disponível assim que a prefeitura autorizar (geralmente em alguns segundos).'
-                }
-            });
-
-            // We don't close immediately to let user see the result if they want, 
-            // but usually onSuccess handles the refresh and closure.
-            // In this case, we'll wait for user to close the result modal.
-            // So we'll call onSuccess() only after ResultModal is closed.
-            // Or better, we call it now but keep our modal state until result is closed.
             onSuccess();
         } catch (err: any) {
             console.error('Erro ao emitir avulsa:', err);
