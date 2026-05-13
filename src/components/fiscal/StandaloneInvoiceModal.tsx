@@ -322,7 +322,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             if (cleanNatCode) {
                                 const finalNatCode = cleanNatCode.substring(0, 9).padEnd(9, '0');
                                 item.codigoTributacao = finalNatCode;
-                                item.codigotributacao = finalNatCode; // Suporte para o validador que exige minúsculo
                             }
                             
                             const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '');
