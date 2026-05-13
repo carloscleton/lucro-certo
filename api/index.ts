@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.14' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.15' });
 });
 
 app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certificate'], authenticate, upload.single('arquivo'), async (req: any, res) => {
@@ -352,19 +352,26 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             console.log(`🧾 [DEBUG-KEYS] Chaves do serviço:`, Object.keys(finalPayload[0].servico[0]));
         }
 
-        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.14):`, JSON.stringify(finalPayload, null, 2));
+        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.15):`, JSON.stringify(finalPayload, null, 2));
 
         let response;
 
         // --- MODO EXCLUSIVO: WEBHOOK EXTERNO OU TECNOSPEED ---
         if (config.use_external_webhook && config.external_webhook_url) {
             console.log(`🚀 [EXTERNAL-MODE] Enviando payload APENAS para: ${config.external_webhook_url}`);
+            
+            const headers: any = { 
+                'Content-Type': 'application/json', 
+                'X-Source': 'LucroCerto-Fiscal-Proxy',
+                'X-Company-ID': companyId
+            };
+
+            if (config.external_webhook_token) {
+                headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
+            }
+
             response = await axios.post(config.external_webhook_url, finalPayload, {
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'X-Source': 'LucroCerto-Fiscal-Proxy',
-                    'X-Company-ID': companyId
-                },
+                headers,
                 timeout: 10000
             });
             console.log(`✅ [EXTERNAL-MODE] Resposta recebida do webhook externo.`);
@@ -401,7 +408,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
         }
 
-        res.json({ ...response.data, proxy_version: '1.0.14' });
+        res.json({ ...response.data, proxy_version: '1.0.15' });
     } catch (error: any) {
         res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
     }
@@ -557,7 +564,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
             }
         }
 
-        res.json({ ...response.data, proxy_version: '1.0.14', synced_id: issuerPayload.certificado });
+        res.json({ ...response.data, proxy_version: '1.0.15', synced_id: issuerPayload.certificado });
     } catch (outerError: any) {
         res.status(500).json({ error: outerError.message });
     }

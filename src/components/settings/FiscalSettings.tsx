@@ -94,7 +94,8 @@ export function FiscalSettings() {
         default_csll_aliquota: '',
         default_irrf_aliquota: '',
         use_external_webhook: false,
-        external_webhook_url: ''
+        external_webhook_url: '',
+        external_webhook_token: ''
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -1058,6 +1059,18 @@ export function FiscalSettings() {
                                         autoComplete="off"
                                         helpText="ATENÇÃO: Ao ativar esta opção, o sistema enviará o JSON APENAS para este endpoint e IGNORARÁ a TecnoSpeed. Útil para integrar com emissores próprios."
                                     />
+                                    <div className="mt-4">
+                                        <Input
+                                            label="Token de Autorização (Opcional)"
+                                            type="password"
+                                            value={config.external_webhook_token || ''}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_token: e.target.value })}
+                                            placeholder="Ex: seu-token-secreto"
+                                            preserveCase={true}
+                                            autoComplete="off"
+                                            helpText="Se preenchido, será enviado no header 'Authorization: Bearer [token]'."
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
