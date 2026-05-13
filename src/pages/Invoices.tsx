@@ -402,6 +402,17 @@ export function Invoices() {
 
                                                 {invoice.external_id && (invoice.status === 'concluido' || invoice.status === 'autorizado') && (
                                                     <>
+                                                        {invoice.pdf_url && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                onClick={() => window.open(invoice.pdf_url, '_blank')}
+                                                                className="h-9 w-9 p-0 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 transition-all shadow-sm shadow-indigo-500/10"
+                                                                title="Ver Link Externo"
+                                                            >
+                                                                <ExternalLink size={16} />
+                                                            </Button>
+                                                        )}
+
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id)}
