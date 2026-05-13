@@ -268,16 +268,26 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         }
                         
                         if (isNacional) {
-                            // Para NFSe Nacional, códigoTributacao deve ter exatamente 9 dígitos
-                            const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || i.taxCode || '';
-                            const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
-                            const final9Digits = cleanNatCode.substring(0, 9);
+                            // REGRA DEFINITIVA PARA PADRÃO NACIONAL:
+                            // 1. codigo = 6 dígitos (Municipal/LC116)
+                            // 2. codigoTributacao = 9 dígitos (Nacional/NBS)
+                            // 3. itemListaServico deve ser omitido para não conflitar
                             
-                            item.codigo = final9Digits; // Tentar enviar 9 dígitos no código principal também
-                            item.codigoTributacao = final9Digits;
-                            item.codigoTributacaoNacional = final9Digits; // Nome alternativo do campo
-                        } else if (i.taxationCode) {
-                            item.codigoTributacao = String(i.taxationCode).trim();
+                            const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '');
+                            item.codigo = cleanMunCode.substring(0, 6);
+                            
+                            const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || '';
+                            const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
+                            if (cleanNatCode.length === 9) {
+                                item.codigoTributacao = cleanNatCode;
+                            }
+                            
+                            // Removemos o itemListaServico no padrão nacional pois o codigoTributacao já cumpre esse papel
+                            delete item.itemListaServico;
+                        } else {
+                            if (i.taxationCode) {
+                                item.codigoTributacao = String(i.taxationCode).trim();
+                            }
                         }
                         
                         if (i.issAliquota || i.issExigibilidade || i.issTipo) {
