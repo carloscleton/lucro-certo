@@ -342,7 +342,6 @@ export function Invoices() {
                                                 {new Date(invoice.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6">
                                         <td className="py-3 px-6">
                                             <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 text-[10px] font-bold rounded-lg border border-gray-200 dark:border-slate-700">
                                                 {invoice.type}
