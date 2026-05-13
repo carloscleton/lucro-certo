@@ -438,6 +438,13 @@ export function Invoices() {
                                                             title="Baixar PDF"
                                                         >
                                                             <Download size={18} />
+                                                                                          <Button
+                                                            variant="ghost"
+                                                            onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
+                                                            className="h-9 w-9 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
+                                                            title="Baixar XML"
+                                                        >
+                                                            <FileCode size={18} />
                                                         </Button>
 
                                                         <Button
@@ -456,7 +463,7 @@ export function Invoices() {
                                                             title="Excluir do Banco"
                                                         >
                                                             <Trash2 size={16} />
-                                                        </Button>
+                                                        </Button>                            </Button>
                                                     </>
                                                 )}
                                             </div>
