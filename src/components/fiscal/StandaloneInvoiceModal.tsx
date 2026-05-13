@@ -49,8 +49,17 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [errorDetail, setErrorDetail] = useState('');
-    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error'}>({
-        isOpen: false, title: '', message: '', type: 'success'
+    const [resultModal, setResultModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'error' | 'info';
+        data?: any;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success'
     });
     
     // Form State
