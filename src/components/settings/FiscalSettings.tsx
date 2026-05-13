@@ -314,7 +314,7 @@ export function FiscalSettings() {
         }
     };
 
-    const wrapFiscalLinks = (data: any, companyId: string) => {
+    const wrapFiscalLinks = (data: any, companyId: string, sessionToken?: string) => {
         if (!data || typeof data !== 'object') return data;
         
         const newData = Array.isArray(data) ? [...data] : { ...data };
@@ -328,10 +328,11 @@ export function FiscalSettings() {
                 if (match) {
                     const [_, type, format, id] = match;
                     const base = API_BASE_URL.replace(/\/$/, '');
-                    newData[key] = `${base}/fiscal-module/${type}/${id}/${format}?companyId=${companyId}`;
+                    const tokenPart = sessionToken ? `&token=${sessionToken}` : '';
+                    newData[key] = `${base}/fiscal-module/${type}/${id}/${format}?companyId=${companyId}${tokenPart}`;
                 }
             } else if (typeof value === 'object') {
-                newData[key] = wrapFiscalLinks(value, companyId);
+                newData[key] = wrapFiscalLinks(value, companyId, sessionToken);
             }
         }
         
@@ -354,12 +355,15 @@ export function FiscalSettings() {
                 title: 'Resultado do Teste',
                 message: 'Requisição enviada com sucesso ao servidor.',
                 type: 'success',
-                data: wrapFiscalLinks(response, currentEntity.id!)
+                data: wrapFiscalLinks(response, currentEntity.id!, token)
             });
         } catch (error: any) {
             console.error(error);
             const isAlreadyEmitted = error.response?.status === 409;
             
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+
             setResultModal({
                 isOpen: true,
                 title: isAlreadyEmitted ? 'Nota Já Emitida' : 'Erro no Teste',
@@ -367,7 +371,7 @@ export function FiscalSettings() {
                     ? 'Esta nota já foi processada e autorizada anteriormente pela TecnoSpeed.' 
                     : (error.message || 'Erro ao processar o JSON ou na emissão.'),
                 type: isAlreadyEmitted ? 'info' : 'error',
-                data: wrapFiscalLinks(error.response?.data, currentEntity.id!)
+                data: wrapFiscalLinks(error.response?.data, currentEntity.id!, token || undefined)
             });
         } finally {
             setTestingJson(false);

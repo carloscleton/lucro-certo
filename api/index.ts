@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.16' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.17' });
 });
 
 app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certificate'], authenticate, upload.single('arquivo'), async (req: any, res) => {
@@ -598,12 +598,16 @@ app.post(['/fiscal-module/save-config', '/api/fiscal-module/save-config'], authe
 
 app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml'], authenticate, async (req, res) => {
     const { type, id } = req.params;
-    const { companyId } = req.query;
-    const authHeader = req.headers.authorization;
+    const { companyId, token } = req.query;
+    const authHeader = req.headers.authorization || (token ? `Bearer ${token}` : null);
     const isXml = req.path.endsWith('/xml');
 
     if (!companyId || !id) {
         return res.status(400).json({ error: 'companyId e ID da nota são obrigatórios' });
+    }
+
+    if (!authHeader) {
+        return res.status(401).json({ error: 'Autenticação necessária para baixar este documento.' });
     }
 
     try {
