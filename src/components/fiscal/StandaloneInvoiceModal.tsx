@@ -317,15 +317,22 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             // Se for Padrão Nacional puro, o usuário deve digitar os 9 dígitos.
                             const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || '';
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
+                            const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '').trim();
                             
+                            // No Padrão Nacional (NFSe-N):
+                            // 1. codigoTributacao = Municipal (curto)
+                            // 2. codigoTributacaoNacional = Nacional (9 dígitos)
+                            
+                            if (cleanMunCode) {
+                                item.codigoTributacao = cleanMunCode;
+                            }
+
                             if (cleanNatCode) {
-                                // Não forçamos mais padEnd(9, '0') se o código já parece ser municipal (3-4 dígitos)
-                                item.codigoTributacao = cleanNatCode;
+                                const finalNatCode = cleanNatCode.substring(0, 9).padEnd(9, '0');
+                                item.codigoTributacaoNacional = finalNatCode;
                             }
                             
-                            const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '');
-                            
-                            // Para Padrão Nacional, o 'codigo' deve ter 6 dígitos
+                            // Para Padrão Nacional, o 'codigo' de serviço deve ter 6 dígitos (LC116)
                             item.codigo = cleanMunCode.substring(0, 6).padEnd(6, '0');
                             
                             // itemListaServico formatado (ex: 01.07)
