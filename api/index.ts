@@ -388,23 +388,30 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const externalId = response.data?.data?.id || response.data?.id;
 
         if (externalId && SUPABASE_URL) {
+            console.log(`💾 [DB-SAVE] Tentando salvar nota ${externalId} para empresa ${companyId}`);
             try {
-                await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                const dbResponse = await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                     company_id: companyId,
-                    quote_id: quoteId,
+                    quote_id: quoteId || null,
                     external_id: externalId,
                     type: endpoint,
                     status: 'processando',
-                    payload: payload
+                    payload: finalPayload[0] || finalPayload
                 }, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY!,
                         'Authorization': authHeader!,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
                     }
                 });
+                console.log(`✅ [DB-SAVE] Nota salva com sucesso. Status: ${dbResponse.status}`);
             } catch (dbErr: any) {
-                console.warn('⚠️ Falha ao persistir nota no banco:', dbErr.message);
+                console.error('❌ [DB-SAVE] Erro ao salvar nota no banco:', {
+                    message: dbErr.message,
+                    status: dbErr.response?.status,
+                    detail: dbErr.response?.data
+                });
             }
         }
 
