@@ -29,6 +29,8 @@ export function FiscalSettings() {
         steps: [],
         logs: []
     });
+    const [testJson, setTestJson] = useState('');
+    const [testingJson, setTestingJson] = useState(false);
 
     // Persistência do diagnóstico em caso de troca de aba ou refresh
     useEffect(() => {
@@ -309,6 +311,43 @@ export function FiscalSettings() {
         } finally {
             setUploadingCert(false);
         }
+    };
+
+    const handleTestJson = async () => {
+        if (!testJson.trim()) return;
+        setTestingJson(true);
+        try {
+            const payload = JSON.parse(testJson);
+            const response = await fiscalService.emitInvoice(currentEntity.id!, payload, 'nfse');
+            setResultModal({
+                isOpen: true,
+                title: 'Resultado do Teste',
+                message: 'Requisição enviada com sucesso ao servidor.',
+                type: 'success',
+                data: response
+            });
+        } catch (error: any) {
+            console.error(error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro no Teste',
+                message: error.message || 'Erro ao processar o JSON ou na emissão.',
+                type: 'error',
+                data: error.response?.data
+            });
+        } finally {
+            setTestingJson(false);
+        }
+    };
+
+    const handleFileJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setTestJson(ev.target?.result as string);
+        };
+        reader.readAsText(file);
     };
 
     const handleSyncIssuer = async () => {
@@ -1082,6 +1121,60 @@ export function FiscalSettings() {
                                 </div>
                             )}
                         </div>
+
+                        {config.ambiente === 'homologacao' && (
+                            <div className="mt-8 pt-6 border-t-2 border-dashed border-gray-200 dark:border-slate-800">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
+                                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Laboratório de Testes (JSON Manual)</h3>
+                                </div>
+                                
+                                <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-xl border border-purple-100 dark:border-purple-900/20">
+                                    <p className="text-xs text-purple-700 dark:text-purple-300 mb-4">
+                                        Use esta área para testar payloads JSON diretamente. Útil para validar campos específicos exigidos pela TecnoSpeed.
+                                    </p>
+                                    
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-medium text-gray-500 uppercase">Conteúdo do JSON</label>
+                                            <label className="text-xs text-purple-600 font-medium cursor-pointer hover:underline flex items-center gap-1">
+                                                <ExternalLink size={12} />
+                                                Carregar Arquivo .json
+                                                <input type="file" accept=".json" onChange={handleFileJson} className="hidden" />
+                                            </label>
+                                        </div>
+                                        
+                                        <textarea
+                                            value={testJson}
+                                            onChange={(e) => setTestJson(e.target.value)}
+                                            className="w-full h-48 p-3 text-xs font-mono bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            placeholder='{ "prestador": { ... }, "tomador": { ... }, "servico": { ... } }'
+                                        />
+                                        
+                                        <div className="flex justify-end gap-3">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setTestJson('')}
+                                                disabled={!testJson || testingJson}
+                                            >
+                                                Limpar
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                                                onClick={handleTestJson}
+                                                loading={testingJson}
+                                                disabled={!testJson || testingJson}
+                                            >
+                                                <Send size={16} className="mr-2" />
+                                                Emitir Via JSON Manual
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
