@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.15' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.16' });
 });
 
 app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certificate'], authenticate, upload.single('arquivo'), async (req: any, res) => {
@@ -593,6 +593,55 @@ app.post(['/fiscal-module/save-config', '/api/fiscal-module/save-config'], authe
     } catch (error: any) {
         console.error('❌ Erro ao salvar config:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erro ao salvar configuração no banco', detail: error.response?.data });
+    }
+});
+
+app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml'], authenticate, async (req, res) => {
+    const { type, id } = req.params;
+    const { companyId } = req.query;
+    const authHeader = req.headers.authorization;
+    const isXml = req.path.endsWith('/xml');
+
+    if (!companyId || !id) {
+        return res.status(400).json({ error: 'companyId e ID da nota são obrigatórios' });
+    }
+
+    try {
+        // Buscar config da empresa
+        const compResp = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=tecnospeed_config`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY!,
+                'Authorization': authHeader!
+            }
+        });
+
+        const config = compResp.data?.[0]?.tecnospeed_config;
+        if (!config || !config.tecnospeed_api_key) {
+            return res.status(404).json({ error: 'Configuração fiscal não encontrada ou sem API Key.' });
+        }
+
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
+        const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
+
+        console.log(`📄 [FISCAL-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para ${type} ID: ${id}`);
+
+        const response = await axios.get(`${baseUrl}/${type}/${isXml ? 'xml' : 'pdf'}/${id}`, {
+            headers: { 'x-api-key': apiKey },
+            responseType: 'arraybuffer'
+        });
+
+        res.setHeader('Content-Type', isXml ? 'application/xml' : 'application/pdf');
+        res.setHeader('Content-Disposition', `${isXml ? 'attachment' : 'inline'}; filename="${type}-${id}.${isXml ? 'xml' : 'pdf'}"`);
+        res.send(Buffer.from(response.data));
+    } catch (error: any) {
+        console.error('❌ Erro no download fiscal:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({ 
+            error: 'Erro ao baixar documento da TecnoSpeed', 
+            detail: error.response?.data || error.message 
+        });
     }
 });
 
