@@ -8,6 +8,7 @@ import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
 import { ResultModal } from '../ui/ResultModal';
 import { DiagnosticModal } from '../ui/DiagnosticModal';
+import { API_BASE_URL } from '../../lib/constants';
 
 export function FiscalSettings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
@@ -313,6 +314,30 @@ export function FiscalSettings() {
         }
     };
 
+    const wrapFiscalLinks = (data: any, companyId: string) => {
+        if (!data || typeof data !== 'object') return data;
+        
+        const newData = Array.isArray(data) ? [...data] : { ...data };
+        
+        for (const key in newData) {
+            const value = newData[key];
+            
+            if (typeof value === 'string' && value.includes('plugnotas.com.br')) {
+                // Regex para capturar /nfse/pdf/ID ou /nfse/xml/ID
+                const match = value.match(/\/(nfse|nfe|nfce)\/(pdf|xml)\/([a-f0-9]+)/i);
+                if (match) {
+                    const [_, type, format, id] = match;
+                    const base = API_BASE_URL.replace(/\/$/, '');
+                    newData[key] = `${base}/fiscal-module/${type}/${id}/${format}?companyId=${companyId}`;
+                }
+            } else if (typeof value === 'object') {
+                newData[key] = wrapFiscalLinks(value, companyId);
+            }
+        }
+        
+        return newData;
+    };
+
     const handleTestJson = async () => {
         if (!testJson.trim()) return;
         setTestingJson(true);
@@ -323,12 +348,13 @@ export function FiscalSettings() {
 
             const payload = JSON.parse(testJson);
             const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
+            
             setResultModal({
                 isOpen: true,
                 title: 'Resultado do Teste',
                 message: 'Requisição enviada com sucesso ao servidor.',
                 type: 'success',
-                data: response
+                data: wrapFiscalLinks(response, currentEntity.id!)
             });
         } catch (error: any) {
             console.error(error);
@@ -341,7 +367,7 @@ export function FiscalSettings() {
                     ? 'Esta nota já foi processada e autorizada anteriormente pela TecnoSpeed.' 
                     : (error.message || 'Erro ao processar o JSON ou na emissão.'),
                 type: isAlreadyEmitted ? 'info' : 'error',
-                data: error.response?.data
+                data: wrapFiscalLinks(error.response?.data, currentEntity.id!)
             });
         } finally {
             setTestingJson(false);
