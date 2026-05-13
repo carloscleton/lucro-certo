@@ -12,7 +12,13 @@ import { ResultModal } from '../components/ui/ResultModal';
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
     const { currentEntity } = useEntity();
-    const [showNewModal, setShowNewModal] = useState(false);
+    
+    console.log('🏢 [Invoices] Entidade Atual:', {
+        id: currentEntity.id,
+        name: currentEntity.name,
+        cnpj: currentEntity.cnpj,
+        type: currentEntity.type
+    });
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
     // Versão do Componente: v1.0.21 - Forçando deploy e refresh
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info'}>({
