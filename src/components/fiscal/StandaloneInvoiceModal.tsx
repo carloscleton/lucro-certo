@@ -182,6 +182,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 
                 return updated;
             }
+            return i;
+        }));
+    };
+
     const wrapFiscalLinks = (data: any, companyId: string, sessionToken?: string) => {
         if (!data || typeof data !== 'object') return data;
         const newData = Array.isArray(data) ? [...data] : { ...data };
