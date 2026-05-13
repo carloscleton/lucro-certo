@@ -410,17 +410,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         }).select();
 
                         if (dbError) {
-                            console.error('❌ [DB-SAVE] Erro retornado pelo Supabase:', {
-                                code: dbError.code,
-                                message: dbError.message,
-                                details: dbError.details,
-                                hint: dbError.hint
-                            });
+                            console.error('❌ [DB-SAVE] Erro retornado pelo Supabase:', dbError);
+                            window.alert(`Erro ao salvar no histórico: ${dbError.message}\nCódigo: ${dbError.code}`);
                         } else {
                             console.log('✅ [DB-SAVE] Nota registrada com sucesso no banco:', dbData);
                         }
-                    } catch (dbErr) {
+                    } catch (dbErr: any) {
                         console.error('❌ [DB-SAVE] Erro inesperado na gravação:', dbErr);
+                        window.alert(`Erro inesperado ao salvar: ${dbErr.message}`);
                     }
                 }
 
@@ -546,16 +543,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         }).select();
 
                         if (dbError) {
-                            console.error('❌ [409-DB] Erro ao registrar nota existente:', {
-                                code: dbError.code,
-                                message: dbError.message,
-                                details: dbError.details
-                            });
+                            console.error('❌ [409-DB] Erro ao registrar nota existente:', dbError);
+                            window.alert(`Erro ao salvar histórico (409): ${dbError.message}\nCódigo: ${dbError.code}`);
                         } else {
                             console.log('✅ [409-DB] Nota existente registrada no banco:', dbData);
                         }
-                    } catch (dbErr) {
+                    } catch (dbErr: any) {
                         console.error('❌ [409-DB] Erro inesperado ao registrar nota existente:', dbErr);
+                        window.alert(`Erro inesperado ao salvar histórico: ${dbErr.message}`);
                     }
                 }
             }
