@@ -10,7 +10,8 @@ import {
     CreditCard,
     X,
     Award,
-    Gift
+    Gift,
+    Receipt
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -194,6 +195,13 @@ export function LandingPage() {
                         <h3>Clube de Fidelidade</h3>
                         <p>Fidelize seus clientes com planos de assinatura e recorrência. Gere previsibilidade de caixa com faturamento automático.</p>
                     </div>
+                    <div className="feature-card">
+                        <div className="feature-icon" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }}>
+                            <Receipt size={32} />
+                        </div>
+                        <h3>Notas Fiscais (NF-e/NFS-e)</h3>
+                        <p>Emita notas fiscais de serviço e produtos diretamente pelo sistema. Histórico completo com download de XML e PDF em um clique.</p>
+                    </div>
                 </div>
             </section>
 
@@ -359,6 +367,34 @@ export function LandingPage() {
                         </ul>
                     </div>
                 </div>
+
+                {/* Fiscal Management Section */}
+                <div className="visual-feature">
+                    <div className="visual-content">
+                        <div style={{ color: '#0ea5e9', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Receipt size={20} />
+                            GESTÃO FISCAL DESCOMPLICADA
+                        </div>
+                        <h3>Emita Notas Fiscais em Segundos</h3>
+                        <p>
+                            Diga adeus aos portais lentos das prefeituras. Com o Lucro Certo, você emite NF-e e NFS-e direto do seu faturamento, com preenchimento automático de dados.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Emissão em 1 Clique:</strong> Gere notas direto dos seus orçamentos aprovados.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Histórico Centralizado:</strong> XML e PDF organizados e prontos para o seu contador.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Envio Automático:</strong> Seus clientes recebem a nota por e-mail e WhatsApp na hora.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Sincronização Total:</strong> Status atualizado em tempo real com a SEFAZ e Prefeituras.</li>
+                        </ul>
+                    </div>
+                    <div className="visual-image-container">
+                        <img
+                            src="/images/landing/fiscal-management.png"
+                            alt="Gestão Fiscal Lucro Certo"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(14, 165, 233, 0.2)' }}
+                        />
+                    </div>
+                </div>
             </section>
 
             {/* FAQ Section */}
@@ -379,6 +415,10 @@ export function LandingPage() {
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                         <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O que é o Clube de Fidelidade?</h4>
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>É um módulo que permite criar planos de assinatura para seus clientes. Eles pagam um valor mensal fixo e têm direito a benefícios como descontos em serviços, cashback ou atendimentos exclusivos, tudo faturado automaticamente.</p>
+                    </div>
+                    <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O sistema emite notas fiscais para todo o Brasil?</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim! O Lucro Certo está integrado com os principais webservices nacionais, suportando a emissão de NFS-e para milhares de cidades e NF-e de produtos para todos os estados brasileiros.</p>
                     </div>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                         <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O Lucro Certo é seguro?</h4>
