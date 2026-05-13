@@ -1193,6 +1193,7 @@ export function FiscalSettings() {
                                         
                                         <div className="flex justify-end gap-3">
                                             <Button
+                                                type="button"
                                                 variant="ghost"
                                                 size="sm"
                                                 className="text-purple-600 hover:bg-purple-100"
@@ -1202,6 +1203,7 @@ export function FiscalSettings() {
                                                 Gerar Exemplo
                                             </Button>
                                             <Button
+                                                type="button"
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => setTestJson('')}
@@ -1210,6 +1212,7 @@ export function FiscalSettings() {
                                                 Limpar
                                             </Button>
                                             <Button
+                                                type="button"
                                                 size="sm"
                                                 className="bg-purple-600 hover:bg-purple-700 text-white"
                                                 onClick={handleTestJson}
