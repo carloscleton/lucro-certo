@@ -399,41 +399,41 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 // Gravar no banco de dados local via Frontend para garantir o histórico
                 const externalId = result.data?.id || result.id;
                 if (externalId) {
-                    try {
-                        console.log(`💾 [DB-SAVE] Resolvendo ID real para CNPJ: ${currentEntity.cnpj || currentEntity.id}`);
+                        // 3. GRAVAR NO BANCO DE DADOS (SUPABASE) PARA HISTÓRICO
+                        console.log(`💾 [DB-SAVE] Iniciando gravação da nota ${externalId}...`);
                         
-                        // 🔍 Buscar o UUID real da empresa pelo CNPJ para garantir o vínculo
                         let realCompanyId = currentEntity.id;
-                        if (currentEntity.cnpj) {
+                        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
+
+                        if (currentEntity.cnpj && (!realCompanyId || !isUUID)) {
+                            console.log(`🔍 [DB-SAVE] ID atual não é UUID (${realCompanyId}), resolvendo via CNPJ: ${currentEntity.cnpj}`);
                             const { data: compData } = await supabase
                                 .from('companies')
                                 .select('id')
-                                .eq('cnpj', currentEntity.cnpj)
+                                .eq('cnpj', currentEntity.cnpj.replace(/\D/g, ''))
                                 .maybeSingle();
                             
                             if (compData?.id) {
                                 realCompanyId = compData.id;
-                                console.log(`✅ [DB-SAVE] ID Resolvido: ${realCompanyId}`);
+                                console.log(`🎯 [DB-SAVE] UUID resolvido: ${realCompanyId}`);
                             }
                         }
 
-                        console.log(`💾 [DB-SAVE] Tentando gravar nota ${externalId} para empresa ${realCompanyId}`);
                         const { error: dbError } = await supabase.from('fiscal_invoices').insert({
                             company_id: realCompanyId,
                             external_id: externalId,
                             type: 'nfse',
                             status: 'processando',
                             payload: payload
-                        }).select();
+                        });
 
                         if (dbError) {
-                            console.error('❌ [DB-SAVE] Erro retornado pelo Supabase:', dbError);
+                            console.error('❌ [DB-SAVE] Erro ao gravar no histórico:', dbError);
                         } else {
-                            console.log('✅ [DB-SAVE] Nota registrada com sucesso no banco.');
-                            // Fechar e atualizar imediatamente sem mostrar JSON
+                            console.log('✅ [DB-SAVE] Nota registrada no histórico com sucesso.');
                             onSuccess();
                             onClose();
-                            return; 
+                            return;
                         }
                     } catch (dbErr: any) {
                         console.error('❌ [DB-SAVE] Erro inesperado na gravação:', dbErr);

@@ -97,7 +97,9 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
     try {
         // Usar config enviada pelo frontend ou buscar no banco se não houver
         const bodyConfig = req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config) : req.body.config) : null;
-        const config = bodyConfig || await getCompanyFiscalConfig(authHeader!, companyId);
+        const { config, realCompanyId: resolvedId } = bodyConfig 
+            ? { config: bodyConfig, realCompanyId: companyId } 
+            : await getCompanyFiscalConfig(authHeader!, companyId);
 
 
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
@@ -196,7 +198,7 @@ app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-sta
     const authHeader = req.headers.authorization;
 
     try {
-        const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -240,7 +242,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     }
 
     try {
-        const config = await getCompanyFiscalConfig(authHeader!, companyId);
+        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId);
         if (!config || !config.tecnospeed_api_key) {
             return res.status(400).json({ error: 'Configuração TecnoSpeed incompleta (API Key ausente).' });
         }
@@ -388,10 +390,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const externalId = response.data?.data?.id || response.data?.id;
 
         if (externalId && SUPABASE_URL) {
-            console.log(`💾 [DB-SAVE] Tentando salvar nota ${externalId} para empresa ${companyId}`);
+            console.log(`💾 [DB-SAVE] Tentando salvar nota ${externalId} para empresa ${resolvedId}`);
             try {
                 const dbResponse = await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                    company_id: companyId,
+                    company_id: resolvedId,
                     quote_id: quoteId || null,
                     external_id: externalId,
                     type: endpoint,
@@ -612,7 +614,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
     }
 
     try {
-        const config = await getCompanyFiscalConfig(companyId, authHeader);
+        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId);
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -757,7 +759,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
     const authHeader = req.headers.authorization;
 
     try {
-        const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -791,7 +793,7 @@ app.get(['/fiscal-module/nfe/:id/pdf', '/api/fiscal-module/nfe/:id/pdf'], authen
     const authHeader = req.headers.authorization;
 
     try {
-        const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -814,7 +816,7 @@ app.get(['/fiscal-module/nfe/:id/xml', '/api/fiscal-module/nfe/:id/xml'], authen
     const authHeader = req.headers.authorization;
 
     try {
-        const config = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -838,10 +840,16 @@ async function getCompanyFiscalConfig(authHeader: string, companyId: string) {
 
     try {
         console.log(`🏢 Buscando config fiscal para empresa: ${companyId}`);
+        
+        // 🔍 Detectar se é um UUID ou CNPJ
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId);
+        const column = isUUID ? 'id' : 'cnpj';
+        const cleanId = isUUID ? companyId : companyId.replace(/\D/g, '');
+
         const response = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
             params: {
-                id: `eq.${companyId}`,
-                select: 'tecnospeed_config,fiscal_module_enabled'
+                [column]: `eq.${cleanId}`,
+                select: 'id,tecnospeed_config,fiscal_module_enabled'
             },
             headers: {
                 'apikey': SUPABASE_ANON_KEY as string,
@@ -850,11 +858,14 @@ async function getCompanyFiscalConfig(authHeader: string, companyId: string) {
         });
 
         const company = response.data?.[0];
-        if (!company) throw new Error('Empresa não encontrada ou acesso negado no Supabase.');
+        if (!company) throw new Error(`Empresa (${companyId}) não encontrada ou acesso negado no Supabase.`);
         if (!company.fiscal_module_enabled) throw new Error('Módulo fiscal não habilitado para esta empresa.');
-        if (!company.tecnospeed_config) throw new Error('Configuração da TecnoSpeed não encontrada para esta empresa. Verifique as configurações fiscais.');
+        if (!company.tecnospeed_config) throw new Error('Configuração da TecnoSpeed não encontrada para esta empresa.');
 
-        return company.tecnospeed_config;
+        return {
+            config: company.tecnospeed_config,
+            realCompanyId: company.id
+        };
     } catch (error: any) {
         console.error('❌ Erro ao buscar config fiscal:', error.response?.data || error.message);
         throw error;

@@ -35,11 +35,13 @@ export function useInvoices() {
             let filterId = currentEntity.id;
             
             // 🔍 Se o ID não parece um UUID (ex: é um CNPJ), tenta resolver o ID real
-            if (currentEntity.cnpj && (!filterId || filterId.length < 20)) {
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filterId || '');
+
+            if (currentEntity.cnpj && (!filterId || !isUUID)) {
                 const { data: compData } = await supabase
                     .from('companies')
                     .select('id')
-                    .eq('cnpj', currentEntity.cnpj)
+                    .eq('cnpj', currentEntity.cnpj.replace(/\D/g, ''))
                     .maybeSingle();
                 
                 if (compData?.id) {
