@@ -1056,7 +1056,7 @@ export function FiscalSettings() {
                                         placeholder="Ex: https://seu-sistema.com/webhook-fiscal"
                                         preserveCase={true}
                                         autoComplete="off"
-                                        helpText="O sistema enviará o JSON da nota para esta URL sempre que houver uma tentativa de emissão."
+                                        helpText="ATENÇÃO: Ao ativar esta opção, o sistema enviará o JSON APENAS para este endpoint e IGNORARÁ a TecnoSpeed. Útil para integrar com emissores próprios."
                                     />
                                 </div>
                             )}
