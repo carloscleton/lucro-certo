@@ -103,6 +103,8 @@ export function Invoices() {
         } finally {
             setIsRefreshing(null);
         }
+    };
+
     const handleCancelInvoice = async () => {
         if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
         setIsCancelling(true);
