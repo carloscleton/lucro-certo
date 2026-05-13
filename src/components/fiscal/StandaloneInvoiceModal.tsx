@@ -379,7 +379,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 }
 
                 if (notes) {
-                    payload.informacoesComplementares = notes;
+                    payload.informacoesComplementares = notes.replace(/\n/g, '|');
                 }
 
                 if (sendEmail) {
