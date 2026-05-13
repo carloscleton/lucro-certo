@@ -332,11 +332,15 @@ export function FiscalSettings() {
             });
         } catch (error: any) {
             console.error(error);
+            const isAlreadyEmitted = error.response?.status === 409;
+            
             setResultModal({
                 isOpen: true,
-                title: 'Erro no Teste',
-                message: error.message || 'Erro ao processar o JSON ou na emissão.',
-                type: 'error',
+                title: isAlreadyEmitted ? 'Nota Já Emitida' : 'Erro no Teste',
+                message: isAlreadyEmitted 
+                    ? 'Esta nota já foi processada e autorizada anteriormente pela TecnoSpeed.' 
+                    : (error.message || 'Erro ao processar o JSON ou na emissão.'),
+                type: isAlreadyEmitted ? 'info' : 'error',
                 data: error.response?.data
             });
         } finally {
