@@ -183,6 +183,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
             }
             return i;
         }));
+    };
+
     const showSuccessMessage = (result: any) => {
         const invoiceId = result.id || result.protocolo || 'N/A';
         setResultModal({
