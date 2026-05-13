@@ -271,7 +271,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             // Para NFSe Nacional, códigoTributacao deve ter exatamente 9 dígitos
                             const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || i.taxCode || '';
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
-                            item.codigoTributacao = cleanNatCode.substring(0, 9);
+                            const final9Digits = cleanNatCode.substring(0, 9);
+                            
+                            item.codigo = final9Digits; // Tentar enviar 9 dígitos no código principal também
+                            item.codigoTributacao = final9Digits;
+                            item.codigoTributacaoNacional = final9Digits; // Nome alternativo do campo
                         } else if (i.taxationCode) {
                             item.codigoTributacao = String(i.taxationCode).trim();
                         }
