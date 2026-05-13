@@ -290,6 +290,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                                 item.codigoTributacao = cleanNatCode.substring(0, 9);
                             }
                             
+                            const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '');
+                            
                             // Para o padrão nacional, o codigo municipal (6 dígitos) é o que importa no campo 'codigo'
                             item.codigo = cleanMunCode.substring(0, 6);
                             
