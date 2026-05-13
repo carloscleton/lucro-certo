@@ -400,16 +400,27 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 const externalId = result.data?.id || result.id;
                 if (externalId) {
                     try {
-                        console.log(`💾 Gravando nota ${externalId} no Supabase...`);
-                        await supabase.from('fiscal_invoices').insert({
+                        console.log(`💾 [DB-SAVE] Tentando gravar nota ${externalId} para empresa ${currentEntity.id}`);
+                        const { data: dbData, error: dbError } = await supabase.from('fiscal_invoices').insert({
                             company_id: currentEntity.id,
                             external_id: externalId,
                             type: 'nfse',
                             status: 'processando',
                             payload: payload
-                        });
+                        }).select();
+
+                        if (dbError) {
+                            console.error('❌ [DB-SAVE] Erro retornado pelo Supabase:', {
+                                code: dbError.code,
+                                message: dbError.message,
+                                details: dbError.details,
+                                hint: dbError.hint
+                            });
+                        } else {
+                            console.log('✅ [DB-SAVE] Nota registrada com sucesso no banco:', dbData);
+                        }
                     } catch (dbErr) {
-                        console.error('❌ Erro ao gravar no histórico:', dbErr);
+                        console.error('❌ [DB-SAVE] Erro inesperado na gravação:', dbErr);
                     }
                 }
 
@@ -525,17 +536,26 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 
                 if (externalId && currentEntity.id) {
                     try {
-                        console.log(`💾 [409] Gravando nota existente ${externalId} no histórico...`);
-                        await supabase.from('fiscal_invoices').insert({
+                        console.log(`💾 [409-DB] Tentando gravar nota existente ${externalId} para empresa ${currentEntity.id}`);
+                        const { data: dbData, error: dbError } = await supabase.from('fiscal_invoices').insert({
                             company_id: currentEntity.id,
                             external_id: externalId,
                             type: type,
                             status: 'concluido',
                             payload: {} // Payload vazio pois já existe
-                        });
-                        console.log('✅ Nota existente registrada.');
+                        }).select();
+
+                        if (dbError) {
+                            console.error('❌ [409-DB] Erro ao registrar nota existente:', {
+                                code: dbError.code,
+                                message: dbError.message,
+                                details: dbError.details
+                            });
+                        } else {
+                            console.log('✅ [409-DB] Nota existente registrada no banco:', dbData);
+                        }
                     } catch (dbErr) {
-                        console.error('❌ Erro ao registrar nota existente:', dbErr);
+                        console.error('❌ [409-DB] Erro inesperado ao registrar nota existente:', dbErr);
                     }
                 }
             }
