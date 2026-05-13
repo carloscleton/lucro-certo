@@ -12,7 +12,8 @@ import {
     CreditCard,
     ArrowLeft,
     ArrowRight,
-    Award
+    Award,
+    Receipt
 } from 'lucide-react';
 
 // Import banner images
@@ -26,6 +27,7 @@ import bannerMulticompany from '../../assets/landing/landing_hero_multicompany.p
 import bannerLoyalty from '../../assets/landing/landing_hero_loyalty.png';
 import bannerMulticurrency from '../../assets/landing/landing_hero_multicurrency.png';
 import bannerMarketingCopilot from '../../assets/landing/landing_hero_marketing_copilot.png';
+import bannerFiscal from '../../assets/landing/landing_hero_fiscal_management.png';
 
 interface Banner {
     tag: string;
@@ -127,6 +129,17 @@ const banners: Banner[] = [
         points: ['Gestão Multi-Moedas', 'Taxas de Câmbio em Tempo Real', 'Relatórios Globais Consolidados'],
         image: bannerMulticurrency,
         accent: 'gold'
+    },
+    {
+        tag: 'GESTÃO FISCAL',
+        tagIcon: <Receipt size={16} />,
+        tagColor: 'rgba(16, 185, 129, 0.1)',
+        tagTextColor: '#10b981',
+        title: <>Emissão de <span className="text-gradient">Notas Fiscais</span> Simplificada</>,
+        description: 'Emita NF-e e NFS-e em segundos diretamente do seu faturamento. Tudo sincronizado com as prefeituras e SEFAZ.',
+        points: ['Emissão de NF-e e NFS-e', 'Histórico de PDF e XML', 'Sincronização Automática'],
+        image: bannerFiscal,
+        accent: 'emerald'
     },
     {
         tag: 'MARKETING COPILOT',

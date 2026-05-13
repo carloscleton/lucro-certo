@@ -23,6 +23,7 @@ import logoFull from '../assets/logo-full.png';
 import bannerMarketingCopilot from '../assets/landing/landing_hero_marketing_copilot.png';
 import bannerMulticurrency from '../assets/landing/landing_hero_multicurrency.png';
 import bannerLoyalty from '../assets/landing/landing_hero_loyalty.png';
+import bannerFiscal from '../assets/landing/landing_hero_fiscal_management.png';
 
 import { HeroCarousel } from '../components/landing/HeroCarousel';
 
@@ -388,7 +389,7 @@ export function LandingPage() {
                     </div>
                     <div className="visual-image-container">
                         <img
-                            src="/images/landing/fiscal-management.png"
+                            src={bannerFiscal}
                             alt="Gestão Fiscal Lucro Certo"
                             className="visual-image"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(14, 165, 233, 0.2)' }}
