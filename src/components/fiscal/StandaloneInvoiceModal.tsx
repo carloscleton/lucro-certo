@@ -401,7 +401,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 if (externalId) {
                     try {
                         console.log(`💾 [DB-SAVE] Tentando gravar nota ${externalId} para empresa ${currentEntity.id}`);
-                        const { data: dbData, error: dbError } = await supabase.from('fiscal_invoices').insert({
+                        const { error: dbError } = await supabase.from('fiscal_invoices').insert({
                             company_id: currentEntity.id,
                             external_id: externalId,
                             type: 'nfse',
@@ -511,8 +511,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         } catch (error: any) {
             console.error('❌ Erro na emissão:', error);
             const isAlreadyEmitted = error.response?.status === 409;
-            const session = await supabase.auth.getSession();
-            const token = session.data.session?.access_token;
+            await supabase.auth.getSession();
 
             // Se a nota já foi emitida, gravar no histórico para que apareça no grid
             if (isAlreadyEmitted) {
@@ -522,7 +521,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 if (externalId && currentEntity.id) {
                     try {
                         console.log(`💾 [409-DB] Tentando gravar nota existente ${externalId} para empresa ${currentEntity.id}`);
-                        const { data: dbData, error: dbError } = await supabase.from('fiscal_invoices').insert({
+                        const { error: dbError } = await supabase.from('fiscal_invoices').insert({
                             company_id: currentEntity.id,
                             external_id: externalId,
                             type: type,
