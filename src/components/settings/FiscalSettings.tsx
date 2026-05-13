@@ -354,6 +354,42 @@ export function FiscalSettings() {
         reader.readAsText(file);
     };
 
+    const handleGenerateExample = () => {
+        const mock = {
+            idIntegracao: `TEST_${Date.now()}`,
+            prestador: {
+                cpfCnpj: config.cnpj || "00.000.000/0001-00",
+                inscricaoMunicipal: config.inscricao_municipal || "123456"
+            },
+            tomador: {
+                cpfCnpj: "000.000.000-00",
+                razaoSocial: "Cliente de Teste LTDA",
+                email: "teste@exemplo.com",
+                endereco: {
+                    logradouro: "Rua de Teste",
+                    numero: "100",
+                    bairro: "Centro",
+                    codigoCidade: "4115200",
+                    descricaoCidade: "Maringá",
+                    uf: "PR",
+                    cep: "87000-000"
+                }
+            },
+            servico: [
+                {
+                    codigo: "01.01",
+                    codigoTributacao: "010100100",
+                    descricao: "Serviço de Teste via Laboratório JSON",
+                    valorUnitario: 100.00,
+                    quantidade: 1,
+                    valorTotal: 100.00
+                }
+            ],
+            valorTotal: 100.00
+        };
+        setTestJson(JSON.stringify(mock, null, 2));
+    };
+
     const handleSyncIssuer = async () => {
         if (!currentEntity.id || currentEntity.type === 'personal') {
             setResultModal({
@@ -1156,6 +1192,15 @@ export function FiscalSettings() {
                                         />
                                         
                                         <div className="flex justify-end gap-3">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-purple-600 hover:bg-purple-100"
+                                                onClick={handleGenerateExample}
+                                                disabled={testingJson}
+                                            >
+                                                Gerar Exemplo
+                                            </Button>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
