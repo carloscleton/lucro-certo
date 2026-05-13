@@ -798,7 +798,9 @@ export function Quotes() {
                         if (isNacional) {
                             // Para NFSe Nacional, codigoTributacao é obrigatório e deve ter exatamente 9 dígitos
                             const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
-                            payloadItem.codigoTributacao = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
+                            const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
+                            payloadItem.codigoTributacao = finalNatCode;
+                            payloadItem.codigotributacao = finalNatCode; // Suporte para o validador que exige minúsculo
                             payloadItem.naturezaOperacao = 1;
                         }
 
