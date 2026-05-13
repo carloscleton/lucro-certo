@@ -411,34 +411,22 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                         if (dbError) {
                             console.error('❌ [DB-SAVE] Erro retornado pelo Supabase:', dbError);
-                            window.alert(`Erro ao salvar no histórico: ${dbError.message}\nCódigo: ${dbError.code}`);
                         } else {
-                            console.log('✅ [DB-SAVE] Nota registrada com sucesso no banco:', dbData);
+                            console.log('✅ [DB-SAVE] Nota registrada com sucesso no banco.');
+                            // Fechar e atualizar imediatamente sem mostrar JSON
+                            onSuccess();
+                            onClose();
+                            return; 
                         }
                     } catch (dbErr: any) {
                         console.error('❌ [DB-SAVE] Erro inesperado na gravação:', dbErr);
-                        window.alert(`Erro inesperado ao salvar: ${dbErr.message}`);
                     }
                 }
 
-                // Envio de WhatsApp se habilitado
-                if (sendWhatsApp && contact.phone) {
-                    try {
-                        const instance = waInstances[0];
-                        if (instance) {
-                            const message = `Olá ${contact.name}! Sua Nota Fiscal de Serviço foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
-                            await whatsappService.sendMessage({
-                                instanceName: instance.name,
-                                number: contact.phone,
-                                text: message
-                            });
-                        }
-                    } catch (wsError) {
-                        console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
-                    }
-                }
-                
-                showSuccessMessage(result, token);
+                // Fallback caso não tenha gravado ou retornado ID
+                setLoading(false);
+                onSuccess();
+                onClose();
             } else {
                 payload = {
                     presenca: 1,
@@ -544,26 +532,26 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                         if (dbError) {
                             console.error('❌ [409-DB] Erro ao registrar nota existente:', dbError);
-                            window.alert(`Erro ao salvar histórico (409): ${dbError.message}\nCódigo: ${dbError.code}`);
                         } else {
-                            console.log('✅ [409-DB] Nota existente registrada no banco:', dbData);
+                            console.log('✅ [409-DB] Nota existente registrada no banco.');
+                            onSuccess();
+                            onClose();
+                            return;
                         }
                     } catch (dbErr: any) {
                         console.error('❌ [409-DB] Erro inesperado ao registrar nota existente:', dbErr);
-                        window.alert(`Erro inesperado ao salvar histórico: ${dbErr.message}`);
                     }
                 }
+                
+                // Se chegou aqui no 409, apenas fecha e atualiza
+                onSuccess();
+                onClose();
+                return;
             }
 
-            setResultModal({
-                isOpen: true,
-                title: isAlreadyEmitted ? 'Nota Já Emitida' : 'Erro na Emissão',
-                message: isAlreadyEmitted 
-                    ? 'Esta nota já foi processada e autorizada anteriormente pela TecnoSpeed.' 
-                    : (error.message || 'Erro interno ao tentar emitir a nota fiscal.'),
-                type: isAlreadyEmitted ? 'info' : 'error',
-                data: wrapFiscalLinks(error.response?.data, currentEntity.id!, token || undefined)
-            });
+            const detail = error.response?.data || error.message;
+            setError(error.message);
+            setErrorDetail(typeof detail === 'object' ? JSON.stringify(detail, null, 2) : detail);
         } finally {
             setLoading(false);
         }
