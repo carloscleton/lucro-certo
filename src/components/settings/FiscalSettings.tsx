@@ -380,7 +380,7 @@ export function FiscalSettings() {
                     codigo: "000101",
                     codigoTributacao: "101",
                     itemListaServico: "01.01",
-                    descricao: "Serviço de Teste via Laboratório JSON",
+                    discriminacao: "Serviço de Teste via Laboratório JSON",
                     valor: {
                         servico: 100.00
                     },
