@@ -74,19 +74,19 @@ export const APP_MODULES: ModuleDefinition[] = [
         defaultPermissions: { admin: true, member: true }
     },
     {
-        key: 'invoices',
-        label: 'Notas Fiscais',
-        icon: Receipt,
-        path: '/dashboard/invoices',
-        desc: 'Emissão e Histórico de NFe/NFSe',
-        defaultPermissions: { admin: true, member: true }
-    },
-    {
         key: 'payables',
         label: 'A Pagar',
         icon: ArrowDownCircle,
         path: '/dashboard/payables',
         desc: 'Contas e despesas',
+        defaultPermissions: { admin: true, member: true }
+    },
+    {
+        key: 'invoices',
+        label: 'Notas Fiscais',
+        icon: Receipt,
+        path: '/dashboard/invoices',
+        desc: 'Emissão e Histórico de NFe/NFSe',
         defaultPermissions: { admin: true, member: true }
     },
     {
