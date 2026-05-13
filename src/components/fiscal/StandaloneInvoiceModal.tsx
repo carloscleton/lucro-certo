@@ -263,14 +263,17 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         };
 
                         // Campos Avançados
-                        if (i.cnae) item.cnae = i.cnae.replace(/\D/g, '');
+                        if (i.cnae) {
+                            item.cnae = String(i.cnae).replace(/\D/g, '').substring(0, 7);
+                        }
                         
                         if (isNacional) {
-                            // Para NFSe Nacional, códigoTributacao deve ter 9 dígitos
-                            const natCode = (i.codigoTributacaoNacional || i.taxationCode || i.taxCode || '').replace(/\D/g, '').substring(0, 9);
-                            item.codigoTributacao = natCode;
+                            // Para NFSe Nacional, códigoTributacao deve ter exatamente 9 dígitos
+                            const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || i.taxCode || '';
+                            const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
+                            item.codigoTributacao = cleanNatCode.substring(0, 9);
                         } else if (i.taxationCode) {
-                            item.codigoTributacao = i.taxationCode;
+                            item.codigoTributacao = String(i.taxationCode).trim();
                         }
                         
                         if (i.issAliquota || i.issExigibilidade || i.issTipo) {
