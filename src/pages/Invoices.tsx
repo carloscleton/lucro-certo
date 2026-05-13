@@ -458,7 +458,7 @@ export function Invoices() {
                                                             <Trash2 size={16} />
                                                         </Button>
                                                     </>
-                                                )}                               )}
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
