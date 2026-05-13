@@ -250,6 +250,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         setError('');
         setErrorDetail('');
 
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) {
+            setError('Sessão expirada. Faça login novamente.');
+            setLoading(false);
+            return;
+        }
+
         if (!contactId || items.some(i => !i.description || !i.amount || !i.taxCode)) {
             setError('Preencha todos os campos obrigatórios de todos os itens.');
             return;
@@ -281,9 +289,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
         setLoading(true);
         try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
-            if (!token) throw new Error('Sessão expirada.');
-
             let payload: any;
             const totalAmount = items.reduce((acc, i) => acc + (parseFloat(i.amount.replace(/\./g, '').replace(',', '.')) * i.quantity), 0);
 
