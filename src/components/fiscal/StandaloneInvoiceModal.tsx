@@ -287,19 +287,25 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
                             
                             if (cleanNatCode) {
-                                item.codigoTributacao = cleanNatCode.substring(0, 9);
+                                item.codigoTributacao = cleanNatCode;
                             }
                             
                             const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '');
                             
-                            // Para o padrão nacional, o codigo municipal (6 dígitos) é o que importa no campo 'codigo'
-                            item.codigo = cleanMunCode.substring(0, 6);
+                            // Se for Padrão Nacional, o 'codigo' deve ter 6 dígitos
+                            // Se for Padrão Municipal, o 'itemListaServico' (formatado com ponto) é essencial
+                            if (isNacional) {
+                                item.codigo = cleanMunCode.substring(0, 6);
+                                // Fallback para cidades em transição: enviamos o itemListaServico formatado (ex: 01.07)
+                                if (cleanMunCode.length >= 4) {
+                                    item.itemListaServico = cleanMunCode.substring(0, 2) + '.' + cleanMunCode.substring(2, 4);
+                                }
+                            } else {
+                                item.codigo = i.taxCode;
+                                item.itemListaServico = i.taxCode.includes('.') ? i.taxCode : (cleanMunCode.substring(0, 2) + '.' + cleanMunCode.substring(2, 4));
+                            }
                             
-                            // Natureza da Operação (Nacional usa isso dentro do serviço às vezes)
                             item.naturezaOperacao = 1;
-
-                            // Removemos o itemListaServico no padrão nacional puro
-                            delete item.itemListaServico;
                         } else {
                             if (i.taxationCode) {
                                 item.codigoTributacao = String(i.taxationCode).trim();
