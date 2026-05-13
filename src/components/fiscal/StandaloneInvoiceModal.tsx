@@ -12,6 +12,7 @@ import { useCompanies } from '../../hooks/useCompanies';
 import { useServices } from '../../hooks/useServices';
 import { useProducts } from '../../hooks/useProducts';
 import { ResultModal } from '../ui/ResultModal';
+import { API_BASE_URL } from '../../lib/constants';
 
 interface StandaloneInvoiceModalProps {
     onClose: () => void;
@@ -181,17 +182,34 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 
                 return updated;
             }
-            return i;
-        }));
+    const wrapFiscalLinks = (data: any, companyId: string, sessionToken?: string) => {
+        if (!data || typeof data !== 'object') return data;
+        const newData = Array.isArray(data) ? [...data] : { ...data };
+        for (const key in newData) {
+            const value = newData[key];
+            if (typeof value === 'string' && value.includes('plugnotas.com.br')) {
+                const match = value.match(/\/(nfse|nfe|nfce)\/(pdf|xml)\/([a-f0-9]+)/i);
+                if (match) {
+                    const [_, type, format, id] = match;
+                    const base = API_BASE_URL.replace(/\/$/, '');
+                    const tokenPart = sessionToken ? `&token=${sessionToken}` : '';
+                    newData[key] = `${base}/fiscal-module/${type}/${id}/${format}?companyId=${companyId}${tokenPart}`;
+                }
+            } else if (typeof value === 'object') {
+                newData[key] = wrapFiscalLinks(value, companyId, sessionToken);
+            }
+        }
+        return newData;
     };
 
-    const showSuccessMessage = (result: any) => {
+    const showSuccessMessage = (result: any, token?: string) => {
         const invoiceId = result.id || result.protocolo || 'N/A';
         setResultModal({
             isOpen: true,
             title: 'Emissão Iniciada',
-            message: `A nota fiscal (ID: ${invoiceId}) foi enviada com sucesso e está sendo processada pela prefeitura. O PDF estará disponível em instantes na aba de histórico.`,
-            type: 'success'
+            message: `A nota fiscal (ID: ${invoiceId}) foi enviada com sucesso e está sendo processada pela prefeitura.`,
+            type: 'success',
+            data: wrapFiscalLinks(result, currentEntity.id!, token)
         });
     };
 
@@ -238,9 +256,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
             const totalAmount = items.reduce((acc, i) => acc + (parseFloat(i.amount.replace(/\./g, '').replace(',', '.')) * i.quantity), 0);
 
             if (type === 'nfse') {
+                const config = currentCompany.tecnospeed_config;
                 payload = {
+                    idIntegracao: `AVULSA_${Date.now()}`,
                     prestador: {
-                        cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || currentCompany.tecnospeed_config?.cnpj?.replace(/\D/g, '')
+                        cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
+                        inscricaoMunicipal: config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, '')
                     },
                     tomador: {
                         cpfCnpj: contact.tax_id.replace(/\D/g, ''),
@@ -371,7 +392,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                     }
                 }
                 
-                showSuccessMessage(result);
+                showSuccessMessage(result, token);
             } else {
                 payload = {
                     presenca: 1,
@@ -453,20 +474,21 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
             }
 
             onSuccess();
-        } catch (err: any) {
-            console.error('Erro ao emitir avulsa:', err);
-            
-            const apiError = err.response?.data;
-            const detailMessage = apiError?.detail?.message || apiError?.detail?.erros?.[0]?.message || (typeof apiError?.detail === 'string' ? apiError.detail : JSON.stringify(apiError?.detail));
-            
-            const errorMessage = typeof apiError?.error === 'string' 
-                ? apiError.error 
-                : (apiError?.error?.message || err.message || 'Erro ao emitir nota fiscal.');
+        } catch (error: any) {
+            console.error('❌ Erro na emissão:', error);
+            const isAlreadyEmitted = error.response?.status === 409;
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
 
-            setError(errorMessage);
-            if (detailMessage) {
-                setErrorDetail(detailMessage);
-            }
+            setResultModal({
+                isOpen: true,
+                title: isAlreadyEmitted ? 'Nota Já Emitida' : 'Erro na Emissão',
+                message: isAlreadyEmitted 
+                    ? 'Esta nota já foi processada e autorizada anteriormente pela TecnoSpeed.' 
+                    : (error.message || 'Erro interno ao tentar emitir a nota fiscal.'),
+                type: isAlreadyEmitted ? 'info' : 'error',
+                data: wrapFiscalLinks(error.response?.data, currentEntity.id!, token || undefined)
+            });
         } finally {
             setLoading(false);
         }
@@ -875,6 +897,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 title={resultModal.title}
                 message={resultModal.message}
                 type={resultModal.type}
+                data={resultModal.data}
             />
         </Modal>
     );
