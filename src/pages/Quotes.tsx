@@ -1298,7 +1298,7 @@ export function Quotes() {
                                             </div>
                                         </td>
                                         <td className="py-6 px-8 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            <div className="flex items-center justify-end gap-2 transition-opacity duration-300">
                                                 {/* Edit Button */}
                                                 {(quote.status === 'draft' || quote.status === 'sent') && (
                                                     <Tooltip content="Editar Proposta">
