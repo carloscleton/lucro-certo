@@ -317,8 +317,12 @@ export function FiscalSettings() {
         if (!testJson.trim()) return;
         setTestingJson(true);
         try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
             const payload = JSON.parse(testJson);
-            const response = await fiscalService.emitInvoice(currentEntity.id!, payload, 'nfse');
+            const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
             setResultModal({
                 isOpen: true,
                 title: 'Resultado do Teste',
@@ -1164,7 +1168,7 @@ export function FiscalSettings() {
                                                 size="sm"
                                                 className="bg-purple-600 hover:bg-purple-700 text-white"
                                                 onClick={handleTestJson}
-                                                loading={testingJson}
+                                                isLoading={testingJson}
                                                 disabled={!testJson || testingJson}
                                             >
                                                 <Send size={16} className="mr-2" />
