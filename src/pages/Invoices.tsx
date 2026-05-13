@@ -422,14 +422,13 @@ export function Invoices() {
                                                         >
                                                             <Eye size={18} />
                                                         </Button>
-                                                        
-                                                        <Button
+                                                                                <Button
                                                             variant="ghost"
                                                             onClick={() => setCancelModal({ isOpen: true, invoice })}
-                                                            className="h-9 w-9 p-0 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
-                                                            title="Cancelar Nota"
+                                                            className="h-9 w-9 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
+                                                            title="Cancelar na Prefeitura"
                                                         >
-                                                            <Trash2 size={16} />
+                                                            <XCircle size={16} />
                                                         </Button>
 
                                                         <Button
@@ -443,14 +442,23 @@ export function Invoices() {
 
                                                         <Button
                                                             variant="ghost"
-                                                            onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
-                                                            className="h-9 w-9 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
-                                                            title="Baixar XML"
+                                                            onClick={async () => {
+                                                                if (window.confirm('Tem certeza que deseja REMOVER esta nota do histórico? Esta ação apagará o registro do banco de dados.')) {
+                                                                    const { error } = await supabase.from('fiscal_invoices').delete().eq('id', invoice.id);
+                                                                    if (error) {
+                                                                        alert('Erro ao excluir: ' + error.message);
+                                                                    } else {
+                                                                        refresh();
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="h-9 w-9 p-0 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
+                                                            title="Excluir do Banco"
                                                         >
-                                                            <FileCode size={18} />
+                                                            <Trash2 size={16} />
                                                         </Button>
                                                     </>
-                                                )}
+                                                )}                               )}
                                             </div>
                                         </td>
                                     </tr>
