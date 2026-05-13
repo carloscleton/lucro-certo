@@ -292,7 +292,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             // Se tiver qualquer código (3, 9 ou outro), enviamos. 
                             // Isso permite que cidades antigas (como Maringá) funcionem mesmo com a flag Nacional ativa.
                             if (cleanNatCode) {
-                                item.codigoTributacao = cleanNatCode;
+                                // Se for o código NBS (9 dígitos), garantimos que tenha no máximo 9 para evitar erros de validação
+                                item.codigoTributacao = cleanNatCode.length >= 9 ? cleanNatCode.substring(0, 9) : cleanNatCode;
                             }
                             
                             // Removemos o itemListaServico no padrão nacional pois o codigoTributacao já cumpre esse papel
