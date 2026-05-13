@@ -32,6 +32,21 @@ export function useInvoices() {
 
         setIsLoading(true);
         try {
+            let filterId = currentEntity.id;
+            
+            // 🔍 Se o ID não parece um UUID (ex: é um CNPJ), tenta resolver o ID real
+            if (currentEntity.cnpj && (!filterId || filterId.length < 20)) {
+                const { data: compData } = await supabase
+                    .from('companies')
+                    .select('id')
+                    .eq('cnpj', currentEntity.cnpj)
+                    .maybeSingle();
+                
+                if (compData?.id) {
+                    filterId = compData.id;
+                }
+            }
+
             const { data, error } = await supabase
                 .from('fiscal_invoices')
                 .select(`
@@ -45,7 +60,7 @@ export function useInvoices() {
                         )
                     )
                 `)
-                .eq('company_id', currentEntity.id)
+                .eq('company_id', filterId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;

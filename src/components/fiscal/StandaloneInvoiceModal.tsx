@@ -400,9 +400,26 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 const externalId = result.data?.id || result.id;
                 if (externalId) {
                     try {
-                        console.log(`💾 [DB-SAVE] Tentando gravar nota ${externalId} para empresa ${currentEntity.id}`);
+                        console.log(`💾 [DB-SAVE] Resolvendo ID real para CNPJ: ${currentEntity.cnpj || currentEntity.id}`);
+                        
+                        // 🔍 Buscar o UUID real da empresa pelo CNPJ para garantir o vínculo
+                        let realCompanyId = currentEntity.id;
+                        if (currentEntity.cnpj) {
+                            const { data: compData } = await supabase
+                                .from('companies')
+                                .select('id')
+                                .eq('cnpj', currentEntity.cnpj)
+                                .maybeSingle();
+                            
+                            if (compData?.id) {
+                                realCompanyId = compData.id;
+                                console.log(`✅ [DB-SAVE] ID Resolvido: ${realCompanyId}`);
+                            }
+                        }
+
+                        console.log(`💾 [DB-SAVE] Tentando gravar nota ${externalId} para empresa ${realCompanyId}`);
                         const { error: dbError } = await supabase.from('fiscal_invoices').insert({
-                            company_id: currentEntity.id,
+                            company_id: realCompanyId,
                             external_id: externalId,
                             type: 'nfse',
                             status: 'processando',
@@ -520,9 +537,25 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 
                 if (externalId && currentEntity.id) {
                     try {
-                        console.log(`💾 [409-DB] Tentando gravar nota existente ${externalId} para empresa ${currentEntity.id}`);
+                        console.log(`💾 [409-DB] Resolvendo ID real para CNPJ: ${currentEntity.cnpj || currentEntity.id}`);
+                        
+                        let realCompanyId = currentEntity.id;
+                        if (currentEntity.cnpj) {
+                            const { data: compData } = await supabase
+                                .from('companies')
+                                .select('id')
+                                .eq('cnpj', currentEntity.cnpj)
+                                .maybeSingle();
+                            
+                            if (compData?.id) {
+                                realCompanyId = compData.id;
+                                console.log(`✅ [409-DB] ID Resolvido: ${realCompanyId}`);
+                            }
+                        }
+
+                        console.log(`💾 [409-DB] Tentando gravar nota existente ${externalId} para empresa ${realCompanyId}`);
                         const { error: dbError } = await supabase.from('fiscal_invoices').insert({
-                            company_id: currentEntity.id,
+                            company_id: realCompanyId,
                             external_id: externalId,
                             type: type,
                             status: 'concluido',
