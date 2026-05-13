@@ -14,6 +14,7 @@ export function Invoices() {
     const { currentEntity } = useEntity();
     const [showNewModal, setShowNewModal] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
+    // Versão do Componente: v1.0.21 - Forçando deploy e refresh
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info'}>({
         isOpen: false, title: '', message: '', type: 'success'
     });
