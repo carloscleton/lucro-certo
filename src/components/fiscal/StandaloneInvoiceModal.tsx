@@ -288,7 +288,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             
                             const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || '';
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
-                            if (cleanNatCode.length === 9) {
+                            
+                            // Se tiver qualquer código (3, 9 ou outro), enviamos. 
+                            // Isso permite que cidades antigas (como Maringá) funcionem mesmo com a flag Nacional ativa.
+                            if (cleanNatCode) {
                                 item.codigoTributacao = cleanNatCode;
                             }
                             
