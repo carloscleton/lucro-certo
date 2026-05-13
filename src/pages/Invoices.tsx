@@ -343,14 +343,15 @@ export function Invoices() {
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">
+                                        <td className="py-3 px-6">
                                             <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 text-[10px] font-bold rounded-lg border border-gray-200 dark:border-slate-700">
                                                 {invoice.type}
                                             </span>
                                         </td>
-                                        <td className="py-4 px-6">
+                                        <td className="py-3 px-6">
                                             {invoice.quote ? (
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-gray-900 dark:text-gray-100">
+                                                    <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                         {invoice.quote.contact?.name || 'Cliente'}
                                                     </span>
                                                     <span className="text-[10px] text-blue-600 font-bold flex items-center gap-1 mt-0.5">
@@ -360,14 +361,14 @@ export function Invoices() {
                                                 </div>
                                             ) : (
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-gray-900 dark:text-gray-100">
+                                                    <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                         {invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || 'Avulsa'}
                                                     </span>
                                                     <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider">Emissão Direta</span>
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="py-4 px-6">
+                                        <td className="py-3 px-6">
                                             <div className="flex items-center gap-2">
                                                 {getStatusBadge(invoice.status)}
                                                 {invoice.error_message && (
@@ -377,16 +378,16 @@ export function Invoices() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6 text-right">
+                                        <td className="py-3 px-6 text-right">
                                             <div className="flex justify-end items-center gap-2">
                                                 {/* Duplicar / Editar */}
                                                 <Button
                                                     variant="ghost"
                                                     onClick={() => handleDuplicateInvoice(invoice)}
-                                                    className="h-9 w-9 p-0 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 transition-all"
+                                                    className="h-8 w-8 p-0 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-100 transition-all"
                                                     title="Duplicar / Corrigir"
                                                 >
-                                                    <Copy size={16} />
+                                                    <Copy size={14} />
                                                 </Button>
 
                                                 {invoice.external_id && (invoice.status === 'processando' || invoice.status === 'em_processamento') && (
@@ -394,10 +395,10 @@ export function Invoices() {
                                                         variant="ghost"
                                                         onClick={() => handleRefreshStatus(invoice)}
                                                         disabled={isRefreshing === invoice.id}
-                                                        className="h-9 w-9 p-0 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
+                                                        className="h-8 w-8 p-0 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
                                                         title="Sincronizar Status"
                                                     >
-                                                        <RefreshCw size={16} className={isRefreshing === invoice.id ? 'animate-spin' : ''} />
+                                                        <RefreshCw size={14} className={isRefreshing === invoice.id ? 'animate-spin' : ''} />
                                                     </Button>
                                                 )}
 
@@ -407,44 +408,47 @@ export function Invoices() {
                                                             <Button
                                                                 variant="ghost"
                                                                 onClick={() => window.open(invoice.pdf_url, '_blank')}
-                                                                className="h-9 w-9 p-0 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 transition-all shadow-sm shadow-indigo-500/10"
+                                                                className="h-8 w-8 p-0 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 transition-all shadow-sm shadow-indigo-500/10"
                                                                 title="Ver Link Externo"
                                                             >
-                                                                <ExternalLink size={16} />
+                                                                <ExternalLink size={14} />
                                                             </Button>
                                                         )}
 
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id)}
-                                                            className="h-9 w-9 p-0 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
+                                                            className="h-8 w-8 p-0 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
                                                             title="Visualizar PDF"
                                                         >
-                                                            <Eye size={18} />
+                                                            <Eye size={14} />
                                                         </Button>
-                                                                                <Button
+
+                                                        <Button
                                                             variant="ghost"
                                                             onClick={() => setCancelModal({ isOpen: true, invoice })}
-                                                            className="h-9 w-9 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
+                                                            className="h-8 w-8 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
                                                             title="Cancelar na Prefeitura"
                                                         >
-                                                            <XCircle size={16} />
+                                                            <XCircle size={14} />
                                                         </Button>
 
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => handleDownloadPDF(invoice.external_id!, invoice.company_id)}
-                                                            className="h-9 w-9 p-0 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 transition-all shadow-sm shadow-emerald-500/10"
+                                                            className="h-8 w-8 p-0 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 transition-all shadow-sm shadow-emerald-500/10"
                                                             title="Baixar PDF"
                                                         >
-                                                            <Download size={18} />
-                                                                                          <Button
+                                                            <Download size={14} />
+                                                        </Button>
+
+                                                        <Button
                                                             variant="ghost"
                                                             onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
-                                                            className="h-9 w-9 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
+                                                            className="h-8 w-8 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
                                                             title="Baixar XML"
                                                         >
-                                                            <FileCode size={18} />
+                                                            <FileCode size={14} />
                                                         </Button>
 
                                                         <Button
@@ -459,11 +463,11 @@ export function Invoices() {
                                                                     }
                                                                 }
                                                             }}
-                                                            className="h-9 w-9 p-0 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
+                                                            className="h-8 w-8 p-0 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
                                                             title="Excluir do Banco"
                                                         >
-                                                            <Trash2 size={16} />
-                                                        </Button>                            </Button>
+                                                            <Trash2 size={14} />
+                                                        </Button>
                                                     </>
                                                 )}
                                             </div>

@@ -1304,9 +1304,9 @@ export function Quotes() {
                                                     <Tooltip content="Editar Proposta">
                                                         <button
                                                             onClick={() => navigate(`/dashboard/quotes/${quote.id}/edit`)}
-                                                            className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-blue-600 rounded-xl transition-all shadow-sm"
+                                                            className="p-1.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-blue-600 rounded-lg transition-all shadow-sm"
                                                         >
-                                                            <Edit size={16} />
+                                                            <Edit size={14} />
                                                         </button>
                                                     </Tooltip>
                                                 )}
@@ -1325,13 +1325,13 @@ export function Quotes() {
                                                                 }
                                                                 processSendProposal(quote);
                                                             }}
-                                                            className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl hover:bg-blue-100 transition-all shadow-sm disabled:opacity-50"
+                                                            className="p-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg hover:bg-blue-100 transition-all shadow-sm disabled:opacity-50"
                                                             disabled={sendingProposal === quote.id}
                                                         >
                                                             {sendingProposal === quote.id ? (
-                                                                <Loader2 size={16} className="animate-spin" />
+                                                                <Loader2 size={14} className="animate-spin" />
                                                             ) : (
-                                                                <Send size={16} />
+                                                                <Send size={14} />
                                                             )}
                                                         </button>
                                                     </Tooltip>
@@ -1343,7 +1343,7 @@ export function Quotes() {
                                                         <Tooltip content={quote.nfe_id ? `NF: ${quote.nfe_status || 'Pendente'}` : "Emitir NF-e"}>
                                                             <button
                                                                 onClick={() => quote.nfe_id ? handleCheckFiscalStatus(quote) : handleEmitFiscal(quote)}
-                                                                className={`p-2.5 rounded-xl transition-all shadow-sm ${quote.nfe_id
+                                                                className={`p-1.5 rounded-lg transition-all shadow-sm ${quote.nfe_id
                                                                     ? (quote.nfe_status === 'concluido' || quote.nfe_status === 'autorizado'
                                                                         ? 'bg-emerald-50 text-emerald-600'
                                                                         : 'bg-amber-50 text-amber-600')
@@ -1352,9 +1352,9 @@ export function Quotes() {
                                                                 disabled={isEmittingFiscal === quote.id}
                                                             >
                                                                 {isEmittingFiscal === quote.id ? (
-                                                                    <Loader2 size={16} className="animate-spin" />
+                                                                    <Loader2 size={14} className="animate-spin" />
                                                                 ) : (
-                                                                    <FileText size={16} />
+                                                                    <FileText size={14} />
                                                                 )}
                                                             </button>
                                                         </Tooltip>
