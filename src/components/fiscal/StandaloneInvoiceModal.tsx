@@ -396,6 +396,23 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
                 
+                // Gravar no banco de dados local via Frontend para garantir o histórico
+                const externalId = result.data?.id || result.id;
+                if (externalId) {
+                    try {
+                        console.log(`💾 Gravando nota ${externalId} no Supabase...`);
+                        await supabase.from('fiscal_invoices').insert({
+                            company_id: currentEntity.id,
+                            external_id: externalId,
+                            type: 'nfse',
+                            status: 'processando',
+                            payload: payload
+                        });
+                    } catch (dbErr) {
+                        console.error('❌ Erro ao gravar no histórico:', dbErr);
+                    }
+                }
+
                 // Envio de WhatsApp se habilitado
                 if (sendWhatsApp && contact.phone) {
                     try {
