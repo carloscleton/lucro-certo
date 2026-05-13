@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -34,6 +34,45 @@ export function Invoices() {
                 isOpen: true,
                 title: 'Erro no Download',
                 message: 'Não foi possível baixar o PDF desta nota fiscal. Tente novamente mais tarde.',
+                type: 'error'
+            });
+        }
+    };
+
+    const handleViewPDF = async (externalId: string, companyId: string) => {
+        try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            if (!token) return;
+            const blob = await fiscalService.downloadPDF(externalId, companyId, token);
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error: any) {
+            console.error('Error viewing PDF:', error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Visualização',
+                message: 'Não foi possível carregar o PDF desta nota fiscal.',
+                type: 'error'
+            });
+        }
+    };
+
+    const handleDownloadXML = async (externalId: string, companyId: string) => {
+        try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            if (!token) return;
+            const blob = await fiscalService.downloadXML(externalId, companyId, token);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nota_${externalId}.xml`;
+            a.click();
+        } catch (error: any) {
+            console.error('Error downloading XML:', error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro no Download',
+                message: 'Não foi possível baixar o XML desta nota fiscal. Tente novamente mais tarde.',
                 type: 'error'
             });
         }
@@ -135,6 +174,54 @@ export function Invoices() {
                 </div>
             </div>
 
+            {/* Stats */}
+            {!isLoading && invoices.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+                            <CheckCircle2 size={24} />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Autorizadas</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                {invoices.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
+                            <Clock3 size={24} />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Processando</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                {invoices.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
+                            <XCircle size={24} />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Rejeitadas</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                {invoices.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase())).length}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                            <Receipt size={24} />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Geral</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">{invoices.length}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* List */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden">
                 <div className="overflow-x-auto">
@@ -233,16 +320,33 @@ export function Invoices() {
                                                         <RefreshCw size={16} className={isRefreshing === invoice.id ? 'animate-spin' : ''} />
                                                     </Button>
                                                 )}
-                                                
-                                                {invoice.external_id && (invoice.status === 'concluido' || invoice.status === 'autorizado') && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        onClick={() => handleDownloadPDF(invoice.external_id!, invoice.company_id)}
-                                                        className="h-9 w-9 p-0 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 transition-all shadow-sm shadow-emerald-500/10"
-                                                        title="Baixar PDF"
-                                                    >
-                                                        <Download size={18} />
-                                                    </Button>
+                                                                                                {invoice.external_id && (invoice.status === 'concluido' || invoice.status === 'autorizado') && (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id)}
+                                                            className="h-9 w-9 p-0 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
+                                                            title="Visualizar PDF"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => handleDownloadPDF(invoice.external_id!, invoice.company_id)}
+                                                            className="h-9 w-9 p-0 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 transition-all shadow-sm shadow-emerald-500/10"
+                                                            title="Baixar PDF"
+                                                        >
+                                                            <Download size={18} />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
+                                                            className="h-9 w-9 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
+                                                            title="Baixar XML"
+                                                        >
+                                                            <FileCode size={18} />
+                                                        </Button>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>
