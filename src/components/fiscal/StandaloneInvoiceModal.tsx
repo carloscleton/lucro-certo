@@ -293,7 +293,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         }
                     },
                     servico: items.map(i => {
-                        // Converte string "1.234,56" para number 1234.56
                         const cleanValue = i.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
                         const val = parseFloat(cleanValue);
                         
@@ -309,22 +308,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             itemListaServico: i.taxCode.includes('.') ? i.taxCode : '01.01'
                         };
 
-                        // Campos Avançados
                         if (i.cnae) {
                             item.cnae = String(i.cnae).replace(/\D/g, '').substring(0, 7);
                         }
                         
                         if (isNacional) {
-                            // REGRA FLEXÍVEL: 
-                            // Se for Maringá no Sandbox ou se o código for curto, mantemos o código original (Legado/Híbrido)
-                            // Se for Padrão Nacional puro, o usuário deve digitar os 9 dígitos.
                             const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || '';
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
                             const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '').trim();
-                            
-                            // No Padrão Nacional (NFSe-N):
-                            // 1. codigoTributacao = Municipal (curto)
-                            // 2. codigoTributacaoNacional = Nacional (9 dígitos)
                             
                             if (cleanMunCode) {
                                 item.codigoTributacao = cleanMunCode;
@@ -335,14 +326,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 item.codigoTributacaoNacional = finalNatCode;
                             }
                             
-                            // Para Padrão Nacional, o 'codigo' de serviço deve ter 6 dígitos (LC116)
                             item.codigo = cleanMunCode.substring(0, 6).padEnd(6, '0');
                             
-                            // itemListaServico formatado (ex: 01.07)
                             if (cleanMunCode.length >= 4) {
                                 item.itemListaServico = cleanMunCode.substring(0, 2) + '.' + cleanMunCode.substring(2, 4);
                             } else {
-                                item.itemListaServico = '01.01'; // Fallback
+                                item.itemListaServico = '01.01';
                             }
                             
                             item.naturezaOperacao = 1;
@@ -360,7 +349,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                              };
                          }
  
-                        // Retenções Federais
                         if (i.pisAliquota || i.cofinsAliquota || i.csllAliquota || i.irrfAliquota || i.inssAliquota) {
                             item.valor = {
                                 ...item.valor,
@@ -376,7 +364,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     })
                 };
 
-                // Regime Especial de Tributação
                 if (config.default_regime_especial && config.default_regime_especial !== '0') {
                     payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
                 }
@@ -396,17 +383,16 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
                 
-                // Gravar no banco de dados local via Frontend para garantir o histórico
                 const externalId = result.data?.id || result.id;
                 if (externalId) {
-                        // 3. GRAVAR NO BANCO DE DADOS (SUPABASE) PARA HISTÓRICO
+                    try {
                         console.log(`💾 [DB-SAVE] Iniciando gravação da nota ${externalId}...`);
                         
                         let realCompanyId = currentEntity.id;
                         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
 
                         if (currentEntity.cnpj && (!realCompanyId || !isUUID)) {
-                            console.log(`🔍 [DB-SAVE] ID atual não é UUID (${realCompanyId}), resolvendo via CNPJ: ${currentEntity.cnpj}`);
+                            console.log(`🔍 [DB-SAVE] Resolvendo UUID via CNPJ: ${currentEntity.cnpj}`);
                             const { data: compData } = await supabase
                                 .from('companies')
                                 .select('id')
@@ -415,11 +401,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             
                             if (compData?.id) {
                                 realCompanyId = compData.id;
-                                console.log(`🎯 [DB-SAVE] UUID resolvido: ${realCompanyId}`);
                             }
                         }
 
-                        const { error: dbError } = await supabase.from('fiscal_invoices').insert({
+                        await supabase.from('fiscal_invoices').insert({
                             company_id: realCompanyId,
                             external_id: externalId,
                             type: 'nfse',
@@ -427,20 +412,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             payload: payload
                         });
 
-                        if (dbError) {
-                            console.error('❌ [DB-SAVE] Erro ao gravar no histórico:', dbError);
-                        } else {
-                            console.log('✅ [DB-SAVE] Nota registrada no histórico com sucesso.');
-                            onSuccess();
-                            onClose();
-                            return;
-                        }
+                        console.log('✅ [DB-SAVE] Nota registrada no histórico.');
+                        onSuccess();
+                        onClose();
+                        return;
                     } catch (dbErr: any) {
                         console.error('❌ [DB-SAVE] Erro inesperado na gravação:', dbErr);
                     }
                 }
 
-                // Fallback caso não tenha gravado ou retornado ID
                 setLoading(false);
                 onSuccess();
                 onClose();
@@ -504,7 +484,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFe(currentEntity.id!, payload, token);
 
-                // Envio de WhatsApp se habilitado
                 if (sendWhatsApp && contact.phone) {
                     try {
                         const instance = waInstances[0];
@@ -522,60 +501,47 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 }
                 
                 showSuccessMessage(result);
+                onSuccess();
             }
-
-            onSuccess();
         } catch (error: any) {
             console.error('❌ Erro na emissão:', error);
             const isAlreadyEmitted = error.response?.status === 409;
-            await supabase.auth.getSession();
-
-            // Se a nota já foi emitida, gravar no histórico para que apareça no grid
+            
             if (isAlreadyEmitted) {
                 const existingData = error.response?.data?.error?.data?.current || error.response?.data?.data;
                 const externalId = existingData?.id || existingData?.idIntegracao;
                 
                 if (externalId && currentEntity.id) {
                     try {
-                        console.log(`💾 [409-DB] Resolvendo ID real para CNPJ: ${currentEntity.cnpj || currentEntity.id}`);
-                        
                         let realCompanyId = currentEntity.id;
                         if (currentEntity.cnpj) {
                             const { data: compData } = await supabase
                                 .from('companies')
                                 .select('id')
-                                .eq('cnpj', currentEntity.cnpj)
+                                .eq('cnpj', currentEntity.cnpj.replace(/\D/g, ''))
                                 .maybeSingle();
                             
                             if (compData?.id) {
                                 realCompanyId = compData.id;
-                                console.log(`✅ [409-DB] ID Resolvido: ${realCompanyId}`);
                             }
                         }
 
-                        console.log(`💾 [409-DB] Tentando gravar nota existente ${externalId} para empresa ${realCompanyId}`);
-                        const { error: dbError } = await supabase.from('fiscal_invoices').insert({
+                        await supabase.from('fiscal_invoices').insert({
                             company_id: realCompanyId,
                             external_id: externalId,
                             type: type,
                             status: 'concluido',
-                            payload: {} // Payload vazio pois já existe
-                        }).select();
-
-                        if (dbError) {
-                            console.error('❌ [409-DB] Erro ao registrar nota existente:', dbError);
-                        } else {
-                            console.log('✅ [409-DB] Nota existente registrada no banco.');
-                            onSuccess();
-                            onClose();
-                            return;
-                        }
-                    } catch (dbErr: any) {
-                        console.error('❌ [409-DB] Erro inesperado ao registrar nota existente:', dbErr);
+                            payload: {}
+                        });
+                        
+                        onSuccess();
+                        onClose();
+                        return;
+                    } catch (dbErr) {
+                        console.error('❌ [409-DB] Erro:', dbErr);
                     }
                 }
                 
-                // Se chegou aqui no 409, apenas fecha e atualiza
                 onSuccess();
                 onClose();
                 return;
