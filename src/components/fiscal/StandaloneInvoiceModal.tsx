@@ -518,6 +518,28 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
 
+            // Se a nota já foi emitida, gravar no histórico para que apareça no grid
+            if (isAlreadyEmitted) {
+                const existingData = error.response?.data?.error?.data?.current || error.response?.data?.data;
+                const externalId = existingData?.id || existingData?.idIntegracao;
+                
+                if (externalId && currentEntity.id) {
+                    try {
+                        console.log(`💾 [409] Gravando nota existente ${externalId} no histórico...`);
+                        await supabase.from('fiscal_invoices').insert({
+                            company_id: currentEntity.id,
+                            external_id: externalId,
+                            type: type,
+                            status: 'concluido',
+                            payload: {} // Payload vazio pois já existe
+                        });
+                        console.log('✅ Nota existente registrada.');
+                    } catch (dbErr) {
+                        console.error('❌ Erro ao registrar nota existente:', dbErr);
+                    }
+                }
+            }
+
             setResultModal({
                 isOpen: true,
                 title: isAlreadyEmitted ? 'Nota Já Emitida' : 'Erro na Emissão',
