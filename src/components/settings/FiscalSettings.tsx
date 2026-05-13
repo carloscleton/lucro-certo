@@ -377,15 +377,16 @@ export function FiscalSettings() {
             },
             servico: [
                 {
-                    codigo: "01.01",
-                    codigoTributacao: "010100100",
+                    codigo: "010701",
+                    codigoTributacao: "010700100",
+                    itemListaServico: "01.07",
                     descricao: "Serviço de Teste via Laboratório JSON",
-                    valorUnitario: 100.00,
-                    quantidade: 1,
-                    valorTotal: 100.00
+                    valor: {
+                        servico: 100.00
+                    },
+                    quantidade: 1
                 }
-            ],
-            valorTotal: 100.00
+            ]
         };
         setTestJson(JSON.stringify(mock, null, 2));
     };

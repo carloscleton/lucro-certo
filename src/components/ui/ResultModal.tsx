@@ -50,7 +50,9 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                 {Object.entries(data).map(([key, value]) => (
                                     <div key={key} className="flex flex-col gap-1">
                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{key}</span>
-                                        <span className="text-sm font-medium text-gray-900 dark:text-white break-all">{String(value)}</span>
+                                        <span className="text-sm font-medium text-gray-900 dark:text-white break-all">
+                                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
