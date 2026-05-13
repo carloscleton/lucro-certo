@@ -296,7 +296,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         
                         const item: any = {
                             codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
-                            descricao: i.description,
+                            discriminacao: i.description,
                             valor: {
                                 servico: isNaN(val) ? 0 : val,
                                 descontoCondicionado: 0,
@@ -312,16 +312,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         }
                         
                         if (isNacional) {
-                            // REGRA DEFINITIVA PARA PADRÃO NACIONAL (PlugNotas/Nacional):
-                            // 1. codigo = Código Municipal LC116 (geralmente 6 dígitos)
-                            // 2. codigoTributacao = Código Nacional NBS (exatamente 9 dígitos)
-                            
+                            // REGRA FLEXÍVEL: 
+                            // Se for Maringá no Sandbox ou se o código for curto, mantemos o código original (Legado/Híbrido)
+                            // Se for Padrão Nacional puro, o usuário deve digitar os 9 dígitos.
                             const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || '';
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
                             
                             if (cleanNatCode) {
-                                const finalNatCode = cleanNatCode.substring(0, 9).padEnd(9, '0');
-                                item.codigoTributacao = finalNatCode;
+                                // Não forçamos mais padEnd(9, '0') se o código já parece ser municipal (3-4 dígitos)
+                                item.codigoTributacao = cleanNatCode;
                             }
                             
                             const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '');
