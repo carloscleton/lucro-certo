@@ -283,20 +283,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                             // 2. codigoTributacao = 9 dígitos (Nacional/NBS)
                             // 3. itemListaServico deve ser omitido para não conflitar
                             
-                            const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '');
-                            item.codigo = cleanMunCode.substring(0, 6);
-                            
                             const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || '';
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
                             
-                            // Se tiver qualquer código (3, 9 ou outro), enviamos. 
-                            // Isso permite que cidades antigas (como Maringá) funcionem mesmo com a flag Nacional ativa.
                             if (cleanNatCode) {
-                                // Se for o código NBS (9 dígitos), garantimos que tenha no máximo 9 para evitar erros de validação
-                                item.codigoTributacao = cleanNatCode.length >= 9 ? cleanNatCode.substring(0, 9) : cleanNatCode;
+                                item.codigoTributacao = cleanNatCode.substring(0, 9);
                             }
                             
-                            // Removemos o itemListaServico no padrão nacional pois o codigoTributacao já cumpre esse papel
+                            // Para o padrão nacional, o codigo municipal (6 dígitos) é o que importa no campo 'codigo'
+                            item.codigo = cleanMunCode.substring(0, 6);
+                            
+                            // Natureza da Operação (Nacional usa isso dentro do serviço às vezes)
+                            item.naturezaOperacao = 1;
+
+                            // Removemos o itemListaServico no padrão nacional puro
                             delete item.itemListaServico;
                         } else {
                             if (i.taxationCode) {
