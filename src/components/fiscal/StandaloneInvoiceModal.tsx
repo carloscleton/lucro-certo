@@ -909,7 +909,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                 onClose={() => {
                     setResultModal(prev => ({ ...prev, isOpen: false }));
                     if (resultModal.type === 'success') {
-                        onClose();
+                        onSuccess();
                     }
                 }}
                 title={resultModal.title}
