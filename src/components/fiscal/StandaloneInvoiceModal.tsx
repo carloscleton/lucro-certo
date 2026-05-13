@@ -210,7 +210,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
 
         if (type === 'nfse' && isNacional) {
             const invalidItem = items.find(i => {
-                const code = i.taxationCode || i.taxCode;
+                const code = i.codigoTributacaoNacional || i.taxationCode || i.taxCode;
                 return !code || code.replace(/\D/g, '').length !== 9;
             });
             if (invalidItem) {
