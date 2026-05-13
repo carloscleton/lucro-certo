@@ -45,14 +45,23 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{message}</p>
 
                     {data && Object.keys(data).length > 0 && (
-                        <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-6 text-left border border-gray-100 dark:border-slate-800">
+                        <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-6 text-left border border-gray-100 dark:border-slate-800 max-h-60 overflow-y-auto">
                             <div className="space-y-3">
                                 {Object.entries(data).map(([key, value]) => (
                                     <div key={key} className="flex flex-col gap-1">
                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{key}</span>
-                                        <span className="text-sm font-medium text-gray-900 dark:text-white break-all">
-                                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                                        </span>
+                                        <div className="text-sm font-medium text-gray-900 dark:text-white break-all">
+                                            {typeof value === 'object' ? (
+                                                <pre className="whitespace-pre-wrap font-mono text-[11px] bg-white/50 dark:bg-black/20 p-2 rounded">
+                                                    {JSON.stringify(value, null, 2)}
+                                                </pre>
+                                            ) : String(value).startsWith('http') ? (
+                                                <a href={String(value)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                                                    {String(value)}
+                                                    <ChevronRight size={14} />
+                                                </a>
+                                            ) : String(value)}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -60,6 +69,44 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                     )}
 
                     <div className="flex flex-col gap-2">
+                        {/* Atalhos para PDF/XML se encontrados no objeto data (recursivo simples) */}
+                        {(() => {
+                            const findValue = (obj: any, key: string): string | null => {
+                                if (!obj || typeof obj !== 'object') return null;
+                                if (obj[key] && typeof obj[key] === 'string') return obj[key];
+                                for (const k in obj) {
+                                    const found = findValue(obj[k], key);
+                                    if (found) return found;
+                                }
+                                return null;
+                            };
+
+                            const pdfUrl = findValue(data, 'pdf');
+                            const xmlUrl = findValue(data, 'xml');
+
+                            return (
+                                <>
+                                    {pdfUrl && (
+                                        <Button 
+                                            onClick={() => window.open(pdfUrl, '_blank')} 
+                                            className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
+                                        >
+                                            Visualizar PDF da Nota
+                                        </Button>
+                                    )}
+                                    {xmlUrl && (
+                                        <Button 
+                                            variant="outline"
+                                            onClick={() => window.open(xmlUrl, '_blank')} 
+                                            className="w-full h-12 rounded-xl text-sm font-bold border-gray-200 dark:border-slate-700"
+                                        >
+                                            Baixar XML
+                                        </Button>
+                                    )}
+                                </>
+                            );
+                        })()}
+
                         {action && (
                             <Button onClick={action.onClick} className="w-full h-12 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20">
                                 {action.label}
