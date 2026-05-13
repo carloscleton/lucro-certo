@@ -22,7 +22,7 @@ export function Tooltip({ content, children, position = 'top' }: TooltipProps) {
     };
 
     return (
-        <div className="relative inline-flex items-center justify-center group hover:z-[100]">
+        <div className="relative inline-flex items-center justify-center group/tooltip hover:z-[100]">
             {children}
             <div className={`
                 absolute ${positionClasses[position]}
@@ -31,7 +31,7 @@ export function Tooltip({ content, children, position = 'top' }: TooltipProps) {
                 text-white text-xs font-medium 
                 rounded-lg shadow-lg
                 opacity-0 invisible
-                group-hover:opacity-100 group-hover:visible
+                group-hover/tooltip:opacity-100 group-hover/tooltip:visible
                 transition-all duration-200 ease-in-out
                 whitespace-nowrap
                 z-50
