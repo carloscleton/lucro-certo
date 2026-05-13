@@ -278,37 +278,33 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
                         }
                         
                         if (isNacional) {
-                            // REGRA DEFINITIVA PARA PADRÃO NACIONAL:
-                            // 1. codigo = 6 dígitos (Municipal/LC116)
-                            // 2. codigoTributacao = 9 dígitos (Nacional/NBS)
-                            // 3. itemListaServico deve ser omitido para não conflitar
+                            // REGRA DEFINITIVA PARA PADRÃO NACIONAL (PlugNotas/Nacional):
+                            // 1. codigo = Código Municipal LC116 (geralmente 6 dígitos)
+                            // 2. codigoTributacao = Código Nacional NBS (exatamente 9 dígitos)
                             
                             const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || '';
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
                             
                             if (cleanNatCode) {
-                                item.codigoTributacao = cleanNatCode;
+                                item.codigoTributacao = cleanNatCode.substring(0, 9);
                             }
                             
                             const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '');
                             
-                            // Se for Padrão Nacional, o 'codigo' deve ter 6 dígitos
-                            // Se for Padrão Municipal, o 'itemListaServico' (formatado com ponto) é essencial
-                            if (isNacional) {
-                                item.codigo = cleanMunCode.substring(0, 6);
-                                // Fallback para cidades em transição: enviamos o itemListaServico formatado (ex: 01.07)
-                                if (cleanMunCode.length >= 4) {
-                                    item.itemListaServico = cleanMunCode.substring(0, 2) + '.' + cleanMunCode.substring(2, 4);
-                                }
+                            // Para Padrão Nacional, o 'codigo' deve ter 6 dígitos
+                            item.codigo = cleanMunCode.substring(0, 6).padEnd(6, '0');
+                            
+                            // itemListaServico formatado (ex: 01.07)
+                            if (cleanMunCode.length >= 4) {
+                                item.itemListaServico = cleanMunCode.substring(0, 2) + '.' + cleanMunCode.substring(2, 4);
                             } else {
-                                item.codigo = i.taxCode;
-                                item.itemListaServico = i.taxCode.includes('.') ? i.taxCode : (cleanMunCode.substring(0, 2) + '.' + cleanMunCode.substring(2, 4));
+                                item.itemListaServico = '01.01'; // Fallback
                             }
                             
                             item.naturezaOperacao = 1;
                         } else {
                             if (i.taxationCode) {
-                                item.codigoTributacao = String(i.taxationCode).trim();
+                                item.codigoTributacao = String(i.taxationCode).replace(/\s/g, '');
                             }
                         }
                         

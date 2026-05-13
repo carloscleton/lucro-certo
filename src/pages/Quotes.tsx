@@ -786,19 +786,20 @@ export function Quotes() {
                     },
                     servico: fullQuote.items.map((item: any) => {
                         const payloadItem: any = {
-                            codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, ''),
+                            codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                             descricao: item.description,
                             valor: {
                                 servico: item.unit_price
                             },
                             quantidade: item.quantity,
-                            itemListaServico: item.item_lista_servico || '01.01'
+                            itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, '')
                         };
 
                         if (isNacional) {
-                            // Para NFSe Nacional, codigoTributacao é obrigatório e deve ter 9 dígitos
+                            // Para NFSe Nacional, codigoTributacao é obrigatório e deve ter exatamente 9 dígitos
                             const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
-                            payloadItem.codigoTributacao = rawTaxCode.replace(/\D/g, '').substring(0, 9);
+                            payloadItem.codigoTributacao = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
+                            payloadItem.naturezaOperacao = 1;
                         }
 
                         return payloadItem;
