@@ -19,6 +19,7 @@ export function FiscalSettings() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [certPassword, setCertPassword] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
+    const [showWebhookToken, setShowWebhookToken] = useState(false);
     const [diagnostic, setDiagnostic] = useState<{
         isOpen: boolean;
         steps: { title: string; status: 'pending' | 'loading' | 'success' | 'error'; msg?: string }[];
@@ -1059,10 +1060,10 @@ export function FiscalSettings() {
                                         autoComplete="off"
                                         helpText="ATENÇÃO: Ao ativar esta opção, o sistema enviará o JSON APENAS para este endpoint e IGNORARÁ a TecnoSpeed. Útil para integrar com emissores próprios."
                                     />
-                                    <div className="mt-4">
+                                    <div className="mt-4 relative">
                                         <Input
                                             label="Token de Autorização (Opcional)"
-                                            type="password"
+                                            type={showWebhookToken ? 'text' : 'password'}
                                             value={config.external_webhook_token || ''}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_token: e.target.value })}
                                             placeholder="Ex: seu-token-secreto"
@@ -1070,6 +1071,13 @@ export function FiscalSettings() {
                                             autoComplete="off"
                                             helpText="Se preenchido, será enviado no header 'Authorization: Bearer [token]'."
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowWebhookToken(!showWebhookToken)}
+                                            className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        >
+                                            {showWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
                                     </div>
                                 </div>
                             )}
