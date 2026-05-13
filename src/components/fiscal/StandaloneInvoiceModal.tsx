@@ -17,6 +17,9 @@ import { API_BASE_URL } from '../../lib/constants';
 interface StandaloneInvoiceModalProps {
     onClose: () => void;
     onSuccess: () => void;
+    initialData?: any;
+    initialType?: 'nfse' | 'nfe';
+    initialNotes?: string;
 }
 
 interface InvoiceItem {
@@ -38,7 +41,7 @@ interface InvoiceItem {
     inssAliquota?: string;
 }
 
-export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoiceModalProps) {
+export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initialType, initialNotes }: StandaloneInvoiceModalProps) {
     const { currentEntity } = useEntity();
     const { contacts } = useContacts();
     const { companies } = useCompanies();
@@ -63,16 +66,16 @@ export function StandaloneInvoiceModal({ onClose, onSuccess }: StandaloneInvoice
     });
     
     // Form State
-    const [contactId, setContactId] = useState('');
-    const [type, setType] = useState<'nfse' | 'nfe'>('nfse');
-    const [cityCode, setCityCode] = useState('3106200');
-    const [items, setItems] = useState<InvoiceItem[]>([
+    const [contactId, setContactId] = useState(initialData?.contactId || '');
+    const [type, setType] = useState<'nfse' | 'nfe'>(initialType || 'nfse');
+    const [cityCode, setCityCode] = useState(initialData?.cityCode || '3106200');
+    const [items, setItems] = useState<InvoiceItem[]>(initialData?.items || [
         { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }
     ]);
     const [sendEmail, setSendEmail] = useState(false);
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
-    const [notes, setNotes] = useState('');
+    const [notes, setNotes] = useState(initialNotes || '');
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     const config = currentCompany?.tecnospeed_config as any;

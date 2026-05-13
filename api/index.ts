@@ -596,6 +596,63 @@ app.post(['/fiscal-module/save-config', '/api/fiscal-module/save-config'], authe
     }
 });
 
+app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
+    const { id, type, companyId, justificativa } = req.body;
+    const authHeader = req.headers.authorization;
+
+    if (!id || !type || !companyId || !justificativa) {
+        return res.status(400).json({ error: 'ID da nota, tipo, companyId e justificativa são obrigatórios.' });
+    }
+
+    try {
+        const config = await getCompanyFiscalConfig(companyId, authHeader);
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
+        const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
+
+        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
+        
+        console.log(`🚫 [FISCAL-CANCELAR] Solicitando cancelamento da ${type} ${id}`);
+        
+        const response = await axios.post(`${baseUrl}/${endpoint}/${id}/cancelar`, {
+            justificativa: justificativa
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey
+            }
+        });
+
+        // Atualizar status no Supabase
+        if (SUPABASE_URL) {
+            try {
+                await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                    status: 'cancelado',
+                    updated_at: new Date().toISOString()
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (dbErr: any) {
+                console.warn('⚠️ Falha ao atualizar status de cancelamento no banco:', dbErr.message);
+            }
+        }
+
+        res.json({ success: true, ...response.data });
+    } catch (error: any) {
+        console.error('❌ Erro ao cancelar nota:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({ 
+            error: 'Falha ao cancelar nota na TecnoSpeed', 
+            detail: error.response?.data || error.message 
+        });
+    }
+});
+
 app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml'], authenticate, async (req, res) => {
     const { type, id } = req.params;
     const { companyId, token } = req.query;

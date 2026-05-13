@@ -125,5 +125,19 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async cancelarNota(id: string, type: 'nfse' | 'nfe', companyId: string, justificativa: string, token: string) {
+        const response = await axios.post(getFiscalUrl('cancelar'), {
+            id,
+            type,
+            companyId,
+            justificativa
+        }, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };

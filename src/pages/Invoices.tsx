@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -14,9 +14,15 @@ export function Invoices() {
     const { currentEntity } = useEntity();
     const [showNewModal, setShowNewModal] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
-    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error'}>({
+    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info'}>({
         isOpen: false, title: '', message: '', type: 'success'
     });
+    const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({
+        isOpen: false, invoice: null
+    });
+    const [cancelReason, setCancelReason] = useState('');
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [duplicateData, setDuplicateData] = useState<{items: any[], type: 'nfse' | 'nfe', contactId: string, cityCode: string, notes: string} | null>(null);
 
     const handleDownloadPDF = async (externalId: string, companyId: string) => {
         try {
@@ -97,6 +103,67 @@ export function Invoices() {
         } finally {
             setIsRefreshing(null);
         }
+    const handleCancelInvoice = async () => {
+        if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
+        setIsCancelling(true);
+        try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            await fiscalService.cancelarNota(
+                cancelModal.invoice.external_id,
+                cancelModal.invoice.type,
+                currentEntity.id,
+                cancelReason,
+                token
+            );
+
+            setResultModal({
+                isOpen: true,
+                title: 'Cancelamento Solicitado',
+                message: 'A solicitação de cancelamento foi enviada com sucesso.',
+                type: 'success'
+            });
+            setCancelModal({ isOpen: false, invoice: null });
+            setCancelReason('');
+            refresh();
+        } catch (error: any) {
+            console.error('Error cancelling invoice:', error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro no Cancelamento',
+                message: error.response?.data?.detail?.message || error.message || 'Falha ao cancelar nota.',
+                type: 'error'
+            });
+        } finally {
+            setIsCancelling(null as any);
+            setIsCancelling(false);
+        }
+    };
+
+    const handleDuplicateInvoice = (invoice: any) => {
+        const payload = invoice.payload;
+        if (!payload) return;
+
+        // Tentar extrair dados do payload (NFSe ou NFe)
+        const items = (payload.servico || payload.itens || []).map((i: any) => ({
+            id: crypto.randomUUID(),
+            description: i.discriminacao || i.descricao || '',
+            amount: new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(i.valor?.servico || i.valorUnitario?.comercial || 0),
+            quantity: i.quantidade?.comercial || i.quantidade || 1,
+            taxCode: i.codigo || '',
+            taxationCode: i.codigoTributacao || i.ncm || '',
+            codigoTributacaoNacional: i.codigoTributacaoNacional || ''
+        }));
+
+        setDuplicateData({
+            items,
+            type: invoice.type,
+            contactId: invoice.quote?.contact?.id || '', // Pode estar faltando se não veio via orçamento
+            cityCode: payload.tomador?.endereco?.codigoCidade || payload.destinatario?.endereco?.codigoCidade || '',
+            notes: payload.informacoesComplementares?.replace(/\|/g, '\n') || ''
+        });
+        setShowNewModal(true);
     };
 
     const getStatusBadge = (status: string) => {
@@ -309,6 +376,16 @@ export function Invoices() {
                                         </td>
                                         <td className="py-4 px-6 text-right">
                                             <div className="flex justify-end items-center gap-2">
+                                                {/* Duplicar / Editar */}
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => handleDuplicateInvoice(invoice)}
+                                                    className="h-9 w-9 p-0 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 transition-all"
+                                                    title="Duplicar / Corrigir"
+                                                >
+                                                    <Copy size={16} />
+                                                </Button>
+
                                                 {invoice.external_id && (invoice.status === 'processando' || invoice.status === 'em_processamento') && (
                                                     <Button
                                                         variant="ghost"
@@ -320,7 +397,8 @@ export function Invoices() {
                                                         <RefreshCw size={16} className={isRefreshing === invoice.id ? 'animate-spin' : ''} />
                                                     </Button>
                                                 )}
-                                                                                                {invoice.external_id && (invoice.status === 'concluido' || invoice.status === 'autorizado') && (
+
+                                                {invoice.external_id && (invoice.status === 'concluido' || invoice.status === 'autorizado') && (
                                                     <>
                                                         <Button
                                                             variant="ghost"
@@ -330,6 +408,16 @@ export function Invoices() {
                                                         >
                                                             <Eye size={18} />
                                                         </Button>
+                                                        
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => setCancelModal({ isOpen: true, invoice })}
+                                                            className="h-9 w-9 p-0 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
+                                                            title="Cancelar Nota"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </Button>
+
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => handleDownloadPDF(invoice.external_id!, invoice.company_id)}
@@ -338,6 +426,7 @@ export function Invoices() {
                                                         >
                                                             <Download size={18} />
                                                         </Button>
+
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
@@ -360,12 +449,71 @@ export function Invoices() {
 
             {showNewModal && (
                 <StandaloneInvoiceModal 
-                    onClose={() => setShowNewModal(false)} 
+                    onClose={() => {
+                        setShowNewModal(false);
+                        setDuplicateData(null);
+                    }} 
                     onSuccess={() => {
                         setShowNewModal(false);
+                        setDuplicateData(null);
                         refresh();
                     }} 
+                    initialData={duplicateData}
+                    initialType={duplicateData?.type}
+                    initialNotes={duplicateData?.notes}
                 />
+            )}
+
+            {/* Modal de Cancelamento */}
+            {cancelModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
+                                <AlertTriangle size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cancelar Nota Fiscal</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Esta ação não pode ser desfeita.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">Justificativa (Mínimo 15 caracteres)</label>
+                                <textarea
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    placeholder="Ex: Nota emitida com valor incorreto ou serviço cancelado pelo cliente..."
+                                    className="w-full h-32 p-4 rounded-2xl border-2 border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 text-sm focus:border-blue-500 outline-none transition-all resize-none"
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setCancelModal({ isOpen: false, invoice: null });
+                                        setCancelReason('');
+                                    }}
+                                    className="flex-1 h-12 rounded-xl font-bold text-gray-500"
+                                >
+                                    Voltar
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    onClick={handleCancelInvoice}
+                                    disabled={cancelReason.length < 15 || isCancelling}
+                                    isLoading={isCancelling}
+                                    className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-500/20 rounded-xl font-bold"
+                                >
+                                    Confirmar Cancelamento
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             <ResultModal
