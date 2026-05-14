@@ -815,7 +815,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
     }
 });
 
-app.get(['/fiscal-module/nfe/:id/pdf', '/api/fiscal-module/nfe/:id/pdf'], authenticate, async (req, res) => {
+app.get(['/fiscal-module/pdf/:id', '/api/fiscal-module/pdf/:id', '/fiscal-module/nfe/:id/pdf', '/api/fiscal-module/nfe/:id/pdf'], authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
@@ -827,18 +827,29 @@ app.get(['/fiscal-module/nfe/:id/pdf', '/api/fiscal-module/nfe/:id/pdf'], authen
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        const response = await axios.get(`${baseUrl}/nfe/${id}/pdf`, {
+        // Detectar tipo
+        let type = 'nfse';
+        try {
+            const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                params: { external_id: `eq.${id}`, select: 'type' },
+                headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+            });
+            if (invData?.[0]?.type) type = invData[0].type;
+        } catch (dbErr) { /* ignore */ }
+
+        const response = await axios.get(`${baseUrl}/${type}/${id}/pdf`, {
             headers: { 'X-API-KEY': apiKey },
             responseType: 'arraybuffer'
         });
         res.contentType('application/pdf');
         res.send(response.data);
     } catch (error: any) {
+        console.error('❌ [FISCAL-PDF] Erro:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erro ao baixar PDF', detail: error.response?.data || error.message });
     }
 });
 
-app.get(['/fiscal-module/nfe/:id/xml', '/api/fiscal-module/nfe/:id/xml'], authenticate, async (req, res) => {
+app.get(['/fiscal-module/xml/:id', '/api/fiscal-module/xml/:id', '/fiscal-module/nfe/:id/xml', '/api/fiscal-module/nfe/:id/xml'], authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
@@ -850,12 +861,24 @@ app.get(['/fiscal-module/nfe/:id/xml', '/api/fiscal-module/nfe/:id/xml'], authen
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        const response = await axios.get(`${baseUrl}/nfe/${id}/xml`, {
-            headers: { 'X-API-KEY': apiKey }
+        // Detectar tipo
+        let type = 'nfse';
+        try {
+            const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                params: { external_id: `eq.${id}`, select: 'type' },
+                headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+            });
+            if (invData?.[0]?.type) type = invData[0].type;
+        } catch (dbErr) { /* ignore */ }
+
+        const response = await axios.get(`${baseUrl}/${type}/${id}/xml`, {
+            headers: { 'X-API-KEY': apiKey },
+            responseType: 'arraybuffer'
         });
         res.contentType('application/xml');
         res.send(response.data);
     } catch (error: any) {
+        console.error('❌ [FISCAL-XML] Erro:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erro ao baixar XML', detail: error.response?.data || error.message });
     }
 });
