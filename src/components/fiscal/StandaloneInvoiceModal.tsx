@@ -103,7 +103,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                 if (type === 'nfse') {
                     // Mapeamento Inteligente de Códigos
-                    const munCode = config.default_taxation_code?.replace(/\D/g, '').substring(0, 9) || '';
                     const natCode = config.default_taxation_code?.replace(/\D/g, '').substring(0, 9) || '';
 
                     return { 
