@@ -526,14 +526,17 @@ export function Invoices() {
                                                     </>
                                                 )}
 
-                                                <Tooltip content="Excluir do Histórico">
-                                                    <button
-                                                        onClick={() => setDeleteModal({ isOpen: true, invoiceId: invoice.id })}
-                                                        className="h-10 w-10 flex items-center justify-center glass-morphism text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all shadow-sm"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </Tooltip>
+                                                {/* Excluir do Histórico apenas se estiver cancelada ou com erro */}
+                                                {(['cancelado', 'erro', 'rejeitado'].includes(invoice.status?.toLowerCase())) && (
+                                                    <Tooltip content="Excluir do Histórico">
+                                                        <button
+                                                            onClick={() => setDeleteModal({ isOpen: true, invoiceId: invoice.id })}
+                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all shadow-sm"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
