@@ -699,6 +699,8 @@ export function FiscalSettings() {
                                 <option value="1">Simples Nacional</option>
                                 <option value="2">Simples Nacional (Excesso de Sublimite)</option>
                                 <option value="3">Regime Normal (Lucro Real/Presumido)</option>
+                                <option value="4">Microempreendedor Individual (MEI)</option>
+                                <option value="5">Sociedade de Profissionais (Fixação de ISS)</option>
                             </select>
                         </div>
                         <Input
@@ -953,64 +955,69 @@ export function FiscalSettings() {
                                     <option value="7">Exigibilidade Suspensa por Processo Administrativo</option>
                                 </select>
                             </div>
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Regime Especial de Tributação
-                                </label>
-                                <select
-                                    value={config.default_regime_especial || '0'}
-                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConfig({ ...config, default_regime_especial: e.target.value })}
-                                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    autoComplete="off"
-                                >
-                                    <option value="0">Nenhum</option>
-                                    <option value="1">Microempresa Municipal</option>
-                                    <option value="2">Estimativa</option>
-                                    <option value="3">Sociedade de Profissionais</option>
-                                    <option value="4">Cooperativa</option>
-                                    <option value="5">Microempreendedor Individual (MEI)</option>
-                                    <option value="6">Microempresa ou EPP (Simples Nacional)</option>
-                                </select>
-                            </div>
+                            {/* Só mostra se não for Simples Nacional para evitar confusão com a nova seção de Tributação Federal */}
+                            {config.regime_tributario === '3' && (
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Regime Especial de Tributação
+                                    </label>
+                                    <select
+                                        value={config.default_regime_especial || '0'}
+                                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConfig({ ...config, default_regime_especial: e.target.value })}
+                                        className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        autoComplete="off"
+                                    >
+                                        <option value="0">Nenhum</option>
+                                        <option value="1">Microempresa Municipal</option>
+                                        <option value="2">Estimativa</option>
+                                        <option value="3">Sociedade de Profissionais</option>
+                                        <option value="4">Cooperativa</option>
+                                        <option value="5">Microempreendedor Individual (MEI)</option>
+                                        <option value="6">Microempresa ou EPP (Simples Nacional)</option>
+                                    </select>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
-                            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Retenções Federais Padrão (%)</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <Input
-                                    label="PIS (%)"
-                                    type="number"
-                                    step="0.01"
-                                    value={config.default_pis_aliquota || ''}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_pis_aliquota: e.target.value })}
-                                    placeholder="0.65"
-                                />
-                                <Input
-                                    label="COFINS (%)"
-                                    type="number"
-                                    step="0.01"
-                                    value={config.default_cofins_aliquota || ''}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_cofins_aliquota: e.target.value })}
-                                    placeholder="3.00"
-                                />
-                                <Input
-                                    label="CSLL (%)"
-                                    type="number"
-                                    step="0.01"
-                                    value={config.default_csll_aliquota || ''}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_csll_aliquota: e.target.value })}
-                                    placeholder="1.00"
-                                />
-                                <Input
-                                    label="IRRF (%)"
-                                    type="number"
-                                    step="0.01"
-                                    value={config.default_irrf_aliquota || ''}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_irrf_aliquota: e.target.value })}
-                                    placeholder="1.50"
-                                />
+                        {config.regime_tributario === '3' && (
+                            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
+                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Retenções Federais Padrão (%) (Regime Normal)</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <Input
+                                        label="PIS (%)"
+                                        type="number"
+                                        step="0.01"
+                                        value={config.default_pis_aliquota || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_pis_aliquota: e.target.value })}
+                                        placeholder="0.65"
+                                    />
+                                    <Input
+                                        label="COFINS (%)"
+                                        type="number"
+                                        step="0.01"
+                                        value={config.default_cofins_aliquota || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_cofins_aliquota: e.target.value })}
+                                        placeholder="3.00"
+                                    />
+                                    <Input
+                                        label="CSLL (%)"
+                                        type="number"
+                                        step="0.01"
+                                        value={config.default_csll_aliquota || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_csll_aliquota: e.target.value })}
+                                        placeholder="1.00"
+                                    />
+                                    <Input
+                                        label="IRRF (%)"
+                                        type="number"
+                                        step="0.01"
+                                        value={config.default_irrf_aliquota || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_irrf_aliquota: e.target.value })}
+                                        placeholder="1.50"
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     <div className="pt-6 border-t border-gray-200 dark:border-slate-700">

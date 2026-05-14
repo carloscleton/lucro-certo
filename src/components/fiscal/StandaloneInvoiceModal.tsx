@@ -298,7 +298,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     idIntegracao: `AVULSA_${Date.now()}`,
                     prestador: {
                         cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
-                        inscricaoMunicipal: config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, '')
+                        inscricaoMunicipal: config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, ''),
+                        regimeTributario: parseInt(config?.regime_tributario || '1'),
+                        // Define regime especial automático se for Simples (6) ou MEI (5)
+                        regimeEspecialTributacao: config?.regime_tributario === '1' || config?.regime_tributario === '2' ? 6 : 
+                                                 config?.regime_tributario === '4' ? 5 : 
+                                                 parseInt(config?.default_regime_especial || '0')
                     },
                     tomador: {
                         cpfCnpj: contact.tax_id.replace(/\D/g, ''),
