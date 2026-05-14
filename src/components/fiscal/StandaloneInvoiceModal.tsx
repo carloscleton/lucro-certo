@@ -413,7 +413,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
                 
-                const externalId = result.data?.id || result.id;
+                // Extrair ID com suporte a múltiplos formatos (documents[0] ou raiz)
+                const externalId = result.data?.id || result.id || result.documents?.[0]?.id;
                 if (externalId) {
                     try {
                         console.log(`💾 [DB-SAVE] Iniciando gravação da nota ${externalId}...`);
@@ -555,8 +556,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             const isAlreadyEmitted = error.response?.status === 409;
             
             if (isAlreadyEmitted) {
-                const existingData = error.response?.data?.error?.data?.current || error.response?.data?.data;
-                const externalId = existingData?.id || existingData?.idIntegracao;
+                const existingData = error.response?.data?.error?.data?.current || error.response?.data?.data || error.response?.data;
+                const externalId = existingData?.id || existingData?.idIntegracao || existingData?.documents?.[0]?.id;
                 
                 if (externalId && currentEntity.id) {
                     try {
