@@ -81,62 +81,52 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const config = currentCompany?.tecnospeed_config as any;
     const isNacional = config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false;
 
-    // Auto-fill for Sandbox/Homologação
+    // Auto-fill from Config
     useEffect(() => {
+        if (!config) return;
+
+        setSendEmail(config.send_email_automatically || false);
+        setSendWhatsApp(config.send_whatsapp_automatically || false);
+        
+        // Código da Cidade (IBGE) do endereço da empresa
+        if (config.endereco?.codigoCidade) {
+            setCityCode(config.endereco.codigoCidade);
+        }
+
         const isHomolog = config?.ambiente === 'homologacao' || config?.use_test_data;
 
-        if (config) {
-            setSendEmail(config.send_email_automatically || false);
-            setSendWhatsApp(config.send_whatsapp_automatically || false);
-        }
+        setItems(prev => prev.map((item, idx) => {
+            // Só preenche se o item estiver vazio
+            if (idx === 0 && (!item.taxCode || item.taxCode === '')) {
+                const isSimples = config.regime_tributario === '1' || config.regime_tributario === '2' || config.regime_tributario === '4';
+                const defaultIss = isSimples ? (config.simples_nacional_aliquota || '0') : (config.default_iss_aliquota || '3');
 
-        if (isHomolog) {
-            console.log('🛠️ [FISCAL] Preenchendo campos de teste (Homologação ativa)');
-            setCityCode('4115200'); // Maringá (TecnoSpeed)
-            
-            setItems(prev => prev.map((item, idx) => {
-                // Só preenche o primeiro item se estiver vazio
-                if (idx === 0 && (!item.taxCode || item.taxCode === '')) {
-                    if (type === 'nfse') {
-                        // NFSe Nacional exige 6 dígitos, NFSe Municipal geralmente 4 (01.01)
-                        return { 
-                            ...item, 
-                            taxCode: isNacional ? (config.default_taxation_code || '010101001') : (config.default_taxation_code || '01.01'),
-                            cnae: config.default_cnae || '7490104',
-                            taxationCode: isNacional ? (config.default_taxation_code || '010101001') : (config.default_taxation_code || '01.01'),
-                            issAliquota: config.default_iss_aliquota || '3',
-                            issExigibilidade: config.default_iss_exigibilidade || '1',
-                            issTipo: config.default_iss_tipo || '7'
-                        };
-                    } else {
-                        return { ...item, taxCode: '84713019' };
-                    }
+                if (type === 'nfse') {
+                    // Mapeamento Inteligente de Códigos
+                    const munCode = config.default_taxation_code?.replace(/\D/g, '').substring(0, 9) || '';
+                    const natCode = config.default_taxation_code?.replace(/\D/g, '').substring(0, 9) || '';
+
+                    return { 
+                        ...item, 
+                        taxCode: isNacional ? natCode : (config.default_taxation_code || ''),
+                        cnae: config.default_cnae || '',
+                        taxationCode: isNacional ? natCode : '',
+                        codigoTributacaoNacional: isNacional ? natCode : '',
+                        issAliquota: defaultIss,
+                        issExigibilidade: config.default_iss_exigibilidade || '1',
+                        issTipo: config.default_iss_tipo || '7',
+                        // Retenções
+                        pisAliquota: config.default_pis_aliquota || '',
+                        cofinsAliquota: config.default_cofins_aliquota || '',
+                        csllAliquota: config.default_csll_aliquota || '',
+                        irrfAliquota: config.default_irrf_aliquota || ''
+                    };
+                } else {
+                    return { ...item, taxCode: isHomolog ? '84713019' : '' };
                 }
-                return item;
-            }));
-        } else if (config) {
-            // Se não for homologação, mas tivermos configurações padrão, preenchemos também
-            setItems(prev => prev.map((item, idx) => {
-                if (idx === 0 && (!item.taxCode || item.taxCode === '')) {
-                    if (type === 'nfse') {
-                        return { 
-                            ...item, 
-                            taxCode: isNacional ? (config.default_taxation_code || '010101001').replace(/\D/g, '').substring(0, 9) : (config.default_taxation_code || '01.01'),
-                            cnae: config.default_cnae || '',
-                            taxationCode: isNacional ? (config.default_taxation_code || '010101001').replace(/\D/g, '').substring(0, 9) : (config.default_taxation_code || '01.01'),
-                             issAliquota: config.default_iss_aliquota || '',
-                             issExigibilidade: config.default_iss_exigibilidade || '1',
-                             issTipo: config.default_iss_tipo || '7',
-                             pisAliquota: config.default_pis_aliquota || '',
-                             cofinsAliquota: config.default_cofins_aliquota || '',
-                             csllAliquota: config.default_csll_aliquota || '',
-                             irrfAliquota: config.default_irrf_aliquota || ''
-                         };
-                    }
-                }
-                return item;
-            }));
-        }
+            }
+            return item;
+        }));
     }, [currentCompany, type, currentEntity.id]);
 
     useEffect(() => {
