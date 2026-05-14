@@ -456,26 +456,26 @@ export function Invoices() {
                                                         >
                                                             <FileCode size={14} />
                                                         </Button>
-
-                                                        <Button
-                                                            variant="ghost"
-                                                            onClick={async () => {
-                                                                if (window.confirm('Tem certeza que deseja REMOVER esta nota do histórico? Esta ação apagará o registro do banco de dados.')) {
-                                                                    const { error } = await supabase.from('fiscal_invoices').delete().eq('id', invoice.id);
-                                                                    if (error) {
-                                                                        alert('Erro ao excluir: ' + error.message);
-                                                                    } else {
-                                                                        refresh();
-                                                                    }
-                                                                }
-                                                            }}
-                                                            className="h-8 w-8 p-0 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
-                                                            title="Excluir do Banco"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </Button>
                                                     </>
                                                 )}
+
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={async () => {
+                                                        if (window.confirm('Tem certeza que deseja REMOVER esta nota do histórico? Esta ação apagará o registro do banco de dados.')) {
+                                                            const { error } = await supabase.from('fiscal_invoices').delete().eq('id', invoice.id);
+                                                            if (error) {
+                                                                alert('Erro ao excluir: ' + error.message);
+                                                            } else {
+                                                                refresh();
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="h-8 w-8 p-0 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
+                                                    title="Excluir do Histórico"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
