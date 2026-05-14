@@ -765,17 +765,44 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        const response = await axios.get(`${baseUrl}/nfe/${id}`, {
+        // 1. Tentar descobrir o tipo da nota no nosso banco (NFS-e ou NF-e)
+        let type = 'nfse'; // Default para NFSe que é o mais comum no projeto
+        try {
+            const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                params: {
+                    external_id: `eq.${id}`,
+                    select: 'type'
+                },
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY!,
+                    'Authorization': authHeader!
+                }
+            });
+            if (invData?.[0]?.type) {
+                type = invData[0].type;
+                console.log(`🔍 [FISCAL-STATUS] Tipo detectado para ${id}: ${type}`);
+            }
+        } catch (dbErr) {
+            console.warn(`⚠️ [FISCAL-STATUS] Não foi possível detectar o tipo da nota ${id} no banco. Tentando ${type} por padrão.`);
+        }
+
+        // 2. Consultar na TecnoSpeed usando o endpoint correto
+        const response = await axios.get(`${baseUrl}/${type}/${id}`, {
             headers: { 'X-API-KEY': apiKey }
         });
 
         const statusData = response.data;
-        if (statusData?.data?.status && SUPABASE_URL) {
+        
+        // Extrair status (NFSe Nacional tem estrutura diferente as vezes)
+        const currentStatus = statusData.data?.status || statusData.status;
+
+        if (currentStatus && SUPABASE_URL) {
             try {
                 await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
-                    status: statusData.data.status,
-                    pdf_url: statusData.data.pdf,
-                    xml_url: statusData.data.xml
+                    status: currentStatus,
+                    pdf_url: statusData.data?.pdf || statusData.pdf,
+                    xml_url: statusData.data?.xml || statusData.xml,
+                    updated_at: new Date().toISOString()
                 }, {
                     headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
                 });
@@ -783,6 +810,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         }
         res.json(statusData);
     } catch (error: any) {
+        console.error('❌ [FISCAL-STATUS] Erro:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erro ao consultar status', detail: error.response?.data || error.message });
     }
 });
