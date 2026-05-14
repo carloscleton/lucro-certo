@@ -903,9 +903,9 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
-
-        const targetUrl = `${baseUrl}/${type}/${id}/cancelar`;
+        const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+        const targetUrl = `${cleanBaseUrl}/${type.toLowerCase()}/${id}/cancelar`;
+        console.error(`🚀 [FISCAL-CANCEL] Requisitando: ${targetUrl}`);
 
         const response = await axios.post(targetUrl, {
             justificativa: justificativa || 'Cancelamento solicitado pelo usuario'
