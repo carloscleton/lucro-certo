@@ -8,6 +8,7 @@ import { fiscalService } from '../services/fiscalService';
 import { supabase } from '../lib/supabase';
 import { StandaloneInvoiceModal } from '../components/fiscal/StandaloneInvoiceModal';
 import { ResultModal } from '../components/ui/ResultModal';
+import { Tooltip } from '../components/ui/Tooltip';
 
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
@@ -198,18 +199,43 @@ export function Invoices() {
     const getStatusBadge = (status: string) => {
         const s = status?.toLowerCase();
         if (s === 'concluido' || s === 'autorizado') {
-            return <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-emerald-100 dark:border-emerald-900/30">Autorizada</span>;
+            return (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
+                    <CheckCircle2 size={14} className="animate-in zoom-in duration-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Autorizada</span>
+                </div>
+            );
         }
         if (s === 'processando' || s === 'em_processamento') {
-            return <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-blue-100 dark:border-blue-900/30 animate-pulse">Processando</span>;
+            return (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-500/20 shadow-sm shadow-blue-500/5">
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Processando</span>
+                </div>
+            );
         }
         if (s === 'erro' || s === 'rejeitado') {
-            return <span className="px-3 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-rose-100 dark:border-rose-900/30">Rejeitada</span>;
+            return (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-500/20 shadow-sm shadow-rose-500/5">
+                    <XCircle size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Rejeitada</span>
+                </div>
+            );
         }
         if (s === 'cancelado') {
-            return <span className="px-3 py-1 bg-gray-50 dark:bg-slate-700/50 text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-gray-100 dark:border-slate-700">Cancelada</span>;
+            return (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-500/10 dark:bg-slate-500/20 text-slate-500 dark:text-slate-400 rounded-xl border border-slate-500/20">
+                    <XCircle size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Cancelada</span>
+                </div>
+            );
         }
-        return <span className="px-3 py-1 bg-gray-50 dark:bg-slate-700/50 text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-gray-100 dark:border-slate-700">{status || 'Pendente'}</span>;
+        return (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-500/10 text-gray-500 rounded-xl border border-gray-500/20">
+                <Clock3 size={14} />
+                <span className="text-[10px] font-black uppercase tracking-widest">{status || 'Pendente'}</span>
+            </div>
+        );
     };
 
     if (currentEntity.type === 'personal') {
@@ -394,98 +420,101 @@ export function Invoices() {
                                             )}
                                         </td>
                                         <td className="py-3 px-6">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex flex-col gap-1.5 items-start">
                                                 {getStatusBadge(invoice.status)}
                                                 {invoice.error_message && (
-                                                    <div title={invoice.error_message} className="p-1 bg-rose-50 dark:bg-rose-900/20 rounded-lg cursor-help group-hover:scale-110 transition-transform">
-                                                        <AlertCircle size={14} className="text-rose-500" />
-                                                    </div>
+                                                    <Tooltip content={invoice.error_message}>
+                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-bold rounded-lg border border-rose-500/20 animate-pulse cursor-help">
+                                                            <AlertCircle size={10} />
+                                                            VER MOTIVO DA REJEIÇÃO
+                                                        </div>
+                                                    </Tooltip>
                                                 )}
                                             </div>
                                         </td>
                                         <td className="py-3 px-6 text-right">
-                                            <div className="flex justify-end items-center gap-2">
+                                            <div className="flex justify-end items-center gap-1.5">
                                                 {/* Duplicar / Editar */}
-                                                <Button
-                                                    variant="ghost"
-                                                    onClick={() => handleDuplicateInvoice(invoice)}
-                                                    className="h-8 w-8 p-0 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-100 transition-all"
-                                                    title="Duplicar / Corrigir"
-                                                >
-                                                    <Copy size={14} />
-                                                </Button>
-
-                                                {invoice.external_id && (invoice.status === 'processando' || invoice.status === 'em_processamento') && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        onClick={() => handleRefreshStatus(invoice)}
-                                                        disabled={isRefreshing === invoice.id}
-                                                        className="h-8 w-8 p-0 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
-                                                        title="Sincronizar Status"
+                                                <Tooltip content="Duplicar / Corrigir">
+                                                    <button
+                                                        onClick={() => handleDuplicateInvoice(invoice)}
+                                                        className="h-10 w-10 flex items-center justify-center glass-morphism text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm"
                                                     >
-                                                        <RefreshCw size={14} className={isRefreshing === invoice.id ? 'animate-spin' : ''} />
-                                                    </Button>
+                                                        <Copy size={18} />
+                                                    </button>
+                                                </Tooltip>
+
+                                                {invoice.external_id && (['processando', 'em_processamento'].includes(invoice.status?.toLowerCase())) && (
+                                                    <Tooltip content="Sincronizar Status">
+                                                        <button
+                                                            onClick={() => handleRefreshStatus(invoice)}
+                                                            disabled={isRefreshing === invoice.id}
+                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm"
+                                                        >
+                                                            <RefreshCw size={18} className={isRefreshing === invoice.id ? 'animate-spin' : ''} />
+                                                        </button>
+                                                    </Tooltip>
                                                 )}
 
                                                 {invoice.external_id && (['concluido', 'autorizado'].includes(invoice.status?.toLowerCase())) && (
                                                     <>
                                                         {invoice.pdf_url && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                onClick={() => window.open(invoice.pdf_url, '_blank')}
-                                                                className="h-9 w-9 p-0 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl hover:bg-indigo-200 transition-all shadow-sm"
-                                                                title="Ver Link Externo"
-                                                            >
-                                                                <ExternalLink size={16} />
-                                                            </Button>
+                                                            <Tooltip content="Ver Link Externo">
+                                                                <button
+                                                                    onClick={() => window.open(invoice.pdf_url, '_blank')}
+                                                                    className="h-10 w-10 flex items-center justify-center glass-morphism text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all shadow-sm"
+                                                                >
+                                                                    <ExternalLink size={18} />
+                                                                </button>
+                                                            </Tooltip>
                                                         )}
 
-                                                        <Button
-                                                            variant="ghost"
-                                                            onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id)}
-                                                            className="h-9 w-9 p-0 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-xl hover:bg-blue-200 transition-all shadow-sm"
-                                                            title="Visualizar PDF"
-                                                        >
-                                                            <Eye size={16} />
-                                                        </Button>
+                                                        <Tooltip content="Visualizar PDF">
+                                                            <button
+                                                                onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id)}
+                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm"
+                                                            >
+                                                                <Eye size={18} />
+                                                            </button>
+                                                        </Tooltip>
 
-                                                        <Button
-                                                            variant="ghost"
-                                                            onClick={() => setCancelModal({ isOpen: true, invoice })}
-                                                            className="h-9 w-9 p-0 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-xl hover:bg-amber-200 transition-all shadow-sm"
-                                                            title="Cancelar na Prefeitura"
-                                                        >
-                                                            <XCircle size={16} />
-                                                        </Button>
+                                                        <Tooltip content="Cancelar na Prefeitura">
+                                                            <button
+                                                                onClick={() => setCancelModal({ isOpen: true, invoice })}
+                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all shadow-sm"
+                                                            >
+                                                                <XCircle size={18} />
+                                                            </button>
+                                                        </Tooltip>
 
-                                                        <Button
-                                                            variant="ghost"
-                                                            onClick={() => handleDownloadPDF(invoice.external_id!, invoice.company_id)}
-                                                            className="h-9 w-9 p-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-xl hover:bg-emerald-200 transition-all shadow-sm"
-                                                            title="Baixar PDF"
-                                                        >
-                                                            <Download size={16} />
-                                                        </Button>
+                                                        <Tooltip content="Baixar PDF">
+                                                            <button
+                                                                onClick={() => handleDownloadPDF(invoice.external_id!, invoice.company_id)}
+                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
+                                                            >
+                                                                <Download size={18} />
+                                                            </button>
+                                                        </Tooltip>
 
-                                                        <Button
-                                                            variant="ghost"
-                                                            onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
-                                                            className="h-9 w-9 p-0 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded-xl hover:bg-orange-200 transition-all shadow-sm"
-                                                            title="Baixar XML"
-                                                        >
-                                                            <FileCode size={16} />
-                                                        </Button>
+                                                        <Tooltip content="Baixar XML">
+                                                            <button
+                                                                onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
+                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-orange-600 dark:text-orange-400 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-all shadow-sm"
+                                                            >
+                                                                <FileCode size={18} />
+                                                            </button>
+                                                        </Tooltip>
                                                     </>
                                                 )}
 
-                                                <Button
-                                                    variant="ghost"
-                                                    onClick={() => setDeleteModal({ isOpen: true, invoiceId: invoice.id })}
-                                                    className="h-9 w-9 p-0 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 rounded-xl hover:bg-rose-200 transition-all shadow-sm"
-                                                    title="Excluir do Histórico"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </Button>
+                                                <Tooltip content="Excluir do Histórico">
+                                                    <button
+                                                        onClick={() => setDeleteModal({ isOpen: true, invoiceId: invoice.id })}
+                                                        className="h-10 w-10 flex items-center justify-center glass-morphism text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all shadow-sm"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </Tooltip>
                                             </div>
                                         </td>
                                     </tr>
