@@ -670,35 +670,44 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 )}
 
                 {/* Resumo Fiscal da Empresa */}
-                {type === 'nfse' && currentCompany?.tecnospeed_config && (
+                {type === 'nfse' && config && (
                     <div className="bg-gray-50/50 dark:bg-slate-800/30 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between">
                         <div className="flex items-center gap-2">
                             <ShieldCheck size={14} className="text-blue-500" />
                             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Configuração Fiscal Ativa:</span>
                         </div>
                         <div className="flex flex-wrap gap-3">
-                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800">
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="CNAE Padrão">
                                 <span className="text-[9px] font-medium text-gray-400">CNAE:</span>
                                 <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300">
-                                    {currentCompany.tecnospeed_config.default_cnae || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '7490104' : 'N/A')}
+                                    {config.default_cnae || (config.ambiente === 'homologacao' ? '7490104' : 'N/A')}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800">
+                            
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="Alíquota ISS / Simples">
                                 <span className="text-[9px] font-medium text-gray-400">ISS:</span>
                                 <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300">
-                                    {currentCompany.tecnospeed_config.default_iss_aliquota || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '3' : '0')}%
+                                    { (config.regime_tributario === '1' || config.regime_tributario === '2' || config.regime_tributario === '4') 
+                                        ? (config.simples_nacional_aliquota || '0') 
+                                        : (config.default_iss_aliquota || (config.ambiente === 'homologacao' ? '3' : '0')) }%
                                 </span>
                             </div>
+
+                            {config.pis_cofins_situacao_tributaria && (
+                                <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="Situação Tributária PIS/COFINS">
+                                    <span className="text-[9px] font-medium text-gray-400">PIS/COF:</span>
+                                    <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300">{config.pis_cofins_situacao_tributaria}</span>
+                                </div>
+                            )}
+
                             <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800">
-                                <span className="text-[9px] font-medium text-gray-400">Exigibilidade:</span>
+                                <span className="text-[9px] font-medium text-gray-400">Regime:</span>
                                 <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300 uppercase">
-                                    {currentCompany.tecnospeed_config.default_iss_exigibilidade === '1' ? 'Exigível' : 
-                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '2' ? 'Não Incidência' :
-                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '3' ? 'Isenção' :
-                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '4' ? 'Exportação' :
-                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '5' ? 'Imunidade' :
-                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '6' ? 'Susp. Judicial' :
-                                     currentCompany.tecnospeed_config.default_iss_exigibilidade === '7' ? 'Susp. Admin' : 'Exigível'}
+                                    {config.regime_tributario === '1' ? 'Simples' : 
+                                     config.regime_tributario === '2' ? 'Simples (Exc)' :
+                                     config.regime_tributario === '3' ? 'Normal' :
+                                     config.regime_tributario === '4' ? 'MEI' : 
+                                     config.regime_tributario === '5' ? 'Profissional' : 'N/A'}
                                 </span>
                             </div>
                         </div>
