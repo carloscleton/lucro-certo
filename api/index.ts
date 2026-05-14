@@ -82,7 +82,51 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.17' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.18' });
+});
+
+app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
+    const { id, type, companyId, justificativa } = req.body;
+    const authHeader = req.headers.authorization;
+
+    try {
+        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+        
+        const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+        const targetUrl = `${cleanBaseUrl}/${type.toLowerCase()}/${id}/cancelar`;
+
+        const response = await axios.post(targetUrl, {
+            justificativa: justificativa || 'Cancelamento solicitado pelo usuario'
+        }, {
+            headers: { 
+                'X-API-KEY': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (SUPABASE_URL) {
+            try {
+                await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                    status: 'cancelado',
+                    updated_at: new Date().toISOString()
+                }, {
+                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
+                });
+            } catch (dbErr) { console.warn('⚠️ Falha ao marcar como cancelado no banco local'); }
+        }
+
+        res.json(response.data);
+    } catch (error: any) {
+        console.error('❌ [FISCAL-CANCEL] Erro:', error.response?.data || error.message);
+        res.status(500).json({ 
+            error: 'Erro ao cancelar nota', 
+            detail: error.response?.data || error.message 
+        });
+    }
 });
 
 app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certificate'], authenticate, upload.single('arquivo'), async (req: any, res) => {
@@ -893,50 +937,6 @@ app.get(['/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml', '/f
     }
 });
 
-app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
-    const { id, type, companyId, justificativa } = req.body;
-    const authHeader = req.headers.authorization;
-    console.log(`🚫 [FISCAL-CANCEL] Solicitado para ID: ${id}`);
-
-    try {
-        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
-        const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
-        const isSandbox = config.ambiente === 'homologacao';
-        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-        const targetUrl = `${cleanBaseUrl}/${type.toLowerCase()}/${id}/cancelar`;
-        console.error(`🚀 [FISCAL-CANCEL] Requisitando: ${targetUrl}`);
-
-        const response = await axios.post(targetUrl, {
-            justificativa: justificativa || 'Cancelamento solicitado pelo usuario'
-        }, {
-            headers: { 
-                'X-API-KEY': apiKey,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        // Se o cancelamento for aceito, atualizar status local para 'cancelado' (opcional, pode esperar o webhook/sync)
-        if (SUPABASE_URL) {
-            try {
-                await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
-                    status: 'cancelado',
-                    updated_at: new Date().toISOString()
-                }, {
-                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
-                });
-            } catch (dbErr) { console.warn('⚠️ Falha ao marcar como cancelado no banco local'); }
-        }
-
-        res.json(response.data);
-    } catch (error: any) {
-        console.error('❌ [FISCAL-CANCEL] Erro Crítico:', error.response?.data || error.message);
-        res.status(500).json({ 
-            error: 'Erro ao cancelar nota', 
-            detail: error.response?.data || error.message 
-        });
-    }
-});
 
 // Helper para buscar configuração fiscal da empresa no Supabase
 async function getCompanyFiscalConfig(authHeader: string, companyId: string) {
