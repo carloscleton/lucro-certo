@@ -53,8 +53,8 @@ export const fiscalService = {
         return response.data;
     },
 
-    async downloadPDF(id: string, companyId: string, token: string) {
-        const response = await axios.get(getFiscalUrl(`pdf/${id}`), {
+    async downloadPDF(id: string, type: 'nfse' | 'nfe', companyId: string, token: string) {
+        const response = await axios.get(getFiscalUrl(`${type}/${id}/pdf`), {
             params: { companyId },
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -64,8 +64,8 @@ export const fiscalService = {
         return response.data;
     },
 
-    async downloadXML(id: string, companyId: string, token: string) {
-        const response = await axios.get(getFiscalUrl(`xml/${id}`), {
+    async downloadXML(id: string, type: 'nfse' | 'nfe', companyId: string, token: string) {
+        const response = await axios.get(getFiscalUrl(`${type}/${id}/xml`), {
             params: { companyId },
             headers: {
                 'Authorization': `Bearer ${token}`

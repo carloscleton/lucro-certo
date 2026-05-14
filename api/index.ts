@@ -815,12 +815,17 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
     }
 });
 
-app.get(['/fiscal-module/pdf/:id', '/api/fiscal-module/pdf/:id', '/fiscal-module/nfe/:id/pdf', '/api/fiscal-module/nfe/:id/pdf'], authenticate, async (req, res) => {
-    const { id } = req.params;
+app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/fiscal-module/pdf/:id', '/api/fiscal-module/pdf/:id'], authenticate, async (req, res) => {
+    let { type, id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
 
-    console.log(`📄 [FISCAL-PDF] Solicitado para ID: ${id}, Company: ${companyId}`);
+    // Se o :type na verdade for o ID (nas rotas legadas /pdf/:id)
+    if (type === 'pdf') {
+        type = 'nfse'; // Default fallback
+    }
+
+    console.log(`📄 [FISCAL-PDF] Solicitado para ID: ${id}, Tipo: ${type}, Company: ${companyId}`);
 
     try {
         const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
@@ -829,19 +834,20 @@ app.get(['/fiscal-module/pdf/:id', '/api/fiscal-module/pdf/:id', '/fiscal-module
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        // Detectar tipo
-        let type = 'nfse';
-        try {
-            const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                params: { external_id: `eq.${id}`, select: 'type' },
-                headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
-            });
-            if (invData?.[0]?.type) {
-                type = invData[0].type;
-                console.log(`🔍 [FISCAL-PDF] Tipo detectado no banco: ${type}`);
+        // Se o tipo não for explícito, tentar detectar
+        if (type !== 'nfe' && type !== 'nfse') {
+            try {
+                const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    params: { external_id: `eq.${id}`, select: 'type' },
+                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+                });
+                if (invData?.[0]?.type) {
+                    type = invData[0].type;
+                    console.log(`🔍 [FISCAL-PDF] Tipo detectado no banco: ${type}`);
+                }
+            } catch (dbErr: any) { 
+                console.warn(`⚠️ [FISCAL-PDF] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
             }
-        } catch (dbErr: any) { 
-            console.warn(`⚠️ [FISCAL-PDF] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
         }
 
         const targetUrl = `${baseUrl}/${type}/${id}/pdf`;
@@ -859,12 +865,17 @@ app.get(['/fiscal-module/pdf/:id', '/api/fiscal-module/pdf/:id', '/fiscal-module
     }
 });
 
-app.get(['/fiscal-module/xml/:id', '/api/fiscal-module/xml/:id', '/fiscal-module/nfe/:id/xml', '/api/fiscal-module/nfe/:id/xml'], authenticate, async (req, res) => {
-    const { id } = req.params;
+app.get(['/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml', '/fiscal-module/xml/:id', '/api/fiscal-module/xml/:id'], authenticate, async (req, res) => {
+    let { type, id } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
 
-    console.log(`📦 [FISCAL-XML] Solicitado para ID: ${id}, Company: ${companyId}`);
+    // Se o :type na verdade for o ID (nas rotas legadas /xml/:id)
+    if (type === 'xml') {
+        type = 'nfse'; // Default fallback
+    }
+
+    console.log(`📦 [FISCAL-XML] Solicitado para ID: ${id}, Tipo: ${type}, Company: ${companyId}`);
 
     try {
         const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
@@ -873,19 +884,20 @@ app.get(['/fiscal-module/xml/:id', '/api/fiscal-module/xml/:id', '/fiscal-module
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        // Detectar tipo
-        let type = 'nfse';
-        try {
-            const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                params: { external_id: `eq.${id}`, select: 'type' },
-                headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
-            });
-            if (invData?.[0]?.type) {
-                type = invData[0].type;
-                console.log(`🔍 [FISCAL-XML] Tipo detectado no banco: ${type}`);
+        // Se o tipo não for explícito, tentar detectar
+        if (type !== 'nfe' && type !== 'nfse') {
+            try {
+                const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    params: { external_id: `eq.${id}`, select: 'type' },
+                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+                });
+                if (invData?.[0]?.type) {
+                    type = invData[0].type;
+                    console.log(`🔍 [FISCAL-XML] Tipo detectado no banco: ${type}`);
+                }
+            } catch (dbErr: any) { 
+                console.warn(`⚠️ [FISCAL-XML] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
             }
-        } catch (dbErr: any) { 
-            console.warn(`⚠️ [FISCAL-XML] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
         }
 
         const targetUrl = `${baseUrl}/${type}/${id}/xml`;

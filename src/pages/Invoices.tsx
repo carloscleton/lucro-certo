@@ -50,23 +50,21 @@ export function Invoices() {
         } catch (error: any) {
             console.error('Error downloading PDF:', error);
             setResultModal({
-                isOpen: true,
-                title: 'Erro no Download',
-                message: 'Não foi possível baixar o PDF desta nota fiscal. Tente novamente mais tarde.',
-                type: 'error'
-            });
+    const handleViewPDF = async (externalId: string, companyId: string, type: 'nfse' | 'nfe', directUrl?: string) => {
+        // Se já tivermos a URL direta (ex: PlugNotas CDN), abrimos em nova aba imediatamente
+        if (directUrl && directUrl.startsWith('http')) {
+            window.open(directUrl, '_blank');
+            return;
         }
-    };
 
-    const handleViewPDF = async (externalId: string, companyId: string) => {
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
-            if (!token) return;
-            const blob = await fiscalService.downloadPDF(externalId, companyId, token);
+            if (!token) throw new Error('Sessão expirada.');
+            const blob = await fiscalService.downloadPDF(externalId, type, companyId, token);
             const url = window.URL.createObjectURL(blob);
             window.open(url, '_blank');
         } catch (error: any) {
-            console.error('Error viewing PDF:', error);
+            console.error('Erro ao visualizar PDF:', error);
             setResultModal({
                 isOpen: true,
                 title: 'Erro na Visualização',
@@ -76,18 +74,39 @@ export function Invoices() {
         }
     };
 
-    const handleDownloadXML = async (externalId: string, companyId: string) => {
+    const handleDownloadPDF = async (externalId: string, type: 'nfse' | 'nfe', companyId: string) => {
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
-            if (!token) return;
-            const blob = await fiscalService.downloadXML(externalId, companyId, token);
+            if (!token) throw new Error('Sessão expirada.');
+            const blob = await fiscalService.downloadPDF(externalId, type, companyId, token);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nota_${externalId}.pdf`;
+            a.click();
+        } catch (error) {
+            console.error('Erro ao baixar PDF:', error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro no Download',
+                message: 'Não foi possível baixar o PDF desta nota fiscal. Tente novamente mais tarde.',
+                type: 'error'
+            });
+        }
+    };
+
+    const handleDownloadXML = async (externalId: string, type: 'nfse' | 'nfe', companyId: string) => {
+        try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+            const blob = await fiscalService.downloadXML(externalId, type, companyId, token);
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `nota_${externalId}.xml`;
             a.click();
-        } catch (error: any) {
-            console.error('Error downloading XML:', error);
+        } catch (error) {
+            console.error('Erro ao baixar XML:', error);
             setResultModal({
                 isOpen: true,
                 title: 'Erro no Download',
@@ -471,7 +490,7 @@ export function Invoices() {
 
                                                         <Tooltip content="Visualizar PDF">
                                                             <button
-                                                                onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id)}
+                                                                onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id, invoice.type, invoice.pdf_url)}
                                                                 className="h-10 w-10 flex items-center justify-center glass-morphism text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm"
                                                             >
                                                                 <Eye size={18} />
@@ -489,7 +508,7 @@ export function Invoices() {
 
                                                         <Tooltip content="Baixar PDF">
                                                             <button
-                                                                onClick={() => handleDownloadPDF(invoice.external_id!, invoice.company_id)}
+                                                                onClick={() => handleDownloadPDF(invoice.external_id!, invoice.type, invoice.company_id)}
                                                                 className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
                                                             >
                                                                 <Download size={18} />
@@ -498,7 +517,7 @@ export function Invoices() {
 
                                                         <Tooltip content="Baixar XML">
                                                             <button
-                                                                onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
+                                                                onClick={() => handleDownloadXML(invoice.external_id!, invoice.type, invoice.company_id)}
                                                                 className="h-10 w-10 flex items-center justify-center glass-morphism text-orange-600 dark:text-orange-400 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-all shadow-sm"
                                                             >
                                                                 <FileCode size={18} />
