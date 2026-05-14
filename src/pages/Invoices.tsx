@@ -30,6 +30,10 @@ export function Invoices() {
     });
     const [cancelReason, setCancelReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
+    const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, invoiceId: string | null}>({
+        isOpen: false, invoiceId: null
+    });
+    const [isDeleting, setIsDeleting] = useState(false);
     const [duplicateData, setDuplicateData] = useState<{items: any[], type: 'nfse' | 'nfe', contactId: string, cityCode: string, notes: string} | null>(null);
 
     const handleDownloadPDF = async (externalId: string, companyId: string) => {
@@ -146,8 +150,23 @@ export function Invoices() {
                 type: 'error'
             });
         } finally {
-            setIsCancelling(null as any);
             setIsCancelling(false);
+        }
+    };
+
+    const handleDeleteInvoice = async () => {
+        if (!deleteModal.invoiceId) return;
+        setIsDeleting(true);
+        try {
+            const { error } = await supabase.from('fiscal_invoices').delete().eq('id', deleteModal.invoiceId);
+            if (error) throw error;
+            
+            setDeleteModal({ isOpen: false, invoiceId: null });
+            refresh();
+        } catch (error: any) {
+            alert('Erro ao excluir: ' + error.message);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -408,73 +427,64 @@ export function Invoices() {
                                                     </Button>
                                                 )}
 
-                                                {invoice.external_id && (invoice.status === 'concluido' || invoice.status === 'autorizado') && (
+                                                {invoice.external_id && (['concluido', 'autorizado'].includes(invoice.status?.toLowerCase())) && (
                                                     <>
                                                         {invoice.pdf_url && (
                                                             <Button
                                                                 variant="ghost"
                                                                 onClick={() => window.open(invoice.pdf_url, '_blank')}
-                                                                className="h-8 w-8 p-0 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 transition-all shadow-sm shadow-indigo-500/10"
+                                                                className="h-9 w-9 p-0 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl hover:bg-indigo-200 transition-all shadow-sm"
                                                                 title="Ver Link Externo"
                                                             >
-                                                                <ExternalLink size={14} />
+                                                                <ExternalLink size={16} />
                                                             </Button>
                                                         )}
 
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id)}
-                                                            className="h-8 w-8 p-0 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
+                                                            className="h-9 w-9 p-0 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-xl hover:bg-blue-200 transition-all shadow-sm"
                                                             title="Visualizar PDF"
                                                         >
-                                                            <Eye size={14} />
+                                                            <Eye size={16} />
                                                         </Button>
 
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => setCancelModal({ isOpen: true, invoice })}
-                                                            className="h-8 w-8 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
+                                                            className="h-9 w-9 p-0 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-xl hover:bg-amber-200 transition-all shadow-sm"
                                                             title="Cancelar na Prefeitura"
                                                         >
-                                                            <XCircle size={14} />
+                                                            <XCircle size={16} />
                                                         </Button>
 
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => handleDownloadPDF(invoice.external_id!, invoice.company_id)}
-                                                            className="h-8 w-8 p-0 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 transition-all shadow-sm shadow-emerald-500/10"
+                                                            className="h-9 w-9 p-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-xl hover:bg-emerald-200 transition-all shadow-sm"
                                                             title="Baixar PDF"
                                                         >
-                                                            <Download size={14} />
+                                                            <Download size={16} />
                                                         </Button>
 
                                                         <Button
                                                             variant="ghost"
                                                             onClick={() => handleDownloadXML(invoice.external_id!, invoice.company_id)}
-                                                            className="h-8 w-8 p-0 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 transition-all shadow-sm shadow-amber-500/10"
+                                                            className="h-9 w-9 p-0 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded-xl hover:bg-orange-200 transition-all shadow-sm"
                                                             title="Baixar XML"
                                                         >
-                                                            <FileCode size={14} />
+                                                            <FileCode size={16} />
                                                         </Button>
                                                     </>
                                                 )}
 
                                                 <Button
                                                     variant="ghost"
-                                                    onClick={async () => {
-                                                        if (window.confirm('Tem certeza que deseja REMOVER esta nota do histórico? Esta ação apagará o registro do banco de dados.')) {
-                                                            const { error } = await supabase.from('fiscal_invoices').delete().eq('id', invoice.id);
-                                                            if (error) {
-                                                                alert('Erro ao excluir: ' + error.message);
-                                                            } else {
-                                                                refresh();
-                                                            }
-                                                        }
-                                                    }}
-                                                    className="h-8 w-8 p-0 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
+                                                    onClick={() => setDeleteModal({ isOpen: true, invoiceId: invoice.id })}
+                                                    className="h-9 w-9 p-0 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 rounded-xl hover:bg-rose-200 transition-all shadow-sm"
                                                     title="Excluir do Histórico"
                                                 >
-                                                    <Trash2 size={14} />
+                                                    <Trash2 size={16} />
                                                 </Button>
                                             </div>
                                         </td>
@@ -550,6 +560,46 @@ export function Invoices() {
                                     Confirmar Cancelamento
                                 </Button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Exclusão */}
+            {deleteModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
+                                <Trash2 size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Remover do Histórico</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Esta ação apagará apenas o registro local.</p>
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+                            Tem certeza que deseja remover esta nota fiscal do seu histórico? 
+                            A nota continuará existindo na prefeitura, mas não aparecerá mais neste painel.
+                        </p>
+
+                        <div className="flex gap-3 pt-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setDeleteModal({ isOpen: false, invoiceId: null })}
+                                className="flex-1 h-12 rounded-xl font-bold text-gray-500"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={handleDeleteInvoice}
+                                isLoading={isDeleting}
+                                className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-500/20 rounded-xl font-bold"
+                            >
+                                Sim, Remover
+                            </Button>
                         </div>
                     </div>
                 </div>
