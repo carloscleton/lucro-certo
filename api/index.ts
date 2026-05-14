@@ -820,6 +820,8 @@ app.get(['/fiscal-module/pdf/:id', '/api/fiscal-module/pdf/:id', '/fiscal-module
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
 
+    console.log(`📄 [FISCAL-PDF] Solicitado para ID: ${id}, Company: ${companyId}`);
+
     try {
         const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
@@ -834,17 +836,25 @@ app.get(['/fiscal-module/pdf/:id', '/api/fiscal-module/pdf/:id', '/fiscal-module
                 params: { external_id: `eq.${id}`, select: 'type' },
                 headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
             });
-            if (invData?.[0]?.type) type = invData[0].type;
-        } catch (dbErr) { /* ignore */ }
+            if (invData?.[0]?.type) {
+                type = invData[0].type;
+                console.log(`🔍 [FISCAL-PDF] Tipo detectado no banco: ${type}`);
+            }
+        } catch (dbErr: any) { 
+            console.warn(`⚠️ [FISCAL-PDF] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
+        }
 
-        const response = await axios.get(`${baseUrl}/${type}/${id}/pdf`, {
+        const targetUrl = `${baseUrl}/${type}/${id}/pdf`;
+        console.log(`🚀 [FISCAL-PDF] Requisitando TecnoSpeed: ${targetUrl}`);
+
+        const response = await axios.get(targetUrl, {
             headers: { 'X-API-KEY': apiKey },
             responseType: 'arraybuffer'
         });
         res.contentType('application/pdf');
         res.send(response.data);
     } catch (error: any) {
-        console.error('❌ [FISCAL-PDF] Erro:', error.response?.data || error.message);
+        console.error('❌ [FISCAL-PDF] Erro Crítico:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erro ao baixar PDF', detail: error.response?.data || error.message });
     }
 });
@@ -854,6 +864,8 @@ app.get(['/fiscal-module/xml/:id', '/api/fiscal-module/xml/:id', '/fiscal-module
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
 
+    console.log(`📦 [FISCAL-XML] Solicitado para ID: ${id}, Company: ${companyId}`);
+
     try {
         const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
@@ -868,17 +880,25 @@ app.get(['/fiscal-module/xml/:id', '/api/fiscal-module/xml/:id', '/fiscal-module
                 params: { external_id: `eq.${id}`, select: 'type' },
                 headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
             });
-            if (invData?.[0]?.type) type = invData[0].type;
-        } catch (dbErr) { /* ignore */ }
+            if (invData?.[0]?.type) {
+                type = invData[0].type;
+                console.log(`🔍 [FISCAL-XML] Tipo detectado no banco: ${type}`);
+            }
+        } catch (dbErr: any) { 
+            console.warn(`⚠️ [FISCAL-XML] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
+        }
 
-        const response = await axios.get(`${baseUrl}/${type}/${id}/xml`, {
+        const targetUrl = `${baseUrl}/${type}/${id}/xml`;
+        console.log(`🚀 [FISCAL-XML] Requisitando TecnoSpeed: ${targetUrl}`);
+
+        const response = await axios.get(targetUrl, {
             headers: { 'X-API-KEY': apiKey },
             responseType: 'arraybuffer'
         });
         res.contentType('application/xml');
         res.send(response.data);
     } catch (error: any) {
-        console.error('❌ [FISCAL-XML] Erro:', error.response?.data || error.message);
+        console.error('❌ [FISCAL-XML] Erro Crítico:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erro ao baixar XML', detail: error.response?.data || error.message });
     }
 });

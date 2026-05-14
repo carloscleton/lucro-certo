@@ -6,7 +6,6 @@ import { API_BASE_URL } from '../lib/constants';
 const getFiscalUrl = (endpoint: string) => {
     const base = API_BASE_URL.replace(/\/$/, '');
     const url = `${base}/fiscal-module/${endpoint}`;
-    console.log(`[FiscalService] Calling: ${url}`);
     return url;
 };
 
