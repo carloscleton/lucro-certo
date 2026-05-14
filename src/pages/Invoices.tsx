@@ -37,19 +37,6 @@ export function Invoices() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [duplicateData, setDuplicateData] = useState<{items: any[], type: 'nfse' | 'nfe', contactId: string, cityCode: string, notes: string} | null>(null);
 
-    const handleDownloadPDF = async (externalId: string, companyId: string) => {
-        try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
-            if (!token) return;
-            const blob = await fiscalService.downloadPDF(externalId, companyId, token);
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `nota_${externalId}.pdf`;
-            a.click();
-        } catch (error: any) {
-            console.error('Error downloading PDF:', error);
-            setResultModal({
     const handleViewPDF = async (externalId: string, companyId: string, type: 'nfse' | 'nfe', directUrl?: string) => {
         // Se já tivermos a URL direta (ex: PlugNotas CDN), abrimos em nova aba imediatamente
         if (directUrl && directUrl.startsWith('http')) {
