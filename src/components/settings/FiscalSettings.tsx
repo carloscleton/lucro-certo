@@ -928,14 +928,16 @@ export function FiscalSettings() {
                                 helpText={config.nfse_nacional ? "Para o padrão Nacional, use o código de 9 dígitos sem pontos." : "Código municipal ou LC 116."}
                                 error={config.nfse_nacional && config.default_taxation_code && config.default_taxation_code.replace(/\D/g, '').length !== 9 ? "O código nacional deve ter exatamente 9 dígitos numéricos." : undefined}
                             />
-                            <Input
-                                label="Alíquota ISS Padrão (%)"
-                                type="number"
-                                value={config.default_iss_aliquota || ''}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_iss_aliquota: e.target.value })}
-                                placeholder="Ex: 3"
-                                autoComplete="off"
-                            />
+                            {config.regime_tributario === '3' && (
+                                <Input
+                                    label="Alíquota ISS Padrão (%)"
+                                    type="number"
+                                    value={config.default_iss_aliquota || ''}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_iss_aliquota: e.target.value })}
+                                    placeholder="Ex: 3"
+                                    autoComplete="off"
+                                />
+                            )}
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                     Exigibilidade ISS Padrão
