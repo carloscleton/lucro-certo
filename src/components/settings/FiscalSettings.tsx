@@ -99,7 +99,12 @@ export function FiscalSettings() {
         default_irrf_aliquota: '',
         use_external_webhook: false,
         external_webhook_url: '',
-        external_webhook_token: ''
+        external_webhook_token: '',
+        // Novos campos Simples Nacional
+        simples_nacional_aliquota: '0.00',
+        simples_nacional_regime_apuracao: '1',
+        pis_cofins_situacao_tributaria: '00',
+        pis_cofins_csll_retencao_tipo: '1'
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -819,6 +824,79 @@ export function FiscalSettings() {
                                         <Search size={18} />
                                     )}
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tributação Federal / Simples Nacional */}
+                    <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                        <div className="flex items-center gap-2 mb-4">
+                            <ShieldCheck className="text-blue-500" size={18} />
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Tributação Federal (Simples Nacional)</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-slate-700">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Situação Tributária do PIS/COFINS
+                                </label>
+                                <select
+                                    value={config.pis_cofins_situacao_tributaria}
+                                    onChange={(e) => setConfig({ ...config, pis_cofins_situacao_tributaria: e.target.value })}
+                                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="00">00 - Nenhum / Não Informado</option>
+                                    <option value="01">01 - Operação Tributável com Alíquota Básica</option>
+                                    <option value="02">02 - Operação Tributável com Alíquota Diferenciada</option>
+                                    <option value="03">03 - Operação Tributável com Alíquota por Unidade de Medida de Produto</option>
+                                    <option value="04">04 - Operação Tributável monofásica - Revenda a Alíquota Zero</option>
+                                    <option value="05">05 - Operação Tributável por Substituição Tributária</option>
+                                    <option value="06">06 - Operação Tributável a Alíquota Zero</option>
+                                    <option value="07">07 - Operação Isenta da Contribuição</option>
+                                    <option value="08">08 - Operação sem Incidência da Contribuição</option>
+                                    <option value="09">09 - Operação com Suspensão da Contribuição</option>
+                                </select>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Tipo de retenção do PIS/COFINS/CSLL
+                                </label>
+                                <select
+                                    value={config.pis_cofins_csll_retencao_tipo}
+                                    onChange={(e) => setConfig({ ...config, pis_cofins_csll_retencao_tipo: e.target.value })}
+                                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="1">PIS/COFINS/CSLL Não Retidos</option>
+                                    <option value="2">PIS/COFINS/CSLL Retidos</option>
+                                    <option value="3">PIS/COFINS Retidos, CSLL Não Retido</option>
+                                    <option value="4">PIS Retido, COFINS/CSLL Não Retido</option>
+                                    <option value="5">COFINS Retido, PIS/CSLL Não Retido</option>
+                                </select>
+                            </div>
+
+                            <Input
+                                label="Alíquota no Simples Nacional (%)"
+                                value={config.simples_nacional_aliquota}
+                                onChange={(e) => setConfig({ ...config, simples_nacional_aliquota: e.target.value })}
+                                placeholder="6.00"
+                                type="number"
+                                step="0.01"
+                            />
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Regime de Apuração do Simples Nacional
+                                </label>
+                                <select
+                                    value={config.simples_nacional_regime_apuracao}
+                                    onChange={(e) => setConfig({ ...config, simples_nacional_regime_apuracao: e.target.value })}
+                                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="1">1 - Tributos federais e municipal pelo Simples Nacional</option>
+                                    <option value="2">2 - Tributos federais pelo Simples Nacional e ISSQN pela NFS-e</option>
+                                    <option value="3">3 - Tributos federais e municipal pela NFS-e</option>
+                                </select>
                             </div>
                         </div>
                     </div>

@@ -381,6 +381,21 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             };
                         }
 
+                        // Aplicação automática das configurações de Simples Nacional se disponíveis
+                        const configFiscal = currentCompany?.tecnospeed_config;
+                        if (configFiscal) {
+                            if (configFiscal.simples_nacional_aliquota) {
+                                if (!item.valor) item.valor = {};
+                                if (!item.valor.aliquota) { 
+                                    item.valor.aliquota = parseFloat(configFiscal.simples_nacional_aliquota);
+                                }
+                            }
+                            if (configFiscal.pis_cofins_situacao_tributaria) {
+                                item.pis = { situacaoTributaria: configFiscal.pis_cofins_situacao_tributaria };
+                                item.cofins = { situacaoTributaria: configFiscal.pis_cofins_situacao_tributaria };
+                            }
+                        }
+
                         return item;
                     })
                 };
