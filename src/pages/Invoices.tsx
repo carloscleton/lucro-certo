@@ -14,12 +14,6 @@ export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
     const { currentEntity } = useEntity();
     
-    console.log('🏢 [Invoices] Entidade Atual:', {
-        id: currentEntity.id,
-        name: currentEntity.name,
-        cnpj: currentEntity.cnpj,
-        type: currentEntity.type
-    });
     const [showNewModal, setShowNewModal] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
     // Versão do Componente: v1.0.21 - Forçando deploy e refresh

@@ -1,12 +1,9 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/constants';
 
-// Função para garantir URLs consistentes com prefixo /fiscal
-// Na verdade, vamos ser mais simples e diretos:
 const getFiscalUrl = (endpoint: string) => {
     const base = API_BASE_URL.replace(/\/$/, '');
-    const url = `${base}/fiscal-module/${endpoint}`;
-    return url;
+    return `${base}/fiscal-module/${endpoint}`;
 };
 
 export interface FiscalPayload {

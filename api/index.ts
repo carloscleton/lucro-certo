@@ -817,18 +817,10 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
 
 app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/fiscal-module/pdf/:id', '/api/fiscal-module/pdf/:id'], authenticate, async (req, res) => {
     let { type, id } = req.params;
-    const { companyId } = req.query;
-    const authHeader = req.headers.authorization;
-
-    // Se o :type na verdade for o ID (nas rotas legadas /pdf/:id)
-    if (type === 'pdf') {
-        type = 'nfse'; // Default fallback
-    }
-
-    console.log(`📄 [FISCAL-PDF] Solicitado para ID: ${id}, Tipo: ${type}, Company: ${companyId}`);
+    console.log(`📄 [FISCAL-PDF] Solicitado para ID: ${id}, Tipo: ${type}`);
 
     try {
-        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -848,10 +840,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
             } catch (dbErr: any) { 
                 console.warn(`⚠️ [FISCAL-PDF] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
             }
-        }
-
         const targetUrl = `${baseUrl}/${type}/${id}/pdf`;
-        console.log(`🚀 [FISCAL-PDF] Requisitando TecnoSpeed: ${targetUrl}`);
 
         const response = await axios.get(targetUrl, {
             headers: { 'X-API-KEY': apiKey },
@@ -867,18 +856,10 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
 app.get(['/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml', '/fiscal-module/xml/:id', '/api/fiscal-module/xml/:id'], authenticate, async (req, res) => {
     let { type, id } = req.params;
-    const { companyId } = req.query;
-    const authHeader = req.headers.authorization;
-
-    // Se o :type na verdade for o ID (nas rotas legadas /xml/:id)
-    if (type === 'xml') {
-        type = 'nfse'; // Default fallback
-    }
-
-    console.log(`📦 [FISCAL-XML] Solicitado para ID: ${id}, Tipo: ${type}, Company: ${companyId}`);
+    console.log(`📦 [FISCAL-XML] Solicitado para ID: ${id}, Tipo: ${type}`);
 
     try {
-        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -898,10 +879,7 @@ app.get(['/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml', '/f
             } catch (dbErr: any) { 
                 console.warn(`⚠️ [FISCAL-XML] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
             }
-        }
-
         const targetUrl = `${baseUrl}/${type}/${id}/xml`;
-        console.log(`🚀 [FISCAL-XML] Requisitando TecnoSpeed: ${targetUrl}`);
 
         const response = await axios.get(targetUrl, {
             headers: { 'X-API-KEY': apiKey },
@@ -918,18 +896,16 @@ app.get(['/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml', '/f
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
     const { id, type, companyId, justificativa } = req.body;
     const authHeader = req.headers.authorization;
-
-    console.log(`🚫 [FISCAL-CANCEL] Solicitado para ID: ${id}, Tipo: ${type}, Company: ${companyId}`);
+    console.log(`🚫 [FISCAL-CANCEL] Solicitado para ID: ${id}`);
 
     try {
-        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         const targetUrl = `${baseUrl}/${type}/${id}/cancelar`;
-        console.log(`🚀 [FISCAL-CANCEL] Requisitando TecnoSpeed: ${targetUrl}`);
 
         const response = await axios.post(targetUrl, {
             justificativa: justificativa || 'Cancelamento solicitado pelo usuario'
