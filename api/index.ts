@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.24' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.25' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -129,12 +129,15 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const typeLower = type.toLowerCase();
         let lastError = null;
 
-        // --- ESTRATÉGIA BRUTE FORCE DISCOVERY ---
+        // --- ESTRATÉGIA BRUTE FORCE DISCOVERY (v1.0.25) ---
         if (typeLower === 'nfse') {
-            // 1. Padrão Nacional
+            // 1. Padrão Nacional Oficial (Documentação)
             try {
-                const targetUrl = `${cleanBaseUrl}/nfse/cancelar`;
-                const response = await axios.post(targetUrl, { id, justificativa: justificativa || 'Cancelamento solicitado pelo usuario' }, {
+                const targetUrl = `${cleanBaseUrl}/nfse/cancelar/${id}`;
+                const response = await axios.post(targetUrl, { 
+                    codigo: '9', // Outros
+                    motivo: justificativa || 'Cancelamento solicitado pelo usuario'
+                }, {
                     headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
                 });
                 return finalizeCancel(id, response.data);
@@ -143,9 +146,9 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 if (error.response?.status !== 404 && !JSON.stringify(error.response?.data).includes('não existe')) throw error;
             }
 
-            // 2. Padrão Nacional Específico
+            // 2. Padrão Nacional Simplificado
             try {
-                const targetUrl = `${cleanBaseUrl}/nfse/nacional/cancelar`;
+                const targetUrl = `${cleanBaseUrl}/nfse/cancelar`;
                 const response = await axios.post(targetUrl, { id, justificativa: justificativa || 'Cancelamento solicitado pelo usuario' }, {
                     headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
                 });
