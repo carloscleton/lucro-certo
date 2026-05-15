@@ -149,6 +149,10 @@ export function FiscalSettings() {
         message: string;
         type: 'success' | 'error' | 'info';
         data?: Record<string, any>;
+        action?: {
+            label: string;
+            onClick: () => void;
+        };
     }>({
         isOpen: false,
         title: '',
