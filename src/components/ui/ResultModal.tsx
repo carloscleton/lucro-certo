@@ -77,8 +77,11 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
 
     useEffect(() => {
         if (isOpen && data) {
-            const hasPdf = findDocument(data, 'pdf') || data.pdf?.url;
-            setShowPdf(!!hasPdf);
+            const realPdfUrl = findDocument(data, 'pdf');
+            const realXmlUrl = findDocument(data, 'xml');
+            
+            // Só ativa visualização automática se for um link real (http/blob)
+            setShowPdf(!!realPdfUrl);
             setShowXml(false);
             setXmlContent(null);
         }
