@@ -251,8 +251,8 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                 </div>
                             )}
 
-                            <div className="mt-auto flex flex-col gap-2">
-                                <div className="space-y-2 w-full">
+                            <div className="mt-auto flex flex-col gap-3">
+                                <div className="space-y-2">
                                     {pdfUrl && (
                                         <Button 
                                             onClick={() => setShowPdf(true)} 
@@ -263,23 +263,13 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         </Button>
                                     )}
                                     {xmlUrl && (
-                                        <div className="flex gap-2">
-                                            <Button 
-                                                onClick={handleViewXml} 
-                                                className="flex-1 h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
-                                            >
-                                                <Search size={18} />
-                                                Visualizar XML
-                                            </Button>
-                                            <a 
-                                                href={xmlUrl} 
-                                                download 
-                                                className="w-12 h-12 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-                                                title="Baixar XML"
-                                            >
-                                                <Download size={18} />
-                                            </a>
-                                        </div>
+                                        <Button 
+                                            onClick={handleViewXml} 
+                                            className="w-full h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                                        >
+                                            <Search size={18} />
+                                            Visualizar XML
+                                        </Button>
                                     )}
                                 </div>
 
