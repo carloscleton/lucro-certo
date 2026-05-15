@@ -18,31 +18,42 @@ interface ResultModalProps {
 const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
     if (!obj || typeof obj !== 'object') return null;
     
-    // DEBUG: console.log(`[DEBUG-FIND] Buscando ${format} em:`, obj);
+    // LOG DE DEPURAÇÃO - Veremos isso no seu console F12
+    console.log(`[DEBUG-FIND] Procurando ${format} em:`, obj);
 
-    // 1. Tenta campos diretos e comuns
-    const directPdf = obj.pdf_url || obj.pdf?.url || obj.pdf;
-    const directXml = obj.xml_url || obj.xml?.url || obj.xml;
+    // 1. Tenta campos diretos e comuns (padrão PlugNotas e nosso Banco)
+    const directPdf = obj.pdf_url || obj.pdf?.url || obj.pdf || obj.url_pdf || obj.urlPdf;
+    const directXml = obj.xml_url || obj.xml?.url || obj.xml || obj.url_xml || obj.urlXml;
 
-    if (format === 'pdf' && typeof directPdf === 'string' && directPdf.startsWith('http')) return directPdf;
-    if (format === 'xml' && typeof directXml === 'string' && directXml.startsWith('http')) return directXml;
+    if (format === 'pdf' && typeof directPdf === 'string' && directPdf.startsWith('http')) {
+        console.log(`[DEBUG-SUCCESS] PDF encontrado via campo direto: ${directPdf}`);
+        return directPdf;
+    }
+    if (format === 'xml' && typeof directXml === 'string' && directXml.startsWith('http')) {
+        console.log(`[DEBUG-SUCCESS] XML encontrado via campo direto: ${directXml}`);
+        return directXml;
+    }
 
-    // 2. Busca exaustiva em todas as chaves
+    // 2. Busca exaustiva em todas as chaves do objeto
     for (const k in obj) {
         const val = obj[k];
         
-        // Se for uma string que parece uma URL
         if (typeof val === 'string' && val.startsWith('http')) {
             const low = val.toLowerCase();
-            if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.includes('daconse') || low.endsWith('.pdf'))) {
-                return val;
-            }
-            if (format === 'xml' && (low.includes('xml') || low.includes('arquivo') || low.endsWith('.xml'))) {
-                return val;
+            const isDoc = low.includes('pdf') || low.includes('xml') || low.includes('tecnospeed') || low.includes('plugnotas');
+            
+            if (isDoc) {
+                if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.endsWith('.pdf'))) {
+                    console.log(`[DEBUG-SUCCESS] PDF encontrado via busca exaustiva: ${val}`);
+                    return val;
+                }
+                if (format === 'xml' && (low.includes('xml') || low.includes('arquivo') || low.endsWith('.xml'))) {
+                    console.log(`[DEBUG-SUCCESS] XML encontrado via busca exaustiva: ${val}`);
+                    return val;
+                }
             }
         }
         
-        // Se for um objeto, mergulha nele (evitando null)
         if (typeof val === 'object' && val !== null) {
             const found = findDocument(val, format);
             if (found) return found;
