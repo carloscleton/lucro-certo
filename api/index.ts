@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.22' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.23' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -96,10 +96,11 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
         
-        const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-
+        // --- SANITIZAÇÃO DA URL BASE ---
+        // Remover barras finais e possíveis prefixos de tipo que o usuário possa ter colocado na config
+        let cleanBaseUrl = baseUrl.replace(/\/$/, '').replace(/\/(nfse|nfe)$/i, '');
+        
         // --- PROTEÇÃO DE ID ---
-        // Se o ID for numérico, é o ID interno. Precisamos do external_id (UUID)
         if (id && !isNaN(Number(id))) {
             try {
                 const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
@@ -111,58 +112,66 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     if (!type) type = invData[0].type;
                 }
             } catch (dbErr) {
-                console.warn('⚠️ Falha ao buscar external_id para ID numérico:', id);
+                console.warn('⚠️ Falha ao buscar external_id:', id);
             }
         }
         
-        // Se o tipo não for explícito, tentar detectar no banco
         if (!type || (type !== 'nfe' && type !== 'nfse')) {
             try {
                 const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                     params: { external_id: `eq.${id}`, select: 'type' },
                     headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
                 });
-                if (invData?.[0]?.type) {
-                    type = invData[0].type;
-                } else {
-                    type = 'nfse'; // Fallback final
-                }
-            } catch (dbErr) {
-                type = 'nfse';
-            }
+                if (invData?.[0]?.type) type = invData[0].type;
+                else type = 'nfse';
+            } catch (dbErr) { type = 'nfse'; }
         }
 
-        // --- AJUSTE PARA NFSE NACIONAL ---
-        let targetUrl = `${cleanBaseUrl}/${type.toLowerCase()}/${id}/cancelar`;
-        let payload: any = { justificativa: justificativa || 'Cancelamento solicitado pelo usuario' };
+        const typeLower = type.toLowerCase();
+        let lastError = null;
 
-        if (type.toLowerCase() === 'nfse') {
-            targetUrl = `${cleanBaseUrl}/nfse/cancelar`;
-            payload = {
-                id: id,
-                justificativa: justificativa || 'Cancelamento solicitado pelo usuario'
-            };
-        }
-
-        const response = await axios.post(targetUrl, payload, {
-            headers: { 
-                'X-API-KEY': apiKey,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (SUPABASE_URL) {
+        // --- ESTRATÉGIA SMART RETRY ---
+        // 1. Tentar padrão Nacional se for NFSe
+        if (typeLower === 'nfse') {
             try {
-                await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
-                    status: 'cancelado',
-                    updated_at: new Date().toISOString()
-                }, {
-                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
+                const targetUrl = `${cleanBaseUrl}/nfse/cancelar`;
+                const response = await axios.post(targetUrl, { id, justificativa: justificativa || 'Cancelamento solicitado pelo usuario' }, {
+                    headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
                 });
-            } catch (dbErr) { console.warn('⚠️ Falha ao marcar como cancelado no banco local'); }
+                return finalizeCancel(id, response.data);
+            } catch (error: any) {
+                lastError = error;
+                // Se NÃO for erro de rota (404), parar por aqui
+                if (error.response?.status !== 404 && !JSON.stringify(error.response?.data).includes('não existe')) {
+                    throw error;
+                }
+            }
         }
 
-        res.json(response.data);
+        // 2. Tentar padrão Municipal / Padrão NFe
+        try {
+            const targetUrl = `${cleanBaseUrl}/${typeLower}/${id}/cancelar`;
+            const response = await axios.post(targetUrl, { justificativa: justificativa || 'Cancelamento solicitado pelo usuario' }, {
+                headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
+            });
+            return finalizeCancel(id, response.data);
+        } catch (error: any) {
+            throw lastError || error;
+        }
+
+        async function finalizeCancel(extId: string, result: any) {
+            if (SUPABASE_URL) {
+                try {
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${extId}`, {
+                        status: 'cancelado',
+                        updated_at: new Date().toISOString()
+                    }, {
+                        headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
+                    });
+                } catch (dbErr) { console.warn('⚠️ Falha no patch local'); }
+            }
+            res.json(result);
+        }
     } catch (error: any) {
         const detail = error.response?.data || error.message;
         const targetUrl = error.config?.url || 'URL não capturada';
