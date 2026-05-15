@@ -275,7 +275,7 @@ export function Invoices() {
                                 Notas Fiscais
                             </h1>
                             <span className="text-[9px] font-black text-blue-500/50 uppercase tracking-[0.2em] mt-0.5">
-                                v1.1.0 • Estável
+                                v1.1.2 • Estável
                             </span>
                         </div>
                     </div>
@@ -432,11 +432,17 @@ export function Invoices() {
                                                 <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                     {(() => {
                                                         const p = invoice.payload;
-                                                        const val = p?.servico?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || 0;
+                                                        // Tenta extrair de servico (pode ser array no Nacional ou objeto no Municipal)
+                                                        const servico = Array.isArray(p?.servico) ? p.servico[0] : p?.servico;
+                                                        const val = servico?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || 0;
                                                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
                                                     })()}
                                                 </span>
-                                                <Tooltip content={invoice.payload?.servico?.discriminacao || invoice.payload?.itens?.[0]?.descricao || 'Sem descrição'}>
+                                                <Tooltip content={(() => {
+                                                    const p = invoice.payload;
+                                                    const servico = Array.isArray(p?.servico) ? p.servico[0] : p?.servico;
+                                                    return servico?.discriminacao || p?.itens?.[0]?.descricao || 'Sem descrição';
+                                                })()}>
                                                     <span className="text-[10px] text-blue-500 font-medium mt-0.5 cursor-help flex items-center gap-1 hover:underline">
                                                         <Search size={10} />
                                                         Ver Descrição
