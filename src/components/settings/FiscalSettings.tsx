@@ -168,6 +168,29 @@ export function FiscalSettings() {
         type: 'info'
     });
 
+    // Persistência do Modal de Resultado (para não fechar ao navegar)
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        const saved = sessionStorage.getItem(`fiscal_result_modal_${currentEntity.id}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setResultModal(parsed);
+            } catch (e) {
+                sessionStorage.removeItem(`fiscal_result_modal_${currentEntity.id}`);
+            }
+        }
+    }, [currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        if (resultModal.isOpen) {
+            sessionStorage.setItem(`fiscal_result_modal_${currentEntity.id}`, JSON.stringify(resultModal));
+        } else {
+            sessionStorage.removeItem(`fiscal_result_modal_${currentEntity.id}`);
+        }
+    }, [resultModal, currentEntity.id]);
+
     const handleSave = async () => {
         if (!currentEntity.id || currentEntity.type === 'personal') {
             setResultModal({
@@ -340,8 +363,8 @@ export function FiscalSettings() {
             const value = newData[key];
             
             if (typeof value === 'string' && value.includes('plugnotas.com.br')) {
-                // Regex para capturar /nfse/pdf/ID ou /nfse/xml/ID
-                const match = value.match(/\/(nfse|nfe|nfce)\/(pdf|xml)\/([a-f0-9]+)/i);
+                // Regex para capturar /nfse/pdf/ID ou /nfse-nacional/pdf/ID etc
+                const match = value.match(/\/(nfse-nacional|nfse|nfe|nfce)\/(pdf|xml)\/([a-f0-9]+)/i);
                 if (match) {
                     const [_, type, format, id] = match;
                     const base = API_BASE_URL.replace(/\/$/, '');
@@ -373,11 +396,12 @@ export function FiscalSettings() {
             if (isDone && id) {
                 const base = API_BASE_URL.replace(/\/$/, '');
                 const tokenPart = token ? `&token=${token}` : '';
+                const type = config.nfse_nacional ? 'nfse-nacional' : 'nfse';
                 if (!wrappedResult.pdf) {
-                    wrappedResult.pdf = `${base}/fiscal-module/nfse/${id}/pdf?companyId=${currentEntity.id}${tokenPart}`;
+                    wrappedResult.pdf = `${base}/fiscal-module/${type}/${id}/pdf?companyId=${currentEntity.id}${tokenPart}`;
                 }
                 if (!wrappedResult.xml) {
-                    wrappedResult.xml = `${base}/fiscal-module/nfse/${id}/xml?companyId=${currentEntity.id}${tokenPart}`;
+                    wrappedResult.xml = `${base}/fiscal-module/${type}/${id}/xml?companyId=${currentEntity.id}${tokenPart}`;
                 }
             }
 
@@ -438,11 +462,12 @@ export function FiscalSettings() {
             if (externalId) {
                 const base = API_BASE_URL.replace(/\/$/, '');
                 const tokenPart = token ? `&token=${token}` : '';
+                const type = config.nfse_nacional ? 'nfse-nacional' : 'nfse';
                 if (!wrappedResponse.pdf) {
-                    wrappedResponse.pdf = `${base}/fiscal-module/nfse/${externalId}/pdf?companyId=${currentEntity.id}${tokenPart}`;
+                    wrappedResponse.pdf = `${base}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}${tokenPart}`;
                 }
                 if (!wrappedResponse.xml) {
-                    wrappedResponse.xml = `${base}/fiscal-module/nfse/${externalId}/xml?companyId=${currentEntity.id}${tokenPart}`;
+                    wrappedResponse.xml = `${base}/fiscal-module/${type}/${externalId}/xml?companyId=${currentEntity.id}${tokenPart}`;
                 }
             }
 
@@ -1388,7 +1413,7 @@ export function FiscalSettings() {
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                                         Laboratório de Testes (JSON Manual)
                                         <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800 animate-pulse">
-                                            v1.0.41
+                                            v1.0.42
                                         </span>
                                     </h3>
                                 </div>
