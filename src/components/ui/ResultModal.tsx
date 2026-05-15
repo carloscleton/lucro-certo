@@ -45,6 +45,18 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const pdfUrl = findDocument(data, 'pdf');
     const xmlUrl = findDocument(data, 'xml');
 
+    const formatXml = (xml: string) => {
+        let formatted = '';
+        let indent = '';
+        const tab = '    ';
+        xml.split(/>\s*</).forEach((node) => {
+            if (node.match(/^\/\w/)) indent = indent.substring(tab.length);
+            formatted += indent + '<' + node + '>\r\n';
+            if (node.match(/^<?\w[^>]*[^\/]$/)) indent += tab;
+        });
+        return formatted.substring(1, formatted.length - 3);
+    };
+
     const handleViewXml = async () => {
         if (!xmlUrl) return;
         setShowPdf(false);
@@ -54,7 +66,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             try {
                 const res = await fetch(xmlUrl);
                 const text = await res.text();
-                setXmlContent(text);
+                setXmlContent(formatXml(text));
             } catch (e) {
                 setXmlContent('Erro ao carregar conteúdo do XML.');
             } finally {

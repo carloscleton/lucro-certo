@@ -1425,7 +1425,7 @@ export function FiscalSettings() {
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                                         Laboratório de Testes (JSON Manual)
                                         <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800">
-                                            v1.0.45
+                                            v1.1.0
                                         </span>
                                     </h3>
                                 </div>
