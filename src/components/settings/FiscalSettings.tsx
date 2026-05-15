@@ -369,6 +369,18 @@ export function FiscalSettings() {
             
             const isDone = ['concluido', 'autorizado', 'erro', 'rejeitado'].includes(result.status?.toLowerCase() || result.data?.status?.toLowerCase());
 
+            // Injeção manual de links se concluído
+            if (isDone && id) {
+                const base = API_BASE_URL.replace(/\/$/, '');
+                const tokenPart = token ? `&token=${token}` : '';
+                if (!wrappedResult.pdf) {
+                    wrappedResult.pdf = `${base}/fiscal-module/nfse/${id}/pdf?companyId=${currentEntity.id}${tokenPart}`;
+                }
+                if (!wrappedResult.xml) {
+                    wrappedResult.xml = `${base}/fiscal-module/nfse/${id}/xml?companyId=${currentEntity.id}${tokenPart}`;
+                }
+            }
+
             setResultModal({
                 isOpen: true,
                 title: isDone ? 'Processamento Concluído' : 'Ainda em Processamento',
@@ -421,6 +433,18 @@ export function FiscalSettings() {
                                !fullResponseString.includes('pdf');
 
             console.log('🧪 [LAB-DEBUG] Resposta Emissão:', { externalId, isProcessing, response });
+
+            // Injeção manual de links se a nota estiver concluída mas sem links explícitos
+            if (!isProcessing && externalId) {
+                const base = API_BASE_URL.replace(/\/$/, '');
+                const tokenPart = token ? `&token=${token}` : '';
+                if (!wrappedResponse.pdf) {
+                    wrappedResponse.pdf = `${base}/fiscal-module/nfse/${externalId}/pdf?companyId=${currentEntity.id}${tokenPart}`;
+                }
+                if (!wrappedResponse.xml) {
+                    wrappedResponse.xml = `${base}/fiscal-module/nfse/${externalId}/xml?companyId=${currentEntity.id}${tokenPart}`;
+                }
+            }
 
             setResultModal({
                 isOpen: true,
@@ -1364,7 +1388,7 @@ export function FiscalSettings() {
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                                         Laboratório de Testes (JSON Manual)
                                         <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800 animate-pulse">
-                                            v1.0.38
+                                            v1.0.39
                                         </span>
                                     </h3>
                                 </div>
