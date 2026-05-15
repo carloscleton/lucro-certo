@@ -275,7 +275,7 @@ export function Invoices() {
                                 Notas Fiscais
                             </h1>
                             <span className="text-[9px] font-black text-blue-500/50 uppercase tracking-[0.2em] mt-0.5">
-                                v1.0.22 • Estável
+                                v1.1.0 • Estável
                             </span>
                         </div>
                     </div>
@@ -360,6 +360,7 @@ export function Invoices() {
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Data e Hora</th>
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Tipo</th>
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Cliente / Beneficiário</th>
+                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Valor / Descrição</th>
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Status da Emissão</th>
                                 <th className="py-5 px-6 text-right font-bold text-[10px] uppercase tracking-widest text-gray-400">Ações</th>
                             </tr>
@@ -427,8 +428,31 @@ export function Invoices() {
                                             )}
                                         </td>
                                         <td className="py-3 px-6">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                                                    {(() => {
+                                                        const p = invoice.payload;
+                                                        const val = p?.servico?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || 0;
+                                                        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+                                                    })()}
+                                                </span>
+                                                <Tooltip content={invoice.payload?.servico?.discriminacao || invoice.payload?.itens?.[0]?.descricao || 'Sem descrição'}>
+                                                    <span className="text-[10px] text-blue-500 font-medium mt-0.5 cursor-help flex items-center gap-1 hover:underline">
+                                                        <Search size={10} />
+                                                        Ver Descrição
+                                                    </span>
+                                                </Tooltip>
+                                            </div>
+                                        </td>
+                                        <td className="py-3 px-6">
                                             <div className="flex flex-col gap-1.5 items-start">
                                                 {getStatusBadge(invoice.status)}
+                                                {invoice.status?.toLowerCase() === 'cancelado' && (
+                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-bold rounded-lg border border-slate-200 dark:border-slate-700">
+                                                        <AlertCircle size={10} />
+                                                        {invoice.payload?.cancelamento?.justificativa || 'Cancelamento solicitado'}
+                                                    </div>
+                                                )}
                                                 {invoice.error_message && (
                                                     <Tooltip content={invoice.error_message}>
                                                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-bold rounded-lg border border-rose-500/20 animate-pulse cursor-help">
