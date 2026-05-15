@@ -15,6 +15,35 @@ interface ResultModalProps {
         onClick: () => void;
     };
 }
+const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
+    if (!obj || typeof obj !== 'object') return null;
+    for (const k in obj) {
+        const val = obj[k];
+        const isTecnoSpeed = typeof val === 'string' && val.includes('plugnotas.com.br');
+        const isInternal = typeof val === 'string' && val.includes('/fiscal-module/');
+        if (typeof val === 'string' && (isTecnoSpeed || isInternal)) {
+            if (format === 'pdf' && (val.toLowerCase().includes('pdf') || val.toLowerCase().includes('impressao'))) return val;
+            if (format === 'xml' && val.toLowerCase().includes('xml')) return val;
+        }
+        if (typeof val === 'object') {
+            const found = findDocument(val, format);
+            if (found) return found;
+        }
+    }
+    return null;
+};
+
+const formatXml = (xml: string) => {
+    let formatted = '';
+    let indent = '';
+    const tab = '    ';
+    xml.split(/>\s*</).forEach((node) => {
+        if (node.match(/^\/\w/)) indent = indent.substring(tab.length);
+        formatted += indent + '<' + node + '>\r\n';
+        if (node.match(/^<?\w[^>]*[^\/]$/)) indent += tab;
+    });
+    return formatted.substring(1, formatted.length - 3);
+};
 
 export function ResultModal({ isOpen, onClose, title, message, type = 'info', data, action }: ResultModalProps) {
     const [showPdf, setShowPdf] = useState(data && (findDocument(data, 'pdf') || data.pdf?.url) ? true : false);
@@ -23,40 +52,9 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const [loadingXml, setLoadingXml] = useState(false);
     
     if (!isOpen) return null;
-
-    const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
-        if (!obj || typeof obj !== 'object') return null;
-        for (const k in obj) {
-            const val = obj[k];
-            const isTecnoSpeed = typeof val === 'string' && val.includes('plugnotas.com.br');
-            const isInternal = typeof val === 'string' && val.includes('/fiscal-module/');
-            if (typeof val === 'string' && (isTecnoSpeed || isInternal)) {
-                if (format === 'pdf' && (val.toLowerCase().includes('pdf') || val.toLowerCase().includes('impressao'))) return val;
-                if (format === 'xml' && val.toLowerCase().includes('xml')) return val;
-            }
-            if (typeof val === 'object') {
-                const found = findDocument(val, format);
-                if (found) return found;
-            }
-        }
-        return null;
-    };
-
+    
     const pdfUrl = findDocument(data, 'pdf');
     const xmlUrl = findDocument(data, 'xml');
-
-    const formatXml = (xml: string) => {
-        let formatted = '';
-        let indent = '';
-        const tab = '    ';
-        xml.split(/>\s*</).forEach((node) => {
-            if (node.match(/^\/\w/)) indent = indent.substring(tab.length);
-            formatted += indent + '<' + node + '>\r\n';
-            if (node.match(/^<?\w[^>]*[^\/]$/)) indent += tab;
-        });
-        return formatted.substring(1, formatted.length - 3);
-    };
-
     const handleViewXml = async () => {
         if (!xmlUrl) return;
         setShowPdf(false);
