@@ -506,7 +506,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             console.log(`🧾 [DEBUG-KEYS] Chaves do serviço:`, Object.keys(firstService || {}));
         }
 
-        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.26):`, JSON.stringify(finalPayload, null, 2));
+        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.31):`, JSON.stringify(finalPayload, null, 2));
 
         let response;
 
@@ -569,7 +569,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
         }
 
-        res.json({ ...response.data, proxy_version: '1.0.26' });
+        res.json({ ...response.data, proxy_version: '1.0.31' });
     } catch (error: any) {
         res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
     }

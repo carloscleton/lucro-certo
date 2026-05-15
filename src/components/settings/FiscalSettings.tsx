@@ -344,6 +344,43 @@ export function FiscalSettings() {
         return newData;
     };
 
+    const handleCheckTestStatus = async (id: string) => {
+        if (!id || !currentEntity.id) return;
+        setTestingJson(true);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.checkStatus(id, currentEntity.id, token);
+            const wrappedResult = wrapFiscalLinks(result, currentEntity.id, token);
+            
+            const isDone = ['concluido', 'autorizado', 'erro', 'rejeitado'].includes(result.status?.toLowerCase() || result.data?.status?.toLowerCase());
+
+            setResultModal({
+                isOpen: true,
+                title: isDone ? 'Processamento Concluído' : 'Ainda em Processamento',
+                message: isDone ? 'O status da nota foi atualizado.' : 'A nota ainda está sendo processada pela TecnoSpeed. Tente novamente em instantes.',
+                type: isDone ? 'success' : 'info',
+                data: wrappedResult,
+                action: !isDone ? {
+                    label: 'Verificar Novamente',
+                    onClick: () => handleCheckTestStatus(id)
+                } : undefined
+            });
+        } catch (error: any) {
+            console.error(error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Consulta',
+                message: error.message || 'Falha ao buscar status atualizado.',
+                type: 'error'
+            });
+        } finally {
+            setTestingJson(false);
+        }
+    };
+
     const handleTestJson = async () => {
         if (!testJson.trim()) return;
         setTestingJson(true);
@@ -354,13 +391,23 @@ export function FiscalSettings() {
 
             const payload = JSON.parse(testJson);
             const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
+            const wrappedResponse = wrapFiscalLinks(response, currentEntity.id!, token);
             
+            const externalId = response.id || response.data?.id;
+            const isProcessing = response.message?.includes('processamento') || response.status === 'processando';
+
             setResultModal({
                 isOpen: true,
                 title: 'Resultado do Teste',
-                message: 'Requisição enviada com sucesso ao servidor.',
+                message: isProcessing 
+                    ? 'Requisição aceita. A nota está em processamento na TecnoSpeed.' 
+                    : 'Requisição enviada com sucesso ao servidor.',
                 type: 'success',
-                data: wrapFiscalLinks(response, currentEntity.id!, token)
+                data: wrappedResponse,
+                action: (isProcessing && externalId) ? {
+                    label: 'Verificar Status Agora',
+                    onClick: () => handleCheckTestStatus(externalId)
+                } : undefined
             });
         } catch (error: any) {
             console.error(error);
@@ -1288,7 +1335,12 @@ export function FiscalSettings() {
                             <div className="mt-8 pt-6 border-t-2 border-dashed border-gray-200 dark:border-slate-800">
                                 <div className="flex items-center gap-2 mb-4">
                                     <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
-                                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Laboratório de Testes (JSON Manual)</h3>
+                                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                        Laboratório de Testes (JSON Manual)
+                                        <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800 animate-pulse">
+                                            v1.0.31
+                                        </span>
+                                    </h3>
                                 </div>
                                 
                                 <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-xl border border-purple-100 dark:border-purple-900/20">
@@ -1522,6 +1574,7 @@ export function FiscalSettings() {
                 message={resultModal.message}
                 type={resultModal.type}
                 data={resultModal.data}
+                action={resultModal.action}
             />
         </>
     );
