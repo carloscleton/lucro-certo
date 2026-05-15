@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -173,6 +174,44 @@ export function Invoices() {
             notes: payload.informacoesComplementares?.replace(/\|/g, '\n') || ''
         });
         setShowNewModal(true);
+    };
+
+    const handleViewInternal = async (invoice: any) => {
+        let finalPdfUrl = invoice.pdf_url;
+        
+        // Se não for uma URL real ou for mock, tenta buscar dinamicamente (como o botão baixar)
+        if (!finalPdfUrl || !finalPdfUrl.startsWith('http')) {
+            setIsRefreshing(invoice.id);
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+                
+                const blob = await fiscalService.downloadPDF(
+                    invoice.external_id, 
+                    invoice.type || 'nfse', 
+                    invoice.company_id, 
+                    session.access_token
+                );
+                finalPdfUrl = window.URL.createObjectURL(blob);
+            } catch (error) {
+                console.error('[Visualizar] Erro ao buscar PDF dinâmico:', error);
+                toast.error('Não foi possível gerar a visualização do PDF agora.');
+            } finally {
+                setIsRefreshing(null);
+            }
+        }
+        
+        setResultModal({
+            isOpen: true,
+            title: 'Visualizador da Nota',
+            message: 'Aqui você pode conferir o PDF e o XML da nota autorizada.',
+            type: 'success',
+            data: {
+                ...invoice.payload,
+                pdf: { url: finalPdfUrl },
+                xml: { url: invoice.xml_url }
+            }
+        });
     };
 
     const getStatusBadge = (status: string) => {
@@ -501,20 +540,15 @@ export function Invoices() {
 
                                                         <Tooltip content="Visualizar Nota (PDF/XML)">
                                                             <button
-                                                                onClick={() => setResultModal({
-                                                                    isOpen: true,
-                                                                    title: 'Visualizador da Nota',
-                                                                    message: 'Aqui você pode conferir o PDF e o XML da nota autorizada.',
-                                                                    type: 'success',
-                                                                    data: {
-                                                                        ...invoice.payload,
-                                                                        pdf: invoice.pdf_url ? { url: invoice.pdf_url } : invoice.payload?.pdf,
-                                                                        xml: invoice.xml_url ? { url: invoice.xml_url } : invoice.payload?.xml
-                                                                    }
-                                                                })}
+                                                                onClick={() => handleViewInternal(invoice)}
+                                                                disabled={isRefreshing === invoice.id}
                                                                 className="h-10 w-10 flex items-center justify-center glass-morphism text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm"
                                                             >
-                                                                <Eye size={18} />
+                                                                {isRefreshing === invoice.id ? (
+                                                                    <RefreshCw size={18} className="animate-spin" />
+                                                                ) : (
+                                                                    <Eye size={18} />
+                                                                )}
                                                             </button>
                                                         </Tooltip>
 
