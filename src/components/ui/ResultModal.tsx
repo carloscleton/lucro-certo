@@ -67,6 +67,11 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const [showXml, setShowXml] = useState(false);
     const [xmlContent, setXmlContent] = useState<string | null>(null);
     const [loadingXml, setLoadingXml] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState(100);
+
+    const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 20, 200));
+    const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 20, 60));
+    const handleResetZoom = () => setZoomLevel(100);
 
 
 
@@ -149,14 +154,48 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                     <X size={20} />
                                 </button>
                             </div>
-                            <div className="flex-1 bg-gray-100 dark:bg-slate-950 rounded-2xl overflow-hidden border border-gray-200 dark:border-slate-800 shadow-inner">
+                            <div className="flex-1 overflow-auto bg-gray-100 dark:bg-slate-950 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-inner">
                                 {showPdf ? (
                                     pdfUrl ? (
-                                        <iframe 
-                                            src={`${pdfUrl}#toolbar=0`} 
-                                            className="w-full h-full border-none"
-                                            title="Visualizador de PDF"
-                                        />
+                                        <div className="relative group p-4">
+                                            {/* Toolbar de Zoom */}
+                                            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 p-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                                <button 
+                                                    onClick={handleZoomOut}
+                                                    className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                                    title="Diminuir Zoom"
+                                                >
+                                                    <X size={16} className="rotate-45" />
+                                                </button>
+                                                <div className="h-4 w-[1px] bg-gray-200 dark:bg-slate-700 mx-1" />
+                                                <button 
+                                                    onClick={handleResetZoom}
+                                                    className="px-3 py-1 text-[10px] font-black text-gray-500 uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                                >
+                                                    {zoomLevel}%
+                                                </button>
+                                                <div className="h-4 w-[1px] bg-gray-200 dark:bg-slate-700 mx-1" />
+                                                <button 
+                                                    onClick={handleZoomIn}
+                                                    className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                                    title="Aumentar Zoom"
+                                                >
+                                                    <Plus size={16} />
+                                                </button>
+                                            </div>
+                                            <div className="w-full h-[600px] overflow-hidden">
+                                                <div 
+                                                    className="w-full h-full transition-transform duration-300 ease-out origin-top"
+                                                    style={{ transform: `scale(${zoomLevel / 100})` }}
+                                                >
+                                                    <iframe 
+                                                        src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
+                                                        className="w-full h-full border-none"
+                                                        title="Visualizador de PDF"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-gray-400">
                                             PDF não disponível para visualização interna
