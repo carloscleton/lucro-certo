@@ -17,15 +17,27 @@ interface ResultModalProps {
 }
 const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
     if (!obj || typeof obj !== 'object') return null;
+    
+    // 1. Tenta encontrar diretamente se houver campos óbvios
+    if (format === 'pdf' && typeof obj.pdf === 'string' && obj.pdf.startsWith('http')) return obj.pdf;
+    if (format === 'pdf' && typeof obj.pdf?.url === 'string' && obj.pdf.url.startsWith('http')) return obj.pdf.url;
+    if (format === 'xml' && typeof obj.xml === 'string' && obj.xml.startsWith('http')) return obj.xml;
+    if (format === 'xml' && typeof obj.xml?.url === 'string' && obj.xml.url.startsWith('http')) return obj.xml.url;
+
+    // 2. Busca recursiva para links da TecnoSpeed ou padrões conhecidos
     for (const k in obj) {
         const val = obj[k];
-        const isTecnoSpeed = typeof val === 'string' && val.includes('plugnotas.com.br');
-        const isInternal = typeof val === 'string' && val.includes('/fiscal-module/');
-        if (typeof val === 'string' && (isTecnoSpeed || isInternal)) {
-            if (format === 'pdf' && (val.toLowerCase().includes('pdf') || val.toLowerCase().includes('impressao'))) return val;
-            if (format === 'xml' && val.toLowerCase().includes('xml')) return val;
+        if (typeof val === 'string' && val.startsWith('http')) {
+            const low = val.toLowerCase();
+            const isTecno = low.includes('plugnotas') || low.includes('tecnospeed');
+            const isInternal = low.includes('/fiscal-module/');
+            
+            if (isTecno || isInternal) {
+                if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.includes('daconse'))) return val;
+                if (format === 'xml' && (low.includes('xml') || low.includes('arquivo'))) return val;
+            }
         }
-        if (typeof val === 'object') {
+        if (typeof val === 'object' && val !== null) {
             const found = findDocument(val, format);
             if (found) return found;
         }
