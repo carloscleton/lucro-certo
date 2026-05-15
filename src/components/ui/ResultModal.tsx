@@ -199,8 +199,25 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                            PDF não disponível para visualização interna
+                                        <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-slate-900/50">
+                                            <div className="p-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mb-4 animate-pulse">
+                                                <Clock3 size={32} />
+                                            </div>
+                                            <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                                                PDF em Geração
+                                            </h4>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
+                                                Esta nota ainda está sendo processada pela prefeitura. O PDF estará disponível assim que a autorização for concluída.
+                                            </p>
+                                            {action && (
+                                                <Button 
+                                                    onClick={action.onClick}
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 h-11 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                                                >
+                                                    <RefreshCw size={18} />
+                                                    Verificar Status Agora
+                                                </Button>
+                                            )}
                                         </div>
                                     )
                                 ) : (
