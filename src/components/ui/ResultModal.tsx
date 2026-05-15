@@ -18,8 +18,56 @@ interface ResultModalProps {
 
 export function ResultModal({ isOpen, onClose, title, message, type = 'info', data, action }: ResultModalProps) {
     const [showPdf, setShowPdf] = useState(false);
+    const [showXml, setShowXml] = useState(false);
+    const [xmlContent, setXmlContent] = useState<string | null>(null);
+    const [loadingXml, setLoadingXml] = useState(false);
     
     if (!isOpen) return null;
+
+    const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
+        if (!obj || typeof obj !== 'object') return null;
+        for (const k in obj) {
+            const val = obj[k];
+            const isTecnoSpeed = typeof val === 'string' && val.includes('plugnotas.com.br');
+            const isInternal = typeof val === 'string' && val.includes('/fiscal-module/');
+            if (typeof val === 'string' && (isTecnoSpeed || isInternal)) {
+                if (format === 'pdf' && (val.toLowerCase().includes('pdf') || val.toLowerCase().includes('impressao'))) return val;
+                if (format === 'xml' && val.toLowerCase().includes('xml')) return val;
+            }
+            if (typeof val === 'object') {
+                const found = findDocument(val, format);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    const pdfUrl = findDocument(data, 'pdf');
+    const xmlUrl = findDocument(data, 'xml');
+
+    const handleViewXml = async () => {
+        if (!xmlUrl) return;
+        setShowPdf(false);
+        setShowXml(true);
+        if (!xmlContent) {
+            setLoadingXml(true);
+            try {
+                const res = await fetch(xmlUrl);
+                const text = await res.text();
+                setXmlContent(text);
+            } catch (e) {
+                setXmlContent('Erro ao carregar conteúdo do XML.');
+            } finally {
+                setLoadingXml(false);
+            }
+        }
+    };
+
+    const handleClose = () => {
+        setShowPdf(false);
+        setShowXml(false);
+        onClose();
+    };
 
     const icons = {
         success: <CheckCircle2 className="text-emerald-500" size={32} />,
@@ -39,45 +87,33 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className={clsx(
                 "bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300 transition-all",
-                showPdf ? "w-full max-w-5xl h-[90vh]" : "w-full max-w-md"
+                (showPdf || showXml) ? "w-full max-w-5xl h-[90vh]" : "w-full max-w-md"
             )}>
                 <div className="p-6 flex flex-col h-full">
-                    {showPdf ? (
+                    {showPdf || showXml ? (
                         <div className="flex flex-col h-full gap-4">
                             <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-gray-100 dark:border-slate-800">
                                 <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg text-emerald-600">
-                                        <Eye size={20} />
+                                    <div className={clsx(
+                                        "p-2 rounded-lg",
+                                        showPdf ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600" : "bg-blue-100 dark:bg-blue-900/30 text-blue-600"
+                                    )}>
+                                        {showPdf ? <Eye size={20} /> : <Search size={20} />}
                                     </div>
-                                    <h3 className="font-bold text-gray-900 dark:text-white">Visualizador da Nota</h3>
+                                    <h3 className="font-bold text-gray-900 dark:text-white">
+                                        {showPdf ? 'Visualizador da Nota (PDF)' : 'Visualizador do Conteúdo (XML)'}
+                                    </h3>
                                 </div>
                                 <button 
-                                    onClick={() => setShowPdf(false)}
+                                    onClick={() => { setShowPdf(false); setShowXml(false); }}
                                     className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-gray-500"
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
                             <div className="flex-1 bg-gray-100 dark:bg-slate-950 rounded-2xl overflow-hidden border border-gray-200 dark:border-slate-800 shadow-inner">
-                                {(() => {
-                                    const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
-                                        if (!obj || typeof obj !== 'object') return null;
-                                        for (const k in obj) {
-                                            const val = obj[k];
-                                            const isTecnoSpeed = typeof val === 'string' && val.includes('plugnotas.com.br');
-                                            const isInternal = typeof val === 'string' && val.includes('/fiscal-module/');
-                                            if (typeof val === 'string' && (isTecnoSpeed || isInternal)) {
-                                                if (format === 'pdf' && (val.toLowerCase().includes('pdf') || val.toLowerCase().includes('impressao'))) return val;
-                                            }
-                                            if (typeof val === 'object') {
-                                                const found = findDocument(val, format);
-                                                if (found) return found;
-                                            }
-                                        }
-                                        return null;
-                                    };
-                                    const pdfUrl = findDocument(data, 'pdf');
-                                    return pdfUrl ? (
+                                {showPdf ? (
+                                    pdfUrl ? (
                                         <iframe 
                                             src={`${pdfUrl}#toolbar=0`} 
                                             className="w-full h-full border-none"
@@ -87,8 +123,21 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         <div className="w-full h-full flex items-center justify-center text-gray-400">
                                             PDF não disponível para visualização interna
                                         </div>
-                                    );
-                                })()}
+                                    )
+                                ) : (
+                                    <div className="w-full h-full p-6 overflow-auto scrollbar-thin">
+                                        {loadingXml ? (
+                                            <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-blue-500">
+                                                <RefreshCw size={32} className="animate-spin" />
+                                                <span className="text-sm font-medium">Carregando XML...</span>
+                                            </div>
+                                        ) : (
+                                            <pre className="text-[11px] font-mono text-gray-700 dark:text-slate-300 whitespace-pre-wrap break-all bg-white dark:bg-black/20 p-4 rounded-xl">
+                                                {xmlContent}
+                                            </pre>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -126,51 +175,36 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                             )}
 
                             <div className="mt-auto flex flex-col gap-2">
-                                {(() => {
-                                    const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
-                                        if (!obj || typeof obj !== 'object') return null;
-                                        for (const k in obj) {
-                                            const val = obj[k];
-                                            const isTecnoSpeed = typeof val === 'string' && val.includes('plugnotas.com.br');
-                                            const isInternal = typeof val === 'string' && val.includes('/fiscal-module/');
-                                            if (typeof val === 'string' && (isTecnoSpeed || isInternal)) {
-                                                if (format === 'pdf' && (val.toLowerCase().includes('pdf') || val.toLowerCase().includes('impressao'))) return val;
-                                                if (format === 'xml' && val.toLowerCase().includes('xml')) return val;
-                                            }
-                                            if (typeof val === 'object') {
-                                                const found = findDocument(val, format);
-                                                if (found) return found;
-                                            }
-                                        }
-                                        return null;
-                                    };
-                                    const pdfUrl = findDocument(data, 'pdf');
-                                    const xmlUrl = findDocument(data, 'xml');
-
-                                    return (
-                                        <div className="space-y-2 w-full">
-                                            {pdfUrl && (
-                                                <Button 
-                                                    onClick={() => setShowPdf(true)} 
-                                                    className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
-                                                >
-                                                    <Eye size={18} />
-                                                    Visualizar PDF Aqui
-                                                </Button>
-                                            )}
-                                            {xmlUrl && (
-                                                <Button 
-                                                    variant="outline"
-                                                    onClick={() => window.open(xmlUrl, '_blank')} 
-                                                    className="w-full h-12 rounded-xl text-sm font-bold border-gray-200 dark:border-slate-700 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300"
-                                                >
-                                                    <Download size={18} />
-                                                    Baixar XML
-                                                </Button>
-                                            )}
+                                <div className="space-y-2 w-full">
+                                    {pdfUrl && (
+                                        <Button 
+                                            onClick={() => setShowPdf(true)} 
+                                            className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                                        >
+                                            <Eye size={18} />
+                                            Visualizar PDF Aqui
+                                        </Button>
+                                    )}
+                                    {xmlUrl && (
+                                        <div className="flex gap-2">
+                                            <Button 
+                                                onClick={handleViewXml} 
+                                                className="flex-1 h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                                            >
+                                                <Search size={18} />
+                                                Visualizar XML
+                                            </Button>
+                                            <a 
+                                                href={xmlUrl} 
+                                                download 
+                                                className="w-12 h-12 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                                                title="Baixar XML"
+                                            >
+                                                <Download size={18} />
+                                            </a>
                                         </div>
-                                    );
-                                })()}
+                                    )}
+                                </div>
 
                                 {action && (
                                     <Button onClick={action.onClick} className="w-full h-12 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20">
@@ -180,10 +214,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                 )}
                                 <Button 
                                     variant="ghost" 
-                                    onClick={() => {
-                                        setShowPdf(false);
-                                        onClose();
-                                    }} 
+                                    onClick={handleClose} 
                                     className="w-full h-12 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800"
                                 >
                                     Fechar
