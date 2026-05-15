@@ -18,25 +18,31 @@ interface ResultModalProps {
 const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
     if (!obj || typeof obj !== 'object') return null;
     
-    // 1. Tenta encontrar diretamente se houver campos óbvios
-    if (format === 'pdf' && typeof obj.pdf === 'string' && obj.pdf.startsWith('http')) return obj.pdf;
-    if (format === 'pdf' && typeof obj.pdf?.url === 'string' && obj.pdf.url.startsWith('http')) return obj.pdf.url;
-    if (format === 'xml' && typeof obj.xml === 'string' && obj.xml.startsWith('http')) return obj.xml;
-    if (format === 'xml' && typeof obj.xml?.url === 'string' && obj.xml.url.startsWith('http')) return obj.xml.url;
+    // DEBUG: console.log(`[DEBUG-FIND] Buscando ${format} em:`, obj);
 
-    // 2. Busca recursiva para links da TecnoSpeed ou padrões conhecidos
+    // 1. Tenta campos diretos e comuns
+    const directPdf = obj.pdf_url || obj.pdf?.url || obj.pdf;
+    const directXml = obj.xml_url || obj.xml?.url || obj.xml;
+
+    if (format === 'pdf' && typeof directPdf === 'string' && directPdf.startsWith('http')) return directPdf;
+    if (format === 'xml' && typeof directXml === 'string' && directXml.startsWith('http')) return directXml;
+
+    // 2. Busca exaustiva em todas as chaves
     for (const k in obj) {
         const val = obj[k];
+        
+        // Se for uma string que parece uma URL
         if (typeof val === 'string' && val.startsWith('http')) {
             const low = val.toLowerCase();
-            const isTecno = low.includes('plugnotas') || low.includes('tecnospeed');
-            const isInternal = low.includes('/fiscal-module/');
-            
-            if (isTecno || isInternal) {
-                if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.includes('daconse'))) return val;
-                if (format === 'xml' && (low.includes('xml') || low.includes('arquivo'))) return val;
+            if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.includes('daconse') || low.endsWith('.pdf'))) {
+                return val;
+            }
+            if (format === 'xml' && (low.includes('xml') || low.includes('arquivo') || low.endsWith('.xml'))) {
+                return val;
             }
         }
+        
+        // Se for um objeto, mergulha nele (evitando null)
         if (typeof val === 'object' && val !== null) {
             const found = findDocument(val, format);
             if (found) return found;
