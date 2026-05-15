@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Download, Search, RefreshCw, Plus } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
 
