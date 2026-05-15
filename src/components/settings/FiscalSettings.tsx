@@ -416,7 +416,7 @@ export function FiscalSettings() {
                 message: isProcessing 
                     ? 'A nota foi enviada e está na fila da prefeitura. Clique no botão abaixo para buscar os links de PDF e XML assim que autorizada.' 
                     : 'A nota foi emitida com sucesso.',
-                type: 'success',
+                type: isProcessing ? 'warning' : 'success',
                 data: wrappedResponse,
                 action: externalId ? {
                     label: isProcessing ? '🔍 Verificar Status Agora' : '🔄 Atualizar Dados',
@@ -1351,8 +1351,8 @@ export function FiscalSettings() {
                                     <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                                         Laboratório de Testes (JSON Manual)
-                                        <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800 animate-pulse">
-                                            v1.0.35
+                                        <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] font-black rounded border border-orange-200 dark:border-orange-800 animate-pulse">
+                                            v1.0.36 (NEW)
                                         </span>
                                     </h3>
                                 </div>
