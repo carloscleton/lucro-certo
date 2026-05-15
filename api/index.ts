@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.28' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.29' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -377,7 +377,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         
         // --- DETECÇÃO DE MODO TESTE ---
         const TEST_CNPJ = '08187168000160'; 
-        const TEST_IM = '8214100099';
+        const TEST_IM_MUNICIPAL = '8214100099'; // Maringá
+        const TEST_IM_NACIONAL = '1234567';     // Belo Horizonte (Nacional)
         
         const hasCert = !!certId && certId !== 'null' && certId !== 'undefined';
         
@@ -390,7 +391,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                           (isSandbox && !hasCert) || 
                           (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
 
-        console.log(`🧾 [FISCAL-EMITIR] Ambiente: ${config.ambiente} | Sandbox: ${isSandbox} | HasCert: ${hasCert} (${certId}) | UseTestData: ${useTestData}`);
+        console.log(`🧾 [FISCAL-EMITIR] Ambiente: ${config.ambiente} | Sandbox: ${isSandbox} | HasCert: ${hasCert} (${certId}) | UseTestData: ${useTestData} | Nacional: ${isNacional}`);
 
         if (targetCnpj) {
             try {
@@ -417,7 +418,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // Injetar o certificado no payload se for NFSe
         let finalPayload = Array.isArray(payload) ? payload : [payload];
         
-        if (endpoint === 'nfse') {
+        if (endpoint === 'nfse' || endpoint === 'nfse/nacional') {
             finalPayload = finalPayload.map((item: any) => {
                 // 1. Garantir idIntegracao (Obrigatório e Único)
                 if (!item.idIntegracao) {
@@ -431,7 +432,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             
                             // Forçar CNPJ e IM de Teste que NÃO exigem certificado no Sandbox
                             item.prestador.cpfCnpj = TEST_CNPJ;
-                            item.prestador.inscricaoMunicipal = TEST_IM;
+                            item.prestador.inscricaoMunicipal = isNacional ? TEST_IM_NACIONAL : TEST_IM_MUNICIPAL;
                             
                             // Remover campo certificado para evitar erro de validação no Sandbox
                             delete item.prestador.certificado; 
