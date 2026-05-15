@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.30' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.31' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -423,6 +423,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // 1. Garantir idIntegracao (Obrigatório e Único)
                 if (!item.idIntegracao) {
                     item.idIntegracao = `NFSE_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+                } else if (useTestData) {
+                    // Adicionar sufixo para evitar Conflict 409 no Sandbox e forçar nota nova
+                    item.idIntegracao = `${item.idIntegracao}_${Date.now().toString().slice(-4)}`;
                 }
 
                     // 2. Mapear Prestador e Certificado
