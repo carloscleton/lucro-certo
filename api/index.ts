@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.20' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.21' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -150,10 +150,16 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         res.json(response.data);
     } catch (error: any) {
         const detail = error.response?.data || error.message;
+        const targetUrl = error.config?.url || 'URL não capturada';
+        
         console.error('❌ [FISCAL-CANCEL] Erro Detalhado:', JSON.stringify(detail));
+        console.error('📍 URL tentada:', targetUrl);
+
         res.status(500).json({ 
             error: 'Erro ao cancelar nota', 
-            detail: detail 
+            detail: detail,
+            attemptedUrl: targetUrl,
+            version: '1.0.21'
         });
     }
 });
