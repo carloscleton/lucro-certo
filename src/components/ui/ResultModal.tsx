@@ -253,7 +253,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
 
                             <div className="mt-auto flex flex-col gap-3">
                                 <div className="space-y-2">
-                                    {pdfUrl && (
+                                    {(pdfUrl || data?.pdf || data?.pdf_url) && (
                                         <Button 
                                             onClick={() => setShowPdf(true)} 
                                             className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
@@ -262,7 +262,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                             Visualizar PDF Aqui
                                         </Button>
                                     )}
-                                    {xmlUrl && (
+                                    {(xmlUrl || data?.xml || data?.xml_url) && (
                                         <Button 
                                             onClick={handleViewXml} 
                                             className="w-full h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
