@@ -18,7 +18,7 @@ interface ResultModalProps {
 const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
     if (!obj || typeof obj !== 'object') return null;
     
-    // 1. Tenta campos diretos (prioridade absoluta)
+    // 1. Tenta campos diretos (prioridade absoluta - DEVE ser http)
     const candidates = [
         obj[`${format}_url`], 
         obj[format]?.url, 
@@ -29,24 +29,17 @@ const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
 
     for (const cand of candidates) {
         if (typeof cand === 'string' && cand.startsWith('http')) return cand;
-        // Se for um objeto que contém a URL (comum em retornos aninhados)
         if (typeof cand === 'object' && cand !== null && typeof cand.url === 'string' && cand.url.startsWith('http')) return cand.url;
     }
 
-    // 2. Busca exaustiva em todas as chaves
+    // 2. Busca exaustiva em todas as chaves (DEVE ser http)
     for (const k in obj) {
         const val = obj[k];
         
-        if (typeof val === 'string') {
-            if (val.startsWith('http')) {
-                const low = val.toLowerCase();
-                if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.endsWith('.pdf'))) return val;
-                if (format === 'xml' && (low.includes('xml') || low.includes('arquivo') || low.endsWith('.xml'))) return val;
-            }
-            // Caso especial: se for um nome de arquivo de teste sem http
-            if (val.toLowerCase().includes('example.pdf') || val.toLowerCase().includes('example.xml')) {
-                console.log(`[DEBUG-MOCK] Encontrado arquivo de teste: ${val}`);
-            }
+        if (typeof val === 'string' && val.startsWith('http')) {
+            const low = val.toLowerCase();
+            if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.endsWith('.pdf'))) return val;
+            if (format === 'xml' && (low.includes('xml') || low.includes('arquivo') || low.endsWith('.xml'))) return val;
         }
         
         if (typeof val === 'object' && val !== null) {
