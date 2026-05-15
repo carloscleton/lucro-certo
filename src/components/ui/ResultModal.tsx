@@ -93,14 +93,14 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                 // 3. Varredura recursiva de valores
                                 for (const k in obj) {
                                     const val = obj[k];
-                                    if (typeof val === 'string' && val.startsWith('http')) {
-                                        // Se o valor parece um link do nosso proxy ou do PlugNotas com o formato certo
-                                        const isMatch = val.toLowerCase().includes(`/${format}`) || 
-                                                       val.toLowerCase().includes(`format=${format}`) ||
-                                                       val.toLowerCase().endsWith(`.${format}`);
-                                        if (isMatch) return val;
-                                    }
+                                    const isTecnoSpeed = typeof val === 'string' && val.includes('plugnotas.com.br');
+                                    const isInternal = typeof val === 'string' && val.includes('/fiscal-module/');
                                     
+                                    if (typeof val === 'string' && (isTecnoSpeed || isInternal)) {
+                                        if (format === 'pdf' && (val.toLowerCase().includes('pdf') || val.toLowerCase().includes('impressao'))) return val;
+                                        if (format === 'xml' && val.toLowerCase().includes('xml')) return val;
+                                    }
+
                                     if (typeof val === 'object') {
                                         const found = findDocument(val, format);
                                         if (found) return found;
