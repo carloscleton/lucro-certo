@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Download, Search, RefreshCw } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
@@ -46,10 +46,21 @@ const formatXml = (xml: string) => {
 };
 
 export function ResultModal({ isOpen, onClose, title, message, type = 'info', data, action }: ResultModalProps) {
-    const [showPdf, setShowPdf] = useState(data && (findDocument(data, 'pdf') || data.pdf?.url) ? true : false);
+    const [showPdf, setShowPdf] = useState(false);
     const [showXml, setShowXml] = useState(false);
     const [xmlContent, setXmlContent] = useState<string | null>(null);
     const [loadingXml, setLoadingXml] = useState(false);
+
+
+
+    useEffect(() => {
+        if (isOpen) {
+            const hasPdf = findDocument(data, 'pdf') || data.pdf?.url;
+            setShowPdf(!!hasPdf);
+            setShowXml(false);
+            setXmlContent(null);
+        }
+    }, [isOpen, data]);
     
     if (!isOpen) return null;
     
