@@ -71,26 +71,55 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                     <div className="flex flex-col gap-2">
                         {/* Atalhos para PDF/XML se encontrados no objeto data (recursivo simples) */}
                         {(() => {
-                            const findValue = (obj: any, key: string): string | null => {
+                            const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
                                 if (!obj || typeof obj !== 'object') return null;
-                                if (obj[key] && typeof obj[key] === 'string') return obj[key];
+                                
+                                // 1. Tentar busca por chave exata (prioridade)
+                                if (obj[format] && typeof obj[format] === 'string' && obj[format].startsWith('http')) {
+                                    return obj[format];
+                                }
+
+                                // 2. Tentar busca por chaves comuns
+                                const commonKeys = format === 'pdf' 
+                                    ? ['pdf', 'pdfUrl', 'caminhoPdf', 'urlPdf', 'danfse', 'danfe'] 
+                                    : ['xml', 'xmlUrl', 'caminhoXml', 'urlXml', 'arquivoXml'];
+                                
+                                for (const key of commonKeys) {
+                                    if (obj[key] && typeof obj[key] === 'string' && obj[key].startsWith('http')) {
+                                        return obj[key];
+                                    }
+                                }
+
+                                // 3. Varredura recursiva de valores
                                 for (const k in obj) {
-                                    const found = findValue(obj[k], key);
-                                    if (found) return found;
+                                    const val = obj[k];
+                                    if (typeof val === 'string' && val.startsWith('http')) {
+                                        // Se o valor parece um link do nosso proxy ou do PlugNotas com o formato certo
+                                        const isMatch = val.toLowerCase().includes(`/${format}`) || 
+                                                       val.toLowerCase().includes(`format=${format}`) ||
+                                                       val.toLowerCase().endsWith(`.${format}`);
+                                        if (isMatch) return val;
+                                    }
+                                    
+                                    if (typeof val === 'object') {
+                                        const found = findDocument(val, format);
+                                        if (found) return found;
+                                    }
                                 }
                                 return null;
                             };
 
-                            const pdfUrl = findValue(data, 'pdf');
-                            const xmlUrl = findValue(data, 'xml');
+                            const pdfUrl = findDocument(data, 'pdf');
+                            const xmlUrl = findDocument(data, 'xml');
 
                             return (
-                                <>
+                                <div className="space-y-2 w-full">
                                     {pdfUrl && (
                                         <Button 
                                             onClick={() => window.open(pdfUrl, '_blank')} 
-                                            className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
+                                            className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
                                         >
+                                            <ChevronRight size={18} className="rotate-[-90deg]" />
                                             Visualizar PDF da Nota
                                         </Button>
                                     )}
@@ -98,12 +127,13 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         <Button 
                                             variant="outline"
                                             onClick={() => window.open(xmlUrl, '_blank')} 
-                                            className="w-full h-12 rounded-xl text-sm font-bold border-gray-200 dark:border-slate-700"
+                                            className="w-full h-12 rounded-xl text-sm font-bold border-gray-200 dark:border-slate-700 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300"
                                         >
+                                            <ChevronRight size={18} className="rotate-90" />
                                             Baixar XML
                                         </Button>
                                     )}
-                                </>
+                                </div>
                             );
                         })()}
 
