@@ -397,19 +397,26 @@ export function FiscalSettings() {
             const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
             const wrappedResponse = wrapFiscalLinks(response, currentEntity.id!, token);
             
-            const externalId = response.id || response.data?.id;
-            const isProcessing = response.message?.includes('processamento') || response.status === 'processando';
+            // Detecção robusta de ID e Status (PlugNotas às vezes retorna aninhado ou na raiz)
+            const externalId = response.id || response.data?.id || response.protocolo || (Array.isArray(response.data) ? response.data[0]?.id : null);
+            const fullResponseString = JSON.stringify(response).toLowerCase();
+            const isProcessing = fullResponseString.includes('processamento') || 
+                               fullResponseString.includes('processing') || 
+                               response.status === 'processando' ||
+                               !fullResponseString.includes('pdf'); // Se não tem PDF, provavelmente está processando
+
+            console.log('🧪 [LAB-DEBUG] Resposta Emissão:', { externalId, isProcessing, response });
 
             setResultModal({
                 isOpen: true,
-                title: 'Resultado do Teste',
+                title: isProcessing ? 'Nota em Processamento' : 'Emissão Concluída',
                 message: isProcessing 
-                    ? 'Requisição aceita. A nota está em processamento na TecnoSpeed.' 
-                    : 'Requisição enviada com sucesso ao servidor.',
+                    ? 'A nota foi enviada e está na fila da prefeitura. Clique no botão abaixo para buscar os links de PDF e XML assim que autorizada.' 
+                    : 'A nota foi emitida com sucesso.',
                 type: 'success',
                 data: wrappedResponse,
-                action: (isProcessing && externalId) ? {
-                    label: 'Verificar Status Agora',
+                action: externalId ? {
+                    label: isProcessing ? '🔍 Verificar Status Agora' : '🔄 Atualizar Dados',
                     onClick: () => handleCheckTestStatus(externalId)
                 } : undefined
             });
