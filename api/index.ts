@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.25' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.26' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -454,21 +454,38 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // 4. Mapear Código IBGE da Cidade (Obrigatório para NFS-e)
                 if (useTestData) {
                     // Forçar o código de Maringá se for teste
-                    if (item.servico) item.servico.codigoIbge = '4115200';
+                    if (item.servico) {
+                        const services = Array.isArray(item.servico) ? item.servico : [item.servico];
+                        services.forEach((s: any) => {
+                            s.codigoIbge = '4115200';
+                            // Garantir ISS no modo teste para evitar erro de validação
+                            if (!s.iss) {
+                                s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
+                            }
+                        });
+                    }
                     if (item.codigoIbge) item.codigoIbge = '4115200';
-                } else if (item.servico && !item.servico.codigoIbge && item.codigoIbge) {
-                    item.servico.codigoIbge = item.codigoIbge;
+                } else if (item.servico) {
+                    const services = Array.isArray(item.servico) ? item.servico : [item.servico];
+                    services.forEach((s: any) => {
+                        if (!s.codigoIbge && item.codigoIbge) s.codigoIbge = item.codigoIbge;
+                        // Garantir ISS se estiver faltando
+                        if (!s.iss) {
+                            s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
+                        }
+                    });
                 }
 
                 return item;
             });
         }
 
-        if (endpoint === 'nfse' && finalPayload[0]?.servico?.[0]) {
-            console.log(`🧾 [DEBUG-KEYS] Chaves do serviço:`, Object.keys(finalPayload[0].servico[0]));
+        if (endpoint === 'nfse' && finalPayload[0]?.servico) {
+            const firstService = Array.isArray(finalPayload[0].servico) ? finalPayload[0].servico[0] : finalPayload[0].servico;
+            console.log(`🧾 [DEBUG-KEYS] Chaves do serviço:`, Object.keys(firstService || {}));
         }
 
-        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.15):`, JSON.stringify(finalPayload, null, 2));
+        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.26):`, JSON.stringify(finalPayload, null, 2));
 
         let response;
 
@@ -531,7 +548,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
         }
 
-        res.json({ ...response.data, proxy_version: '1.0.15' });
+        res.json({ ...response.data, proxy_version: '1.0.26' });
     } catch (error: any) {
         res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
     }
