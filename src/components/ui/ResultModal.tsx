@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, FileCode } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
 
@@ -213,8 +213,8 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                                     </p>
                                                     <Button 
                                                         onClick={() => setShowPdf(false)}
-                                                        variant="secondary"
-                                                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 h-11 rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                                                        variant="outline"
+                                                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 h-11 rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 border-none"
                                                     >
                                                         <Search size={18} />
                                                         Ver Dados da Simulação
