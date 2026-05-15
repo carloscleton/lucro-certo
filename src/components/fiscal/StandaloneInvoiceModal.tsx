@@ -58,6 +58,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         message: string;
         type: 'success' | 'error' | 'info';
         data?: any;
+        action?: {
+            label: string;
+            onClick: () => void;
+        };
     }>({
         isOpen: false,
         title: '',
@@ -210,20 +214,27 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const showSuccessMessage = (result: any, token?: string) => {
         try {
             console.log('🎉 [showSuccessMessage] Chamado com result:', JSON.stringify(result, null, 2));
-            const invoiceId = result.id || result.protocolo || result.data?.id || 'N/A';
+            const invoiceId = result.id || result.protocolo || result.data?.id || result.documents?.[0]?.id || 'N/A';
             const links = wrapFiscalLinks(result, currentEntity.id!, token);
             console.log('🔗 [showSuccessMessage] Links processados:', JSON.stringify(links, null, 2));
 
+            const isProcessing = result.isProcessing || result.status === 'EM_PROCESSAMENTO' || (result.message && result.message.includes('processamento'));
+
             setResultModal({
                 isOpen: true,
-                title: 'Emissão Iniciada',
-                message: `A nota fiscal (ID: ${invoiceId}) foi enviada com sucesso e está sendo processada pela prefeitura.`,
+                title: isProcessing ? 'Nota em Processamento' : 'Emissão Concluída',
+                message: isProcessing 
+                    ? 'A nota foi enviada e está na fila da prefeitura. Aguarde alguns instantes e verifique o status novamente.'
+                    : 'A nota fiscal foi emitida com sucesso!',
                 type: 'success',
-                data: links
+                data: links,
+                action: isProcessing && invoiceId !== 'N/A' ? {
+                    label: 'Verificar Status Agora',
+                    onClick: () => handleCheckStatus(invoiceId, token)
+                } : undefined
             });
         } catch (err) {
             console.error('❌ [showSuccessMessage] Erro ao preparar modal de sucesso:', err);
-            // Fallback para não travar o usuário
             setResultModal({
                 isOpen: true,
                 title: 'Emissão Concluída',
@@ -231,6 +242,25 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 type: 'success',
                 data: result
             });
+        }
+    };
+
+    const handleCheckStatus = async (invoiceId: string, token?: string) => {
+        try {
+            setLoading(true);
+            const { data: sessionData } = await supabase.auth.getSession();
+            const activeToken = token || sessionData.session?.access_token;
+            
+            if (!activeToken) return;
+
+            const result = await fiscalService.consultarNFSe(currentEntity.id!, invoiceId, activeToken);
+            console.log('🔄 [CHECK-STATUS] Resultado da consulta:', result);
+            
+            showSuccessMessage(result, activeToken);
+        } catch (err) {
+            console.error('❌ [CHECK-STATUS] Erro ao consultar status:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -1032,6 +1062,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 message={resultModal.message}
                 type={resultModal.type}
                 data={resultModal.data}
+                action={resultModal.action}
             />
         </Modal>
     );
