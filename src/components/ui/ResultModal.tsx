@@ -17,7 +17,7 @@ interface ResultModalProps {
 }
 
 export function ResultModal({ isOpen, onClose, title, message, type = 'info', data, action }: ResultModalProps) {
-    const [showPdf, setShowPdf] = useState(false);
+    const [showPdf, setShowPdf] = useState(data && (findDocument(data, 'pdf') || data.pdf?.url) ? true : false);
     const [showXml, setShowXml] = useState(false);
     const [xmlContent, setXmlContent] = useState<string | null>(null);
     const [loadingXml, setLoadingXml] = useState(false);

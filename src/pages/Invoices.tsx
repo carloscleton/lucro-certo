@@ -252,7 +252,7 @@ export function Invoices() {
                                 Notas Fiscais
                             </h1>
                             <span className="text-[9px] font-black text-blue-500/50 uppercase tracking-[0.2em] mt-0.5">
-                                v1.2.0 • Estável
+                                v1.2.2 • Estável
                             </span>
                         </div>
                     </div>
@@ -400,7 +400,12 @@ export function Invoices() {
                                                     <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                         {invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || 'Avulsa'}
                                                     </span>
-                                                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider">Emissão Direta</span>
+                                                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider flex flex-col gap-0.5">
+                                                        <span>Emissão Direta</span>
+                                                        <span className="text-[9px] text-blue-500/40 font-mono italic">
+                                                            ID: {invoice.payload?.idIntegracao || invoice.external_id?.slice(0, 15)}
+                                                        </span>
+                                                    </span>
                                                 </div>
                                             )}
                                         </td>
