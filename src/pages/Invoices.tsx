@@ -30,29 +30,7 @@ export function Invoices() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [duplicateData, setDuplicateData] = useState<{items: any[], type: 'nfse' | 'nfe', contactId: string, cityCode: string, notes: string} | null>(null);
 
-    const handleViewPDF = async (externalId: string, companyId: string, type: 'nfse' | 'nfe', directUrl?: string) => {
-        // Se já tivermos a URL direta (ex: PlugNotas CDN), abrimos em nova aba imediatamente
-        if (directUrl && directUrl.startsWith('http')) {
-            window.open(directUrl, '_blank');
-            return;
-        }
 
-        try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
-            if (!token) throw new Error('Sessão expirada.');
-            const blob = await fiscalService.downloadPDF(externalId, type, companyId, token);
-            const url = window.URL.createObjectURL(blob);
-            window.open(url, '_blank');
-        } catch (error: any) {
-            console.error('Erro ao visualizar PDF:', error);
-            setResultModal({
-                isOpen: true,
-                title: 'Erro na Visualização',
-                message: 'Não foi possível carregar o PDF desta nota fiscal.',
-                type: 'error'
-            });
-        }
-    };
 
     const handleDownloadPDF = async (externalId: string, type: 'nfse' | 'nfe', companyId: string) => {
         try {
