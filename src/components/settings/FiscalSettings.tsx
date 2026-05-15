@@ -30,7 +30,7 @@ export function FiscalSettings() {
         steps: [],
         logs: []
     });
-    const [testJson, setTestJson] = useState('');
+
     const [testingJson, setTestingJson] = useState(false);
 
     // Persistência do diagnóstico em caso de troca de aba ou refresh
@@ -109,28 +109,27 @@ export function FiscalSettings() {
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
+    // Sincronizar configurações apenas quando a empresa MUDAR de fato (evitar loop)
+    const lastCompanyId = useRef<string | null>(null);
     useEffect(() => {
-        if (!currentCompany) return;
+        if (!currentCompany || lastCompanyId.current === currentCompany.id) return;
+        lastCompanyId.current = currentCompany.id;
 
         setModuleEnabled(!!currentCompany.fiscal_module_enabled);
         setConfig((prev: any) => {
             const newConfig = { ...prev };
             const tc = currentCompany.tecnospeed_config || {};
-
             Object.assign(newConfig, tc);
-
+            
+            // ... resto das atribuições (removido para brevidade no diff, mas mantido no arquivo)
             if (newConfig.tecnospeed_api_key) newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.trim();
             if (newConfig.endpoint_homologacao) newConfig.endpoint_homologacao = newConfig.endpoint_homologacao.toLowerCase();
             if (newConfig.endpoint_producao) newConfig.endpoint_producao = newConfig.endpoint_producao.toLowerCase();
-
             if (!newConfig.cnpj && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
             if (!newConfig.razao_social && currentCompany.legal_name) newConfig.razao_social = currentCompany.legal_name;
             if (!newConfig.nome_fantasia && currentCompany.trade_name) newConfig.nome_fantasia = currentCompany.trade_name;
             if (!newConfig.telefone && currentCompany.phone) newConfig.telefone = currentCompany.phone;
-
-            if (!newConfig.endereco) {
-                newConfig.endereco = {};
-            }
+            if (!newConfig.endereco) newConfig.endereco = {};
             if (!newConfig.endereco.logradouro && currentCompany.street) newConfig.endereco.logradouro = currentCompany.street;
             if (!newConfig.endereco.numero && currentCompany.number) newConfig.endereco.numero = currentCompany.number;
             if (!newConfig.endereco.complemento && currentCompany.complement) newConfig.endereco.complemento = currentCompany.complement;
@@ -141,7 +140,16 @@ export function FiscalSettings() {
 
             return newConfig;
         });
-    }, [currentCompany]);
+    }, [currentCompany?.id]); // Depender apenas do ID
+
+    // Persistência do JSON do Laboratório
+    const [testJson, setTestJson] = useState(() => {
+        return localStorage.getItem('fiscal_lab_json') || '';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('fiscal_lab_json', testJson);
+    }, [testJson]);
 
     const [resultModal, setResultModal] = useState<{
         isOpen: boolean;
@@ -397,8 +405,12 @@ export function FiscalSettings() {
             const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
             const wrappedResponse = wrapFiscalLinks(response, currentEntity.id!, token);
             
-            // Detecção ultra-robusta de ID e Status (Tratando Array ou Objeto)
-            const doc = Array.isArray(response) ? response[0] : (Array.isArray(response.data) ? response.data[0] : (response.data || response));
+            // Detecção ultra-robusta de ID e Status (Tratando documentos, data, Array ou Objeto)
+            const doc = response.documents?.[0] || 
+                       (Array.isArray(response) ? response[0] : 
+                       (Array.isArray(response.data) ? response.data[0] : 
+                       (response.data || response)));
+            
             const externalId = doc?.id || doc?.protocolo || response.id || response.protocolo || response.data?.id;
             
             const fullResponseString = JSON.stringify(response).toLowerCase();
@@ -1351,8 +1363,8 @@ export function FiscalSettings() {
                                     <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                                         Laboratório de Testes (JSON Manual)
-                                        <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] font-black rounded border border-orange-200 dark:border-orange-800 animate-pulse">
-                                            v1.0.36 (NEW)
+                                        <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800 animate-pulse">
+                                            v1.0.38
                                         </span>
                                     </h3>
                                 </div>
