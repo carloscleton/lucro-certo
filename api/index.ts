@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.27' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.28' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -366,7 +366,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         const isNacional = config.nfse_nacional || config.nfse?.config?.nfseNacional || false;
-        const endpoint = type === 'nfse' ? (isNacional ? 'nfse/nacional' : 'nfse') : 'nfe';
+        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
         
         // --- DADOS DO PRESTADOR ---
         const firstItem = Array.isArray(payload) ? payload[0] : payload;
