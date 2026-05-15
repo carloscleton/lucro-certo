@@ -18,39 +18,34 @@ interface ResultModalProps {
 const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
     if (!obj || typeof obj !== 'object') return null;
     
-    // LOG DE DEPURAÇÃO - Veremos isso no seu console F12
-    console.log(`[DEBUG-FIND] Procurando ${format} em:`, obj);
+    // 1. Tenta campos diretos (prioridade absoluta)
+    const candidates = [
+        obj[`${format}_url`], 
+        obj[format]?.url, 
+        obj[format], 
+        obj[`url_${format}`], 
+        obj[`url${format.charAt(0).toUpperCase() + format.slice(1)}`]
+    ];
 
-    // 1. Tenta campos diretos e comuns (padrão PlugNotas e nosso Banco)
-    const directPdf = obj.pdf_url || obj.pdf?.url || obj.pdf || obj.url_pdf || obj.urlPdf;
-    const directXml = obj.xml_url || obj.xml?.url || obj.xml || obj.url_xml || obj.urlXml;
-
-    if (format === 'pdf' && typeof directPdf === 'string' && directPdf.startsWith('http')) {
-        console.log(`[DEBUG-SUCCESS] PDF encontrado via campo direto: ${directPdf}`);
-        return directPdf;
+    for (const cand of candidates) {
+        if (typeof cand === 'string' && cand.startsWith('http')) return cand;
+        // Se for um objeto que contém a URL (comum em retornos aninhados)
+        if (typeof cand === 'object' && cand !== null && typeof cand.url === 'string' && cand.url.startsWith('http')) return cand.url;
     }
-    if (format === 'xml' && typeof directXml === 'string' && directXml.startsWith('http')) {
-        console.log(`[DEBUG-SUCCESS] XML encontrado via campo direto: ${directXml}`);
-        return directXml;
-    }
 
-    // 2. Busca exaustiva em todas as chaves do objeto
+    // 2. Busca exaustiva em todas as chaves
     for (const k in obj) {
         const val = obj[k];
         
-        if (typeof val === 'string' && val.startsWith('http')) {
-            const low = val.toLowerCase();
-            const isDoc = low.includes('pdf') || low.includes('xml') || low.includes('tecnospeed') || low.includes('plugnotas');
-            
-            if (isDoc) {
-                if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.endsWith('.pdf'))) {
-                    console.log(`[DEBUG-SUCCESS] PDF encontrado via busca exaustiva: ${val}`);
-                    return val;
-                }
-                if (format === 'xml' && (low.includes('xml') || low.includes('arquivo') || low.endsWith('.xml'))) {
-                    console.log(`[DEBUG-SUCCESS] XML encontrado via busca exaustiva: ${val}`);
-                    return val;
-                }
+        if (typeof val === 'string') {
+            if (val.startsWith('http')) {
+                const low = val.toLowerCase();
+                if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.endsWith('.pdf'))) return val;
+                if (format === 'xml' && (low.includes('xml') || low.includes('arquivo') || low.endsWith('.xml'))) return val;
+            }
+            // Caso especial: se for um nome de arquivo de teste sem http
+            if (val.toLowerCase().includes('example.pdf') || val.toLowerCase().includes('example.xml')) {
+                console.log(`[DEBUG-MOCK] Encontrado arquivo de teste: ${val}`);
             }
         }
         
