@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.26' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.27' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -365,7 +365,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
+        const isNacional = config.nfse_nacional || config.nfse?.config?.nfseNacional || false;
+        const endpoint = type === 'nfse' ? (isNacional ? 'nfse/nacional' : 'nfse') : 'nfe';
         
         // --- DADOS DO PRESTADOR ---
         const firstItem = Array.isArray(payload) ? payload[0] : payload;
@@ -452,19 +453,21 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
 
                 // 4. Mapear Código IBGE da Cidade (Obrigatório para NFS-e)
+                const targetIbge = isNacional ? '3106200' : '4115200';
+                
                 if (useTestData) {
-                    // Forçar o código de Maringá se for teste
+                    // Forçar o código de Maringá (Municipal) ou BH (Nacional) se for teste
                     if (item.servico) {
                         const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                         services.forEach((s: any) => {
-                            s.codigoIbge = '4115200';
+                            s.codigoIbge = targetIbge;
                             // Garantir ISS no modo teste para evitar erro de validação
                             if (!s.iss) {
                                 s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
                             }
                         });
                     }
-                    if (item.codigoIbge) item.codigoIbge = '4115200';
+                    if (item.codigoIbge) item.codigoIbge = targetIbge;
                 } else if (item.servico) {
                     const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                     services.forEach((s: any) => {
