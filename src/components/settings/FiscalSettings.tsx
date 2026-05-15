@@ -147,7 +147,7 @@ export function FiscalSettings() {
         isOpen: boolean;
         title: string;
         message: string;
-        type: 'success' | 'error' | 'info';
+        type: 'success' | 'error' | 'info' | 'warning';
         data?: Record<string, any>;
         action?: {
             label: string;
