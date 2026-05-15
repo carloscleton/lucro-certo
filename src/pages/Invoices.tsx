@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search } from 'lucide-react';
-import { toast } from 'sonner';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -195,7 +194,12 @@ export function Invoices() {
                 finalPdfUrl = window.URL.createObjectURL(blob);
             } catch (error) {
                 console.error('[Visualizar] Erro ao buscar PDF dinâmico:', error);
-                toast.error('Não foi possível gerar a visualização do PDF agora.');
+                setResultModal({
+                    isOpen: true,
+                    title: 'Erro na Visualização',
+                    message: 'Não foi possível gerar a visualização do PDF agora. Tente baixar o arquivo.',
+                    type: 'error'
+                });
             } finally {
                 setIsRefreshing(null);
             }
