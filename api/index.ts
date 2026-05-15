@@ -82,11 +82,11 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.18' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.19' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
-    const { id, type, companyId, justificativa } = req.body;
+    let { id, type, companyId, justificativa } = req.body;
     const authHeader = req.headers.authorization;
 
     try {
@@ -97,6 +97,24 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
         
         const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+        
+        // Se o tipo não for explícito, tentar detectar no banco
+        if (!type || (type !== 'nfe' && type !== 'nfse')) {
+            try {
+                const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    params: { external_id: `eq.${id}`, select: 'type' },
+                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+                });
+                if (invData?.[0]?.type) {
+                    type = invData[0].type;
+                } else {
+                    type = 'nfse'; // Fallback final
+                }
+            } catch (dbErr) {
+                type = 'nfse';
+            }
+        }
+
         const targetUrl = `${cleanBaseUrl}/${type.toLowerCase()}/${id}/cancelar`;
 
         const response = await axios.post(targetUrl, {
@@ -121,10 +139,11 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
         res.json(response.data);
     } catch (error: any) {
-        console.error('❌ [FISCAL-CANCEL] Erro:', error.response?.data || error.message);
+        const detail = error.response?.data || error.message;
+        console.error('❌ [FISCAL-CANCEL] Erro Detalhado:', JSON.stringify(detail));
         res.status(500).json({ 
             error: 'Erro ao cancelar nota', 
-            detail: error.response?.data || error.message 
+            detail: detail 
         });
     }
 });
