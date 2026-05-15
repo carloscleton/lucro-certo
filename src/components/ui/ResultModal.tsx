@@ -54,7 +54,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
 
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && data) {
             const hasPdf = findDocument(data, 'pdf') || data.pdf?.url;
             setShowPdf(!!hasPdf);
             setShowXml(false);
