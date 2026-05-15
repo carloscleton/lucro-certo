@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.23' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.24' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -97,7 +97,6 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
         
         // --- SANITIZAÇÃO DA URL BASE ---
-        // Remover barras finais e possíveis prefixos de tipo que o usuário possa ter colocado na config
         let cleanBaseUrl = baseUrl.replace(/\/$/, '').replace(/\/(nfse|nfe)$/i, '');
         
         // --- PROTEÇÃO DE ID ---
@@ -130,9 +129,9 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const typeLower = type.toLowerCase();
         let lastError = null;
 
-        // --- ESTRATÉGIA SMART RETRY ---
-        // 1. Tentar padrão Nacional se for NFSe
+        // --- ESTRATÉGIA BRUTE FORCE DISCOVERY ---
         if (typeLower === 'nfse') {
+            // 1. Padrão Nacional
             try {
                 const targetUrl = `${cleanBaseUrl}/nfse/cancelar`;
                 const response = await axios.post(targetUrl, { id, justificativa: justificativa || 'Cancelamento solicitado pelo usuario' }, {
@@ -141,14 +140,23 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 return finalizeCancel(id, response.data);
             } catch (error: any) {
                 lastError = error;
-                // Se NÃO for erro de rota (404), parar por aqui
-                if (error.response?.status !== 404 && !JSON.stringify(error.response?.data).includes('não existe')) {
-                    throw error;
-                }
+                if (error.response?.status !== 404 && !JSON.stringify(error.response?.data).includes('não existe')) throw error;
+            }
+
+            // 2. Padrão Nacional Específico
+            try {
+                const targetUrl = `${cleanBaseUrl}/nfse/nacional/cancelar`;
+                const response = await axios.post(targetUrl, { id, justificativa: justificativa || 'Cancelamento solicitado pelo usuario' }, {
+                    headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
+                });
+                return finalizeCancel(id, response.data);
+            } catch (error: any) {
+                lastError = error;
+                if (error.response?.status !== 404 && !JSON.stringify(error.response?.data).includes('não existe')) throw error;
             }
         }
 
-        // 2. Tentar padrão Municipal / Padrão NFe
+        // 3. Padrão Municipal / Padrão NFe
         try {
             const targetUrl = `${cleanBaseUrl}/${typeLower}/${id}/cancelar`;
             const response = await axios.post(targetUrl, { justificativa: justificativa || 'Cancelamento solicitado pelo usuario' }, {
