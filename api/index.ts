@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.21' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.22' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -97,6 +97,23 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
         
         const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+
+        // --- PROTEÇÃO DE ID ---
+        // Se o ID for numérico, é o ID interno. Precisamos do external_id (UUID)
+        if (id && !isNaN(Number(id))) {
+            try {
+                const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    params: { id: `eq.${id}`, select: 'external_id,type' },
+                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+                });
+                if (invData?.[0]?.external_id) {
+                    id = invData[0].external_id;
+                    if (!type) type = invData[0].type;
+                }
+            } catch (dbErr) {
+                console.warn('⚠️ Falha ao buscar external_id para ID numérico:', id);
+            }
+        }
         
         // Se o tipo não for explícito, tentar detectar no banco
         if (!type || (type !== 'nfe' && type !== 'nfse')) {
@@ -116,8 +133,6 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         }
 
         // --- AJUSTE PARA NFSE NACIONAL ---
-        // Para NFSe Nacional, o ID vai no body e o endpoint é /nfse/cancelar
-        // Para NFe, o padrão é /nfe/:id/cancelar
         let targetUrl = `${cleanBaseUrl}/${type.toLowerCase()}/${id}/cancelar`;
         let payload: any = { justificativa: justificativa || 'Cancelamento solicitado pelo usuario' };
 

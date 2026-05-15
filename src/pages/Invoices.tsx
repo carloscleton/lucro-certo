@@ -16,7 +16,7 @@ export function Invoices() {
     
     const [showNewModal, setShowNewModal] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
-    // Versão do Componente: v1.0.21 - Forçando deploy e refresh
+    // Versão do Componente: v1.0.22 - Forçando deploy e refresh
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info'}>({
         isOpen: false, title: '', message: '', type: 'success'
     });
@@ -147,7 +147,9 @@ export function Invoices() {
             setResultModal({
                 isOpen: true,
                 title: 'Erro no Cancelamento',
-                message: error.response?.data?.detail?.message || error.message || 'Falha ao cancelar nota.',
+                message: typeof error.response?.data?.detail === 'object' 
+                    ? JSON.stringify(error.response.data.detail) 
+                    : (error.response?.data?.detail || error.message || 'Falha ao cancelar nota.'),
                 type: 'error'
             });
         } finally {
