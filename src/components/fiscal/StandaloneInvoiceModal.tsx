@@ -253,7 +253,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             
             if (!activeToken) return;
 
-            const result = await fiscalService.consultarNFSe(currentEntity.id!, invoiceId, activeToken);
+            const result = await fiscalService.checkStatus(invoiceId, currentEntity.id!, activeToken);
             console.log('🔄 [CHECK-STATUS] Resultado da consulta:', result);
             
             showSuccessMessage(result, activeToken);
