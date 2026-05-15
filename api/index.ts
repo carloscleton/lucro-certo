@@ -82,7 +82,7 @@ const sanitizeKey = (val: any) => {
 // Movidos para o topo para garantir prioridade e depuração
 
 app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
-    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.19' });
+    res.json({ status: 'ok', service: 'fiscal-proxy', timestamp: new Date(), version: '1.0.20' });
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
@@ -115,11 +115,21 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
             }
         }
 
-        const targetUrl = `${cleanBaseUrl}/${type.toLowerCase()}/${id}/cancelar`;
+        // --- AJUSTE PARA NFSE NACIONAL ---
+        // Para NFSe Nacional, o ID vai no body e o endpoint é /nfse/cancelar
+        // Para NFe, o padrão é /nfe/:id/cancelar
+        let targetUrl = `${cleanBaseUrl}/${type.toLowerCase()}/${id}/cancelar`;
+        let payload: any = { justificativa: justificativa || 'Cancelamento solicitado pelo usuario' };
 
-        const response = await axios.post(targetUrl, {
-            justificativa: justificativa || 'Cancelamento solicitado pelo usuario'
-        }, {
+        if (type.toLowerCase() === 'nfse') {
+            targetUrl = `${cleanBaseUrl}/nfse/cancelar`;
+            payload = {
+                id: id,
+                justificativa: justificativa || 'Cancelamento solicitado pelo usuario'
+            };
+        }
+
+        const response = await axios.post(targetUrl, payload, {
             headers: { 
                 'X-API-KEY': apiKey,
                 'Content-Type': 'application/json'
