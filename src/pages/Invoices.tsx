@@ -268,9 +268,14 @@ export function Invoices() {
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
                             <Receipt size={24} className="text-blue-600 dark:text-blue-400" />
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            Notas Fiscais
-                        </h1>
+                        <div className="flex flex-col">
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                Notas Fiscais
+                            </h1>
+                            <span className="text-[9px] font-black text-blue-500/50 uppercase tracking-[0.2em] mt-0.5">
+                                v1.0.22 • Estável
+                            </span>
+                        </div>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 ml-11">
                         Histórico de NF-e e NFS-e emitidas pela sua empresa
