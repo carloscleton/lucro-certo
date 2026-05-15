@@ -450,11 +450,17 @@ export function FiscalSettings() {
             const externalId = doc?.id || doc?.protocolo || response.id || response.protocolo || response.data?.id;
             
             const fullResponseString = JSON.stringify(response).toLowerCase();
-            const isProcessing = fullResponseString.includes('processamento') || 
+            // Melhor detecção de processamento: só é processando se explicitamente dito ou se não houver confirmação de autorização/erro
+            const isDone = fullResponseString.includes('autorizada') || 
+                          fullResponseString.includes('concluido') || 
+                          fullResponseString.includes('erro') || 
+                          fullResponseString.includes('rejeitado');
+            
+            const isProcessing = !isDone && (
+                               fullResponseString.includes('processamento') || 
                                fullResponseString.includes('processing') || 
                                doc?.status === 'processando' ||
-                               response.status === 'processando' ||
-                               !fullResponseString.includes('pdf');
+                               response.status === 'processando');
 
             console.log('🧪 [LAB-DEBUG] Resposta Emissão:', { externalId, isProcessing, response });
 
@@ -475,8 +481,8 @@ export function FiscalSettings() {
                 isOpen: true,
                 title: isProcessing ? 'Nota em Processamento' : 'Emissão Concluída',
                 message: isProcessing 
-                    ? 'A nota foi enviada e está na fila da prefeitura. Os links abaixo podem levar alguns segundos para funcionar.' 
-                    : 'A nota foi emitida com sucesso.',
+                    ? 'A nota foi enviada e está na fila da prefeitura. Aguarde alguns instantes e verifique o status novamente.' 
+                    : 'A nota foi autorizada! Se o PDF der erro ao abrir, aguarde 5 a 10 segundos e tente novamente (é o tempo da prefeitura gerar o arquivo).',
                 type: isProcessing ? 'warning' : 'success',
                 data: wrappedResponse,
                 action: externalId ? {
@@ -1412,8 +1418,8 @@ export function FiscalSettings() {
                                     <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                                         Laboratório de Testes (JSON Manual)
-                                        <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800 animate-pulse">
-                                            v1.0.42
+                                        <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800">
+                                            v1.0.43
                                         </span>
                                     </h3>
                                 </div>
