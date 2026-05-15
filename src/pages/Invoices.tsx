@@ -16,8 +16,7 @@ export function Invoices() {
     
     const [showNewModal, setShowNewModal] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
-    // Versão do Componente: v1.0.24 - Forçando deploy e refresh
-    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info'}>({
+    const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info', data?: any}>({
         isOpen: false, title: '', message: '', type: 'success'
     });
     const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({
@@ -275,7 +274,7 @@ export function Invoices() {
                                 Notas Fiscais
                             </h1>
                             <span className="text-[9px] font-black text-blue-500/50 uppercase tracking-[0.2em] mt-0.5">
-                                v1.1.2 • Estável
+                                v1.2.0 • Estável
                             </span>
                         </div>
                     </div>
@@ -432,15 +431,26 @@ export function Invoices() {
                                                 <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                     {(() => {
                                                         const p = invoice.payload;
+                                                        if (!p) return 'R$ 0,00';
+                                                        
                                                         // Tenta extrair de servico (pode ser array no Nacional ou objeto no Municipal)
-                                                        const servico = Array.isArray(p?.servico) ? p.servico[0] : p?.servico;
-                                                        const val = servico?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || 0;
+                                                        const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
+                                                        const servico = servicos[0];
+                                                        
+                                                        // Tenta várias fontes de valor
+                                                        const val = servico?.valor?.servico || 
+                                                                   p?.valorTotal || 
+                                                                   p?.valorTotalBruto || 
+                                                                   p?.retorno?.valorTotal || 
+                                                                   0;
+                                                        
                                                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
                                                     })()}
                                                 </span>
                                                 <Tooltip content={(() => {
                                                     const p = invoice.payload;
-                                                    const servico = Array.isArray(p?.servico) ? p.servico[0] : p?.servico;
+                                                    const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
+                                                    const servico = servicos[0];
                                                     return servico?.discriminacao || p?.itens?.[0]?.descricao || 'Sem descrição';
                                                 })()}>
                                                     <span className="text-[10px] text-blue-500 font-medium mt-0.5 cursor-help flex items-center gap-1 hover:underline">
@@ -506,9 +516,19 @@ export function Invoices() {
                                                             </Tooltip>
                                                         )}
 
-                                                        <Tooltip content="Visualizar PDF">
+                                                        <Tooltip content="Visualizar Nota (PDF/XML)">
                                                             <button
-                                                                onClick={() => handleViewPDF(invoice.external_id!, invoice.company_id, invoice.type, invoice.pdf_url)}
+                                                                onClick={() => setResultModal({
+                                                                    isOpen: true,
+                                                                    title: 'Visualizador da Nota',
+                                                                    message: 'Aqui você pode conferir o PDF e o XML da nota autorizada.',
+                                                                    type: 'success',
+                                                                    data: {
+                                                                        ...invoice.payload,
+                                                                        pdf: invoice.pdf_url ? { url: invoice.pdf_url } : invoice.payload?.pdf,
+                                                                        xml: invoice.xml_url ? { url: invoice.xml_url } : invoice.payload?.xml
+                                                                    }
+                                                                })}
                                                                 className="h-10 w-10 flex items-center justify-center glass-morphism text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm"
                                                             >
                                                                 <Eye size={18} />
@@ -680,6 +700,7 @@ export function Invoices() {
                 title={resultModal.title}
                 message={resultModal.message}
                 type={resultModal.type}
+                data={resultModal.data}
             />
         </div>
     );
