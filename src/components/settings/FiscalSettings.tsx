@@ -8,6 +8,7 @@ import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
 import { ResultModal } from '../ui/ResultModal';
 import { DiagnosticModal } from '../ui/DiagnosticModal';
+import { Tooltip } from '../ui/Tooltip';
 import { API_BASE_URL } from '../../lib/constants';
 
 export function FiscalSettings() {
@@ -167,6 +168,7 @@ export function FiscalSettings() {
         message: '',
         type: 'info'
     });
+    const [lastTestResult, setLastTestResult] = useState<any>(null);
 
     const lastLoadedEntityId = useRef<string | null>(null);
 
@@ -421,6 +423,7 @@ export function FiscalSettings() {
                     onClick: () => handleCheckTestStatus(id)
                 } : undefined
             });
+            setLastTestResult(wrappedResult);
         } catch (error: any) {
             console.error(error);
             setResultModal({
@@ -496,6 +499,7 @@ export function FiscalSettings() {
                     onClick: () => handleCheckTestStatus(externalId)
                 } : undefined
             });
+            setLastTestResult(wrappedResponse);
         } catch (error: any) {
             console.error(error);
             const isAlreadyEmitted = error.response?.status === 409;
@@ -1452,37 +1456,64 @@ export function FiscalSettings() {
                                             placeholder='{ "prestador": { ... }, "tomador": { ... }, "servico": { ... } }'
                                         />
                                         
-                                        <div className="flex justify-end gap-3">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-purple-600 hover:bg-purple-100"
-                                                onClick={handleGenerateExample}
-                                                disabled={testingJson}
-                                            >
-                                                Gerar Exemplo
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setTestJson('')}
-                                                disabled={!testJson || testingJson}
-                                            >
-                                                Limpar
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                className="bg-purple-600 hover:bg-purple-700 text-white"
-                                                onClick={handleTestJson}
-                                                isLoading={testingJson}
-                                                disabled={!testJson || testingJson}
-                                            >
-                                                <Send size={16} className="mr-2" />
-                                                Emitir Via JSON Manual
-                                            </Button>
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex gap-2">
+                                                {lastTestResult && (
+                                                    <Tooltip content="Visualizar Último Resultado (PDF/XML)">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="border-purple-200 text-purple-600 hover:bg-purple-50 h-10 w-10 p-0 flex items-center justify-center rounded-xl transition-all active:scale-90"
+                                                            onClick={() => setResultModal({
+                                                                isOpen: true,
+                                                                title: 'Visualizar Nota de Teste',
+                                                                message: 'Visualizando o último resultado emitido pelo laboratório.',
+                                                                type: 'success',
+                                                                data: lastTestResult
+                                                            })}
+                                                        >
+                                                            <Eye size={18} />
+                                                        </Button>
+                                                    </Tooltip>
+                                                )}
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-purple-600 hover:bg-purple-100 h-10 font-bold"
+                                                    onClick={handleGenerateExample}
+                                                    disabled={testingJson}
+                                                >
+                                                    Gerar Exemplo
+                                                </Button>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-10 px-4 rounded-xl font-medium"
+                                                    onClick={() => {
+                                                        setTestJson('');
+                                                        setLastTestResult(null);
+                                                    }}
+                                                    disabled={!testJson || testingJson}
+                                                >
+                                                    Limpar
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 h-10 rounded-xl shadow-lg shadow-purple-500/20"
+                                                    onClick={handleTestJson}
+                                                    isLoading={testingJson}
+                                                    disabled={!testJson || testingJson}
+                                                >
+                                                    <Send size={16} className="mr-2" />
+                                                    Emitir Via JSON Manual
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
