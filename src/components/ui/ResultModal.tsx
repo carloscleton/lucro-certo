@@ -134,10 +134,13 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                 "bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300 transition-all",
                 (showPdf || showXml) ? "w-full max-w-5xl h-[90vh]" : "w-full max-w-md"
             )}>
-                <div className="p-6 flex flex-col h-full">
+                <div className={clsx(
+                    "flex flex-col h-full transition-all duration-300",
+                    (showPdf || showXml) ? "p-0" : "p-8"
+                )}>
                     {showPdf || showXml ? (
-                        <div className="flex flex-col h-full gap-4">
-                            <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-gray-100 dark:border-slate-800">
+                        <div className="flex flex-col h-full">
+                            <div className="flex justify-between items-center bg-gray-50/80 dark:bg-slate-800/80 p-4 border-b border-gray-100 dark:border-slate-800 backdrop-blur-md">
                                 <div className="flex items-center gap-2">
                                     <div className={clsx(
                                         "p-2 rounded-lg",
@@ -151,15 +154,15 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                 </div>
                                 <button 
                                     onClick={() => { setShowPdf(false); setShowXml(false); }}
-                                    className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-gray-500"
+                                    className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-gray-500 hover:text-gray-900 dark:hover:text-white"
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-auto bg-gray-100 dark:bg-slate-950 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-inner">
+                            <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-slate-950">
                                 {showPdf ? (
                                     pdfUrl ? (
-                                        <div className="relative group p-4">
+                                        <div className="relative group h-full">
                                             {/* Toolbar de Zoom */}
                                             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 p-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-300">
                                                 <button 
@@ -185,7 +188,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                                     <Plus size={16} />
                                                 </button>
                                             </div>
-                                            <div className="w-full h-[600px] overflow-hidden">
+                                            <div className="w-full h-full overflow-hidden">
                                                 <div 
                                                     className="w-full h-full transition-transform duration-300 ease-out origin-top"
                                                     style={{ transform: `scale(${zoomLevel / 100})` }}
