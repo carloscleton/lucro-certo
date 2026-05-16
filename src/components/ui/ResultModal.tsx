@@ -200,7 +200,9 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         </div>
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-slate-900/50">
-                                            {String(data?.pdf || data?.pdf_url || '').includes('example.pdf') ? (
+                                            {String(data?.pdf || data?.pdf_url || '').includes('example.pdf') || 
+                                             String(data?.idIntegracao || '').startsWith('TEST_') || 
+                                             String(data?.idIntegracao || '').startsWith('AVULSA_') ? (
                                                 <>
                                                     <div className="p-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full mb-4">
                                                         <FileCode size={32} />
@@ -209,7 +211,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                                         Modo de Teste (Mock)
                                                     </h4>
                                                     <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
-                                                        Esta é uma nota de simulação. O PDF real só é gerado em notas enviadas para prefeituras em produção.
+                                                        Esta é uma nota de simulação do laboratório. O PDF real só é gerado em notas enviadas para prefeituras em produção.
                                                     </p>
                                                     <Button 
                                                         onClick={() => setShowPdf(false)}
