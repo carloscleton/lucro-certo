@@ -200,26 +200,25 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         </div>
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-slate-900/50">
-                                            {String(data?.pdf || data?.pdf_url || '').includes('example.pdf') || 
-                                             String(data?.idIntegracao || '').startsWith('TEST_') || 
-                                             String(data?.idIntegracao || '').startsWith('AVULSA_') ? (
+                                            {(String(data?.idIntegracao || '').startsWith('TEST_') || 
+                                              String(data?.idIntegracao || '').startsWith('AVULSA_') ||
+                                              String(data?.pdf || data?.pdf_url || '').includes('example.pdf')) && !pdfUrl ? (
                                                 <>
                                                     <div className="p-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full mb-4">
                                                         <FileCode size={32} />
                                                     </div>
                                                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                                                        Modo de Teste (Mock)
+                                                        Modo de Simulação
                                                     </h4>
                                                     <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
-                                                        Esta é uma nota de simulação do laboratório. O PDF real só é gerado em notas enviadas para prefeituras em produção.
+                                                        Esta é uma simulação interna e não gerou um documento oficial. Notas de homologação ou produção aparecerão aqui normalmente.
                                                     </p>
                                                     <Button 
                                                         onClick={() => setShowPdf(false)}
-                                                        variant="outline"
-                                                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 h-11 rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 border-none"
+                                                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 h-12 rounded-2xl flex items-center gap-2 shadow-xl shadow-amber-500/20 transition-all active:scale-95"
                                                     >
                                                         <Search size={18} />
-                                                        Ver Dados da Simulação
+                                                        Ver Dados Técnicos
                                                     </Button>
                                                 </>
                                             ) : (
