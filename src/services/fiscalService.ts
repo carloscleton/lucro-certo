@@ -135,5 +135,15 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async consultarNotasPorPeriodo(companyId: string, dataInicial: string, dataFinal: string, tipo: 'nfse' | 'nfe', token: string, ator?: number) {
+        const response = await axios.get(getFiscalUrl('consultar/periodo'), {
+            params: { companyId, dataInicial, dataFinal, tipo, ator },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };

@@ -7,6 +7,7 @@ import { useEntity } from '../context/EntityContext';
 import { fiscalService } from '../services/fiscalService';
 import { supabase } from '../lib/supabase';
 import { StandaloneInvoiceModal } from '../components/fiscal/StandaloneInvoiceModal';
+import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
 import { ResultModal } from '../components/ui/ResultModal';
 import { Tooltip } from '../components/ui/Tooltip';
 
@@ -15,6 +16,7 @@ export function Invoices() {
     const { currentEntity } = useEntity();
     
     const [showNewModal, setShowNewModal] = useState(false);
+    const [showConsultaModal, setShowConsultaModal] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info', data?: any}>({
         isOpen: false, title: '', message: '', type: 'success'
@@ -311,6 +313,14 @@ export function Invoices() {
                     >
                         <RefreshCw size={16} className={clsx("mr-2", isLoading && "animate-spin")} />
                         Atualizar Lista
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        onClick={() => setShowConsultaModal(true)} 
+                        className="flex-1 md:flex-none h-11 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700"
+                    >
+                        <Search size={16} className="mr-2" />
+                        Consultar Notas
                     </Button>
                     <Button 
                         variant="primary" 
@@ -620,6 +630,13 @@ export function Invoices() {
                     initialData={duplicateData}
                     initialType={duplicateData?.type}
                     initialNotes={duplicateData?.notes}
+                />
+            )}
+
+            {showConsultaModal && (
+                <ConsultaNotasModal 
+                    onClose={() => setShowConsultaModal(false)} 
+                    companyId={currentEntity.id}
                 />
             )}
 

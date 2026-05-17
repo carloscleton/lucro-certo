@@ -814,6 +814,54 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
     }
 });
 
+app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/periodo'], authenticate, async (req, res) => {
+    const { companyId, dataInicial, dataFinal, tipo, ator } = req.query;
+    const authHeader = req.headers.authorization;
+
+    if (!companyId || !dataInicial || !dataFinal) {
+        return res.status(400).json({ error: 'companyId, dataInicial e dataFinal são obrigatórios.' });
+    }
+
+    try {
+        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
+        const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
+
+        const cnpj = (config.cnpj || '').replace(/\D/g, '');
+        if (!cnpj) {
+            return res.status(400).json({ error: 'CNPJ da empresa não configurado.' });
+        }
+
+        const endpoint = tipo === 'nfe' ? 'nfe' : 'nfse/nacional';
+        const url = `${baseUrl}/${endpoint}/${cnpj}/consultar/periodo`;
+        
+        console.log(`🔍 [FISCAL-CONSULTAR] Solicitando notas de ${dataInicial} a ${dataFinal} para ${cnpj} (${endpoint})`);
+        
+        const response = await axios.get(url, {
+            params: {
+                dataInicial,
+                dataFinal,
+                ator: ator || 1 // 1 para Emitente/Prestador por padrão
+            },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey
+            }
+        });
+
+        res.json({ success: true, ...response.data });
+    } catch (error: any) {
+        console.error('❌ Erro ao consultar notas:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({ 
+            error: 'Falha ao consultar notas na TecnoSpeed', 
+            detail: error.response?.data || error.message 
+        });
+    }
+});
+
 app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml'], authenticate, async (req, res) => {
     const { type, id } = req.params;
     const { companyId, token } = req.query;
