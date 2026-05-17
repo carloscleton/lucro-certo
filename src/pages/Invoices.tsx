@@ -636,7 +636,7 @@ export function Invoices() {
             {showConsultaModal && (
                 <ConsultaNotasModal 
                     onClose={() => setShowConsultaModal(false)} 
-                    companyId={currentEntity.id}
+                    companyId={currentEntity.id!}
                 />
             )}
 
