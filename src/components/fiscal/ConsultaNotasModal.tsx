@@ -34,6 +34,12 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
             if (!token) throw new Error('Sessão expirada.');
             
             const response = await fiscalService.consultarNotasPorPeriodo(companyId, dataInicial, dataFinal, tipo, token);
+            
+            if (response?.message && response.message.includes('Não implementado')) {
+                setError('A consulta por período não está disponível no ambiente de Sandbox da Tecnospeed para este tipo de nota.');
+                return;
+            }
+
             const notasArray = response?.notas || (Array.isArray(response) ? response : []);
             setResults(notasArray);
             
