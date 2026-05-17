@@ -490,7 +490,7 @@ export function Invoices() {
                                                     </span>
                                                     <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider flex flex-col gap-0.5">
                                                         <span>Emissão Direta</span>
-                                                        <span className="text-[9px] text-blue-500/40 font-mono italic">
+                                                        <span className="text-[9px] text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 w-fit">
                                                             ID: {invoice.payload?.idIntegracao || invoice.external_id?.slice(0, 15)}
                                                         </span>
                                                     </span>
