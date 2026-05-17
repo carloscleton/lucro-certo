@@ -3,7 +3,9 @@ ALTER TABLE fiscal_invoices
 ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(100),
 ADD COLUMN IF NOT EXISTS dps_number VARCHAR(100),
 ADD COLUMN IF NOT EXISTS dps_serie VARCHAR(50),
-ADD COLUMN IF NOT EXISTS access_key VARCHAR(100);
+ADD COLUMN IF NOT EXISTS access_key VARCHAR(100),
+ADD COLUMN IF NOT EXISTS plugnotas_id VARCHAR(100),
+ADD COLUMN IF NOT EXISTS protocol VARCHAR(100);
 
 -- Função para extrair dados do payload e preencher as colunas automaticamente
 CREATE OR REPLACE FUNCTION extract_fiscal_metadata()
@@ -46,6 +48,19 @@ BEGIN
             NEW.payload->'DPS'->'infDPS'->>'serie',
             NEW.payload->>'serie',
             NEW.dps_serie
+        );
+
+        -- Plugnotas ID
+        NEW.plugnotas_id := COALESCE(
+            NEW.payload->>'id',
+            NEW.plugnotas_id
+        );
+
+        -- Protocolo
+        NEW.protocol := COALESCE(
+            NEW.payload->>'protocol',
+            NEW.payload->'retorno'->>'protocolo',
+            NEW.protocol
         );
     END IF;
 

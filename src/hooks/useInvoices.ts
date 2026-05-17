@@ -18,6 +18,8 @@ export interface FiscalInvoice {
     dps_number?: string;
     dps_serie?: string;
     access_key?: string;
+    plugnotas_id?: string;
+    protocol?: string;
     created_at: string;
     updated_at: string;
 }
