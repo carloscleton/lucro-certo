@@ -534,6 +534,19 @@ export function Invoices() {
                                         <td className="py-3 px-6">
                                             <div className="flex flex-col gap-1.5 items-start">
                                                 {getStatusBadge(invoice.status)}
+                                                {(() => {
+                                                    const p = invoice.payload;
+                                                    const num = p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero;
+                                                    if (num && ['concluido', 'autorizado'].includes(invoice.status?.toLowerCase() || '')) {
+                                                        return (
+                                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                                                <FileText size={10} />
+                                                                Nº {num}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                                 {invoice.status?.toLowerCase() === 'cancelado' && (
                                                     <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-bold rounded-lg border border-slate-200 dark:border-slate-700">
                                                         <AlertCircle size={10} />
