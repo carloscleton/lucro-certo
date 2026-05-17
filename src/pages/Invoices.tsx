@@ -499,7 +499,8 @@ export function Invoices() {
                                             <div className="flex flex-col items-start">
                                                 {(() => {
                                                     const p = invoice.payload;
-                                                    const num = p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero;
+                                                    const num = p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero;
+                                                    const chaveAcesso = p?.retorno?.chaveAcesso || p?.chaveAcesso || '';
                                                     const idIntegracao = invoice.payload?.idIntegracao || invoice.external_id || '';
                                                     
                                                     if (num) {
@@ -508,9 +509,14 @@ export function Invoices() {
                                                                 <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                                     Nº {num}
                                                                 </span>
+                                                                {chaveAcesso && (
+                                                                    <span className="text-[9px] text-emerald-600 font-mono mt-0.5 break-all leading-tight">
+                                                                        {chaveAcesso}
+                                                                    </span>
+                                                                )}
                                                                 {idIntegracao && (
-                                                                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 font-mono">
-                                                                        ID: {idIntegracao.slice(0, 15)}...
+                                                                    <span className="text-[10px] text-gray-400 font-medium mt-1 font-mono break-all">
+                                                                        ID: {idIntegracao}
                                                                     </span>
                                                                 )}
                                                             </>
@@ -518,9 +524,16 @@ export function Invoices() {
                                                     }
                                                     
                                                     return (
-                                                        <span className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate max-w-[150px]" title={idIntegracao}>
-                                                            {idIntegracao}
-                                                        </span>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-gray-900 dark:text-gray-100 text-sm break-all leading-tight">
+                                                                {idIntegracao}
+                                                            </span>
+                                                            {chaveAcesso && (
+                                                                <span className="text-[9px] text-emerald-600 font-mono mt-1 break-all leading-tight">
+                                                                    Chave: {chaveAcesso}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     );
                                                 })()}
                                             </div>
