@@ -69,7 +69,8 @@ export function useInvoices() {
                     )
                 `)
                 .eq('company_id', filterId)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(100);
 
             if (error) throw error;
             setInvoices(data || []);
