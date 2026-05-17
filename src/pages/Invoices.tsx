@@ -502,14 +502,13 @@ export function Invoices() {
                                                     const num = p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero;
                                                     if (num) {
                                                         return (
-                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl border border-emerald-200 dark:border-emerald-800">
-                                                                <FileText size={12} />
+                                                            <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                                 Nº {num}
-                                                            </div>
+                                                            </span>
                                                         );
                                                     }
                                                     return (
-                                                        <span className="text-xs font-medium text-gray-400 italic">
+                                                        <span className="font-bold text-gray-400 text-sm italic">
                                                             S/ Número
                                                         </span>
                                                     );
