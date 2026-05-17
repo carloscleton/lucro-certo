@@ -14,6 +14,10 @@ export interface FiscalInvoice {
     error_message?: string;
     payload?: any;
     quote?: any;
+    invoice_number?: string;
+    dps_number?: string;
+    dps_serie?: string;
+    access_key?: string;
     created_at: string;
     updated_at: string;
 }
