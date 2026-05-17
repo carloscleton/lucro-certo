@@ -499,12 +499,14 @@ export function Invoices() {
                                             <div className="flex flex-col items-start">
                                                 {(() => {
                                                     const p = invoice.payload;
-                                                    const num = p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero;
-                                                    const chaveAcesso = p?.retorno?.chaveAcesso || p?.chaveAcesso || '';
-                                                    const idIntegracao = invoice.payload?.idIntegracao || invoice.external_id || '';
                                                     
-                                                    const dpsNumero = p?.retorno?.dps?.numero || p?.dps?.numero || p?.nacional?.dps?.numero || p?.DPS?.infDPS?.nDPS || p?.nDPS;
-                                                    const dpsSerie = p?.retorno?.dps?.serie || p?.dps?.serie || p?.nacional?.dps?.serie || p?.DPS?.infDPS?.serie || p?.serie;
+                                                    // Prioriza as novas colunas físicas do banco, fazendo fallback pro payload antigo
+                                                    const num = invoice.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero;
+                                                    const chaveAcesso = invoice.access_key || p?.retorno?.chaveAcesso || p?.chaveAcesso || '';
+                                                    const dpsNumero = invoice.dps_number || p?.retorno?.dps?.numero || p?.dps?.numero || p?.nacional?.dps?.numero || p?.DPS?.infDPS?.nDPS || p?.nDPS;
+                                                    const dpsSerie = invoice.dps_serie || p?.retorno?.dps?.serie || p?.dps?.serie || p?.nacional?.dps?.serie || p?.DPS?.infDPS?.serie || p?.serie;
+                                                    
+                                                    const idIntegracao = invoice.payload?.idIntegracao || invoice.external_id || '';
                                                     
                                                     if (num) {
                                                         return (
