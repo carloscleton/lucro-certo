@@ -503,6 +503,9 @@ export function Invoices() {
                                                     const chaveAcesso = p?.retorno?.chaveAcesso || p?.chaveAcesso || '';
                                                     const idIntegracao = invoice.payload?.idIntegracao || invoice.external_id || '';
                                                     
+                                                    const dpsNumero = p?.retorno?.dps?.numero || p?.dps?.numero || p?.nacional?.dps?.numero || p?.DPS?.infDPS?.nDPS || p?.nDPS;
+                                                    const dpsSerie = p?.retorno?.dps?.serie || p?.dps?.serie || p?.nacional?.dps?.serie || p?.DPS?.infDPS?.serie || p?.serie;
+                                                    
                                                     if (num) {
                                                         return (
                                                             <>
@@ -514,8 +517,15 @@ export function Invoices() {
                                                                         {chaveAcesso}
                                                                     </span>
                                                                 )}
+                                                                {(dpsNumero || dpsSerie) && (
+                                                                    <span className="text-[10px] text-gray-500 font-medium mt-1">
+                                                                        {dpsNumero ? `DPS: ${dpsNumero}` : ''}
+                                                                        {dpsNumero && dpsSerie ? ' - ' : ''}
+                                                                        {dpsSerie ? `Série: ${dpsSerie}` : ''}
+                                                                    </span>
+                                                                )}
                                                                 {idIntegracao && (
-                                                                    <span className="text-[10px] text-gray-400 font-medium mt-1 font-mono break-all">
+                                                                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 font-mono break-all">
                                                                         ID: {idIntegracao}
                                                                     </span>
                                                                 )}
@@ -531,6 +541,13 @@ export function Invoices() {
                                                             {chaveAcesso && (
                                                                 <span className="text-[9px] text-emerald-600 font-mono mt-1 break-all leading-tight">
                                                                     Chave: {chaveAcesso}
+                                                                </span>
+                                                            )}
+                                                            {(dpsNumero || dpsSerie) && (
+                                                                <span className="text-[10px] text-gray-500 font-medium mt-1">
+                                                                    {dpsNumero ? `DPS: ${dpsNumero}` : ''}
+                                                                    {dpsNumero && dpsSerie ? ' - ' : ''}
+                                                                    {dpsSerie ? `Série: ${dpsSerie}` : ''}
                                                                 </span>
                                                             )}
                                                         </div>
