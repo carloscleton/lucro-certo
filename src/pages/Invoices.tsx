@@ -425,6 +425,7 @@ export function Invoices() {
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Data e Hora</th>
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Tipo</th>
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Cliente / Beneficiário</th>
+                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Identificação</th>
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Valor / Descrição</th>
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Status da Emissão</th>
                                 <th className="py-5 px-6 text-right font-bold text-[10px] uppercase tracking-widest text-gray-400">Ações</th>
@@ -488,14 +489,35 @@ export function Invoices() {
                                                     <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                         {invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || 'Avulsa'}
                                                     </span>
-                                                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider flex flex-col gap-0.5">
-                                                        <span>Emissão Direta</span>
-                                                        <span className="text-[9px] text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 w-fit">
-                                                            ID: {invoice.payload?.idIntegracao || invoice.external_id?.slice(0, 15)}
-                                                        </span>
+                                                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider">
+                                                        Emissão Direta
                                                     </span>
                                                 </div>
                                             )}
+                                        </td>
+                                        <td className="py-3 px-6">
+                                            <div className="flex flex-col gap-2 items-start">
+                                                {(() => {
+                                                    const p = invoice.payload;
+                                                    const num = p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero;
+                                                    if (num) {
+                                                        return (
+                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl border border-emerald-200 dark:border-emerald-800">
+                                                                <FileText size={12} />
+                                                                Nº {num}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <span className="text-xs font-medium text-gray-400 italic">
+                                                            S/ Número
+                                                        </span>
+                                                    );
+                                                })()}
+                                                <span className="text-[9px] text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 w-fit" title="ID Integração">
+                                                    ID: {invoice.payload?.idIntegracao || invoice.external_id?.slice(0, 15)}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="py-3 px-6">
                                             <div className="flex flex-col">
@@ -534,19 +556,6 @@ export function Invoices() {
                                         <td className="py-3 px-6">
                                             <div className="flex flex-col gap-1.5 items-start">
                                                 {getStatusBadge(invoice.status)}
-                                                {(() => {
-                                                    const p = invoice.payload;
-                                                    const num = p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero;
-                                                    if (num && ['concluido', 'autorizado'].includes(invoice.status?.toLowerCase() || '')) {
-                                                        return (
-                                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                                                <FileText size={10} />
-                                                                Nº {num}
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
                                                 {invoice.status?.toLowerCase() === 'cancelado' && (
                                                     <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-bold rounded-lg border border-slate-200 dark:border-slate-700">
                                                         <AlertCircle size={10} />
