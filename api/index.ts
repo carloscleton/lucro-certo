@@ -830,7 +830,17 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
         const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
-        const cnpj = (config.cnpj || '').replace(/\D/g, '');
+        let cnpj = (config.cnpj || '').replace(/\D/g, '');
+        
+        const certId = config.certificado_id || config.certificadoId || config.certificado;
+        const hasCert = !!certId && certId !== 'null' && certId !== 'undefined';
+        const useTestData = (config.use_test_data === true) || (isSandbox && !hasCert);
+        
+        if (useTestData) {
+            cnpj = '08184315000104'; // CNPJ da TecnoSpeed usado no modo teste/sandbox
+            console.log(`🛠️ [FISCAL-CONSULTAR] Modo Teste Ativo. Forçando CNPJ para ${cnpj} para localizar as notas do Sandbox.`);
+        }
+
         if (!cnpj) {
             return res.status(400).json({ error: 'CNPJ da empresa não configurado.' });
         }

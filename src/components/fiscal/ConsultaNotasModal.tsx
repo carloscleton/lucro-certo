@@ -34,8 +34,10 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
             if (!token) throw new Error('Sessão expirada.');
             
             const response = await fiscalService.consultarNotasPorPeriodo(companyId, dataInicial, dataFinal, tipo, token);
-            setResults(response?.notas || []);
-            if (response?.notas?.length === 0) {
+            const notasArray = response?.notas || (Array.isArray(response) ? response : []);
+            setResults(notasArray);
+            
+            if (notasArray.length === 0) {
                 setError('Nenhuma nota encontrada no período especificado.');
             }
         } catch (err: any) {
