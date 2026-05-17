@@ -17,6 +17,7 @@ export function Invoices() {
     
     const [showNewModal, setShowNewModal] = useState(false);
     const [showConsultaModal, setShowConsultaModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info', data?: any}>({
         isOpen: false, title: '', message: '', type: 'success'
@@ -31,6 +32,23 @@ export function Invoices() {
     });
     const [isDeleting, setIsDeleting] = useState(false);
     const [duplicateData, setDuplicateData] = useState<{items: any[], type: 'nfse' | 'nfe', contactId: string, cityCode: string, notes: string} | null>(null);
+
+    const filteredInvoices = invoices.filter(invoice => {
+        if (!searchQuery) return true;
+        const searchLower = searchQuery.toLowerCase();
+        
+        const clientNameQuote = invoice.quote?.contact?.name || '';
+        const clientNamePayloadNfe = invoice.payload?.destinatario?.nome || '';
+        const clientNamePayloadNfse = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
+        const clientName = clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || 'Cliente Desconhecido';
+        
+        const invoiceNumber = invoice.payload?.numero || invoice.external_id || '';
+        const status = invoice.status || '';
+        
+        return clientName.toLowerCase().includes(searchLower) || 
+               invoiceNumber.toLowerCase().includes(searchLower) ||
+               status.toLowerCase().includes(searchLower);
+    });
 
 
 
@@ -381,6 +399,23 @@ export function Invoices() {
                 </div>
             )}
 
+            {/* Search and List Header */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar nota por cliente, número ou status..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
+                    />
+                </div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4">
+                    {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Nota' : 'Notas'} {searchQuery ? 'Encontradas' : 'Recentes'}
+                </div>
+            </div>
+
             {/* List */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden">
                 <div className="overflow-x-auto">
@@ -409,7 +444,7 @@ export function Invoices() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : invoices.length === 0 ? (
+                            ) : filteredInvoices.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="py-20 text-center">
                                         <div className="flex flex-col items-center justify-center">
@@ -422,7 +457,7 @@ export function Invoices() {
                                     </td>
                                 </tr>
                             ) : (
-                                invoices.map((invoice) => (
+                                filteredInvoices.map((invoice) => (
                                     <tr key={invoice.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300">
                                         <td className="py-4 px-6">
                                             <div className="font-bold text-gray-900 dark:text-white">
