@@ -496,26 +496,33 @@ export function Invoices() {
                                             )}
                                         </td>
                                         <td className="py-3 px-6">
-                                            <div className="flex flex-col gap-2 items-start">
+                                            <div className="flex flex-col items-start">
                                                 {(() => {
                                                     const p = invoice.payload;
                                                     const num = p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero;
+                                                    const idIntegracao = invoice.payload?.idIntegracao || invoice.external_id || '';
+                                                    
                                                     if (num) {
                                                         return (
-                                                            <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
-                                                                Nº {num}
-                                                            </span>
+                                                            <>
+                                                                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                                                                    Nº {num}
+                                                                </span>
+                                                                {idIntegracao && (
+                                                                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 font-mono">
+                                                                        ID: {idIntegracao.slice(0, 15)}...
+                                                                    </span>
+                                                                )}
+                                                            </>
                                                         );
                                                     }
+                                                    
                                                     return (
-                                                        <span className="font-bold text-gray-400 text-sm italic">
-                                                            S/ Número
+                                                        <span className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate max-w-[150px]" title={idIntegracao}>
+                                                            {idIntegracao}
                                                         </span>
                                                     );
                                                 })()}
-                                                <span className="text-[9px] text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 w-fit" title="ID Integração">
-                                                    ID: {invoice.payload?.idIntegracao || invoice.external_id?.slice(0, 15)}
-                                                </span>
                                             </div>
                                         </td>
                                         <td className="py-3 px-6">
