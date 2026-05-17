@@ -52,14 +52,17 @@ BEGIN
 
         -- Plugnotas ID
         NEW.plugnotas_id := COALESCE(
+            NEW.payload->'retorno'->>'id',
+            NEW.payload->'retorno'->'data'->>'id',
             NEW.payload->>'id',
             NEW.plugnotas_id
         );
 
         -- Protocolo
         NEW.protocol := COALESCE(
-            NEW.payload->>'protocol',
+            NEW.payload->'retorno'->>'protocol',
             NEW.payload->'retorno'->>'protocolo',
+            NEW.payload->>'protocol',
             NEW.protocol
         );
     END IF;
