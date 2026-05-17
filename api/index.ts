@@ -550,7 +550,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     external_id: externalId,
                     type: endpoint,
                     status: 'processando',
-                    payload: finalPayload[0] || finalPayload
+                    payload: {
+                        ...(finalPayload[0] || finalPayload),
+                        retorno: response.data
+                    }
                 }, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY!,
