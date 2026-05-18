@@ -285,8 +285,9 @@ export function Invoices() {
     };
 
     const getPhoneFromPayload = (invoice: any): string => {
-        if (invoice.quote?.contact?.phone) {
-            return String(invoice.quote.contact.phone).replace(/\D/g, '');
+        const contactPhone = invoice.quote?.contact?.whatsapp || invoice.quote?.contact?.phone;
+        if (contactPhone) {
+            return String(contactPhone).replace(/\D/g, '');
         }
 
         const p = invoice.payload;

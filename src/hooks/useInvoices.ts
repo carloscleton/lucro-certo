@@ -72,6 +72,7 @@ export function useInvoices() {
                             name,
                             tax_id,
                             phone,
+                            whatsapp,
                             email
                         )
                     )

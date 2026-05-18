@@ -8,7 +8,10 @@ export interface SendWhatsAppParams {
 
 export const whatsappService = {
     async sendMessage({ instanceName, number, text }: SendWhatsAppParams) {
-        const cleanNumber = number.replace(/\D/g, '');
+        let cleanNumber = number.replace(/\D/g, '');
+        if (cleanNumber.length === 10 || cleanNumber.length === 11) {
+            cleanNumber = '55' + cleanNumber;
+        }
         
         try {
             const response = await fetch(`${API_BASE_URL}/whatsapp/send`, {
