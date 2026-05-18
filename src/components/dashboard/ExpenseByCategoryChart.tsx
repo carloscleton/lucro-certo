@@ -61,7 +61,7 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
                 {/* Chart */}
                 <div className="w-full lg:w-1/2 min-h-[240px] min-w-0 relative">
                     <SafeChartContainer className="w-full h-[240px]">
-                        <ResponsiveContainer key="chart-cat" width="100%" height="100%" minHeight={1} debounce={50}>
+                        <ResponsiveContainer key="chart-cat" width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
                             <PieChart>
                                 <Pie
                                     data={data}

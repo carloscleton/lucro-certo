@@ -18,7 +18,7 @@ function Gauge({ value, label, description, color = '#10b981' }: GaugeProps) {
         <div className="flex flex-col items-center justify-center p-4">
             <div className="relative w-full h-[140px]">
                 <SafeChartContainer className="w-full h-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <PieChart>
                             <Pie
                                 data={data}

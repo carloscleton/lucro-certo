@@ -157,7 +157,7 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
                     key={weeklyData.length} // Force re-render if data count changed
                     className="w-full h-full"
                 >
-                    <ResponsiveContainer key="chart-fluxo" width="100%" height="100%" minHeight={1} debounce={50}>
+                    <ResponsiveContainer key="chart-fluxo" width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
                         <BarChart
                             data={weeklyData}
                             margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
