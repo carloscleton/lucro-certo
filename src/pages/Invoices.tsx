@@ -394,11 +394,21 @@ export function Invoices() {
             if (rawCpfCnpj) {
                 const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
                 try {
-                    const { data, error } = await supabase
+                    let { data, error } = await supabase
                         .from('contacts')
                         .select('phone, whatsapp')
-                        .or(`tax_id.eq."${rawCpfCnpj}",tax_id.eq."${cleanCpfCnpj}"`)
+                        .eq('tax_id', cleanCpfCnpj)
                         .limit(1);
+
+                    if ((!data || data.length === 0) && rawCpfCnpj !== cleanCpfCnpj) {
+                        const res = await supabase
+                            .from('contacts')
+                            .select('phone, whatsapp')
+                            .eq('tax_id', rawCpfCnpj)
+                            .limit(1);
+                        data = res.data;
+                        error = res.error;
+                    }
 
                     if (!error && data && data.length > 0) {
                         const contact = data[0];
@@ -438,11 +448,21 @@ export function Invoices() {
             if (rawCpfCnpj) {
                 const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
                 try {
-                    const { data, error } = await supabase
+                    let { data, error } = await supabase
                         .from('contacts')
                         .select('email')
-                        .or(`tax_id.eq."${rawCpfCnpj}",tax_id.eq."${cleanCpfCnpj}"`)
+                        .eq('tax_id', cleanCpfCnpj)
                         .limit(1);
+
+                    if ((!data || data.length === 0) && rawCpfCnpj !== cleanCpfCnpj) {
+                        const res = await supabase
+                            .from('contacts')
+                            .select('email')
+                            .eq('tax_id', rawCpfCnpj)
+                            .limit(1);
+                        data = res.data;
+                        error = res.error;
+                    }
 
                     if (!error && data && data.length > 0) {
                         const contact = data[0];
