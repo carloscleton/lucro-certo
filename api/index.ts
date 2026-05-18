@@ -879,26 +879,16 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
     const { type, id } = req.params;
     const { companyId, token } = req.query;
     const authHeader = req.headers.authorization || (token ? `Bearer ${token}` : null);
-    const isXml = req.path.endsWith('/xml');
+    const isXml = req.path.endsWith('/xml') || req.path.includes('/xml');
 
     if (!companyId || !id) {
         return res.status(400).json({ error: 'companyId e ID da nota são obrigatórios' });
     }
 
-    if (!authHeader) {
-        return res.status(401).json({ error: 'Autenticação necessária para baixar este documento.' });
-    }
-
     try {
-        // Buscar config da empresa
-        const compResp = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=tecnospeed_config`, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY!,
-                'Authorization': authHeader!
-            }
-        });
+        // Tentar obter a configuração usando a função com cache
+        const { config } = await getCompanyFiscalConfig(authHeader, companyId as string);
 
-        const config = compResp.data?.[0]?.tecnospeed_config;
         if (!config || !config.tecnospeed_api_key) {
             return res.status(404).json({ error: 'Configuração fiscal não encontrada ou sem API Key.' });
         }
@@ -1165,41 +1155,97 @@ app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'
 });
 
 
+// Cache em memória para configurações fiscais de empresas (permite acesso público a PDFs e XMLs)
+export const fiscalConfigCache = new Map<string, { config: any; realCompanyId: string; expiresAt: number }>();
+
 // Helper para buscar configuração fiscal da empresa no Supabase
-async function getCompanyFiscalConfig(authHeader: string, companyId: string) {
+async function getCompanyFiscalConfig(authHeader: string | null, companyId: string) {
+    if (!companyId) throw new Error('companyId é obrigatório para obter configuração fiscal.');
+
+    // 🔍 1. Tenta buscar no cache em memória primeiro (bypassa o RLS e Supabase API inteiramente)
+    const cached = fiscalConfigCache.get(companyId);
+    if (cached && cached.expiresAt > Date.now()) {
+        console.log(`⚡ [FISCAL-CACHE] Configuração fiscal recuperada do cache para: ${companyId}`);
+        return {
+            config: cached.config,
+            realCompanyId: cached.realCompanyId
+        };
+    }
+
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
         throw new Error('Supabase URL ou Anon Key não configurados no servidor.');
     }
 
     try {
-        console.log(`🏢 Buscando config fiscal para empresa: ${companyId}`);
+        console.log(`🏢 Buscando config fiscal para empresa via API: ${companyId}`);
         
         // 🔍 Detectar se é um UUID ou CNPJ
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId);
         const column = isUUID ? 'id' : 'cnpj';
         const cleanId = isUUID ? companyId : companyId.replace(/\D/g, '');
 
+        const headers: any = {
+            'apikey': SUPABASE_ANON_KEY as string
+        };
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
+        }
+
         const response = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
             params: {
                 [column]: `eq.${cleanId}`,
                 select: 'id,tecnospeed_config,fiscal_module_enabled'
             },
-            headers: {
-                'apikey': SUPABASE_ANON_KEY as string,
-                'Authorization': authHeader // Repassa o JWT do usuário para respeitar RLS
-            }
+            headers
         });
 
         const company = response.data?.[0];
-        if (!company) throw new Error(`Empresa (${companyId}) não encontrada ou acesso negado no Supabase.`);
+        if (!company) {
+            // Se falhou e temos um cache expirado, usa como fallback emergencial
+            if (cached) {
+                console.warn(`⚠️ [FISCAL-CACHE] Falha ao obter dados frescos para ${companyId}. Usando cache expirado de fallback.`);
+                return {
+                    config: cached.config,
+                    realCompanyId: cached.realCompanyId
+                };
+            }
+            throw new Error(`Empresa (${companyId}) não encontrada ou acesso negado no Supabase.`);
+        }
+        
         if (!company.fiscal_module_enabled) throw new Error('Módulo fiscal não habilitado para esta empresa.');
         if (!company.tecnospeed_config) throw new Error('Configuração da TecnoSpeed não encontrada para esta empresa.');
 
-        return {
+        const result = {
             config: company.tecnospeed_config,
             realCompanyId: company.id
         };
+
+        // Salvar no cache com 1 dia de expiração (para dar máxima resiliência a cliques de clientes finais no WhatsApp)
+        fiscalConfigCache.set(companyId, {
+            config: company.tecnospeed_config,
+            realCompanyId: company.id,
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24 horas
+        });
+
+        // Também indexa pelo ID resolvido para garantir que ambos funcionem no cache (UUID e CNPJ)
+        if (company.id !== companyId) {
+            fiscalConfigCache.set(company.id, {
+                config: company.tecnospeed_config,
+                realCompanyId: company.id,
+                expiresAt: Date.now() + 24 * 60 * 60 * 1000
+            });
+        }
+
+        return result;
     } catch (error: any) {
+        // Fallback emergencial usando o cache mesmo que expirado
+        if (cached) {
+            console.warn(`⚠️ [FISCAL-CACHE] Erro ao buscar dados frescos para ${companyId}. Usando cache expirado de fallback.`);
+            return {
+                config: cached.config,
+                realCompanyId: cached.realCompanyId
+            };
+        }
         console.error('❌ Erro ao buscar config fiscal:', error.response?.data || error.message);
         throw error;
     }

@@ -70,7 +70,9 @@ export function useInvoices() {
                         title,
                         contact:contact_id (
                             name,
-                            tax_id
+                            tax_id,
+                            phone,
+                            email
                         )
                     )
                 `)

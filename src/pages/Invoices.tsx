@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search, MessageCircle, Mail } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
@@ -49,6 +49,15 @@ export function Invoices() {
         message: '',
         isLoading: false
     });
+    const [sessionToken, setSessionToken] = useState<string>('');
+
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.access_token) {
+                setSessionToken(session.access_token);
+            }
+        });
+    }, []);
 
     const filteredInvoices = invoices.filter(invoice => {
         if (!searchQuery) return true;
@@ -357,7 +366,7 @@ export function Invoices() {
         }
 
         const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
-        return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}`;
+        return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}&token=${sessionToken}`;
     };
 
     const handleOpenSendWhatsApp = (invoice: any) => {
