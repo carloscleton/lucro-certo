@@ -13,10 +13,12 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- Only do this if payload is not null
     IF NEW.payload IS NOT NULL THEN
-        -- Access Key (Chave de Acesso)
+        -- Access Key (Chave de Acesso) ou Codigo de Verificacao
         NEW.access_key := COALESCE(
             NEW.payload->'retorno'->>'chaveAcesso',
             NEW.payload->>'chaveAcesso',
+            NEW.payload->'retorno'->>'codigoVerificacao',
+            NEW.payload->>'codigoVerificacao',
             NEW.access_key
         );
 
@@ -30,23 +32,25 @@ BEGIN
             NEW.invoice_number
         );
 
-        -- DPS Number
+        -- DPS/RPS Number
         NEW.dps_number := COALESCE(
             NEW.payload->'retorno'->'dps'->>'numero',
             NEW.payload->'dps'->>'numero',
             NEW.payload->'nacional'->'dps'->>'numero',
             NEW.payload->'DPS'->'infDPS'->>'nDPS',
             NEW.payload->>'nDPS',
+            NEW.payload->'rps'->>'numero',
             NEW.dps_number
         );
 
-        -- DPS Serie
+        -- DPS/RPS Serie
         NEW.dps_serie := COALESCE(
             NEW.payload->'retorno'->'dps'->>'serie',
             NEW.payload->'dps'->>'serie',
             NEW.payload->'nacional'->'dps'->>'serie',
             NEW.payload->'DPS'->'infDPS'->>'serie',
             NEW.payload->>'serie',
+            NEW.payload->'rps'->>'serie',
             NEW.dps_serie
         );
 

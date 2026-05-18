@@ -445,7 +445,21 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 
                 // Extrair ID com suporte a múltiplos formatos (documents[0] ou raiz)
                 const externalId = result.data?.id || result.id || result.documents?.[0]?.id;
+                let finalPayloadToSave = result.data || result;
+
                 if (externalId) {
+                    try {
+                        // Tentar buscar o payload completo imediatamente para gravar no banco
+                        console.log(`🔄 [DB-SAVE] Buscando dados completos da nota ${externalId}...`);
+                        const fullStatus = await fiscalService.checkStatus(externalId, currentEntity.id!, token);
+                        if (fullStatus && Object.keys(fullStatus).length > 2) {
+                            finalPayloadToSave = fullStatus;
+                            console.log(`✅ [DB-SAVE] Dados completos obtidos com sucesso.`);
+                        }
+                    } catch (statusErr) {
+                        console.warn('⚠️ [DB-SAVE] Não foi possível buscar o status completo imediatamente. Usando retorno da emissão.', statusErr);
+                    }
+
                     try {
                         console.log(`💾 [DB-SAVE] Iniciando gravação da nota ${externalId}...`);
                         
@@ -484,8 +498,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 company_id: realCompanyId,
                                 external_id: externalId,
                                 type: 'nfse',
-                                status: 'processando',
-                                payload: payload
+                                status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
+                                payload: finalPayloadToSave
                             });
 
                             if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
@@ -561,6 +575,51 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                 console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFe(currentEntity.id!, payload, token);
+
+                const externalId = result.data?.id || result.id || result.documents?.[0]?.id;
+                let finalPayloadToSave = result.data || result;
+
+                if (externalId) {
+                    try {
+                        console.log(`🔄 [DB-SAVE] Buscando dados completos da NFe ${externalId}...`);
+                        const fullStatus = await fiscalService.checkStatus(externalId, currentEntity.id!, token);
+                        if (fullStatus && Object.keys(fullStatus).length > 2) {
+                            finalPayloadToSave = fullStatus;
+                            console.log(`✅ [DB-SAVE] Dados completos obtidos com sucesso.`);
+                        }
+                    } catch (statusErr) {
+                        console.warn('⚠️ [DB-SAVE] Não foi possível buscar o status completo imediatamente.', statusErr);
+                    }
+
+                    try {
+                        let realCompanyId = currentEntity.id;
+                        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
+
+                        if (currentEntity.cnpj && (!realCompanyId || !isUUID)) {
+                            const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
+                            const { data: compData } = await supabase
+                                .from('companies')
+                                .select('id')
+                                .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
+                                .maybeSingle();
+                            if (compData?.id) realCompanyId = compData.id;
+                        }
+
+                        const finalIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
+                        if (finalIsUUID) {
+                            const { error: dbError } = await supabase.from('fiscal_invoices').insert({
+                                company_id: realCompanyId,
+                                external_id: externalId,
+                                type: 'nfe',
+                                status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
+                                payload: finalPayloadToSave
+                            });
+                            if (dbError) console.error('❌ [DB-SAVE] Erro no insert da NFe:', dbError);
+                        }
+                    } catch (dbErr) {
+                        console.error('❌ [DB-SAVE] Erro na gravação da NFe:', dbErr);
+                    }
+                }
 
                 if (sendWhatsApp && contact.phone) {
                     try {
