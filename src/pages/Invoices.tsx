@@ -370,7 +370,7 @@ export function Invoices() {
         return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}&token=${sessionToken}`;
     };
 
-    const handleOpenSendWhatsApp = (invoice: any) => {
+    const handleOpenSendWhatsApp = async (invoice: any) => {
         const phone = getPhoneFromPayload(invoice);
         const pdfUrl = getPdfUrlFromInvoice(invoice);
         const p = invoice.payload;
@@ -387,9 +387,40 @@ export function Invoices() {
             message: `Olá, ${clientName}! Segue o link para visualizar e baixar a sua Nota Fiscal Eletrônica: ${pdfUrl}`,
             isLoading: false
         });
+
+        // Se for emissão direta (sem orçamento) e tiver CPF/CNPJ do tomador, tenta buscar o contato no banco de dados para puxar o WhatsApp/Telefone atualizado
+        if (!invoice.quote && p) {
+            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj;
+            if (rawCpfCnpj) {
+                const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
+                try {
+                    const { data, error } = await supabase
+                        .from('contacts')
+                        .select('phone, whatsapp')
+                        .or(`tax_id.eq."${rawCpfCnpj}",tax_id.eq."${cleanCpfCnpj}"`)
+                        .limit(1);
+
+                    if (!error && data && data.length > 0) {
+                        const contact = data[0];
+                        const resolvedPhone = contact.whatsapp || contact.phone;
+                        if (resolvedPhone) {
+                            const cleanPhone = String(resolvedPhone).replace(/\D/g, '');
+                            setSendModal(prev => {
+                                if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'whatsapp') {
+                                    return { ...prev, recipient: cleanPhone };
+                                }
+                                return prev;
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Erro ao carregar contato do banco:', err);
+                }
+            }
+        }
     };
 
-    const handleOpenSendEmail = (invoice: any) => {
+    const handleOpenSendEmail = async (invoice: any) => {
         const email = getEmailFromPayload(invoice);
         setSendModal({
             isOpen: true,
@@ -399,6 +430,36 @@ export function Invoices() {
             message: '',
             isLoading: false
         });
+
+        // Se for emissão direta (sem orçamento) e tiver CPF/CNPJ do tomador, tenta buscar o contato no banco de dados para puxar o E-mail atualizado
+        const p = invoice.payload;
+        if (!invoice.quote && p) {
+            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj;
+            if (rawCpfCnpj) {
+                const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
+                try {
+                    const { data, error } = await supabase
+                        .from('contacts')
+                        .select('email')
+                        .or(`tax_id.eq."${rawCpfCnpj}",tax_id.eq."${cleanCpfCnpj}"`)
+                        .limit(1);
+
+                    if (!error && data && data.length > 0) {
+                        const contact = data[0];
+                        if (contact.email) {
+                            setSendModal(prev => {
+                                if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'email') {
+                                    return { ...prev, recipient: contact.email.trim() };
+                                }
+                                return prev;
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Erro ao carregar contato do banco:', err);
+                }
+            }
+        }
     };
 
     const handleSendDocument = async () => {
