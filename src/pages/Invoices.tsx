@@ -384,7 +384,7 @@ export function Invoices() {
             invoice,
             type: 'whatsapp',
             recipient: phone,
-            message: `Olá, ${clientName}! Segue o link para visualizar e baixar a sua Nota Fiscal Eletrônica: ${pdfUrl}`,
+            message: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`,
             isLoading: false
         });
 
