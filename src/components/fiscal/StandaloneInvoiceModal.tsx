@@ -216,6 +216,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             console.log('🎉 [showSuccessMessage] Chamado com result:', JSON.stringify(result, null, 2));
             const invoiceId = result.id || result.protocolo || result.data?.id || result.documents?.[0]?.id || 'N/A';
             const links = wrapFiscalLinks(result, currentEntity.id!, token);
+
+            // Injeção manual de links se concluído ou processando e temos um ID
+            if (invoiceId && invoiceId !== 'N/A') {
+                const base = API_BASE_URL.replace(/\/$/, '');
+                const tokenPart = token ? `&token=${token}` : '';
+                const typeVal = type || 'nfse';
+                if (!links.pdf) {
+                    links.pdf = `${base}/fiscal-module/${typeVal}/${invoiceId}/pdf?companyId=${currentEntity.id}${tokenPart}`;
+                }
+                if (!links.xml) {
+                    links.xml = `${base}/fiscal-module/${typeVal}/${invoiceId}/xml?companyId=${currentEntity.id}${tokenPart}`;
+                }
+            }
+
             console.log('🔗 [showSuccessMessage] Links processados:', JSON.stringify(links, null, 2));
 
             const isProcessing = result.isProcessing || result.status === 'EM_PROCESSAMENTO' || (result.message && result.message.includes('processamento'));

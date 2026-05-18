@@ -197,45 +197,65 @@ export function Invoices() {
 
     const handleViewInternal = async (invoice: any) => {
         let finalPdfUrl = invoice.pdf_url;
+        let finalXmlUrl = invoice.xml_url;
         
-        // Se não for uma URL real ou for mock, tenta buscar dinamicamente (como o botão baixar)
-        if (!finalPdfUrl || !finalPdfUrl.startsWith('http')) {
-            setIsRefreshing(invoice.id);
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) return;
-                
-                const blob = await fiscalService.downloadPDF(
-                    invoice.external_id, 
-                    invoice.type || 'nfse', 
-                    invoice.company_id, 
-                    session.access_token
-                );
-                finalPdfUrl = window.URL.createObjectURL(blob);
-            } catch (error) {
-                console.error('[Visualizar] Erro ao buscar PDF dinâmico:', error);
-                setResultModal({
-                    isOpen: true,
-                    title: 'Erro na Visualização',
-                    message: 'Não foi possível gerar a visualização do PDF agora. Tente baixar o arquivo.',
-                    type: 'error'
-                });
-            } finally {
-                setIsRefreshing(null);
+        setIsRefreshing(invoice.id);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            
+            // 1. Busca PDF se necessário
+            if (!finalPdfUrl || !finalPdfUrl.startsWith('http')) {
+                try {
+                    const blob = await fiscalService.downloadPDF(
+                        invoice.external_id, 
+                        invoice.type || 'nfse', 
+                        invoice.company_id, 
+                        session.access_token
+                    );
+                    finalPdfUrl = window.URL.createObjectURL(blob);
+                } catch (pdfErr) {
+                    console.error('[Visualizar] Erro ao buscar PDF dinâmico:', pdfErr);
+                }
             }
+
+            // 2. Busca XML se necessário
+            if (!finalXmlUrl || !finalXmlUrl.startsWith('http')) {
+                try {
+                    const blob = await fiscalService.downloadXML(
+                        invoice.external_id, 
+                        invoice.type || 'nfse', 
+                        invoice.company_id, 
+                        session.access_token
+                    );
+                    finalXmlUrl = window.URL.createObjectURL(blob);
+                } catch (xmlErr) {
+                    console.error('[Visualizar] Erro ao buscar XML dinâmico:', xmlErr);
+                }
+            }
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Visualizador da Nota',
+                message: 'Aqui você pode conferir o PDF e o XML da nota autorizada.',
+                type: 'success',
+                data: {
+                    ...invoice.payload,
+                    pdf: { url: finalPdfUrl },
+                    xml: { url: finalXmlUrl }
+                }
+            });
+        } catch (error) {
+            console.error('[Visualizar] Erro geral na visualização:', error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Visualização',
+                message: 'Não foi possível gerar a visualização da nota fiscal agora. Tente baixar os arquivos.',
+                type: 'error'
+            });
+        } finally {
+            setIsRefreshing(null);
         }
-        
-        setResultModal({
-            isOpen: true,
-            title: 'Visualizador da Nota',
-            message: 'Aqui você pode conferir o PDF e o XML da nota autorizada.',
-            type: 'success',
-            data: {
-                ...invoice.payload,
-                pdf: { url: finalPdfUrl },
-                xml: { url: invoice.xml_url }
-            }
-        });
     };
 
     const getStatusBadge = (status: string) => {
