@@ -33,6 +33,15 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Normalizar prefixo /api em produção/Vercel
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api')) {
+        req.url = req.url.substring(4);
+        if (req.url === '') req.url = '/';
+    }
+    next();
+});
+
 // Roteamento robusto: todas as rotas fiscais suportam prefixo /api ou direto.
 
 // Evolution API Config
