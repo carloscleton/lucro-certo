@@ -527,14 +527,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     }
                 }
 
-                if (sendWhatsApp && contact.phone) {
+                const recipientPhone = String(contact.whatsapp || contact.phone || '').replace(/\D/g, '');
+                if (sendWhatsApp && recipientPhone) {
                     try {
                         const instance = waInstances[0];
                         if (instance) {
                             const message = `Olá ${contact.name}! Sua Nota Fiscal de Serviço foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
                             await whatsappService.sendMessage({
                                 instanceName: instance.name,
-                                number: contact.phone,
+                                number: recipientPhone,
                                 text: message
                             });
                         }
@@ -651,14 +652,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     }
                 }
 
-                if (sendWhatsApp && contact.phone) {
+                const recipientPhone = String(contact.whatsapp || contact.phone || '').replace(/\D/g, '');
+                if (sendWhatsApp && recipientPhone) {
                     try {
                         const instance = waInstances[0];
                         if (instance) {
                             const message = `Olá ${contact.name}! Sua Nota Fiscal de Produto foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
                             await whatsappService.sendMessage({
                                 instanceName: instance.name,
-                                number: contact.phone,
+                                number: recipientPhone,
                                 text: message
                             });
                         }
