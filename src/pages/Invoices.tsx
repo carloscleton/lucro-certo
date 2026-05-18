@@ -275,21 +275,95 @@ export function Invoices() {
         }
     };
 
-    const handleOpenSendWhatsApp = (invoice: any) => {
+    const getPhoneFromPayload = (invoice: any): string => {
+        if (invoice.quote?.contact?.phone) {
+            return String(invoice.quote.contact.phone).replace(/\D/g, '');
+        }
+
         const p = invoice.payload;
-        const phone = invoice.quote?.contact?.phone || 
-                      p?.tomador?.contato?.telefone || 
-                      p?.tomador?.telefone || 
-                      p?.destinatario?.telefone || 
-                      p?.destinatario?.contato?.telefone || 
-                      '';
-        
-        let pdfUrl = invoice.pdf_url;
-        if (!pdfUrl || !pdfUrl.startsWith('http')) {
-            const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
-            pdfUrl = `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}`;
+        if (!p) return '';
+
+        const targets = [
+            p?.tomador?.telefone,
+            p?.tomador?.contato?.telefone,
+            p?.destinatario?.telefone,
+            p?.destinatario?.contato?.telefone,
+            p?.retorno?.tomador?.telefone,
+            p?.retorno?.destinatario?.telefone
+        ];
+
+        for (const t of targets) {
+            if (!t) continue;
+            if (typeof t === 'string') {
+                const clean = t.replace(/\D/g, '');
+                if (clean) return clean;
+            }
+            if (typeof t === 'object') {
+                const ddd = String(t.ddd || '').replace(/\D/g, '');
+                const num = String(t.numero || '').replace(/\D/g, '');
+                if (num) return `${ddd}${num}`;
+            }
+        }
+        return '';
+    };
+
+    const getEmailFromPayload = (invoice: any): string => {
+        if (invoice.quote?.contact?.email) {
+            return String(invoice.quote.contact.email).trim();
+        }
+
+        const p = invoice.payload;
+        if (!p) return '';
+
+        const targets = [
+            p?.tomador?.email,
+            p?.tomador?.contato?.email,
+            p?.destinatario?.email,
+            p?.destinatario?.contato?.email,
+            p?.retorno?.tomador?.email,
+            p?.retorno?.destinatario?.email
+        ];
+
+        for (const t of targets) {
+            if (typeof t === 'string' && t.trim()) {
+                return t.trim();
+            }
+        }
+        return '';
+    };
+
+    const getPdfUrlFromInvoice = (invoice: any): string => {
+        if (invoice.pdf_url && invoice.pdf_url.startsWith('http')) {
+            return invoice.pdf_url;
         }
         
+        const p = invoice.payload;
+        if (p) {
+            const paths = [
+                p?.pdf,
+                p?.pdfUrl,
+                p?.link,
+                p?.linkPdf,
+                p?.retorno?.pdf,
+                p?.retorno?.pdfUrl,
+                p?.retorno?.link,
+                p?.retorno?.linkPdf
+            ];
+            for (const path of paths) {
+                if (typeof path === 'string' && path.startsWith('http')) {
+                    return path;
+                }
+            }
+        }
+
+        const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
+        return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}`;
+    };
+
+    const handleOpenSendWhatsApp = (invoice: any) => {
+        const phone = getPhoneFromPayload(invoice);
+        const pdfUrl = getPdfUrlFromInvoice(invoice);
+        const p = invoice.payload;
         const clientName = invoice.quote?.contact?.name || 
                            p?.tomador?.razaoSocial || 
                            p?.destinatario?.nome || 
@@ -306,13 +380,7 @@ export function Invoices() {
     };
 
     const handleOpenSendEmail = (invoice: any) => {
-        const p = invoice.payload;
-        const email = invoice.quote?.contact?.email || 
-                      p?.tomador?.email || 
-                      p?.destinatario?.email || 
-                      p?.tomador?.contato?.email || 
-                      '';
-        
+        const email = getEmailFromPayload(invoice);
         setSendModal({
             isOpen: true,
             invoice,
