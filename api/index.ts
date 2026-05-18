@@ -1889,29 +1889,49 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
 });
 
 app.post('/whatsapp/send', authenticate, async (req, res) => {
-    const { instanceName, number, text } = req.body;
+    const { instanceName, number, text, mediaUrl, mediaType, mimetype, fileName } = req.body;
 
-    if (!instanceName || !number || !text) {
-        return res.status(400).json({ error: 'instanceName, number e text são obrigatórios' });
+    if (!instanceName || !number) {
+        return res.status(400).json({ error: 'instanceName e number são obrigatórios' });
     }
 
     try {
         const targetName = await resolveTargetName(instanceName);
         const encodedName = encodeURIComponent(targetName);
-        console.log(`✉️ Enviando mensagem WhatsApp via "${targetName}" para ${number}...`);
 
-        const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
-            number: number,
-            text: text,
-            linkPreview: true
-        }, {
-            headers: {
-                'apikey': EVOLUTION_API_KEY,
-                'Content-Type': 'application/json'
+        if (mediaUrl) {
+            console.log(`✉️ Enviando mídia/documento WhatsApp via "${targetName}" para ${number}...`);
+            const response = await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
+                number: number,
+                mediatype: mediaType || 'document',
+                mimetype: mimetype || 'application/pdf',
+                caption: text || '',
+                media: mediaUrl,
+                fileName: fileName || 'NotaFiscal.pdf'
+            }, {
+                headers: {
+                    'apikey': EVOLUTION_API_KEY,
+                    'Content-Type': 'application/json'
+                }
+            });
+            return res.json(response.data);
+        } else {
+            if (!text) {
+                return res.status(400).json({ error: 'text é obrigatório para envio de texto simples' });
             }
-        });
-
-        res.json(response.data);
+            console.log(`✉️ Enviando mensagem WhatsApp via "${targetName}" para ${number}...`);
+            const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
+                number: number,
+                text: text,
+                linkPreview: true
+            }, {
+                headers: {
+                    'apikey': EVOLUTION_API_KEY,
+                    'Content-Type': 'application/json'
+                }
+            });
+            return res.json(response.data);
+        }
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro ao enviar WhatsApp:', JSON.stringify(errorDetail, null, 2));

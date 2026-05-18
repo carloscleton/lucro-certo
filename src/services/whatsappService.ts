@@ -4,10 +4,14 @@ export interface SendWhatsAppParams {
     instanceName: string;
     number: string;
     text: string;
+    mediaUrl?: string;
+    mediaType?: 'document' | 'image' | 'video';
+    mimetype?: string;
+    fileName?: string;
 }
 
 export const whatsappService = {
-    async sendMessage({ instanceName, number, text }: SendWhatsAppParams) {
+    async sendMessage({ instanceName, number, text, mediaUrl, mediaType, mimetype, fileName }: SendWhatsAppParams) {
         let cleanNumber = number.replace(/\D/g, '');
         if (cleanNumber.length === 10 || cleanNumber.length === 11) {
             cleanNumber = '55' + cleanNumber;
@@ -20,7 +24,11 @@ export const whatsappService = {
                 body: JSON.stringify({
                     instanceName,
                     number: cleanNumber,
-                    text
+                    text,
+                    mediaUrl,
+                    mediaType,
+                    mimetype,
+                    fileName
                 })
             });
 

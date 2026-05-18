@@ -559,7 +559,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             await whatsappService.sendMessage({
                                 instanceName: instance.instance_name || instance.name,
                                 number: recipientPhone,
-                                text: message
+                                text: message,
+                                mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
+                                mediaType: 'document',
+                                mimetype: 'application/pdf',
+                                fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`
                             });
                         }
                     } catch (wsError) {
@@ -707,7 +711,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             await whatsappService.sendMessage({
                                 instanceName: instance.instance_name || instance.name,
                                 number: recipientPhone,
-                                text: message
+                                text: message,
+                                mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
+                                mediaType: 'document',
+                                mimetype: 'application/pdf',
+                                fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`
                             });
                         }
                     } catch (wsError) {

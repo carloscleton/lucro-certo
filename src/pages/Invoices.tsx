@@ -497,10 +497,17 @@ export function Invoices() {
                 }
 
                 const instance = waData[0];
+                const pdfUrl = getPdfUrlFromInvoice(sendModal.invoice);
+                const hasPublicPdf = pdfUrl && pdfUrl.startsWith('http');
+
                 await whatsappService.sendMessage({
                     instanceName: instance.instance_name,
                     number: sendModal.recipient,
-                    text: sendModal.message
+                    text: sendModal.message,
+                    mediaUrl: hasPublicPdf ? pdfUrl : undefined,
+                    mediaType: 'document',
+                    mimetype: 'application/pdf',
+                    fileName: `NotaFiscal-${sendModal.invoice.external_id || 'avulsa'}.pdf`
                 });
 
                 setResultModal({
