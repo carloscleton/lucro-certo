@@ -1107,6 +1107,64 @@ app.get(['/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml', '/f
 });
 
 
+app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'], authenticate, async (req, res) => {
+    let { type, id } = req.params;
+    const { companyId } = req.query;
+    const { destinatarios } = req.body;
+    const authHeader = req.headers.authorization;
+
+    if (!companyId || !id) {
+        return res.status(400).json({ error: 'companyId e ID da nota são obrigatórios' });
+    }
+
+    try {
+        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
+        const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
+
+        // Se o tipo não for explícito, tentar detectar
+        if (type !== 'nfe' && type !== 'nfse') {
+            try {
+                const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    params: { external_id: `eq.${id}`, select: 'type' },
+                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+                });
+                if (invData?.[0]?.type) {
+                    type = invData[0].type;
+                    console.log(`🔍 [FISCAL-EMAIL] Tipo detectado no banco: ${type}`);
+                }
+            } catch (dbErr: any) { 
+                console.warn(`⚠️ [FISCAL-EMAIL] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
+            }
+        }
+
+        const targetUrl = `${baseUrl}/${type}/email/${id}`;
+        console.log(`✉️ [FISCAL-EMAIL] Solicitando reenvio de e-mail para ${type} ID: ${id} via PlugNotas`);
+
+        const response = await axios.post(targetUrl, {
+            reenvio: true,
+            destinatarios: destinatarios || []
+        }, {
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey 
+            }
+        });
+
+        res.json({ success: true, data: response.data });
+    } catch (error: any) {
+        console.error('❌ Erro no reenvio de e-mail PlugNotas:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({ 
+            error: 'Erro ao reenviar e-mail pela TecnoSpeed', 
+            detail: error.response?.data || error.message 
+        });
+    }
+});
+
+
 // Helper para buscar configuração fiscal da empresa no Supabase
 async function getCompanyFiscalConfig(authHeader: string, companyId: string) {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {

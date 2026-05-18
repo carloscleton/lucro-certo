@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search, MessageCircle, Mail } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
 import { useEntity } from '../context/EntityContext';
 import { fiscalService } from '../services/fiscalService';
+import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
 import { StandaloneInvoiceModal } from '../components/fiscal/StandaloneInvoiceModal';
 import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
 import { ResultModal } from '../components/ui/ResultModal';
 import { Tooltip } from '../components/ui/Tooltip';
+import { Modal } from '../components/ui/Modal';
 
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
@@ -32,6 +34,21 @@ export function Invoices() {
     });
     const [isDeleting, setIsDeleting] = useState(false);
     const [duplicateData, setDuplicateData] = useState<{items: any[], type: 'nfse' | 'nfe', contactId: string, cityCode: string, notes: string} | null>(null);
+    const [sendModal, setSendModal] = useState<{
+        isOpen: boolean;
+        invoice: any | null;
+        type: 'whatsapp' | 'email';
+        recipient: string;
+        message: string;
+        isLoading: boolean;
+    }>({
+        isOpen: false,
+        invoice: null,
+        type: 'whatsapp',
+        recipient: '',
+        message: '',
+        isLoading: false
+    });
 
     const filteredInvoices = invoices.filter(invoice => {
         if (!searchQuery) return true;
@@ -255,6 +272,119 @@ export function Invoices() {
             });
         } finally {
             setIsRefreshing(null);
+        }
+    };
+
+    const handleOpenSendWhatsApp = (invoice: any) => {
+        const p = invoice.payload;
+        const phone = invoice.quote?.contact?.phone || 
+                      p?.tomador?.contato?.telefone || 
+                      p?.tomador?.telefone || 
+                      p?.destinatario?.telefone || 
+                      p?.destinatario?.contato?.telefone || 
+                      '';
+        
+        let pdfUrl = invoice.pdf_url;
+        if (!pdfUrl || !pdfUrl.startsWith('http')) {
+            const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
+            pdfUrl = `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}`;
+        }
+        
+        const clientName = invoice.quote?.contact?.name || 
+                           p?.tomador?.razaoSocial || 
+                           p?.destinatario?.nome || 
+                           'Cliente';
+
+        setSendModal({
+            isOpen: true,
+            invoice,
+            type: 'whatsapp',
+            recipient: phone,
+            message: `Olá, ${clientName}! Segue o link para visualizar e baixar a sua Nota Fiscal Eletrônica: ${pdfUrl}`,
+            isLoading: false
+        });
+    };
+
+    const handleOpenSendEmail = (invoice: any) => {
+        const p = invoice.payload;
+        const email = invoice.quote?.contact?.email || 
+                      p?.tomador?.email || 
+                      p?.destinatario?.email || 
+                      p?.tomador?.contato?.email || 
+                      '';
+        
+        setSendModal({
+            isOpen: true,
+            invoice,
+            type: 'email',
+            recipient: email,
+            message: '',
+            isLoading: false
+        });
+    };
+
+    const handleSendDocument = async () => {
+        if (!sendModal.recipient) {
+            alert('Por favor, informe o destinatário.');
+            return;
+        }
+
+        setSendModal(prev => ({ ...prev, isLoading: true }));
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Sessão expirada. Por favor, faça login novamente.');
+
+            if (sendModal.type === 'whatsapp') {
+                const { data: waData } = await supabase
+                    .from('instances')
+                    .select('*')
+                    .eq('status', 'connected')
+                    .eq('company_id', sendModal.invoice.company_id);
+
+                if (!waData || waData.length === 0) {
+                    throw new Error('Nenhuma instância de WhatsApp conectada e ativa encontrada para sua empresa. Conecte uma na aba WhatsApp.');
+                }
+
+                const instance = waData[0];
+                await whatsappService.sendMessage({
+                    instanceName: instance.name,
+                    number: sendModal.recipient,
+                    text: sendModal.message
+                });
+
+                setResultModal({
+                    isOpen: true,
+                    title: 'Disparo Concluído',
+                    message: 'A nota fiscal foi enviada via WhatsApp com sucesso!',
+                    type: 'success'
+                });
+            } else {
+                await fiscalService.resendEmail(
+                    sendModal.invoice.external_id,
+                    sendModal.invoice.type,
+                    sendModal.invoice.company_id,
+                    [sendModal.recipient],
+                    session.access_token
+                );
+
+                setResultModal({
+                    isOpen: true,
+                    title: 'Disparo Concluído',
+                    message: 'O e-mail contendo o PDF e XML foi enviado com sucesso via PlugNotas!',
+                    type: 'success'
+                });
+            }
+            setSendModal(prev => ({ ...prev, isOpen: false }));
+        } catch (err: any) {
+            console.error('Erro ao enviar documento:', err);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro no Envio',
+                message: err.message || 'Ocorreu um erro ao tentar enviar o documento.',
+                type: 'error'
+            });
+        } finally {
+            setSendModal(prev => ({ ...prev, isLoading: false }));
         }
     };
 
@@ -707,6 +837,24 @@ export function Invoices() {
                                                                 <FileCode size={18} />
                                                             </button>
                                                         </Tooltip>
+
+                                                        <Tooltip content="Enviar por WhatsApp">
+                                                            <button
+                                                                onClick={() => handleOpenSendWhatsApp(invoice)}
+                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-teal-600 dark:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all shadow-sm"
+                                                            >
+                                                                <MessageCircle size={18} />
+                                                            </button>
+                                                        </Tooltip>
+
+                                                        <Tooltip content="Enviar por E-mail">
+                                                            <button
+                                                                onClick={() => handleOpenSendEmail(invoice)}
+                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-sky-600 dark:text-sky-400 rounded-xl hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-all shadow-sm"
+                                                            >
+                                                                <Mail size={18} />
+                                                            </button>
+                                                        </Tooltip>
                                                     </>
                                                 )}
 
@@ -845,6 +993,71 @@ export function Invoices() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modal de Envio Manual (WhatsApp / E-mail) */}
+            {sendModal.isOpen && (
+                <Modal
+                    isOpen={sendModal.isOpen}
+                    onClose={() => setSendModal(prev => ({ ...prev, isOpen: false }))}
+                    title={sendModal.type === 'whatsapp' ? 'Enviar via WhatsApp' : 'Enviar via E-mail'}
+                    subtitle={sendModal.type === 'whatsapp' ? 'Disparo de mensagem com o link do PDF' : 'Envio automático do PDF e XML por e-mail'}
+                    icon={sendModal.type === 'whatsapp' ? MessageCircle : Mail}
+                    variant={sendModal.type === 'whatsapp' ? 'success' : 'info'}
+                    maxWidth="max-w-md"
+                >
+                    <div className="space-y-6 pt-2">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                {sendModal.type === 'whatsapp' ? 'Número do WhatsApp (com DDD)' : 'Endereço de E-mail'}
+                            </label>
+                            <input
+                                type="text"
+                                value={sendModal.recipient}
+                                onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value }))}
+                                placeholder={sendModal.type === 'whatsapp' ? 'Ex: 44999999999' : 'Ex: cliente@email.com'}
+                                className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
+                            />
+                        </div>
+
+                        {sendModal.type === 'whatsapp' && (
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                    Mensagem
+                                </label>
+                                <textarea
+                                    value={sendModal.message}
+                                    onChange={(e) => setSendModal(prev => ({ ...prev, message: e.target.value }))}
+                                    rows={4}
+                                    className="w-full p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-sm resize-none"
+                                />
+                            </div>
+                        )}
+
+                        <div className="flex gap-3 pt-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setSendModal(prev => ({ ...prev, isOpen: false }))}
+                                className="flex-1 h-12 rounded-xl font-bold text-gray-500"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={handleSendDocument}
+                                isLoading={sendModal.isLoading}
+                                className={clsx(
+                                    "flex-1 h-12 shadow-lg rounded-xl font-bold text-white",
+                                    sendModal.type === 'whatsapp' 
+                                        ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" 
+                                        : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20"
+                                )}
+                            >
+                                Confirmar Envio
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
             )}
 
             <ResultModal

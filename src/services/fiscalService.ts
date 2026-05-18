@@ -145,5 +145,17 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async resendEmail(id: string, type: 'nfse' | 'nfe', companyId: string, recipients: string[], token: string) {
+        const response = await axios.post(getFiscalUrl(`${type}/${id}/email`), {
+            destinatarios: recipients
+        }, {
+            params: { companyId },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };

@@ -522,14 +522,30 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         }
 
                         console.log('✅ [DB-SAVE] Nota registrada no histórico.');
-                        showSuccessMessage(result, token);
-                        return;
                     } catch (dbErr: any) {
                         console.error('❌ [DB-SAVE] Erro inesperado na gravação:', dbErr);
                     }
                 }
+
+                if (sendWhatsApp && contact.phone) {
+                    try {
+                        const instance = waInstances[0];
+                        if (instance) {
+                            const message = `Olá ${contact.name}! Sua Nota Fiscal de Serviço foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
+                            await whatsappService.sendMessage({
+                                instanceName: instance.name,
+                                number: contact.phone,
+                                text: message
+                            });
+                        }
+                    } catch (wsError) {
+                        console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
+                    }
+                }
+
                 setLoading(false);
                 showSuccessMessage(result, token);
+                onSuccess();
             } else {
                 payload = {
                     presenca: 1,
