@@ -393,22 +393,18 @@ export function Invoices() {
             const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj;
             if (rawCpfCnpj) {
                 const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
+                const formattedCpfCnpj = cleanCpfCnpj.length === 11 
+                    ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                    : cleanCpfCnpj.length === 14 
+                        ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                        : cleanCpfCnpj;
+
                 try {
-                    let { data, error } = await supabase
+                    const { data, error } = await supabase
                         .from('contacts')
                         .select('phone, whatsapp')
-                        .eq('tax_id', cleanCpfCnpj)
+                        .in('tax_id', [cleanCpfCnpj, rawCpfCnpj, formattedCpfCnpj])
                         .limit(1);
-
-                    if ((!data || data.length === 0) && rawCpfCnpj !== cleanCpfCnpj) {
-                        const res = await supabase
-                            .from('contacts')
-                            .select('phone, whatsapp')
-                            .eq('tax_id', rawCpfCnpj)
-                            .limit(1);
-                        data = res.data;
-                        error = res.error;
-                    }
 
                     if (!error && data && data.length > 0) {
                         const contact = data[0];
@@ -447,22 +443,18 @@ export function Invoices() {
             const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj;
             if (rawCpfCnpj) {
                 const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
+                const formattedCpfCnpj = cleanCpfCnpj.length === 11 
+                    ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                    : cleanCpfCnpj.length === 14 
+                        ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                        : cleanCpfCnpj;
+
                 try {
-                    let { data, error } = await supabase
+                    const { data, error } = await supabase
                         .from('contacts')
                         .select('email')
-                        .eq('tax_id', cleanCpfCnpj)
+                        .in('tax_id', [cleanCpfCnpj, rawCpfCnpj, formattedCpfCnpj])
                         .limit(1);
-
-                    if ((!data || data.length === 0) && rawCpfCnpj !== cleanCpfCnpj) {
-                        const res = await supabase
-                            .from('contacts')
-                            .select('email')
-                            .eq('tax_id', rawCpfCnpj)
-                            .limit(1);
-                        data = res.data;
-                        error = res.error;
-                    }
 
                     if (!error && data && data.length > 0) {
                         const contact = data[0];
