@@ -424,7 +424,7 @@ export function Invoices() {
 
                 const instance = waData[0];
                 await whatsappService.sendMessage({
-                    instanceName: instance.name,
+                    instanceName: instance.instance_name,
                     number: sendModal.recipient,
                     text: sendModal.message
                 });
