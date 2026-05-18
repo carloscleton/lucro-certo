@@ -1899,39 +1899,56 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         const targetName = await resolveTargetName(instanceName);
         const encodedName = encodeURIComponent(targetName);
 
-        if (mediaUrl) {
-            console.log(`✉️ Enviando mídia/documento WhatsApp via "${targetName}" para ${number}...`);
-            const response = await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
-                number: number,
-                mediatype: mediaType || 'document',
-                mimetype: mimetype || 'application/pdf',
-                caption: text || '',
-                media: mediaUrl,
-                fileName: fileName || 'NotaFiscal.pdf'
-            }, {
-                headers: {
-                    'apikey': EVOLUTION_API_KEY,
-                    'Content-Type': 'application/json'
-                }
-            });
-            return res.json(response.data);
-        } else {
-            if (!text) {
-                return res.status(400).json({ error: 'text é obrigatório para envio de texto simples' });
+        // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
+        // Nesse caso, pulamos o envio de mídia e enviamos direto como texto com o link.
+        const isLocalhost = mediaUrl && (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1'));
+
+        if (mediaUrl && !isLocalhost) {
+            try {
+                console.log(`✉️ [Media] Tentando enviar documento WhatsApp via "${targetName}" para ${number}...`);
+                const response = await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
+                    number: number,
+                    mediatype: mediaType || 'document',
+                    mimetype: mimetype || 'application/pdf',
+                    caption: text || '',
+                    media: mediaUrl,
+                    fileName: fileName || 'NotaFiscal.pdf'
+                }, {
+                    headers: {
+                        'apikey': EVOLUTION_API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 8000 // 8 segundos de timeout para evitar travamentos
+                });
+                return res.json(response.data);
+            } catch (mediaErr: any) {
+                console.warn(`⚠️ Falha ao enviar como mídia (${mediaErr.message || mediaErr}). Fazendo fallback para texto...`);
             }
-            console.log(`✉️ Enviando mensagem WhatsApp via "${targetName}" para ${number}...`);
-            const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
-                number: number,
-                text: text,
-                linkPreview: true
-            }, {
-                headers: {
-                    'apikey': EVOLUTION_API_KEY,
-                    'Content-Type': 'application/json'
-                }
-            });
-            return res.json(response.data);
         }
+
+        // Texto final: se o link for local ou se falhar o envio de mídia, garante que o link vá no texto
+        let textToSend = text || '';
+        if (mediaUrl && !textToSend.includes(mediaUrl)) {
+            textToSend = `${textToSend}\n\nLink do PDF: ${mediaUrl}`.trim();
+        }
+
+        if (!textToSend) {
+            return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
+        }
+
+        console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
+        const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
+            number: number,
+            text: textToSend,
+            linkPreview: true
+        }, {
+            headers: {
+                'apikey': EVOLUTION_API_KEY,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        return res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro ao enviar WhatsApp:', JSON.stringify(errorDetail, null, 2));
