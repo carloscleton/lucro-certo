@@ -532,9 +532,32 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     try {
                         const instance = waInstances[0];
                         if (instance) {
-                            const message = `Olá ${contact.name}! Sua Nota Fiscal de Serviço foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
+                            // Gerar link do PDF dinamicamente
+                            let pdfUrl = '';
+                            const pdfPaths = [
+                                finalPayloadToSave?.pdf,
+                                finalPayloadToSave?.pdfUrl,
+                                finalPayloadToSave?.link,
+                                finalPayloadToSave?.linkPdf,
+                                finalPayloadToSave?.retorno?.pdf,
+                                finalPayloadToSave?.retorno?.pdfUrl,
+                                finalPayloadToSave?.retorno?.link,
+                                finalPayloadToSave?.retorno?.linkPdf
+                            ];
+                            for (const path of pdfPaths) {
+                                if (typeof path === 'string' && path.startsWith('http')) {
+                                    pdfUrl = path;
+                                    break;
+                                }
+                            }
+                            if (!pdfUrl) {
+                                const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
+                                pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
+                            }
+
+                            const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
                             await whatsappService.sendMessage({
-                                instanceName: instance.name,
+                                instanceName: instance.instance_name || instance.name,
                                 number: recipientPhone,
                                 text: message
                             });
@@ -657,9 +680,32 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     try {
                         const instance = waInstances[0];
                         if (instance) {
-                            const message = `Olá ${contact.name}! Sua Nota Fiscal de Produto foi emitida com sucesso. Você receberá o documento em breve no seu e-mail.`;
+                            // Gerar link do PDF dinamicamente
+                            let pdfUrl = '';
+                            const pdfPaths = [
+                                finalPayloadToSave?.pdf,
+                                finalPayloadToSave?.pdfUrl,
+                                finalPayloadToSave?.link,
+                                finalPayloadToSave?.linkPdf,
+                                finalPayloadToSave?.retorno?.pdf,
+                                finalPayloadToSave?.retorno?.pdfUrl,
+                                finalPayloadToSave?.retorno?.link,
+                                finalPayloadToSave?.retorno?.linkPdf
+                            ];
+                            for (const path of pdfPaths) {
+                                if (typeof path === 'string' && path.startsWith('http')) {
+                                    pdfUrl = path;
+                                    break;
+                                }
+                            }
+                            if (!pdfUrl) {
+                                const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
+                                pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
+                            }
+
+                            const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
                             await whatsappService.sendMessage({
-                                instanceName: instance.name,
+                                instanceName: instance.instance_name || instance.name,
                                 number: recipientPhone,
                                 text: message
                             });
