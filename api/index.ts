@@ -224,6 +224,90 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
             ? { config: bodyConfig, realCompanyId: companyId } 
             : await getCompanyFiscalConfig(authHeader!, companyId);
 
+        // --- INTERCEPTOR DE WEBHOOK EXTERNO PARA CERTIFICADO ---
+        if (config.use_external_webhook && config.external_webhook_url) {
+            console.log(`🚀 [EXTERNAL-MODE] Enviando certificado para o webhook externo: ${config.external_webhook_url}`);
+            
+            const headers: any = { 
+                'X-Source': 'LucroCerto-Fiscal-Proxy',
+                'X-Company-ID': companyId
+            };
+
+            if (config.external_webhook_token) {
+                headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
+            }
+
+            const webhookForm = new FormData();
+            webhookForm.append('arquivo', file.buffer, {
+                filename: file.originalname || 'certificado.pfx'
+            });
+            webhookForm.append('senha', String(senha));
+            webhookForm.append('company_id', companyId);
+            webhookForm.append('action', 'upload_certificate');
+
+            let externalCertId = 'ext_' + Math.random().toString(36).substring(2, 10);
+            let externalVencimento = new Date(Date.now() + 365*24*60*60*1000).toISOString();
+            let externalSujeito = 'Certificado Vinculado via Webhook Externo';
+
+            try {
+                const response = await axios.post(config.external_webhook_url, webhookForm, {
+                    headers: {
+                        ...webhookForm.getHeaders(),
+                        ...headers
+                    },
+                    timeout: 30000
+                });
+                
+                console.log(`✅ [EXTERNAL-MODE] Certificado enviado com sucesso para o webhook externo.`);
+                const resData = response.data?.data || response.data;
+                if (resData?.id) externalCertId = resData.id;
+                if (resData?.vencimento) externalVencimento = resData.vencimento;
+                if (resData?.sujeito || resData?.nome) externalSujeito = resData.sujeito || resData.nome;
+            } catch (webhookErr: any) {
+                console.warn(`⚠️ [EXTERNAL-MODE] Webhook externo retornou erro ou não pôde processar o arquivo diretamente:`, webhookErr.message);
+                // Salvamos localmente mesmo se o webhook der erro para não travar o fluxo do Lucro Certo
+            }
+
+            // SALVAR NO BANCO DE DADOS LOCAL (JSONB na tabela companies)
+            if (SUPABASE_URL) {
+                try {
+                    const currentConfig = config || {};
+                    const updatedConfig = {
+                        ...currentConfig,
+                        certificado_id: externalCertId,
+                        certificado_vencimento: externalVencimento,
+                        certificado_sujeito: externalSujeito,
+                        certificado_status: 'ativo',
+                        ultima_atualizacao: new Date().toISOString()
+                    };
+
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                        tecnospeed_config: updatedConfig
+                    }, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader!,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    // Invalida o cache local imediatamente
+                    fiscalConfigCache.delete(companyId);
+                    
+                    console.log(`✅ Certificado Externo (${externalCertId}) e metadados salvos no JSONB.`);
+                } catch (dbErr: any) {
+                    console.warn('⚠️ Não foi possível salvar metadados no banco local:', dbErr.message);
+                }
+            }
+
+            return res.json({
+                message: 'Certificado processado via Webhook Externo com sucesso',
+                id: externalCertId,
+                vencimento: externalVencimento,
+                sujeito: externalSujeito,
+                status: 'ativo'
+            });
+        }
 
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
@@ -596,6 +680,94 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
     const authHeader = req.headers.authorization;
 
     try {
+        // --- INTERCEPTOR DE WEBHOOK EXTERNO PARA EMITENTE ---
+        if (config.use_external_webhook && config.external_webhook_url) {
+            console.log(`🚀 [EXTERNAL-MODE] Sincronizando emitente com o webhook externo: ${config.external_webhook_url}`);
+            
+            const headers: any = { 
+                'Content-Type': 'application/json',
+                'X-Source': 'LucroCerto-Fiscal-Proxy',
+                'X-Company-ID': companyId
+            };
+
+            if (config.external_webhook_token) {
+                headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
+            }
+
+            const issuerPayload = {
+                cpfCnpj: (config.cnpj || '').replace(/\D/g, ''),
+                inscricaoEstadual: (config.inscricao_estadual || '').replace(/\D/g, '') || '',
+                inscricaoMunicipal: (config.inscricao_municipal || '').replace(/\D/g, '') || '',
+                razaoSocial: config.razao_social || '',
+                nomeFantasia: config.nome_fantasia || config.razao_social || '',
+                simplesNacional: config.regime_tributario === '1',
+                regimeTributario: parseInt(config.regime_tributario) || 1,
+                email: config.email || 'suporte@lucrocerto.com.br',
+                certificado: config.certificado_id || 'external-cert-id',
+                telefone: {
+                    ddd: (config.telefone || '').replace(/\D/g, '').substring(0, 2) || '44',
+                    numero: (config.telefone || '').replace(/\D/g, '').substring(2) || '30379500'
+                },
+                endereco: {
+                    logradouro: (config.endereco?.logradouro || config.logradouro || '').trim(),
+                    numero: (config.endereco?.numero || config.numero || 'SN').trim(),
+                    bairro: (config.endereco?.bairro || config.bairro || 'Centro').trim(),
+                    cep: (config.endereco?.cep || config.cep || '').replace(/\D/g, ''),
+                    codigoCidade: (config.endereco?.codigoCidade || config.codigo_municipio || '').trim(),
+                    uf: (config.endereco?.uf || config.uf || '').trim().toUpperCase(),
+                    complemento: (config.endereco?.complemento || config.complemento || '').trim()
+                }
+            };
+
+            const syncPayload = {
+                action: 'sync_issuer',
+                company_id: companyId,
+                payload: issuerPayload
+            };
+
+            try {
+                await axios.post(config.external_webhook_url, syncPayload, {
+                    headers,
+                    timeout: 15000
+                });
+                console.log(`✅ [EXTERNAL-MODE] Sincronização de emitente disparada com sucesso.`);
+            } catch (webhookErr: any) {
+                console.warn(`⚠️ [EXTERNAL-MODE] Webhook externo de sincronização de emitente retornou erro:`, webhookErr.message);
+            }
+
+            // Salva no Supabase para persistir
+            if (companyId && SUPABASE_URL) {
+                try {
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                        tecnospeed_config: config
+                    }, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader!,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    // Invalida o cache local imediatamente
+                    fiscalConfigCache.delete(companyId);
+                    
+                    console.log('✅ Configuração fiscal persistida no Supabase após sincronização externa.');
+                } catch (dbErr: any) {
+                    console.warn('⚠️ Falha ao salvar config no banco:', dbErr.message);
+                }
+            }
+
+            return res.json({
+                success: true,
+                message: 'Emitente sincronizado via Webhook Externo com sucesso',
+                proxy_version: '1.0.31',
+                synced_id: config.certificado_id || 'external-cert-id',
+                endereco: issuerPayload.endereco,
+                telefone: issuerPayload.telefone,
+                razaoSocial: issuerPayload.razaoSocial
+            });
+        }
+
         const cnpj = (config.cnpj || '').replace(/\D/g, '');
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
         

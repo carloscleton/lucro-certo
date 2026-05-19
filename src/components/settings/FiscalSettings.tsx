@@ -249,13 +249,14 @@ export function FiscalSettings() {
         }
 
         setUploadingCert(true);
+        const isExternal = !!config.use_external_webhook;
         setDiagnostic({
             isOpen: true,
             steps: [
                 { title: 'Validando dados locais', status: 'loading' },
                 { title: 'Autenticando sessão', status: 'pending' },
                 { title: 'Enviando para Backend', status: 'pending' },
-                { title: 'Processando na TecnoSpeed', status: 'pending' }
+                { title: isExternal ? 'Processando no Webhook Externo' : 'Processando na TecnoSpeed', status: 'pending' }
             ],
             logs: [`Iniciando upload de ${file.name}`]
         });
@@ -264,8 +265,8 @@ export function FiscalSettings() {
             if (!certPassword) throw new Error('Senha do certificado não informada');
             const isSandbox = config.ambiente === 'homologacao';
             const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-            const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
-            const maskedKey = config.tecnospeed_api_key ? `${config.tecnospeed_api_key.substring(0, 4)}...${config.tecnospeed_api_key.substring(config.tecnospeed_api_key.length - 4)}` : 'NÃO INFORMADA';
+            const baseUrl = isExternal ? config.external_webhook_url : (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+            const maskedKey = isExternal ? 'AUTORIZAÇÃO WEBHOOK' : (config.tecnospeed_api_key ? `${config.tecnospeed_api_key.substring(0, 4)}...${config.tecnospeed_api_key.substring(config.tecnospeed_api_key.length - 4)}` : 'NÃO INFORMADA');
 
             setDiagnostic(prev => ({
                 ...prev,
@@ -273,8 +274,8 @@ export function FiscalSettings() {
                 logs: [
                     ...prev.logs, 
                     'Dados locais validados',
-                    `Ambiente: ${config.ambiente?.toUpperCase()}`,
-                    `URL Alvo: ${baseUrl}/certificado`,
+                    `Ambiente: ${isExternal ? 'INTEGRAÇÃO EXTERNA (WEBHOOK)' : config.ambiente?.toUpperCase()}`,
+                    `URL Alvo: ${baseUrl}`,
                     `API Key: ${maskedKey}`
                 ]
             }));
@@ -291,10 +292,14 @@ export function FiscalSettings() {
 
             const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token, config);
             
+            const targetLog = isExternal
+                ? 'Certificado recebido! Iniciando vínculo automático com o Webhook Externo...'
+                : 'Certificado recebido! Iniciando vínculo automático com a TecnoSpeed...';
+
             setDiagnostic(prev => ({
                 ...prev,
                 steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'loading' } : s),
-                logs: [...prev.logs, 'Certificado recebido! Iniciando vínculo automático com a TecnoSpeed...']
+                logs: [...prev.logs, targetLog]
             }));
             
             // Vincular automaticamente o certificado ao emitente
