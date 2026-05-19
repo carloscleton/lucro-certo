@@ -757,6 +757,10 @@ app.post(['/fiscal-module/save-config', '/api/fiscal-module/save-config'], authe
 
     try {
         console.log(`💾 Salvando configuração fiscal para empresa: ${companyId}`);
+        
+        // Invalida o cache local imediatamente
+        fiscalConfigCache.delete(companyId);
+
         await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
             tecnospeed_config: config
         }, {
