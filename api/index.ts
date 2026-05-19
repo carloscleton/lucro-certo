@@ -357,7 +357,7 @@ app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-sta
 });
 
 app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, async (req, res) => {
-    const { companyId, payload, type, quoteId } = req.body;
+    const { companyId, payload, type, quoteId, isLabTest } = req.body;
     const authHeader = req.headers.authorization;
 
     if (!companyId || !payload) {
@@ -396,7 +396,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // - config.use_test_data for true
         // - isSandbox for true E não tivermos um certificado válido
         // - O CNPJ já for um de teste
-        const useTestData = (config.use_test_data === true) || 
+        const useTestData = (isLabTest === true) ||
+                          (config.use_test_data === true) || 
                           (isSandbox && !hasCert) || 
                           (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
 
@@ -438,6 +439,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
 
                     // 2. Mapear Prestador e Certificado
+                    if (useTestData && !item.prestador) {
+                        item.prestador = {};
+                    }
                     if (item.prestador) {
                         if (useTestData) {
                             console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Forçando dados da TecnoSpeed S/A).`);

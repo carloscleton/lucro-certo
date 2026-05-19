@@ -26,12 +26,13 @@ export const fiscalService = {
         return response.data;
     },
 
-    async emitirNFSe(companyId: string, payload: any, token: string, quoteId?: string) {
+    async emitirNFSe(companyId: string, payload: any, token: string, quoteId?: string, isLabTest?: boolean) {
         const response = await axios.post(getFiscalUrl('emitir'), {
             companyId,
             payload,
             type: 'nfse',
-            quoteId
+            quoteId,
+            isLabTest
         }, {
             headers: {
                 'Authorization': `Bearer ${token}`

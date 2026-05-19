@@ -446,7 +446,7 @@ export function FiscalSettings() {
             if (!token) throw new Error('Sessão expirada.');
 
             const payload = JSON.parse(testJson);
-            const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
+            const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token, undefined, true);
             const wrappedResponse = wrapFiscalLinks(response, currentEntity.id!, token);
             
             // Detecção ultra-robusta de ID e Status (Tratando documentos, data, Array ou Objeto)
