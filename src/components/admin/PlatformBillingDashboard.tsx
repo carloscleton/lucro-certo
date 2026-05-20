@@ -44,6 +44,7 @@ export function PlatformBillingDashboard() {
     const [isGeneratingWhatsApp, setIsGeneratingWhatsApp] = useState(false);
     const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [isGeneratingBanner, setIsGeneratingBanner] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [localKeys, setLocalKeys] = useState<any>({});
@@ -112,6 +113,33 @@ export function PlatformBillingDashboard() {
             console.error('Magic error:', error);
         } finally {
             setGenerating(false);
+        }
+    };
+
+    const handleMagicBanner = async () => {
+        const textToOrganize = localBanner?.subtitle || localBanner?.title;
+        if (!textToOrganize) {
+            notify('error', 'Digite algum texto na descrição ou título para a IA organizar.', 'Atenção');
+            return;
+        }
+        setIsGeneratingBanner(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
+                body: {
+                    input: `Atue como um copywriter profissional. O usuário colou um texto bruto e desorganizado. Resuma, corrija, formate e torne o texto persuasivo para ser a descrição (subtítulo) de um banner de vendas em uma landing page. Use parágrafos curtos. Mantenha as informações principais. Texto original: ${textToOrganize}`,
+                    mode: 'field_only'
+                }
+            });
+            if (error) throw error;
+            if (data?.text) {
+                setLocalBanner(prev => ({ ...prev, subtitle: data.text }));
+                notify('success', 'Texto organizado com sucesso!', 'IA Concluída');
+            }
+        } catch (error) {
+            console.error('Magic error:', error);
+            notify('error', 'Erro ao organizar texto com IA.', 'Erro');
+        } finally {
+            setIsGeneratingBanner(false);
         }
     };
 
@@ -472,26 +500,42 @@ export function PlatformBillingDashboard() {
                                 <div className="space-y-4 pt-2 border-t border-gray-100 dark:border-slate-700">
                                     <Input
                                         label="Título (ex: Oferta Especial)"
+                                        preserveCase={true}
                                         value={localBanner?.title || ''}
                                         onChange={(e) => setLocalBanner({ ...localBanner, title: e.target.value })}
                                     />
                                     <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Subtítulo / Descrição</label>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subtítulo / Descrição</label>
+                                            <button
+                                                type="button"
+                                                onClick={handleMagicBanner}
+                                                disabled={isGeneratingBanner}
+                                                className="text-purple-600 hover:text-purple-700 p-1 rounded-full hover:bg-purple-50 transition-colors flex items-center gap-1.5"
+                                                title="Organizar texto com IA"
+                                            >
+                                                {isGeneratingBanner ? <RefreshCw size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                                                <span className="text-[9px] font-bold uppercase">Organizar com IA</span>
+                                            </button>
+                                        </div>
                                         <textarea
                                             value={localBanner?.subtitle || ''}
                                             onChange={(e) => setLocalBanner({ ...localBanner, subtitle: e.target.value })}
-                                            className="w-full text-[11px] p-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl min-h-[60px] outline-none focus:ring-2 focus:ring-purple-500"
-                                            placeholder="Ex: Aproveite nossos preços exclusivos..."
+                                            className="w-full text-[11px] p-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl min-h-[100px] outline-none focus:ring-2 focus:ring-purple-500"
+                                            placeholder="Ex: Cole o texto desorganizado aqui e clique em Organizar com IA..."
+                                            disabled={isGeneratingBanner}
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <Input
                                             label="Texto do Botão"
+                                            preserveCase={true}
                                             value={localBanner?.call_to_action || ''}
                                             onChange={(e) => setLocalBanner({ ...localBanner, call_to_action: e.target.value })}
                                         />
                                         <Input
                                             label="Link de Destino"
+                                            preserveCase={true}
                                             value={localBanner?.link || ''}
                                             onChange={(e) => setLocalBanner({ ...localBanner, link: e.target.value })}
                                             placeholder="https://"
