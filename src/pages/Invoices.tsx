@@ -371,7 +371,7 @@ export function Invoices() {
         if (apiBase.startsWith('/')) {
             apiBase = window.location.origin + apiBase;
         }
-        return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}&token=${sessionToken}`;
+        return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}`;
     };
 
     const handleOpenSendWhatsApp = async (invoice: any) => {

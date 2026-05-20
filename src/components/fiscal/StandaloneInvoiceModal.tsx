@@ -550,8 +550,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             if (apiBase.startsWith('/')) {
                                 apiBase = window.location.origin + apiBase;
                             }
-                            // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
-                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
+                            // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público (sem token longo)
+                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
                             await whatsappService.sendMessage({
@@ -708,7 +708,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 apiBase = window.location.origin + apiBase;
                             }
                             // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
-                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
+                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
                             await whatsappService.sendMessage({
