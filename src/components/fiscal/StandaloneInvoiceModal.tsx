@@ -548,6 +548,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             // Gerar link do PDF dinamicamente
                             let pdfUrl = '';
                             const pdfPaths = [
+                                finalPayloadToSave?.pdf_url,
                                 finalPayloadToSave?.pdf,
                                 finalPayloadToSave?.pdfUrl,
                                 finalPayloadToSave?.link,
@@ -565,7 +566,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             }
                             if (!pdfUrl) {
                                 const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
-                                pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
+                                pdfUrl = `${apiBase}/api/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
                             }
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
@@ -720,6 +721,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             // Gerar link do PDF dinamicamente
                             let pdfUrl = '';
                             const pdfPaths = [
+                                finalPayloadToSave?.pdf_url,
                                 finalPayloadToSave?.pdf,
                                 finalPayloadToSave?.pdfUrl,
                                 finalPayloadToSave?.link,
@@ -737,7 +739,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             }
                             if (!pdfUrl) {
                                 const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
-                                pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
+                                pdfUrl = `${apiBase}/api/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
                             }
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
