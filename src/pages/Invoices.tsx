@@ -7,6 +7,7 @@ import { useEntity } from '../context/EntityContext';
 import { fiscalService } from '../services/fiscalService';
 import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
+import { API_BASE_URL } from '../lib/constants';
 import { StandaloneInvoiceModal } from '../components/fiscal/StandaloneInvoiceModal';
 import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
 import { ResultModal } from '../components/ui/ResultModal';
