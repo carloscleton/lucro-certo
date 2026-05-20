@@ -565,8 +565,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 }
                             }
                             if (!pdfUrl) {
-                                const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
-                                pdfUrl = `${apiBase}/api/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
+                                let apiBase = API_BASE_URL.replace(/\/$/, '');
+                                if (apiBase.startsWith('/')) {
+                                    apiBase = window.location.origin + apiBase;
+                                }
+                                pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
                             }
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
@@ -738,8 +741,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 }
                             }
                             if (!pdfUrl) {
-                                const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
-                                pdfUrl = `${apiBase}/api/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
+                                let apiBase = API_BASE_URL.replace(/\/$/, '');
+                                if (apiBase.startsWith('/')) {
+                                    apiBase = window.location.origin + apiBase;
+                                }
+                                pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
                             }
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;

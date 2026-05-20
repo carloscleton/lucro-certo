@@ -366,8 +366,11 @@ export function Invoices() {
             }
         }
 
-        const apiBase = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}`.replace(/\/$/, '');
-        return `${apiBase}/api/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}&token=${sessionToken}`;
+        let apiBase = API_BASE_URL.replace(/\/$/, '');
+        if (apiBase.startsWith('/')) {
+            apiBase = window.location.origin + apiBase;
+        }
+        return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}&token=${sessionToken}`;
     };
 
     const handleOpenSendWhatsApp = async (invoice: any) => {
