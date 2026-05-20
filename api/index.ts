@@ -51,6 +51,7 @@ const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
 // Supabase Config for Fiscal Proxy
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL)?.trim().replace(/\/+$/, '');
 const SUPABASE_ANON_KEY = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)?.trim();
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
 if (!EVOLUTION_API_URL || EVOLUTION_API_URL.includes('sua-instancia')) {
     console.warn('⚠️ [WhatsApp Proxy] AVISO: EVOLUTION_API_URL não configurada corretamente ou usando valor padrão no .env');
@@ -1323,22 +1324,45 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
         const column = isUUID ? 'id' : 'cnpj';
         const cleanId = isUUID ? companyId : companyId.replace(/\D/g, '');
 
+        const useServiceRole = !authHeader && SUPABASE_SERVICE_ROLE_KEY;
         const headers: any = {
-            'apikey': SUPABASE_ANON_KEY as string
+            'apikey': useServiceRole ? SUPABASE_SERVICE_ROLE_KEY : (SUPABASE_ANON_KEY as string)
         };
         if (authHeader) {
             headers['Authorization'] = authHeader;
+        } else if (useServiceRole) {
+            headers['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
         }
 
-        const response = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
-            params: {
-                [column]: `eq.${cleanId}`,
-                select: 'id,tecnospeed_config,fiscal_module_enabled'
-            },
-            headers
-        });
+        let company: any;
+        try {
+            const response = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
+                params: {
+                    [column]: `eq.${cleanId}`,
+                    select: 'id,tecnospeed_config,fiscal_module_enabled'
+                },
+                headers
+            });
+            company = response.data?.[0];
+        } catch (fetchErr: any) {
+            console.warn(`⚠️ [FISCAL] Erro ao buscar empresa com token (possivelmente expirado):`, fetchErr.message);
+        }
 
-        const company = response.data?.[0];
+        if (!company && SUPABASE_SERVICE_ROLE_KEY) {
+            console.log(`⚠️ Acesso negado com token atual. Tentando via SUPABASE_SERVICE_ROLE_KEY para ${companyId}...`);
+            const fallbackResponse = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
+                params: {
+                    [column]: `eq.${cleanId}`,
+                    select: 'id,tecnospeed_config,fiscal_module_enabled'
+                },
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                }
+            });
+            company = fallbackResponse.data?.[0];
+        }
+
         if (!company) {
             // Se falhou e temos um cache expirado, usa como fallback emergencial
             if (cached) {
