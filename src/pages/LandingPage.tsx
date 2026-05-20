@@ -11,7 +11,8 @@ import {
     X,
     Award,
     Gift,
-    Receipt
+    Receipt,
+    AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
