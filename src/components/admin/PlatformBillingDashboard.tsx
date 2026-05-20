@@ -443,6 +443,84 @@ export function PlatformBillingDashboard() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Site & Landing Page Config */}
+                    <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                                <Activity size={20} />
+                            </div>
+                            <h3 className="font-bold text-gray-900 dark:text-white">Site & Landing Page</h3>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-xl border border-purple-100/50 dark:border-purple-900/30">
+                                <input
+                                    type="checkbox"
+                                    checked={appSettings?.landing_banner?.enabled || false}
+                                    onChange={(e) => updateAppSettings({ 
+                                        landing_banner: { ...(appSettings?.landing_banner || {} as any), enabled: e.target.checked }
+                                    })}
+                                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                />
+                                <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Exibir Banner Promocional no Centro da Tela</span>
+                            </div>
+
+                            {appSettings?.landing_banner?.enabled && (
+                                <div className="space-y-4 pt-2 border-t border-gray-100 dark:border-slate-700">
+                                    <Input
+                                        label="Título (ex: Oferta Especial)"
+                                        value={appSettings?.landing_banner?.title || ''}
+                                        onChange={(e) => updateAppSettings({ 
+                                            landing_banner: { ...appSettings?.landing_banner, title: e.target.value } as any
+                                        })}
+                                    />
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Subtítulo / Descrição</label>
+                                        <textarea
+                                            value={appSettings?.landing_banner?.subtitle || ''}
+                                            onChange={(e) => updateAppSettings({ 
+                                                landing_banner: { ...appSettings?.landing_banner, subtitle: e.target.value } as any
+                                            })}
+                                            className="w-full text-[11px] p-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl min-h-[60px] outline-none focus:ring-2 focus:ring-purple-500"
+                                            placeholder="Ex: Aproveite nossos preços exclusivos..."
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="Texto do Botão"
+                                            value={appSettings?.landing_banner?.call_to_action || ''}
+                                            onChange={(e) => updateAppSettings({ 
+                                                landing_banner: { ...appSettings?.landing_banner, call_to_action: e.target.value } as any
+                                            })}
+                                        />
+                                        <Input
+                                            label="Link de Destino"
+                                            value={appSettings?.landing_banner?.link || ''}
+                                            onChange={(e) => updateAppSettings({ 
+                                                landing_banner: { ...appSettings?.landing_banner, link: e.target.value } as any
+                                            })}
+                                            placeholder="https://"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Tipo Visual</label>
+                                        <select
+                                            className="bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none w-full"
+                                            value={appSettings?.landing_banner?.type || 'promo'}
+                                            onChange={(e) => updateAppSettings({ 
+                                                landing_banner: { ...appSettings?.landing_banner, type: e.target.value as any } as any
+                                            })}
+                                        >
+                                            <option value="promo">Promoção (Destaque Principal)</option>
+                                            <option value="info">Informativo (Azul/Neutro)</option>
+                                            <option value="alert">Alerta Importante (Amarelo/Vermelho)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Subscribers List */}

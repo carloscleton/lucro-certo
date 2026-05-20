@@ -93,6 +93,14 @@ export function useAdmin() {
         billing_email_template?: string;
         billing_days_before_reminder?: number[];
         landing_plans?: any[];
+        landing_banner?: {
+            enabled: boolean;
+            title: string;
+            subtitle: string;
+            call_to_action: string;
+            link: string;
+            type: 'promo' | 'info' | 'alert';
+        };
         loyalty_whatsapp_enabled?: boolean;
         loyalty_whatsapp_template?: string;
         loyalty_email_enabled?: boolean;

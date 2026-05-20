@@ -47,19 +47,27 @@ export function LandingPage() {
     const isUnpaid = ['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '') || isTrialExpired;
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [landingPlans, setLandingPlans] = useState<any[]>(DEFAULT_PLANS);
+    const [landingBanner, setLandingBanner] = useState<any>(null);
+    const [showBanner, setShowBanner] = useState(false);
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [currencySymbol, setCurrencySymbol] = useState('R$');
 
     useEffect(() => {
         const fetchPlans = async () => {
             try {
-                const { data, error } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+                const { data, error } = await supabase.from('app_settings').select('landing_plans, landing_banner').eq('id', 1).maybeSingle();
                 if (error) {
                     console.error("Erro ao puxar planos do Supabase:", error);
-                } else if (data?.landing_plans && Array.isArray(data.landing_plans)) {
-                    // Only show enabled plans on the public landing page
-                    const activePlans = data.landing_plans.filter((p: any) => p.enabled !== false);
-                    setLandingPlans(activePlans);
+                } else {
+                    if (data?.landing_plans && Array.isArray(data.landing_plans)) {
+                        // Only show enabled plans on the public landing page
+                        const activePlans = data.landing_plans.filter((p: any) => p.enabled !== false);
+                        setLandingPlans(activePlans);
+                    }
+                    if (data?.landing_banner?.enabled) {
+                        setLandingBanner(data.landing_banner);
+                        setShowBanner(true);
+                    }
                 }
             } catch (err) {
                 console.error("Erro ao puxar planos", err);
@@ -501,6 +509,59 @@ export function LandingPage() {
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                             ></iframe>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Banner Modal */}
+            {showBanner && landingBanner && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className={`relative bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg p-8 shadow-2xl animate-in zoom-in-95 duration-300 border-2 ${
+                        landingBanner.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
+                        landingBanner.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
+                        'border-purple-500 shadow-purple-500/20'
+                    }`}>
+                        <button 
+                            onClick={() => setShowBanner(false)}
+                            className="absolute top-4 right-4 p-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-full transition-colors z-10"
+                        >
+                            <X size={20} className="text-gray-600 dark:text-gray-300" />
+                        </button>
+                        
+                        <div className="text-center relative z-0">
+                            {landingBanner.type === 'promo' && (
+                                <div className="w-20 h-20 mx-auto mb-6 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
+                                    <Sparkles size={40} />
+                                </div>
+                            )}
+                            {landingBanner.type === 'info' && (
+                                <div className="w-20 h-20 mx-auto mb-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
+                                    <Award size={40} />
+                                </div>
+                            )}
+                            {landingBanner.type === 'alert' && (
+                                <div className="w-20 h-20 mx-auto mb-6 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
+                                    <AlertTriangle size={40} />
+                                </div>
+                            )}
+                            
+                            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">{landingBanner.title}</h2>
+                            <p className="text-gray-600 dark:text-gray-300 mb-8 whitespace-pre-line text-lg leading-relaxed">{landingBanner.subtitle}</p>
+                            
+                            {landingBanner.call_to_action && landingBanner.link && (
+                                <a 
+                                    href={landingBanner.link} 
+                                    onClick={() => setShowBanner(false)}
+                                    className={`inline-block w-full sm:w-auto px-10 py-4 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-lg ${
+                                        landingBanner.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
+                                        landingBanner.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
+                                        'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
+                                    }`}
+                                >
+                                    {landingBanner.call_to_action}
+                                </a>
+                            )}
                         </div>
                     </div>
                 </div>
