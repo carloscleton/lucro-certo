@@ -647,19 +647,16 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             console.log(`💾 [DB-SAVE] Tentando salvar nota ${externalId} para empresa ${resolvedId}`);
             try {
                 const status = doc?.status || response.data?.status || response.data?.data?.status || 'processando';
-                const pdfRaw = doc?.pdf || response.data?.pdf || response.data?.data?.pdf || null;
-                const xmlRaw = doc?.xml || response.data?.xml || response.data?.data?.xml || null;
 
-                const getValidDocUrl = (rawDoc: any, docType: 'pdf' | 'xml') => {
-                    if (typeof rawDoc === 'string' && rawDoc.startsWith('http')) {
-                        return rawDoc;
-                    }
-                    const cleanBase = String(baseUrl).replace(/\/$/, '');
-                    return `${cleanBase}/${endpoint}/${docType}/${externalId}`;
+                const getValidDocUrl = (docType: 'pdf' | 'xml') => {
+                    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                    const host = req.get('host');
+                    const baseApiUrl = `${protocol}://${host}`;
+                    return `${baseApiUrl}/fiscal-module/${endpoint}/${externalId}/${docType}?companyId=${companyId}`;
                 };
 
-                const pdfUrl = getValidDocUrl(pdfRaw, 'pdf');
-                const xmlUrl = getValidDocUrl(xmlRaw, 'xml');
+                const pdfUrl = getValidDocUrl('pdf');
+                const xmlUrl = getValidDocUrl('xml');
 
                 const dbResponse = await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                     company_id: resolvedId,
@@ -1212,19 +1209,15 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
 
         if (currentStatus && SUPABASE_URL) {
             try {
-                const pdfRaw = statusData.data?.pdf || statusData.pdf;
-                const xmlRaw = statusData.data?.xml || statusData.xml;
-
-                const getValidDocUrl = (rawDoc: any, docType: 'pdf' | 'xml') => {
-                    if (typeof rawDoc === 'string' && rawDoc.startsWith('http')) {
-                        return rawDoc;
-                    }
-                    const cleanBase = String(baseUrl).replace(/\/$/, '');
-                    return `${cleanBase}/${type}/${docType}/${id}`;
+                const getValidDocUrl = (docType: 'pdf' | 'xml') => {
+                    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                    const host = req.get('host');
+                    const baseApiUrl = `${protocol}://${host}`;
+                    return `${baseApiUrl}/fiscal-module/${type}/${id}/${docType}?companyId=${companyId}`;
                 };
 
-                const pdfUrl = getValidDocUrl(pdfRaw, 'pdf');
-                const xmlUrl = getValidDocUrl(xmlRaw, 'xml');
+                const pdfUrl = getValidDocUrl('pdf');
+                const xmlUrl = getValidDocUrl('xml');
 
                 await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
                     status: currentStatus,
