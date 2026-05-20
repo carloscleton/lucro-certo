@@ -402,19 +402,33 @@ export function FiscalSettings() {
             const wrappedResult = wrapFiscalLinks(result, currentEntity.id, token);
             
             const isDone = ['concluido', 'autorizado', 'erro', 'rejeitado'].includes(result.status?.toLowerCase() || result.data?.status?.toLowerCase());
+            const noteType = result.type || result.data?.type || 'nfse';
 
-            // Injeção manual de links se concluído
+            let finalPdfUrl = null;
+            let finalXmlUrl = null;
+
+            // Injeção manual de links se concluído via download de blobs
             if (isDone && id) {
-                const base = API_BASE_URL.replace(/\/$/, '');
-                const tokenPart = token ? `&token=${token}` : '';
-                // PlugNotas usa a mesma rota /nfse/ para download de municipal e nacional
-                const type = 'nfse'; 
-                if (!wrappedResult.pdf) {
-                    wrappedResult.pdf = `${base}/fiscal-module/${type}/${id}/pdf?companyId=${currentEntity.id}${tokenPart}`;
+                try {
+                    const pdfBlob = await fiscalService.downloadPDF(id, noteType, currentEntity.id, token);
+                    finalPdfUrl = window.URL.createObjectURL(pdfBlob);
+                } catch (pdfErr) {
+                    console.error('[LabTest-Status] Erro ao buscar PDF:', pdfErr);
                 }
-                if (!wrappedResult.xml) {
-                    wrappedResult.xml = `${base}/fiscal-module/${type}/${id}/xml?companyId=${currentEntity.id}${tokenPart}`;
+                
+                try {
+                    const xmlBlob = await fiscalService.downloadXML(id, noteType, currentEntity.id, token);
+                    finalXmlUrl = window.URL.createObjectURL(xmlBlob);
+                } catch (xmlErr) {
+                    console.error('[LabTest-Status] Erro ao buscar XML:', xmlErr);
                 }
+            }
+
+            if (finalPdfUrl) {
+                wrappedResult.pdf = { url: finalPdfUrl };
+            }
+            if (finalXmlUrl) {
+                wrappedResult.xml = { url: finalXmlUrl };
             }
 
             setResultModal({
@@ -477,18 +491,31 @@ export function FiscalSettings() {
 
             console.log('🧪 [LAB-DEBUG] Resposta Emissão:', { externalId, isProcessing, response });
 
-            // Injeção manual de links SEMPRE que tivermos um ID (mesmo em processamento)
-            if (externalId) {
-                const base = API_BASE_URL.replace(/\/$/, '');
-                const tokenPart = token ? `&token=${token}` : '';
-                // PlugNotas usa a mesma rota /nfse/ para download de municipal e nacional
-                const type = 'nfse';
-                if (!wrappedResponse.pdf) {
-                    wrappedResponse.pdf = `${base}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}${tokenPart}`;
+            let finalPdfUrl = null;
+            let finalXmlUrl = null;
+
+            // Injeção manual de links se concluído via download de blobs
+            if (isDone && externalId) {
+                try {
+                    const pdfBlob = await fiscalService.downloadPDF(externalId, 'nfse', currentEntity.id!, token);
+                    finalPdfUrl = window.URL.createObjectURL(pdfBlob);
+                } catch (pdfErr) {
+                    console.error('[LabTest-Emit] Erro ao buscar PDF:', pdfErr);
                 }
-                if (!wrappedResponse.xml) {
-                    wrappedResponse.xml = `${base}/fiscal-module/${type}/${externalId}/xml?companyId=${currentEntity.id}${tokenPart}`;
+                
+                try {
+                    const xmlBlob = await fiscalService.downloadXML(externalId, 'nfse', currentEntity.id!, token);
+                    finalXmlUrl = window.URL.createObjectURL(xmlBlob);
+                } catch (xmlErr) {
+                    console.error('[LabTest-Emit] Erro ao buscar XML:', xmlErr);
                 }
+            }
+
+            if (finalPdfUrl) {
+                wrappedResponse.pdf = { url: finalPdfUrl };
+            }
+            if (finalXmlUrl) {
+                wrappedResponse.xml = { url: finalXmlUrl };
             }
 
             setResultModal({
@@ -508,6 +535,7 @@ export function FiscalSettings() {
         } catch (error: any) {
             console.error(error);
             const isAlreadyEmitted = error.response?.status === 409;
+            const conflictId = error.response?.data?.id || error.response?.data?.data?.id || error.response?.data?.detail?.id;
             
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
@@ -519,7 +547,11 @@ export function FiscalSettings() {
                     ? 'Esta nota já foi processada e autorizada anteriormente pela TecnoSpeed.' 
                     : (error.message || 'Erro ao processar o JSON ou na emissão.'),
                 type: isAlreadyEmitted ? 'info' : 'error',
-                data: wrapFiscalLinks(error.response?.data, currentEntity.id!, token || undefined)
+                data: error.response?.data ? wrapFiscalLinks(error.response.data, currentEntity.id!, token || undefined) : undefined,
+                action: isAlreadyEmitted && conflictId ? {
+                    label: '🔍 Verificar Status da Nota',
+                    onClick: () => handleCheckTestStatus(conflictId)
+                } : undefined
             });
         } finally {
             setTestingJson(false);
