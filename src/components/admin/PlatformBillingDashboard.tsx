@@ -47,6 +47,7 @@ export function PlatformBillingDashboard() {
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [localKeys, setLocalKeys] = useState<any>({});
+    const [localBanner, setLocalBanner] = useState<any>({});
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [selectedCompanyName, setSelectedCompanyName] = useState<string>('');
     const [billingHistory, setBillingHistory] = useState<any[]>([]);
@@ -59,6 +60,9 @@ export function PlatformBillingDashboard() {
     useEffect(() => {
         if (appSettings?.platform_billing_config) {
             setLocalKeys(appSettings.platform_billing_config);
+        }
+        if (appSettings?.landing_banner) {
+            setLocalBanner(appSettings.landing_banner);
         }
     }, [appSettings]);
 
@@ -457,31 +461,25 @@ export function PlatformBillingDashboard() {
                             <div className="flex items-center gap-2 p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-xl border border-purple-100/50 dark:border-purple-900/30">
                                 <input
                                     type="checkbox"
-                                    checked={appSettings?.landing_banner?.enabled || false}
-                                    onChange={(e) => updateAppSettings({ 
-                                        landing_banner: { ...(appSettings?.landing_banner || {} as any), enabled: e.target.checked }
-                                    })}
+                                    checked={localBanner?.enabled || false}
+                                    onChange={(e) => setLocalBanner({ ...localBanner, enabled: e.target.checked })}
                                     className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                                 />
                                 <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Exibir Banner Promocional no Centro da Tela</span>
                             </div>
 
-                            {appSettings?.landing_banner?.enabled && (
+                            {localBanner?.enabled && (
                                 <div className="space-y-4 pt-2 border-t border-gray-100 dark:border-slate-700">
                                     <Input
                                         label="Título (ex: Oferta Especial)"
-                                        value={appSettings?.landing_banner?.title || ''}
-                                        onChange={(e) => updateAppSettings({ 
-                                            landing_banner: { ...appSettings?.landing_banner, title: e.target.value } as any
-                                        })}
+                                        value={localBanner?.title || ''}
+                                        onChange={(e) => setLocalBanner({ ...localBanner, title: e.target.value })}
                                     />
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Subtítulo / Descrição</label>
                                         <textarea
-                                            value={appSettings?.landing_banner?.subtitle || ''}
-                                            onChange={(e) => updateAppSettings({ 
-                                                landing_banner: { ...appSettings?.landing_banner, subtitle: e.target.value } as any
-                                            })}
+                                            value={localBanner?.subtitle || ''}
+                                            onChange={(e) => setLocalBanner({ ...localBanner, subtitle: e.target.value })}
                                             className="w-full text-[11px] p-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl min-h-[60px] outline-none focus:ring-2 focus:ring-purple-500"
                                             placeholder="Ex: Aproveite nossos preços exclusivos..."
                                         />
@@ -489,17 +487,13 @@ export function PlatformBillingDashboard() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <Input
                                             label="Texto do Botão"
-                                            value={appSettings?.landing_banner?.call_to_action || ''}
-                                            onChange={(e) => updateAppSettings({ 
-                                                landing_banner: { ...appSettings?.landing_banner, call_to_action: e.target.value } as any
-                                            })}
+                                            value={localBanner?.call_to_action || ''}
+                                            onChange={(e) => setLocalBanner({ ...localBanner, call_to_action: e.target.value })}
                                         />
                                         <Input
                                             label="Link de Destino"
-                                            value={appSettings?.landing_banner?.link || ''}
-                                            onChange={(e) => updateAppSettings({ 
-                                                landing_banner: { ...appSettings?.landing_banner, link: e.target.value } as any
-                                            })}
+                                            value={localBanner?.link || ''}
+                                            onChange={(e) => setLocalBanner({ ...localBanner, link: e.target.value })}
                                             placeholder="https://"
                                         />
                                     </div>
@@ -507,15 +501,24 @@ export function PlatformBillingDashboard() {
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Tipo Visual</label>
                                         <select
                                             className="bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none w-full"
-                                            value={appSettings?.landing_banner?.type || 'promo'}
-                                            onChange={(e) => updateAppSettings({ 
-                                                landing_banner: { ...appSettings?.landing_banner, type: e.target.value as any } as any
-                                            })}
+                                            value={localBanner?.type || 'promo'}
+                                            onChange={(e) => setLocalBanner({ ...localBanner, type: e.target.value })}
                                         >
                                             <option value="promo">Promoção (Destaque Principal)</option>
                                             <option value="info">Informativo (Azul/Neutro)</option>
                                             <option value="alert">Alerta Importante (Amarelo/Vermelho)</option>
                                         </select>
+                                    </div>
+                                    
+                                    <div className="pt-2">
+                                        <Button
+                                            onClick={() => handleSaveSettings({ landing_banner: localBanner })}
+                                            isLoading={saving}
+                                            className="w-full bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-500/20"
+                                        >
+                                            <Save size={18} className="mr-2" />
+                                            Salvar Banner
+                                        </Button>
                                     </div>
                                 </div>
                             )}
