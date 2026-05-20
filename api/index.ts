@@ -647,8 +647,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             console.log(`💾 [DB-SAVE] Tentando salvar nota ${externalId} para empresa ${resolvedId}`);
             try {
                 const status = doc?.status || response.data?.status || response.data?.data?.status || 'processando';
-                const pdfUrl = doc?.pdf || response.data?.pdf || response.data?.data?.pdf || null;
-                const xmlUrl = doc?.xml || response.data?.xml || response.data?.data?.xml || null;
+                const pdfRaw = doc?.pdf || response.data?.pdf || response.data?.data?.pdf || null;
+                const xmlRaw = doc?.xml || response.data?.xml || response.data?.data?.xml || null;
+
+                const getValidDocUrl = (rawDoc: any, docType: 'pdf' | 'xml') => {
+                    if (typeof rawDoc === 'string' && rawDoc.startsWith('http')) {
+                        return rawDoc;
+                    }
+                    const cleanBase = String(baseUrl).replace(/\/$/, '');
+                    return `${cleanBase}/${endpoint}/${docType}/${externalId}`;
+                };
+
+                const pdfUrl = getValidDocUrl(pdfRaw, 'pdf');
+                const xmlUrl = getValidDocUrl(xmlRaw, 'xml');
 
                 const dbResponse = await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                     company_id: resolvedId,
@@ -1201,10 +1212,24 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
 
         if (currentStatus && SUPABASE_URL) {
             try {
+                const pdfRaw = statusData.data?.pdf || statusData.pdf;
+                const xmlRaw = statusData.data?.xml || statusData.xml;
+
+                const getValidDocUrl = (rawDoc: any, docType: 'pdf' | 'xml') => {
+                    if (typeof rawDoc === 'string' && rawDoc.startsWith('http')) {
+                        return rawDoc;
+                    }
+                    const cleanBase = String(baseUrl).replace(/\/$/, '');
+                    return `${cleanBase}/${type}/${docType}/${id}`;
+                };
+
+                const pdfUrl = getValidDocUrl(pdfRaw, 'pdf');
+                const xmlUrl = getValidDocUrl(xmlRaw, 'xml');
+
                 await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
                     status: currentStatus,
-                    pdf_url: statusData.data?.pdf || statusData.pdf,
-                    xml_url: statusData.data?.xml || statusData.xml,
+                    pdf_url: pdfUrl,
+                    xml_url: xmlUrl,
                     updated_at: new Date().toISOString()
                 }, {
                     headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
