@@ -652,7 +652,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
                     const host = req.get('host');
                     const baseApiUrl = `${protocol}://${host}`;
-                    return `${baseApiUrl}/fiscal-module/${endpoint}/${externalId}/${docType}?companyId=${companyId}`;
+                    return `${baseApiUrl}/api/fiscal-module/${endpoint}/${externalId}/${docType}?companyId=${companyId}`;
                 };
 
                 const pdfUrl = getValidDocUrl('pdf');
@@ -1213,7 +1213,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
                     const host = req.get('host');
                     const baseApiUrl = `${protocol}://${host}`;
-                    return `${baseApiUrl}/fiscal-module/${type}/${id}/${docType}?companyId=${companyId}`;
+                    return `${baseApiUrl}/api/fiscal-module/${type}/${id}/${docType}?companyId=${companyId}`;
                 };
 
                 const pdfUrl = getValidDocUrl('pdf');
