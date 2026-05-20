@@ -50,15 +50,8 @@ export function Invoices() {
         message: '',
         isLoading: false
     });
-    const [sessionToken, setSessionToken] = useState<string>('');
 
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.access_token) {
-                setSessionToken(session.access_token);
-            }
-        });
-    }, []);
+
 
     const filteredInvoices = invoices.filter(invoice => {
         if (!searchQuery) return true;
