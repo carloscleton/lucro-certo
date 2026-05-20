@@ -226,7 +226,7 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                                         <div className="flex items-center justify-between gap-3 flex-wrap">
                                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                                 <FileText size={13} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                                                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                                                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 break-words whitespace-normal">
                                                     {alert.description}
                                                 </span>
                                             </div>
