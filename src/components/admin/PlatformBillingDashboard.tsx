@@ -132,7 +132,7 @@ export function PlatformBillingDashboard() {
             });
             if (error) throw error;
             if (data?.text) {
-                setLocalBanner(prev => ({ ...prev, subtitle: data.text }));
+                setLocalBanner((prev: any) => ({ ...prev, subtitle: data.text }));
                 notify('success', 'Texto organizado com sucesso!', 'IA Concluída');
             }
         } catch (error) {
