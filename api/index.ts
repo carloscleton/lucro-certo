@@ -636,17 +636,28 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             });
         }
 
-        const externalId = response.data?.data?.id || response.data?.id;
+        const doc = response.data?.documents?.[0] || 
+                    (Array.isArray(response.data) ? response.data[0] : 
+                    (Array.isArray(response.data?.data) ? response.data.data[0] : 
+                    (response.data?.data || response.data)));
+        
+        const externalId = doc?.id || doc?.protocolo || response.data?.id || response.data?.protocolo || response.data?.data?.id;
 
         if (externalId && SUPABASE_URL) {
             console.log(`💾 [DB-SAVE] Tentando salvar nota ${externalId} para empresa ${resolvedId}`);
             try {
+                const status = doc?.status || response.data?.status || response.data?.data?.status || 'processando';
+                const pdfUrl = doc?.pdf || response.data?.pdf || response.data?.data?.pdf || null;
+                const xmlUrl = doc?.xml || response.data?.xml || response.data?.data?.xml || null;
+
                 const dbResponse = await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                     company_id: resolvedId,
                     quote_id: quoteId || null,
                     external_id: externalId,
                     type: endpoint,
-                    status: 'processando',
+                    status: String(status).toLowerCase(),
+                    pdf_url: pdfUrl,
+                    xml_url: xmlUrl,
                     payload: {
                         ...(finalPayload[0] || finalPayload),
                         retorno: response.data
@@ -669,7 +680,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
         }
 
-        res.json({ ...response.data, proxy_version: '1.0.31' });
+        res.json({ ...response.data, proxy_version: '1.0.32' });
     } catch (error: any) {
         res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
     }
