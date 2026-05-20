@@ -502,21 +502,34 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         const finalIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
                         
                         if (finalIsUUID) {
-                            console.log(`💾 [DB-SAVE] Dados para insert:`, {
-                                company_id: realCompanyId,
-                                external_id: externalId,
-                                type: 'nfse'
-                            });
+                            // Verificar se já existe no banco (salvo pelo backend)
+                            const { data: existingInv } = await supabase
+                                .from('fiscal_invoices')
+                                .select('id')
+                                .eq('external_id', externalId)
+                                .maybeSingle();
 
-                            const { error: dbError } = await supabase.from('fiscal_invoices').insert({
-                                company_id: realCompanyId,
-                                external_id: externalId,
-                                type: 'nfse',
-                                status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
-                                payload: finalPayloadToSave
-                            });
-
-                            if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
+                            if (existingInv?.id) {
+                                console.log(`💾 [DB-SAVE] Nota ${externalId} já existe. Atualizando status e payload...`);
+                                const { error: dbError } = await supabase
+                                    .from('fiscal_invoices')
+                                    .update({
+                                        status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
+                                        payload: finalPayloadToSave
+                                    })
+                                    .eq('id', existingInv.id);
+                                if (dbError) console.error('❌ [DB-SAVE] Erro no update:', dbError);
+                            } else {
+                                console.log(`💾 [DB-SAVE] Inserindo nova nota ${externalId}...`);
+                                const { error: dbError } = await supabase.from('fiscal_invoices').insert({
+                                    company_id: realCompanyId,
+                                    external_id: externalId,
+                                    type: 'nfse',
+                                    status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
+                                    payload: finalPayloadToSave
+                                });
+                                if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
+                            }
                         } else {
                             console.error(`❌ [DB-SAVE] Abortando gravação: ID da empresa não é um UUID válido (${realCompanyId})`);
                         }
@@ -665,14 +678,34 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                         const finalIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
                         if (finalIsUUID) {
-                            const { error: dbError } = await supabase.from('fiscal_invoices').insert({
-                                company_id: realCompanyId,
-                                external_id: externalId,
-                                type: 'nfe',
-                                status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
-                                payload: finalPayloadToSave
-                            });
-                            if (dbError) console.error('❌ [DB-SAVE] Erro no insert da NFe:', dbError);
+                            // Verificar se já existe no banco (salvo pelo backend)
+                            const { data: existingInv } = await supabase
+                                .from('fiscal_invoices')
+                                .select('id')
+                                .eq('external_id', externalId)
+                                .maybeSingle();
+
+                            if (existingInv?.id) {
+                                console.log(`💾 [DB-SAVE] NFe ${externalId} já existe. Atualizando status e payload...`);
+                                const { error: dbError } = await supabase
+                                    .from('fiscal_invoices')
+                                    .update({
+                                        status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
+                                        payload: finalPayloadToSave
+                                    })
+                                    .eq('id', existingInv.id);
+                                if (dbError) console.error('❌ [DB-SAVE] Erro no update da NFe:', dbError);
+                            } else {
+                                console.log(`💾 [DB-SAVE] Inserindo nova NFe ${externalId}...`);
+                                const { error: dbError } = await supabase.from('fiscal_invoices').insert({
+                                    company_id: realCompanyId,
+                                    external_id: externalId,
+                                    type: 'nfe',
+                                    status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
+                                    payload: finalPayloadToSave
+                                });
+                                if (dbError) console.error('❌ [DB-SAVE] Erro no insert da NFe:', dbError);
+                            }
                         }
                     } catch (dbErr) {
                         console.error('❌ [DB-SAVE] Erro na gravação da NFe:', dbErr);
@@ -753,19 +786,29 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         const finalIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
                         
                         if (finalIsUUID) {
-                            console.log(`💾 [409-DB] Dados para insert (nota existente):`, {
-                                company_id: realCompanyId,
-                                external_id: externalId,
-                                type: type
-                            });
+                            // Verificar se já existe no banco
+                            const { data: existingInv } = await supabase
+                                .from('fiscal_invoices')
+                                .select('id')
+                                .eq('external_id', externalId)
+                                .maybeSingle();
 
-                            await supabase.from('fiscal_invoices').insert({
-                                company_id: realCompanyId,
-                                external_id: externalId,
-                                type: type,
-                                status: 'concluido',
-                                payload: {}
-                            });
+                            if (existingInv?.id) {
+                                console.log(`💾 [409-DB] Nota ${externalId} já existe. Atualizando status para concluido...`);
+                                await supabase
+                                    .from('fiscal_invoices')
+                                    .update({ status: 'concluido' })
+                                    .eq('id', existingInv.id);
+                            } else {
+                                console.log(`💾 [409-DB] Inserindo nova nota de conflito ${externalId}...`);
+                                await supabase.from('fiscal_invoices').insert({
+                                    company_id: realCompanyId,
+                                    external_id: externalId,
+                                    type: type,
+                                    status: 'concluido',
+                                    payload: {}
+                                });
+                            }
                         } else {
                             console.error(`❌ [409-DB] Abortando: ID da empresa não é um UUID válido (${realCompanyId})`);
                         }
