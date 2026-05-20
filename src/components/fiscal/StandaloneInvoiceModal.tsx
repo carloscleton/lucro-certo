@@ -546,31 +546,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         const instance = waInstances[0];
                         if (instance) {
                             // Gerar link do PDF dinamicamente
-                            let pdfUrl = '';
-                            const pdfPaths = [
-                                finalPayloadToSave?.pdf_url,
-                                finalPayloadToSave?.pdf,
-                                finalPayloadToSave?.pdfUrl,
-                                finalPayloadToSave?.link,
-                                finalPayloadToSave?.linkPdf,
-                                finalPayloadToSave?.retorno?.pdf,
-                                finalPayloadToSave?.retorno?.pdfUrl,
-                                finalPayloadToSave?.retorno?.link,
-                                finalPayloadToSave?.retorno?.linkPdf
-                            ];
-                            for (const path of pdfPaths) {
-                                if (typeof path === 'string' && path.startsWith('http')) {
-                                    pdfUrl = path;
-                                    break;
-                                }
+                            let apiBase = API_BASE_URL.replace(/\/$/, '');
+                            if (apiBase.startsWith('/')) {
+                                apiBase = window.location.origin + apiBase;
                             }
-                            if (!pdfUrl) {
-                                let apiBase = API_BASE_URL.replace(/\/$/, '');
-                                if (apiBase.startsWith('/')) {
-                                    apiBase = window.location.origin + apiBase;
-                                }
-                                pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
-                            }
+                            // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
+                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
                             await whatsappService.sendMessage({
@@ -722,31 +703,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         const instance = waInstances[0];
                         if (instance) {
                             // Gerar link do PDF dinamicamente
-                            let pdfUrl = '';
-                            const pdfPaths = [
-                                finalPayloadToSave?.pdf_url,
-                                finalPayloadToSave?.pdf,
-                                finalPayloadToSave?.pdfUrl,
-                                finalPayloadToSave?.link,
-                                finalPayloadToSave?.linkPdf,
-                                finalPayloadToSave?.retorno?.pdf,
-                                finalPayloadToSave?.retorno?.pdfUrl,
-                                finalPayloadToSave?.retorno?.link,
-                                finalPayloadToSave?.retorno?.linkPdf
-                            ];
-                            for (const path of pdfPaths) {
-                                if (typeof path === 'string' && path.startsWith('http')) {
-                                    pdfUrl = path;
-                                    break;
-                                }
+                            let apiBase = API_BASE_URL.replace(/\/$/, '');
+                            if (apiBase.startsWith('/')) {
+                                apiBase = window.location.origin + apiBase;
                             }
-                            if (!pdfUrl) {
-                                let apiBase = API_BASE_URL.replace(/\/$/, '');
-                                if (apiBase.startsWith('/')) {
-                                    apiBase = window.location.origin + apiBase;
-                                }
-                                pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
-                            }
+                            // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
+                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}&token=${token}`;
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\nClique no link abaixo para visualizar e baixar o documento:\n\n${pdfUrl}`;
                             await whatsappService.sendMessage({
