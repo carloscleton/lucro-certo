@@ -1,0 +1,10 @@
+﻿Add-Type -AssemblyName System.Drawing
+$img = [System.Drawing.Image]::FromFile("c:\Projeto-antigravity\public\images\landing\certificado-digital.png")
+$rect = New-Object System.Drawing.Rectangle(120, 120, 784, 784)
+$bmp = New-Object System.Drawing.Bitmap($rect.Width, $rect.Height)
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.DrawImage($img, 0, 0, $rect, [System.Drawing.GraphicsUnit]::Pixel)
+$bmp.Save("c:\Projeto-antigravity\public\images\landing\certificado-digital-cropped.png", [System.Drawing.Imaging.ImageFormat]::Png)
+$g.Dispose()
+$bmp.Dispose()
+$img.Dispose()

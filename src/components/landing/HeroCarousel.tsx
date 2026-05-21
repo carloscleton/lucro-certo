@@ -314,15 +314,23 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: He
 
                                 <div className="hero-image-container animate-image">
                                     <div className="image-wrapper">
-                                        <img
-                                            src={banner.image}
-                                            alt={banner.tag}
-                                            className="hero-mockup"
-                                            loading={index === 0 ? "eager" : "lazy"}
-                                            width="550"
-                                            height="400"
-                                        />
-                                        <div className={`image-glow accent-${banner.accent}`}></div>
+                                        <div className="hero-mockup" style={{ overflow: 'hidden' }}>
+                                            <img
+                                                src={banner.image}
+                                                alt={banner.tag}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover',
+                                                    transform: banner.accent === 'emerald' && banner.image.includes('certificado') ? 'scale(1.25)' : 'none',
+                                                    transition: 'transform 0.3s ease'
+                                                }}
+                                                loading={index === 0 ? "eager" : "lazy"}
+                                                width="550"
+                                                height="400"
+                                            />
+                                        </div>
+                                        <div className={`image-glow accent-${activeBanners[currentSlide]?.accent || 'blue'}`}></div>
                                     </div>
                                 </div>
                             </div>
