@@ -518,51 +518,60 @@ export function LandingPage() {
             {/* Banner Modal */}
             {showBanner && landingBanner && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className={`relative bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg p-8 shadow-2xl animate-in zoom-in-95 duration-300 border-2 ${
+                    <div className={`relative bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col max-h-[85vh] ${
                         landingBanner.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
                         landingBanner.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
                         'border-purple-500 shadow-purple-500/20'
                     }`}>
                         <button 
                             onClick={() => setShowBanner(false)}
-                            className="absolute top-4 right-4 p-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-full transition-colors z-10"
+                            className="absolute top-3 right-3 p-1.5 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-full transition-colors z-20"
                         >
-                            <X size={20} className="text-gray-600 dark:text-gray-300" />
+                            <X size={18} className="text-gray-600 dark:text-gray-300" />
                         </button>
                         
-                        <div className="text-center relative z-0">
-                            {landingBanner.type === 'promo' && (
-                                <div className="w-20 h-20 mx-auto mb-6 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
-                                    <Sparkles size={40} />
-                                </div>
-                            )}
-                            {landingBanner.type === 'info' && (
-                                <div className="w-20 h-20 mx-auto mb-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
-                                    <Award size={40} />
-                                </div>
-                            )}
-                            {landingBanner.type === 'alert' && (
-                                <div className="w-20 h-20 mx-auto mb-6 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
-                                    <AlertTriangle size={40} />
-                                </div>
-                            )}
+                        <div className="text-center relative z-0 flex flex-col overflow-hidden h-full">
+                            <div className="shrink-0">
+                                {landingBanner.type === 'promo' && (
+                                    <div className="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
+                                        <Sparkles size={32} />
+                                    </div>
+                                )}
+                                {landingBanner.type === 'info' && (
+                                    <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
+                                        <Award size={32} />
+                                    </div>
+                                )}
+                                {landingBanner.type === 'alert' && (
+                                    <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
+                                        <AlertTriangle size={32} />
+                                    </div>
+                                )}
+                                
+                                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{landingBanner.title}</h2>
+                            </div>
+
+                            <div className="overflow-y-auto px-2 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
+                                <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed text-left sm:text-center">
+                                    {landingBanner.subtitle}
+                                </p>
+                            </div>
                             
-                            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">{landingBanner.title}</h2>
-                            <p className="text-gray-600 dark:text-gray-300 mb-8 whitespace-pre-line text-lg leading-relaxed">{landingBanner.subtitle}</p>
-                            
-                            {landingBanner.call_to_action && landingBanner.link && (
-                                <a 
-                                    href={landingBanner.link} 
-                                    onClick={() => setShowBanner(false)}
-                                    className={`inline-block w-full sm:w-auto px-10 py-4 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-lg ${
-                                        landingBanner.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
-                                        landingBanner.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
-                                        'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
-                                    }`}
-                                >
-                                    {landingBanner.call_to_action}
-                                </a>
-                            )}
+                            <div className="shrink-0">
+                                {landingBanner.call_to_action && landingBanner.link && (
+                                    <a 
+                                        href={landingBanner.link} 
+                                        onClick={() => setShowBanner(false)}
+                                        className={`inline-block w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base ${
+                                            landingBanner.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
+                                            landingBanner.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
+                                            'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
+                                        }`}
+                                    >
+                                        {landingBanner.call_to_action}
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
