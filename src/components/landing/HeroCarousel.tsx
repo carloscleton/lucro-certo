@@ -190,13 +190,18 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: He
         // Limit to first 3 points for the carousel layout
         const displayPoints = points.slice(0, 3);
         
+        // Make the last word of the title have a gradient, automatically!
+        const titleWords = landingBanner.title.trim().split(' ');
+        const lastWord = titleWords.length > 1 ? titleWords.pop() : '';
+        const restOfTitle = titleWords.join(' ');
+
         // Add dynamic banner at the second position (index 1) so it's highly visible
         activeBanners.splice(1, 0, {
             tag: landingBanner.type === 'promo' ? 'OFERTA ESPECIAL' : landingBanner.type === 'info' ? 'NOVIDADE' : 'DESTAQUE',
             tagIcon: <ShieldCheck size={16} />,
             tagColor: 'rgba(16, 185, 129, 0.1)',
             tagTextColor: '#10b981',
-            title: <>{landingBanner.title.replace('benefícios', '<span class="text-gradient">benefícios</span>')}</>,
+            title: <>{restOfTitle} {lastWord && <span className="text-gradient">{lastWord}</span>}</>,
             description: description,
             points: displayPoints,
             image: landingBanner.image_url || "/images/landing/certificado-digital.png",
