@@ -153,8 +153,8 @@ export function PlatformBillingDashboard() {
         try {
             setUploadingImage(true);
             const fileExt = file.name.split('.').pop();
-            const fileName = `banner_${Date.now()}.${fileExt}`;
-            const { publicUrl } = await storageService.upload(file, 'company-logos', fileName);
+            const fileName = `landing_banners/banner_${Date.now()}.${fileExt}`;
+            const { publicUrl } = await storageService.upload(file, 'social_media_assets', fileName);
             setLocalBanner((prev: any) => ({ ...prev, image_url: publicUrl }));
             notify('success', 'Imagem do banner salva com sucesso!');
         } catch (error) {
