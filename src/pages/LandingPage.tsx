@@ -39,6 +39,23 @@ const DEFAULT_PLANS: any[] = [
 // ... (lines 152-180 kept as is)
 ];
 
+const formatTextWithBold = (text: string) => {
+    if (!text) return null;
+    
+    // Split by **text** or *text*
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+    
+    return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={index} className="font-bold text-gray-900 dark:text-white">{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+            return <strong key={index} className="font-bold text-gray-900 dark:text-white">{part.slice(1, -1)}</strong>;
+        }
+        return <span key={index}>{part}</span>;
+    });
+};
+
 export function LandingPage() {
     const navigate = useNavigate();
     const { currentEntity } = useEntity();
@@ -724,7 +741,7 @@ export function LandingPage() {
 
                             <div className="overflow-y-auto px-2 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
                                 <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed text-left">
-                                    {landingBanner.subtitle}
+                                    {formatTextWithBold(landingBanner.subtitle)}
                                 </div>
                             </div>
                             
