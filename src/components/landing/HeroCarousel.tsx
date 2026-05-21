@@ -13,7 +13,8 @@ import {
     ArrowLeft,
     ArrowRight,
     Award,
-    Receipt
+    Receipt,
+    ShieldCheck
 } from 'lucide-react';
 
 // Import banner images
@@ -168,27 +169,54 @@ const banners: Banner[] = [
 interface HeroCarouselProps {
     session: any;
     setIsVideoModalOpen: (open: boolean) => void;
+    landingBanner?: any;
 }
 
-export function HeroCarousel({ session, setIsVideoModalOpen }: HeroCarouselProps) {
+export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: HeroCarouselProps) {
     const navigate = useNavigate();
     const [currentSlide, setCurrentSlide] = useState(0);
 
+    // Compute active banners dynamically based on landingBanner
+    const activeBanners = [...banners];
+    
+    if (landingBanner && landingBanner.enabled) {
+        // Parse points from subtitle if they used ✅
+        const points = landingBanner.subtitle
+            ? landingBanner.subtitle.split('✅').map((p: string) => p.trim()).filter((p: string) => p.length > 0)
+            : [];
+            
+        // Limit to first 3 points for the carousel layout
+        const displayPoints = points.slice(0, 3);
+        
+        // Add dynamic banner at the second position (index 1) so it's highly visible
+        activeBanners.splice(1, 0, {
+            tag: landingBanner.type === 'promo' ? 'OFERTA ESPECIAL' : landingBanner.type === 'info' ? 'NOVIDADE' : 'DESTAQUE',
+            tagIcon: <ShieldCheck size={16} />,
+            tagColor: 'rgba(16, 185, 129, 0.1)',
+            tagTextColor: '#10b981',
+            title: <>{landingBanner.title.replace('benefícios', '<span class="text-gradient">benefícios</span>')}</>,
+            description: landingBanner.subtitle.split('✅')[0]?.trim() || landingBanner.subtitle,
+            points: displayPoints,
+            image: landingBanner.image_url || "/images/landing/certificado-digital.png",
+            accent: 'emerald'
+        });
+    }
+
     useEffect(() => {
         const timer = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % banners.length);
+            setCurrentSlide((prev) => (prev + 1) % activeBanners.length);
         }, 8000);
         return () => clearInterval(timer);
-    }, []);
+    }, [activeBanners.length]);
 
-    const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % banners.length);
-    const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
+    const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % activeBanners.length);
+    const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
 
     return (
         <>
             <div className="landing-bg-glow" aria-hidden="true">
-                <div className={`glow-1 accent-${banners[currentSlide].accent}`}></div>
-                <div className={`glow-2 accent-${banners[currentSlide].accent}`}></div>
+                <div className={`glow-1 accent-${activeBanners[currentSlide]?.accent || 'blue'}`}></div>
+                <div className={`glow-2 accent-${activeBanners[currentSlide]?.accent || 'blue'}`}></div>
             </div>
 
             <header className="hero-section carousel-mode">
@@ -199,7 +227,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen }: HeroCarouselProps
                         willChange: 'transform'
                     }}
                 >
-                    {banners.map((banner, index) => {
+                    {activeBanners.map((banner, index) => {
                         const isActive = currentSlide === index;
                         // Optimization: Avoid rendering detailed content for slides far away
                         // but since the slide needs to exist for the transform animation, 
@@ -287,7 +315,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen }: HeroCarouselProps
                         <ArrowLeft size={16} strokeWidth={1.5} />
                     </button>
                     <div className="carousel-dots">
-                        {banners.map((_, index) => (
+                        {activeBanners.map((_, index) => (
                             <button
                                 key={index}
                                 onClick={() => setCurrentSlide(index)}

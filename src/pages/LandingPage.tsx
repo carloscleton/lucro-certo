@@ -140,7 +140,7 @@ export function LandingPage() {
             </nav>
 
             {/* Hero Carousel Section */}
-            <HeroCarousel session={session} setIsVideoModalOpen={setIsVideoModalOpen} />
+            <HeroCarousel session={session} setIsVideoModalOpen={setIsVideoModalOpen} landingBanner={landingBanner} />
 
             {/* Trust Bar (Media) */}
             <section className="media-bar" style={{ padding: '2rem 5%', background: '#fff', borderBottom: '1px solid var(--glass-border)', textAlign: 'center' }}>
