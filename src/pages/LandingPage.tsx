@@ -260,14 +260,7 @@ export function LandingPage() {
 
             {/* AI Radar Highlight */}
             <section id="ai" className="features-section">
-                <div className="visual-feature">
-                    <div className="visual-image-container">
-                        <img
-                            src="/images/landing/ai-radar.png"
-                            alt="AI Radar Feature"
-                            className="visual-image"
-                        />
-                    </div>
+                <div className="visual-feature reverse">
                     <div className="visual-content">
                         <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Radar size={20} />
@@ -283,17 +276,16 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> Filtros por região e nicho de atuação</li>
                         </ul>
                     </div>
-                </div>
-
-                <div className="visual-feature reverse">
                     <div className="visual-image-container">
                         <img
-                            src={bannerMarketingCopilot}
-                            alt="Marketing Copilot Feature"
+                            src="/images/landing/ai-radar.png"
+                            alt="AI Radar Feature"
                             className="visual-image"
-                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(99, 102, 241, 0.3)' }}
                         />
                     </div>
+                </div>
+
+                <div className="visual-feature">
                     <div className="visual-content">
                         <div style={{ color: '#6366f1', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Sparkles size={20} />
@@ -309,10 +301,18 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Autopilot Agendado:</strong> Postagens automáticas no Instagram.</li>
                         </ul>
                     </div>
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerMarketingCopilot}
+                            alt="Marketing Copilot Feature"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(99, 102, 241, 0.3)' }}
+                        />
+                    </div>
                 </div>
 
                 {/* CRM & VENDAS Section */}
-                <div className="visual-feature">
+                <div className="visual-feature reverse">
                     <div className="visual-content">
                         <div style={{ color: '#ec4899', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Users size={20} />
@@ -339,15 +339,7 @@ export function LandingPage() {
                 </div>
 
                 {/* ORÇAMENTOS PROFISSIONAIS Section */}
-                <div className="visual-feature reverse">
-                    <div className="visual-image-container">
-                        <img
-                            src={bannerQuotes}
-                            alt="Orçamentos Profissionais"
-                            className="visual-image"
-                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(245, 158, 11, 0.3)' }}
-                        />
-                    </div>
+                <div className="visual-feature">
                     <div className="visual-content">
                         <div style={{ color: '#f59e0b', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <DollarSign size={20} />
@@ -363,10 +355,18 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Status de Leitura:</strong> Saiba exatamente quando o cliente abriu a proposta.</li>
                         </ul>
                     </div>
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerQuotes}
+                            alt="Orçamentos Profissionais"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(245, 158, 11, 0.3)' }}
+                        />
+                    </div>
                 </div>
 
                 {/* AUTOMAÇÃO WHATSAPP Section */}
-                <div className="visual-feature">
+                <div className="visual-feature reverse">
                     <div className="visual-content">
                         <div style={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <CreditCard size={20} />
@@ -393,15 +393,7 @@ export function LandingPage() {
                 </div>
 
                 {/* MULTI-EMPRESAS Section */}
-                <div className="visual-feature reverse">
-                    <div className="visual-image-container">
-                        <img
-                            src={bannerMulticompany}
-                            alt="Multi-Empresas"
-                            className="visual-image"
-                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(75, 85, 99, 0.3)' }}
-                        />
-                    </div>
+                <div className="visual-feature">
                     <div className="visual-content">
                         <div style={{ color: '#4b5563', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Users size={20} />
@@ -417,10 +409,18 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Interligação de Estoques:</strong> Movimente produtos entre as lojas facilmente.</li>
                         </ul>
                     </div>
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerMulticompany}
+                            alt="Multi-Empresas"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(75, 85, 99, 0.3)' }}
+                        />
+                    </div>
                 </div>
 
                 {/* Multi-Currency Section */}
-                <div className="visual-feature">
+                <div className="visual-feature reverse">
                     <div className="visual-content">
                         <div style={{ color: '#d4af37', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <DollarSign size={20} />
@@ -475,14 +475,6 @@ export function LandingPage() {
 
                 {/* Loyalty Club Section */}
                 <div className="visual-feature reverse">
-                    <div className="visual-image-container">
-                        <img
-                            src={bannerLoyalty}
-                            alt="Clube de Fidelidade"
-                            className="visual-image"
-                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(79, 70, 229, 0.3)' }}
-                        />
-                    </div>
                     <div className="visual-content">
                         <div style={{ color: '#4f46e5', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Award size={20} />
@@ -497,6 +489,14 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Cashback Automático:</strong> Incentive novas compras devolvendo parte do valor ao cliente fiel.</li>
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Gestão de Assinaturas:</strong> Controle quem está ativo, inadimplente ou em período extra.</li>
                         </ul>
+                    </div>
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerLoyalty}
+                            alt="Clube de Fidelidade"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(79, 70, 229, 0.3)' }}
+                        />
                     </div>
                 </div>
 
@@ -531,14 +531,6 @@ export function LandingPage() {
                 {/* Dynamic Certificado Digital / Banner Section */}
                 {landingBanner && (
                     <div className="visual-feature reverse">
-                        <div className="visual-image-container">
-                            <img
-                                src={landingBanner.image_url || "/images/landing/certificado-digital.png"}
-                                alt={landingBanner.title}
-                                className="visual-image"
-                                style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)' }}
-                            />
-                        </div>
                         <div className="visual-content">
                             <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <ShieldCheck size={20} />
@@ -556,6 +548,14 @@ export function LandingPage() {
                                     {landingBanner.call_to_action}
                                 </a>
                             )}
+                        </div>
+                        <div className="visual-image-container">
+                            <img
+                                src={landingBanner.image_url || "/images/landing/certificado-digital.png"}
+                                alt={landingBanner.title}
+                                className="visual-image"
+                                style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)' }}
+                            />
                         </div>
                     </div>
                 )}
