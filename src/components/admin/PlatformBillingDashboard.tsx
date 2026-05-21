@@ -18,6 +18,7 @@ import {
     ExternalLink
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { storageService } from '../../lib/storageService';
 import { supabase } from '../../lib/supabase';
 import { Input } from '../ui/Input';
 import { useTranslation } from 'react-i18next';
@@ -45,6 +46,7 @@ export function PlatformBillingDashboard() {
     const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
     const [saving, setSaving] = useState(false);
     const [isGeneratingBanner, setIsGeneratingBanner] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [localKeys, setLocalKeys] = useState<any>({});
@@ -140,6 +142,25 @@ export function PlatformBillingDashboard() {
             notify('error', 'Erro ao organizar texto com IA.', 'Erro');
         } finally {
             setIsGeneratingBanner(false);
+        }
+    };
+
+    const handleBannerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setUploadingImage(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `banner_${Date.now()}.${fileExt}`;
+            const { publicUrl } = await storageService.upload(file, 'company-logos', fileName);
+            setLocalBanner((prev: any) => ({ ...prev, image_url: publicUrl }));
+            notify('success', 'Imagem do banner salva com sucesso!');
+        } catch (error) {
+            console.error('Upload error:', error);
+            notify('error', 'Erro ao fazer upload da imagem.');
+        } finally {
+            setUploadingImage(false);
         }
     };
 
@@ -554,6 +575,42 @@ export function PlatformBillingDashboard() {
                                         </select>
                                     </div>
                                     
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Imagem Personalizada (Opcional)</label>
+                                        <div className="flex items-center gap-4">
+                                            {localBanner?.image_url && (
+                                                <div className="relative w-16 h-16 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex-shrink-0">
+                                                    <img src={localBanner.image_url} alt="Banner" className="w-full h-full object-contain" />
+                                                    <button
+                                                        onClick={() => setLocalBanner((prev: any) => { const { image_url, ...rest } = prev; return rest; })}
+                                                        className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <div className="flex-1">
+                                                <label className={`flex items-center justify-center gap-2 w-full py-2 px-4 border border-dashed rounded-xl cursor-pointer transition-colors ${uploadingImage ? 'bg-gray-100 border-gray-300' : 'bg-gray-50 hover:bg-gray-100 border-gray-300 dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-800'}`}>
+                                                    {uploadingImage ? (
+                                                        <RefreshCw size={16} className="animate-spin text-gray-500" />
+                                                    ) : (
+                                                        <Upload size={16} className="text-gray-500" />
+                                                    )}
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                                                        {uploadingImage ? 'Enviando...' : 'Fazer upload de imagem'}
+                                                    </span>
+                                                    <input 
+                                                        type="file" 
+                                                        accept="image/*" 
+                                                        className="hidden" 
+                                                        onChange={handleBannerImageUpload} 
+                                                        disabled={uploadingImage}
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="pt-2">
                                         <Button
                                             onClick={() => handleSaveSettings({ landing_banner: localBanner })}

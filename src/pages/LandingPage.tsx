@@ -532,20 +532,28 @@ export function LandingPage() {
                         
                         <div className="text-center relative z-0 flex flex-col overflow-hidden h-full">
                             <div className="shrink-0">
-                                {landingBanner.type === 'promo' && (
-                                    <div className="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
-                                        <Sparkles size={32} />
+                                {landingBanner.image_url ? (
+                                    <div className="w-full flex justify-center mb-4">
+                                        <img src={landingBanner.image_url} alt="Banner" className="max-h-32 object-contain rounded-lg" />
                                     </div>
-                                )}
-                                {landingBanner.type === 'info' && (
-                                    <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
-                                        <Award size={32} />
-                                    </div>
-                                )}
-                                {landingBanner.type === 'alert' && (
-                                    <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
-                                        <AlertTriangle size={32} />
-                                    </div>
+                                ) : (
+                                    <>
+                                        {landingBanner.type === 'promo' && (
+                                            <div className="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
+                                                <Sparkles size={32} />
+                                            </div>
+                                        )}
+                                        {landingBanner.type === 'info' && (
+                                            <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
+                                                <Award size={32} />
+                                            </div>
+                                        )}
+                                        {landingBanner.type === 'alert' && (
+                                            <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
+                                                <AlertTriangle size={32} />
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                                 
                                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{landingBanner.title}</h2>
