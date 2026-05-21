@@ -26,6 +26,10 @@ import bannerMarketingCopilot from '../assets/landing/landing_hero_marketing_cop
 import bannerMulticurrency from '../assets/landing/landing_hero_multicurrency.png';
 import bannerLoyalty from '../assets/landing/landing_hero_loyalty.png';
 import bannerFiscal from '../assets/landing/landing_hero_fiscal_management.png';
+import bannerCRM from '../assets/landing/landing_hero_crm.png';
+import bannerQuotes from '../assets/landing/landing_hero_quotes.png';
+import bannerWhatsApp from '../assets/landing/landing_hero_whatsapp.png';
+import bannerMulticompany from '../assets/landing/landing_hero_multicompany.png';
 
 import { HeroCarousel } from '../components/landing/HeroCarousel';
 
@@ -303,6 +307,114 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Brand Kit Centralizado:</strong> Sua logo e cores em tudo.</li>
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Geração de Legendas & Vídeos:</strong> IA que entende seu negócio.</li>
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Autopilot Agendado:</strong> Postagens automáticas no Instagram.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                {/* CRM & VENDAS Section */}
+                <div className="visual-feature">
+                    <div className="visual-content">
+                        <div style={{ color: '#ec4899', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Users size={20} />
+                            CRM & VENDAS
+                        </div>
+                        <h3>Transforme Leads em Clientes Fiéis</h3>
+                        <p>
+                            Gestão completa do pipeline de vendas. Organize seus contatos e nunca perca uma oportunidade.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Funil de Vendas Visual:</strong> Acompanhe as negociações etapa por etapa.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Histórico de Interações:</strong> Tudo documentado no perfil do cliente.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Automação de Follow-up:</strong> Lembretes automáticos para sua equipe.</li>
+                        </ul>
+                    </div>
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerCRM}
+                            alt="CRM e Vendas"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(236, 72, 153, 0.2)' }}
+                        />
+                    </div>
+                </div>
+
+                {/* ORÇAMENTOS PROFISSIONAIS Section */}
+                <div className="visual-feature reverse">
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerQuotes}
+                            alt="Orçamentos Profissionais"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(245, 158, 11, 0.3)' }}
+                        />
+                    </div>
+                    <div className="visual-content">
+                        <div style={{ color: '#f59e0b', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <DollarSign size={20} />
+                            ORÇAMENTOS PROFISSIONAIS
+                        </div>
+                        <h3>Propostas que Vendem por Você</h3>
+                        <p>
+                            Crie orçamentos lindíssimos em segundos e envie via WhatsApp para seus clientes com aprovação digital.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Modelos Customizáveis:</strong> Templates com a cara da sua empresa.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Assinatura Digital Rápida:</strong> Seus clientes aprovam no próprio celular.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Status de Leitura:</strong> Saiba exatamente quando o cliente abriu a proposta.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                {/* AUTOMAÇÃO WHATSAPP Section */}
+                <div className="visual-feature">
+                    <div className="visual-content">
+                        <div style={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <CreditCard size={20} />
+                            AUTOMAÇÃO WHATSAPP
+                        </div>
+                        <h3>Régua de Cobrança Automática</h3>
+                        <p>
+                            Reduza a inadimplência com lembretes inteligentes de pagamento enviados diretamente para o WhatsApp dos seus clientes.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Lembretes de Vencimento:</strong> Mensagens automáticas via WhatsApp.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Links de Pagamento Direto:</strong> Envie a fatura pronta para pagamento (Pix/Cartão).</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Baixa Automática no Caixa:</strong> Tudo é reconciliado assim que o cliente paga.</li>
+                        </ul>
+                    </div>
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerWhatsApp}
+                            alt="Automação WhatsApp"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(20, 184, 166, 0.2)' }}
+                        />
+                    </div>
+                </div>
+
+                {/* MULTI-EMPRESAS Section */}
+                <div className="visual-feature reverse">
+                    <div className="visual-image-container">
+                        <img
+                            src={bannerMulticompany}
+                            alt="Multi-Empresas"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(75, 85, 99, 0.3)' }}
+                        />
+                    </div>
+                    <div className="visual-content">
+                        <div style={{ color: '#4b5563', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Users size={20} />
+                            MULTI-EMPRESAS
+                        </div>
+                        <h3>Gerencie Vários Negócios</h3>
+                        <p>
+                            Troque entre empresas com um clique. Tenha uma visão consolidada de todas as suas unidades sem precisar sair do sistema.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Consolidação de Dados:</strong> Veja o lucro total de todas as empresas juntas.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Acessos Diferenciados:</strong> Defina quem pode ver cada filial.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Interligação de Estoques:</strong> Movimente produtos entre as lojas facilmente.</li>
                         </ul>
                     </div>
                 </div>
