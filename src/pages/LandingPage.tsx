@@ -696,8 +696,8 @@ export function LandingPage() {
                         <div className="text-center relative z-10 flex flex-col h-full mt-4">
                             <div className="shrink-0">
                                 {landingBanner.image_url ? (
-                                    <div className="w-full flex justify-center mb-4">
-                                        <img src={landingBanner.image_url} alt="Banner" className="max-h-32 object-contain rounded-lg" />
+                                    <div className="w-full flex justify-center mb-6">
+                                        <img src={landingBanner.image_url} alt="Banner" className="w-full h-auto max-h-[300px] object-contain rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm" />
                                     </div>
                                 ) : (
                                     <>
