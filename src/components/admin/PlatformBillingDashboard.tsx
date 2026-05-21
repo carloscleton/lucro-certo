@@ -611,19 +611,19 @@ export function PlatformBillingDashboard() {
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div className="pt-2">
-                                        <Button
-                                            onClick={() => handleSaveSettings({ landing_banner: localBanner })}
-                                            isLoading={saving}
-                                            className="w-full bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-500/20"
-                                        >
-                                            <Save size={18} className="mr-2" />
-                                            Salvar Banner
-                                        </Button>
-                                    </div>
                                 </div>
                             )}
+
+                            <div className="pt-2">
+                                <Button
+                                    onClick={() => handleSaveSettings({ landing_banner: localBanner })}
+                                    isLoading={saving}
+                                    className="w-full bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-500/20"
+                                >
+                                    <Save size={18} className="mr-2" />
+                                    Salvar Alterações do Site
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
