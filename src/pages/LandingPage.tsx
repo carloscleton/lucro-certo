@@ -693,7 +693,7 @@ export function LandingPage() {
                             <X size={18} className="text-gray-600 dark:text-gray-300" />
                         </button>
                         
-                        <div className="text-center relative z-10 flex flex-col h-full">
+                        <div className="text-center relative z-10 flex flex-col h-full bg-white/60 dark:bg-slate-900/70 backdrop-blur-md rounded-xl p-5 border border-white/60 dark:border-slate-700/50 shadow-sm">
                             <div className="shrink-0">
                                 {landingBanner.image_url ? (
                                     <div className="w-full flex justify-center mb-4">
