@@ -40,6 +40,8 @@ interface Banner {
     points: string[];
     image: string;
     accent: string;
+    buttonText?: string;
+    buttonLink?: string;
 }
 
 const banners: Banner[] = [
@@ -180,10 +182,10 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: He
     const activeBanners = [...banners];
     
     if (landingBanner && landingBanner.enabled) {
-        // Parse points from subtitle if they used ✅
-        const points = landingBanner.subtitle
-            ? landingBanner.subtitle.split('✅').map((p: string) => p.trim()).filter((p: string) => p.length > 0)
-            : [];
+        const fullText = landingBanner.subtitle || '';
+        const parts = fullText.split('✅');
+        const description = parts[0]?.trim() || fullText;
+        const points = parts.slice(1).map((p: string) => p.trim()).filter((p: string) => p.length > 0);
             
         // Limit to first 3 points for the carousel layout
         const displayPoints = points.slice(0, 3);
@@ -195,10 +197,12 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: He
             tagColor: 'rgba(16, 185, 129, 0.1)',
             tagTextColor: '#10b981',
             title: <>{landingBanner.title.replace('benefícios', '<span class="text-gradient">benefícios</span>')}</>,
-            description: landingBanner.subtitle.split('✅')[0]?.trim() || landingBanner.subtitle,
+            description: description,
             points: displayPoints,
             image: landingBanner.image_url || "/images/landing/certificado-digital.png",
-            accent: 'emerald'
+            accent: 'emerald',
+            buttonText: landingBanner.call_to_action,
+            buttonLink: landingBanner.link
         });
     }
 
@@ -269,14 +273,26 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: He
                                     </div>
 
                                     <div className="carousel-global-actions">
-                                        <button onClick={() => navigate(session ? '/dashboard' : '/login?mode=signup&checkout-plan=trial&checkout-price=0')} className="btn-primary">
-                                            {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
-                                            <ChevronRight size={18} />
-                                        </button>
-                                        <button onClick={() => setIsVideoModalOpen(true)} className="btn-secondary">
-                                            <PlayCircle size={18} />
-                                            Conhecer Sistema
-                                        </button>
+                                        {banner.buttonText && banner.buttonLink ? (
+                                            <a 
+                                                href={banner.buttonLink} 
+                                                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30"
+                                            >
+                                                {banner.buttonText}
+                                                <ChevronRight size={18} />
+                                            </a>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => navigate(session ? '/dashboard' : '/login?mode=signup&checkout-plan=trial&checkout-price=0')} className="btn-primary">
+                                                    {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
+                                                    <ChevronRight size={18} />
+                                                </button>
+                                                <button onClick={() => setIsVideoModalOpen(true)} className="btn-secondary">
+                                                    <PlayCircle size={18} />
+                                                    Conhecer Sistema
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                     <div className="hero-stats animate-stats">
                                         <div className="mini-stat">
