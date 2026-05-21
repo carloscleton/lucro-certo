@@ -213,6 +213,15 @@ export function LandingPage() {
                         <h3>Notas Fiscais (NF-e/NFS-e)</h3>
                         <p>Emita notas fiscais de serviço e produtos diretamente pelo sistema. Histórico completo com download de XML e PDF em um clique.</p>
                     </div>
+                    {landingBanner?.enabled && (
+                        <div className="feature-card">
+                            <div className="feature-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                                <ShieldCheck size={32} />
+                            </div>
+                            <h3>Certificado Digital</h3>
+                            <p>Emissão rápida, fácil e segura. Proteja sua carteira de clientes oferecendo um serviço completo de certificação digital.</p>
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -415,7 +424,7 @@ export function LandingPage() {
                                 src={landingBanner.image_url || "/images/landing/certificado-digital.png"}
                                 alt={landingBanner.title}
                                 className="visual-image"
-                                style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)', maxHeight: '400px', objectFit: 'contain' }}
+                                style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)' }}
                             />
                         </div>
                         <div className="visual-content">
@@ -424,9 +433,9 @@ export function LandingPage() {
                                 {landingBanner.type === 'promo' ? 'OFERTA ESPECIAL' : landingBanner.type === 'info' ? 'NOVIDADE' : 'DESTAQUE'}
                             </div>
                             <h3>{landingBanner.title}</h3>
-                            <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed mb-6">
+                            <p className="whitespace-pre-line mb-6">
                                 {landingBanner.subtitle}
-                            </div>
+                            </p>
                             {landingBanner.call_to_action && landingBanner.link && (
                                 <a 
                                     href={landingBanner.link} 
