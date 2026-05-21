@@ -407,32 +407,37 @@ export function LandingPage() {
                     </div>
                 </div>
 
-                {/* Certificado Digital Section */}
-                <div className="visual-feature reverse">
-                    <div className="visual-image-container">
-                        <img
-                            src="/images/landing/certificado-digital.png"
-                            alt="Certificado Digital"
-                            className="visual-image"
-                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)' }}
-                        />
-                    </div>
-                    <div className="visual-content">
-                        <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <ShieldCheck size={20} />
-                            CERTIFICADO DIGITAL
+                {/* Dynamic Certificado Digital / Banner Section */}
+                {landingBanner && (
+                    <div className="visual-feature reverse">
+                        <div className="visual-image-container">
+                            <img
+                                src={landingBanner.image_url || "/images/landing/certificado-digital.png"}
+                                alt={landingBanner.title}
+                                className="visual-image"
+                                style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)', maxHeight: '400px', objectFit: 'contain' }}
+                            />
                         </div>
-                        <h3>Facilite para o seu cliente e tenha benefícios!</h3>
-                        <p>
-                            Transforme sua experiência com a TecnoSign! Indique nossos serviços aos seus clientes e deixe o trabalho conosco. Nossa equipe cuida de todo o atendimento, emissão e suporte.
-                        </p>
-                        <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Atendimento Completo:</strong> Pelo time da TecnoSpeed, com a melhor experiência.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Comodidade e Confiança:</strong> Emissão rápida, fácil e segura para o cliente.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Proteção de Carteira:</strong> Evite que seus clientes busquem concorrentes.</li>
-                        </ul>
+                        <div className="visual-content">
+                            <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <ShieldCheck size={20} />
+                                {landingBanner.type === 'promo' ? 'OFERTA ESPECIAL' : landingBanner.type === 'info' ? 'NOVIDADE' : 'DESTAQUE'}
+                            </div>
+                            <h3>{landingBanner.title}</h3>
+                            <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed mb-6">
+                                {landingBanner.subtitle}
+                            </div>
+                            {landingBanner.call_to_action && landingBanner.link && (
+                                <a 
+                                    href={landingBanner.link} 
+                                    className="inline-block px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30"
+                                >
+                                    {landingBanner.call_to_action}
+                                </a>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </section>
 
             {/* FAQ Section */}
