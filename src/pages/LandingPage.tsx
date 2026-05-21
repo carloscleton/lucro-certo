@@ -554,9 +554,13 @@ export function LandingPage() {
                                 {landingBanner.type === 'promo' ? 'OFERTA ESPECIAL' : landingBanner.type === 'info' ? 'NOVIDADE' : 'DESTAQUE'}
                             </div>
                             <h3>{landingBanner.title}</h3>
-                            <p className="whitespace-pre-line mb-6">
-                                {landingBanner.subtitle}
-                            </p>
+                            <div className="mb-8 flex flex-col gap-3 text-[1.05rem] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                {landingBanner.subtitle?.split('\n').map((line: string, i: number) => line.trim() ? (
+                                    <div key={i} className="flex items-start">
+                                        <span className="flex-1">{formatTextWithBold(line)}</span>
+                                    </div>
+                                ) : null)}
+                            </div>
                             {landingBanner.call_to_action && landingBanner.link && (
                                 <a 
                                     href={landingBanner.link} 

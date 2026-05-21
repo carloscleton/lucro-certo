@@ -235,8 +235,8 @@
 
 /* Carousel Section */
 .hero-section.carousel-mode {
-    padding: 6rem 5% 4rem;
-    min-height: 80vh;
+    padding: 3rem 5% 2rem;
+    min-height: auto;
     display: flex;
     align-items: center;
     max-width: 1400px;
