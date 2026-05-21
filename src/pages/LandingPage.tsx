@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
+    ShieldCheck,
     Radar,
     Sparkles,
     BarChart3,
@@ -403,6 +404,33 @@ export function LandingPage() {
                             className="visual-image"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(14, 165, 233, 0.2)' }}
                         />
+                    </div>
+                </div>
+
+                {/* Certificado Digital Section */}
+                <div className="visual-feature reverse">
+                    <div className="visual-image-container">
+                        <img
+                            src="/images/landing/certificado-digital.png"
+                            alt="Certificado Digital"
+                            className="visual-image"
+                            style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)' }}
+                        />
+                    </div>
+                    <div className="visual-content">
+                        <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ShieldCheck size={20} />
+                            CERTIFICADO DIGITAL
+                        </div>
+                        <h3>Facilite para o seu cliente e tenha benefícios!</h3>
+                        <p>
+                            Transforme sua experiência com a TecnoSign! Indique nossos serviços aos seus clientes e deixe o trabalho conosco. Nossa equipe cuida de todo o atendimento, emissão e suporte.
+                        </p>
+                        <ul className="feature-list">
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Atendimento Completo:</strong> Pelo time da TecnoSpeed, com a melhor experiência.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Comodidade e Confiança:</strong> Emissão rápida, fácil e segura para o cliente.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Proteção de Carteira:</strong> Evite que seus clientes busquem concorrentes.</li>
+                        </ul>
                     </div>
                 </div>
             </section>
