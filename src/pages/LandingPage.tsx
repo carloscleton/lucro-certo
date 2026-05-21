@@ -560,9 +560,9 @@ export function LandingPage() {
                             </div>
 
                             <div className="overflow-y-auto px-2 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
-                                <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed text-left sm:text-center">
+                                <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed text-left">
                                     {landingBanner.subtitle}
-                                </p>
+                                </div>
                             </div>
                             
                             <div className="shrink-0">
