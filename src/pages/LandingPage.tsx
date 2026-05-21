@@ -684,7 +684,7 @@ export function LandingPage() {
                             backgroundPosition: 'center'
                         }}
                     >
-                        <div className="absolute inset-0 bg-white/10 dark:bg-slate-900/90 z-0 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-transparent dark:bg-slate-900/90 z-0 pointer-events-none"></div>
 
                         <button 
                             onClick={() => setShowBanner(false)}
