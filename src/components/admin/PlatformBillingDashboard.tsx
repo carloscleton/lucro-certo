@@ -15,6 +15,7 @@ import {
     CreditCard,
     Calendar,
     X,
+    Upload,
     ExternalLink
 } from 'lucide-react';
 import { Button } from '../ui/Button';
