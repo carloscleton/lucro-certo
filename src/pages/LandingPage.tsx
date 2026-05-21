@@ -672,19 +672,28 @@ export function LandingPage() {
             {/* Banner Modal */}
             {showBanner && landingBanner && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className={`relative bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col max-h-[85vh] ${
-                        landingBanner.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
-                        landingBanner.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
-                        'border-purple-500 shadow-purple-500/20'
-                    }`}>
+                    <div 
+                        className={`relative bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col max-h-[85vh] overflow-hidden ${
+                            landingBanner.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
+                            landingBanner.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
+                            'border-purple-500 shadow-purple-500/20'
+                        }`}
+                        style={{
+                            backgroundImage: 'url(/images/landing/modal-bg.png)',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                        }}
+                    >
+                        <div className="absolute inset-0 bg-white/70 dark:bg-slate-900/80 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+
                         <button 
                             onClick={() => setShowBanner(false)}
-                            className="absolute top-3 right-3 p-1.5 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-full transition-colors z-20"
+                            className="absolute top-3 right-3 p-1.5 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 rounded-full transition-colors z-20 backdrop-blur-md shadow-sm border border-gray-200/50 dark:border-slate-600/50"
                         >
                             <X size={18} className="text-gray-600 dark:text-gray-300" />
                         </button>
                         
-                        <div className="text-center relative z-0 flex flex-col overflow-hidden h-full">
+                        <div className="text-center relative z-10 flex flex-col h-full">
                             <div className="shrink-0">
                                 {landingBanner.image_url ? (
                                     <div className="w-full flex justify-center mb-4">
