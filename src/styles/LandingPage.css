@@ -235,7 +235,7 @@
 
 /* Carousel Section */
 .hero-section.carousel-mode {
-    padding: 3rem 5% 2rem;
+    padding: 7rem 5% 2rem;
     min-height: auto;
     display: flex;
     align-items: center;
@@ -379,6 +379,7 @@
 .hero-mockup {
     width: 100%;
     height: auto;
+    max-height: 450px;
     border-radius: 20px;
     box-shadow:
         0 20px 50px -10px rgba(0, 0, 0, 0.2),
