@@ -141,9 +141,9 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                 <div className="flex items-center gap-3">
                                     <button 
                                         onClick={() => toggleStatus(campaign.id, campaign.is_active)}
-                                        className={`w-11 h-6 rounded-full flex items-center px-1 transition-colors ${campaign.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${campaign.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`}
                                     >
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 transform ${campaign.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${campaign.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
                                     </button>
                                     <span className="font-semibold text-gray-800 dark:text-gray-200">
                                         {campaign.title || 'Campanha sem título'}
