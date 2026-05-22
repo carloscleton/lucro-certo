@@ -35,9 +35,7 @@ import { HeroCarousel } from '../components/landing/HeroCarousel';
 
 import '../styles/LandingPage.css';
 
-const DEFAULT_PLANS: any[] = [
-// ... (lines 152-180 kept as is)
-];
+
 
 const formatTextWithBold = (text: string) => {
     if (!text) return null;

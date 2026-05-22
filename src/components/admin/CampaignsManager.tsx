@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Image as ImageIcon, Layout, ArrowUp, Zap, Upload, RefreshCw, Wand2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Layout, Zap, Upload, RefreshCw, Wand2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { storageService } from '../../lib/storage';
+import { storageService } from '../../lib/storageService';
 
 export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSaveSettings }: any) => {
     const campaigns = localBanner?.campaigns || [];

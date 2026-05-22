@@ -14,8 +14,6 @@ import {
     Activity,
     CreditCard,
     Calendar,
-    X,
-    Upload,
     ExternalLink
 } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -47,8 +45,6 @@ export function PlatformBillingDashboard() {
     const [isGeneratingWhatsApp, setIsGeneratingWhatsApp] = useState(false);
     const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [isGeneratingBanner, setIsGeneratingBanner] = useState(false);
-    const [uploadingImage, setUploadingImage] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [localKeys, setLocalKeys] = useState<any>({});
@@ -120,51 +116,6 @@ export function PlatformBillingDashboard() {
         }
     };
 
-    const handleMagicBanner = async () => {
-        const textToOrganize = localBanner?.subtitle || localBanner?.title;
-        if (!textToOrganize) {
-            notify('error', 'Digite algum texto na descrição ou título para a IA organizar.', 'Atenção');
-            return;
-        }
-        setIsGeneratingBanner(true);
-        try {
-            const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
-                body: {
-                    input: `Atue como um copywriter profissional. O usuário colou um texto bruto e desorganizado. Resuma, corrija, formate e torne o texto persuasivo para ser a descrição (subtítulo) de um banner de vendas em uma landing page. Use parágrafos curtos. Mantenha as informações principais. Texto original: ${textToOrganize}`,
-                    mode: 'field_only'
-                }
-            });
-            if (error) throw error;
-            if (data?.text) {
-                setLocalBanner((prev: any) => ({ ...prev, subtitle: data.text }));
-                notify('success', 'Texto organizado com sucesso!', 'IA Concluída');
-            }
-        } catch (error) {
-            console.error('Magic error:', error);
-            notify('error', 'Erro ao organizar texto com IA.', 'Erro');
-        } finally {
-            setIsGeneratingBanner(false);
-        }
-    };
-
-    const handleBannerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            setUploadingImage(true);
-            const fileExt = file.name.split('.').pop();
-            const fileName = `landing_banners/banner_${Date.now()}.${fileExt}`;
-            const { publicUrl } = await storageService.upload(file, 'social_media_assets', fileName);
-            setLocalBanner((prev: any) => ({ ...prev, image_url: publicUrl }));
-            notify('success', 'Imagem do banner salva com sucesso!');
-        } catch (error) {
-            console.error('Upload error:', error);
-            notify('error', 'Erro ao fazer upload da imagem.');
-        } finally {
-            setUploadingImage(false);
-        }
-    };
 
     const handleViewHistory = async (companyId: string, companyName: string) => {
         setSelectedCompanyName(companyName);
