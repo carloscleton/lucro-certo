@@ -44,6 +44,20 @@ interface Banner {
     buttonLink?: string;
 }
 
+const formatTextWithBold = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+    return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+            return <strong key={index} className="font-bold">{part.slice(1, -1)}</strong>;
+        }
+        return <span key={index}>{part}</span>;
+    });
+};
+
 const banners: Banner[] = [
     {
         tag: 'GESTÃO FINANCEIRA 2.0',
@@ -183,9 +197,23 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: He
     
     if (landingBanner && landingBanner.enabled) {
         const fullText = landingBanner.subtitle || '';
-        const parts = fullText.split('✅');
-        const description = parts[0]?.trim() || fullText;
-        const points = parts.slice(1).map((p: string) => p.trim()).filter((p: string) => p.length > 0);
+        let lines = fullText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        
+        // If they wrote everything in a single line with emojis, split by those
+        if (lines.length === 1) {
+            lines = fullText.split(/✅|🟢|🔵/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        }
+
+        let description = '';
+        let points: string[] = [];
+
+        if (lines.length > 0) {
+            // First item is description if it doesn't look like a raw bullet point without context
+            description = lines[0].replace(/^[✅🟢🔵\-\*\s]+/, '');
+            
+            // The rest are points, stripped of their emojis since the carousel has its own icons
+            points = lines.slice(1).map((l: string) => l.replace(/^[✅🟢🔵\-\*\s]+/, '').trim());
+        }
             
         // Limit to first 3 points for the carousel layout
         const displayPoints = points.slice(0, 3);
@@ -263,7 +291,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: He
                                         {banner.title}
                                     </h1>
                                     <p className="animate-p">
-                                        {banner.description}
+                                        {formatTextWithBold(banner.description)}
                                     </p>
 
                                     <div className="benefit-points">
@@ -272,7 +300,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: He
                                                 <div className="benefit-dot">
                                                     <CheckCircle2 size={12} />
                                                 </div>
-                                                {point}
+                                                {formatTextWithBold(point)}
                                             </div>
                                         ))}
                                     </div>
