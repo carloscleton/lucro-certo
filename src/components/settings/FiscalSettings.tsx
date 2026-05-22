@@ -538,7 +538,8 @@ export function FiscalSettings() {
             const conflictId = error.response?.data?.id || error.response?.data?.data?.id || error.response?.data?.detail?.id;
             
             const rawMessage = error.response?.data?.error?.message || error.response?.data?.message || error.response?.data?.detail || error.message;
-            const isInactiveDocError = String(rawMessage).includes('Documento não está ativo para este emissor');
+            const safeMessage = typeof rawMessage === 'object' ? JSON.stringify(rawMessage) : String(rawMessage || '');
+            const isInactiveDocError = safeMessage.includes('Documento não está ativo para este emissor');
             
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
@@ -550,7 +551,7 @@ export function FiscalSettings() {
                     ? 'Esta nota já foi processada e autorizada anteriormente pela TecnoSpeed.' 
                     : isInactiveDocError
                         ? 'A TecnoSpeed rejeitou a nota. Para resolver, acesse seu painel do PlugNotas (Homologação), vá em "Empresas", clique em "Nova Empresa" e cadastre o CNPJ de teste (ex: 08.187.168/0001-60) para liberar as emissões.'
-                        : (rawMessage || 'Erro ao processar o JSON ou na emissão.'),
+                        : (safeMessage || 'Erro ao processar o JSON ou na emissão.'),
                 type: isAlreadyEmitted ? 'info' : 'error',
                 data: error.response?.data ? wrapFiscalLinks(error.response.data, currentEntity.id!, token || undefined) : undefined,
                 action: isAlreadyEmitted && conflictId ? {
