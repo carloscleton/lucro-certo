@@ -6,24 +6,25 @@ import { storageService } from '../../lib/storageService';
 export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSaveSettings }: any) => {
     const campaigns = localBanner?.campaigns || [];
     
-    // Migração transparente do banner antigo para o novo formato de campanhas (se houver banner antigo e a lista de campanhas estiver vazia)
-    if (campaigns.length === 0 && localBanner && (localBanner.title || localBanner.subtitle) && !localBanner.migrated) {
-        campaigns.push({
-            id: crypto.randomUUID(),
-            title: localBanner.title || '',
-            subtitle: localBanner.subtitle || '',
-            call_to_action: localBanner.call_to_action || '',
-            link: localBanner.link || '',
-            type: localBanner.type || 'promo',
-            image_url: localBanner.image_url || '',
-            show_in_popup: localBanner.enabled || false,
-            show_in_hero: localBanner.enabled || false,
-            show_as_section: localBanner.enabled || false,
-            is_active: localBanner.enabled || false,
-        });
-        // Seta uma flag no objeto pra não ficar repetindo
-        setTimeout(() => setLocalBanner({ ...localBanner, campaigns, migrated: true }), 0);
-    }
+    React.useEffect(() => {
+        // Migração transparente do banner antigo para o novo formato de campanhas (se houver banner antigo e a lista de campanhas estiver vazia)
+        if (campaigns.length === 0 && localBanner && (localBanner.title || localBanner.subtitle) && !localBanner.migrated) {
+            const newCampaign = {
+                id: crypto.randomUUID(),
+                title: localBanner.title || '',
+                subtitle: localBanner.subtitle || '',
+                call_to_action: localBanner.call_to_action || '',
+                link: localBanner.link || '',
+                type: localBanner.type || 'promo',
+                image_url: localBanner.image_url || '',
+                show_in_popup: localBanner.enabled || false,
+                show_in_hero: localBanner.enabled || false,
+                show_as_section: localBanner.enabled || false,
+                is_active: localBanner.enabled || false,
+            };
+            setLocalBanner({ ...localBanner, campaigns: [newCampaign], migrated: true });
+        }
+    }, [campaigns.length, localBanner, setLocalBanner]);
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
