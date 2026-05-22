@@ -569,24 +569,25 @@ export function FiscalSettings() {
     };
 
     const handleGenerateExample = () => {
+        const isTest = config.use_test_data;
         const mock = {
             idIntegracao: `TEST_${Date.now()}`,
             prestador: {
-                cpfCnpj: config.cnpj || "00.000.000/0001-00",
+                cpfCnpj: isTest ? "08184315000104" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "00000000000100"),
                 inscricaoMunicipal: config.inscricao_municipal || "123456"
             },
             tomador: {
-                cpfCnpj: "000.000.000-00",
+                cpfCnpj: "00000000000000",
                 razaoSocial: "Cliente de Teste LTDA",
                 email: "teste@exemplo.com",
                 endereco: {
                     logradouro: "Rua de Teste",
                     numero: "100",
                     bairro: "Centro",
-                    codigoCidade: "4115200",
-                    descricaoCidade: "Maringá",
-                    uf: "PR",
-                    cep: "87000-000"
+                    codigoCidade: isTest ? "4115200" : (config.endereco?.codigoCidade || "4115200"),
+                    descricaoCidade: isTest ? "Maringá" : undefined,
+                    uf: isTest ? "PR" : (config.endereco?.uf || "PR"),
+                    cep: "87000000"
                 }
             },
             servico: [
