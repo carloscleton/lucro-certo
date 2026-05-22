@@ -14,10 +14,10 @@ import {
     Activity,
     CreditCard,
     Calendar,
-    ExternalLink
+    ExternalLink,
+    X
 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { storageService } from '../../lib/storageService';
 import { CampaignsManager } from './CampaignsManager';
 import { supabase } from '../../lib/supabase';
 import { Input } from '../ui/Input';
