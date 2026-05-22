@@ -462,6 +462,33 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const isNacional = config.nfse_nacional || config.nfse?.config?.nfseNacional || false;
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
         
+        // --- MODO EXCLUSIVO: WEBHOOK EXTERNO (JSON RELAY) ---
+        if (config.use_external_webhook && config.external_webhook_url) {
+            console.log(`🚀 [EXTERNAL-MODE] Enviando payload RAW APENAS para: ${config.external_webhook_url}`);
+            
+            const headers: any = { 
+                'Content-Type': 'application/json', 
+                'X-Source': 'LucroCerto-Fiscal-Proxy',
+                'X-Company-ID': companyId
+            };
+
+            if (config.external_webhook_token) {
+                headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
+            }
+
+            // Envia o payload exatamente como veio do frontend (RAW), sem injeções da TecnoSpeed
+            const rawPayload = Array.isArray(payload) ? payload : [payload];
+            const response = await axios.post(config.external_webhook_url, rawPayload, {
+                headers,
+                timeout: 10000
+            });
+            console.log(`✅ [EXTERNAL-MODE] Resposta recebida do webhook externo.`);
+            
+            return res.json({ ...response.data, proxy_version: '1.0.33', mode: 'external_relay' });
+        }
+
+        // --- FLUXO PADRÃO TECNOSPEED ---
+        
         // --- DADOS DO PRESTADOR ---
         const firstItem = Array.isArray(payload) ? payload[0] : payload;
         const targetCnpj = (firstItem?.prestador?.cpfCnpj || '').replace(/\D/g, '');
@@ -477,10 +504,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const hasCert = !!certId && certId !== 'null' && certId !== 'undefined';
         
         // Se estivermos em Sandbox, a prioridade é FUNCIONAR. 
-        // Ativamos modo teste se:
-        // - config.use_test_data for true
-        // - isSandbox for true E não tivermos um certificado válido
-        // - O CNPJ já for um de teste
         const useTestData = (isLabTest === true) ||
                           (config.use_test_data === true) || 
                           (isSandbox && !hasCert) || 
@@ -494,72 +517,45 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const issuerInfo = await axios.get(`${baseUrl}/empresa/${targetCnpj}`, {
                     headers: { 'x-api-key': apiKey }
                 });
-                console.log(`📡 [FISCAL-EMITIR] Dados da empresa na TecnoSpeed:`, JSON.stringify(issuerInfo.data, null, 2));
                 
-                // Procurar em ambos os formatos de resposta possíveis
                 const discoverId = issuerInfo.data?.data?.certificado || issuerInfo.data?.certificado || issuerInfo.data?.data?.certificadoId;
-                
-                if (discoverId) {
-                    console.log(`🎯 [FISCAL-EMITIR] Certificado descoberto via API: ${discoverId}`);
-                    certId = discoverId;
-                }
+                if (discoverId) certId = discoverId;
             } catch (discoverErr: any) {
-                console.warn(`⚠️ [FISCAL-EMITIR] Não foi possível autodescobrir o certificado (Pode ser que a empresa não esteja cadastrada no Sandbox):`, discoverErr.message);
+                console.warn(`⚠️ [FISCAL-EMITIR] Não foi possível autodescobrir o certificado`);
             }
         }
-
-        console.log(`🧾 [FISCAL-EMITIR] CertID da Config: ${config.certificado_id || 'N/A'} | CertID Final: ${certId || 'N/A'}`);
 
         // Injetar o certificado no payload se for NFSe
         let finalPayload = Array.isArray(payload) ? payload : [payload];
         
         if (endpoint === 'nfse' || endpoint === 'nfse/nacional') {
             finalPayload = finalPayload.map((item: any) => {
-                // 1. Garantir idIntegracao (Obrigatório e Único)
                 if (!item.idIntegracao) {
                     item.idIntegracao = `NFSE_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
                 } else if (useTestData) {
-                    // Adicionar sufixo para evitar Conflict 409 no Sandbox e forçar nota nova
                     item.idIntegracao = `${item.idIntegracao}_${Date.now().toString().slice(-4)}`;
                 }
 
-                    // 2. Mapear Prestador e Certificado
-                    if (useTestData && !item.prestador) {
-                        item.prestador = {};
+                if (useTestData && !item.prestador) item.prestador = {};
+                if (item.prestador) {
+                    if (useTestData) {
+                        item.prestador.cpfCnpj = TEST_CNPJ;
+                        item.prestador.inscricaoMunicipal = isNacional ? TEST_IM_NACIONAL : TEST_IM_MUNICIPAL;
+                        delete item.prestador.certificado; 
+                    } else {
+                        item.prestador.cpfCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
+                        item.prestador.certificado = certId || item.prestador.certificado;
                     }
-                    if (item.prestador) {
-                        if (useTestData) {
-                            console.log(`🛠️ [FISCAL-EMITIR] Modo de teste ativo (Forçando dados da TecnoSpeed S/A).`);
-                            
-                            // Forçar CNPJ e IM de Teste que NÃO exigem certificado no Sandbox
-                            item.prestador.cpfCnpj = TEST_CNPJ;
-                            item.prestador.inscricaoMunicipal = isNacional ? TEST_IM_NACIONAL : TEST_IM_MUNICIPAL;
-                            
-                            // Remover campo certificado para evitar erro de validação no Sandbox
-                            delete item.prestador.certificado; 
-                        } else {
-                            // Usar o CNPJ real que veio do frontend
-                            const itemCnpj = String(item.prestador.cpfCnpj || '').replace(/\D/g, '');
-                            item.prestador.cpfCnpj = itemCnpj;
-                            
-                            // Usar o certificado (prioridade para o descoberto/banco)
-                            item.prestador.certificado = certId || item.prestador.certificado;
-                        }
-                        
-                        console.log(`🧾 [FISCAL-EMITIR] Prestador Final: ${item.prestador.cpfCnpj} | CertID: ${item.prestador.certificado || 'N/A'}`);
-                    }
+                }
 
-                // 3. Sanitizar Tomador (Cliente)
                 if (item.tomador && item.tomador.cpfCnpj) {
                     item.tomador.cpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
                 }
 
-                // 4. Mapear Código IBGE da Cidade (Obrigatório para NFS-e)
                 const targetIbge = isNacional ? '3106200' : '4115200';
                 const targetIm = isNacional ? '1234567' : '8214100099';
                 
                 if (useTestData) {
-                    console.log(`🛠️ [FISCAL-DEBUG] Forçando Teste: IBGE=${targetIbge}, IM=${targetIm}, Nacional=${isNacional}`);
                     if (item.servico) {
                         const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                         services.forEach((s: any) => {
@@ -568,15 +564,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         });
                     }
                     if (item.codigoIbge) item.codigoIbge = targetIbge;
-                    
-                    // Dados do Prestador de Teste
                     if (item.prestador) {
                         item.prestador.cpfCnpj = TEST_CNPJ;
                         item.prestador.inscricaoMunicipal = targetIm;
                         delete item.prestador.certificado;
                     }
-
-                    // Forçar Padrão Nacional no metadado se for Nacional
                     if (isNacional) {
                         item.versao = '1.00'; 
                         if (item.tomador && item.tomador.endereco) {
@@ -588,54 +580,21 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                     services.forEach((s: any) => {
                         if (!s.codigoIbge && item.codigoIbge) s.codigoIbge = item.codigoIbge;
-                        // Garantir ISS se estiver faltando
-                        if (!s.iss) {
-                            s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
-                        }
+                        if (!s.iss) s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
                     });
                 }
-
                 return item;
             });
         }
 
-        if (endpoint === 'nfse' && finalPayload[0]?.servico) {
-            const firstService = Array.isArray(finalPayload[0].servico) ? finalPayload[0].servico[0] : finalPayload[0].servico;
-            console.log(`🧾 [DEBUG-KEYS] Chaves do serviço:`, Object.keys(firstService || {}));
-        }
+        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.33):`, JSON.stringify(finalPayload, null, 2));
 
-        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.31):`, JSON.stringify(finalPayload, null, 2));
-
-        let response;
-
-        // --- MODO EXCLUSIVO: WEBHOOK EXTERNO OU TECNOSPEED ---
-        if (config.use_external_webhook && config.external_webhook_url) {
-            console.log(`🚀 [EXTERNAL-MODE] Enviando payload APENAS para: ${config.external_webhook_url}`);
-            
-            const headers: any = { 
-                'Content-Type': 'application/json', 
-                'X-Source': 'LucroCerto-Fiscal-Proxy',
-                'X-Company-ID': companyId
-            };
-
-            if (config.external_webhook_token) {
-                headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
+        const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey
             }
-
-            response = await axios.post(config.external_webhook_url, finalPayload, {
-                headers,
-                timeout: 10000
-            });
-            console.log(`✅ [EXTERNAL-MODE] Resposta recebida do webhook externo.`);
-        } else {
-            // Fluxo Padrão: TecnoSpeed
-            response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey
-                }
-            });
-        }
+        });
 
         const doc = response.data?.documents?.[0] || 
                     (Array.isArray(response.data) ? response.data[0] : 
