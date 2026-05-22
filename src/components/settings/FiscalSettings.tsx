@@ -573,7 +573,7 @@ export function FiscalSettings() {
         const mock = {
             idIntegracao: `TEST_${Date.now()}`,
             prestador: {
-                cpfCnpj: isTest ? "08184315000104" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "00000000000100"),
+                cpfCnpj: isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "00000000000100"),
                 inscricaoMunicipal: config.inscricao_municipal || "123456"
             },
             tomador: {
