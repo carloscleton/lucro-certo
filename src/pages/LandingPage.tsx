@@ -273,11 +273,8 @@ export function LandingPage() {
                         />
                     </div>
                 </div>
-            </section>
-
             {/* AI Radar Highlight */}
-            <section id="ai" className="features-section">
-                <div className="visual-feature reverse">
+            <div id="ai" className="visual-feature reverse">
                     <div className="visual-content">
                         <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Radar size={20} />
