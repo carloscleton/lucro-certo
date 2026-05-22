@@ -470,7 +470,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         let certId = config.certificado_id || config.certificadoId || config.certificado;
         
         // --- DETECÇÃO DE MODO TESTE ---
-        const TEST_CNPJ = '08187168000160'; 
+        const TEST_CNPJ = '08184315000104'; 
         const TEST_IM_MUNICIPAL = '8214100099'; // Maringá
         const TEST_IM_NACIONAL = '1234567';     // Belo Horizonte (Nacional)
         
