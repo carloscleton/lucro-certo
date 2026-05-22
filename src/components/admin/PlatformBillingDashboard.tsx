@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { storageService } from '../../lib/storageService';
+import { CampaignsManager } from './CampaignsManager';
 import { supabase } from '../../lib/supabase';
 import { Input } from '../ui/Input';
 import { useTranslation } from 'react-i18next';
@@ -499,133 +500,12 @@ export function PlatformBillingDashboard() {
                     </div>
 
                     {/* Site & Landing Page Config */}
-                    <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                                <Activity size={20} />
-                            </div>
-                            <h3 className="font-bold text-gray-900 dark:text-white">Site & Landing Page</h3>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-xl border border-purple-100/50 dark:border-purple-900/30">
-                                <input
-                                    type="checkbox"
-                                    checked={localBanner?.enabled || false}
-                                    onChange={(e) => setLocalBanner({ ...localBanner, enabled: e.target.checked })}
-                                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                                />
-                                <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Exibir Banner Promocional no Centro da Tela</span>
-                            </div>
-
-                            {localBanner?.enabled && (
-                                <div className="space-y-4 pt-2 border-t border-gray-100 dark:border-slate-700">
-                                    <Input
-                                        label="Título (ex: Oferta Especial)"
-                                        preserveCase={true}
-                                        value={localBanner?.title || ''}
-                                        onChange={(e) => setLocalBanner({ ...localBanner, title: e.target.value })}
-                                    />
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subtítulo / Descrição</label>
-                                            <button
-                                                type="button"
-                                                onClick={handleMagicBanner}
-                                                disabled={isGeneratingBanner}
-                                                className="text-purple-600 hover:text-purple-700 p-1 rounded-full hover:bg-purple-50 transition-colors flex items-center gap-1.5"
-                                                title="Organizar texto com IA"
-                                            >
-                                                {isGeneratingBanner ? <RefreshCw size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                                                <span className="text-[9px] font-bold uppercase">Organizar com IA</span>
-                                            </button>
-                                        </div>
-                                        <textarea
-                                            value={localBanner?.subtitle || ''}
-                                            onChange={(e) => setLocalBanner({ ...localBanner, subtitle: e.target.value })}
-                                            className="w-full text-[11px] p-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl min-h-[100px] outline-none focus:ring-2 focus:ring-purple-500"
-                                            placeholder="Ex: Cole o texto desorganizado aqui e clique em Organizar com IA..."
-                                            disabled={isGeneratingBanner}
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <Input
-                                            label="Texto do Botão"
-                                            preserveCase={true}
-                                            value={localBanner?.call_to_action || ''}
-                                            onChange={(e) => setLocalBanner({ ...localBanner, call_to_action: e.target.value })}
-                                        />
-                                        <Input
-                                            label="Link de Destino"
-                                            preserveCase={true}
-                                            value={localBanner?.link || ''}
-                                            onChange={(e) => setLocalBanner({ ...localBanner, link: e.target.value })}
-                                            placeholder="https://"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Tipo Visual</label>
-                                        <select
-                                            className="bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none w-full"
-                                            value={localBanner?.type || 'promo'}
-                                            onChange={(e) => setLocalBanner({ ...localBanner, type: e.target.value })}
-                                        >
-                                            <option value="promo">Promoção (Destaque Principal)</option>
-                                            <option value="info">Informativo (Azul/Neutro)</option>
-                                            <option value="alert">Alerta Importante (Amarelo/Vermelho)</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Imagem Personalizada (Opcional)</label>
-                                        <div className="flex items-center gap-4">
-                                            {localBanner?.image_url && (
-                                                <div className="relative w-16 h-16 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex-shrink-0">
-                                                    <img src={localBanner.image_url} alt="Banner" className="w-full h-full object-contain" />
-                                                    <button
-                                                        onClick={() => setLocalBanner((prev: any) => { const { image_url, ...rest } = prev; return rest; })}
-                                                        className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg"
-                                                    >
-                                                        <X size={12} />
-                                                    </button>
-                                                </div>
-                                            )}
-                                            <div className="flex-1">
-                                                <label className={`flex items-center justify-center gap-2 w-full py-2 px-4 border border-dashed rounded-xl cursor-pointer transition-colors ${uploadingImage ? 'bg-gray-100 border-gray-300' : 'bg-gray-50 hover:bg-gray-100 border-gray-300 dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-800'}`}>
-                                                    {uploadingImage ? (
-                                                        <RefreshCw size={16} className="animate-spin text-gray-500" />
-                                                    ) : (
-                                                        <Upload size={16} className="text-gray-500" />
-                                                    )}
-                                                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                                                        {uploadingImage ? 'Enviando...' : 'Fazer upload de imagem'}
-                                                    </span>
-                                                    <input 
-                                                        type="file" 
-                                                        accept="image/*" 
-                                                        className="hidden" 
-                                                        onChange={handleBannerImageUpload} 
-                                                        disabled={uploadingImage}
-                                                    />
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="pt-2">
-                                <Button
-                                    onClick={() => handleSaveSettings({ landing_banner: localBanner })}
-                                    isLoading={saving}
-                                    className="w-full bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-500/20"
-                                >
-                                    <Save size={18} className="mr-2" />
-                                    Salvar Alterações do Site
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+                    <CampaignsManager 
+                        localBanner={localBanner} 
+                        setLocalBanner={setLocalBanner} 
+                        notify={notify} 
+                        handleSaveSettings={handleSaveSettings} 
+                    />
                 </div>
 
                 {/* Subscribers List */}

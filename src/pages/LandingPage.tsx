@@ -69,8 +69,9 @@ export function LandingPage() {
     const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();
     const isUnpaid = ['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '') || isTrialExpired;
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-    const [landingPlans, setLandingPlans] = useState<any[]>(DEFAULT_PLANS);
-    const [landingBanner, setLandingBanner] = useState<any>(null);
+    const [landingPlans, setLandingPlans] = useState<any[]>([]);
+    const [landingCampaigns, setLandingCampaigns] = useState<any[]>([]);
+    const [activePopupIndex, setActivePopupIndex] = useState(0);
     const [showBanner, setShowBanner] = useState(false);
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [currencySymbol, setCurrencySymbol] = useState('R$');
@@ -87,9 +88,29 @@ export function LandingPage() {
                         const activePlans = data.landing_plans.filter((p: any) => p.enabled !== false);
                         setLandingPlans(activePlans);
                     }
-                    if (data?.landing_banner?.enabled) {
-                        setLandingBanner(data.landing_banner);
-                        setShowBanner(true);
+                    if (data?.landing_banner) {
+                        const bannerData = data.landing_banner;
+                        let activeCampaigns = bannerData.campaigns || [];
+                        if (activeCampaigns.length === 0 && bannerData.enabled && bannerData.title) {
+                             activeCampaigns = [{
+                                id: 'legacy',
+                                title: bannerData.title,
+                                subtitle: bannerData.subtitle,
+                                call_to_action: bannerData.call_to_action,
+                                link: bannerData.link,
+                                type: bannerData.type || 'promo',
+                                image_url: bannerData.image_url,
+                                show_in_popup: bannerData.enabled,
+                                show_in_hero: bannerData.enabled,
+                                show_as_section: bannerData.enabled,
+                                is_active: bannerData.enabled,
+                             }];
+                        }
+                        const active = activeCampaigns.filter((c: any) => c.is_active);
+                        setLandingCampaigns(active);
+                        if (active.some((c: any) => c.show_in_popup)) {
+                            setShowBanner(true);
+                        }
                     }
                 }
             } catch (err) {
@@ -161,7 +182,7 @@ export function LandingPage() {
             </nav>
 
             {/* Hero Carousel Section */}
-            <HeroCarousel session={session} setIsVideoModalOpen={setIsVideoModalOpen} landingBanner={landingBanner} />
+            <HeroCarousel session={session} setIsVideoModalOpen={setIsVideoModalOpen} landingCampaigns={landingCampaigns} />
 
             {/* Trust Bar (Media) */}
             <section className="media-bar" style={{ padding: '2rem 5%', background: '#fff', borderBottom: '1px solid var(--glass-border)', textAlign: 'center' }}>
@@ -234,15 +255,6 @@ export function LandingPage() {
                         <h3>Notas Fiscais (NF-e/NFS-e)</h3>
                         <p>Emita notas fiscais de serviço e produtos diretamente pelo sistema. Histórico completo com download de XML e PDF em um clique.</p>
                     </div>
-                    {landingBanner?.enabled && (
-                        <div className="feature-card">
-                            <div className="feature-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                                <ShieldCheck size={32} />
-                            </div>
-                            <h3>Certificado Digital</h3>
-                            <p>Emissão rápida, fácil e segura. Proteja sua carteira de clientes oferecendo um serviço completo de certificação digital.</p>
-                        </div>
-                    )}
                 </div>
             </section>
 
@@ -542,41 +554,41 @@ export function LandingPage() {
                     </div>
                 </div>
 
-                {/* Dynamic Certificado Digital / Banner Section */}
-                {landingBanner && (
-                    <div className="visual-feature reverse">
+                {/* Dynamic Marketing Campaigns Sections */}
+                {landingCampaigns.filter((c: any) => c.show_as_section).map((campaign: any, index: number) => (
+                    <div key={campaign.id} className={`visual-feature ${index % 2 !== 0 ? 'reverse' : ''}`}>
                         <div className="visual-content">
                             <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <ShieldCheck size={20} />
-                                {landingBanner.type === 'promo' ? 'OFERTA ESPECIAL' : landingBanner.type === 'info' ? 'NOVIDADE' : 'DESTAQUE'}
+                                {campaign.type === 'promo' ? 'OFERTA ESPECIAL' : campaign.type === 'info' ? 'NOVIDADE' : 'DESTAQUE'}
                             </div>
-                            <h3>{landingBanner.title}</h3>
+                            <h3>{campaign.title}</h3>
                             <div className="mb-8 flex flex-col gap-3 text-[1.05rem] text-slate-600 dark:text-slate-300 leading-relaxed">
-                                {landingBanner.subtitle?.split('\n').map((line: string, i: number) => line.trim() ? (
+                                {campaign.subtitle?.split('\n').map((line: string, i: number) => line.trim() ? (
                                     <div key={i} className="flex items-start">
                                         <span className="flex-1">{formatTextWithBold(line)}</span>
                                     </div>
                                 ) : null)}
                             </div>
-                            {landingBanner.call_to_action && landingBanner.link && (
+                            {campaign.call_to_action && campaign.link && (
                                 <a 
-                                    href={landingBanner.link} 
+                                    href={campaign.link} 
                                     className="inline-block px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30"
                                 >
-                                    {landingBanner.call_to_action}
+                                    {campaign.call_to_action}
                                 </a>
                             )}
                         </div>
                         <div className="visual-image-container">
                             <img
-                                src={landingBanner.image_url || "/images/landing/certificado-digital.png"}
-                                alt={landingBanner.title}
+                                src={campaign.image_url || "/images/landing/certificado-digital.png"}
+                                alt={campaign.title}
                                 className="visual-image"
                                 style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)' }}
                             />
                         </div>
                     </div>
-                )}
+                ))}
             </section>
 
             {/* FAQ Section */}
@@ -688,82 +700,102 @@ export function LandingPage() {
             )}
 
             {/* Banner Modal */}
-            {showBanner && landingBanner && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div 
-                        className={`relative bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col max-h-[85vh] overflow-hidden ${
-                            landingBanner.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
-                            landingBanner.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
-                            'border-purple-500 shadow-purple-500/20'
-                        }`}
-                        style={{
-                            backgroundImage: 'url(/images/landing/modal-bg.png)',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center'
-                        }}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-t from-white/95 via-white/70 to-transparent dark:from-slate-900/95 dark:via-slate-900/70 dark:to-transparent z-0 pointer-events-none"></div>
+            {showBanner && landingCampaigns.filter(c => c.show_in_popup).length > 0 && (
+                (() => {
+                    const popupCampaigns = landingCampaigns.filter(c => c.show_in_popup);
+                    const currentCampaign = popupCampaigns[activePopupIndex];
+                    if (!currentCampaign) return null;
+                    
+                    return (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                            <div 
+                                className={`relative bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col max-h-[85vh] overflow-hidden ${
+                                    currentCampaign.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
+                                    currentCampaign.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
+                                    'border-purple-500 shadow-purple-500/20'
+                                }`}
+                                style={{
+                                    backgroundImage: 'url(/images/landing/modal-bg.png)',
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center'
+                                }}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-t from-white/95 via-white/70 to-transparent dark:from-slate-900/95 dark:via-slate-900/70 dark:to-transparent z-0 pointer-events-none"></div>
 
-                        <button 
-                            onClick={() => setShowBanner(false)}
-                            className="absolute top-3 right-3 p-1.5 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 rounded-full transition-colors z-20 backdrop-blur-md shadow-sm border border-gray-200/50 dark:border-slate-600/50"
-                        >
-                            <X size={18} className="text-gray-600 dark:text-gray-300" />
-                        </button>
-                        
-                        <div className="text-center relative z-10 flex flex-col flex-1 min-h-0 mt-4">
-                            <div className="shrink-0">
-                                {landingBanner.image_url ? (
-                                    <div className="w-full flex justify-center mb-6">
-                                        <img src={landingBanner.image_url} alt="Banner" className="w-full h-auto max-h-[300px] object-contain rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm" />
-                                    </div>
-                                ) : (
-                                    <>
-                                        {landingBanner.type === 'promo' && (
-                                            <div className="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
-                                                <Sparkles size={32} />
-                                            </div>
-                                        )}
-                                        {landingBanner.type === 'info' && (
-                                            <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
-                                                <Award size={32} />
-                                            </div>
-                                        )}
-                                        {landingBanner.type === 'alert' && (
-                                            <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
-                                                <AlertTriangle size={32} />
-                                            </div>
-                                        )}
-                                    </>
-                                )}
+                                <button 
+                                    onClick={() => setShowBanner(false)}
+                                    className="absolute top-3 right-3 p-1.5 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 rounded-full transition-colors z-20 backdrop-blur-md shadow-sm border border-gray-200/50 dark:border-slate-600/50"
+                                >
+                                    <X size={18} className="text-gray-600 dark:text-gray-300" />
+                                </button>
                                 
-                                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{landingBanner.title}</h2>
-                            </div>
+                                <div className="text-center relative z-10 flex flex-col flex-1 min-h-0 mt-4">
+                                    <div className="shrink-0">
+                                        {currentCampaign.image_url ? (
+                                            <div className="w-full flex justify-center mb-6">
+                                                <img src={currentCampaign.image_url} alt="Banner" className="w-full h-auto max-h-[300px] object-contain rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm" />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {currentCampaign.type === 'promo' && (
+                                                    <div className="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
+                                                        <Sparkles size={32} />
+                                                    </div>
+                                                )}
+                                                {currentCampaign.type === 'info' && (
+                                                    <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
+                                                        <Award size={32} />
+                                                    </div>
+                                                )}
+                                                {currentCampaign.type === 'alert' && (
+                                                    <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
+                                                        <AlertTriangle size={32} />
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                        
+                                        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{currentCampaign.title}</h2>
+                                    </div>
 
-                            <div className="overflow-y-auto px-2 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
-                                <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed text-left">
-                                    {formatTextWithBold(landingBanner.subtitle)}
+                                    <div className="overflow-y-auto px-2 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
+                                        <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed text-left">
+                                            {formatTextWithBold(currentCampaign.subtitle)}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="shrink-0 flex flex-col gap-3 items-center">
+                                        {currentCampaign.call_to_action && currentCampaign.link && (
+                                            <a 
+                                                href={currentCampaign.link} 
+                                                onClick={() => setShowBanner(false)}
+                                                className={`inline-block w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base ${
+                                                    currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
+                                                    currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
+                                                    'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
+                                                }`}
+                                            >
+                                                {currentCampaign.call_to_action}
+                                            </a>
+                                        )}
+                                        
+                                        {popupCampaigns.length > 1 && (
+                                            <div className="flex justify-center gap-2 mt-2">
+                                                {popupCampaigns.map((_, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => setActivePopupIndex(idx)}
+                                                        className={`w-2 h-2 rounded-full transition-all ${idx === activePopupIndex ? 'bg-purple-600 w-4' : 'bg-gray-300'}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <div className="shrink-0">
-                                {landingBanner.call_to_action && landingBanner.link && (
-                                    <a 
-                                        href={landingBanner.link} 
-                                        onClick={() => setShowBanner(false)}
-                                        className={`inline-block w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base ${
-                                            landingBanner.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
-                                            landingBanner.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
-                                            'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
-                                        }`}
-                                    >
-                                        {landingBanner.call_to_action}
-                                    </a>
-                                )}
-                            </div>
                         </div>
-                    </div>
-                </div>
+                    );
+                })()
             )}
 
             {isUnpaid && <PaymentRequired />}

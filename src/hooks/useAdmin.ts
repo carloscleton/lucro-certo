@@ -94,12 +94,29 @@ export function useAdmin() {
         billing_days_before_reminder?: number[];
         landing_plans?: any[];
         landing_banner?: {
-            enabled: boolean;
-            title: string;
-            subtitle: string;
-            call_to_action: string;
-            link: string;
-            type: 'promo' | 'info' | 'alert';
+            // Legacy fields for backward compatibility
+            enabled?: boolean;
+            title?: string;
+            subtitle?: string;
+            call_to_action?: string;
+            link?: string;
+            type?: 'promo' | 'info' | 'alert';
+            image_url?: string;
+            
+            // New dynamic campaigns array
+            campaigns?: Array<{
+                id: string;
+                title: string;
+                subtitle: string;
+                call_to_action: string;
+                link: string;
+                type: 'promo' | 'info' | 'alert';
+                image_url?: string;
+                show_in_popup: boolean;
+                show_in_hero: boolean;
+                show_as_section: boolean;
+                is_active: boolean;
+            }>;
         };
         loyalty_whatsapp_enabled?: boolean;
         loyalty_whatsapp_template?: string;

@@ -185,57 +185,62 @@ const banners: Banner[] = [
 interface HeroCarouselProps {
     session: any;
     setIsVideoModalOpen: (open: boolean) => void;
-    landingBanner?: any;
+    landingCampaigns?: any[];
 }
 
-export function HeroCarousel({ session, setIsVideoModalOpen, landingBanner }: HeroCarouselProps) {
+export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }: HeroCarouselProps) {
     const navigate = useNavigate();
     const [currentSlide, setCurrentSlide] = useState(0);
 
-    // Compute active banners dynamically based on landingBanner
+    // Compute active banners dynamically based on landingCampaigns
     const activeBanners = [...banners];
     
-    if (landingBanner && landingBanner.enabled) {
-        const fullText = landingBanner.subtitle || '';
-        let lines = fullText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+    if (landingCampaigns && landingCampaigns.length > 0) {
+        const heroCampaigns = landingCampaigns.filter((c: any) => c.show_in_hero);
         
-        // If they wrote everything in a single line with emojis, split by those
-        if (lines.length === 1) {
-            lines = fullText.split(/✅|🟢|🔵/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
-        }
-
-        let description = '';
-        let points: string[] = [];
-
-        if (lines.length > 0) {
-            // First item is description if it doesn't look like a raw bullet point without context
-            description = lines[0].replace(/^[✅🟢🔵\-\*\s]+/, '');
+        // Add dynamic banners
+        heroCampaigns.forEach((campaign, index) => {
+            const fullText = campaign.subtitle || '';
+            let lines = fullText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
             
-            // The rest are points, stripped of their emojis since the carousel has its own icons
-            points = lines.slice(1).map((l: string) => l.replace(/^[✅🟢🔵\-\*\s]+/, '').trim());
-        }
-            
-        // Limit to first 3 points for the carousel layout
-        const displayPoints = points.slice(0, 3);
-        
-        // Make the last word of the title have a gradient, automatically!
-        const titleWords = landingBanner.title.trim().split(' ');
-        const lastWord = titleWords.length > 1 ? titleWords.pop() : '';
-        const restOfTitle = titleWords.join(' ');
+            // If they wrote everything in a single line with emojis, split by those
+            if (lines.length === 1) {
+                lines = fullText.split(/✅|🟢|🔵/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+            }
 
-        // Add dynamic banner at the second position (index 1) so it's highly visible
-        activeBanners.splice(1, 0, {
-            tag: landingBanner.type === 'promo' ? 'OFERTA ESPECIAL' : landingBanner.type === 'info' ? 'NOVIDADE' : 'DESTAQUE',
-            tagIcon: <ShieldCheck size={16} />,
-            tagColor: 'rgba(16, 185, 129, 0.1)',
-            tagTextColor: '#10b981',
-            title: <>{restOfTitle} {lastWord && <span className="text-gradient">{lastWord}</span>}</>,
-            description: description,
-            points: displayPoints,
-            image: landingBanner.image_url || "/images/landing/certificado-digital.png",
-            accent: 'emerald',
-            buttonText: landingBanner.call_to_action,
-            buttonLink: landingBanner.link
+            let description = '';
+            let points: string[] = [];
+
+            if (lines.length > 0) {
+                // First item is description if it doesn't look like a raw bullet point without context
+                description = lines[0].replace(/^[✅🟢🔵\-\*\s]+/, '');
+                
+                // The rest are points, stripped of their emojis since the carousel has its own icons
+                points = lines.slice(1).map((l: string) => l.replace(/^[✅🟢🔵\-\*\s]+/, '').trim());
+            }
+                
+            // Limit to first 3 points for the carousel layout
+            const displayPoints = points.slice(0, 3);
+            
+            // Make the last word of the title have a gradient, automatically!
+            const titleWords = campaign.title.trim().split(' ');
+            const lastWord = titleWords.length > 1 ? titleWords.pop() : '';
+            const restOfTitle = titleWords.join(' ');
+
+            // Insert custom campaigns early in the array
+            activeBanners.splice(1 + index, 0, {
+                tag: campaign.type === 'promo' ? 'OFERTA ESPECIAL' : campaign.type === 'info' ? 'NOVIDADE' : 'DESTAQUE',
+                tagIcon: <ShieldCheck size={16} />,
+                tagColor: 'rgba(16, 185, 129, 0.1)',
+                tagTextColor: '#10b981',
+                title: <>{restOfTitle} {lastWord && <span className="text-gradient">{lastWord}</span>}</>,
+                description: description,
+                points: displayPoints,
+                image: campaign.image_url || "/images/landing/certificado-digital.png",
+                accent: 'emerald',
+                buttonText: campaign.call_to_action,
+                buttonLink: campaign.link
+            });
         });
     }
 
