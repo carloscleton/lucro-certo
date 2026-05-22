@@ -478,13 +478,20 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // Envia o payload exatamente como veio do frontend (RAW), sem injeções da TecnoSpeed
             const rawPayload = Array.isArray(payload) ? payload : [payload];
-            const response = await axios.post(config.external_webhook_url, rawPayload, {
-                headers,
-                timeout: 10000
-            });
-            console.log(`✅ [EXTERNAL-MODE] Resposta recebida do webhook externo.`);
-            
-            return res.json({ ...response.data, proxy_version: '1.0.33', mode: 'external_relay' });
+            try {
+                const response = await axios.post(config.external_webhook_url, rawPayload, {
+                    headers,
+                    timeout: 10000
+                });
+                console.log(`✅ [EXTERNAL-MODE] Resposta recebida do webhook externo.`);
+                return res.json({ ...response.data, proxy_version: '1.0.34', mode: 'external_relay' });
+            } catch (webhookErr: any) {
+                console.error(`❌ [EXTERNAL-MODE] Webhook externo retornou erro:`, webhookErr.message);
+                return res.status(webhookErr.response?.status || 500).json({ 
+                    error: '[ERRO DO SEU WEBHOOK N8N] O N8N tentou processar a nota, mas retornou este erro para nós.', 
+                    detail: webhookErr.response?.data || webhookErr.message 
+                });
+            }
         }
 
         // --- FLUXO PADRÃO TECNOSPEED ---
