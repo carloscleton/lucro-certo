@@ -13,7 +13,9 @@ import {
     Award,
     Gift,
     Receipt,
-    AlertTriangle
+    AlertTriangle,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -117,6 +119,17 @@ export function LandingPage() {
         };
         fetchPlans();
     }, []);
+
+    useEffect(() => {
+        if (showBanner && landingCampaigns.length > 0) {
+            const popupCampaigns = landingCampaigns.filter(c => c.show_in_popup);
+            if (popupCampaigns.length <= 1) return;
+            const timer = setInterval(() => {
+                setActivePopupIndex(prev => (prev + 1) % popupCampaigns.length);
+            }, 6000); // 6 seconds slide
+            return () => clearInterval(timer);
+        }
+    }, [showBanner, landingCampaigns]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -722,12 +735,29 @@ export function LandingPage() {
 
                                 <button 
                                     onClick={() => setShowBanner(false)}
-                                    className="absolute top-3 right-3 p-1.5 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 rounded-full transition-colors z-20 backdrop-blur-md shadow-sm border border-gray-200/50 dark:border-slate-600/50"
+                                    className="absolute top-3 right-3 p-1.5 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 rounded-full transition-colors z-30 backdrop-blur-md shadow-sm border border-gray-200/50 dark:border-slate-600/50"
                                 >
                                     <X size={18} className="text-gray-600 dark:text-gray-300" />
                                 </button>
                                 
-                                <div className="text-center relative z-10 flex flex-col flex-1 min-h-0 mt-4">
+                                {popupCampaigns.length > 1 && (
+                                    <>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setActivePopupIndex(prev => (prev - 1 + popupCampaigns.length) % popupCampaigns.length); }}
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-full shadow-md z-20 backdrop-blur-md transition-colors border border-gray-200/50 dark:border-slate-600/50 text-gray-700 dark:text-gray-200"
+                                        >
+                                            <ChevronLeft size={20} />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setActivePopupIndex(prev => (prev + 1) % popupCampaigns.length); }}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-full shadow-md z-20 backdrop-blur-md transition-colors border border-gray-200/50 dark:border-slate-600/50 text-gray-700 dark:text-gray-200"
+                                        >
+                                            <ChevronRight size={20} />
+                                        </button>
+                                    </>
+                                )}
+                                
+                                <div className="text-center relative z-10 flex flex-col flex-1 min-h-0 mt-4 px-6">
                                     <div className="shrink-0">
                                         {currentCampaign.image_url ? (
                                             <div className="w-full flex justify-center mb-6">
