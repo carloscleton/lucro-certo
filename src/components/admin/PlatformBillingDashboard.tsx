@@ -48,7 +48,14 @@ export function PlatformBillingDashboard() {
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [localKeys, setLocalKeys] = useState<any>({});
-    const [localBanner, setLocalBanner] = useState<any>({});
+    const [localBanner, setLocalBanner] = useState<any>(() => {
+        try {
+            const cached = sessionStorage.getItem('draft_localBanner');
+            return cached ? JSON.parse(cached) : {};
+        } catch {
+            return {};
+        }
+    });
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [selectedCompanyName, setSelectedCompanyName] = useState<string>('');
     const [billingHistory, setBillingHistory] = useState<any[]>([]);
@@ -63,9 +70,20 @@ export function PlatformBillingDashboard() {
             setLocalKeys(appSettings.platform_billing_config);
         }
         if (appSettings?.landing_banner) {
-            setLocalBanner(appSettings.landing_banner);
+            setLocalBanner((prev: any) => {
+                // If we don't have a draft, load from DB
+                if (Object.keys(prev).length === 0) return appSettings.landing_banner;
+                return prev;
+            });
         }
     }, [appSettings]);
+
+    // Save draft to sessionStorage
+    useEffect(() => {
+        if (Object.keys(localBanner).length > 0) {
+            sessionStorage.setItem('draft_localBanner', JSON.stringify(localBanner));
+        }
+    }, [localBanner]);
 
     const handleSaveSettings = async (settingsToSave?: any) => {
         setSaving(true);
@@ -75,6 +93,7 @@ export function PlatformBillingDashboard() {
         if (error) {
             alert('Erro ao salvar: ' + error);
         } else {
+            sessionStorage.removeItem('draft_localBanner');
             refresh();
         }
     };
