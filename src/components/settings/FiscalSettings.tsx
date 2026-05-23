@@ -598,8 +598,8 @@ export function FiscalSettings() {
             },
             servico: [
                 {
-                    codigo: "000101",
-                    codigoTributacao: "101",
+                    codigo: config.nfse_nacional ? "010101" : "01.01",
+                    codigoTributacao: config.nfse_nacional ? "010" : undefined,
                     itemListaServico: "01.01",
                     discriminacao: "Serviço de Teste via Laboratório JSON",
                     valor: {
