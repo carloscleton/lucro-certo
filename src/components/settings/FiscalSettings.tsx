@@ -213,6 +213,19 @@ export function FiscalSettings() {
                 tecnospeed_config: config,
                 fiscal_module_enabled: moduleEnabled
             });
+            
+            // 🔄 Invalida e limpa o cache do backend chamando save-config
+            try {
+                const session = await supabase.auth.getSession();
+                const token = session.data.session?.access_token;
+                if (token) {
+                    await fiscalService.saveConfig(currentEntity.id, config, token);
+                    console.log('⚡ [FISCAL-SETTINGS] Cache do backend limpo com sucesso.');
+                }
+            } catch (cacheErr) {
+                console.warn('⚠️ [FISCAL-SETTINGS] Erro não crítico ao notificar backend sobre nova config:', cacheErr);
+            }
+
             await refreshEntity();
             setResultModal({
                 isOpen: true,

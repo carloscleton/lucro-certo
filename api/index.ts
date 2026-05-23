@@ -734,7 +734,17 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                         }
                     });
                     
-                    // Invalida o cache local imediatamente
+                    // Invalida todas as chaves do cache local para esta empresa
+                    const cleanCnpj = config.cnpj ? String(config.cnpj).replace(/\D/g, '') : null;
+                    for (const [key, cached] of fiscalConfigCache.entries()) {
+                        if (
+                            key === companyId || 
+                            cached.realCompanyId === companyId || 
+                            (cleanCnpj && (key === cleanCnpj || String(cached.config?.cnpj || '').replace(/\D/g, '') === cleanCnpj))
+                        ) {
+                            fiscalConfigCache.delete(key);
+                        }
+                    }
                     fiscalConfigCache.delete(companyId);
                     
                     console.log('✅ Configuração fiscal persistida no Supabase após sincronização externa.');
@@ -916,7 +926,18 @@ app.post(['/fiscal-module/save-config', '/api/fiscal-module/save-config'], authe
     try {
         console.log(`💾 Salvando configuração fiscal para empresa: ${companyId}`);
         
-        // Invalida o cache local imediatamente
+        // Invalida todas as chaves do cache local para esta empresa (UUID, CNPJ ou chaves curtas)
+        const cleanCnpj = config.cnpj ? String(config.cnpj).replace(/\D/g, '') : null;
+        for (const [key, cached] of fiscalConfigCache.entries()) {
+            if (
+                key === companyId || 
+                cached.realCompanyId === companyId || 
+                (cleanCnpj && (key === cleanCnpj || String(cached.config?.cnpj || '').replace(/\D/g, '') === cleanCnpj))
+            ) {
+                fiscalConfigCache.delete(key);
+            }
+        }
+        // Fallback redundante por segurança
         fiscalConfigCache.delete(companyId);
 
         await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
