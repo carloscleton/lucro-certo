@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, FileCode } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, FileCode, Minus } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
 
@@ -170,7 +170,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                                     className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
                                                     title="Diminuir Zoom"
                                                 >
-                                                    <X size={16} className="rotate-45" />
+                                                    <Minus size={16} />
                                                 </button>
                                                 <div className="h-4 w-[1px] bg-gray-200 dark:bg-slate-700 mx-1" />
                                                 <button 
