@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
 import { useEntity } from '../context/EntityContext';
+import { useCompanies } from '../hooks/useCompanies';
 import { fiscalService } from '../services/fiscalService';
 import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
@@ -17,6 +18,10 @@ import { Modal } from '../components/ui/Modal';
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
     const { currentEntity } = useEntity();
+    const { companies } = useCompanies();
+    
+    const currentCompany = companies.find(c => c.id === currentEntity.id);
+    const config = currentCompany?.tecnospeed_config;
     
     const [showNewModal, setShowNewModal] = useState(false);
     const [showConsultaModal, setShowConsultaModal] = useState(false);
@@ -993,23 +998,27 @@ export function Invoices() {
                                                             </button>
                                                         </Tooltip>
 
-                                                        <Tooltip content="Enviar por WhatsApp">
-                                                            <button
-                                                                onClick={() => handleOpenSendWhatsApp(invoice)}
-                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-teal-600 dark:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all shadow-sm"
-                                                            >
-                                                                <MessageCircle size={18} />
-                                                            </button>
-                                                        </Tooltip>
+                                                        {config?.send_whatsapp_automatically && (
+                                                            <Tooltip content="Enviar por WhatsApp">
+                                                                <button
+                                                                    onClick={() => handleOpenSendWhatsApp(invoice)}
+                                                                    className="h-10 w-10 flex items-center justify-center glass-morphism text-teal-600 dark:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all shadow-sm"
+                                                                >
+                                                                    <MessageCircle size={18} />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
 
-                                                        <Tooltip content="Enviar por E-mail">
-                                                            <button
-                                                                onClick={() => handleOpenSendEmail(invoice)}
-                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-sky-600 dark:text-sky-400 rounded-xl hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-all shadow-sm"
-                                                            >
-                                                                <Mail size={18} />
-                                                            </button>
-                                                        </Tooltip>
+                                                        {config?.send_email_automatically && (
+                                                            <Tooltip content="Enviar por E-mail">
+                                                                <button
+                                                                    onClick={() => handleOpenSendEmail(invoice)}
+                                                                    className="h-10 w-10 flex items-center justify-center glass-morphism text-sky-600 dark:text-sky-400 rounded-xl hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-all shadow-sm"
+                                                                >
+                                                                    <Mail size={18} />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
                                                     </>
                                                 )}
 
