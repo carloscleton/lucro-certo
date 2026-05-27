@@ -682,6 +682,7 @@ export function FiscalSettings() {
     };
 
     const [checkingStatus, setCheckingStatus] = useState(false);
+    const [checkingCityNationalStatus, setCheckingCityNationalStatus] = useState(false);
 
     const handleCheckIssuerStatus = async () => {
         if (!currentEntity.id || !config.cnpj) {
@@ -769,6 +770,84 @@ export function FiscalSettings() {
             });
         } finally {
             setCheckingStatus(false);
+        }
+    };
+
+    const handleCheckCityNationalStatus = async () => {
+        const code = config.endereco?.codigoCidade;
+        if (!code) {
+            setResultModal({
+                isOpen: true,
+                title: 'Código IBGE Requerido',
+                message: 'Por favor, preencha o Código IBGE da cidade nas configurações de endereço antes de realizar a consulta.',
+                type: 'info'
+            });
+            return;
+        }
+
+        setCheckingCityNationalStatus(true);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.consultarCidadeNotaNacional(code.replace(/\D/g, ''), currentEntity.id!, token);
+            const cityData = result.data || result;
+            const padraoNacional = cityData.padraoNacional;
+
+            let message = '';
+            let type: 'success' | 'error' | 'info' | 'warning' = 'info';
+
+            if (padraoNacional) {
+                const inProd = !!padraoNacional.producao;
+                const inHomolog = !!padraoNacional.homologacao;
+
+                if (inProd && inHomolog) {
+                    message = `Ótima notícia! A cidade de ${cityData.nome || 'sua cidade'} (${cityData.uf || ''}) já trabalha 100% no padrão de Nota Nacional em Produção e Homologação.`;
+                    type = 'success';
+                } else if (inHomolog) {
+                    message = `A cidade de ${cityData.nome || 'sua cidade'} (${cityData.uf || ''}) trabalha no padrão de Nota Nacional APENAS em Homologação (Ambiente de Testes). Ainda não disponível em Produção.`;
+                    type = 'warning';
+                } else {
+                    message = `A cidade de ${cityData.nome || 'sua cidade'} (${cityData.uf || ''}) NÃO está habilitada para a Nota Nacional na TecnoSpeed no momento.`;
+                    type = 'error';
+                }
+            } else {
+                message = `A cidade de ${cityData.nome || 'sua cidade'} (${cityData.uf || ''}) NÃO trabalha com a Nota Nacional no momento (sem metadados de padrão nacional).`;
+                type = 'error';
+            }
+
+            setResultModal({
+                isOpen: true,
+                title: 'Consulta Nota Nacional',
+                message: message,
+                type: type,
+                data: {
+                    'Município': `${cityData.nome || ''} - ${cityData.uf || ''}`,
+                    'Padrão Local/Provedor': cityData.padrao || 'Não informado',
+                    'Nota Nacional Homologação': padraoNacional?.homologacao ? 'Disponível ✅' : 'Indisponível ❌',
+                    'Nota Nacional Produção': padraoNacional?.producao ? 'Disponível ✅' : 'Indisponível ❌',
+                    'Exige Certificado': cityData.certificado ? 'Sim' : 'Não',
+                    'Multisserviços': cityData.multiservicos ? 'Sim' : 'Não'
+                }
+            });
+        } catch (error: any) {
+            console.error('Check city national status error:', error);
+            const data = error.response?.data;
+            const detail = data?.detail || data?.error || error.message;
+            const msg = typeof detail === 'object' ? JSON.stringify(detail) : detail;
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Consulta',
+                message: 'Não foi possível verificar a disponibilidade da cidade no Padrão Nacional.',
+                type: 'error',
+                data: {
+                    'Detalhe Técnico': msg
+                }
+            });
+        } finally {
+            setCheckingCityNationalStatus(false);
         }
     };
 
@@ -1226,25 +1305,60 @@ export function FiscalSettings() {
                             Configure como seus clientes receberão as notas fiscais após a autorização e o padrão de emissão.
                         </p>
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl">
-                                        <Globe size={18} />
+                            <div className="flex flex-col gap-3 p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl">
+                                            <Globe size={18} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white">Padrão NFS-e Nacional</p>
+                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">Ative se sua cidade já utiliza o novo padrão nacional da Receita Federal.</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Padrão NFS-e Nacional</p>
-                                        <p className="text-[10px] text-gray-500 dark:text-gray-400">Ative se sua cidade já utiliza o novo padrão nacional da Receita Federal.</p>
-                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={config.nfse_nacional || false}
+                                            onChange={(e) => setConfig({ ...config, nfse_nacional: e.target.checked })}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                    </label>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={config.nfse_nacional || false}
-                                        onChange={(e) => setConfig({ ...config, nfse_nacional: e.target.checked })}
-                                    />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                                </label>
+                                
+                                <div className="mt-2 pt-3 border-t border-gray-200/60 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    {config.endereco?.codigoCidade ? (
+                                        <>
+                                            <div className="flex flex-col">
+                                                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Município Configurado</span>
+                                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                                    {config.endereco?.cidade || 'Cidade não informada'} - {config.endereco?.uf || 'UF'} (IBGE: {config.endereco?.codigoCidade})
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleCheckCityNationalStatus}
+                                                disabled={checkingCityNationalStatus}
+                                                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center justify-center gap-1.5 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700/50 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm active:scale-95 transition-all disabled:opacity-50 h-9 shrink-0"
+                                            >
+                                                {checkingCityNationalStatus ? (
+                                                    <RefreshCw size={14} className="animate-spin text-indigo-500" />
+                                                ) : (
+                                                    <Search size={14} className="text-indigo-500" />
+                                                )}
+                                                Consultar Nota Nacional
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="w-full py-1">
+                                            <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-medium">
+                                                <AlertCircle size={14} />
+                                                Defina o Endereço e o Código IBGE acima para consultar se a sua cidade suporta a NFS-e Nacional.
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">

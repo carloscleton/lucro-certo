@@ -1152,6 +1152,40 @@ async function resolveTargetName(requestedName: string, token?: string): Promise
     }
 }
 
+app.get(['/fiscal-module/cidades/:codigoIbge', '/api/fiscal-module/cidades/:codigoIbge'], authenticate, async (req, res) => {
+    const { codigoIbge } = req.params;
+    const { companyId } = req.query;
+    const authHeader = req.headers.authorization;
+
+    try {
+        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        if (!config || !config.tecnospeed_api_key) {
+            return res.status(400).json({ error: 'Configuração TecnoSpeed incompleta (API Key ausente).' });
+        }
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+
+        const cleanIbge = String(codigoIbge).replace(/\D/g, '');
+        console.log(`🔍 [FISCAL-CIDADES] Consultando cidade IBGE: ${cleanIbge} em ${isSandbox ? 'SANDBOX' : 'PROD'}...`);
+
+        const response = await axios.get(`${baseUrl}/nfse/cidades/${cleanIbge}`, {
+            headers: { 
+                'x-api-key': apiKey,
+                'X-API-KEY': apiKey
+            }
+        });
+
+        res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        const statusCode = error.response?.status || 500;
+        console.error(`❌ Erro ao consultar cidade ${codigoIbge} (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
+        res.status(statusCode).json({ error: 'Erro ao consultar cidade na TecnoSpeed', detail: errorDetail });
+    }
+});
+
 app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;

@@ -158,5 +158,15 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async consultarCidadeNotaNacional(codigoIbge: string, companyId: string, token: string) {
+        const response = await axios.get(getFiscalUrl(`cidades/${codigoIbge}`), {
+            params: { companyId },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };
