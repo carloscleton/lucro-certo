@@ -434,6 +434,9 @@ export function Quotes() {
     const [sendEmail, setSendEmail] = useState(false);
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
     const [fiscalQuote, setFiscalQuote] = useState<Quote | null>(null);
+    const [fullFiscalQuote, setFullFiscalQuote] = useState<any | null>(null);
+    const [loadingQuoteDetails, setLoadingQuoteDetails] = useState(false);
+    const [emissionStrategy, setEmissionStrategy] = useState<'group' | 'split'>('group');
 
     // Expense Data
     const [quoteExpenses, setQuoteExpenses] = useState<Record<string, number>>({});
@@ -705,10 +708,29 @@ export function Quotes() {
         setSendEmail(config?.send_email_automatically || false);
         setSendWhatsApp(config?.send_whatsapp_automatically || false);
         setFiscalQuote(quote);
+        setFullFiscalQuote(null);
+        setEmissionStrategy('group');
+        setLoadingQuoteDetails(true);
 
         setIsEmittingFiscal(quote.id);
         setFiscalStatus({ status: 'idle' });
         setShowFiscalModal(true);
+
+        try {
+            const { data: fullQuote, error: quoteError } = await supabase
+                .from('quotes')
+                .select('*, items:quote_items(*), contact:contact_id(*)')
+                .eq('id', quote.id)
+                .single();
+
+            if (!quoteError && fullQuote) {
+                setFullFiscalQuote(fullQuote);
+            }
+        } catch (err) {
+            console.error('Erro ao buscar detalhes do orçamento:', err);
+        } finally {
+            setLoadingQuoteDetails(false);
+        }
     };
 
     const executeEmitFiscal = async (quote: Quote) => {
@@ -741,6 +763,8 @@ export function Quotes() {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
+            const isNacional = (currentCompany.tecnospeed_config as any)?.nfse_nacional || false;
+
             let result;
 
             if (isServiceOnly) {
@@ -749,13 +773,8 @@ export function Quotes() {
                 if (missingServiceCode) {
                     throw new Error(`O serviço "${missingServiceCode.description}" não possui o Código de Serviço Municipal preenchido. Acesse Serviços > Editar e preencha este dado obrigatório para a emissão da NFS-e.`);
                 }
-
-                const isNacional = (currentCompany.tecnospeed_config as any)?.nfse_nacional || false;
                 
                 if (isNacional) {
-                    if (fullQuote.items.length > 1) {
-                        throw new Error('A Receita Federal proíbe a emissão de NFS-e Nacional com mais de um item de serviço na mesma nota fiscal. Por favor, crie orçamentos separados para cada serviço ou emita no padrão municipal.');
-                    }
                     const invalidItem = fullQuote.items.find((item: any) => {
                         const code = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code;
                         return !code || code.replace(/\D/g, '').length !== 9;
@@ -769,63 +788,193 @@ export function Quotes() {
                 const defaultCityCode = isHomolog ? '4115200' : ((currentCompany.tecnospeed_config as any)?.endereco?.codigoCidade || '3106200');
                 const companyCityCode = (currentCompany.tecnospeed_config as any)?.endereco?.codigoCidade || (currentCompany.tecnospeed_config as any)?.codigo_municipio || '3106200';
 
-                // Map to PlugNotas format (NFS-e)
-                const payload: any = {
-                    idIntegracao: fullQuote.id,
-                    codigoIbge: companyCityCode,
-                    prestador: {
-                        cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
-                    },
-                    tomador: {
-                        cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
-                        razaoSocial: fullQuote.contact?.name,
-                        email: fullQuote.contact?.email,
-                        endereco: {
-                            logradouro: fullQuote.contact?.street || '',
-                            numero: fullQuote.contact?.number || 'S/N',
-                            bairro: fullQuote.contact?.neighborhood || '',
-                            cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: defaultCityCode,
-                            uf: fullQuote.contact?.state || ''
-                        }
-                    },
-                    servico: fullQuote.items.map((item: any) => {
-                        const payloadItem: any = {
-                            codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                if (isNacional && fullQuote.items.length > 1 && emissionStrategy === 'group') {
+                    // GROUP/CONSOLIDATE STRATEGY
+                    const totalVal = fullQuote.items.reduce((acc: number, item: any) => acc + (Number(item.unit_price) * Number(item.quantity)), 0);
+                    const combinedDesc = fullQuote.items.map((item: any) => `${item.description} (x${item.quantity})`).join(' + ');
+                    
+                    const firstItem = fullQuote.items[0];
+                    const rawTaxCode = firstItem.codigo_tributacao_nacional || firstItem.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
+                    const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
+
+                    const payload: any = {
+                        idIntegracao: fullQuote.id,
+                        codigoIbge: companyCityCode,
+                        prestador: {
+                            cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
+                        },
+                        tomador: {
+                            cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
+                            razaoSocial: fullQuote.contact?.name,
+                            email: fullQuote.contact?.email,
+                            endereco: {
+                                logradouro: fullQuote.contact?.street || '',
+                                numero: fullQuote.contact?.number || 'S/N',
+                                bairro: fullQuote.contact?.neighborhood || '',
+                                cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
+                                codigoCidade: defaultCityCode,
+                                uf: fullQuote.contact?.state || ''
+                            }
+                        },
+                        servico: [{
+                            codigo: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                             codigoIbge: companyCityCode,
-                            descricao: item.description,
+                            descricao: combinedDesc.substring(0, 2000),
                             valor: {
-                                servico: item.unit_price
+                                servico: totalVal
                             },
-                            quantidade: item.quantity,
-                            itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, '')
+                            quantidade: 1,
+                            itemListaServico: (firstItem.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
+                            codigoTributacao: finalNatCode,
+                            codigotributacao: finalNatCode,
+                            naturezaOperacao: 1
+                        }]
+                    };
+
+                    if (sendEmail && fullQuote.contact?.email) {
+                        payload.configuracao = {
+                            email: {
+                                envio: true,
+                                destinatarios: [fullQuote.contact.email]
+                            }
+                        };
+                    }
+
+                    setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e Consolidada...' });
+                    result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
+
+                } else if (isNacional && fullQuote.items.length > 1 && emissionStrategy === 'split') {
+                    // SPLIT STRATEGY
+                    const createdIds: string[] = [];
+                    
+                    for (let i = 0; i < fullQuote.items.length; i++) {
+                        const item = fullQuote.items[i];
+                        const displayIndex = i + 1;
+                        
+                        setFiscalStatus({ 
+                            status: 'loading', 
+                            message: `Enviando Nota ${displayIndex} de ${fullQuote.items.length} ("${item.description}")...` 
+                        });
+
+                        const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
+                        const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
+
+                        // Unique id for this sub-emission
+                        const uniqueId = `${fullQuote.id}_${displayIndex}_${Date.now()}`;
+
+                        const payload: any = {
+                            idIntegracao: uniqueId,
+                            codigoIbge: companyCityCode,
+                            prestador: {
+                                cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
+                            },
+                            tomador: {
+                                cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
+                                razaoSocial: fullQuote.contact?.name,
+                                email: fullQuote.contact?.email,
+                                endereco: {
+                                    logradouro: fullQuote.contact?.street || '',
+                                    numero: fullQuote.contact?.number || 'S/N',
+                                    bairro: fullQuote.contact?.neighborhood || '',
+                                    cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
+                                    codigoCidade: defaultCityCode,
+                                    uf: fullQuote.contact?.state || ''
+                                }
+                            },
+                            servico: [{
+                                codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                                codigoIbge: companyCityCode,
+                                descricao: item.description,
+                                valor: {
+                                    servico: item.unit_price
+                                },
+                                quantidade: item.quantity,
+                                itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
+                                codigoTributacao: finalNatCode,
+                                codigotributacao: finalNatCode,
+                                naturezaOperacao: 1
+                            }]
                         };
 
-                        if (isNacional) {
-                            // Para NFSe Nacional, codigoTributacao é obrigatório e deve ter exatamente 9 dígitos
-                            const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
-                            const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
-                            payloadItem.codigoTributacao = finalNatCode;
-                            payloadItem.codigotributacao = finalNatCode; // Suporte para o validador que exige minúsculo
-                            payloadItem.naturezaOperacao = 1;
+                        if (sendEmail && fullQuote.contact?.email) {
+                            payload.configuracao = {
+                                email: {
+                                    envio: true,
+                                    destinatarios: [fullQuote.contact.email]
+                                }
+                            };
                         }
 
-                        return payloadItem;
-                    })
-                };
-
-                // Add email automation
-                if (sendEmail && fullQuote.contact?.email) {
-                    payload.configuracao = {
-                        email: {
-                            envio: true,
-                            destinatarios: [fullQuote.contact.email]
+                        const res = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
+                        const externalId = res.data?.id || res.id;
+                        if (externalId) {
+                            createdIds.push(externalId);
                         }
+                    }
+
+                    // Mock a merged response to feed the remainder of the flow
+                    result = {
+                        id: createdIds.join(','),
+                        data: { id: createdIds.join(',') }
                     };
-                }
 
-                setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e (Serviços)...' });
-                result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
+                } else {
+                    // STANDARD / MUNICIPAL OR SINGLE ITEM NATIONAL STRATEGY
+                    const payload: any = {
+                        idIntegracao: fullQuote.id,
+                        codigoIbge: companyCityCode,
+                        prestador: {
+                            cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
+                        },
+                        tomador: {
+                            cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
+                            razaoSocial: fullQuote.contact?.name,
+                            email: fullQuote.contact?.email,
+                            endereco: {
+                                logradouro: fullQuote.contact?.street || '',
+                                numero: fullQuote.contact?.number || 'S/N',
+                                bairro: fullQuote.contact?.neighborhood || '',
+                                cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
+                                codigoCidade: defaultCityCode,
+                                uf: fullQuote.contact?.state || ''
+                            }
+                        },
+                        servico: fullQuote.items.map((item: any) => {
+                            const payloadItem: any = {
+                                codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                                codigoIbge: companyCityCode,
+                                descricao: item.description,
+                                valor: {
+                                    servico: item.unit_price
+                                },
+                                quantidade: item.quantity,
+                                itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, '')
+                            };
+
+                            if (isNacional) {
+                                const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
+                                const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
+                                payloadItem.codigoTributacao = finalNatCode;
+                                payloadItem.codigotributacao = finalNatCode;
+                                payloadItem.naturezaOperacao = 1;
+                            }
+
+                            return payloadItem;
+                        })
+                    };
+
+                    if (sendEmail && fullQuote.contact?.email) {
+                        payload.configuracao = {
+                            email: {
+                                envio: true,
+                                destinatarios: [fullQuote.contact.email]
+                            }
+                        };
+                    }
+
+                    setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e (Serviços)...' });
+                    result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
+                }
             } else {
                 // Validate if any product is missing the NCM
                 const missingNcm = fullQuote.items.find((item: any) => !item.service_id && !item.ncm);
@@ -893,10 +1042,13 @@ export function Quotes() {
             }
 
             const externalId = result.data?.id || result.id;
+            const isSplitEmission = isNacional && isServiceOnly && fullQuote.items.length > 1 && emissionStrategy === 'split';
 
             setFiscalStatus({
                 status: 'success',
-                message: `Nota enviada com sucesso! ID: ${externalId || 'Pendente'}`
+                message: isSplitEmission 
+                    ? `${fullQuote.items.length} notas enviadas com sucesso! IDs: ${externalId}`
+                    : `Nota enviada com sucesso! ID: ${externalId || 'Pendente'}`
             });
 
             // Update quote with NFe ID
@@ -909,7 +1061,9 @@ export function Quotes() {
                 // Automations
                 if (sendWhatsApp && fullQuote.contact?.phone) {
                     try {
-                        const waMsg = `Olá *${fullQuote.contact.name}*, sua nota fiscal referente ao orçamento *${fullQuote.title}* foi emitida e está sendo processada. Em breve você receberá o link para download.`;
+                        const waMsg = isSplitEmission
+                            ? `Olá *${fullQuote.contact.name}*, as *${fullQuote.items.length}* notas fiscais referentes ao seu orçamento *${fullQuote.title}* foram emitidas e estão sendo processadas. Em breve você receberá os links para download.`
+                            : `Olá *${fullQuote.contact.name}*, sua nota fiscal referente ao orçamento *${fullQuote.title}* foi emitida e está sendo processada. Em breve você receberá o link para download.`;
                         const instance = waInstances[0];
                         if (instance) {
                             await whatsappService.sendMessage({
@@ -946,17 +1100,31 @@ export function Quotes() {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const result = await fiscalService.checkStatus(quote.nfe_id, currentEntity.id, token);
-            const newStatus = result.data?.status || result.status;
+            const ids = quote.nfe_id.split(',');
+            let combinedStatus = '';
+            let detailedMsg = '';
+
+            for (let i = 0; i < ids.length; i++) {
+                const id = ids[i].trim();
+                const result = await fiscalService.checkStatus(id, currentEntity.id, token);
+                const status = (result.data?.status || result.status || 'processando').toUpperCase();
+                
+                if (i > 0) {
+                    combinedStatus += ' / ';
+                    detailedMsg += ' | ';
+                }
+                combinedStatus += status;
+                detailedMsg += `Nota ${i+1}: ${status}`;
+            }
 
             setFiscalStatus({
                 status: 'success',
-                message: `Status atual: ${newStatus.toUpperCase()}`
+                message: `Status atual: ${detailedMsg}`
             });
 
             // Update local quote
             await supabase.from('quotes').update({
-                nfe_status: newStatus
+                nfe_status: combinedStatus.toLowerCase()
             }).eq('id', quote.id);
 
         } catch (error: any) {
@@ -1653,83 +1821,171 @@ export function Quotes() {
                         )}
 
                         <div className="space-y-4 py-4">
-                            {fiscalStatus.status === 'idle' && (
-                                <div className="space-y-4">
-                                    <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/20">
-                                        <p className="text-xs text-blue-900 dark:text-blue-400 font-medium mb-4">
-                                            Deseja automatizar o envio após a emissão?
-                                        </p>
-                                        <div className="space-y-3">
-                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`p-2 rounded-lg transition-colors ${sendEmail ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'}`}>
-                                                    <Mail size={18} />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Enviar por E-mail</p>
-                                                    <p className="text-[10px] text-gray-500">O PDF e XML serão enviados automaticamente</p>
-                                                </div>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={sendEmail}
-                                                    onChange={(e) => setSendEmail(e.target.checked)}
-                                                    className="w-5 h-5 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                />
-                                            </label>
+                            {loadingQuoteDetails ? (
+                                <div className="flex flex-col items-center justify-center py-10 space-y-3">
+                                    <Loader2 size={36} className="animate-spin text-blue-500" />
+                                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Analisando itens do orçamento...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {fiscalStatus.status === 'idle' && (
+                                        <div className="space-y-4">
+                                            {/* Multi-serviços Selector UI */}
+                                            {(() => {
+                                                const isServiceOnly = fullFiscalQuote?.items?.every((item: any) => item.service_id);
+                                                const hasMultipleServices = fullFiscalQuote?.items?.length > 1;
+                                                const isNacional = (currentCompany?.tecnospeed_config as any)?.nfse_nacional || false;
+                                                const showStrategyChoice = isServiceOnly && hasMultipleServices && isNacional;
 
-                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`p-2 rounded-lg transition-colors ${sendWhatsApp ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'}`}>
-                                                    <MessageCircle size={18} />
+                                                if (!showStrategyChoice) return null;
+
+                                                return (
+                                                    <div className="bg-amber-50 dark:bg-amber-950/15 border border-amber-200 dark:border-amber-900/30 p-4 rounded-2xl mb-4">
+                                                        <div className="flex gap-2 items-start mb-3">
+                                                            <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                                                            <div>
+                                                                <p className="text-xs font-black text-amber-900 dark:text-amber-400 uppercase tracking-wider">Multi-Serviços Detectados (NFS-e Nacional)</p>
+                                                                <p className="text-[10px] text-amber-700 dark:text-amber-500 mt-0.5 leading-relaxed">
+                                                                    A Receita Federal proíbe mais de um item de serviço na mesma nota fiscal. Escolha a sua estratégia de emissão:
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 gap-2.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEmissionStrategy('group')}
+                                                                className={`flex gap-3 items-center p-3 rounded-xl border text-left transition-all ${
+                                                                    emissionStrategy === 'group'
+                                                                        ? 'border-blue-500 bg-blue-50/55 dark:bg-blue-900/10 shadow-md ring-1 ring-blue-500'
+                                                                        : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-gray-300 dark:hover:border-slate-600'
+                                                                }`}
+                                                            >
+                                                                <div className={`p-2 rounded-lg ${emissionStrategy === 'group' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500 dark:bg-slate-700'}`}>
+                                                                    <Globe size={18} />
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-xs font-bold text-gray-800 dark:text-white">Agrupar em 1 Única Nota</span>
+                                                                        <span className="text-[8px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 font-extrabold px-1.5 py-0.5 rounded-full uppercase">Recomendado</span>
+                                                                    </div>
+                                                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 block mt-0.5 leading-snug">
+                                                                        Soma todos os serviços em 1 atividade consolidada. Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(fullFiscalQuote?.total_amount || 0)}
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEmissionStrategy('split')}
+                                                                className={`flex gap-3 items-center p-3 rounded-xl border text-left transition-all ${
+                                                                    emissionStrategy === 'split'
+                                                                        ? 'border-blue-500 bg-blue-50/55 dark:bg-blue-900/10 shadow-md ring-1 ring-blue-500'
+                                                                        : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-gray-300 dark:hover:border-slate-600'
+                                                                }`}
+                                                            >
+                                                                <div className={`p-2 rounded-lg ${emissionStrategy === 'split' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500 dark:bg-slate-700'}`}>
+                                                                    <Rocket size={18} />
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <span className="text-xs font-bold text-gray-800 dark:text-white block">Desmembrar em {fullFiscalQuote?.items?.length} Notas Fiscais</span>
+                                                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 block mt-0.5 leading-snug">
+                                                                        Gera e emite {fullFiscalQuote?.items?.length} notas individuais consecutivas (uma para cada item de serviço).
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/20">
+                                                <p className="text-xs text-blue-900 dark:text-blue-400 font-medium mb-4">
+                                                    Deseja automatizar o envio após a emissão?
+                                                </p>
+                                                <div className="space-y-3">
+                                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                                        <div className={`p-2 rounded-lg transition-colors ${sendEmail ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'}`}>
+                                                            <Mail size={18} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Enviar por E-mail</p>
+                                                            <p className="text-[10px] text-gray-500">O PDF e XML serão enviados automaticamente</p>
+                                                        </div>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={sendEmail}
+                                                            onChange={(e) => setSendEmail(e.target.checked)}
+                                                            className="w-5 h-5 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                    </label>
+
+                                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                                        <div className={`p-2 rounded-lg transition-colors ${sendWhatsApp ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'}`}>
+                                                            <MessageCircle size={18} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Notificar via WhatsApp</p>
+                                                            <p className="text-[10px] text-gray-500">Enviar link da nota via Evolution API</p>
+                                                        </div>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={sendWhatsApp}
+                                                            onChange={(e) => setSendWhatsApp(e.target.checked)}
+                                                            className="w-5 h-5 rounded-lg border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                                        />
+                                                    </label>
                                                 </div>
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Notificar via WhatsApp</p>
-                                                    <p className="text-[10px] text-gray-500">Enviar link da nota via Evolution API</p>
-                                                </div>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={sendWhatsApp}
-                                                    onChange={(e) => setSendWhatsApp(e.target.checked)}
-                                                    className="w-5 h-5 rounded-lg border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                                                />
-                                            </label>
+                                            </div>
+
+                                            <Button 
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-2xl shadow-lg shadow-blue-500/20 font-bold"
+                                                onClick={() => fiscalQuote && executeEmitFiscal(fiscalQuote)}
+                                            >
+                                                <Rocket className="mr-2" size={20} />
+                                                {(() => {
+                                                    const isServiceOnly = fullFiscalQuote?.items?.every((item: any) => item.service_id);
+                                                    const hasMultipleServices = fullFiscalQuote?.items?.length > 1;
+                                                    const isNacional = (currentCompany?.tecnospeed_config as any)?.nfse_nacional || false;
+                                                    if (isServiceOnly && hasMultipleServices && isNacional) {
+                                                        return emissionStrategy === 'group' 
+                                                            ? 'Confirmar e Emitir Nota Consolidada' 
+                                                            : `Confirmar e Emitir ${fullFiscalQuote?.items?.length} Notas Separadas`;
+                                                    }
+                                                    return 'Confirmar e Emitir Nota Fiscal';
+                                                })()}
+                                            </Button>
                                         </div>
-                                    </div>
+                                    )}
 
-                                    <Button 
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-2xl shadow-lg shadow-blue-500/20 font-bold"
-                                        onClick={() => fiscalQuote && executeEmitFiscal(fiscalQuote)}
-                                    >
-                                        <Rocket className="mr-2" size={20} />
-                                        Confirmar e Emitir Nota Fiscal
-                                    </Button>
-                                </div>
-                            )}
-
-                            {fiscalStatus.status === 'loading' && (
-                                <div className="flex flex-col items-center justify-center py-8">
-                                    <Loader2 size={48} className="animate-spin text-blue-500 mb-4" />
-                                    <p className="text-gray-600 dark:text-gray-300 font-medium">{fiscalStatus.message}</p>
-                                </div>
-                            )}
-
-                            {fiscalStatus.status === 'success' && (
-                                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 rounded-lg">
-                                    <div className="flex gap-3">
-                                        <Check className="text-green-600 shrink-0" size={20} />
-                                        <p className="text-sm text-green-800 dark:text-green-300">{fiscalStatus.message}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {fiscalStatus.status === 'error' && (
-                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
-                                    <div className="flex gap-3">
-                                        <X className="text-red-600 shrink-0" size={20} />
-                                        <div>
-                                            <p className="text-sm font-bold text-red-800 dark:text-red-300">Erro na Emissão</p>
-                                            <p className="text-xs text-red-700 dark:text-red-400 mt-1">{fiscalStatus.message}</p>
+                                    {fiscalStatus.status === 'loading' && (
+                                        <div className="flex flex-col items-center justify-center py-8">
+                                            <Loader2 size={48} className="animate-spin text-blue-500 mb-4" />
+                                            <p className="text-gray-600 dark:text-gray-300 font-medium">{fiscalStatus.message}</p>
                                         </div>
-                                    </div>
-                                </div>
+                                    )}
+
+                                    {fiscalStatus.status === 'success' && (
+                                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 rounded-lg">
+                                            <div className="flex gap-3">
+                                                <Check className="text-green-600 shrink-0" size={20} />
+                                                <p className="text-sm text-green-800 dark:text-green-300">{fiscalStatus.message}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {fiscalStatus.status === 'error' && (
+                                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
+                                            <div className="flex gap-3">
+                                                <X className="text-red-600 shrink-0" size={20} />
+                                                <div>
+                                                    <p className="text-sm font-bold text-red-800 dark:text-red-300">Erro na Emissão</p>
+                                                    <p className="text-xs text-red-700 dark:text-red-400 mt-1">{fiscalStatus.message}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
 
