@@ -1448,7 +1448,7 @@ export function FiscalSettings() {
                                             name="ambiente"
                                             value="homologacao"
                                             checked={config.ambiente === 'homologacao'}
-                                            onChange={(e) => setConfig({ ...config, ambiente: e.target.value })}
+                                            onChange={(e) => setConfig({ ...config, ambiente: e.target.value, use_test_data: true })}
                                             className="text-indigo-600 focus:ring-indigo-500"
                                         />
                                         <span className="text-sm">Homologação (Teste)</span>
