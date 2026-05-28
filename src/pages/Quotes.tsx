@@ -747,7 +747,7 @@ export function Quotes() {
             // Fetch full quote details
             const { data: fullQuote, error: quoteError } = await supabase
                 .from('quotes')
-                .select('*, items:quote_items(*), contact:contact_id(*)')
+                .select('*, items:quote_items(*, service:service_id(codigo_tributacao_nacional)), contact:contact_id(*)')
                 .eq('id', quote.id)
                 .single();
 
@@ -776,7 +776,7 @@ export function Quotes() {
                 
                 if (isNacional) {
                     const invalidItem = fullQuote.items.find((item: any) => {
-                        const code = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code;
+                        const code = item.codigo_tributacao_nacional || item.codigo_tributacao || item.service?.codigo_tributacao_nacional || (currentCompany.tecnospeed_config as any)?.default_taxation_code;
                         return !code || code.replace(/\D/g, '').length !== 9;
                     });
                     if (invalidItem) {
@@ -794,7 +794,7 @@ export function Quotes() {
                     const combinedDesc = fullQuote.items.map((item: any) => `${item.description} (x${item.quantity})`).join(' + ');
                     
                     const firstItem = fullQuote.items[0];
-                    const rawTaxCode = firstItem.codigo_tributacao_nacional || firstItem.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
+                    const rawTaxCode = firstItem.codigo_tributacao_nacional || firstItem.codigo_tributacao || firstItem.service?.codigo_tributacao_nacional || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
                     const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
 
                     const payload: any = {
@@ -856,7 +856,7 @@ export function Quotes() {
                             message: `Enviando Nota ${displayIndex} de ${fullQuote.items.length} ("${item.description}")...` 
                         });
 
-                        const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
+                        const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || item.service?.codigo_tributacao_nacional || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
                         const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
 
                         // Unique id for this sub-emission
@@ -952,7 +952,7 @@ export function Quotes() {
                             };
 
                             if (isNacional) {
-                                const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
+                                const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || item.service?.codigo_tributacao_nacional || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
                                 const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
                                 payloadItem.codigoTributacao = finalNatCode;
                                 payloadItem.codigotributacao = finalNatCode;

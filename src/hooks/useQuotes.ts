@@ -198,12 +198,19 @@ export function useQuotes() {
         // 2. Insert Items
         if (items.length > 0) {
             const itemsToInsert = items.map(item => ({
-                ...item,
                 quote_id: newQuote.id,
+                service_id: item.service_id,
+                product_id: item.product_id,
+                description: item.description,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
                 total_price: item.quantity * item.unit_price,
                 show_in_pdf: item.show_in_pdf !== undefined ? item.show_in_pdf : true,
-                codigo_tributacao: item.codigo_tributacao,
-                codigo_tributacao_nacional: item.codigo_tributacao_nacional
+                ncm: item.ncm,
+                cest: item.cest,
+                origem: item.origem,
+                codigo_servico_municipal: item.codigo_servico_municipal,
+                item_lista_servico: item.item_lista_servico
             }));
 
             const { error: itemsError } = await supabase
@@ -512,9 +519,7 @@ export function useQuotes() {
                 cest: item.cest,
                 origem: item.origem,
                 codigo_servico_municipal: item.codigo_servico_municipal,
-                item_lista_servico: item.item_lista_servico,
-                codigo_tributacao: item.codigo_tributacao,
-                codigo_tributacao_nacional: item.codigo_tributacao_nacional
+                item_lista_servico: item.item_lista_servico
             }));
 
             const { error: insertError } = await supabase
