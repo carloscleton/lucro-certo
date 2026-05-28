@@ -863,9 +863,9 @@ export function Quotes() {
                             },
                             quantidade: 1,
                             itemListaServico: (firstItem.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
-                            codigoTributacao: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                            codigoTributacao: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0'),
                             codigoTributacaoNacional: finalNatCode,
-                            codigotributacao: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                            codigotributacao: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0'),
                             naturezaOperacao: 1
                         }]
                     };
@@ -931,9 +931,9 @@ export function Quotes() {
                                   },
                                   quantidade: item.quantity,
                                   itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
-                                  codigoTributacao: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                                  codigoTributacao: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0'),
                                   codigoTributacaoNacional: finalNatCode,
-                                  codigotributacao: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                                  codigotributacao: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0'),
                                   naturezaOperacao: 1
                             }]
                         };
@@ -998,9 +998,9 @@ export function Quotes() {
                             if (isNacional) {
                                 const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || item.service?.codigo_tributacao_nacional || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
                                 const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
-                                payloadItem.codigoTributacao = (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
+                                payloadItem.codigoTributacao = (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0');
                                 payloadItem.codigoTributacaoNacional = finalNatCode;
-                                payloadItem.codigotributacao = (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
+                                payloadItem.codigotributacao = (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0');
                                 payloadItem.naturezaOperacao = 1;
                             }
 
