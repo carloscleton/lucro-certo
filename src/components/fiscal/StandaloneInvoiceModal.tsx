@@ -327,8 +327,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
             if (type === 'nfse') {
                 const config = currentCompany.tecnospeed_config;
+                const companyCityCode = config?.endereco?.codigoCidade || config?.codigo_municipio || '3106200';
+                
                 payload = {
                     idIntegracao: `AVULSA_${Date.now()}`,
+                    codigoIbge: companyCityCode,
                     prestador: {
                         cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
                         inscricaoMunicipal: config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, ''),
@@ -357,6 +360,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         
                         const item: any = {
                             codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
+                            codigoIbge: companyCityCode,
                             discriminacao: i.description,
                             valor: {
                                 servico: isNaN(val) ? 0 : val,

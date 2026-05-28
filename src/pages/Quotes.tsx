@@ -764,10 +764,12 @@ export function Quotes() {
 
                 const isHomolog = (currentCompany.tecnospeed_config as any)?.ambiente === 'homologacao' || (currentCompany.tecnospeed_config as any)?.use_test_data;
                 const defaultCityCode = isHomolog ? '4115200' : ((currentCompany.tecnospeed_config as any)?.endereco?.codigoCidade || '3106200');
+                const companyCityCode = (currentCompany.tecnospeed_config as any)?.endereco?.codigoCidade || (currentCompany.tecnospeed_config as any)?.codigo_municipio || '3106200';
 
                 // Map to PlugNotas format (NFS-e)
                 const payload: any = {
                     idIntegracao: fullQuote.id,
+                    codigoIbge: companyCityCode,
                     prestador: {
                         cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
                     },
@@ -787,6 +789,7 @@ export function Quotes() {
                     servico: fullQuote.items.map((item: any) => {
                         const payloadItem: any = {
                             codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                            codigoIbge: companyCityCode,
                             descricao: item.description,
                             valor: {
                                 servico: item.unit_price

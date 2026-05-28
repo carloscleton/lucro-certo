@@ -587,12 +587,16 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             item.tomador.endereco.uf = 'MG';
                         }
                     }
-                } else if (item.servico) {
-                    const services = Array.isArray(item.servico) ? item.servico : [item.servico];
-                    services.forEach((s: any) => {
-                        if (!s.codigoIbge && item.codigoIbge) s.codigoIbge = item.codigoIbge;
-                        if (!s.iss) s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
-                    });
+                } else {
+                    const companyIbge = config.endereco?.codigoCidade || config.codigo_municipio || '3106200';
+                    if (!item.codigoIbge) item.codigoIbge = companyIbge;
+                    if (item.servico) {
+                        const services = Array.isArray(item.servico) ? item.servico : [item.servico];
+                        services.forEach((s: any) => {
+                            if (!s.codigoIbge) s.codigoIbge = companyIbge;
+                            if (!s.iss) s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
+                        });
+                    }
                 }
                 return item;
             });
