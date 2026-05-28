@@ -1543,7 +1543,7 @@ export function Quotes() {
                                                 {(quote.status === 'draft' || quote.status === 'sent') && (
                                                     <Tooltip content="Editar Proposta">
                                                         <button
-                                                            onClick={() => navigate(`/dashboard/quotes/${quote.id}/edit`)}
+                                                            onClick={() => navigate(`/dashboard/quotes/${quote.id}`)}
                                                             className="p-1.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-blue-600 rounded-lg transition-all shadow-sm"
                                                         >
                                                             <Edit size={14} />
