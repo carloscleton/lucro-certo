@@ -837,7 +837,8 @@ export function Quotes() {
                         idIntegracao: fullQuote.id,
                         codigoIbge: companyCityCode,
                         prestador: {
-                            cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
+                            cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, ''),
+                            inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || currentCompany.inscricao_municipal || ''
                         },
                         tomador: {
                             cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
@@ -862,8 +863,9 @@ export function Quotes() {
                             },
                             quantidade: 1,
                             itemListaServico: (firstItem.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
-                            codigoTributacao: finalNatCode,
-                            codigotributacao: finalNatCode,
+                            codigoTributacao: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                            codigoTributacaoNacional: finalNatCode,
+                            codigotributacao: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                             naturezaOperacao: 1
                         }]
                     };
@@ -903,7 +905,8 @@ export function Quotes() {
                             idIntegracao: uniqueId,
                             codigoIbge: companyCityCode,
                             prestador: {
-                                cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
+                                cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, ''),
+                                inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || currentCompany.inscricao_municipal || ''
                             },
                             tomador: {
                                 cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
@@ -928,8 +931,9 @@ export function Quotes() {
                                   },
                                   quantidade: item.quantity,
                                   itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
-                                  codigoTributacao: finalNatCode,
-                                  codigotributacao: finalNatCode,
+                                  codigoTributacao: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                                  codigoTributacaoNacional: finalNatCode,
+                                  codigotributacao: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                                   naturezaOperacao: 1
                             }]
                         };
@@ -962,7 +966,8 @@ export function Quotes() {
                         idIntegracao: fullQuote.id,
                         codigoIbge: companyCityCode,
                         prestador: {
-                            cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, '')
+                            cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, ''),
+                            inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || currentCompany.inscricao_municipal || ''
                         },
                         tomador: {
                             cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
@@ -993,8 +998,9 @@ export function Quotes() {
                             if (isNacional) {
                                 const rawTaxCode = item.codigo_tributacao_nacional || item.codigo_tributacao || item.service?.codigo_tributacao_nacional || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
                                 const finalNatCode = rawTaxCode.replace(/\D/g, '').substring(0, 9).padEnd(9, '0');
-                                payloadItem.codigoTributacao = finalNatCode;
-                                payloadItem.codigotributacao = finalNatCode;
+                                payloadItem.codigoTributacao = (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
+                                payloadItem.codigoTributacaoNacional = finalNatCode;
+                                payloadItem.codigotributacao = (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
                                 payloadItem.naturezaOperacao = 1;
                             }
 
@@ -1128,12 +1134,18 @@ export function Quotes() {
                     const detail = data.detail;
                     const innerMsg = detail.error?.message || detail.message || (typeof detail === 'string' ? detail : null);
                     const validationErrors = detail.error?.erros || detail.errors;
+                    const validationFields = detail.error?.data?.fields;
                     
                     if (Array.isArray(validationErrors) && validationErrors.length > 0) {
                         const formattedErrors = validationErrors.map((err: any) => {
                             const field = err.campo || err.field || '';
                             const msg = err.mensagem || err.message || '';
                             return field ? `• ${field}: ${msg}` : `• ${msg}`;
+                        }).join('\n');
+                        displayMessage = `${innerMsg || 'Erro de validação na TecnoSpeed'}:\n${formattedErrors}`;
+                    } else if (validationFields && typeof validationFields === 'object') {
+                        const formattedErrors = Object.entries(validationFields).map(([field, msg]) => {
+                            return `• ${field}: ${msg}`;
                         }).join('\n');
                         displayMessage = `${innerMsg || 'Erro de validação na TecnoSpeed'}:\n${formattedErrors}`;
                     } else if (innerMsg) {
