@@ -838,7 +838,7 @@ export function Quotes() {
                         codigoIbge: companyCityCode,
                         prestador: {
                             cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, ''),
-                            inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || currentCompany.inscricao_municipal || ''
+                            inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || (currentCompany as any).inscricao_municipal || ''
                         },
                         tomador: {
                             cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
@@ -906,7 +906,7 @@ export function Quotes() {
                             codigoIbge: companyCityCode,
                             prestador: {
                                 cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, ''),
-                                inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || currentCompany.inscricao_municipal || ''
+                                inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || (currentCompany as any).inscricao_municipal || ''
                             },
                             tomador: {
                                 cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
@@ -967,7 +967,7 @@ export function Quotes() {
                         codigoIbge: companyCityCode,
                         prestador: {
                             cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || (currentCompany.tecnospeed_config as any)?.cnpj?.replace(/\D/g, ''),
-                            inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || currentCompany.inscricao_municipal || ''
+                            inscricaoMunicipal: (currentCompany.tecnospeed_config as any)?.inscricao_municipal || (currentCompany.tecnospeed_config as any)?.prestador?.inscricaoMunicipal || (currentCompany as any).inscricao_municipal || ''
                         },
                         tomador: {
                             cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
