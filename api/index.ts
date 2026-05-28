@@ -510,8 +510,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const TEST_IM_NACIONAL = '1234567';     // Belo Horizonte (Nacional)
         
         // Se estivermos em Sandbox, a prioridade é FUNCIONAR. 
-        const useTestData = (isLabTest === true) ||
-                          (config.use_test_data === true) || 
+        // O laboratório de teste (isLabTest) não deve forçar dados de teste se o usuário desmarcou a opção de teste e possui certificado.
+        const useTestData = (config.use_test_data === true) || 
                           (isSandbox && !hasCert) || 
                           (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
 
