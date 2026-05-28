@@ -496,30 +496,28 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        const isNacional = config.nfse_nacional || config.nfse?.config?.nfseNacional || false;
-        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
-
-        // --- FLUXO PADRÃO TECNOSPEED ---
+        // --- AUTODESCORBERTA DE CERTIFICADO ---
+        let certId = config.certificado_id || config.certificadoId || config.certificado;
+        const hasCert = !!certId && certId !== 'null' && certId !== 'undefined';
         
         // --- DADOS DO PRESTADOR ---
         const firstItem = Array.isArray(payload) ? payload[0] : payload;
         const targetCnpj = (firstItem?.prestador?.cpfCnpj || '').replace(/\D/g, '');
-
-        // --- AUTODESCORBERTA DE CERTIFICADO ---
-        let certId = config.certificado_id || config.certificadoId || config.certificado;
         
         // --- DETECÇÃO DE MODO TESTE ---
         const TEST_CNPJ = '08187168000160'; 
         const TEST_IM_MUNICIPAL = '8214100099'; // Maringá
         const TEST_IM_NACIONAL = '1234567';     // Belo Horizonte (Nacional)
         
-        const hasCert = !!certId && certId !== 'null' && certId !== 'undefined';
-        
         // Se estivermos em Sandbox, a prioridade é FUNCIONAR. 
         const useTestData = (isLabTest === true) ||
                           (config.use_test_data === true) || 
                           (isSandbox && !hasCert) || 
                           (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
+
+        // Se for dados de teste, forçamos isNacional = false para evitar o erro de "Certificado não encontrado" da PlugNotas no Sandbox Nacional
+        const isNacional = useTestData ? false : (config.nfse_nacional || config.nfse?.config?.nfseNacional || false);
+        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
 
         console.log(`🧾 [FISCAL-EMITIR] Ambiente: ${config.ambiente} | Sandbox: ${isSandbox} | HasCert: ${hasCert} (${certId}) | UseTestData: ${useTestData} | Nacional: ${isNacional}`);
 
