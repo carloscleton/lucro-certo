@@ -518,6 +518,30 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
         console.log(`🧾 [FISCAL-EMITIR] Ambiente: ${config.ambiente} | Sandbox: ${isSandbox} | HasCert: ${hasCert} (${certId}) | UseTestData: ${useTestData} | Nacional: ${isNacional}`);
 
+        // --- ATUALIZAÇÃO DINÂMICA DO SANDBOX NACIONAL VS MUNICIPAL ---
+        if (useTestData && isSandbox) {
+            try {
+                console.log(`🔧 [FISCAL-EMITIR] Configurando nfseNacional: ${isNacional} na TecnoSpeed Sandbox para o CNPJ de Teste (${TEST_CNPJ})...`);
+                await axios.patch(`${baseUrl}/empresa/${TEST_CNPJ}`, {
+                    nfse: {
+                        ativo: true,
+                        config: {
+                            nfseNacional: isNacional
+                        }
+                    }
+                }, {
+                    headers: {
+                        'x-api-key': apiKey,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 5000
+                });
+                console.log(`✅ [FISCAL-EMITIR] Configuração nfseNacional sincronizada com sucesso.`);
+            } catch (patchErr: any) {
+                console.warn(`⚠️ [FISCAL-EMITIR] Falha ao configurar nfseNacional na TecnoSpeed Sandbox:`, patchErr.message);
+            }
+        }
+
         if (targetCnpj) {
             try {
                 console.log(`🔍 [FISCAL-EMITIR] Tentando descobrir certificado oficial para ${targetCnpj}...`);
@@ -857,6 +881,10 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 try {
                     response = await axios.get(`${baseUrl}/empresa/${effectiveCnpjUrl}`, {
                         headers: { 'x-api-key': apiKey }
+                    });
+                    // Se existe, vamos atualizar as configurações para que fiquem sincronizadas (como o nfseNacional)
+                    response = await axios.put(`${baseUrl}/empresa/${effectiveCnpjUrl}`, issuerPayload, {
+                        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
                     });
                 } catch (getErr: any) {
                     if (getErr.response?.status === 404) {
