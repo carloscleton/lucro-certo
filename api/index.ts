@@ -894,6 +894,51 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         } catch (error: any) {
             const errorDetail = error.response?.data || error.message;
             console.error('❌ [FISCAL-SYNC] Erro na TecnoSpeed:', JSON.stringify(errorDetail, null, 2));
+            
+            // --- GRACEFUL BYPASS PARA AMBIENTE DE HOMOLOGAÇÃO ---
+            if (isSandbox) {
+                console.warn('⚠️ [FISCAL-SYNC-SANDBOX-BYPASS] Erro na PlugNotas em homologação. Persistindo configuração no banco local para permitir testes.');
+                
+                if (companyId && SUPABASE_URL) {
+                    try {
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                            tecnospeed_config: config
+                        }, {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY!,
+                                'Authorization': authHeader!,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        console.log('✅ [SANDBOX] Configuração fiscal persistida no Supabase mesmo após erro/conflito na TecnoSpeed.');
+                        
+                        // Invalida todas as chaves do cache local para esta empresa
+                        const cleanCnpj = config.cnpj ? String(config.cnpj).replace(/\D/g, '') : null;
+                        for (const [key, cached] of fiscalConfigCache.entries()) {
+                            if (
+                                key === companyId || 
+                                cached.realCompanyId === companyId || 
+                                (cleanCnpj && (key === cleanCnpj || String(cached.config?.cnpj || '').replace(/\D/g, '') === cleanCnpj))
+                            ) {
+                                fiscalConfigCache.delete(key);
+                            }
+                        }
+                        fiscalConfigCache.delete(companyId);
+                    } catch (dbErr: any) {
+                        console.warn('⚠️ Falha ao salvar config no banco local:', dbErr.message);
+                    }
+                }
+
+                return res.json({
+                    success: true,
+                    message: 'Emitente atualizado localmente com sucesso (Bypass Homologação)',
+                    proxy_version: '1.0.35',
+                    synced_id: issuerPayload.certificado || config.certificado_id || '',
+                    warning: 'O PlugNotas retornou um erro ou conflito (comum ao usar chaves públicas compartilhadas), mas a configuração foi salva no banco local do Lucro Certo. Você pode prosseguir com os testes de emissão.',
+                    detail: errorDetail
+                });
+            }
+
             return res.status(error.response?.status || 500).json({ 
                 error: error.message, 
                 detail: errorDetail 
