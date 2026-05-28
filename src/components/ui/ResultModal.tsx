@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, FileCode, Minus } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, FileCode, Minus, Printer } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
 
@@ -72,6 +72,25 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 20, 200));
     const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 20, 60));
     const handleResetZoom = () => setZoomLevel(100);
+
+    const handlePrintPdf = () => {
+        if (!pdfUrl) return;
+        
+        // 1. Tenta obter o iframe atual que está exibindo o PDF
+        const iframe = document.querySelector('iframe[title="Visualizador de PDF"]') as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                return;
+            } catch (e) {
+                console.warn('Erro ao imprimir iframe direto (possível CORS):', e);
+            }
+        }
+        
+        // 2. Fallback: abre em uma nova aba para impressão nativa
+        window.open(pdfUrl, '_blank');
+    };
 
 
 
@@ -152,12 +171,24 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         {showPdf ? 'Visualizador da Nota (PDF)' : 'Visualizador do Conteúdo (XML)'}
                                     </h3>
                                 </div>
-                                <button 
-                                    onClick={() => { setShowPdf(false); setShowXml(false); }}
-                                    className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                                >
-                                    <X size={20} />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    {showPdf && pdfUrl && (
+                                        <button 
+                                            onClick={handlePrintPdf}
+                                            className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex items-center gap-1.5 text-xs font-bold mr-1"
+                                            title="Imprimir Nota"
+                                        >
+                                            <Printer size={20} />
+                                            <span className="hidden sm:inline">Imprimir</span>
+                                        </button>
+                                    )}
+                                    <button 
+                                        onClick={() => { setShowPdf(false); setShowXml(false); }}
+                                        className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
                             </div>
                             <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-slate-950">
                                 {showPdf ? (
