@@ -788,6 +788,42 @@ export function Quotes() {
                 const defaultCityCode = isHomolog ? '4115200' : ((currentCompany.tecnospeed_config as any)?.endereco?.codigoCidade || '3106200');
                 const companyCityCode = (currentCompany.tecnospeed_config as any)?.endereco?.codigoCidade || (currentCompany.tecnospeed_config as any)?.codigo_municipio || '3106200';
 
+                // 1. Resolução dinâmica do código IBGE do Tomador (Cliente)
+                let tomadorCityCode = defaultCityCode;
+                const contactCep = fullQuote.contact?.zip_code?.replace(/\D/g, '');
+                const contactCity = fullQuote.contact?.city;
+                const contactState = fullQuote.contact?.state;
+
+                if (contactCep && contactCep.length === 8) {
+                    try {
+                        const cepRes = await fetch(`https://viacep.com.br/ws/${contactCep}/json/`);
+                        const cepData = await cepRes.json();
+                        if (!cepData.erro && cepData.ibge) {
+                            tomadorCityCode = cepData.ibge;
+                        }
+                    } catch (err) {
+                        console.warn('Erro ao obter IBGE via CEP:', err);
+                    }
+                }
+
+                if (tomadorCityCode === defaultCityCode && contactCity && contactState) {
+                    try {
+                        const stateCode = contactState.trim().toUpperCase();
+                        const cityRes = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateCode}/municipios`);
+                        const cities = await cityRes.json();
+                        if (Array.isArray(cities)) {
+                            const cleanString = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                            const target = cleanString(contactCity);
+                            const match = cities.find((c: any) => cleanString(c.nome) === target);
+                            if (match) {
+                                tomadorCityCode = String(match.id);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Erro ao obter IBGE via Cidade/UF:', err);
+                    }
+                }
+
                 if (isNacional && fullQuote.items.length > 1 && emissionStrategy === 'group') {
                     // GROUP/CONSOLIDATE STRATEGY
                     const totalVal = fullQuote.items.reduce((acc: number, item: any) => acc + (Number(item.unit_price) * Number(item.quantity)), 0);
@@ -812,7 +848,7 @@ export function Quotes() {
                                 numero: fullQuote.contact?.number || 'S/N',
                                 bairro: fullQuote.contact?.neighborhood || '',
                                 cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
-                                codigoCidade: defaultCityCode,
+                                codigoCidade: tomadorCityCode,
                                 uf: fullQuote.contact?.state || ''
                             }
                         },
@@ -820,6 +856,7 @@ export function Quotes() {
                             codigo: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                             codigoIbge: companyCityCode,
                             descricao: combinedDesc.substring(0, 2000),
+                            discriminacao: combinedDesc.substring(0, 2000),
                             valor: {
                                 servico: totalVal
                             },
@@ -877,22 +914,23 @@ export function Quotes() {
                                     numero: fullQuote.contact?.number || 'S/N',
                                     bairro: fullQuote.contact?.neighborhood || '',
                                     cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
-                                    codigoCidade: defaultCityCode,
+                                    codigoCidade: tomadorCityCode,
                                     uf: fullQuote.contact?.state || ''
                                 }
                             },
                             servico: [{
-                                codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
-                                codigoIbge: companyCityCode,
-                                descricao: item.description,
-                                valor: {
-                                    servico: item.unit_price
-                                },
-                                quantidade: item.quantity,
-                                itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
-                                codigoTributacao: finalNatCode,
-                                codigotributacao: finalNatCode,
-                                naturezaOperacao: 1
+                                  codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
+                                  codigoIbge: companyCityCode,
+                                  descricao: item.description,
+                                  discriminacao: item.description,
+                                  valor: {
+                                      servico: item.unit_price
+                                  },
+                                  quantidade: item.quantity,
+                                  itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
+                                  codigoTributacao: finalNatCode,
+                                  codigotributacao: finalNatCode,
+                                  naturezaOperacao: 1
                             }]
                         };
 
@@ -935,7 +973,7 @@ export function Quotes() {
                                 numero: fullQuote.contact?.number || 'S/N',
                                 bairro: fullQuote.contact?.neighborhood || '',
                                 cep: fullQuote.contact?.zip_code?.replace(/\D/g, ''),
-                                codigoCidade: defaultCityCode,
+                                codigoCidade: tomadorCityCode,
                                 uf: fullQuote.contact?.state || ''
                             }
                         },
@@ -944,6 +982,7 @@ export function Quotes() {
                                 codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                                 codigoIbge: companyCityCode,
                                 descricao: item.description,
+                                discriminacao: item.description,
                                 valor: {
                                     servico: item.unit_price
                                 },
@@ -1080,9 +1119,36 @@ export function Quotes() {
 
         } catch (error: any) {
             console.error('Erro fiscal:', error);
+            
+            let displayMessage = error.message || 'Erro desconhecido na emissão.';
+            
+            if (error.response?.data) {
+                const data = error.response.data;
+                if (data.detail) {
+                    const detail = data.detail;
+                    const innerMsg = detail.error?.message || detail.message || (typeof detail === 'string' ? detail : null);
+                    const validationErrors = detail.error?.erros || detail.errors;
+                    
+                    if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+                        const formattedErrors = validationErrors.map((err: any) => {
+                            const field = err.campo || err.field || '';
+                            const msg = err.mensagem || err.message || '';
+                            return field ? `• ${field}: ${msg}` : `• ${msg}`;
+                        }).join('\n');
+                        displayMessage = `${innerMsg || 'Erro de validação na TecnoSpeed'}:\n${formattedErrors}`;
+                    } else if (innerMsg) {
+                        displayMessage = innerMsg;
+                    } else {
+                        displayMessage = typeof detail === 'object' ? JSON.stringify(detail) : String(detail);
+                    }
+                } else if (data.error) {
+                    displayMessage = data.error;
+                }
+            }
+            
             setFiscalStatus({
                 status: 'error',
-                message: error.response?.data?.error || error.message || 'Erro desconhecido na emissão.'
+                message: displayMessage
             });
         } finally {
             setIsEmittingFiscal(null);
