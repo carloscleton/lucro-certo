@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -109,6 +109,28 @@ export function FiscalSettings() {
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
+
+    const isDirty = useMemo(() => {
+        if (!currentCompany) return false;
+        if (!!currentCompany.fiscal_module_enabled !== moduleEnabled) return true;
+        const savedConfig = currentCompany.tecnospeed_config || {};
+        const keys = Object.keys(config) as (keyof typeof config)[];
+        for (const key of keys) {
+            if (key === 'endereco') {
+                const savedEnd = savedConfig.endereco || {};
+                const currEnd = config.endereco || {};
+                const endKeys = Object.keys(currEnd) as (keyof typeof currEnd)[];
+                for (const ek of endKeys) {
+                    if (String(savedEnd[ek] || '') !== String(currEnd[ek] || '')) return true;
+                }
+            } else {
+                const valA = String(savedConfig[key] || '').trim();
+                const valB = String(config[key] || '').trim();
+                if (valA !== valB) return true;
+            }
+        }
+        return false;
+    }, [config, moduleEnabled, currentCompany]);
 
     // Sincronizar configurações apenas quando a empresa MUDAR de fato (evitar loop)
     const lastCompanyId = useRef<string | null>(null);
@@ -471,6 +493,24 @@ export function FiscalSettings() {
 
     const handleTestJson = async () => {
         if (!testJson.trim()) return;
+        
+        if (isDirty) {
+            setResultModal({
+                isOpen: true,
+                title: 'Alterações não Salvas',
+                message: 'Você possui alterações pendentes nas configurações. Por favor, salve as configurações (no botão azul ou no banner de aviso) antes de executar o teste para garantir que a nota seja emitida com os dados corretos.',
+                type: 'info',
+                action: {
+                    label: 'Salvar Agora',
+                    onClick: async () => {
+                        setResultModal(prev => ({ ...prev, isOpen: false }));
+                        await handleSave();
+                    }
+                }
+            });
+            return;
+        }
+
         setTestingJson(true);
         try {
             const session = await supabase.auth.getSession();
@@ -632,6 +672,23 @@ export function FiscalSettings() {
                 title: 'Aviso',
                 message: 'A sincronização de emitente é exclusiva para empresas.',
                 type: 'info'
+            });
+            return;
+        }
+
+        if (isDirty) {
+            setResultModal({
+                isOpen: true,
+                title: 'Alterações não Salvas',
+                message: 'Você possui alterações pendentes nas configurações. Salve as configurações antes de realizar a sincronização para enviar as informações atualizadas para a TecnoSpeed.',
+                type: 'info',
+                action: {
+                    label: 'Salvar Agora',
+                    onClick: async () => {
+                        setResultModal(prev => ({ ...prev, isOpen: false }));
+                        await handleSave();
+                    }
+                }
             });
             return;
         }
@@ -916,6 +973,26 @@ export function FiscalSettings() {
     return (
         <>
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                {isDirty && (
+                    <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/30 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400">
+                                <AlertCircle size={20} className="animate-bounce" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider leading-none">Alterações pendentes detectadas!</p>
+                                <p className="text-xs text-amber-700 dark:text-amber-500 font-bold mt-1">Você modificou as configurações. Clique em "Salvar" para aplicar as mudanças antes de testar ou sincronizar.</p>
+                            </div>
+                        </div>
+                        <Button 
+                            type="button" 
+                            onClick={handleSave} 
+                            className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl px-5 py-2.5 font-black uppercase text-[10px] tracking-widest shadow-md transition-all self-stretch sm:self-auto text-center justify-center"
+                        >
+                            Salvar Agora
+                        </Button>
+                    </div>
+                )}
                 {/* Módulo Toggle */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <div className="p-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50 flex items-center justify-between">
@@ -1813,9 +1890,13 @@ export function FiscalSettings() {
                                 <RefreshCw size={18} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
                                 Sincronizar Emitente
                             </Button>
-                            <Button type="submit" isLoading={saving} className="bg-indigo-600 hover:bg-indigo-700">
+                            <Button 
+                                type="submit" 
+                                isLoading={saving} 
+                                className={`transition-all duration-300 ${isDirty ? 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                            >
                                 <Save size={18} className="mr-2" />
-                                Salvar Configurações
+                                Salvar Configurações {isDirty && ' (Pendente)'}
                             </Button>
                         </div>
                     </div>
