@@ -451,17 +451,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
     try {
         const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId);
-        if (!config || !config.tecnospeed_api_key) {
-            return res.status(400).json({ error: 'Configuração TecnoSpeed incompleta (API Key ausente).' });
+        if (!config) {
+            return res.status(400).json({ error: 'Configuração fiscal não encontrada.' });
         }
-        const apiKey = sanitizeKey(config.tecnospeed_api_key);
-        const isSandbox = config.ambiente === 'homologacao';
-        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
-        const isNacional = config.nfse_nacional || config.nfse?.config?.nfseNacional || false;
-        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
-        
         // --- MODO EXCLUSIVO: WEBHOOK EXTERNO (JSON RELAY) ---
         if (config.use_external_webhook && config.external_webhook_url) {
             console.log(`🚀 [EXTERNAL-MODE] Enviando payload RAW APENAS para: ${config.external_webhook_url}`);
@@ -493,6 +486,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 });
             }
         }
+
+        // --- FLUXO PADRÃO TECNOSPEED ---
+        if (!config.tecnospeed_api_key) {
+            return res.status(400).json({ error: 'Configuração TecnoSpeed incompleta (API Key ausente).' });
+        }
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+
+        const isNacional = config.nfse_nacional || config.nfse?.config?.nfseNacional || false;
+        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
 
         // --- FLUXO PADRÃO TECNOSPEED ---
         
