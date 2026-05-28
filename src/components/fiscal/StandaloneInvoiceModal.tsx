@@ -310,6 +310,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         const isNacional = currentCompany.tecnospeed_config.nfse_nacional || currentCompany.tecnospeed_config.nfse?.config?.nfseNacional || false;
 
         if (type === 'nfse' && isNacional) {
+            if (items.length > 1) {
+                setError('O padrão NFS-e Nacional permite apenas 1 item de serviço por nota fiscal. Remova os outros itens para prosseguir.');
+                return;
+            }
             const invalidItem = items.find(i => {
                 const code = i.codigoTributacaoNacional || i.taxationCode || i.taxCode;
                 return !code || code.replace(/\D/g, '').length !== 9;
@@ -958,15 +962,21 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 Itens da Nota ({items.length})
                             </h3>
                         </div>
-                        <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={addItem} 
-                            className="h-9 px-4 border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-[10px] uppercase tracking-widest"
-                        >
-                            <Plus size={14} className="mr-1" /> Adicionar Item
-                        </Button>
+                        {type === 'nfse' && isNacional ? (
+                            <span className="text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-4 py-2.5 rounded-xl border border-amber-100 dark:border-amber-950/10 uppercase tracking-widest leading-none">
+                                Limite: 1 item p/ NFS-e Nacional
+                            </span>
+                        ) : (
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={addItem} 
+                                className="h-9 px-4 border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-[10px] uppercase tracking-widest"
+                            >
+                                <Plus size={14} className="mr-1" /> Adicionar Item
+                            </Button>
+                        )}
                     </div>
 
                     <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">

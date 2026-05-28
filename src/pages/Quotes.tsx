@@ -753,6 +753,9 @@ export function Quotes() {
                 const isNacional = (currentCompany.tecnospeed_config as any)?.nfse_nacional || false;
                 
                 if (isNacional) {
+                    if (fullQuote.items.length > 1) {
+                        throw new Error('A Receita Federal proíbe a emissão de NFS-e Nacional com mais de um item de serviço na mesma nota fiscal. Por favor, crie orçamentos separados para cada serviço ou emita no padrão municipal.');
+                    }
                     const invalidItem = fullQuote.items.find((item: any) => {
                         const code = item.codigo_tributacao_nacional || item.codigo_tributacao || (currentCompany.tecnospeed_config as any)?.default_taxation_code;
                         return !code || code.replace(/\D/g, '').length !== 9;
