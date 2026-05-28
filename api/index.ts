@@ -566,6 +566,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const targetIm = isNacional ? '1234567' : '8214100099';
                 
                 if (useTestData) {
+                    delete item.versao;
                     if (item.servico) {
                         const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                         services.forEach((s: any) => {
