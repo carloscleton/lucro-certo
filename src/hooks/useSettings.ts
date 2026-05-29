@@ -23,26 +23,51 @@ export interface UserSettings {
     automation_whatsapp_number?: string;
 }
 
+// In-memory cache to store settings per entity or user
+const settingsCache: Record<string, UserSettings> = {};
+const hasLoadedOnce: Record<string, boolean> = {};
+
 export function useSettings() {
     const { user } = useAuth();
     const { currentEntity } = useEntity();
 
-    const [settings, setSettings] = useState<UserSettings>({
-        quote_validity_days: 7,
-        commission_rate: 0,
-        service_commission_rate: 0,
-        product_commission_rate: 0,
-        automation_financial_reminders: false,
-        automation_financial_time: '08:00',
-        automation_birthday_reminders: false,
-        automation_birthday_time: '09:00',
-        automation_overdue_reminders: false,
-        automation_overdue_time: '10:00'
+    // Safely generate a unique cache key based on active context (company or personal)
+    const cacheKey = currentEntity?.type === 'company' ? currentEntity.id : user?.id || '';
+
+    const [settings, setSettings] = useState<UserSettings>(() => {
+        if (cacheKey && settingsCache[cacheKey]) {
+            return settingsCache[cacheKey];
+        }
+        return {
+            quote_validity_days: 7,
+            commission_rate: 0,
+            service_commission_rate: 0,
+            product_commission_rate: 0,
+            automation_financial_reminders: false,
+            automation_financial_time: '08:00',
+            automation_birthday_reminders: false,
+            automation_birthday_time: '09:00',
+            automation_overdue_reminders: false,
+            automation_overdue_time: '10:00'
+        };
     });
-    const [loading, setLoading] = useState(true);
+
+    const [loading, setLoading] = useState(() => {
+        if (cacheKey && hasLoadedOnce[cacheKey]) {
+            return false;
+        }
+        return true;
+    });
 
     useEffect(() => {
         if (user && currentEntity) {
+            const key = (currentEntity.type === 'company' ? currentEntity.id : user.id) as string;
+            if (settingsCache[key]) {
+                setSettings(settingsCache[key]);
+                setLoading(false);
+            } else {
+                setLoading(true);
+            }
             fetchSettings();
         } else {
             setSettings({
@@ -57,11 +82,19 @@ export function useSettings() {
                 automation_overdue_reminders: false,
                 automation_overdue_time: '10:00'
             });
+            setLoading(false);
         }
     }, [user, currentEntity]);
 
     const fetchSettings = async () => {
-        setLoading(true);
+        const key = (currentEntity?.type === 'company' ? currentEntity.id : user?.id) as string;
+        if (!key) return;
+
+        // SWR: Only show loader spinner on initial fetch. Subsequent refetches happen silently in the background
+        if (!hasLoadedOnce[key]) {
+            setLoading(true);
+        }
+
         try {
             if (currentEntity.type === 'company') {
                 const { data, error } = await supabase
@@ -76,7 +109,7 @@ export function useSettings() {
 
                 if (data?.settings && Object.keys(data.settings).length > 0) {
                     const s = data.settings;
-                    setSettings({
+                    const loaded = {
                         quote_validity_days: s.quote_validity_days ?? 7,
                         commission_rate: s.commission_rate ?? 0,
                         service_commission_rate: s.service_commission_rate ?? 0,
@@ -94,9 +127,12 @@ export function useSettings() {
                         automation_overdue_prompt: s.automation_overdue_prompt ?? '',
                         automation_overdue_template: s.automation_overdue_template ?? '',
                         automation_whatsapp_number: s.automation_whatsapp_number ?? ''
-                    });
+                    };
+                    settingsCache[key] = loaded;
+                    hasLoadedOnce[key] = true;
+                    setSettings(loaded);
                 } else {
-                    setSettings({
+                    const defaults = {
                         quote_validity_days: 7,
                         commission_rate: 0,
                         service_commission_rate: 0,
@@ -107,7 +143,10 @@ export function useSettings() {
                         automation_birthday_time: '09:00',
                         automation_overdue_reminders: false,
                         automation_overdue_time: '10:00'
-                    });
+                    };
+                    settingsCache[key] = defaults;
+                    hasLoadedOnce[key] = true;
+                    setSettings(defaults);
                 }
             } else {
                 const { data, error } = await supabase
@@ -117,7 +156,7 @@ export function useSettings() {
                     .single();
 
                 if (data) {
-                    setSettings({
+                    const loaded = {
                         quote_validity_days: data.quote_validity_days ?? 7,
                         commission_rate: data.commission_rate ?? 0,
                         service_commission_rate: data.service_commission_rate ?? 0,
@@ -135,9 +174,12 @@ export function useSettings() {
                         automation_overdue_prompt: data.automation_overdue_prompt ?? '',
                         automation_overdue_template: data.automation_overdue_template ?? '',
                         automation_whatsapp_number: data.automation_whatsapp_number ?? ''
-                    });
+                    };
+                    settingsCache[key] = loaded;
+                    hasLoadedOnce[key] = true;
+                    setSettings(loaded);
                 } else {
-                    setSettings({
+                    const defaults = {
                         quote_validity_days: 7,
                         commission_rate: 0,
                         service_commission_rate: 0,
@@ -148,7 +190,10 @@ export function useSettings() {
                         automation_birthday_time: '09:00',
                         automation_overdue_reminders: false,
                         automation_overdue_time: '10:00'
-                    });
+                    };
+                    settingsCache[key] = defaults;
+                    hasLoadedOnce[key] = true;
+                    setSettings(defaults);
                     if (!error || error.code === 'PGRST116') {
                         await supabase.from('user_settings').insert([{ user_id: user!.id }]);
                     }
@@ -163,6 +208,7 @@ export function useSettings() {
 
     const updateSettings = async (newSettings: Partial<UserSettings>) => {
         try {
+            const key = currentEntity?.type === 'company' ? currentEntity.id : user?.id;
             if (currentEntity.type === 'company') {
                 const { data: currentData } = await supabase
                     .from('companies')
@@ -179,6 +225,9 @@ export function useSettings() {
                     .eq('id', currentEntity.id);
 
                 if (error) throw error;
+                if (key) {
+                    settingsCache[key] = { ...settingsCache[key], ...newSettings };
+                }
                 await fetchSettings(); // Refresh to ensure state is sync
             } else {
                 const { error } = await supabase
@@ -187,10 +236,19 @@ export function useSettings() {
                     .eq('user_id', user!.id);
 
                 if (error) throw error;
+                if (key) {
+                    settingsCache[key] = { ...settingsCache[key], ...newSettings };
+                }
                 await fetchSettings();
             }
 
-            setSettings(prev => ({ ...prev, ...newSettings }));
+            setSettings(prev => {
+                const updated = { ...prev, ...newSettings };
+                if (key) {
+                    settingsCache[key] = updated;
+                }
+                return updated;
+            });
             return { error: null };
         } catch (error) {
             console.error('Error updating settings:', error);
