@@ -44,27 +44,19 @@ export function FiscalSettings() {
         isOpen: boolean;
         steps: { title: string; status: 'pending' | 'loading' | 'success' | 'error'; msg?: string }[];
         logs: string[];
-    }>({
-        isOpen: false,
-        steps: [],
-        logs: []
+    }>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_diag_${currentEntity.id}`) : null;
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return { isOpen: false, steps: [], logs: [] };
+            }
+        }
+        return { isOpen: false, steps: [], logs: [] };
     });
 
     const [testingJson, setTestingJson] = useState(false);
-
-    // Persistência do diagnóstico em caso de troca de aba ou refresh
-    useEffect(() => {
-        if (!currentEntity.id) return;
-        const saved = sessionStorage.getItem(`fiscal_diag_${currentEntity.id}`);
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                setDiagnostic(parsed);
-            } catch (e) {
-                sessionStorage.removeItem(`fiscal_diag_${currentEntity.id}`);
-            }
-        }
-    }, [currentEntity.id]);
 
     useEffect(() => {
         if (!currentEntity.id) return;
@@ -202,24 +194,58 @@ export function FiscalSettings() {
             label: string;
             onClick: () => void;
         };
-    }>({
-        isOpen: false,
-        title: '',
-        message: '',
-        type: 'info'
+    }>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_result_modal_${currentEntity.id}`) : null;
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return { isOpen: false, title: '', message: '', type: 'info' };
+            }
+        }
+        return { isOpen: false, title: '', message: '', type: 'info' };
     });
     const [lastTestResult, setLastTestResult] = useState<any>(null);
 
     const lastLoadedEntityId = useRef<string | null>(null);
 
     // Cidades e Homologação TecnoSpeed
-    const [searchUf, setSearchUf] = useState('RN');
-    const [searchCityQuery, setSearchCityQuery] = useState('');
+    const [searchUf, setSearchUf] = useState(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_searchUf_${currentEntity.id}`) : null;
+        return saved || 'RN';
+    });
+    const [searchCityQuery, setSearchCityQuery] = useState(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_searchCityQuery_${currentEntity.id}`) : null;
+        return saved || '';
+    });
     const [citiesList, setCitiesList] = useState<{ id: string; nome: string }[]>([]);
     const [loadingCitiesList, setLoadingCitiesList] = useState(false);
-    const [selectedSearchCity, setSelectedSearchCity] = useState<{ id: string; nome: string } | null>(null);
-    const [tecnoSpeedCityInfo, setTecnoSpeedCityInfo] = useState<any>(null);
-    const [cityNotHomologatedMessage, setCityNotHomologatedMessage] = useState<string | null>(null);
+    const [selectedSearchCity, setSelectedSearchCity] = useState<{ id: string; nome: string } | null>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_selectedSearchCity_${currentEntity.id}`) : null;
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    });
+    const [tecnoSpeedCityInfo, setTecnoSpeedCityInfo] = useState<any>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_tecnoSpeedCityInfo_${currentEntity.id}`) : null;
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    });
+    const [cityNotHomologatedMessage, setCityNotHomologatedMessage] = useState<string | null>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_cityNotHomologatedMessage_${currentEntity.id}`) : null;
+        return saved || null;
+    });
     const [searchingCityTecnoSpeed, setSearchingCityTecnoSpeed] = useState(false);
     const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
     const cityDropdownRef = useRef<HTMLDivElement>(null);
@@ -235,38 +261,6 @@ export function FiscalSettings() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    // Persistência dos estados de busca de cidade
-    useEffect(() => {
-        if (!currentEntity.id) return;
-        
-        const uf = sessionStorage.getItem(`fiscal_searchUf_${currentEntity.id}`);
-        if (uf) setSearchUf(uf);
-        
-        const query = sessionStorage.getItem(`fiscal_searchCityQuery_${currentEntity.id}`);
-        if (query) setSearchCityQuery(query);
-        
-        const selCity = sessionStorage.getItem(`fiscal_selectedSearchCity_${currentEntity.id}`);
-        if (selCity) {
-            try {
-                setSelectedSearchCity(JSON.parse(selCity));
-            } catch (e) {
-                sessionStorage.removeItem(`fiscal_selectedSearchCity_${currentEntity.id}`);
-            }
-        }
-        
-        const cityInfo = sessionStorage.getItem(`fiscal_tecnoSpeedCityInfo_${currentEntity.id}`);
-        if (cityInfo) {
-            try {
-                setTecnoSpeedCityInfo(JSON.parse(cityInfo));
-            } catch (e) {
-                sessionStorage.removeItem(`fiscal_tecnoSpeedCityInfo_${currentEntity.id}`);
-            }
-        }
-        
-        const warningMsg = sessionStorage.getItem(`fiscal_cityNotHomologatedMessage_${currentEntity.id}`);
-        if (warningMsg) setCityNotHomologatedMessage(warningMsg);
-    }, [currentEntity.id]);
 
     useEffect(() => {
         if (!currentEntity.id) return;
@@ -387,21 +381,7 @@ export function FiscalSettings() {
         }
     };
 
-    // Persistência do Modal de Resultado (para não fechar ao navegar)
-    useEffect(() => {
-        if (!currentEntity.id || currentEntity.id === lastLoadedEntityId.current) return;
-        
-        const saved = sessionStorage.getItem(`fiscal_result_modal_${currentEntity.id}`);
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                setResultModal(parsed);
-                lastLoadedEntityId.current = currentEntity.id;
-            } catch (e) {
-                sessionStorage.removeItem(`fiscal_result_modal_${currentEntity.id}`);
-            }
-        }
-    }, [currentEntity.id]);
+
 
     useEffect(() => {
         if (!currentEntity.id) return;
