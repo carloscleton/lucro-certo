@@ -11,6 +11,24 @@ import { DiagnosticModal } from '../ui/DiagnosticModal';
 import { Tooltip } from '../ui/Tooltip';
 import { API_BASE_URL } from '../../lib/constants';
 
+const extractTecnoSpeedError = (err: any) => {
+    const responseData = err.response?.data;
+    
+    if (responseData?.detail) {
+        const detail = responseData.detail;
+        if (detail?.error) return detail.error;
+        if (detail?.message) return detail;
+        return typeof detail === 'object' ? detail : { message: String(detail) };
+    }
+    
+    if (responseData?.error) {
+        if (typeof responseData.error === 'object') return responseData.error;
+        return { message: responseData.error, data: responseData.data };
+    }
+    
+    return { message: responseData?.message || err.message || 'Erro desconhecido' };
+};
+
 export function FiscalSettings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies, updateCompany } = useCompanies();
@@ -266,8 +284,7 @@ export function FiscalSettings() {
             setTecnoSpeedCityInfo(result.data || result);
         } catch (err: any) {
             console.error('Erro ao consultar cidade na TecnoSpeed:', err);
-            const data = err.response?.data;
-            const nestedError = data?.error || data?.detail;
+            const nestedError = extractTecnoSpeedError(err);
             
             if (nestedError && nestedError.data) {
                 // É um erro contendo os metadados da cidade (ex: Não Homologada)
@@ -275,15 +292,14 @@ export function FiscalSettings() {
                 setCityNotHomologatedMessage(nestedError.message || 'Município não homologado na TecnoSpeed no momento.');
             } else {
                 // Outro erro de conexão ou genérico
-                const msg = typeof nestedError === 'object' ? JSON.stringify(nestedError) : (nestedError || err.message);
                 setResultModal({
                     isOpen: true,
                     title: 'Erro na Consulta',
-                    message: 'Não foi possível obter os dados da cidade consultada.',
+                    message: nestedError.message || 'Não foi possível obter os dados da cidade consultada.',
                     type: 'error',
-                    data: {
-                        'Detalhe Técnico': msg
-                    }
+                    data: nestedError.data ? {
+                        'Dados Técnicos': nestedError.data
+                    } : undefined
                 });
             }
         } finally {
@@ -987,30 +1003,15 @@ export function FiscalSettings() {
             });
         } catch (error: any) {
             console.error('Check city national status error:', error);
-            const data = error.response?.data;
-            const nestedError = data?.error || data?.detail;
-            
-            let message = 'Não foi possível verificar a disponibilidade da cidade no Padrão Nacional.';
-            let technicalDetail = '';
-            
-            if (nestedError) {
-                if (typeof nestedError === 'object') {
-                    message = nestedError.message || message;
-                    technicalDetail = JSON.stringify(nestedError.data || nestedError, null, 2);
-                } else {
-                    message = String(nestedError);
-                }
-            } else {
-                message = error.message || message;
-            }
+            const nestedError = extractTecnoSpeedError(error);
             
             setResultModal({
                 isOpen: true,
                 title: 'Erro na Consulta',
-                message: message,
+                message: nestedError.message || 'Não foi possível verificar a disponibilidade da cidade no Padrão Nacional.',
                 type: 'error',
-                data: technicalDetail ? {
-                    'Detalhes Adicionais': technicalDetail
+                data: nestedError.data ? {
+                    'Dados Retornados': nestedError.data
                 } : undefined
             });
         } finally {
