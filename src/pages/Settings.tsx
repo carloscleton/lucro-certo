@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -245,19 +245,30 @@ export function Settings() {
         }
     }, [appSettings]);
 
+    const rootRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        const getScrollContainer = () => {
-            return document.querySelector('main > div') || document.querySelector('[class*="content"]');
+        if (!rootRef.current) return;
+
+        // Encontra recursivamente o container ancestral que possui rolagem vertical ativa
+        const getScrollParent = (node: HTMLElement | null): HTMLElement | null => {
+            if (!node) return null;
+            const overflowY = window.getComputedStyle(node).overflowY;
+            const isScrollable = overflowY === 'auto' || overflowY === 'scroll';
+            if (isScrollable) return node;
+            return getScrollParent(node.parentElement);
         };
 
-        const container = getScrollContainer();
+        const container = getScrollParent(rootRef.current);
         if (!container) return;
 
         // Restaura a posição anterior do scroll para a aba ativa da empresa ativa
         const savedScroll = sessionStorage.getItem(`settings_scroll_${currentEntity.id}_${activeTab}`);
         if (savedScroll) {
             const scrollTop = parseInt(savedScroll, 10);
-            if (!isNaN(scrollTop)) {
+            if (!scrollTop) {
+                container.scrollTop = 0;
+            } else if (!isNaN(scrollTop)) {
                 // Pequeno delay para garantir que o layout da aba e os sub-componentes (como os cards) já renderizaram e tomaram tamanho na tela
                 const timer = setTimeout(() => {
                     container.scrollTop = scrollTop;
@@ -495,7 +506,7 @@ export function Settings() {
     if (loading) return <div className="p-6">{t('settings.loading')}</div>;
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto pb-20">
+        <div ref={rootRef} className="space-y-6 max-w-6xl mx-auto pb-20">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
