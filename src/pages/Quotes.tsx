@@ -1288,88 +1288,88 @@ export function Quotes() {
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
+        <div className="space-y-5 animate-in fade-in duration-700">
             {/* HEADER SECTION */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h1 className="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Orçamentos</h1>
-                    <p className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Gestão de Propostas e Faturamento Comercial</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-slate-800">
+                <div className="text-left">
+                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Orçamentos</h1>
+                    <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-[0.15em] mt-1">Gestão de Propostas e Faturamento Comercial</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                     <Button 
                         onClick={() => navigate('/dashboard/quotes/new')}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 py-3 shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-5 py-2.5 shadow-md shadow-emerald-500/10 font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center"
                     >
-                        <Plus size={20} className="mr-2" />
+                        <Plus size={16} className="mr-1.5" />
                         Nova Proposta
                     </Button>
                 </div>
             </div>
 
             {/* PREMIUM STATS GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-lg shadow-gray-200/20 dark:shadow-none transition-all group hover:scale-[1.01]">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl group-hover:rotate-12 transition-transform">
-                            <DollarSign size={20} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-slate-800 p-4 px-5 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all group hover:scale-[1.01]">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg group-hover:rotate-12 transition-transform">
+                            <DollarSign size={16} />
                         </div>
-                        <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 rounded-full">Proposto</span>
+                        <span className="text-[8px] font-black text-blue-600 uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">Proposto</span>
                     </div>
-                    <div className="space-y-0.5">
-                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider leading-none">Total em Propostas</h3>
-                        <p className="text-2xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalValue)}</p>
+                    <div className="space-y-0.5 text-left">
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-wider leading-none">Total em Propostas</h3>
+                        <p className="text-xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalValue)}</p>
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-lg shadow-gray-200/20 dark:shadow-none transition-all group hover:scale-[1.01]">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl group-hover:-rotate-12 transition-transform">
-                            <Trash2 size={20} />
+                <div className="bg-white dark:bg-slate-800 p-4 px-5 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all group hover:scale-[1.01]">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="p-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-lg group-hover:-rotate-12 transition-transform">
+                            <Trash2 size={16} />
                         </div>
-                        <span className="text-[9px] font-black text-rose-600 uppercase tracking-wider bg-rose-50 dark:bg-rose-900/30 px-2.5 py-0.5 rounded-full">Despesas</span>
+                        <span className="text-[8px] font-black text-rose-600 uppercase tracking-wider bg-rose-50 dark:bg-rose-900/30 px-2 py-0.5 rounded-full">Despesas</span>
                     </div>
-                    <div className="space-y-0.5">
-                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider leading-none">Despesas Vinculadas</h3>
-                        <p className="text-2xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalExpense)}</p>
+                    <div className="space-y-0.5 text-left">
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-wider leading-none">Despesas Vinculadas</h3>
+                        <p className="text-xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalExpense)}</p>
                     </div>
                 </div>
 
-                <div className="bg-emerald-600 p-5 rounded-3xl shadow-xl shadow-emerald-600/20 transition-all group hover:scale-[1.01]">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-2 bg-white/20 text-white rounded-xl group-hover:scale-110 transition-transform">
-                            <Rocket size={20} />
+                <div className="bg-emerald-600 p-4 px-5 rounded-2xl shadow-md shadow-emerald-600/10 transition-all group hover:scale-[1.01]">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="p-1.5 bg-white/20 text-white rounded-lg group-hover:scale-110 transition-transform">
+                            <Rocket size={16} />
                         </div>
-                        <span className="text-[9px] font-black text-white uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">Líquido</span>
+                        <span className="text-[8px] font-black text-white uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">Líquido</span>
                     </div>
-                    <div className="space-y-0.5">
-                        <h3 className="text-xs font-black text-emerald-100 uppercase tracking-wider leading-none">Lucro Projetado</h3>
-                        <p className="text-2xl font-black text-white italic tracking-tighter tabular-nums">{formatCurrency(totalProfit)}</p>
+                    <div className="space-y-0.5 text-left">
+                        <h3 className="text-[10px] font-black text-emerald-100 uppercase tracking-wider leading-none">Lucro Projetado</h3>
+                        <p className="text-xl font-black text-white italic tracking-tighter tabular-nums">{formatCurrency(totalProfit)}</p>
                     </div>
                 </div>
             </div>
 
             {/* Search and Toggle Row */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 py-2">
-                <div className="relative flex-1 max-w-2xl">
-                    <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
+                <div className="relative flex-1 max-w-xl text-left">
+                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                         type="text"
                         placeholder="Pesquisar propostas por título ou nome do cliente..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-800 border-2 border-gray-50 dark:border-slate-700 rounded-3xl py-4 pl-14 pr-6 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-sm outline-none"
+                        className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl py-2 pl-10 pr-4 text-xs font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-sm outline-none"
                     />
                 </div>
-                <div className="flex bg-gray-50 dark:bg-slate-900 p-1.5 rounded-2xl self-start border border-gray-100 dark:border-slate-800">
+                <div className="flex bg-gray-50 dark:bg-slate-900 p-1 rounded-xl self-start sm:self-auto border border-gray-100 dark:border-slate-800">
                     <button
                         onClick={() => setViewMode('default')}
-                        className={`px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${viewMode === 'default' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-md' : 'text-gray-400'}`}
+                        className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${viewMode === 'default' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-gray-400'}`}
                     >
                         Propostas Ativas
                     </button>
                     <button
                         onClick={() => setViewMode('recovery')}
-                        className={`px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${viewMode === 'recovery' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-md' : 'text-gray-400'}`}
+                        className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${viewMode === 'recovery' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-gray-400'}`}
                     >
                         Recuperação
                     </button>
@@ -1378,12 +1378,12 @@ export function Quotes() {
 
             {/* Filter Bar */}
             {viewMode === 'default' && (
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 flex flex-wrap items-end gap-6 shadow-sm">
-                    <div className="flex-1 min-w-[300px] grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Data Inicial</label>
+                <div className="bg-white dark:bg-slate-800 p-4 px-5 rounded-2xl border border-gray-100 dark:border-slate-800 flex flex-wrap items-center gap-4 shadow-sm">
+                    <div className="flex-1 min-w-[280px] grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1 text-left">
+                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Data Inicial</label>
                             <div className="relative">
-                                <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <Calendar size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="date"
                                     value={startDate}
@@ -1392,15 +1392,15 @@ export function Quotes() {
                                         setShowAll(false);
                                         updateFilters({ start: e.target.value, all: false });
                                     }}
-                                    className="w-full bg-gray-50 dark:bg-slate-900 border-none rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl py-2 pl-10 pr-3 text-xs font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
                                     disabled={showAll}
                                 />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Data Final</label>
+                        <div className="space-y-1 text-left">
+                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Data Final</label>
                             <div className="relative">
-                                <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <Calendar size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="date"
                                     value={endDate}
@@ -1409,13 +1409,13 @@ export function Quotes() {
                                         setShowAll(false);
                                         updateFilters({ end: e.target.value, all: false });
                                     }}
-                                    className="w-full bg-gray-50 dark:bg-slate-900 border-none rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl py-2 pl-10 pr-3 text-xs font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
                                     disabled={showAll}
                                 />
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900 px-6 py-3 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900 px-4 py-2 rounded-xl border border-gray-100 dark:border-slate-800 cursor-pointer hover:bg-gray-100/70 transition-colors mt-4 md:mt-0">
                         <input
                             type="checkbox"
                             id="showAll"
@@ -1424,9 +1424,9 @@ export function Quotes() {
                                 setShowAll(e.target.checked);
                                 updateFilters({ all: e.target.checked });
                             }}
-                            className="w-5 h-5 rounded-lg border-gray-300 text-emerald-600 focus:ring-emerald-500 transition-all"
+                            className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 transition-all cursor-pointer"
                         />
-                        <label htmlFor="showAll" className="text-xs font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
+                        <label htmlFor="showAll" className="text-[10px] font-black text-gray-500 uppercase tracking-wider cursor-pointer select-none">
                             Ver Histórico Completo
                         </label>
                     </div>
@@ -1441,87 +1441,87 @@ export function Quotes() {
             )}
 
             {filteredQuotes.length === 0 ? (
-                <div className="text-center py-24 bg-white dark:bg-slate-800 rounded-[3rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-200/20">
-                    <div className="w-24 h-24 bg-gray-50 dark:bg-slate-900 rounded-[2.5rem] flex items-center justify-center mx-auto text-gray-300 mb-6">
-                        <FileText size={48} />
+                <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-md shadow-gray-200/10">
+                    <div className="w-16 h-16 bg-gray-50 dark:bg-slate-900 rounded-xl flex items-center justify-center mx-auto text-gray-300 mb-4">
+                        <FileText size={32} />
                     </div>
-                    <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic mb-2">Nenhum orçamento encontrado</h3>
-                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest max-w-xs mx-auto mb-8">
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter italic mb-1">Nenhum orçamento encontrado</h3>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest max-w-xs mx-auto mb-6">
                         {showAll ? "Puxa, você ainda não criou nenhuma proposta comercial." : "Nenhum orçamento localizado para este período."}
                     </p>
                     {showAll && (
                         <Button 
                             onClick={() => navigate('/dashboard/quotes/new')}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-10 py-4 shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 py-2.5 shadow-md shadow-emerald-500/10 font-black uppercase tracking-widest text-[10px] md:text-xs"
                         >
-                            <Plus size={20} className="mr-2" />
+                            <Plus size={16} className="mr-1.5" />
                             Criar Primeira Proposta
                         </Button>
                     )}
                 </div>
             ) : (
-                <div className="bg-white dark:bg-slate-800 rounded-[3rem] border border-gray-100 dark:border-slate-800 shadow-2xl shadow-gray-200/40 dark:shadow-none overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-md shadow-gray-200/10 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-gray-50 dark:border-slate-700">
-                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Data de Emissão</th>
-                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cliente / Projeto</th>
-                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Responsável</th>
-                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Análise de Lucro</th>
-                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">Status</th>
-                                    <th className="py-6 px-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Ações</th>
+                                <tr className="border-b border-gray-50 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/30">
+                                    <th className="py-4 px-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Data de Emissão</th>
+                                    <th className="py-4 px-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cliente / Projeto</th>
+                                    <th className="py-4 px-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Responsável</th>
+                                    <th className="py-4 px-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Análise de Lucro</th>
+                                    <th className="py-4 px-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">Status</th>
+                                    <th className="py-4 px-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-slate-700">
                                 {filteredQuotes.map((quote) => (
                                     <tr key={quote.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-all duration-300">
-                                        <td className="py-6 px-8 whitespace-nowrap">
-                                            <div className="flex flex-col">
+                                        <td className="py-3 px-6 whitespace-nowrap">
+                                            <div className="flex flex-col text-left">
                                                 <span className="text-xs font-black text-gray-900 dark:text-white tracking-tighter italic">
                                                     {new Date(quote.created_at).toLocaleDateString()}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
                                                     #{quote.quote_number || quote.id.slice(0, 8)}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="py-6 px-8">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight truncate max-w-[220px]">
+                                        <td className="py-3 px-6">
+                                            <div className="flex flex-col text-left">
+                                                <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight truncate max-w-[220px]">
                                                     {quote.contact?.name || 'Cliente Geral'}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 truncate max-w-[200px]">
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5 truncate max-w-[200px]">
                                                     {quote.title}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="py-6 px-8 whitespace-nowrap">
+                                        <td className="py-3 px-6 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-black text-gray-500 uppercase">
+                                                <div className="w-6 h-6 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-[9px] font-black text-gray-500 uppercase">
                                                     {members.find(m => m.user_id === quote.user_id)?.profile.full_name.charAt(0) || '?'}
                                                 </div>
-                                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                                <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
                                                     {members.find(m => m.user_id === quote.user_id)?.profile.full_name.split(' ')[0] || '-'}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="py-6 px-8 text-right whitespace-nowrap">
-                                            <div className="flex flex-col items-end gap-1.5">
+                                        <td className="py-3 px-6 text-right whitespace-nowrap">
+                                            <div className="flex flex-col items-end gap-1">
                                                 <div className="flex items-center gap-2 leading-none">
-                                                    <span className="text-sm font-black text-gray-900 dark:text-white italic tabular-nums">{formatCurrency(quote.total_amount)}</span>
+                                                    <span className="text-xs font-black text-gray-900 dark:text-white italic tabular-nums">{formatCurrency(quote.total_amount)}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-xl border border-emerald-100 dark:border-emerald-800">
-                                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest italic">Lucro:</span>
-                                                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                                <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                                                    <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest italic">Lucro:</span>
+                                                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
                                                         {formatCurrency(quote.total_amount - (quoteExpenses[quote.id] || 0))}
                                                     </span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-6 px-8 text-center">
-                                            <div className="flex flex-col items-center gap-2">
-                                                <span className={`inline-flex items-center px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.15em] border shadow-sm ${
+                                        <td className="py-3 px-6 text-center">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.15em] border shadow-sm ${
                                                     quote.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                                                     quote.status === 'sent' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                                                     quote.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
@@ -1535,7 +1535,7 @@ export function Quotes() {
                                                     </span>
                                                 )}
                                                 {quote.status === 'approved' && quote.payment_status === 'paid' && (
-                                                    <div className="flex flex-col items-center gap-1">
+                                                    <div className="flex flex-col items-center gap-0.5">
                                                         <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
                                                             Liquidação Confirmada
                                                         </span>
@@ -1549,8 +1549,8 @@ export function Quotes() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="py-6 px-8 text-right">
-                                            <div className="flex items-center justify-end gap-2 transition-opacity duration-300">
+                                        <td className="py-3 px-6 text-right">
+                                            <div className="flex items-center justify-end gap-1.5">
                                                 {/* Edit Button */}
                                                 {(quote.status === 'draft' || quote.status === 'sent') && (
                                                     <Tooltip content="Editar Proposta">
@@ -1618,9 +1618,9 @@ export function Quotes() {
                                                     <Tooltip content="Aprovar Proposta">
                                                         <button
                                                             onClick={() => handleApproveClick(quote)}
-                                                            className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all shadow-sm"
+                                                            className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all shadow-sm"
                                                         >
-                                                            <Check size={16} />
+                                                            <Check size={14} />
                                                         </button>
                                                     </Tooltip>
                                                 )}
@@ -1630,9 +1630,9 @@ export function Quotes() {
                                                     <Tooltip content="Pagamento / Link">
                                                         <button
                                                             onClick={async () => handleApproveClick(quote)}
-                                                            className="p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20"
+                                                            className="p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-md shadow-emerald-500/10"
                                                         >
-                                                            <CreditCard size={16} />
+                                                            <CreditCard size={14} />
                                                         </button>
                                                     </Tooltip>
                                                 )}
@@ -1642,9 +1642,9 @@ export function Quotes() {
                                                     <Tooltip content="Recuperar / Agendar">
                                                         <button
                                                             onClick={() => handleOpenRecovery(quote)}
-                                                            className="p-2.5 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-all shadow-sm"
+                                                            className="p-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-all shadow-sm"
                                                         >
-                                                            <CalendarClock size={16} />
+                                                            <CalendarClock size={14} />
                                                         </button>
                                                     </Tooltip>
                                                 )}
@@ -1657,9 +1657,9 @@ export function Quotes() {
                                                             navigator.clipboard.writeText(url);
                                                             notify('success', 'Copiado', 'Link da proposta copiado!');
                                                         }}
-                                                        className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all shadow-sm"
+                                                        className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all shadow-sm"
                                                     >
-                                                        <Rocket size={16} />
+                                                        <Rocket size={14} />
                                                     </button>
                                                 </Tooltip>
 
@@ -1667,9 +1667,9 @@ export function Quotes() {
                                                 <Tooltip content="Imprimir">
                                                     <button
                                                         onClick={() => navigate(`/dashboard/quotes/${quote.id}/print`)}
-                                                        className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-gray-600 rounded-xl transition-all shadow-sm"
+                                                        className="p-1.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-gray-600 rounded-lg transition-all shadow-sm"
                                                     >
-                                                        <Printer size={16} />
+                                                        <Printer size={14} />
                                                     </button>
                                                 </Tooltip>
 
@@ -1677,9 +1677,9 @@ export function Quotes() {
                                                 <Tooltip content="Excluir">
                                                     <button
                                                         onClick={() => handleDelete(quote)}
-                                                        className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"
+                                                        className="p-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-400 hover:text-rose-600 rounded-lg transition-all shadow-sm"
                                                     >
-                                                        <Trash2 size={16} />
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 </Tooltip>
                                             </div>
