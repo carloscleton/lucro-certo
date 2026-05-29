@@ -1289,21 +1289,28 @@ export function Quotes() {
 
     return (
         <div className="space-y-5 animate-in fade-in duration-700">
-            {/* HEADER SECTION */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-slate-800">
-                <div className="text-left">
-                    <h1 className="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Orçamentos</h1>
-                    <p className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Gestão de Propostas e Faturamento Comercial</p>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+                <div>
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
+                            <FileText size={24} className="text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            Orçamentos
+                        </h1>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 ml-11">
+                        Gestão de Propostas e Faturamento Comercial
+                    </p>
                 </div>
-                <div className="flex gap-3">
-                    <Button 
-                        onClick={() => navigate('/dashboard/quotes/new')}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-5 py-2.5 shadow-md shadow-emerald-500/10 font-black uppercase tracking-widest text-xs flex items-center"
-                    >
-                        <Plus size={16} className="mr-1.5" />
-                        Nova Proposta
-                    </Button>
-                </div>
+                <Button 
+                    onClick={() => navigate('/dashboard/quotes/new')}
+                    className="h-12 px-8 bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 rounded-2xl font-bold text-sm text-white flex items-center"
+                >
+                    <Plus size={20} className="mr-2" />
+                    Nova Proposta
+                </Button>
             </div>
 
             {/* PREMIUM STATS GRID */}

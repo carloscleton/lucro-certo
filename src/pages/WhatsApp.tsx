@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Modal } from '../components/ui/Modal';
 import {
     MessageSquare,
+    MessageCircle,
     Plus,
     RefreshCw,
     Trash2,
@@ -592,23 +593,33 @@ export function WhatsApp() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm">
                 <div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                        <MessageSquare className="text-emerald-500" />
-                        Instâncias WhatsApp
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
+                            <MessageCircle size={24} className="text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            Instâncias WhatsApp
+                        </h1>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 ml-11">
                         Conecte e monitore suas contas via Evolution API.
                     </p>
                 </div>
 
-                <div className="flex gap-2">
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${proxyOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${proxyOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                         <div className={`w-2 h-2 rounded-full ${proxyOnline ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`} />
                         Proxy: {proxyOnline ? 'Conectado' : 'Offline (Porta 3001)'}
                     </div>
-                    <Button variant="outline" onClick={() => { fetchInstances(); checkProxyStatus(); }} isLoading={loading}>
+                    <Button 
+                        variant="outline" 
+                        onClick={() => { fetchInstances(); checkProxyStatus(); }} 
+                        isLoading={loading}
+                        className="h-12 px-6 rounded-2xl font-bold text-sm transition-all hover:scale-105 active:scale-95 flex items-center"
+                    >
                         <RefreshCw size={18} className="mr-2" />
                         Atualizar
                     </Button>

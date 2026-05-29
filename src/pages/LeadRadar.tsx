@@ -500,20 +500,22 @@ export function LeadRadar() {
     return (
         <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3">
+                    <div className="flex items-center gap-3 mb-1">
                         <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-xl text-violet-600">
-                            <Target size={28} />
+                            <Target size={24} className="text-violet-600 dark:text-violet-400" />
                         </div>
-                        {t('lead_radar.title', 'Radar de Leads')}
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {t('lead_radar.title', 'Radar de Leads')}
+                        </h1>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 ml-11">
                         {t('lead_radar.subtitle', 'Encontre clientes qualificados e converta automaticamente com IA.')}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-3">
                     <Button
                         variant="outline"
                         onClick={async () => {
@@ -602,7 +604,7 @@ export function LeadRadar() {
                                 setIsMining(false);
                             }
                         }}
-                        className="border-amber-200 dark:border-amber-800 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                        className="h-12 px-6 border-2 border-amber-200 dark:border-amber-800 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-2xl font-bold text-sm transition-all hover:scale-105 active:scale-95 flex items-center"
                         isLoading={isMining}
                     >
                         <Rocket size={18} className="mr-2" />
@@ -611,13 +613,13 @@ export function LeadRadar() {
                     <Button
                         onClick={handleSave}
                         isLoading={saving}
-                        className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200 dark:shadow-none"
+                        className="h-12 px-8 bg-violet-600 hover:bg-violet-700 shadow-lg shadow-violet-500/20 rounded-2xl font-bold text-sm text-white transition-all hover:scale-105 active:scale-95 flex items-center"
                     >
                         <Save size={18} className="mr-2" />
                         {t('common.save', 'Salvar')}
                     </Button>
                 </div>
-            </header>
+            </div>
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

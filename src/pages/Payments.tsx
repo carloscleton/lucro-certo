@@ -249,21 +249,31 @@ export function Payments() {
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Faturamento</h1>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">Gestão de links de pagamento e conciliação em tempo real.</p>
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+                            <CreditCard size={24} className="text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            Faturamento
+                        </h1>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 ml-11">
+                        Gestão de links de pagamento e conciliação em tempo real.
+                    </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                     <Button
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-6 py-2.5 shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95"
+                        className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 rounded-2xl font-bold text-sm text-white transition-all hover:scale-105 active:scale-95 flex items-center"
                         onClick={() => {
                             setSelectedProvider(activeGateways[0]?.provider || '');
                             setIsModalOpen(true);
                         }}
                     >
                         <Plus size={20} className="mr-2" />
-                        <span className="font-bold uppercase tracking-wider text-xs">Novo Link de Pagamento</span>
+                        Novo Link de Pagamento
                     </Button>
                 </div>
             </div>
