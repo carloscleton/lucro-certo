@@ -245,6 +245,45 @@ export function Settings() {
         }
     }, [appSettings]);
 
+    useEffect(() => {
+        const getScrollContainer = () => {
+            return document.querySelector('main > div') || document.querySelector('[class*="content"]');
+        };
+
+        const container = getScrollContainer();
+        if (!container) return;
+
+        // Restaura a posição anterior do scroll para a aba ativa da empresa ativa
+        const savedScroll = sessionStorage.getItem(`settings_scroll_${currentEntity.id}_${activeTab}`);
+        if (savedScroll) {
+            const scrollTop = parseInt(savedScroll, 10);
+            if (!isNaN(scrollTop)) {
+                // Pequeno delay para garantir que o layout da aba e os sub-componentes (como os cards) já renderizaram e tomaram tamanho na tela
+                const timer = setTimeout(() => {
+                    container.scrollTop = scrollTop;
+                }, 150);
+                return () => clearTimeout(timer);
+            }
+        } else {
+            container.scrollTop = 0;
+        }
+
+        // Salva a posição do scroll com debounce leve
+        let timeoutId: any = null;
+        const handleScroll = () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                sessionStorage.setItem(`settings_scroll_${currentEntity.id}_${activeTab}`, String(container.scrollTop));
+            }, 100);
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            container.removeEventListener('scroll', handleScroll);
+        };
+    }, [activeTab, currentEntity.id]);
+
     const handleSave = async () => {
         setSaving(true);
         const { error } = await updateSettings({
