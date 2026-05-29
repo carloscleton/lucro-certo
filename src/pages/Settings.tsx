@@ -118,34 +118,39 @@ export function Settings() {
 
     const [searchParams, setSearchParams] = useSearchParams();
 
-    const activeTab = useMemo(() => {
-        const tab = searchParams.get('tab');
+    const [activeTab, setActiveTabState] = useState<string>(() => {
+        if (typeof window === 'undefined') return 'quotes';
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
         const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing', 'loyalty'];
         
         if (tab && validTabs.includes(tab)) {
             sessionStorage.setItem('last_active_settings_tab', tab);
-            return tab as any;
+            return tab;
         }
         
         const savedTab = sessionStorage.getItem('last_active_settings_tab');
         if (savedTab && validTabs.includes(savedTab)) {
-            return savedTab as any;
+            return savedTab;
         }
         
         return 'quotes';
-    }, [searchParams]);
+    });
 
     const setActiveTab = (tab: string) => {
         sessionStorage.setItem('last_active_settings_tab', tab);
+        setActiveTabState(tab);
         setSearchParams({ tab });
     };
 
+    // Sincroniza a aba ativa quando a URL muda (ex: cliques em links externos para abas específicas)
     useEffect(() => {
-        const tabInUrl = searchParams.get('tab');
-        if (!tabInUrl && activeTab) {
-            setSearchParams({ tab: activeTab }, { replace: true });
+        const tab = searchParams.get('tab');
+        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing', 'loyalty'];
+        if (tab && validTabs.includes(tab) && tab !== activeTab) {
+            setActiveTabState(tab);
         }
-    }, [activeTab, searchParams, setSearchParams]);
+    }, [searchParams, activeTab]);
 
     const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system'>('companies');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
