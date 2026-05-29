@@ -207,8 +207,6 @@ export function FiscalSettings() {
     });
     const [lastTestResult, setLastTestResult] = useState<any>(null);
 
-    const lastLoadedEntityId = useRef<string | null>(null);
-
     // Cidades e Homologação TecnoSpeed
     const [searchUf, setSearchUf] = useState(() => {
         const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_searchUf_${currentEntity.id}`) : null;
