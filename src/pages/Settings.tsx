@@ -508,7 +508,7 @@ export function Settings() {
         }
     };
 
-    if (loading) return <div className="p-6">{t('settings.loading')}</div>;
+    // Loading guard is handled inline within the tab content container to prevent page-level unmounting and flashing.
 
     return (
         <div ref={rootRef} className="space-y-6 max-w-6xl mx-auto pb-20">
@@ -583,10 +583,17 @@ export function Settings() {
             </div>
 
             {/* Tab Content */}
-            <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6">
-                {activeTab === 'subscription' && (
-                    <SubscriptionSettings />
-                )}
+            <div className={`bg-white dark:bg-slate-800 shadow rounded-lg p-6 transition-all duration-200 ${loading ? 'min-h-[400px] flex flex-col justify-center items-center' : ''}`}>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center space-y-4 py-12">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                        <p className="text-gray-500 dark:text-gray-400 animate-pulse font-medium">{t('settings.loading')}</p>
+                    </div>
+                ) : (
+                    <>
+                        {activeTab === 'subscription' && (
+                            <SubscriptionSettings />
+                        )}
 
 
                 {activeTab === 'quotes' && (
@@ -2584,6 +2591,8 @@ export function Settings() {
                         </div>
                         <PlatformBillingDashboard />
                     </div>
+                )}
+                    </>
                 )}
             </div>
 
