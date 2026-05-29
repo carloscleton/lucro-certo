@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -203,6 +203,19 @@ export function FiscalSettings() {
     const [tecnoSpeedCityInfo, setTecnoSpeedCityInfo] = useState<any>(null);
     const [cityNotHomologatedMessage, setCityNotHomologatedMessage] = useState<string | null>(null);
     const [searchingCityTecnoSpeed, setSearchingCityTecnoSpeed] = useState(false);
+    const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+    const cityDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Detect click outside city dropdown to close it
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+                setIsCityDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Carregar a lista de cidades do estado (UF) selecionado através do IBGE
     useEffect(() => {
@@ -210,6 +223,7 @@ export function FiscalSettings() {
             if (!searchUf) return;
             setLoadingCitiesList(true);
             setSelectedSearchCity(null);
+            setSearchCityQuery('');
             setTecnoSpeedCityInfo(null);
             try {
                 const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${searchUf.trim().toUpperCase()}/municipios`);
@@ -1560,36 +1574,88 @@ export function FiscalSettings() {
                                         </select>
                                     </div>
 
-                                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                    <div className="flex flex-col gap-1.5 sm:col-span-2 relative" ref={cityDropdownRef}>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cidade</label>
-                                        <select
-                                            value={selectedSearchCity?.id || ''}
-                                            onChange={(e) => {
-                                                const match = citiesList.find(c => c.id === e.target.value);
-                                                setSelectedSearchCity(match || null);
-                                                setTecnoSpeedCityInfo(null);
-                                            }}
-                                            disabled={loadingCitiesList}
-                                            className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium disabled:opacity-50 font-semibold text-gray-700 dark:text-gray-300"
-                                        >
-                                            <option value="">{loadingCitiesList ? 'Carregando cidades...' : 'Selecione a cidade...'}</option>
-                                            {filteredCities.map(c => (
-                                                <option key={c.id} value={c.id}>{c.nome}</option>
-                                            ))}
-                                        </select>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder={loadingCitiesList ? 'Carregando cidades...' : 'Digite para buscar a cidade...'}
+                                                value={searchCityQuery}
+                                                onChange={(e) => {
+                                                    setSearchCityQuery(e.target.value);
+                                                    setIsCityDropdownOpen(true);
+                                                    
+                                                    // Se o texto bater exatamente com uma cidade da lista, selecionamos ela automaticamente
+                                                    const exactMatch = citiesList.find(c => c.nome.toLowerCase() === e.target.value.toLowerCase());
+                                                    if (exactMatch) {
+                                                        setSelectedSearchCity(exactMatch);
+                                                    } else {
+                                                        setSelectedSearchCity(null);
+                                                    }
+                                                    setTecnoSpeedCityInfo(null);
+                                                }}
+                                                onFocus={() => setIsCityDropdownOpen(true)}
+                                                disabled={loadingCitiesList}
+                                                className="w-full h-11 pl-4 pr-10 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-all shadow-sm"
+                                                autoComplete="off"
+                                            />
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                                {searchCityQuery && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSearchCityQuery('');
+                                                            setSelectedSearchCity(null);
+                                                            setTecnoSpeedCityInfo(null);
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
+                                                    disabled={loadingCitiesList}
+                                                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                                >
+                                                    <ChevronRight size={16} className={`transform transition-transform duration-200 ${isCityDropdownOpen ? '-rotate-90' : 'rotate-90'}`} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {isCityDropdownOpen && filteredCities.length > 0 && (
+                                            <div className="absolute left-0 right-0 top-[102%] z-50 max-h-60 overflow-y-auto rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-150">
+                                                {filteredCities.map((c) => (
+                                                    <button
+                                                        key={c.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedSearchCity(c);
+                                                            setSearchCityQuery(c.nome);
+                                                            setTecnoSpeedCityInfo(null);
+                                                            setIsCityDropdownOpen(false);
+                                                        }}
+                                                        className={`w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between ${selectedSearchCity?.id === c.id ? 'bg-indigo-50/50 dark:bg-slate-700/30 text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                                    >
+                                                        <span>{c.nome}</span>
+                                                        {selectedSearchCity?.id === c.id && <Check size={12} className="text-indigo-600 dark:text-indigo-400" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row gap-3 justify-between items-center pt-1">
-                                    <div className="relative w-full sm:w-64">
-                                        <input
-                                            type="text"
-                                            placeholder="Digitar para filtrar cidade..."
-                                            value={searchCityQuery}
-                                            onChange={(e) => setSearchCityQuery(e.target.value)}
-                                            className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-                                        />
-                                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <div className="text-xs font-semibold text-gray-400 dark:text-slate-500">
+                                        {selectedSearchCity ? (
+                                            <span className="text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                                                <Check size={14} /> Cidade selecionada e pronta para busca!
+                                            </span>
+                                        ) : (
+                                            <span>Selecione a UF e digite a cidade acima para buscar.</span>
+                                        )}
                                     </div>
 
                                     <Button
