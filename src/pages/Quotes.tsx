@@ -1621,7 +1621,7 @@ export function Quotes() {
                                                                         : 'bg-amber-50 text-amber-600')
                                                                     : (quote.payment_status === 'paid'
                                                                         ? 'bg-gray-50 text-gray-400 hover:bg-amber-50 hover:text-amber-600'
-                                                                        : 'bg-gray-50 text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50')
+                                                                        : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-500 cursor-not-allowed')
                                                                     }`}
                                                                 disabled={isEmittingFiscal === quote.id || (!quote.nfe_id && quote.payment_status !== 'paid')}
                                                             >
