@@ -1307,43 +1307,43 @@ export function Quotes() {
             </div>
 
             {/* PREMIUM STATS GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-200/40 dark:shadow-none transition-all group hover:scale-[1.02]">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl group-hover:rotate-12 transition-transform">
-                            <DollarSign size={24} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-lg shadow-gray-200/20 dark:shadow-none transition-all group hover:scale-[1.01]">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl group-hover:rotate-12 transition-transform">
+                            <DollarSign size={20} />
                         </div>
-                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">Proposto</span>
+                        <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 rounded-full">Proposto</span>
                     </div>
-                    <div className="space-y-1">
-                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest leading-none">Total em Propostas</h3>
-                        <p className="text-3xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalValue)}</p>
+                    <div className="space-y-0.5">
+                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider leading-none">Total em Propostas</h3>
+                        <p className="text-2xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalValue)}</p>
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-200/40 dark:shadow-none transition-all group hover:scale-[1.02]">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl group-hover:-rotate-12 transition-transform">
-                            <Trash2 size={24} />
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-lg shadow-gray-200/20 dark:shadow-none transition-all group hover:scale-[1.01]">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl group-hover:-rotate-12 transition-transform">
+                            <Trash2 size={20} />
                         </div>
-                        <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 dark:bg-rose-900/30 px-3 py-1 rounded-full">Despesas</span>
+                        <span className="text-[9px] font-black text-rose-600 uppercase tracking-wider bg-rose-50 dark:bg-rose-900/30 px-2.5 py-0.5 rounded-full">Despesas</span>
                     </div>
-                    <div className="space-y-1">
-                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest leading-none">Despesas Vinculadas</h3>
-                        <p className="text-3xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalExpense)}</p>
+                    <div className="space-y-0.5">
+                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider leading-none">Despesas Vinculadas</h3>
+                        <p className="text-2xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">{formatCurrency(totalExpense)}</p>
                     </div>
                 </div>
 
-                <div className="bg-emerald-600 p-8 rounded-[2.5rem] shadow-2xl shadow-emerald-600/30 transition-all group hover:scale-[1.02]">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-white/20 text-white rounded-2xl group-hover:scale-110 transition-transform">
-                            <Rocket size={24} />
+                <div className="bg-emerald-600 p-5 rounded-3xl shadow-xl shadow-emerald-600/20 transition-all group hover:scale-[1.01]">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-white/20 text-white rounded-xl group-hover:scale-110 transition-transform">
+                            <Rocket size={20} />
                         </div>
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">Líquido</span>
+                        <span className="text-[9px] font-black text-white uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">Líquido</span>
                     </div>
-                    <div className="space-y-1">
-                        <h3 className="text-sm font-black text-emerald-100 uppercase tracking-widest leading-none">Lucro Projetado</h3>
-                        <p className="text-3xl font-black text-white italic tracking-tighter tabular-nums">{formatCurrency(totalProfit)}</p>
+                    <div className="space-y-0.5">
+                        <h3 className="text-xs font-black text-emerald-100 uppercase tracking-wider leading-none">Lucro Projetado</h3>
+                        <p className="text-2xl font-black text-white italic tracking-tighter tabular-nums">{formatCurrency(totalProfit)}</p>
                     </div>
                 </div>
             </div>
