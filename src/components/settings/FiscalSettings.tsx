@@ -235,6 +235,75 @@ export function FiscalSettings() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Persistência dos estados de busca de cidade
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        
+        const uf = sessionStorage.getItem(`fiscal_searchUf_${currentEntity.id}`);
+        if (uf) setSearchUf(uf);
+        
+        const query = sessionStorage.getItem(`fiscal_searchCityQuery_${currentEntity.id}`);
+        if (query) setSearchCityQuery(query);
+        
+        const selCity = sessionStorage.getItem(`fiscal_selectedSearchCity_${currentEntity.id}`);
+        if (selCity) {
+            try {
+                setSelectedSearchCity(JSON.parse(selCity));
+            } catch (e) {
+                sessionStorage.removeItem(`fiscal_selectedSearchCity_${currentEntity.id}`);
+            }
+        }
+        
+        const cityInfo = sessionStorage.getItem(`fiscal_tecnoSpeedCityInfo_${currentEntity.id}`);
+        if (cityInfo) {
+            try {
+                setTecnoSpeedCityInfo(JSON.parse(cityInfo));
+            } catch (e) {
+                sessionStorage.removeItem(`fiscal_tecnoSpeedCityInfo_${currentEntity.id}`);
+            }
+        }
+        
+        const warningMsg = sessionStorage.getItem(`fiscal_cityNotHomologatedMessage_${currentEntity.id}`);
+        if (warningMsg) setCityNotHomologatedMessage(warningMsg);
+    }, [currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        sessionStorage.setItem(`fiscal_searchUf_${currentEntity.id}`, searchUf);
+    }, [searchUf, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        sessionStorage.setItem(`fiscal_searchCityQuery_${currentEntity.id}`, searchCityQuery);
+    }, [searchCityQuery, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        if (selectedSearchCity) {
+            sessionStorage.setItem(`fiscal_selectedSearchCity_${currentEntity.id}`, JSON.stringify(selectedSearchCity));
+        } else {
+            sessionStorage.removeItem(`fiscal_selectedSearchCity_${currentEntity.id}`);
+        }
+    }, [selectedSearchCity, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        if (tecnoSpeedCityInfo) {
+            sessionStorage.setItem(`fiscal_tecnoSpeedCityInfo_${currentEntity.id}`, JSON.stringify(tecnoSpeedCityInfo));
+        } else {
+            sessionStorage.removeItem(`fiscal_tecnoSpeedCityInfo_${currentEntity.id}`);
+        }
+    }, [tecnoSpeedCityInfo, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        if (cityNotHomologatedMessage) {
+            sessionStorage.setItem(`fiscal_cityNotHomologatedMessage_${currentEntity.id}`, cityNotHomologatedMessage);
+        } else {
+            sessionStorage.removeItem(`fiscal_cityNotHomologatedMessage_${currentEntity.id}`);
+        }
+    }, [cityNotHomologatedMessage, currentEntity.id]);
+
     // Carregar a lista de cidades do estado (UF) selecionado através do IBGE
     useEffect(() => {
         const fetchCitiesForUf = async () => {

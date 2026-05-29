@@ -121,12 +121,31 @@ export function Settings() {
     const activeTab = useMemo(() => {
         const tab = searchParams.get('tab');
         const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing', 'loyalty'];
-        return (tab && validTabs.includes(tab)) ? (tab as any) : 'quotes';
+        
+        if (tab && validTabs.includes(tab)) {
+            sessionStorage.setItem('last_active_settings_tab', tab);
+            return tab as any;
+        }
+        
+        const savedTab = sessionStorage.getItem('last_active_settings_tab');
+        if (savedTab && validTabs.includes(savedTab)) {
+            return savedTab as any;
+        }
+        
+        return 'quotes';
     }, [searchParams]);
 
     const setActiveTab = (tab: string) => {
+        sessionStorage.setItem('last_active_settings_tab', tab);
         setSearchParams({ tab });
     };
+
+    useEffect(() => {
+        const tabInUrl = searchParams.get('tab');
+        if (!tabInUrl && activeTab) {
+            setSearchParams({ tab: activeTab }, { replace: true });
+        }
+    }, [activeTab, searchParams, setSearchParams]);
 
     const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system'>('companies');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
