@@ -223,6 +223,7 @@ export function FiscalSettings() {
     const [searchingCityTecnoSpeed, setSearchingCityTecnoSpeed] = useState(false);
     const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
     const cityDropdownRef = useRef<HTMLDivElement>(null);
+    const prevUfRef = useRef<string>(searchUf);
 
     // Detect click outside city dropdown to close it
     useEffect(() => {
@@ -309,9 +310,19 @@ export function FiscalSettings() {
         const fetchCitiesForUf = async () => {
             if (!searchUf) return;
             setLoadingCitiesList(true);
-            setSelectedSearchCity(null);
-            setSearchCityQuery('');
-            setTecnoSpeedCityInfo(null);
+            
+            // Só limpa se a UF realmente mudou no dropdown e não é o carregamento inicial (que restaurou do sessionStorage)
+            if (prevUfRef.current !== searchUf) {
+                const savedUf = sessionStorage.getItem(`fiscal_searchUf_${currentEntity.id}`);
+                if (searchUf !== savedUf) {
+                    setSelectedSearchCity(null);
+                    setSearchCityQuery('');
+                    setTecnoSpeedCityInfo(null);
+                    setCityNotHomologatedMessage(null);
+                }
+            }
+            prevUfRef.current = searchUf;
+            
             try {
                 const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${searchUf.trim().toUpperCase()}/municipios`);
                 const data = await res.json();
@@ -329,7 +340,7 @@ export function FiscalSettings() {
             }
         };
         fetchCitiesForUf();
-    }, [searchUf]);
+    }, [searchUf, currentEntity.id]);
 
     // Filtrar cidades com base na query de digitação do usuário
     const filteredCities = useMemo(() => {
