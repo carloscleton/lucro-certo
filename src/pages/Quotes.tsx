@@ -20,7 +20,6 @@ import { webhookService } from '../services/webhookService';
 import { fiscalService } from '../services/fiscalService';
 import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
-import { API_BASE_URL } from '../lib/constants';
 import { PDFService } from '../services/pdfService';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { ResultModal } from '../components/ui/ResultModal';
@@ -80,13 +79,13 @@ export function Quotes() {
     const handleSendWhatsApp = async (quote: Quote, result: any) => {
         const instance = waInstances[0];
         if (!instance) {
-            notify('warning', 'Atenção', 'Nenhuma instância de WhatsApp conectada para envio automático.');
+            notify('warning', 'Nenhuma instância de WhatsApp conectada para envio automático.', 'Atenção');
             return;
         }
 
         const phone = quote.contact?.phone?.replace(/\D/g, '');
         if (!phone) {
-            notify('warning', 'Atenção', 'Cliente não possui telefone cadastrado.');
+            notify('warning', 'Cliente não possui telefone cadastrado.', 'Atenção');
             return;
         }
 
@@ -94,24 +93,16 @@ export function Quotes() {
         try {
             const message = `Olá, ${quote.contact?.name || 'cliente'}! Segue o link para pagamento do seu orçamento:\n\n🔗 ${result.payment_link}\n\nObrigado pela confiança!`;
 
-            const response = await fetch(`${API_BASE_URL}/whatsapp/send`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    instanceName: instance.instance_name,
-                    number: phone,
-                    text: message
-                })
+            await whatsappService.sendMessage({
+                instanceName: instance.instance_name,
+                number: phone,
+                text: message
             });
 
-            if (response.ok) {
-                notify('success', 'Sucesso', 'Mensagem enviada via WhatsApp!');
-            } else {
-                const err = await response.json();
-                notify('error', 'Erro', err.detail?.message || 'Falha ao enviar mensagem.');
-            }
-        } catch (err) {
-            notify('error', 'Erro', 'Erro de conexão com o servidor de WhatsApp.');
+            notify('success', 'Mensagem enviada via WhatsApp!', 'Sucesso');
+        } catch (err: any) {
+            console.error('Erro ao enviar WhatsApp:', err);
+            notify('error', err.message || 'Falha ao enviar mensagem.', 'Erro');
         } finally {
             setIsSendingWhatsApp(false);
         }
