@@ -703,6 +703,11 @@ export function Quotes() {
     const handleEmitFiscal = async (quote: Quote) => {
         if (!currentEntity.id) return;
 
+        if (quote.payment_status !== 'paid') {
+            notify('error', 'Ação Bloqueada', 'O orçamento precisa estar pago para emitir a nota fiscal.');
+            return;
+        }
+
         // Initialize automation states from company config
         const config = currentCompany?.tecnospeed_config as any;
         setSendEmail(config?.send_email_automatically || false);
@@ -1599,16 +1604,26 @@ export function Quotes() {
                                                 {/* Fiscal Module Integration */}
                                                 {quote.status === 'approved' && currentCompany?.fiscal_module_enabled && (
                                                     <div className="flex items-center gap-1">
-                                                        <Tooltip content={quote.nfe_id ? `NF: ${quote.nfe_status || 'Pendente'}` : "Emitir NF-e"}>
+                                                        <Tooltip 
+                                                            content={
+                                                                quote.nfe_id 
+                                                                    ? `NF: ${quote.nfe_status || 'Pendente'}` 
+                                                                    : (quote.payment_status === 'paid' 
+                                                                        ? "Emitir NF-e" 
+                                                                        : "Aguardando pagamento para emitir nota")
+                                                            }
+                                                        >
                                                             <button
                                                                 onClick={() => quote.nfe_id ? handleCheckFiscalStatus(quote) : handleEmitFiscal(quote)}
                                                                 className={`p-1.5 rounded-lg transition-all shadow-sm ${quote.nfe_id
                                                                     ? (quote.nfe_status === 'concluido' || quote.nfe_status === 'autorizado'
                                                                         ? 'bg-emerald-50 text-emerald-600'
                                                                         : 'bg-amber-50 text-amber-600')
-                                                                    : 'bg-gray-50 text-gray-400 hover:bg-amber-50 hover:text-amber-600'
+                                                                    : (quote.payment_status === 'paid'
+                                                                        ? 'bg-gray-50 text-gray-400 hover:bg-amber-50 hover:text-amber-600'
+                                                                        : 'bg-gray-50 text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50')
                                                                     }`}
-                                                                disabled={isEmittingFiscal === quote.id}
+                                                                disabled={isEmittingFiscal === quote.id || (!quote.nfe_id && quote.payment_status !== 'paid')}
                                                             >
                                                                 {isEmittingFiscal === quote.id ? (
                                                                     <Loader2 size={14} className="animate-spin" />
