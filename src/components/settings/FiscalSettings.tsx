@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -193,6 +193,70 @@ export function FiscalSettings() {
     const [lastTestResult, setLastTestResult] = useState<any>(null);
 
     const lastLoadedEntityId = useRef<string | null>(null);
+
+    // Cidades e Homologação TecnoSpeed
+    const [searchUf, setSearchUf] = useState('RN');
+    const [searchCityQuery, setSearchCityQuery] = useState('');
+    const [citiesList, setCitiesList] = useState<{ id: string; nome: string }[]>([]);
+    const [loadingCitiesList, setLoadingCitiesList] = useState(false);
+    const [selectedSearchCity, setSelectedSearchCity] = useState<{ id: string; nome: string } | null>(null);
+    const [tecnoSpeedCityInfo, setTecnoSpeedCityInfo] = useState<any>(null);
+    const [searchingCityTecnoSpeed, setSearchingCityTecnoSpeed] = useState(false);
+
+    // Carregar a lista de cidades do estado (UF) selecionado através do IBGE
+    useEffect(() => {
+        const fetchCitiesForUf = async () => {
+            if (!searchUf) return;
+            setLoadingCitiesList(true);
+            setSelectedSearchCity(null);
+            setTecnoSpeedCityInfo(null);
+            try {
+                const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${searchUf.trim().toUpperCase()}/municipios`);
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    const sorted = data.map((c: any) => ({
+                        id: String(c.id),
+                        nome: c.nome
+                    })).sort((a, b) => a.nome.localeCompare(b.nome));
+                    setCitiesList(sorted);
+                }
+            } catch (err) {
+                console.error('Erro ao buscar cidades do IBGE:', err);
+            } finally {
+                setLoadingCitiesList(false);
+            }
+        };
+        fetchCitiesForUf();
+    }, [searchUf]);
+
+    // Filtrar cidades com base na query de digitação do usuário
+    const filteredCities = useMemo(() => {
+        if (!searchCityQuery.trim()) return citiesList;
+        const cleanString = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const target = cleanString(searchCityQuery);
+        return citiesList.filter(c => cleanString(c.nome).includes(target));
+    }, [citiesList, searchCityQuery]);
+
+    const handleSearchCityTecnoSpeed = async () => {
+        if (!selectedSearchCity) return;
+        setSearchingCityTecnoSpeed(true);
+        setTecnoSpeedCityInfo(null);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.consultarCidadeNotaNacional(selectedSearchCity.id, currentEntity.id!, token);
+            setTecnoSpeedCityInfo(result.data || result);
+        } catch (err: any) {
+            console.error('Erro ao consultar cidade na TecnoSpeed:', err);
+            const data = err.response?.data;
+            const detail = data?.detail || data?.error || err.message;
+            alert(`Não foi possível obter os dados da cidade: ${typeof detail === 'object' ? JSON.stringify(detail) : detail}`);
+        } finally {
+            setSearchingCityTecnoSpeed(false);
+        }
+    };
 
     // Persistência do Modal de Resultado (para não fechar ao navegar)
     useEffect(() => {
@@ -1436,6 +1500,181 @@ export function FiscalSettings() {
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* Ferramenta de Homologação de Cidades TecnoSpeed */}
+                            <div className="p-6 bg-gray-50/50 dark:bg-slate-900/40 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                                        <Search size={18} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">Ferramenta de Cobertura e Homologação</h4>
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400">Consulte qualquer município do Brasil para verificar se ele está homologado na TecnoSpeed.</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado (UF)</label>
+                                        <select
+                                            value={searchUf}
+                                            onChange={(e) => setSearchUf(e.target.value)}
+                                            className="h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                                        >
+                                            {['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'].map(uf => (
+                                                <option key={uf} value={uf}>{uf}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cidade</label>
+                                        <select
+                                            value={selectedSearchCity?.id || ''}
+                                            onChange={(e) => {
+                                                const match = citiesList.find(c => c.id === e.target.value);
+                                                setSelectedSearchCity(match || null);
+                                                setTecnoSpeedCityInfo(null);
+                                            }}
+                                            disabled={loadingCitiesList}
+                                            className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium disabled:opacity-50 font-semibold text-gray-700 dark:text-gray-300"
+                                        >
+                                            <option value="">{loadingCitiesList ? 'Carregando cidades...' : 'Selecione a cidade...'}</option>
+                                            {filteredCities.map(c => (
+                                                <option key={c.id} value={c.id}>{c.nome}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-3 justify-between items-center pt-1">
+                                    <div className="relative w-full sm:w-64">
+                                        <input
+                                            type="text"
+                                            placeholder="Digitar para filtrar cidade..."
+                                            value={searchCityQuery}
+                                            onChange={(e) => setSearchCityQuery(e.target.value)}
+                                            className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                                        />
+                                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        onClick={handleSearchCityTecnoSpeed}
+                                        disabled={!selectedSearchCity || searchingCityTecnoSpeed}
+                                        className="w-full sm:w-auto h-11 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/10 rounded-xl font-bold text-sm text-white shrink-0 flex items-center justify-center gap-2"
+                                    >
+                                        {searchingCityTecnoSpeed ? (
+                                            <RefreshCw size={14} className="animate-spin text-white" />
+                                        ) : (
+                                            <Search size={14} className="text-white" />
+                                        )}
+                                        Buscar Cidade
+                                    </Button>
+                                </div>
+
+                                {/* Resultados de Homologação */}
+                                {tecnoSpeedCityInfo && (
+                                    <div className="mt-4 p-5 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-md animate-in fade-in slide-in-from-top-3 duration-300">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                                            {/* Detalhes do Município */}
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-0.5">Município Selecionado</span>
+                                                    <h4 className="text-lg font-black text-gray-900 dark:text-white">
+                                                        {tecnoSpeedCityInfo.nome || selectedSearchCity?.nome} - {tecnoSpeedCityInfo.uf || searchUf}
+                                                    </h4>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="p-3 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-gray-100/50 dark:border-slate-800">
+                                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Código IBGE</span>
+                                                        <code className="text-xs font-bold font-mono text-indigo-600 dark:text-indigo-400">
+                                                            {tecnoSpeedCityInfo.codigoIbge || tecnoSpeedCityInfo.ibge || selectedSearchCity?.id}
+                                                        </code>
+                                                    </div>
+                                                    <div className="p-3 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-gray-100/50 dark:border-slate-800">
+                                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Padrão / Provedor</span>
+                                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 block truncate">
+                                                            {tecnoSpeedCityInfo.padrao || 'Não informado'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/30 dark:border-indigo-900/20">
+                                                    <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-wider block mb-1">Layout de Integração</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1 bg-indigo-500 text-white rounded-lg">
+                                                            <Globe size={12} />
+                                                        </div>
+                                                        <span className="text-[11px] font-bold text-indigo-900 dark:text-indigo-300">
+                                                            {tecnoSpeedCityInfo.padraoNacional?.producao || tecnoSpeedCityInfo.padraoNacional?.homologacao
+                                                                ? 'NFS-e Padrão Nacional (Receita Federal)'
+                                                                : 'WebService Municipal Dedicado'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Checklist de Recursos & Requisitos */}
+                                            <div className="p-4 bg-gray-50 dark:bg-slate-900/60 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-3">
+                                                <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Requisitos e Recursos Homologados</h5>
+                                                
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
+                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">Exige Certificado Digital</span>
+                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.certificado ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
+                                                            {tecnoSpeedCityInfo.certificado ? <AlertCircle size={10} /> : <Check size={10} />}
+                                                            {tecnoSpeedCityInfo.certificado ? 'Exigido' : 'Isento'}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
+                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">Suporte a Múltiplos Serviços</span>
+                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.multiservicos ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'}`}>
+                                                            {tecnoSpeedCityInfo.multiservicos ? <Check size={10} /> : <X size={10} />}
+                                                            {tecnoSpeedCityInfo.multiservicos ? 'Suportado' : 'Não suportado'}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
+                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">Exige Login do Prestador</span>
+                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.login ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
+                                                            {tecnoSpeedCityInfo.login ? <AlertCircle size={10} /> : <Check size={10} />}
+                                                            {tecnoSpeedCityInfo.login ? 'Necessário' : 'Não exigido'}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
+                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">Exige Senha do Prestador</span>
+                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.senha ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
+                                                            {tecnoSpeedCityInfo.senha ? <AlertCircle size={10} /> : <Check size={10} />}
+                                                            {tecnoSpeedCityInfo.senha ? 'Necessário' : 'Não exigido'}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
+                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">NFS-e Nacional Homologação</span>
+                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.padraoNacional?.homologacao ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'}`}>
+                                                            {tecnoSpeedCityInfo.padraoNacional?.homologacao ? <Check size={10} /> : <X size={10} />}
+                                                            {tecnoSpeedCityInfo.padraoNacional?.homologacao ? 'Disponível' : 'Indisponível'}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
+                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">NFS-e Nacional Produção</span>
+                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.padraoNacional?.producao ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'}`}>
+                                                            {tecnoSpeedCityInfo.padraoNacional?.producao ? <Check size={10} /> : <X size={10} />}
+                                                            {tecnoSpeedCityInfo.padraoNacional?.producao ? 'Disponível' : 'Indisponível'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
