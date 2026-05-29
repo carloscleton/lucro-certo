@@ -201,6 +201,7 @@ export function FiscalSettings() {
     const [loadingCitiesList, setLoadingCitiesList] = useState(false);
     const [selectedSearchCity, setSelectedSearchCity] = useState<{ id: string; nome: string } | null>(null);
     const [tecnoSpeedCityInfo, setTecnoSpeedCityInfo] = useState<any>(null);
+    const [cityNotHomologatedMessage, setCityNotHomologatedMessage] = useState<string | null>(null);
     const [searchingCityTecnoSpeed, setSearchingCityTecnoSpeed] = useState(false);
 
     // Carregar a lista de cidades do estado (UF) selecionado através do IBGE
@@ -241,6 +242,7 @@ export function FiscalSettings() {
         if (!selectedSearchCity) return;
         setSearchingCityTecnoSpeed(true);
         setTecnoSpeedCityInfo(null);
+        setCityNotHomologatedMessage(null);
         try {
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
@@ -251,8 +253,25 @@ export function FiscalSettings() {
         } catch (err: any) {
             console.error('Erro ao consultar cidade na TecnoSpeed:', err);
             const data = err.response?.data;
-            const detail = data?.detail || data?.error || err.message;
-            alert(`Não foi possível obter os dados da cidade: ${typeof detail === 'object' ? JSON.stringify(detail) : detail}`);
+            const nestedError = data?.error || data?.detail;
+            
+            if (nestedError && nestedError.data) {
+                // É um erro contendo os metadados da cidade (ex: Não Homologada)
+                setTecnoSpeedCityInfo(nestedError.data);
+                setCityNotHomologatedMessage(nestedError.message || 'Município não homologado na TecnoSpeed no momento.');
+            } else {
+                // Outro erro de conexão ou genérico
+                const msg = typeof nestedError === 'object' ? JSON.stringify(nestedError) : (nestedError || err.message);
+                setResultModal({
+                    isOpen: true,
+                    title: 'Erro na Consulta',
+                    message: 'Não foi possível obter os dados da cidade consultada.',
+                    type: 'error',
+                    data: {
+                        'Detalhe Técnico': msg
+                    }
+                });
+            }
         } finally {
             setSearchingCityTecnoSpeed(false);
         }
@@ -955,17 +974,30 @@ export function FiscalSettings() {
         } catch (error: any) {
             console.error('Check city national status error:', error);
             const data = error.response?.data;
-            const detail = data?.detail || data?.error || error.message;
-            const msg = typeof detail === 'object' ? JSON.stringify(detail) : detail;
+            const nestedError = data?.error || data?.detail;
+            
+            let message = 'Não foi possível verificar a disponibilidade da cidade no Padrão Nacional.';
+            let technicalDetail = '';
+            
+            if (nestedError) {
+                if (typeof nestedError === 'object') {
+                    message = nestedError.message || message;
+                    technicalDetail = JSON.stringify(nestedError.data || nestedError, null, 2);
+                } else {
+                    message = String(nestedError);
+                }
+            } else {
+                message = error.message || message;
+            }
             
             setResultModal({
                 isOpen: true,
                 title: 'Erro na Consulta',
-                message: 'Não foi possível verificar a disponibilidade da cidade no Padrão Nacional.',
+                message: message,
                 type: 'error',
-                data: {
-                    'Detalhe Técnico': msg
-                }
+                data: technicalDetail ? {
+                    'Detalhes Adicionais': technicalDetail
+                } : undefined
             });
         } finally {
             setCheckingCityNationalStatus(false);
@@ -1578,6 +1610,15 @@ export function FiscalSettings() {
                                 {/* Resultados de Homologação */}
                                 {tecnoSpeedCityInfo && (
                                     <div className="mt-4 p-5 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-md animate-in fade-in slide-in-from-top-3 duration-300">
+                                        {cityNotHomologatedMessage && (
+                                            <div className="p-4 bg-rose-50 dark:bg-rose-950/20 rounded-2xl border border-rose-100 dark:border-rose-900/30 flex items-start gap-3 text-rose-800 dark:text-rose-400 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <AlertCircle className="shrink-0 text-rose-500 mt-0.5" size={18} />
+                                                <div>
+                                                    <p className="text-xs font-bold uppercase tracking-wider">Atenção: Município Não Homologado</p>
+                                                    <p className="text-[11px] font-semibold opacity-90 mt-1 leading-relaxed">{cityNotHomologatedMessage}</p>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                                             {/* Detalhes do Município */}
                                             <div className="space-y-4">
