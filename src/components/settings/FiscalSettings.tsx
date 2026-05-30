@@ -341,7 +341,12 @@ export function FiscalSettings() {
             const result = await fiscalService.consultarCidadeNotaNacional(ibgeCode, currentEntity.id!, token);
             setTecnoSpeedCityInfo(result.data || result);
         } catch (err: any) {
-            console.error('Erro ao consultar cidade por IBGE na TecnoSpeed:', err);
+            const isExpectedApiError = err.response?.status === 400 || err.response?.status === 404;
+            if (isExpectedApiError) {
+                console.warn(`[PlugNotas] Cidade por IBGE ${ibgeCode} não homologada ou não cadastrada (HTTP ${err.response.status}).`);
+            } else {
+                console.error('Erro ao consultar cidade por IBGE na TecnoSpeed:', err);
+            }
             const nestedError = extractTecnoSpeedError(err);
             
             if (nestedError && nestedError.data) {
@@ -381,7 +386,12 @@ export function FiscalSettings() {
                 [cityId]: { loading: false, data, isNotHomologated: false }
             }));
         } catch (err: any) {
-            console.error(`Erro ao consultar ${cityName} no estado:`, err);
+            const isExpectedApiError = err.response?.status === 400 || err.response?.status === 404;
+            if (isExpectedApiError) {
+                console.warn(`[PlugNotas] Cidade ${cityName} (${cityId}) não homologada no estado (HTTP ${err.response.status}).`);
+            } else {
+                console.error(`Erro ao consultar ${cityName} no estado:`, err);
+            }
             const nestedError = extractTecnoSpeedError(err);
             if (nestedError && nestedError.data) {
                 setStateCitiesStatus(prev => ({
@@ -465,6 +475,12 @@ export function FiscalSettings() {
                     [city.id]: { loading: false, data, isNotHomologated: false }
                 }));
             } catch (err: any) {
+                const isExpectedApiError = err.response?.status === 400 || err.response?.status === 404;
+                if (isExpectedApiError) {
+                    console.warn(`[PlugNotas] Cidade ${city.nome} (${city.id}) não homologada no lote (HTTP ${err.response.status}).`);
+                } else {
+                    console.error(`Erro ao consultar ${city.nome} no lote:`, err);
+                }
                 const nestedError = extractTecnoSpeedError(err);
                 if (nestedError && nestedError.data) {
                     setStateCitiesStatus(prev => ({
@@ -600,7 +616,12 @@ export function FiscalSettings() {
             const result = await fiscalService.consultarCidadeNotaNacional(selectedSearchCity.id, currentEntity.id!, token);
             setTecnoSpeedCityInfo(result.data || result);
         } catch (err: any) {
-            console.error('Erro ao consultar cidade na TecnoSpeed:', err);
+            const isExpectedApiError = err.response?.status === 400 || err.response?.status === 404;
+            if (isExpectedApiError) {
+                console.warn(`[PlugNotas] Cidade ${selectedSearchCity.nome} (${selectedSearchCity.id}) não homologada (HTTP ${err.response.status}).`);
+            } else {
+                console.error('Erro ao consultar cidade na TecnoSpeed:', err);
+            }
             const nestedError = extractTecnoSpeedError(err);
             
             if (nestedError && nestedError.data) {
@@ -1305,7 +1326,12 @@ export function FiscalSettings() {
                 }
             });
         } catch (error: any) {
-            console.error('Check city national status error:', error);
+            const isExpectedApiError = error.response?.status === 400 || error.response?.status === 404;
+            if (isExpectedApiError) {
+                console.warn(`[PlugNotas] Status de nota nacional indisponível para IBGE ${code.replace(/\D/g, '')} (HTTP ${error.response.status}).`);
+            } else {
+                console.error('Check city national status error:', error);
+            }
             const nestedError = extractTecnoSpeedError(error);
             
             setResultModal({
