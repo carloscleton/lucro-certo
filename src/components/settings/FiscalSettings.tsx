@@ -2136,7 +2136,7 @@ export function FiscalSettings() {
                                                     <div className="flex flex-col min-w-0">
                                                         <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Layout de integração</span>
                                                         <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 truncate">
-                                                            {tecnoSpeedCityInfo.padraoNacional?.producao || tecnoSpeedCityInfo.padraoNacional?.homologacao ? 'NFS-e Nacional' : 'WebService'}
+                                                            {tecnoSpeedCityInfo.padrao?.toLowerCase() === 'nacional' ? 'NFS-e Nacional' : 'WebService'}
                                                         </span>
                                                     </div>
                                                     <div className="flex flex-col min-w-0">
@@ -2251,7 +2251,7 @@ export function FiscalSettings() {
 
                                                     {/* Item 5: Certificado */}
                                                     <div className="flex items-center gap-1.5 min-w-0">
-                                                        {!tecnoSpeedCityInfo.certificado ? (
+                                                        {tecnoSpeedCityInfo.certificado ? (
                                                             <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
                                                                 <Check size={9} strokeWidth={4} />
                                                             </span>
@@ -2964,7 +2964,7 @@ export function FiscalSettings() {
                                                                 <div className="flex flex-col min-w-0">
                                                                     <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Layout de integração</span>
                                                                     <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 truncate">
-                                                                        {cityInfo?.padraoNacional?.producao || cityInfo?.padraoNacional?.homologacao ? 'NFS-e Nacional' : 'WebService'}
+                                                                        {cityInfo?.padrao?.toLowerCase() === 'nacional' ? 'NFS-e Nacional' : 'WebService'}
                                                                     </span>
                                                                 </div>
                                                                 <div className="flex flex-col min-w-0">
@@ -3075,7 +3075,7 @@ export function FiscalSettings() {
 
                                                                 {/* Item 5: Certificado */}
                                                                 <div className="flex items-center gap-1.5 min-w-0">
-                                                                    {!cityInfo?.certificado ? (
+                                                                    {cityInfo?.certificado ? (
                                                                         <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
                                                                             <Check size={9} strokeWidth={4} />
                                                                         </span>
