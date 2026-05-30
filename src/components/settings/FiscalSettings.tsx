@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, Info } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -27,6 +27,46 @@ const extractTecnoSpeedError = (err: any) => {
     }
     
     return { message: responseData?.message || err.message || 'Erro desconhecido' };
+};
+
+const formatDadosObrigatorios = (dados: any) => {
+    if (!dados) return "Consulta não disponível";
+    
+    let campos: string[] = [];
+    if (Array.isArray(dados.campos)) {
+        campos = dados.campos;
+    } else if (Array.isArray(dados)) {
+        campos = dados;
+    } else if (typeof dados === 'string') {
+        return dados;
+    }
+    
+    if (campos.length === 0) return "Consulta não disponível";
+    
+    const formatted = campos.map(c => {
+        if (typeof c !== 'string') return String(c);
+        
+        const parts = c.split('.');
+        if (parts.length === 2) {
+            const section = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+            let field = parts[1].replace(/([A-Z])/g, ' $1').trim();
+            field = field.charAt(0).toUpperCase() + field.slice(1);
+            
+            if (field.toLowerCase() === 'cpf cnpj') field = 'CpfCnpj';
+            
+            return `${section} - ${field}`;
+        }
+        
+        return c.charAt(0).toUpperCase() + c.slice(1);
+    });
+    
+    const hasOnlyTomador = formatted.every(item => item.startsWith("Tomador - "));
+    if (hasOnlyTomador && formatted.length > 0) {
+        const list = formatted.map(item => item.replace("Tomador - ", ""));
+        return `Tomador - ${list.join(', ')}`;
+    }
+    
+    return formatted.join(', ');
 };
 
 export function FiscalSettings() {
@@ -2019,9 +2059,9 @@ export function FiscalSettings() {
                                     )}
                                 </div>
 
-                                {/* Card de Resultado para Nome ou IBGE */}
+                                                                {/* Card de Resultado para Nome ou IBGE */}
                                 {tecnoSpeedCityInfo && (searchMode === 'name' || searchMode === 'ibge') && (
-                                    <div className="mt-4 p-5 bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-md animate-in fade-in slide-in-from-top-3 duration-300">
+                                    <div className="mt-4 p-6 bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-md animate-in fade-in slide-in-from-top-3 duration-300">
                                         {cityNotHomologatedMessage && (
                                             <div className="p-4 bg-rose-50 dark:bg-rose-955/20 rounded-2xl border border-rose-100 dark:border-rose-900/30 flex items-start gap-3 text-rose-800 dark:text-rose-455 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                                 <AlertCircle className="shrink-0 text-rose-500 mt-0.5" size={18} />
@@ -2032,15 +2072,29 @@ export function FiscalSettings() {
                                             </div>
                                         )}
                                         
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                                             {/* Detalhes do Município */}
                                             <div className="space-y-4">
                                                 <div className="flex justify-between items-start gap-2">
-                                                    <div>
-                                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-0.5">Município Selecionado</span>
-                                                        <h4 className="text-lg font-black text-gray-900 dark:text-white">
-                                                            {tecnoSpeedCityInfo.nome || selectedSearchCity?.nome || ('Código ' + (tecnoSpeedCityInfo.codigoIbge || tecnoSpeedCityInfo.ibge))} - {tecnoSpeedCityInfo.uf || searchUf}
-                                                        </h4>
+                                                    <div className="flex justify-between items-start w-full gap-4">
+                                                        {/* Cidade */}
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-[9px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-wider select-none">
+                                                                Cidade <Info size={10} className="text-gray-455 dark:text-slate-500 shrink-0" />
+                                                            </span>
+                                                            <span className="text-sm font-black text-gray-900 dark:text-white mt-0.5 truncate">
+                                                                {tecnoSpeedCityInfo.nome || selectedSearchCity?.nome || ('Código ' + (tecnoSpeedCityInfo.codigoIbge || tecnoSpeedCityInfo.ibge))}
+                                                            </span>
+                                                        </div>
+                                                        {/* UF */}
+                                                        <div className="flex flex-col items-end shrink-0">
+                                                            <span className="text-[9px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider select-none">
+                                                                UF
+                                                            </span>
+                                                            <span className="text-sm font-black text-gray-900 dark:text-white mt-0.5">
+                                                                {tecnoSpeedCityInfo.uf || searchUf}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                     
                                                     {/* Botão de definir como cidade ativa */}
@@ -2069,7 +2123,7 @@ export function FiscalSettings() {
                                                                     type: 'success'
                                                                 });
                                                             }}
-                                                            className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-1 active:scale-95 transition-all shrink-0"
+                                                            className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-955/20 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-1 active:scale-95 transition-all shrink-0 ml-2"
                                                         >
                                                             <Check size={12} />
                                                             Definir como Cidade Ativa
@@ -2077,87 +2131,138 @@ export function FiscalSettings() {
                                                     )}
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="p-3 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-gray-100/50 dark:border-slate-800">
-                                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Código IBGE</span>
-                                                        <code className="text-xs font-bold font-mono text-indigo-650 dark:text-indigo-400">
-                                                            {tecnoSpeedCityInfo.codigoIbge || tecnoSpeedCityInfo.ibge || selectedSearchCity?.id}
-                                                        </code>
+                                                {/* Três colunas técnicas */}
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Layout de integração</span>
+                                                        <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 truncate">
+                                                            {tecnoSpeedCityInfo.padraoNacional?.producao || tecnoSpeedCityInfo.padraoNacional?.homologacao ? 'NFS-e Nacional' : 'WebService'}
+                                                        </span>
                                                     </div>
-                                                    <div className="p-3 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-gray-100/50 dark:border-slate-800">
-                                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Padrão / Provedor</span>
-                                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 block truncate font-mono">
-                                                            {tecnoSpeedCityInfo.padrao || 'Não informado'}
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Padrão</span>
+                                                        {tecnoSpeedCityInfo.padrao ? (
+                                                            <a 
+                                                                href={`https://docs.plugnotas.com.br/docs/padrao-${tecnoSpeedCityInfo.padrao.toLowerCase()}`}
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                className="text-[10px] font-extrabold text-sky-500 hover:text-sky-655 dark:text-sky-400 dark:hover:text-sky-300 mt-0.5 flex items-center gap-0.5 transition-colors truncate"
+                                                            >
+                                                                <ExternalLink size={9} className="shrink-0" />
+                                                                {tecnoSpeedCityInfo.padrao}
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-0.5">Não informado</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Código IBGE</span>
+                                                        <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 font-mono truncate">
+                                                            {tecnoSpeedCityInfo.codigoIbge || tecnoSpeedCityInfo.ibge || selectedSearchCity?.id}
                                                         </span>
                                                     </div>
                                                 </div>
 
-                                                <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/30 dark:border-indigo-900/20">
-                                                    <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-wider block mb-1">Layout de Integração</span>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="p-1 bg-indigo-500 text-white rounded-lg">
-                                                            <Globe size={12} />
-                                                        </div>
-                                                        <span className="text-[11px] font-bold text-indigo-900 dark:text-indigo-300">
-                                                            {tecnoSpeedCityInfo.padraoNacional?.producao || tecnoSpeedCityInfo.padraoNacional?.homologacao
-                                                                ? 'NFS-e Padrão Nacional (Receita Federal)'
-                                                                : 'WebService Municipal Dedicado'}
-                                                        </span>
-                                                    </div>
+                                                {/* Dados obrigatórios */}
+                                                <div className="flex flex-col pt-1">
+                                                    <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-widest select-none">
+                                                        Dados obrigatórios das notas tomadas <Info size={9} className="text-gray-405 dark:text-slate-500 shrink-0" />
+                                                    </span>
+                                                    <span className={`text-[10px] font-extrabold mt-0.5 leading-relaxed truncate ${
+                                                        formatDadosObrigatorios(tecnoSpeedCityInfo.dadosObrigatoriosNotasTomadas) === "Consulta não disponível"
+                                                            ? 'text-gray-450 dark:text-slate-500 font-medium'
+                                                            : 'text-gray-800 dark:text-slate-350'
+                                                    }`}>
+                                                        {formatDadosObrigatorios(tecnoSpeedCityInfo.dadosObrigatoriosNotasTomadas)}
+                                                    </span>
                                                 </div>
                                             </div>
 
                                             {/* Checklist de Recursos & Requisitos */}
-                                            <div className="p-4 bg-gray-50 dark:bg-slate-900/60 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-3">
-                                                <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Requisitos e Recursos Homologados</h5>
+                                            <div className="p-5 bg-gray-50/50 dark:bg-slate-900/60 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-4">
+                                                <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-normal select-none">Requisitos e Recursos Homologados</h5>
                                                 
-                                                <div className="space-y-2">
-                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
-                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">Exige Certificado Digital</span>
-                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.certificado ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
-                                                            {tecnoSpeedCityInfo.certificado ? <AlertCircle size={10} /> : <Check size={10} />}
-                                                            {tecnoSpeedCityInfo.certificado ? 'Exigido' : 'Isento'}
-                                                        </div>
+                                                <hr className="border-gray-100 dark:border-slate-800/80 my-1" />
+
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-4">
+                                                    {/* Item 1: Notas tomadas */}
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        {!!tecnoSpeedCityInfo.dadosObrigatoriosNotasTomadas && formatDadosObrigatorios(tecnoSpeedCityInfo.dadosObrigatoriosNotasTomadas) !== "Consulta não disponível" ? (
+                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                <Check size={9} strokeWidth={4} />
+                                                            </span>
+                                                        ) : (
+                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                <X size={9} strokeWidth={4} />
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                            Notas tomadas <Info size={9} className="text-gray-400 shrink-0" />
+                                                        </span>
                                                     </div>
 
-                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
-                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">Suporte a Múltiplos Serviços</span>
-                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.multiservicos ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-655 dark:bg-red-900/20 dark:text-red-400'}`}>
-                                                            {tecnoSpeedCityInfo.multiservicos ? <Check size={10} /> : <X size={10} />}
-                                                            {tecnoSpeedCityInfo.multiservicos ? 'Suportado' : 'Não suportado'}
-                                                        </div>
+                                                    {/* Item 2: Login */}
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        {tecnoSpeedCityInfo.login ? (
+                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                <Check size={9} strokeWidth={4} />
+                                                            </span>
+                                                        ) : (
+                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                <X size={9} strokeWidth={4} />
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                            Login <Info size={9} className="text-gray-400 shrink-0" />
+                                                        </span>
                                                     </div>
 
-                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
-                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">Exige Login do Prestador</span>
-                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.login ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
-                                                            {tecnoSpeedCityInfo.login ? <AlertCircle size={10} /> : <Check size={10} />}
-                                                            {tecnoSpeedCityInfo.login ? 'Necessário' : 'Não exigido'}
-                                                        </div>
+                                                    {/* Item 3: Senha */}
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        {tecnoSpeedCityInfo.senha ? (
+                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                <Check size={9} strokeWidth={4} />
+                                                            </span>
+                                                        ) : (
+                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                <X size={9} strokeWidth={4} />
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                            Senha <Info size={9} className="text-gray-400 shrink-0" />
+                                                        </span>
                                                     </div>
 
-                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
-                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">Exige Senha do Prestador</span>
-                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.senha ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
-                                                            {tecnoSpeedCityInfo.senha ? <AlertCircle size={10} /> : <Check size={10} />}
-                                                            {tecnoSpeedCityInfo.senha ? 'Necessário' : 'Não exigido'}
-                                                        </div>
+                                                    {/* Item 4: Múltiplos serviços */}
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        {tecnoSpeedCityInfo.multiservicos ? (
+                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                <Check size={9} strokeWidth={4} />
+                                                            </span>
+                                                        ) : (
+                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                <X size={9} strokeWidth={4} />
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                            Múltiplos serviços <Info size={9} className="text-gray-400 shrink-0" />
+                                                        </span>
                                                     </div>
 
-                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
-                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">NFS-e Nacional Homologação</span>
-                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.padraoNacional?.homologacao ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-655 dark:bg-red-900/20 dark:text-red-400'}`}>
-                                                            {tecnoSpeedCityInfo.padraoNacional?.homologacao ? <Check size={10} /> : <X size={10} />}
-                                                            {tecnoSpeedCityInfo.padraoNacional?.homologacao ? 'Disponível' : 'Indisponível'}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-100/60 dark:border-slate-800 shadow-sm">
-                                                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">NFS-e Nacional Produção</span>
-                                                        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${tecnoSpeedCityInfo.padraoNacional?.producao ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-655 dark:bg-red-900/20 dark:text-red-400'}`}>
-                                                            {tecnoSpeedCityInfo.padraoNacional?.producao ? <Check size={10} /> : <X size={10} />}
-                                                            {tecnoSpeedCityInfo.padraoNacional?.producao ? 'Disponível' : 'Indisponível'}
-                                                        </div>
+                                                    {/* Item 5: Certificado */}
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        {!tecnoSpeedCityInfo.certificado ? (
+                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                <Check size={9} strokeWidth={4} />
+                                                            </span>
+                                                        ) : (
+                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                <X size={9} strokeWidth={4} />
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                            Certificado <Info size={9} className="text-gray-400 shrink-0" />
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2792,11 +2897,11 @@ export function FiscalSettings() {
                                         const cityInfo = status?.data;
 
                                         return (
-                                            <div 
+                                                                                        <div 
                                                 key={city.id}
-                                                className={`p-4 rounded-2xl bg-white dark:bg-slate-900 border transition-all duration-200 flex flex-col justify-between group ${
+                                                className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all duration-200 flex flex-col justify-between group ${
                                                     status?.loading 
-                                                        ? 'border-indigo-300 dark:border-indigo-900 ring-2 ring-indigo-500/10 bg-indigo-50/5 dark:bg-indigo-950/5 animate-pulse' 
+                                                        ? 'border-indigo-300 dark:border-indigo-900 ring-2 ring-indigo-500/10 bg-indigo-50/5 dark:bg-indigo-955/5 animate-pulse' 
                                                         : isVerified && notHomologated
                                                             ? 'border-rose-200 dark:border-rose-955/40 hover:border-rose-300 dark:hover:border-rose-955/60 shadow-sm shadow-rose-500/5'
                                                             : isVerified
@@ -2806,34 +2911,46 @@ export function FiscalSettings() {
                                             >
                                                 {/* Topo do Card */}
                                                 <div>
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div className="min-w-0">
-                                                            <h5 className="text-xs font-black text-gray-900 dark:text-white truncate" title={city.nome}>
-                                                                {city.nome}
-                                                            </h5>
-                                                            <span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 font-mono">
-                                                                IBGE: {city.id}
-                                                            </span>
+                                                    <div className="flex justify-between items-start gap-4">
+                                                        <div className="flex justify-between items-start w-full gap-4">
+                                                            {/* Cidade */}
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-[9px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-wider select-none">
+                                                                    Cidade <Info size={10} className="text-gray-400 dark:text-slate-500 shrink-0" />
+                                                                </span>
+                                                                <span className="text-xs font-black text-gray-900 dark:text-white mt-0.5 truncate" title={city.nome}>
+                                                                    {city.nome}
+                                                                </span>
+                                                            </div>
+                                                            {/* UF */}
+                                                            <div className="flex flex-col items-end shrink-0">
+                                                                <span className="text-[9px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider select-none">
+                                                                    UF
+                                                                </span>
+                                                                <span className="text-xs font-black text-gray-900 dark:text-white mt-0.5">
+                                                                    {searchUf}
+                                                                </span>
+                                                            </div>
                                                         </div>
 
                                                         {/* Status Badge */}
                                                         {status?.loading ? (
-                                                            <span className="inline-flex items-center gap-1 text-[8px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-955 px-1.5 py-0.5 rounded-md border border-indigo-100/30">
+                                                            <span className="inline-flex items-center gap-1 text-[8px] font-extrabold text-indigo-655 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-955 px-1.5 py-0.5 rounded-md border border-indigo-100/30 shrink-0">
                                                                 <RefreshCw size={8} className="animate-spin" />
                                                                 Consultando
                                                             </span>
                                                         ) : isVerified && notHomologated ? (
-                                                            <span className="inline-flex items-center gap-0.5 text-[8px] font-extrabold text-rose-600 dark:text-rose-455 bg-rose-50 dark:bg-rose-955/30 px-1.5 py-0.5 rounded-md border border-rose-100/30">
+                                                            <span className="inline-flex items-center gap-0.5 text-[8px] font-extrabold text-rose-600 dark:text-rose-455 bg-rose-50 dark:bg-rose-955/30 px-1.5 py-0.5 rounded-md border border-rose-100/30 shrink-0">
                                                                 <X size={8} />
                                                                 Indisponível
                                                             </span>
                                                         ) : isVerified ? (
-                                                            <span className="inline-flex items-center gap-0.5 text-[8px] font-extrabold text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-md border border-emerald-100/30">
+                                                            <span className="inline-flex items-center gap-0.5 text-[8px] font-extrabold text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-955/30 px-1.5 py-0.5 rounded-md border border-emerald-100/30 shrink-0">
                                                                 <Check size={8} />
                                                                 Homologado
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-0.5 text-[8px] font-extrabold text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-850 px-1.5 py-0.5 rounded-md border border-gray-150/40">
+                                                            <span className="inline-flex items-center gap-0.5 text-[8px] font-extrabold text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-850 px-1.5 py-0.5 rounded-md border border-gray-150/40 shrink-0">
                                                                 Não verificado
                                                             </span>
                                                         )}
@@ -2841,56 +2958,147 @@ export function FiscalSettings() {
 
                                                     {/* Conteúdo Técnico */}
                                                     {isVerified ? (
-                                                        <div className="mt-3 space-y-2.5 animate-in fade-in duration-200">
-                                                            {/* Provedor e layout */}
-                                                            <div className="flex items-center justify-between gap-2 text-[9px] font-semibold text-gray-500 dark:text-gray-400">
-                                                                <span>Padrão/Provedor:</span>
-                                                                <span className="font-bold text-gray-700 dark:text-gray-300 font-mono truncate max-w-[120px]">
-                                                                    {cityInfo?.padrao || 'Não informado'}
-                                                                </span>
+                                                        <div className="mt-4 space-y-3.5 animate-in fade-in duration-200">
+                                                            {/* Três colunas técnicas: Layout, Padrão, Código IBGE */}
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Layout de integração</span>
+                                                                    <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 truncate">
+                                                                        {cityInfo?.padraoNacional?.producao || cityInfo?.padraoNacional?.homologacao ? 'NFS-e Nacional' : 'WebService'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Padrão</span>
+                                                                    {cityInfo?.padrao ? (
+                                                                        <a 
+                                                                            href={`https://docs.plugnotas.com.br/docs/padrao-${cityInfo.padrao.toLowerCase()}`}
+                                                                            target="_blank" 
+                                                                            rel="noopener noreferrer" 
+                                                                            className="text-[10px] font-extrabold text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300 mt-0.5 flex items-center gap-0.5 transition-colors truncate"
+                                                                        >
+                                                                            <ExternalLink size={9} className="shrink-0" />
+                                                                            {cityInfo.padrao}
+                                                                        </a>
+                                                                    ) : (
+                                                                        <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-0.5">Não informado</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Código IBGE</span>
+                                                                    <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 font-mono truncate">
+                                                                        {city.id}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center justify-between gap-2 text-[9px] font-semibold text-gray-500 dark:text-gray-400">
-                                                                <span>Tipo de Layout:</span>
-                                                                <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate max-w-[150px]">
-                                                                    {cityInfo?.padraoNacional?.producao || cityInfo?.padraoNacional?.homologacao
-                                                                        ? 'NFS-e Nacional'
-                                                                        : 'WebService Municipal'}
+
+                                                            {/* Dados obrigatórios */}
+                                                            <div className="flex flex-col pt-0.5">
+                                                                <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-widest select-none">
+                                                                    Dados obrigatórios das notas tomadas <Info size={9} className="text-gray-400 dark:text-slate-500 shrink-0" />
+                                                                </span>
+                                                                <span className={`text-[10px] font-extrabold mt-0.5 leading-relaxed truncate ${
+                                                                    formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas) === "Consulta não disponível"
+                                                                        ? 'text-gray-400 dark:text-slate-500 font-medium'
+                                                                        : 'text-gray-800 dark:text-slate-350'
+                                                                }`}>
+                                                                    {formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas)}
                                                                 </span>
                                                             </div>
 
-                                                            {/* Checklist de requisitos rápidos */}
-                                                            <div className="flex flex-wrap gap-1 mt-2.5">
-                                                                <span className={`inline-flex items-center gap-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                                                                    cityInfo?.certificado ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100/30' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 border border-emerald-100/30'
-                                                                }`}>
-                                                                    Certificado: {cityInfo?.certificado ? 'Exigido' : 'Isento'}
-                                                                </span>
-                                                                <span className={`inline-flex items-center gap-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                                                                    cityInfo?.multiservicos ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 border border-emerald-100/30' : 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100/30'
-                                                                }`}>
-                                                                    Múltiplos Serviços: {cityInfo?.multiservicos ? 'Sim' : 'Não'}
-                                                                </span>
-                                                                <span className={`inline-flex items-center gap-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                                                                    cityInfo?.login ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100/30' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 border border-emerald-100/30'
-                                                                }`}>
-                                                                    Login: {cityInfo?.login ? 'Exigido' : 'Isento'}
-                                                                </span>
-                                                                <span className={`inline-flex items-center gap-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                                                                    cityInfo?.senha ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100/30' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 border border-emerald-100/30'
-                                                                }`}>
-                                                                    Senha: {cityInfo?.senha ? 'Exigido' : 'Isento'}
-                                                                </span>
+                                                            <hr className="border-gray-100 dark:border-slate-800/80 my-1" />
+
+                                                            {/* Checklist de requisitos (Grid de 3 Colunas) */}
+                                                            <div className="grid grid-cols-3 gap-x-2 gap-y-3 pt-1">
+                                                                {/* Item 1: Notas tomadas */}
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    {!!cityInfo?.dadosObrigatoriosNotasTomadas && formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas) !== "Consulta não disponível" ? (
+                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                            <Check size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                            <X size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                        Notas tomadas <Info size={9} className="text-gray-400 shrink-0" />
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Item 2: Login */}
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    {cityInfo?.login ? (
+                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                            <Check size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                            <X size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                        Login <Info size={9} className="text-gray-400 shrink-0" />
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Item 3: Senha */}
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    {cityInfo?.senha ? (
+                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                            <Check size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                            <X size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                        Senha <Info size={9} className="text-gray-400 shrink-0" />
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Item 4: Múltiplos serviços */}
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    {cityInfo?.multiservicos ? (
+                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                            <Check size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                            <X size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                        Múltiplos serviços <Info size={9} className="text-gray-400 shrink-0" />
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Item 5: Certificado */}
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    {!cityInfo?.certificado ? (
+                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                            <Check size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                            <X size={9} strokeWidth={4} />
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                        Certificado <Info size={9} className="text-gray-400 shrink-0" />
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="py-2.5 flex items-center justify-center text-center bg-gray-50 dark:bg-slate-850/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-800 mt-3">
+                                                        <div className="py-2.5 flex items-center justify-center text-center bg-gray-50 dark:bg-slate-855/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-800 mt-3 flex-1 min-h-[140px]">
                                                             <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500">Aguardando consulta de requisitos</span>
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 {/* Ações do Card */}
-                                                <div className="mt-4 pt-3.5 border-t border-gray-100 dark:border-slate-805 flex items-center justify-between gap-2">
+                                                <div className="mt-4 pt-3.5 border-t border-gray-150 dark:border-slate-805 flex items-center justify-between gap-2">
                                                     {/* Botão de Verificação Única / Re-verificação */}
                                                     <button
                                                         type="button"
