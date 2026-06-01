@@ -22,6 +22,7 @@ interface ProposalData {
     description?: string;
     total_amount: number;
     status: string;
+    payment_status?: string | null;
     valid_until?: string;
     notes?: string;
     created_at: string;
@@ -29,6 +30,7 @@ interface ProposalData {
     user_id: string;
     warranty_months?: number | null;
     warranty_type?: 'individual' | 'global' | null;
+    warranty_terms?: string | null;
     assigned_technician?: { full_name: string } | null;
     custom_technician?: { name: string } | null;
     client: {
@@ -85,11 +87,13 @@ export function PublicProposal() {
                 title: data.title,
                 total_amount: data.total_amount,
                 status: data.status,
+                payment_status: data.payment_status,
                 valid_until: data.valid_until,
                 notes: data.notes,
                 created_at: data.created_at,
                 warranty_months: data.warranty_months,
                 warranty_type: data.warranty_type,
+                warranty_terms: data.warranty_terms,
                 assigned_technician: data.assigned_technician,
                 custom_technician: data.custom_technician,
                 client: {
@@ -330,7 +334,7 @@ export function PublicProposal() {
                                                             </div>
                                                         )}
                                                         {item.warranty_months ? (() => {
-                                                            if (proposal.status === 'approved') {
+                                                            if (proposal.payment_status === 'paid') {
                                                                 const startDate = proposal.created_at ? new Date(proposal.created_at) : new Date();
                                                                 const endDate = new Date(startDate);
                                                                 endDate.setMonth(startDate.getMonth() + item.warranty_months);
@@ -353,11 +357,18 @@ export function PublicProposal() {
                                                                         </div>
                                                                     );
                                                                 }
-                                                            } else {
+                                                            } else if (proposal.status === 'approved') {
                                                                 return (
                                                                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30">
-                                                                        <Clock size={12} />
-                                                                        <span>Garantia de {item.warranty_months} {item.warranty_months === 1 ? 'mês' : 'meses'} após aprovação</span>
+                                                                        <Clock size={12} className="text-amber-500" />
+                                                                        <span>Garantia aguardando confirmação de pagamento</span>
+                                                                    </div>
+                                                                );
+                                                            } else {
+                                                                return (
+                                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 dark:bg-slate-800/60 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50">
+                                                                        <Shield size={12} />
+                                                                        <span>Garantia de {item.warranty_months} {item.warranty_months === 1 ? 'mês' : 'meses'} após pagamento</span>
                                                                     </div>
                                                                 );
                                                             }
@@ -396,7 +407,7 @@ export function PublicProposal() {
                                 </div>
                                 <div className="text-left sm:text-right">
                                     {proposal.warranty_months ? (() => {
-                                        if (proposal.status === 'approved') {
+                                        if (proposal.payment_status === 'paid') {
                                             const startDate = proposal.created_at ? new Date(proposal.created_at) : new Date();
                                             const endDate = new Date(startDate);
                                             endDate.setMonth(startDate.getMonth() + proposal.warranty_months);
@@ -423,6 +434,15 @@ export function PublicProposal() {
                                                     </div>
                                                 );
                                             }
+                                        } else if (proposal.status === 'approved') {
+                                            return (
+                                                <div className="flex flex-col items-start sm:items-end gap-1">
+                                                    <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-full border border-amber-100/50 dark:border-amber-900/30">
+                                                        Aguardando Pagamento
+                                                    </span>
+                                                    <span className="text-xs text-slate-500 font-bold">Ativação após pagamento</span>
+                                                </div>
+                                            );
                                         } else {
                                             return (
                                                 <div className="flex flex-col items-start sm:items-end gap-1">
@@ -430,7 +450,7 @@ export function PublicProposal() {
                                                         Cobertura Total
                                                     </span>
                                                     <span className="text-xs text-slate-700 dark:text-slate-300 font-bold">
-                                                        {proposal.warranty_months} {proposal.warranty_months === 1 ? 'mês' : 'meses'} de garantia
+                                                        {proposal.warranty_months} {proposal.warranty_months === 1 ? 'mês' : 'meses'} após pagamento
                                                     </span>
                                                 </div>
                                             );
@@ -482,6 +502,20 @@ export function PublicProposal() {
                                 )}
                             </div>
                         </div>
+                        {/* Certificado de Garantia Terms Section */}
+                        {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && proposal.warranty_terms && (
+                            <div className="mt-10 p-6 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2rem] border-2 border-dashed border-sky-100 dark:border-slate-800/80 animate-in fade-in duration-500 text-left">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <ShieldCheck className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                                    <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                                        Certificado de Garantia do Serviço
+                                    </h4>
+                                </div>
+                                <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap bg-white dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                                    {proposal.warranty_terms}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

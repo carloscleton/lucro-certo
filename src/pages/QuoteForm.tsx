@@ -51,6 +51,52 @@ export function QuoteForm() {
         return `(Vence em: ${day}/${month}/${year})`;
     };
 
+    const handleGenerateWarrantyTerms = () => {
+        const client = contacts.find(c => c.id === contactId);
+        const clientName = client ? client.name : 'Cliente';
+        const serviceName = title || 'Serviço Prestado';
+        
+        let techName = 'Responsável Técnico';
+        if (warrantyType === 'global') {
+            const selectedTech = finalTechniciansList.find(t => t.value === (customTechnicianId ? `custom:${customTechnicianId}` : assignedTechnicianId ? `user:${assignedTechnicianId}` : ''));
+            techName = selectedTech ? selectedTech.name : 'Não definido';
+        } else {
+            const execs = items
+                .map(item => {
+                    const idVal = item.custom_technician_id ? `custom:${item.custom_technician_id}` : item.assigned_technician_id ? `user:${item.assigned_technician_id}` : '';
+                    const match = finalTechniciansList.find(t => t.value === idVal);
+                    return match ? match.name : '';
+                })
+                .filter(Boolean);
+            const uniqueExecs = Array.from(new Set(execs));
+            techName = uniqueExecs.length > 0 ? uniqueExecs.join(', ') : 'Não definido';
+        }
+
+        const months = warrantyType === 'global' 
+            ? (warrantyMonths ? Number(warrantyMonths) : 0)
+            : Math.max(...items.map(i => i.warranty_months || 0));
+
+        const expirationText = getWarrantyExpirationText(months) || '';
+        const limitDateStr = expirationText.replace(/[()]/g, '').replace('Vence em: ', '');
+
+        const formattedTotal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateTotal());
+
+        const text = `CERTIFICADO DE GARANTIA E RESPONSABILIDADE TÉCNICA
+
+Pelo presente instrumento, certificamos que os serviços prestados referentes ao orçamento "${serviceName}" foram executados em conformidade com as normas técnicas vigentes.
+
+Cliente: ${clientName}
+Executor(es) Técnico(s): ${techName}
+Valor do Investimento: ${formattedTotal}
+
+PRAZO DE COBERTURA:
+Este serviço está coberto por garantia de ${months} ${months === 1 ? 'mês' : 'meses'}${limitDateStr ? `, válida até ${limitDateStr}` : ''}, contados a partir da data de confirmação do pagamento integral deste orçamento.
+
+A garantia cobre defeitos decorrentes da execução do serviço e falhas técnicas justificadas, perdendo sua validade em caso de intervenção de terceiros ou mau uso constatado.`;
+
+        setWarrantyTerms(text);
+    };
+
     // Unified list of team members and custom technicians
     const mergedTechnicians = [
         ...teamMembers.map(m => ({
@@ -97,6 +143,7 @@ export function QuoteForm() {
     const [assignedTechnicianId, setAssignedTechnicianId] = useState<string | null>(null);
     const [customTechnicianId, setCustomTechnicianId] = useState<string | null>(null);
     const [warrantyType, setWarrantyType] = useState<'individual' | 'global'>('individual');
+    const [warrantyTerms, setWarrantyTerms] = useState('');
 
     // Items State
     const [items, setItems] = useState<QuoteItem[]>([]);
@@ -122,7 +169,7 @@ export function QuoteForm() {
 
     const { clearCache } = useAutoSave(
         'quote_form',
-        { title, contactId, validUntil, notes, discount, discountType, items, warrantyMonths, assignedTechnicianId, customTechnicianId, warrantyType },
+        { title, contactId, validUntil, notes, discount, discountType, items, warrantyMonths, assignedTechnicianId, customTechnicianId, warrantyType, warrantyTerms },
         {
             title: setTitle, contactId: setContactId, validUntil: setValidUntil,
             notes: setNotes, discount: setDiscount, discountType: setDiscountType as any,
@@ -130,7 +177,8 @@ export function QuoteForm() {
             warrantyMonths: setWarrantyMonths,
             assignedTechnicianId: setAssignedTechnicianId,
             customTechnicianId: setCustomTechnicianId,
-            warrantyType: setWarrantyType
+            warrantyType: setWarrantyType,
+            warrantyTerms: setWarrantyTerms
         },
         id === 'new',
         true
@@ -180,6 +228,7 @@ export function QuoteForm() {
             setAssignedTechnicianId(data.assigned_technician_id || null);
             setCustomTechnicianId(data.custom_technician_id || null);
             setWarrantyType(data.warranty_type || settings?.warranty_type || 'individual');
+            setWarrantyTerms(data.warranty_terms || '');
 
             // Load ONLY expenses for this quote
             const { data: transData } = await supabase
@@ -231,6 +280,7 @@ export function QuoteForm() {
             setAssignedTechnicianId(null);
             setCustomTechnicianId(null);
             setWarrantyType(settings?.warranty_type || 'individual');
+            setWarrantyTerms('');
         }
     }, [id, settingsLoading, loadQuote]);
 
@@ -630,7 +680,8 @@ export function QuoteForm() {
                 warranty_months: warrantyMonths !== '' ? Number(warrantyMonths) : null,
                 assigned_technician_id: assignedTechnicianId,
                 custom_technician_id: customTechnicianId,
-                warranty_type: warrantyType
+                warranty_type: warrantyType,
+                warranty_terms: warrantyTerms || null
             };
 
             if (id && id !== 'new') {
@@ -1256,6 +1307,27 @@ export function QuoteForm() {
                             onChange={e => setNotes(e.target.value)}
                             placeholder="Condições de pagamento, prazos, etc."
                         />
+
+                        {currentEntity.warranty_module_enabled && settings.enable_service_warranty && (
+                            <div className="flex flex-col gap-1.5 animate-in fade-in duration-300 text-left">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Termo / Certificado de Garantia</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleGenerateWarrantyTerms}
+                                        className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg transition-colors border border-blue-100 dark:border-blue-850"
+                                    >
+                                        📄 Gerar Certificado Automático
+                                    </button>
+                                </div>
+                                <TextArea
+                                    rows={5}
+                                    value={warrantyTerms}
+                                    onChange={e => setWarrantyTerms(e.target.value)}
+                                    placeholder="Descreva aqui os detalhes, condições e termos de garantia sobre o serviço prestado..."
+                                />
+                            </div>
+                        )}
 
                         {currentEntity.warranty_module_enabled && settings.enable_service_warranty && warrantyType === 'global' && (
                             <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-5 border border-gray-100 dark:border-slate-700 space-y-4 animate-in fade-in duration-300">
