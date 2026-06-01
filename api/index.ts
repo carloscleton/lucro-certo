@@ -630,7 +630,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
                     const host = req.get('host');
                     const baseApiUrl = `${protocol}://${host}`;
-                    return `${baseApiUrl}/api/fiscal-module/${endpoint}/${externalId}/${docType}?companyId=${companyId}`;
+                    const targetType = endpoint === 'nfse' && isNacional ? 'nfsenac' : endpoint;
+                    return `${baseApiUrl}/api/fiscal-module/${targetType}/${externalId}/${docType}?companyId=${companyId}`;
                 };
 
                 const pdfUrl = getValidDocUrl('pdf');
@@ -640,7 +641,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     company_id: resolvedId,
                     quote_id: quoteId || null,
                     external_id: externalId,
-                    type: endpoint,
+                    type: endpoint === 'nfse' && isNacional ? 'nfsenac' : endpoint,
                     status: String(status).toLowerCase(),
                     pdf_url: pdfUrl,
                     xml_url: xmlUrl,
@@ -1164,8 +1165,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
         const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
-        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
-        const targetType = type === 'nfse' && isNacional ? 'nfse/nacional' : type;
+        const isNacional = type === 'nfsenac';
+        const targetType = isNacional ? 'nfse/nacional' : (type === 'nfsenac' ? 'nfse' : type);
 
         console.log(`📄 [FISCAL-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para ${targetType} ID: ${id}`);
 
@@ -1283,18 +1284,26 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     'Authorization': authHeader!
                 }
             });
+            let isRecordFound = false;
             if (invData?.[0]?.type) {
                 type = invData[0].type;
-                console.log(`🔍 [FISCAL-STATUS] Tipo detectado para ${id}: ${type}`);
+                isRecordFound = true;
+                console.log(`🔍 [FISCAL-STATUS] Tipo detectado no banco para ${id}: ${type}`);
             }
         } catch (dbErr) {
             console.warn(`⚠️ [FISCAL-STATUS] Não foi possível detectar o tipo da nota ${id} no banco. Tentando ${type} por padrão.`);
         }
 
+        // Determinar se é nacional:
+        // 1. Se achou no banco, é nacional se type for 'nfsenac'.
+        // 2. Se não achou no banco (avulsa), usa a config atual da empresa.
+        const isNacional = isRecordFound 
+            ? (type === 'nfsenac') 
+            : !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+            
+        const targetType = isNacional ? 'nfse/nacional' : (type === 'nfsenac' ? 'nfse' : type);
+
         // 2. Consultar na TecnoSpeed usando o endpoint correto
-        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
-        const targetType = type === 'nfse' && isNacional ? 'nfse/nacional' : type;
-        
         const response = await axios.get(`${baseUrl}/${targetType}/${id}`, {
             headers: { 'X-API-KEY': apiKey }
         });
@@ -1328,8 +1337,10 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         }
         res.json(statusData);
     } catch (error: any) {
-        console.error('❌ [FISCAL-STATUS] Erro:', error.response?.data || error.message);
-        res.status(500).json({ error: 'Erro ao consultar status', detail: error.response?.data || error.message });
+        const detail = error.response?.data || error.message;
+        const statusCode = error.response?.status || 500;
+        console.error('❌ [FISCAL-STATUS] Erro:', JSON.stringify(detail));
+        res.status(statusCode).json({ error: 'Erro ao consultar status', detail: detail });
     }
 });
 
