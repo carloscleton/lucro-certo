@@ -1066,30 +1066,39 @@ export function FiscalSettings() {
 
     const handleGenerateExample = () => {
         const isTest = config.use_test_data;
-        const mock = {
+        const isNacional = !!config.nfse_nacional;
+        const mock: any = {
             idIntegracao: `TEST_${Date.now()}`,
+            ...(isNacional ? { versao: "1.00" } : {}),
             prestador: {
                 cpfCnpj: isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "00000000000100"),
-                inscricaoMunicipal: config.inscricao_municipal || "123456"
+                inscricaoMunicipal: isNacional ? (isTest ? "1234567" : (config.inscricao_municipal || "1234567")) : (config.inscricao_municipal || "123456")
             },
             tomador: {
                 cpfCnpj: "00000000000000",
                 razaoSocial: "Cliente de Teste LTDA",
+                nomeFantasia: "teste",
                 email: "teste@exemplo.com",
                 endereco: {
                     logradouro: "Rua de Teste",
                     numero: "100",
                     bairro: "Centro",
-                    codigoCidade: isTest ? "4115200" : (config.endereco?.codigoCidade || "4115200"),
-                    descricaoCidade: isTest ? "Maringá" : undefined,
-                    uf: isTest ? "PR" : (config.endereco?.uf || "PR"),
-                    cep: "87000000"
+                    codigoCidade: isNacional 
+                        ? (isTest ? "3106200" : (config.endereco?.codigoCidade || "3106200"))
+                        : (isTest ? "4115200" : (config.endereco?.codigoCidade || "4115200")),
+                    descricaoCidade: isNacional 
+                        ? (isTest ? "Belo Horizonte" : undefined)
+                        : (isTest ? "Maringá" : undefined),
+                    uf: isNacional 
+                        ? (isTest ? "MG" : (config.endereco?.uf || "MG"))
+                        : (isTest ? "PR" : (config.endereco?.uf || "PR")),
+                    cep: isNacional ? "31000000" : "87000000"
                 }
             },
             servico: [
                 {
-                    codigo: config.nfse_nacional ? "010101" : "01.01",
-                    codigoTributacao: config.nfse_nacional ? "010" : undefined,
+                    codigo: isNacional ? "010101" : "01.01",
+                    codigoTributacao: isNacional ? "010" : undefined,
                     itemListaServico: "01.01",
                     discriminacao: "Serviço de Teste via Laboratório JSON",
                     valor: {
