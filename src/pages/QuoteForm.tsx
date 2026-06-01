@@ -114,7 +114,7 @@ export function QuoteForm() {
             setPaymentStatus(data.payment_status || 'none');
 
             if (data.valid_until) {
-                const date = new Date(data.valid_until);
+                const date = new Date(data.valid_until + 'T00:00:00');
                 const today = new Date();
                 date.setHours(0, 0, 0, 0);
                 today.setHours(0, 0, 0, 0);

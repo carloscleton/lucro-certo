@@ -131,7 +131,7 @@ export class PDFService {
         // Grid com detalhes do orçamento
         doc.setFontSize(8.5);
         doc.text(`Emissão: ${new Date(data.quote.created_at).toLocaleDateString(locale)}`, pageWidth - margin - 6, yPos + 8, { align: 'right' });
-        doc.text(`Vencimento: ${new Date(data.quote.valid_until).toLocaleDateString(locale)}`, pageWidth - margin - 6, yPos + 13, { align: 'right' });
+        doc.text(`Vencimento: ${new Date(data.quote.valid_until + 'T00:00:00').toLocaleDateString(locale)}`, pageWidth - margin - 6, yPos + 13, { align: 'right' });
         doc.setFont('helvetica', 'bold');
         doc.text(`ID: ${data.quote.id.substring(0, 8).toUpperCase()}`, pageWidth - margin - 6, yPos + 18, { align: 'right' });
 

@@ -156,7 +156,7 @@ export function QuotePrint() {
                         {/* Address placeholders if available in future */}
                         <p className="text-sm text-gray-600 mt-1">Data: {new Date(quote.created_at).toLocaleDateString()}</p>
                         {quote.valid_until && (
-                            <p className="text-sm text-red-500 font-medium">Válido até: {new Date(quote.valid_until).toLocaleDateString()}</p>
+                            <p className="text-sm text-red-500 font-medium">Válido até: {new Date(quote.valid_until + 'T00:00:00').toLocaleDateString()}</p>
                         )}
                     </div>
                 </div>

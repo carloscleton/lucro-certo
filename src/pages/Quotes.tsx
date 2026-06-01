@@ -1490,8 +1490,8 @@ export function Quotes() {
                                                 {quote.valid_until && (
                                                     <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider">
                                                         <Calendar size={10} className="text-gray-400" />
-                                                        <span>Vence: {new Date(quote.valid_until).toLocaleDateString()}</span>
-                                                        {new Date(quote.valid_until) < new Date(new Date().setHours(0,0,0,0)) && quote.status !== 'approved' && (
+                                                        <span>Vence: {new Date(quote.valid_until + 'T00:00:00').toLocaleDateString()}</span>
+                                                        {new Date(quote.valid_until + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)) && quote.status !== 'approved' && (
                                                             <span className="text-[8px] font-black text-rose-500 bg-rose-50 dark:bg-rose-950/30 px-1 rounded border border-rose-100 dark:border-rose-900/50 ml-1">
                                                                 Expirado
                                                             </span>
