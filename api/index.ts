@@ -1264,6 +1264,21 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
 
+    // Proteção Anti-Crash: Se o ID não for um ObjectID de 24 caracteres hexadecimais do PlugNotas,
+    // significa que é um ID de integração temporário (como UUID_lote).
+    // Retornamos status "processando" amigável para evitar erro 500 na TecnoSpeed e popups chatos no frontend.
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id || '');
+    if (!isObjectId) {
+        console.log(`⚠️ [FISCAL-STATUS-BYPASS] ID informado (${id}) é um ID de integração. Retornando status processando.`);
+        return res.json({
+            status: 'processando',
+            message: 'Nota em processamento ou aguardando autorização da prefeitura.',
+            data: {
+                status: 'processando'
+            }
+        });
+    }
+
     try {
         const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
@@ -1273,6 +1288,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
 
         // 1. Tentar descobrir o tipo da nota no nosso banco (NFS-e ou NF-e)
         let type = 'nfse'; // Default para NFSe que é o mais comum no projeto
+        let isRecordFound = false;
         try {
             const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                 params: {
@@ -1284,7 +1300,6 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     'Authorization': authHeader!
                 }
             });
-            let isRecordFound = false;
             if (invData?.[0]?.type) {
                 type = invData[0].type;
                 isRecordFound = true;
