@@ -140,7 +140,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         let lastError = null;
 
         // --- ESTRATÉGIA BRUTE FORCE DISCOVERY (v1.0.25) ---
-        if (typeLower === 'nfse') {
+        if (typeLower === 'nfse' || typeLower === 'nfsenac') {
             // 1. Padrão Nacional Oficial (Documentação)
             try {
                 const targetUrl = `${cleanBaseUrl}/nfse/cancelar/${id}`;
@@ -167,11 +167,25 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 lastError = error;
                 if (error.response?.status !== 404 && !JSON.stringify(error.response?.data).includes('não existe')) throw error;
             }
+
+            // 3. Padrão Nacional Oficial Novo (nfse/nacional/:id/cancelar)
+            try {
+                const targetUrl = `${cleanBaseUrl}/nfse/nacional/${id}/cancelar`;
+                const response = await axios.post(targetUrl, { 
+                    justificativa: justificativa || 'Cancelamento solicitado pelo usuario'
+                }, {
+                    headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
+                });
+                return finalizeCancel(id, response.data);
+            } catch (error: any) {
+                lastError = error;
+                if (error.response?.status !== 404 && !JSON.stringify(error.response?.data).includes('não existe')) throw error;
+            }
         }
 
-        // 3. Padrão Municipal / Padrão NFe
+        // 4. Padrão Municipal / Padrão NFe
         try {
-            const targetUrl = `${cleanBaseUrl}/${typeLower}/${id}/cancelar`;
+            const targetUrl = `${cleanBaseUrl}/${typeLower === 'nfsenac' ? 'nfse' : typeLower}/${id}/cancelar`;
             const response = await axios.post(targetUrl, { justificativa: justificativa || 'Cancelamento solicitado pelo usuario' }, {
                 headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
             });
@@ -607,7 +621,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
         console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.33):`, JSON.stringify(finalPayload, null, 2));
 
-        const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
+        const response = await axios.post(`${baseUrl}/${endpoint === 'nfse' && isNacional ? 'nfse/nacional' : endpoint}`, finalPayload, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey

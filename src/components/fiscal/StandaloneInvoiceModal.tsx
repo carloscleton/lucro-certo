@@ -518,12 +518,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 .maybeSingle();
 
                             if (existingInv?.id) {
-                                console.log(`💾 [DB-SAVE] Nota ${externalId} já existe. Atualizando status e payload...`);
+                                console.log(`💾 [DB-SAVE] Nota ${externalId} já existe. Atualizando status...`);
                                 const { error: dbError } = await supabase
                                     .from('fiscal_invoices')
                                     .update({
-                                        status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
-                                        payload: finalPayloadToSave
+                                        status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando'
                                     })
                                     .eq('id', existingInv.id);
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no update:', dbError);
@@ -532,9 +531,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 const { error: dbError } = await supabase.from('fiscal_invoices').insert({
                                     company_id: realCompanyId,
                                     external_id: externalId,
-                                    type: 'nfse',
+                                    type: isNacional ? 'nfsenac' : 'nfse',
                                     status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
-                                    payload: finalPayloadToSave
+                                    payload: {
+                                        ...payload,
+                                        retorno: finalPayloadToSave
+                                    }
                                 });
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
                             }
