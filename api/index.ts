@@ -839,7 +839,9 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 ativo: true,
                 config: { 
                     producao: config.ambiente === 'producao',
-                    numeracaoAutomatica: true,
+                    rps: {
+                        numeracaoAutomatica: true
+                    },
                     nfseNacional: useTestData ? false : !!config.nfse_nacional
                 }
             },
