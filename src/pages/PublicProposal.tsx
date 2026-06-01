@@ -34,6 +34,9 @@ interface ProposalData {
         logo_url?: string;
         email?: string;
         phone?: string;
+        cnpj?: string;
+        cpf?: string;
+        entity_type?: 'PF' | 'PJ';
     };
     items: any[];
 }
@@ -82,7 +85,11 @@ export function PublicProposal() {
                 company: {
                     name: data.company?.name || 'Empresa',
                     logo_url: data.company?.logo_url,
-                    email: data.company?.email
+                    email: data.company?.email,
+                    phone: data.company?.phone,
+                    cnpj: data.company?.cnpj,
+                    cpf: data.company?.cpf,
+                    entity_type: data.company?.entity_type || 'PJ'
                 },
                 items: data.items || []
             } as any);
@@ -165,47 +172,8 @@ export function PublicProposal() {
             <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-40">
                 <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-200 dark:bg-sky-900/20 blur-[150px] rounded-full" />
                 <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-200 dark:bg-emerald-900/20 blur-[120px] rounded-full" />
-            </div>            <main className="relative z-10 max-w-4xl mx-auto py-16 px-6">
-                {/* Header - Centralizado e Elegante */}
-                <div className="flex flex-col items-center text-center mb-16 animate-in fade-in slide-in-from-top-4 duration-700">
-                    <div className="relative mb-6">
-                        {proposal.company.logo_url ? (
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-sky-200 blur-2xl opacity-20 rounded-full scale-150" />
-                                <img 
-                                    src={proposal.company.logo_url} 
-                                    alt={proposal.company.name} 
-                                    className="relative h-28 w-28 object-contain rounded-3xl shadow-xl shadow-sky-500/10 bg-white p-3 border border-slate-100 dark:border-slate-800" 
-                                />
-                            </div>
-                        ) : (
-                            <div className="h-28 w-28 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800">
-                                <Building2 className="text-sky-600" size={40} />
-                            </div>
-                        )}
-                    </div>
-                    
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
-                        {proposal.company.name}
-                    </h2>
-                    <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-1.5 rounded-full text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                        <ShieldCheck size={14} />
-                        Proposta Verificada
-                    </div>
-
-                    <div className="flex items-center gap-6 mt-10">
-                        <div className="text-center">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Emissão</p>
-                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">{format(parseISO(proposal.created_at), 'dd/MM/yyyy')}</p>
-                        </div>
-                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800" />
-                        <div className="text-center">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Referência</p>
-                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">#{id?.slice(0, 8).toUpperCase()}</p>
-                        </div>
-                    </div>
-                </div>
-
+            </div>
+            <main className="relative z-10 max-w-4xl mx-auto py-16 px-6">
                 {/* Main Content Card - Refinado e Compacto */}
                 <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl shadow-slate-200/60 dark:shadow-none border border-white dark:border-slate-800/50 overflow-hidden">
                     {/* Status Top Bar */}
@@ -229,6 +197,59 @@ export function PublicProposal() {
                     )}
 
                     <div className="p-8 md:p-14">
+                        {/* Novo Cabeçalho Oficial (Estilo Impressão/PDF) */}
+                        <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
+                            <div className="flex flex-col justify-between text-left">
+                                <div>
+                                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">ORÇAMENTO</h1>
+                                    <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">#{id?.slice(0, 8).toUpperCase()}</p>
+                                </div>
+                                <div className="mt-4">
+                                    <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 px-3.5 py-1.5 rounded-full text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-100/50 dark:border-emerald-900/30">
+                                        <ShieldCheck size={12} />
+                                        Proposta Verificada
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-start md:items-end text-left md:text-right gap-1 md:gap-0.5">
+                                {proposal.company.logo_url ? (
+                                    <img 
+                                        src={proposal.company.logo_url} 
+                                        alt={proposal.company.name} 
+                                        className="h-16 object-contain mb-3 bg-white p-2 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm" 
+                                    />
+                                ) : (
+                                    <div className="h-14 w-14 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-800 mb-2">
+                                        <Building2 className="text-sky-600" size={24} />
+                                    </div>
+                                )}
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                    {proposal.company.name}
+                                </h2>
+                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                    {proposal.company.entity_type === 'PF' 
+                                        ? `CPF: ${proposal.company.cpf || '-'}` 
+                                        : `CNPJ: ${proposal.company.cnpj || '-'}`}
+                                </p>
+                                {proposal.company.email && (
+                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{proposal.company.email}</p>
+                                )}
+                                {proposal.company.phone && (
+                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{proposal.company.phone}</p>
+                                )}
+                                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mt-2">
+                                    Data: {format(parseISO(proposal.created_at), 'dd/MM/yyyy')}
+                                </p>
+                                {proposal.valid_until && (
+                                    <p className="text-xs font-black text-red-500 dark:text-red-400 mt-0.5 uppercase tracking-wide">
+                                        Válido até: {format(parseISO(proposal.valid_until + 'T00:00:00'), 'dd/MM/yyyy')}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="w-full h-px bg-slate-100 dark:bg-slate-800/50 mb-10" />
                         {/* Title & Customer Information */}
                         <div className="max-w-3xl mb-14 text-center md:text-left">
                             <p className="text-sky-600 dark:text-sky-400 font-bold text-xs uppercase tracking-[0.4em] mb-6">Documento Oficial</p>
