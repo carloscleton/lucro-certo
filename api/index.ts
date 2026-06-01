@@ -227,10 +227,13 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
     const { companyId, senha } = req.body;
     const authHeader = req.headers.authorization;
     const file = req.file;
-
     if (!companyId || !file || !senha) {
         return res.status(400).json({ error: 'companyId, arquivo e senha são obrigatórios' });
     }
+
+    let baseUrl = '';
+    let apiKey = '';
+    let form: any = null;
 
     try {
         // Usar config enviada pelo frontend ou buscar no banco se não houver
@@ -324,15 +327,15 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
             });
         }
 
-        const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+        baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
 
         console.log(`🔐 DEBUG: Usando API Key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
         console.log(`🔐 DEBUG: Enviando para: ${baseUrl}`);
 
-        const form = new FormData();
+        form = new FormData();
         
         // Envio simplificado para compatibilidade máxima com Sandbox
         form.append('arquivo', file.buffer, {
@@ -551,7 +554,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // Injetar o certificado no payload se for NFSe
         let finalPayload = Array.isArray(payload) ? payload : [payload];
         
-        if (endpoint === 'nfse' || endpoint === 'nfse/nacional') {
+        if (endpoint === 'nfse') {
             finalPayload = finalPayload.map((item: any) => {
                 if (!item.idIntegracao) {
                     item.idIntegracao = `NFSE_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
@@ -621,7 +624,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
         console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.33):`, JSON.stringify(finalPayload, null, 2));
 
-        const response = await axios.post(`${baseUrl}/${endpoint === 'nfse' && isNacional ? 'nfse/nacional' : endpoint}`, finalPayload, {
+        const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey
@@ -1281,7 +1284,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
     // Proteção Anti-Crash: Se o ID não for um ObjectID de 24 caracteres hexadecimais do PlugNotas,
     // significa que é um ID de integração temporário (como UUID_lote).
     // Retornamos status "processando" amigável para evitar erro 500 na TecnoSpeed e popups chatos no frontend.
-    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id || '');
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test((id as string) || '');
     if (!isObjectId) {
         console.log(`⚠️ [FISCAL-STATUS-BYPASS] ID informado (${id}) é um ID de integração. Retornando status processando.`);
         return res.json({
@@ -1294,7 +1297,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
     }
 
     try {
-        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as any);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -2001,6 +2004,7 @@ app.post('/payments/process-checkout', async (req, res) => {
             amount: charge.amount,
             description: charge.description,
             external_reference: charge.external_reference,
+            currency: 'BRL',
             customer: {
                 name: contact?.name || 'Cliente Vinx',
                 email: contact?.email || 'financeiro@vinx.com.br',
