@@ -943,7 +943,7 @@ export function QuoteForm() {
                                                 </div>
                                             )}
 
-                                            {settings.enable_service_warranty && item.service_id && (
+                                            {currentEntity.warranty_module_enabled && settings.enable_service_warranty && item.service_id && (
                                                 <div className="mt-2 flex gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
                                                     <div className="flex-[2]">
                                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Executante / Resp. Técnico</label>

@@ -623,25 +623,27 @@ export function Settings() {
                             />
                         </div>
 
-                        <div className="mt-6 p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                            <div className="space-y-1 pr-4">
-                                <h4 className="font-bold text-gray-900 dark:text-white leading-none">
-                                    Controle de Garantia e Responsabilidade Técnica
-                                </h4>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 leading-normal">
-                                    Ativa o controle de período de garantia e a atribuição de responsáveis técnicos para os itens de serviço de seus orçamentos.
-                                </p>
+                        {currentEntity.type === 'company' && currentEntity.warranty_module_enabled && (
+                            <div className="mt-6 p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                                <div className="space-y-1 pr-4">
+                                    <h4 className="font-bold text-gray-900 dark:text-white leading-none">
+                                        Controle de Garantia e Responsabilidade Técnica
+                                    </h4>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-normal">
+                                        Ativa o controle de período de garantia e a atribuição de responsáveis técnicos para os itens de serviço de seus orçamentos.
+                                    </p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only peer" 
+                                        checked={enableServiceWarranty} 
+                                        onChange={(e) => setEnableServiceWarranty(e.target.checked)} 
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                </label>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only peer" 
-                                    checked={enableServiceWarranty} 
-                                    onChange={(e) => setEnableServiceWarranty(e.target.checked)} 
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                            </label>
-                        </div>
+                        )}
                         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex justify-end">
                             <Button onClick={handleSave} isLoading={saving}>
                                 <Save size={18} className="mr-2" />
@@ -1447,6 +1449,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Controle de Garantia</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">Habilita o controle de prazos de garantia e executantes técnicos para os serviços.</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.warranty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, warranty_module_enabled: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
                                                         <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.data_deletion')}</h4>
                                                         <p className="text-xs text-gray-500 leading-tight">{t('settings.data_deletion_desc')}</p>
                                                     </td>
@@ -1820,6 +1836,7 @@ export function Settings() {
                                             !!tempCompanyConfig.automations_module_enabled,
                                             !!tempCompanyConfig.has_lead_radar,
                                             !!tempCompanyConfig.loyalty_module_enabled,
+                                            !!tempCompanyConfig.warranty_module_enabled,
                                             tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'],
                                             tempCompanyConfig.settings || {},
                                             tempCompanyConfig.loyalty_platform_fee || 5,

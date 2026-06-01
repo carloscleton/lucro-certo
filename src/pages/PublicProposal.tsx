@@ -40,6 +40,7 @@ interface ProposalData {
         cpf?: string;
         entity_type?: 'PF' | 'PJ';
         settings?: any;
+        warranty_module_enabled?: boolean;
     };
     items: any[];
 }
@@ -93,7 +94,8 @@ export function PublicProposal() {
                     cnpj: data.company?.cnpj,
                     cpf: data.company?.cpf,
                     entity_type: data.company?.entity_type || 'PJ',
-                    settings: data.company?.settings || {}
+                    settings: data.company?.settings || {},
+                    warranty_module_enabled: data.company?.warranty_module_enabled
                 },
                 items: data.items || []
             } as any);
@@ -309,7 +311,7 @@ export function PublicProposal() {
                                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.quantity} unidade(s)</p>
                                                 )}
                                                 
-                                                {proposal.company.settings?.enable_service_warranty && item.service_id && (
+                                                {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && item.service_id && (
                                                     <div className="mt-2.5 flex flex-wrap gap-2 animate-in fade-in duration-200">
                                                         {item.technician?.full_name && (
                                                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50 dark:bg-sky-950/40 text-[10px] font-bold text-sky-600 dark:text-sky-400 border border-sky-100/50 dark:border-sky-900/30">

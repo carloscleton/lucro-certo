@@ -31,6 +31,7 @@ export interface Entity {
     automations_module_enabled?: boolean;
     has_lead_radar?: boolean;
     loyalty_module_enabled?: boolean;
+    warranty_module_enabled?: boolean;
     status?: string;
     subscription_status?: string;
     subscription_plan?: string;
@@ -101,6 +102,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         automations_module_enabled,
                         has_lead_radar,
                         loyalty_module_enabled,
+                        warranty_module_enabled,
                         status,
                         subscription_status,
                         subscription_plan,
@@ -145,6 +147,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     automations_module_enabled: item.company.automations_module_enabled,
                     has_lead_radar: item.company.has_lead_radar,
                     loyalty_module_enabled: item.company.loyalty_module_enabled,
+                    warranty_module_enabled: item.company.warranty_module_enabled,
                     status: item.company.status,
                     subscription_status: item.company.subscription_status,
                     subscription_plan: item.company.subscription_plan,

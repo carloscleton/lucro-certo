@@ -53,6 +53,7 @@ export interface AdminCompany {
     automations_module_enabled?: boolean;
     has_lead_radar?: boolean;
     loyalty_module_enabled?: boolean;
+    warranty_module_enabled?: boolean;
     allowed_entity_types?: string[];
     status: string;
     subscription_plan?: string;
@@ -191,10 +192,10 @@ export function useAdmin() {
             if (!silent) setLoading(false);
         }
     };
-    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, loyalty: boolean, allowedTypes: string[], settings?: any, loyaltyFee: number = 5.00, loyaltySplit: boolean = false) => {
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, loyalty: boolean, warranty: boolean, allowedTypes: string[], settings?: any, loyaltyFee: number = 5.00, loyaltySplit: boolean = false) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
-        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, loyalty, allowedTypes, settings, loyaltyFee, loyaltySplit });
+        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, loyalty, warranty, allowedTypes, settings, loyaltyFee, loyaltySplit });
 
         try {
             const { error } = await supabase.rpc('admin_update_company_config', {
@@ -206,6 +207,7 @@ export function useAdmin() {
                 automations_enabled: automations,
                 lead_radar_enabled: leadRadar,
                 loyalty_enabled: loyalty,
+                warranty_enabled: warranty,
                 allowed_types: allowedTypes,
                 settings_input: settings,
                 loyalty_fee_input: loyaltyFee,
@@ -226,6 +228,7 @@ export function useAdmin() {
                         automations_module_enabled: automations,
                         has_lead_radar: leadRadar,
                         loyalty_module_enabled: loyalty,
+                        warranty_module_enabled: warranty,
                         allowed_entity_types: allowedTypes,
                         settings: settings || c.settings,
                         loyalty_platform_fee: loyaltyFee,
