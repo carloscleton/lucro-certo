@@ -330,7 +330,7 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
         apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+        baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
 
         console.log(`🔐 DEBUG: Usando API Key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
         console.log(`🔐 DEBUG: Enviando para: ${baseUrl}`);
@@ -427,7 +427,7 @@ app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-sta
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
 
         console.log(`🔍 Checking status for issuer ${cpfCnpj} in ${isSandbox ? 'SANDBOX' : 'PROD'}...`);
 
@@ -511,7 +511,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
 
         // --- AUTODESCORBERTA DE CERTIFICADO ---
         let certId = config.certificado_id || config.certificadoId || config.certificado;
@@ -622,9 +622,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             });
         }
 
-        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.33):`, JSON.stringify(finalPayload, null, 2));
+        const targetEndpoint = endpoint === 'nfse' && isNacional ? 'nfse/nacional' : endpoint;
+        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.34) → ${targetEndpoint}:`, JSON.stringify(finalPayload, null, 2));
 
-        const response = await axios.post(`${baseUrl}/${endpoint}`, finalPayload, {
+        const response = await axios.post(`${baseUrl}/${targetEndpoint}`, finalPayload, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey
@@ -1255,7 +1256,7 @@ app.get(['/fiscal-module/cidades/:codigoIbge', '/api/fiscal-module/cidades/:codi
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
 
         const cleanIbge = String(codigoIbge).replace(/\D/g, '');
         console.log(`🔍 [FISCAL-CIDADES] Consultando cidade IBGE: ${cleanIbge} em ${isSandbox ? 'SANDBOX' : 'PROD'}...`);
@@ -1301,7 +1302,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
 
         // 1. Tentar descobrir o tipo da nota no nosso banco (NFS-e ou NF-e)
         let type = 'nfse'; // Default para NFSe que é o mais comum no projeto
