@@ -197,53 +197,82 @@ export function PublicProposal() {
                     )}
 
                     <div className="p-8 md:p-14">
-                        {/* Novo Cabeçalho Oficial (Estilo Impressão/PDF) */}
-                        <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
-                            <div className="flex flex-col justify-between text-left">
-                                <div>
+                        {/* Novo Cabeçalho Oficial (Estilo Impressão/PDF - Horizontal) */}
+                        <div className="flex flex-col gap-5 mb-6">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                <div className="flex flex-col text-left">
                                     <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">ORÇAMENTO</h1>
-                                    <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">#{id?.slice(0, 8).toUpperCase()}</p>
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                        <span className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">#{id?.slice(0, 8).toUpperCase()}</span>
+                                        <div className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-0.5 rounded-full text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-wider border border-emerald-100/50 dark:border-emerald-900/30">
+                                            <ShieldCheck size={10} />
+                                            Proposta Verificada
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="mt-4">
-                                    <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 px-3.5 py-1.5 rounded-full text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-100/50 dark:border-emerald-900/30">
-                                        <ShieldCheck size={12} />
-                                        Proposta Verificada
+                                
+                                <div className="flex items-center gap-3 text-left">
+                                    {proposal.company.logo_url ? (
+                                        <img 
+                                            src={proposal.company.logo_url} 
+                                            alt={proposal.company.name} 
+                                            className="h-12 w-12 object-contain bg-white p-1 rounded-xl border border-slate-100 dark:border-slate-800/80 shadow-sm" 
+                                        />
+                                    ) : (
+                                        <div className="h-12 w-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-slate-100 dark:border-slate-800">
+                                            <Building2 className="text-sky-600" size={20} />
+                                        </div>
+                                    )}
+                                    <div className="flex flex-col">
+                                        <h2 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none">
+                                            {proposal.company.name}
+                                        </h2>
+                                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">
+                                            Prestador de Serviços
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-start md:items-end text-left md:text-right gap-1 md:gap-0.5">
-                                {proposal.company.logo_url ? (
-                                    <img 
-                                        src={proposal.company.logo_url} 
-                                        alt={proposal.company.name} 
-                                        className="h-16 object-contain mb-3 bg-white p-2 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm" 
-                                    />
-                                ) : (
-                                    <div className="h-14 w-14 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-800 mb-2">
-                                        <Building2 className="text-sky-600" size={24} />
-                                    </div>
-                                )}
-                                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                                    {proposal.company.name}
-                                </h2>
-                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                    {proposal.company.entity_type === 'PF' 
-                                        ? `CPF: ${proposal.company.cpf || '-'}` 
-                                        : `CNPJ: ${proposal.company.cnpj || '-'}`}
-                                </p>
+
+                            {/* Linha Horizontal de Metadados da Empresa & Validade */}
+                            <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-900/30 p-3 rounded-2xl border border-slate-100/50 dark:border-slate-800/50">
+                                <div className="flex items-center gap-1">
+                                    <span className="font-extrabold text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">CNPJ/CPF:</span>
+                                    <span className="font-bold">{proposal.company.entity_type === 'PF' ? proposal.company.cpf : proposal.company.cnpj}</span>
+                                </div>
                                 {proposal.company.email && (
-                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{proposal.company.email}</p>
+                                    <>
+                                        <span className="text-slate-200 dark:text-slate-800 font-normal">|</span>
+                                        <div className="flex items-center gap-1">
+                                            <span className="font-extrabold text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">E-mail:</span>
+                                            <span className="font-bold">{proposal.company.email}</span>
+                                        </div>
+                                    </>
                                 )}
                                 {proposal.company.phone && (
-                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{proposal.company.phone}</p>
+                                    <>
+                                        <span className="text-slate-200 dark:text-slate-800 font-normal">|</span>
+                                        <div className="flex items-center gap-1">
+                                            <span className="font-extrabold text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">Telefone:</span>
+                                            <span className="font-bold">{proposal.company.phone}</span>
+                                        </div>
+                                    </>
                                 )}
-                                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mt-2">
-                                    Data: {format(parseISO(proposal.created_at), 'dd/MM/yyyy')}
-                                </p>
+                                <>
+                                    <span className="text-slate-200 dark:text-slate-800 font-normal">|</span>
+                                    <div className="flex items-center gap-1">
+                                        <span className="font-extrabold text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">Emissão:</span>
+                                        <span className="font-bold">{format(parseISO(proposal.created_at), 'dd/MM/yyyy')}</span>
+                                    </div>
+                                </>
                                 {proposal.valid_until && (
-                                    <p className="text-xs font-black text-red-500 dark:text-red-400 mt-0.5 uppercase tracking-wide">
-                                        Válido até: {format(parseISO(proposal.valid_until + 'T00:00:00'), 'dd/MM/yyyy')}
-                                    </p>
+                                    <>
+                                        <span className="text-slate-200 dark:text-slate-800 font-normal">|</span>
+                                        <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                            <span className="font-extrabold text-[9px] text-red-400 dark:text-red-500 uppercase tracking-wider">Válido até:</span>
+                                            <span className="font-black">{format(parseISO(proposal.valid_until + 'T00:00:00'), 'dd/MM/yyyy')}</span>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>
