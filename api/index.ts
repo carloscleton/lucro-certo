@@ -515,9 +515,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                           (isSandbox && !hasCert) || 
                           (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
 
-        // Se for dados de teste, forçamos isNacional = false para evitar o erro de "Certificado não encontrado" da PlugNotas no Sandbox Nacional
         const isNacional = useTestData ? false : (config.nfse_nacional || config.nfse?.config?.nfseNacional || false);
-        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
+        const endpoint = type === 'nfse' ? (isNacional ? 'nfse/nacional' : 'nfse') : 'nfe';
 
         console.log(`🧾 [FISCAL-EMITIR] Ambiente: ${config.ambiente} | Sandbox: ${isSandbox} | HasCert: ${hasCert} (${certId}) | UseTestData: ${useTestData} | Nacional: ${isNacional}`);
 
