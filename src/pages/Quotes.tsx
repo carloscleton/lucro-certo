@@ -1990,8 +1990,8 @@ export function Quotes() {
                         {currentCompany?.tecnospeed_config && (
                             <div className="space-y-3 mb-6">
                                 {currentCompany.tecnospeed_config.nfse?.config?.nfseNacional && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-900/20 flex items-center gap-3">
-                                        <Globe size={14} className="text-blue-600 dark:text-blue-400" />
+                                    <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-900/20 flex items-center gap-3 animate-pulse">
+                                        <Globe size={14} className="text-blue-600 dark:text-blue-400 animate-spin" style={{ animationDuration: '4s' }} />
                                         <p className="text-[10px] font-bold text-blue-900 dark:text-blue-400 uppercase tracking-wider">Padrão Nacional Ativo</p>
                                     </div>
                                 )}
@@ -2001,29 +2001,57 @@ export function Quotes() {
                                         <ShieldCheck size={14} className="text-blue-500" />
                                         <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Configuração Fiscal Ativa:</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:scale-[1.02] transition-transform duration-200 shadow-sm">
                                             <span className="text-[9px] font-medium text-gray-400 block mb-0.5">CNAE Principal</span>
                                             <span className="text-xs font-black text-gray-700 dark:text-white tracking-tight">
                                                 {currentCompany.tecnospeed_config.default_cnae || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '7490104' : 'N/A')}
                                             </span>
                                         </div>
-                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
+                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:scale-[1.02] transition-transform duration-200 shadow-sm">
                                             <span className="text-[9px] font-medium text-gray-400 block mb-0.5">Alíquota ISS</span>
                                             <span className="text-xs font-black text-gray-700 dark:text-white tracking-tight">
-                                                {currentCompany.tecnospeed_config.default_iss_aliquota || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '3' : '0')}%
+                                                { (currentCompany.tecnospeed_config.regime_tributario === '1' || currentCompany.tecnospeed_config.regime_tributario === '2' || currentCompany.tecnospeed_config.regime_tributario === '4') 
+                                                    ? (currentCompany.tecnospeed_config.simples_nacional_aliquota || '0') 
+                                                    : (currentCompany.tecnospeed_config.default_iss_aliquota || (currentCompany.tecnospeed_config.ambiente === 'homologacao' ? '3' : '0')) }%
                                             </span>
                                         </div>
-                                        <div className="col-span-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
-                                            <span className="text-[9px] font-medium text-gray-400 block mb-0.5">Exigibilidade</span>
+                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:scale-[1.02] transition-transform duration-200 shadow-sm">
+                                            <span className="text-[9px] font-medium text-gray-400 block mb-0.5">Regime</span>
                                             <span className="text-xs font-black text-gray-700 dark:text-white uppercase tracking-tighter">
+                                                {currentCompany.tecnospeed_config.regime_tributario === '1' ? 'Simples' : 
+                                                 currentCompany.tecnospeed_config.regime_tributario === '2' ? 'Simples (Exc)' :
+                                                 currentCompany.tecnospeed_config.regime_tributario === '3' ? 'Normal' :
+                                                 currentCompany.tecnospeed_config.regime_tributario === '4' ? 'MEI' : 
+                                                 currentCompany.tecnospeed_config.regime_tributario === '5' ? 'Profissional' : 'N/A'}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:scale-[1.02] transition-transform duration-200 shadow-sm">
+                                            <span className="text-[9px] font-medium text-gray-400 block mb-0.5">Serviço LC 116</span>
+                                            <span className="text-xs font-black text-gray-700 dark:text-white tracking-tight">
+                                                {currentCompany.tecnospeed_config.default_taxation_code || 'N/A'}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:scale-[1.02] transition-transform duration-200 shadow-sm">
+                                            <span className="text-[9px] font-medium text-gray-400 block mb-0.5">Ambiente</span>
+                                            <span className={`text-xs font-black uppercase tracking-tight ${
+                                                currentCompany.tecnospeed_config.ambiente === 'homologacao' 
+                                                ? 'text-amber-600 dark:text-amber-400' 
+                                                : 'text-emerald-600 dark:text-emerald-400'
+                                            }`}>
+                                                {currentCompany.tecnospeed_config.ambiente === 'homologacao' ? 'Homologação' : 'Produção'}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 hover:scale-[1.02] transition-transform duration-200 shadow-sm">
+                                            <span className="text-[9px] font-medium text-gray-400 block mb-0.5">Exigibilidade</span>
+                                            <span className="text-[11px] font-black text-gray-700 dark:text-white uppercase tracking-tighter block truncate">
                                                 {currentCompany.tecnospeed_config.default_iss_exigibilidade === '1' ? 'Exigível' : 
                                                  currentCompany.tecnospeed_config.default_iss_exigibilidade === '2' ? 'Não Incidência' :
                                                  currentCompany.tecnospeed_config.default_iss_exigibilidade === '3' ? 'Isenção' :
                                                  currentCompany.tecnospeed_config.default_iss_exigibilidade === '4' ? 'Exportação' :
                                                  currentCompany.tecnospeed_config.default_iss_exigibilidade === '5' ? 'Imunidade' :
-                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '6' ? 'Suspensa (Judicial)' :
-                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '7' ? 'Suspensa (Administrativo)' : 'Exigível'}
+                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '6' ? 'Suspensa (Jud)' :
+                                                 currentCompany.tecnospeed_config.default_iss_exigibilidade === '7' ? 'Suspensa (Adm)' : 'Exigível'}
                                             </span>
                                         </div>
                                     </div>

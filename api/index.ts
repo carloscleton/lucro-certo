@@ -580,7 +580,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         delete item.prestador.certificado;
                     }
                     if (isNacional) {
-                        item.versao = '1.00'; 
                         if (item.tomador && item.tomador.endereco) {
                             item.tomador.endereco.codigoCidade = targetIbge;
                             item.tomador.endereco.uf = 'MG';
@@ -596,6 +595,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             if (!s.iss) s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
                         });
                     }
+                }
+
+                // Garantir o campo versao se for Nacional (tanto para teste quanto real)
+                if (isNacional) {
+                    item.versao = '1.00';
                 }
                 return item;
             });
@@ -786,19 +790,20 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
         const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
-        // DADOS DE TESTE DA TECNOSPEED (MARINGÁ)
+        // DADOS DE TESTE DA TECNOSPEED (DINÂMICO PARA MUNICIPAL OU NACIONAL)
+        const isNacional = !!config.nfse_nacional;
         const TECNOSPEED_TEST_DATA = {
             cnpj: TEST_CNPJ,
             razaoSocial: 'TECNOSPEED TECNOLOGIA DA INFORMACAO LTDA',
-            inscricaoMunicipal: '123456',
+            inscricaoMunicipal: isNacional ? '1234567' : '123456',
             endereco: {
-                logradouro: 'Avenida Duque de Caxias',
-                numero: '882',
-                bairro: 'Zona 07',
-                cep: '87020025',
-                codigoCidade: '4115200',
-                uf: 'PR',
-                complemento: 'SALA 01'
+                logradouro: isNacional ? 'Rua Teste Nacional' : 'Avenida Duque de Caxias',
+                numero: isNacional ? '123' : '882',
+                bairro: isNacional ? 'Centro' : 'Zona 07',
+                cep: isNacional ? '31000000' : '87020025',
+                codigoCidade: isNacional ? '3106200' : '4115200',
+                uf: isNacional ? 'MG' : 'PR',
+                complemento: isNacional ? '' : 'SALA 01'
             }
         };
 
@@ -839,9 +844,15 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 config: { 
                     producao: config.ambiente === 'producao',
                     rps: {
-                        numeracaoAutomatica: true
+                        numeracaoAutomatica: true,
+                        numeracao: [
+                            {
+                                serie: "1",
+                                numero: 1
+                            }
+                        ]
                     },
-                    nfseNacional: useTestData ? false : !!config.nfse_nacional
+                    nfseNacional: !!config.nfse_nacional
                 }
             },
             nfe: {
@@ -1153,9 +1164,12 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
         const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
-        console.log(`📄 [FISCAL-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para ${type} ID: ${id}`);
+        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+        const targetType = type === 'nfse' && isNacional ? 'nfse/nacional' : type;
 
-        const response = await axios.get(`${baseUrl}/${type}/${isXml ? 'xml' : 'pdf'}/${id}`, {
+        console.log(`📄 [FISCAL-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para ${targetType} ID: ${id}`);
+
+        const response = await axios.get(`${baseUrl}/${targetType}/${isXml ? 'xml' : 'pdf'}/${id}`, {
             headers: { 'x-api-key': apiKey },
             responseType: 'arraybuffer'
         });
@@ -1278,7 +1292,10 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         }
 
         // 2. Consultar na TecnoSpeed usando o endpoint correto
-        const response = await axios.get(`${baseUrl}/${type}/${id}`, {
+        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+        const targetType = type === 'nfse' && isNacional ? 'nfse/nacional' : type;
+        
+        const response = await axios.get(`${baseUrl}/${targetType}/${id}`, {
             headers: { 'X-API-KEY': apiKey }
         });
 
