@@ -1487,40 +1487,103 @@ export function Quotes() {
                                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
                                                     #{quote.quote_number || quote.id.slice(0, 8)}
                                                 </span>
+                                                {quote.valid_until && (
+                                                    <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider">
+                                                        <Calendar size={10} className="text-gray-400" />
+                                                        <span>Vence: {new Date(quote.valid_until).toLocaleDateString()}</span>
+                                                        {new Date(quote.valid_until) < new Date(new Date().setHours(0,0,0,0)) && quote.status !== 'approved' && (
+                                                            <span className="text-[8px] font-black text-rose-500 bg-rose-50 dark:bg-rose-950/30 px-1 rounded border border-rose-100 dark:border-rose-900/50 ml-1">
+                                                                Expirado
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="py-3 px-6">
-                                            <div className="flex flex-col text-left">
+                                            <div className="flex flex-col text-left py-0.5">
                                                 <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight truncate max-w-[220px]">
                                                     {quote.contact?.name || 'Cliente Geral'}
                                                 </span>
                                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5 truncate max-w-[200px]">
                                                     {quote.title}
                                                 </span>
+                                                {(quote.contact?.phone || quote.contact?.email || quote.contact?.tax_id) && (
+                                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+                                                        {quote.contact?.phone && (
+                                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-900/50 px-1.5 py-0.5 rounded border border-gray-100 dark:border-slate-800">
+                                                                <MessageCircle size={10} className="text-emerald-500" />
+                                                                {quote.contact.phone}
+                                                            </span>
+                                                        )}
+                                                        {quote.contact?.email && (
+                                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-900/50 px-1.5 py-0.5 rounded border border-gray-100 dark:border-slate-800">
+                                                                <Mail size={10} className="text-blue-500" />
+                                                                {quote.contact.email}
+                                                            </span>
+                                                        )}
+                                                        {quote.contact?.tax_id && (
+                                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-slate-900/50 px-1.5 py-0.5 rounded border border-gray-100 dark:border-slate-800">
+                                                                <span className="font-extrabold text-[8px] text-gray-400">CPF/CNPJ:</span>
+                                                                {quote.contact.tax_id}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="py-3 px-6 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-black text-gray-500 uppercase">
-                                                    {members.find(m => m.user_id === quote.user_id)?.profile.full_name.charAt(0) || '?'}
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase shadow-sm">
+                                                    {members.find(m => m.user_id === quote.user_id)?.profile?.full_name?.charAt(0) || '?'}
                                                 </div>
-                                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                                    {members.find(m => m.user_id === quote.user_id)?.profile.full_name.split(' ')[0] || '-'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="py-3 px-6 text-right whitespace-nowrap">
-                                            <div className="flex flex-col items-end gap-1">
-                                                <div className="flex items-center gap-2 leading-none">
-                                                    <span className="text-sm font-black text-gray-900 dark:text-white italic tabular-nums">{formatCurrency(quote.total_amount)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-lg border border-emerald-100 dark:border-emerald-800">
-                                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest italic">Lucro:</span>
-                                                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
-                                                        {formatCurrency(quote.total_amount - (quoteExpenses[quote.id] || 0))}
+                                                <div className="flex flex-col text-left">
+                                                    <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                        {members.find(m => m.user_id === quote.user_id)?.profile?.full_name?.split(' ')[0] || '-'}
+                                                    </span>
+                                                    <span className="text-[8px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-0.5">
+                                                        Vendedor
                                                     </span>
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td className="py-3 px-6 text-right whitespace-nowrap">
+                                            {(() => {
+                                                const total = quote.total_amount;
+                                                const expenses = quoteExpenses[quote.id] || 0;
+                                                const profit = total - expenses;
+                                                const margin = total > 0 ? (profit / total) * 100 : 0;
+                                                const discount = quote.discount || 0;
+                                                const discountType = quote.discount_type;
+
+                                                return (
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <div className="flex items-center gap-1.5 leading-none">
+                                                            <span className="text-sm font-black text-gray-900 dark:text-white italic tabular-nums">
+                                                                {formatCurrency(total)}
+                                                            </span>
+                                                            {discount > 0 && (
+                                                                <span className="text-[8px] font-black text-rose-500 bg-rose-50 dark:bg-rose-950/30 px-1 py-0.5 rounded border border-rose-100 dark:border-rose-900/30">
+                                                                    -{discountType === 'percentage' ? `${discount}%` : formatCurrency(discount)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {expenses > 0 && (
+                                                            <span className="text-[9px] font-bold text-rose-500 dark:text-rose-400 tracking-wider">
+                                                                Despesas: {formatCurrency(expenses)}
+                                                            </span>
+                                                        )}
+                                                        <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-lg border border-emerald-100 dark:border-emerald-900/40">
+                                                            <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-widest italic">
+                                                                Lucro ({margin.toFixed(0)}%):
+                                                            </span>
+                                                            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                                                {formatCurrency(profit)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="py-3 px-6 text-center">
                                             <div className="flex flex-col items-center gap-1">
@@ -1549,6 +1612,23 @@ export function Quotes() {
                                                             [ Resetar ]
                                                         </button>
                                                     </div>
+                                                )}
+                                                {quote.follow_up_date && (
+                                                    <div className="flex items-center gap-1 text-[8px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-900/50 mt-1">
+                                                        <CalendarClock size={10} />
+                                                        <span>Retorno: {new Date(quote.follow_up_date).toLocaleDateString()}</span>
+                                                    </div>
+                                                )}
+                                                {quote.nfe_id && (
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border mt-1 ${
+                                                        quote.nfe_status === 'autorizado' || quote.nfe_status === 'concluido'
+                                                            ? 'bg-emerald-50/50 text-emerald-600 border-emerald-100'
+                                                            : quote.nfe_status === 'erro' || quote.nfe_status === 'rejeitado'
+                                                                ? 'bg-rose-50/50 text-rose-600 border-rose-100'
+                                                                : 'bg-amber-50/50 text-amber-600 border-amber-100'
+                                                    }`}>
+                                                        NF-e: {quote.nfe_status || 'Processando'}
+                                                    </span>
                                                 )}
                                             </div>
                                         </td>
