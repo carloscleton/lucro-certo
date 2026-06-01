@@ -11,6 +11,7 @@ import { useServices } from '../hooks/useServices';
 import { useProducts } from '../hooks/useProducts';
 import { useSettings } from '../hooks/useSettings';
 import { useTeam } from '../hooks/useTeam';
+import { useTechnicians } from '../hooks/useTechnicians';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
@@ -37,10 +38,35 @@ export function QuoteForm() {
     const { user, profile } = useAuth();
     const { currentEntity } = useEntity();
     const { members: teamMembers } = useTeam();
+    const { technicians: fieldTechnicians } = useTechnicians();
 
-    const techniciansList = teamMembers.length > 0
-        ? teamMembers.map(m => ({ id: m.user_id, name: m.profile.full_name }))
-        : (user ? [{ id: user.id, name: profile?.full_name || 'Eu' }] : []);
+    // Helper for real-time warranty expiration date format
+    const getWarrantyExpirationText = (monthsInput: number | '' | null) => {
+        if (!monthsInput || isNaN(Number(monthsInput)) || Number(monthsInput) <= 0) return null;
+        const date = new Date();
+        date.setMonth(date.getMonth() + Number(monthsInput));
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `(Vence em: ${day}/${month}/${year})`;
+    };
+
+    // Unified list of team members and custom technicians
+    const mergedTechnicians = [
+        ...teamMembers.map(m => ({
+            value: `user:${m.user_id}`,
+            name: `${m.profile.full_name} (Equipe)`
+        })),
+        ...fieldTechnicians.filter(t => t.status === 'active').map(t => ({
+            value: `custom:${t.id}`,
+            name: `${t.name}${t.specialty ? ` (${t.specialty})` : ' (Externo)'}`
+        }))
+    ];
+
+    const finalTechniciansList = mergedTechnicians.length > 0 
+        ? mergedTechnicians 
+        : (user ? [{ value: `user:${user.id}`, name: `${profile?.full_name || 'Eu'} (Equipe)` }] : []);
+
     const { deals } = useCRM();
     const { companies } = useCompanies();
     const { createCharge } = useCharges();
@@ -66,6 +92,11 @@ export function QuoteForm() {
     const [validityDays, setValidityDays] = useState<number | ''>('');
     const [dealId, setDealId] = useState<string | null>(null);
 
+    // Global Warranty State
+    const [warrantyMonths, setWarrantyMonths] = useState<number | ''>('');
+    const [assignedTechnicianId, setAssignedTechnicianId] = useState<string | null>(null);
+    const [customTechnicianId, setCustomTechnicianId] = useState<string | null>(null);
+
     // Items State
     const [items, setItems] = useState<QuoteItem[]>([]);
 
@@ -90,11 +121,14 @@ export function QuoteForm() {
 
     const { clearCache } = useAutoSave(
         'quote_form',
-        { title, contactId, validUntil, notes, discount, discountType, items },
+        { title, contactId, validUntil, notes, discount, discountType, items, warrantyMonths, assignedTechnicianId, customTechnicianId },
         {
             title: setTitle, contactId: setContactId, validUntil: setValidUntil,
             notes: setNotes, discount: setDiscount, discountType: setDiscountType as any,
-            items: setItems
+            items: setItems,
+            warrantyMonths: setWarrantyMonths,
+            assignedTechnicianId: setAssignedTechnicianId,
+            customTechnicianId: setCustomTechnicianId
         },
         id === 'new',
         true
@@ -140,6 +174,9 @@ export function QuoteForm() {
             setDiscount(data.discount || 0);
             setDiscountType(data.discount_type || 'amount');
             setDealId(data.deal_id || null);
+            setWarrantyMonths(data.warranty_months !== null && data.warranty_months !== undefined ? data.warranty_months : '');
+            setAssignedTechnicianId(data.assigned_technician_id || null);
+            setCustomTechnicianId(data.custom_technician_id || null);
 
             // Load ONLY expenses for this quote
             const { data: transData } = await supabase
@@ -187,6 +224,9 @@ export function QuoteForm() {
                 .toISOString()
                 .split('T')[0];
             setValidUntil(localDate);
+            setWarrantyMonths('');
+            setAssignedTechnicianId(null);
+            setCustomTechnicianId(null);
         }
     }, [id, settingsLoading, loadQuote]);
 
@@ -582,7 +622,10 @@ export function QuoteForm() {
                 discount_type: discountType,
                 total_amount: calculateTotal(),
                 status: id && id !== 'new' ? status : 'draft',
-                deal_id: dealId
+                deal_id: dealId,
+                warranty_months: warrantyMonths !== '' ? Number(warrantyMonths) : null,
+                assigned_technician_id: assignedTechnicianId,
+                custom_technician_id: customTechnicianId
             };
 
             if (id && id !== 'new') {
@@ -943,25 +986,51 @@ export function QuoteForm() {
                                                 </div>
                                             )}
 
-                                            {currentEntity.warranty_module_enabled && settings.enable_service_warranty && item.service_id && (
+                                            {currentEntity.warranty_module_enabled && settings.enable_service_warranty && settings.warranty_type !== 'global' && item.service_id && (
                                                 <div className="mt-2 flex gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
                                                     <div className="flex-[2]">
                                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Executante / Resp. Técnico</label>
                                                         <select
-                                                            value={item.assigned_technician_id || ''}
-                                                            onChange={e => updateItem(index, 'assigned_technician_id', e.target.value || null)}
+                                                            value={
+                                                                item.custom_technician_id ? `custom:${item.custom_technician_id}` :
+                                                                item.assigned_technician_id ? `user:${item.assigned_technician_id}` :
+                                                                ''
+                                                            }
+                                                            onChange={e => {
+                                                                const val = e.target.value;
+                                                                if (!val) {
+                                                                    updateItem(index, 'assigned_technician_id', null);
+                                                                    updateItem(index, 'custom_technician_id', null);
+                                                                } else {
+                                                                    const [type, techId] = val.split(':');
+                                                                    if (type === 'user') {
+                                                                        updateItem(index, 'assigned_technician_id', techId);
+                                                                        updateItem(index, 'custom_technician_id', null);
+                                                                    } else if (type === 'custom') {
+                                                                        updateItem(index, 'assigned_technician_id', null);
+                                                                        updateItem(index, 'custom_technician_id', techId);
+                                                                    }
+                                                                }
+                                                            }}
                                                             className="w-full bg-transparent border-b border-gray-200 dark:border-slate-700 text-xs py-0.5 focus:border-blue-500 outline-none dark:text-gray-300 dark:bg-slate-800"
                                                         >
                                                             <option value="" className="dark:bg-slate-800">Selecione o responsável...</option>
-                                                            {techniciansList.map(tech => (
-                                                                <option key={tech.id} value={tech.id} className="dark:bg-slate-800">
+                                                            {finalTechniciansList.map(tech => (
+                                                                <option key={tech.value} value={tech.value} className="dark:bg-slate-800">
                                                                     {tech.name}
                                                                 </option>
                                                             ))}
                                                         </select>
                                                     </div>
                                                     <div className="flex-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Garantia (Meses)</label>
+                                                        <div className="flex items-center gap-1 justify-between">
+                                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Garantia (Meses)</label>
+                                                            {item.warranty_months && (
+                                                                <span className="text-[9px] text-blue-600 dark:text-blue-400 font-medium">
+                                                                    {getWarrantyExpirationText(item.warranty_months)}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <input
                                                             type="number"
                                                             min="0"
@@ -1160,8 +1229,8 @@ export function QuoteForm() {
                 </div>
 
                 {/* Footer / Summary */}
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-end">
-                    <div className="w-full md:w-1/2">
+                <div className="flex flex-col md:flex-row gap-6 justify-between items-start">
+                    <div className="w-full md:w-1/2 space-y-4">
                         <TextArea
                             label="Notas / Observações"
                             rows={3}
@@ -1169,6 +1238,72 @@ export function QuoteForm() {
                             onChange={e => setNotes(e.target.value)}
                             placeholder="Condições de pagamento, prazos, etc."
                         />
+
+                        {currentEntity.warranty_module_enabled && settings.enable_service_warranty && settings.warranty_type === 'global' && (
+                            <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-5 border border-gray-100 dark:border-slate-700 space-y-4 animate-in fade-in duration-300">
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Award className="w-4 h-4 text-blue-500" />
+                                    Garantia e Responsabilidade Técnica Global
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Responsável Técnico Geral</label>
+                                        <select
+                                            value={
+                                                customTechnicianId ? `custom:${customTechnicianId}` :
+                                                assignedTechnicianId ? `user:${assignedTechnicianId}` :
+                                                ''
+                                            }
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                if (!val) {
+                                                    setAssignedTechnicianId(null);
+                                                    setCustomTechnicianId(null);
+                                                } else {
+                                                    const [type, techId] = val.split(':');
+                                                    if (type === 'user') {
+                                                        setAssignedTechnicianId(techId);
+                                                        setCustomTechnicianId(null);
+                                                    } else if (type === 'custom') {
+                                                        setAssignedTechnicianId(null);
+                                                        setCustomTechnicianId(techId);
+                                                    }
+                                                }
+                                            }}
+                                            className="flex h-10 w-full rounded-md border border-gray-300 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:focus:ring-blue-400"
+                                        >
+                                            <option value="">Selecione o responsável...</option>
+                                            {finalTechniciansList.map(tech => (
+                                                <option key={tech.value} value={tech.value}>
+                                                    {tech.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Prazo de Garantia (Meses)</label>
+                                            {warrantyMonths !== '' && (
+                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                                                    {getWarrantyExpirationText(Number(warrantyMonths))}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={warrantyMonths !== null && warrantyMonths !== undefined ? warrantyMonths : ''}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setWarrantyMonths(val === '' ? '' : parseInt(val, 10));
+                                            }}
+                                            className="flex h-10 w-full rounded-md border border-gray-300 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:focus:ring-blue-400"
+                                            placeholder="Ex: 12"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow min-w-[250px] space-y-2">

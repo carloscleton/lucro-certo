@@ -22,6 +22,7 @@ export interface UserSettings {
     automation_overdue_template?: string;
     automation_whatsapp_number?: string;
     enable_service_warranty?: boolean;
+    warranty_type?: 'individual' | 'global';
 }
 
 // In-memory cache to store settings per entity or user
@@ -50,7 +51,8 @@ export function useSettings() {
             automation_birthday_time: '09:00',
             automation_overdue_reminders: false,
             automation_overdue_time: '10:00',
-            enable_service_warranty: false
+            enable_service_warranty: false,
+            warranty_type: 'individual'
         };
     });
 
@@ -83,7 +85,8 @@ export function useSettings() {
                 automation_birthday_time: '09:00',
                 automation_overdue_reminders: false,
                 automation_overdue_time: '10:00',
-                enable_service_warranty: false
+                enable_service_warranty: false,
+                warranty_type: 'individual'
             });
             setLoading(false);
         }
@@ -112,7 +115,7 @@ export function useSettings() {
 
                 if (data?.settings && Object.keys(data.settings).length > 0) {
                     const s = data.settings;
-                    const loaded = {
+                    const loaded: UserSettings = {
                         quote_validity_days: s.quote_validity_days ?? 7,
                         commission_rate: s.commission_rate ?? 0,
                         service_commission_rate: s.service_commission_rate ?? 0,
@@ -130,13 +133,14 @@ export function useSettings() {
                         automation_overdue_prompt: s.automation_overdue_prompt ?? '',
                         automation_overdue_template: s.automation_overdue_template ?? '',
                         automation_whatsapp_number: s.automation_whatsapp_number ?? '',
-                        enable_service_warranty: s.enable_service_warranty ?? false
+                        enable_service_warranty: s.enable_service_warranty ?? false,
+                        warranty_type: s.warranty_type ?? 'individual'
                     };
                     settingsCache[key] = loaded;
                     hasLoadedOnce[key] = true;
                     setSettings(loaded);
                 } else {
-                    const defaults = {
+                    const defaults: UserSettings = {
                         quote_validity_days: 7,
                         commission_rate: 0,
                         service_commission_rate: 0,
@@ -147,7 +151,8 @@ export function useSettings() {
                         automation_birthday_time: '09:00',
                         automation_overdue_reminders: false,
                         automation_overdue_time: '10:00',
-                        enable_service_warranty: false
+                        enable_service_warranty: false,
+                        warranty_type: 'individual'
                     };
                     settingsCache[key] = defaults;
                     hasLoadedOnce[key] = true;
@@ -161,7 +166,7 @@ export function useSettings() {
                     .single();
 
                 if (data) {
-                    const loaded = {
+                    const loaded: UserSettings = {
                         quote_validity_days: data.quote_validity_days ?? 7,
                         commission_rate: data.commission_rate ?? 0,
                         service_commission_rate: data.service_commission_rate ?? 0,
@@ -179,13 +184,14 @@ export function useSettings() {
                         automation_overdue_prompt: data.automation_overdue_prompt ?? '',
                         automation_overdue_template: data.automation_overdue_template ?? '',
                         automation_whatsapp_number: data.automation_whatsapp_number ?? '',
-                        enable_service_warranty: false
+                        enable_service_warranty: false,
+                        warranty_type: 'individual'
                     };
                     settingsCache[key] = loaded;
                     hasLoadedOnce[key] = true;
                     setSettings(loaded);
                 } else {
-                    const defaults = {
+                    const defaults: UserSettings = {
                         quote_validity_days: 7,
                         commission_rate: 0,
                         service_commission_rate: 0,
@@ -196,7 +202,8 @@ export function useSettings() {
                         automation_birthday_time: '09:00',
                         automation_overdue_reminders: false,
                         automation_overdue_time: '10:00',
-                        enable_service_warranty: false
+                        enable_service_warranty: false,
+                        warranty_type: 'individual'
                     };
                     settingsCache[key] = defaults;
                     hasLoadedOnce[key] = true;
@@ -237,7 +244,7 @@ export function useSettings() {
                 }
                 await fetchSettings(); // Refresh to ensure state is sync
             } else {
-                const { enable_service_warranty, ...personalPayload } = newSettings;
+                const { enable_service_warranty, warranty_type, ...personalPayload } = newSettings;
                 const { error } = await supabase
                     .from('user_settings')
                     .update(personalPayload)

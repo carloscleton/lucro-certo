@@ -11,6 +11,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useAdmin } from '../hooks/useAdmin';
 import { usePresence } from '../hooks/usePresence';
 import { useTeam } from '../hooks/useTeam';
+import { useTechnicians } from '../hooks/useTechnicians';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { supabase } from '../lib/supabase';
@@ -43,6 +44,7 @@ export function Settings() {
     // Local state for form inputs
     const [quoteValidity, setQuoteValidity] = useState(7);
     const [enableServiceWarranty, setEnableServiceWarranty] = useState(false);
+    const [warrantyType, setWarrantyType] = useState<'individual' | 'global'>('individual');
     const [commissionRate, setCommissionRate] = useState(0);
     const [serviceCommissionRate, setServiceCommissionRate] = useState(0);
     const [productCommissionRate, setProductCommissionRate] = useState(0);
@@ -90,6 +92,28 @@ export function Settings() {
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
     const [inviting, setInviting] = useState(false);
+
+    // Custom Technicians staff states
+    const { technicians, addTechnician, deleteTechnician } = useTechnicians();
+    const [techName, setTechName] = useState('');
+    const [techSpecialty, setTechSpecialty] = useState('');
+    const [techPhone, setTechPhone] = useState('');
+    const [addingTech, setAddingTech] = useState(false);
+
+    const handleAddTechnician = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!techName) return;
+        setAddingTech(true);
+        const { error } = await addTechnician(techName, techSpecialty || undefined, techPhone || undefined);
+        setAddingTech(false);
+        if (error) {
+            alert('Erro ao cadastrar: ' + error);
+        } else {
+            setTechName('');
+            setTechSpecialty('');
+            setTechPhone('');
+        }
+    };
 
     const financialSuggestions = [
         "Mande o resumo do dia destacando o saldo previsto e deseje um ótimo trabalho.",
@@ -236,6 +260,7 @@ export function Settings() {
             setAutoOverdueTemplate(settings.automation_overdue_template || '');
             setAutomationWhatsAppNumber(formatPhoneFromDB(settings.automation_whatsapp_number));
             setEnableServiceWarranty(!!settings.enable_service_warranty);
+            setWarrantyType(settings.warranty_type || 'individual');
         }
         if (currentEntity?.currency) {
             setCurrency(currentEntity.currency);
@@ -322,7 +347,8 @@ export function Settings() {
             automation_overdue_prompt: autoOverduePrompt,
             automation_overdue_template: autoOverdueTemplate,
             automation_whatsapp_number: cleanPhoneNumber(automationWhatsAppNumber) || undefined,
-            enable_service_warranty: enableServiceWarranty
+            enable_service_warranty: enableServiceWarranty,
+            warranty_type: warrantyType
         });
 
         // Save currency to company if changed
@@ -624,24 +650,53 @@ export function Settings() {
                         </div>
 
                         {currentEntity.type === 'company' && currentEntity.warranty_module_enabled && (
-                            <div className="mt-6 p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                                <div className="space-y-1 pr-4">
-                                    <h4 className="font-bold text-gray-900 dark:text-white leading-none">
-                                        Controle de Garantia e Responsabilidade Técnica
-                                    </h4>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-normal">
-                                        Ativa o controle de período de garantia e a atribuição de responsáveis técnicos para os itens de serviço de seus orçamentos.
-                                    </p>
+                            <div className="mt-6 space-y-4">
+                                <div className="p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                                    <div className="space-y-1 pr-4">
+                                        <h4 className="font-bold text-gray-900 dark:text-white leading-none">
+                                            Controle de Garantia e Responsabilidade Técnica
+                                        </h4>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-normal">
+                                            Ativa o controle de período de garantia e a atribuição de responsáveis técnicos para os itens de serviço de seus orçamentos.
+                                        </p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                        <input 
+                                            type="checkbox" 
+                                            className="sr-only peer" 
+                                            checked={enableServiceWarranty} 
+                                            onChange={(e) => setEnableServiceWarranty(e.target.checked)} 
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                    </label>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                    <input 
-                                        type="checkbox" 
-                                        className="sr-only peer" 
-                                        checked={enableServiceWarranty} 
-                                        onChange={(e) => setEnableServiceWarranty(e.target.checked)} 
-                                    />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                                </label>
+
+                                {enableServiceWarranty && (
+                                    <div className="p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 animate-in fade-in duration-300 space-y-3">
+                                        <div>
+                                            <h5 className="text-xs font-black uppercase tracking-wider text-gray-400">Modelo de Aplicação da Garantia</h5>
+                                            <p className="text-[11px] text-gray-500 leading-tight">Escolha como a garantia será definida e apresentada nos orçamentos da empresa.</p>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setWarrantyType('individual')}
+                                                className={`flex flex-col text-left p-4 rounded-xl border transition-all duration-200 ${warrantyType === 'individual' ? 'bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/50 shadow-sm ring-1 ring-indigo-500' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700'}`}
+                                            >
+                                                <span className="text-xs font-bold text-gray-900 dark:text-white mb-0.5">Por Item / Serviço (Individual)</span>
+                                                <span className="text-[10px] text-gray-500 leading-normal">Defina técnico responsável e garantia específica para cada serviço individualmente no orçamento.</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setWarrantyType('global')}
+                                                className={`flex flex-col text-left p-4 rounded-xl border transition-all duration-200 ${warrantyType === 'global' ? 'bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/50 shadow-sm ring-1 ring-indigo-500' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700'}`}
+                                            >
+                                                <span className="text-xs font-bold text-gray-900 dark:text-white mb-0.5">Por Orçamento Completo (Global)</span>
+                                                <span className="text-[10px] text-gray-500 leading-normal">Defina um único prazo de garantia e técnico executor geral válido para todo o orçamento.</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex justify-end">
@@ -934,6 +989,112 @@ export function Settings() {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Técnicos de Campo / Funcionários Externos */}
+                        {currentEntity.type === 'company' && currentEntity.warranty_module_enabled && (
+                            <div className="space-y-8 mt-10 pt-8 border-t border-gray-100 dark:border-slate-700 animate-in fade-in duration-300 text-left">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Técnicos de Campo / Funcionários</h3>
+                                    <p className="text-xs text-gray-500">Cadastre e gerencie a equipe que executa os serviços em campo, sem precisar convidá-los a logar no sistema.</p>
+                                </div>
+
+                                <div className="bg-slate-50 dark:bg-slate-800/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                                    <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Cadastrar Novo Profissional</h4>
+                                    <form onSubmit={handleAddTechnician} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                                        <div>
+                                            <Input
+                                                label="Nome do Profissional"
+                                                type="text"
+                                                value={techName}
+                                                onChange={(e) => setTechName(e.target.value)}
+                                                placeholder="Ex: Roberto Eletricista"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <Input
+                                                label="Especialidade / Cargo"
+                                                type="text"
+                                                value={techSpecialty}
+                                                onChange={(e) => setTechSpecialty(e.target.value)}
+                                                placeholder="Ex: Ar Condicionado, Pintor"
+                                            />
+                                        </div>
+                                        <div className="flex gap-3 items-end">
+                                            <div className="flex-1">
+                                                <Input
+                                                    label="Telefone / WhatsApp"
+                                                    type="text"
+                                                    value={techPhone}
+                                                    onChange={(e) => setTechPhone(formatPhoneInput(e.target.value))}
+                                                    placeholder="(00) 00000-0000"
+                                                />
+                                            </div>
+                                            <Button type="submit" isLoading={addingTech} className="mb-[2px]">
+                                                Adicionar
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div>
+                                    <div className="overflow-hidden border border-gray-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-gray-50 dark:bg-slate-900/50">
+                                                <tr>
+                                                    <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Nome do Técnico</th>
+                                                    <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Especialidade</th>
+                                                    <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Contato</th>
+                                                    <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Cadastrado em</th>
+                                                    <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                                                {technicians.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                                                            Nenhum técnico de campo cadastrado ainda.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    technicians.map((tech) => (
+                                                        <tr key={tech.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                            <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">
+                                                                {tech.name}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-medium">
+                                                                    {tech.specialty || 'Geral'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">
+                                                                {tech.phone || 'Sem contato'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-gray-500">
+                                                                {new Date(tech.created_at).toLocaleDateString()}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (confirm(`Deseja realmente remover o técnico ${tech.name}?`)) {
+                                                                            const { error } = await deleteTechnician(tech.id);
+                                                                            if (error) alert(error);
+                                                                        }
+                                                                    }}
+                                                                    className="text-red-600 hover:text-red-800 text-xs font-bold transition-colors"
+                                                                >
+                                                                    Remover
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         )}

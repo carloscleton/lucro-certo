@@ -24,6 +24,7 @@ export interface QuoteItem {
     codigo_tributacao_nacional?: string;
     assigned_technician_id?: string | null;
     warranty_months?: number | null;
+    custom_technician_id?: string | null;
 }
 
 export interface Quote {
@@ -66,6 +67,9 @@ export interface Quote {
     nfe_xml_url?: string;
     nfe_error?: string;
     deal_id?: string | null;
+    warranty_months?: number | null;
+    assigned_technician_id?: string | null;
+    custom_technician_id?: string | null;
 }
 
 export function useQuotes() {
@@ -214,7 +218,8 @@ export function useQuotes() {
                 codigo_servico_municipal: item.codigo_servico_municipal,
                 item_lista_servico: item.item_lista_servico,
                 assigned_technician_id: item.assigned_technician_id,
-                warranty_months: item.warranty_months
+                warranty_months: item.warranty_months,
+                custom_technician_id: item.custom_technician_id
             }));
 
             const { error: itemsError } = await supabase
@@ -525,7 +530,8 @@ export function useQuotes() {
                 codigo_servico_municipal: item.codigo_servico_municipal,
                 item_lista_servico: item.item_lista_servico,
                 assigned_technician_id: item.assigned_technician_id,
-                warranty_months: item.warranty_months
+                warranty_months: item.warranty_months,
+                custom_technician_id: item.custom_technician_id
             }));
 
             const { error: insertError } = await supabase

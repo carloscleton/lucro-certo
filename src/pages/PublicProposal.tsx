@@ -27,6 +27,9 @@ interface ProposalData {
     created_at: string;
     company_id?: string;
     user_id: string;
+    warranty_months?: number | null;
+    assigned_technician?: { full_name: string } | null;
+    custom_technician?: { name: string } | null;
     client: {
         name: string;
         email?: string;
@@ -66,7 +69,9 @@ export function PublicProposal() {
                 .select(`
                     *,
                     contact:contact_id(*),
-                    items:quote_items(*, technician:assigned_technician_id(full_name)),
+                    assigned_technician:assigned_technician_id(full_name),
+                    custom_technician:custom_technician_id(name),
+                    items:quote_items(*, technician:assigned_technician_id(full_name), custom_technician:custom_technician_id(name)),
                     company:company_id(*)
                 `)
                 .eq('id', proposalId)
@@ -82,6 +87,9 @@ export function PublicProposal() {
                 valid_until: data.valid_until,
                 notes: data.notes,
                 created_at: data.created_at,
+                warranty_months: data.warranty_months,
+                assigned_technician: data.assigned_technician,
+                custom_technician: data.custom_technician,
                 client: {
                     name: data.contact?.name || 'Cliente',
                     email: data.contact?.email
@@ -311,12 +319,12 @@ export function PublicProposal() {
                                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.quantity} unidade(s)</p>
                                                 )}
                                                 
-                                                {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && item.service_id && (
+                                                {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && proposal.company.settings?.warranty_type !== 'global' && item.service_id && (
                                                     <div className="mt-2.5 flex flex-wrap gap-2 animate-in fade-in duration-200">
-                                                        {item.technician?.full_name && (
+                                                        {(item.custom_technician?.name || item.technician?.full_name) && (
                                                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50 dark:bg-sky-950/40 text-[10px] font-bold text-sky-600 dark:text-sky-400 border border-sky-100/50 dark:border-sky-900/30">
                                                                 <User size={12} />
-                                                                <span>Executor: {item.technician.full_name}</span>
+                                                                <span>Executor: {item.custom_technician?.name || item.technician.full_name}</span>
                                                             </div>
                                                         )}
                                                         {item.warranty_months ? (() => {
@@ -365,6 +373,72 @@ export function PublicProposal() {
                                 ))}
                             </div>
                         </div>
+
+                        {/* Global Warranty Card if applicable */}
+                        {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && proposal.company.settings?.warranty_type === 'global' && (
+                            <div className="mb-8 p-6 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-slate-800/40 dark:to-slate-800/20 rounded-3xl border border-sky-100/50 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 animate-in fade-in duration-300">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-sky-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-sky-600/20">
+                                        <ShieldCheck size={24} />
+                                    </div>
+                                    <div className="text-left">
+                                        <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider mb-0.5">Garantia Técnica Integral</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                                            {(proposal.custom_technician?.name || proposal.assigned_technician?.full_name) ? (
+                                                <>Responsável Técnico: <span className="font-bold text-slate-900 dark:text-slate-200">{proposal.custom_technician?.name || proposal.assigned_technician?.full_name}</span></>
+                                            ) : (
+                                                'Este orçamento inclui cobertura de garantia técnica.'
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="text-left sm:text-right">
+                                    {proposal.warranty_months ? (() => {
+                                        if (proposal.status === 'approved') {
+                                            const startDate = proposal.created_at ? new Date(proposal.created_at) : new Date();
+                                            const endDate = new Date(startDate);
+                                            endDate.setMonth(startDate.getMonth() + proposal.warranty_months);
+                                            const now = new Date();
+                                            const isActive = endDate >= now;
+                                            const formattedDate = format(endDate, "dd/MM/yyyy");
+                                            
+                                            if (isActive) {
+                                                return (
+                                                    <div className="flex flex-col items-start sm:items-end gap-1">
+                                                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-100/50 dark:border-emerald-900/30">
+                                                            Garantia Ativa
+                                                        </span>
+                                                        <span className="text-xs text-slate-500 font-bold">Válida até {formattedDate}</span>
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div className="flex flex-col items-start sm:items-end gap-1">
+                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-200/50 dark:border-slate-700/50">
+                                                            Garantia Expirada
+                                                        </span>
+                                                        <span className="text-xs text-slate-500 font-bold">Expirou em {formattedDate}</span>
+                                                    </div>
+                                                );
+                                            }
+                                        } else {
+                                            return (
+                                                <div className="flex flex-col items-start sm:items-end gap-1">
+                                                    <span className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest bg-sky-100/50 dark:bg-sky-950/40 px-2.5 py-1 rounded-full border border-sky-100/20 dark:border-sky-900/30">
+                                                        Cobertura Total
+                                                    </span>
+                                                    <span className="text-xs text-slate-700 dark:text-slate-300 font-bold">
+                                                        {proposal.warranty_months} {proposal.warranty_months === 1 ? 'mês' : 'meses'} de garantia
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+                                    })() : (
+                                        <span className="text-xs text-slate-400 italic">Sem prazo definido</span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Summary Section - Layout Clean & Compact */}
                         <div className="flex flex-col lg:flex-row justify-between items-center gap-6 bg-slate-50 dark:bg-slate-900/40 rounded-3xl p-6 md:p-8 border border-slate-100 dark:border-slate-800/80 relative overflow-hidden">
