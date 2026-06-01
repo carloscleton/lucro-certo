@@ -96,6 +96,7 @@ export function QuoteForm() {
     const [warrantyMonths, setWarrantyMonths] = useState<number | ''>('');
     const [assignedTechnicianId, setAssignedTechnicianId] = useState<string | null>(null);
     const [customTechnicianId, setCustomTechnicianId] = useState<string | null>(null);
+    const [warrantyType, setWarrantyType] = useState<'individual' | 'global'>('individual');
 
     // Items State
     const [items, setItems] = useState<QuoteItem[]>([]);
@@ -121,14 +122,15 @@ export function QuoteForm() {
 
     const { clearCache } = useAutoSave(
         'quote_form',
-        { title, contactId, validUntil, notes, discount, discountType, items, warrantyMonths, assignedTechnicianId, customTechnicianId },
+        { title, contactId, validUntil, notes, discount, discountType, items, warrantyMonths, assignedTechnicianId, customTechnicianId, warrantyType },
         {
             title: setTitle, contactId: setContactId, validUntil: setValidUntil,
             notes: setNotes, discount: setDiscount, discountType: setDiscountType as any,
             items: setItems,
             warrantyMonths: setWarrantyMonths,
             assignedTechnicianId: setAssignedTechnicianId,
-            customTechnicianId: setCustomTechnicianId
+            customTechnicianId: setCustomTechnicianId,
+            warrantyType: setWarrantyType
         },
         id === 'new',
         true
@@ -177,6 +179,7 @@ export function QuoteForm() {
             setWarrantyMonths(data.warranty_months !== null && data.warranty_months !== undefined ? data.warranty_months : '');
             setAssignedTechnicianId(data.assigned_technician_id || null);
             setCustomTechnicianId(data.custom_technician_id || null);
+            setWarrantyType(data.warranty_type || settings?.warranty_type || 'individual');
 
             // Load ONLY expenses for this quote
             const { data: transData } = await supabase
@@ -227,6 +230,7 @@ export function QuoteForm() {
             setWarrantyMonths('');
             setAssignedTechnicianId(null);
             setCustomTechnicianId(null);
+            setWarrantyType(settings?.warranty_type || 'individual');
         }
     }, [id, settingsLoading, loadQuote]);
 
@@ -625,7 +629,8 @@ export function QuoteForm() {
                 deal_id: dealId,
                 warranty_months: warrantyMonths !== '' ? Number(warrantyMonths) : null,
                 assigned_technician_id: assignedTechnicianId,
-                custom_technician_id: customTechnicianId
+                custom_technician_id: customTechnicianId,
+                warranty_type: warrantyType
             };
 
             if (id && id !== 'new') {
@@ -843,6 +848,19 @@ export function QuoteForm() {
                                 </select>
                             </div>
                         )}
+                        {currentEntity.warranty_module_enabled && settings.enable_service_warranty && (
+                            <div className="flex flex-col gap-1 animate-in fade-in duration-300">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Modelo da Garantia</label>
+                                <select
+                                    value={warrantyType}
+                                    onChange={e => setWarrantyType(e.target.value as 'individual' | 'global')}
+                                    className="flex h-10 w-full rounded-md border border-gray-300 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:focus:ring-blue-400 font-medium"
+                                >
+                                    <option value="individual">Por Item / Serviço (Individual)</option>
+                                    <option value="global">Por Orçamento Completo (Global)</option>
+                                </select>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -986,7 +1004,7 @@ export function QuoteForm() {
                                                 </div>
                                             )}
 
-                                            {currentEntity.warranty_module_enabled && settings.enable_service_warranty && settings.warranty_type !== 'global' && item.service_id && (
+                                            {currentEntity.warranty_module_enabled && settings.enable_service_warranty && warrantyType !== 'global' && item.service_id && (
                                                 <div className="mt-2 flex gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
                                                     <div className="flex-[2]">
                                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Executante / Resp. Técnico</label>
@@ -1239,7 +1257,7 @@ export function QuoteForm() {
                             placeholder="Condições de pagamento, prazos, etc."
                         />
 
-                        {currentEntity.warranty_module_enabled && settings.enable_service_warranty && settings.warranty_type === 'global' && (
+                        {currentEntity.warranty_module_enabled && settings.enable_service_warranty && warrantyType === 'global' && (
                             <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-5 border border-gray-100 dark:border-slate-700 space-y-4 animate-in fade-in duration-300">
                                 <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                     <Award className="w-4 h-4 text-blue-500" />

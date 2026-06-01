@@ -70,6 +70,7 @@ export interface Quote {
     warranty_months?: number | null;
     assigned_technician_id?: string | null;
     custom_technician_id?: string | null;
+    warranty_type?: 'individual' | 'global' | null;
 }
 
 export function useQuotes() {

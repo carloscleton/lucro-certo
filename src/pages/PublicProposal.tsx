@@ -28,6 +28,7 @@ interface ProposalData {
     company_id?: string;
     user_id: string;
     warranty_months?: number | null;
+    warranty_type?: 'individual' | 'global' | null;
     assigned_technician?: { full_name: string } | null;
     custom_technician?: { name: string } | null;
     client: {
@@ -88,6 +89,7 @@ export function PublicProposal() {
                 notes: data.notes,
                 created_at: data.created_at,
                 warranty_months: data.warranty_months,
+                warranty_type: data.warranty_type,
                 assigned_technician: data.assigned_technician,
                 custom_technician: data.custom_technician,
                 client: {
@@ -319,7 +321,7 @@ export function PublicProposal() {
                                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.quantity} unidade(s)</p>
                                                 )}
                                                 
-                                                {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && proposal.company.settings?.warranty_type !== 'global' && item.service_id && (
+                                                {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && (proposal.warranty_type || proposal.company.settings?.warranty_type || 'individual') !== 'global' && item.service_id && (
                                                     <div className="mt-2.5 flex flex-wrap gap-2 animate-in fade-in duration-200">
                                                         {(item.custom_technician?.name || item.technician?.full_name) && (
                                                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50 dark:bg-sky-950/40 text-[10px] font-bold text-sky-600 dark:text-sky-400 border border-sky-100/50 dark:border-sky-900/30">
@@ -375,7 +377,7 @@ export function PublicProposal() {
                         </div>
 
                         {/* Global Warranty Card if applicable */}
-                        {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && proposal.company.settings?.warranty_type === 'global' && (
+                        {proposal.company.warranty_module_enabled && proposal.company.settings?.enable_service_warranty && (proposal.warranty_type || proposal.company.settings?.warranty_type || 'individual') === 'global' && (
                             <div className="mb-8 p-6 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-slate-800/40 dark:to-slate-800/20 rounded-3xl border border-sky-100/50 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 animate-in fade-in duration-300">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-sky-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-sky-600/20">
