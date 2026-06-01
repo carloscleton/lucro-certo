@@ -516,7 +516,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                           (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
 
         const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
-        const endpoint = type === 'nfse' ? (isNacional ? 'nfse/nacional' : 'nfse') : 'nfe';
+        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
 
         console.log(`🧾 [FISCAL-EMITIR] Ambiente: ${config.ambiente} | Sandbox: ${isSandbox} | HasCert: ${hasCert} (${certId}) | UseTestData: ${useTestData} | Nacional: ${isNacional}`);
 
