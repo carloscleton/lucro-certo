@@ -10,6 +10,7 @@ import { useContacts } from '../hooks/useContacts';
 import { useServices } from '../hooks/useServices';
 import { useProducts } from '../hooks/useProducts';
 import { useSettings } from '../hooks/useSettings';
+import { useTeam } from '../hooks/useTeam';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
@@ -33,8 +34,13 @@ export function QuoteForm() {
     const { services } = useServices();
     const { products } = useProducts();
     const { settings, loading: settingsLoading } = useSettings();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const { currentEntity } = useEntity();
+    const { members: teamMembers } = useTeam();
+
+    const techniciansList = teamMembers.length > 0
+        ? teamMembers.map(m => ({ id: m.user_id, name: m.profile.full_name }))
+        : (user ? [{ id: user.id, name: profile?.full_name || 'Eu' }] : []);
     const { deals } = useCRM();
     const { companies } = useCompanies();
     const { createCharge } = useCharges();
@@ -932,6 +938,40 @@ export function QuoteForm() {
                                                             onChange={e => updateItem(index, 'item_lista_servico', e.target.value)}
                                                             className="w-full bg-transparent border-b border-gray-200 dark:border-slate-700 text-xs py-0.5 focus:border-blue-500 outline-none dark:text-gray-300"
                                                             placeholder="00.00"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {settings.enable_service_warranty && item.service_id && (
+                                                <div className="mt-2 flex gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                    <div className="flex-[2]">
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Executante / Resp. Técnico</label>
+                                                        <select
+                                                            value={item.assigned_technician_id || ''}
+                                                            onChange={e => updateItem(index, 'assigned_technician_id', e.target.value || null)}
+                                                            className="w-full bg-transparent border-b border-gray-200 dark:border-slate-700 text-xs py-0.5 focus:border-blue-500 outline-none dark:text-gray-300 dark:bg-slate-800"
+                                                        >
+                                                            <option value="" className="dark:bg-slate-800">Selecione o responsável...</option>
+                                                            {techniciansList.map(tech => (
+                                                                <option key={tech.id} value={tech.id} className="dark:bg-slate-800">
+                                                                    {tech.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Garantia (Meses)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={item.warranty_months !== null && item.warranty_months !== undefined ? item.warranty_months : ''}
+                                                            onChange={e => {
+                                                                const val = e.target.value;
+                                                                updateItem(index, 'warranty_months', val === '' ? null : parseInt(val, 10));
+                                                            }}
+                                                            className="w-full bg-transparent border-b border-gray-200 dark:border-slate-700 text-xs py-0.5 focus:border-blue-500 outline-none dark:text-gray-300"
+                                                            placeholder="Ex: 6"
                                                         />
                                                     </div>
                                                 </div>

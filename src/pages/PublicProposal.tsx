@@ -8,7 +8,9 @@ import {
     Clock, 
     Building2,
     Check,
-    Loader2
+    Loader2,
+    User,
+    Shield
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
@@ -37,6 +39,7 @@ interface ProposalData {
         cnpj?: string;
         cpf?: string;
         entity_type?: 'PF' | 'PJ';
+        settings?: any;
     };
     items: any[];
 }
@@ -62,7 +65,7 @@ export function PublicProposal() {
                 .select(`
                     *,
                     contact:contact_id(*),
-                    items:quote_items(*),
+                    items:quote_items(*, technician:assigned_technician_id(full_name)),
                     company:company_id(*)
                 `)
                 .eq('id', proposalId)
@@ -89,7 +92,8 @@ export function PublicProposal() {
                     phone: data.company?.phone,
                     cnpj: data.company?.cnpj,
                     cpf: data.company?.cpf,
-                    entity_type: data.company?.entity_type || 'PJ'
+                    entity_type: data.company?.entity_type || 'PJ',
+                    settings: data.company?.settings || {}
                 },
                 items: data.items || []
             } as any);
@@ -303,6 +307,50 @@ export function PublicProposal() {
                                                 <h4 className="font-bold text-slate-900 dark:text-white mb-0.5">{item.description}</h4>
                                                 {item.quantity > 1 && (
                                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.quantity} unidade(s)</p>
+                                                )}
+                                                
+                                                {proposal.company.settings?.enable_service_warranty && item.service_id && (
+                                                    <div className="mt-2.5 flex flex-wrap gap-2 animate-in fade-in duration-200">
+                                                        {item.technician?.full_name && (
+                                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50 dark:bg-sky-950/40 text-[10px] font-bold text-sky-600 dark:text-sky-400 border border-sky-100/50 dark:border-sky-900/30">
+                                                                <User size={12} />
+                                                                <span>Executor: {item.technician.full_name}</span>
+                                                            </div>
+                                                        )}
+                                                        {item.warranty_months ? (() => {
+                                                            if (proposal.status === 'approved') {
+                                                                const startDate = proposal.created_at ? new Date(proposal.created_at) : new Date();
+                                                                const endDate = new Date(startDate);
+                                                                endDate.setMonth(startDate.getMonth() + item.warranty_months);
+                                                                const now = new Date();
+                                                                const isActive = endDate >= now;
+                                                                const formattedDate = format(endDate, "dd/MM/yyyy");
+                                                                
+                                                                if (isActive) {
+                                                                    return (
+                                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30">
+                                                                            <ShieldCheck size={12} className="text-emerald-500" />
+                                                                            <span>Garantia Ativa até {formattedDate}</span>
+                                                                        </div>
+                                                                    );
+                                                                } else {
+                                                                    return (
+                                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800/60 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50">
+                                                                            <Shield size={12} />
+                                                                            <span>Garantia Expirou em {formattedDate}</span>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            } else {
+                                                                return (
+                                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30">
+                                                                        <Clock size={12} />
+                                                                        <span>Garantia de {item.warranty_months} {item.warranty_months === 1 ? 'mês' : 'meses'} após aprovação</span>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        })() : null}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

@@ -21,6 +21,7 @@ export interface UserSettings {
     automation_overdue_prompt?: string;
     automation_overdue_template?: string;
     automation_whatsapp_number?: string;
+    enable_service_warranty?: boolean;
 }
 
 // In-memory cache to store settings per entity or user
@@ -48,7 +49,8 @@ export function useSettings() {
             automation_birthday_reminders: false,
             automation_birthday_time: '09:00',
             automation_overdue_reminders: false,
-            automation_overdue_time: '10:00'
+            automation_overdue_time: '10:00',
+            enable_service_warranty: false
         };
     });
 
@@ -80,7 +82,8 @@ export function useSettings() {
                 automation_birthday_reminders: false,
                 automation_birthday_time: '09:00',
                 automation_overdue_reminders: false,
-                automation_overdue_time: '10:00'
+                automation_overdue_time: '10:00',
+                enable_service_warranty: false
             });
             setLoading(false);
         }
@@ -126,7 +129,8 @@ export function useSettings() {
                         automation_overdue_time: s.automation_overdue_time ?? '10:00',
                         automation_overdue_prompt: s.automation_overdue_prompt ?? '',
                         automation_overdue_template: s.automation_overdue_template ?? '',
-                        automation_whatsapp_number: s.automation_whatsapp_number ?? ''
+                        automation_whatsapp_number: s.automation_whatsapp_number ?? '',
+                        enable_service_warranty: s.enable_service_warranty ?? false
                     };
                     settingsCache[key] = loaded;
                     hasLoadedOnce[key] = true;
@@ -142,7 +146,8 @@ export function useSettings() {
                         automation_birthday_reminders: false,
                         automation_birthday_time: '09:00',
                         automation_overdue_reminders: false,
-                        automation_overdue_time: '10:00'
+                        automation_overdue_time: '10:00',
+                        enable_service_warranty: false
                     };
                     settingsCache[key] = defaults;
                     hasLoadedOnce[key] = true;
@@ -173,7 +178,8 @@ export function useSettings() {
                         automation_overdue_time: data.automation_overdue_time ?? '10:00',
                         automation_overdue_prompt: data.automation_overdue_prompt ?? '',
                         automation_overdue_template: data.automation_overdue_template ?? '',
-                        automation_whatsapp_number: data.automation_whatsapp_number ?? ''
+                        automation_whatsapp_number: data.automation_whatsapp_number ?? '',
+                        enable_service_warranty: false
                     };
                     settingsCache[key] = loaded;
                     hasLoadedOnce[key] = true;
@@ -189,7 +195,8 @@ export function useSettings() {
                         automation_birthday_reminders: false,
                         automation_birthday_time: '09:00',
                         automation_overdue_reminders: false,
-                        automation_overdue_time: '10:00'
+                        automation_overdue_time: '10:00',
+                        enable_service_warranty: false
                     };
                     settingsCache[key] = defaults;
                     hasLoadedOnce[key] = true;
@@ -230,9 +237,10 @@ export function useSettings() {
                 }
                 await fetchSettings(); // Refresh to ensure state is sync
             } else {
+                const { enable_service_warranty, ...personalPayload } = newSettings;
                 const { error } = await supabase
                     .from('user_settings')
-                    .update(newSettings)
+                    .update(personalPayload)
                     .eq('user_id', user!.id);
 
                 if (error) throw error;

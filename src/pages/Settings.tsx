@@ -42,6 +42,7 @@ export function Settings() {
 
     // Local state for form inputs
     const [quoteValidity, setQuoteValidity] = useState(7);
+    const [enableServiceWarranty, setEnableServiceWarranty] = useState(false);
     const [commissionRate, setCommissionRate] = useState(0);
     const [serviceCommissionRate, setServiceCommissionRate] = useState(0);
     const [productCommissionRate, setProductCommissionRate] = useState(0);
@@ -234,6 +235,7 @@ export function Settings() {
             setAutoOverduePrompt(settings.automation_overdue_prompt || '');
             setAutoOverdueTemplate(settings.automation_overdue_template || '');
             setAutomationWhatsAppNumber(formatPhoneFromDB(settings.automation_whatsapp_number));
+            setEnableServiceWarranty(!!settings.enable_service_warranty);
         }
         if (currentEntity?.currency) {
             setCurrency(currentEntity.currency);
@@ -319,7 +321,8 @@ export function Settings() {
             automation_overdue_time: autoOverdueTime,
             automation_overdue_prompt: autoOverduePrompt,
             automation_overdue_template: autoOverdueTemplate,
-            automation_whatsapp_number: cleanPhoneNumber(automationWhatsAppNumber) || undefined
+            automation_whatsapp_number: cleanPhoneNumber(automationWhatsAppNumber) || undefined,
+            enable_service_warranty: enableServiceWarranty
         });
 
         // Save currency to company if changed
@@ -618,6 +621,26 @@ export function Settings() {
                                 min="1"
                                 helpText={t('settings.validity_help')}
                             />
+                        </div>
+
+                        <div className="mt-6 p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                            <div className="space-y-1 pr-4">
+                                <h4 className="font-bold text-gray-900 dark:text-white leading-none">
+                                    Controle de Garantia e Responsabilidade Técnica
+                                </h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 leading-normal">
+                                    Ativa o controle de período de garantia e a atribuição de responsáveis técnicos para os itens de serviço de seus orçamentos.
+                                </p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer" 
+                                    checked={enableServiceWarranty} 
+                                    onChange={(e) => setEnableServiceWarranty(e.target.checked)} 
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                            </label>
                         </div>
                         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700 flex justify-end">
                             <Button onClick={handleSave} isLoading={saving}>

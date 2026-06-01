@@ -22,6 +22,8 @@ export interface QuoteItem {
     item_lista_servico?: string;
     codigo_tributacao?: string;
     codigo_tributacao_nacional?: string;
+    assigned_technician_id?: string | null;
+    warranty_months?: number | null;
 }
 
 export interface Quote {
@@ -210,7 +212,9 @@ export function useQuotes() {
                 cest: item.cest,
                 origem: item.origem,
                 codigo_servico_municipal: item.codigo_servico_municipal,
-                item_lista_servico: item.item_lista_servico
+                item_lista_servico: item.item_lista_servico,
+                assigned_technician_id: item.assigned_technician_id,
+                warranty_months: item.warranty_months
             }));
 
             const { error: itemsError } = await supabase
@@ -519,7 +523,9 @@ export function useQuotes() {
                 cest: item.cest,
                 origem: item.origem,
                 codigo_servico_municipal: item.codigo_servico_municipal,
-                item_lista_servico: item.item_lista_servico
+                item_lista_servico: item.item_lista_servico,
+                assigned_technician_id: item.assigned_technician_id,
+                warranty_months: item.warranty_months
             }));
 
             const { error: insertError } = await supabase
