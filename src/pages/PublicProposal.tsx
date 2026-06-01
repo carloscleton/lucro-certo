@@ -198,7 +198,7 @@ export function PublicProposal() {
 
                     <div className="p-8 md:p-14">
                         {/* Novo Cabeçalho Oficial (Estilo Impressão/PDF - Padrão de Duas Colunas) */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-6">
+                        <div className="flex justify-between items-start gap-6 mb-6">
                             {/* Lado Esquerdo: Título e ID */}
                             <div className="text-left">
                                 <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">ORÇAMENTO</h1>
@@ -208,15 +208,15 @@ export function PublicProposal() {
                             </div>
 
                             {/* Lado Direito: Logo e Informações da Empresa (Empilhadas e Alinhadas à Direita) */}
-                            <div className="flex flex-col items-end text-right self-stretch sm:self-auto">
+                            <div className="flex flex-col items-end text-right">
                                 {proposal.company.logo_url ? (
                                     <img 
                                         src={proposal.company.logo_url} 
                                         alt={proposal.company.name} 
-                                        className="h-14 object-contain mb-3 bg-white p-1 rounded-xl border border-slate-100 dark:border-slate-800/80 shadow-sm" 
+                                        className="h-14 object-contain mb-3 bg-white p-1 rounded-xl border border-slate-100 dark:border-slate-800/80 shadow-sm ml-auto" 
                                     />
                                 ) : (
-                                    <div className="h-12 w-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-slate-100 dark:border-slate-800 mb-3">
+                                    <div className="h-12 w-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-slate-100 dark:border-slate-800 mb-3 ml-auto">
                                         <Building2 className="text-sky-600" size={20} />
                                     </div>
                                 )}
