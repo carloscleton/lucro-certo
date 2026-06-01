@@ -1613,6 +1613,46 @@ export function Quotes() {
                                                         </button>
                                                     </div>
                                                 )}
+                                                {currentCompany?.warranty_module_enabled && currentCompany?.settings?.enable_service_warranty && quote.status === 'approved' && (() => {
+                                                    if (quote.payment_status === 'paid') {
+                                                        if (quote.warranty_months) {
+                                                            const startDate = quote.created_at ? new Date(quote.created_at) : new Date();
+                                                            const endDate = new Date(startDate);
+                                                            endDate.setMonth(startDate.getMonth() + quote.warranty_months);
+                                                            const now = new Date();
+                                                            const isActive = endDate >= now;
+                                                            const formattedDate = endDate.toLocaleDateString('pt-BR');
+                                                            if (isActive) {
+                                                                return (
+                                                                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100 mt-1 dark:bg-emerald-950/20 dark:border-emerald-900/40">
+                                                                        <ShieldCheck size={10} className="text-emerald-500" />
+                                                                        Ativa ({formattedDate})
+                                                                    </span>
+                                                                );
+                                                            } else {
+                                                                return (
+                                                                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200 mt-1 dark:bg-slate-800/40 dark:border-slate-700/40">
+                                                                        Expirada ({formattedDate})
+                                                                    </span>
+                                                                );
+                                                            }
+                                                        } else {
+                                                            return (
+                                                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100 mt-1 dark:bg-emerald-950/20 dark:border-emerald-900/40">
+                                                                    <ShieldCheck size={10} className="text-emerald-500" />
+                                                                    Garantia Ativa
+                                                                </span>
+                                                            );
+                                                        }
+                                                    } else if (quote.payment_status === 'pending') {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100 mt-1 dark:bg-amber-950/20 dark:border-amber-900/40">
+                                                                Garantia Aguarda Pgto
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                                 {quote.follow_up_date && (
                                                     <div className="flex items-center gap-1 text-[8px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-900/50 mt-1">
                                                         <CalendarClock size={10} />

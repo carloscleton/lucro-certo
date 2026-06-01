@@ -39,6 +39,7 @@ export interface Company {
     automations_module_enabled?: boolean;
     has_lead_radar?: boolean;
     loyalty_module_enabled?: boolean;
+    warranty_module_enabled?: boolean;
     tecnospeed_config?: any;
     zip_code?: string;
     street?: string;
