@@ -14,6 +14,7 @@ import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
 import { ResultModal } from '../components/ui/ResultModal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
+import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
@@ -30,10 +31,9 @@ export function Invoices() {
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info', data?: any}>({
         isOpen: false, title: '', message: '', type: 'success'
     });
-    const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({
-        isOpen: false, invoice: null
-    });
+    const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({ isOpen: false, invoice: null });
     const [cancelReason, setCancelReason] = useState('');
+    const [isProtectedModalOpen, setIsProtectedModalOpen] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, invoiceId: string | null}>({
         isOpen: false, invoiceId: null
@@ -140,7 +140,7 @@ export function Invoices() {
         }
     };
 
-    const handleCancelInvoice = async () => {
+    const executeCancelInvoice = async () => {
         if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
         setIsCancelling(true);
         try {
@@ -177,6 +177,20 @@ export function Invoices() {
         } finally {
             setIsCancelling(false);
         }
+    };
+
+    const handleCancelInvoice = async () => {
+        if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
+
+        const isAuthorized = ['concluido', 'autorizado'].includes(cancelModal.invoice.status?.toLowerCase());
+
+        // Se a nota estiver concluída/autorizada, exige validação do administrador via DeleteProtectionModal
+        if (isAuthorized) {
+            setIsProtectedModalOpen(true);
+            return;
+        }
+
+        await executeCancelInvoice();
     };
 
     const handleDeleteInvoice = async () => {
@@ -1222,6 +1236,31 @@ export function Invoices() {
                         </div>
                     </div>
                 </Modal>
+            )}
+
+            {cancelModal.invoice && isProtectedModalOpen && (
+                <DeleteProtectionModal
+                    isOpen={isProtectedModalOpen}
+                    onClose={() => setIsProtectedModalOpen(false)}
+                    onConfirm={executeCancelInvoice}
+                    transaction={(() => {
+                        const inv = cancelModal.invoice;
+                        const p = inv.payload;
+                        const servicos = p ? (Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : [])) : [];
+                        const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || 0;
+                        return {
+                            description: `Cancelamento de Nota Fiscal ${inv.external_id ? `(${inv.external_id.slice(-6)})` : ''}`,
+                            amount: val,
+                            company_id: inv.company_id,
+                            date: inv.created_at?.split('T')[0]
+                        };
+                    })()}
+                    invoiceNumber={(() => {
+                        const inv = cancelModal.invoice;
+                        const p = inv.payload;
+                        return inv.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero || 'Emitida';
+                    })()}
+                />
             )}
 
             <ResultModal

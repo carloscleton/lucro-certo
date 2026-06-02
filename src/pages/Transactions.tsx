@@ -18,6 +18,7 @@ import { useEntity } from '../context/EntityContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { useTeam } from '../hooks/useTeam';
 import { useCRM } from '../hooks/useCRM';
+import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 
 interface TransactionPageProps {
     type: 'expense' | 'income';
@@ -51,6 +52,14 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [settlingTransaction, setSettlingTransaction] = useState<Transaction | null>(null);
     const { notify } = useNotification();
+    
+    // Estados para proteção de exclusão de caixa e Notas Fiscais
+    const [isProtectedModalOpen, setIsProtectedModalOpen] = useState(false);
+    const [protectedTransaction, setProtectedTransaction] = useState<{
+        transaction: any;
+        invoiceNumber: string;
+        idToDelete: string;
+    } | null>(null);
     const [sendingSummary, setSendingSummary] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
 
@@ -258,11 +267,46 @@ function TransactionPage({ type, title }: TransactionPageProps) {
         // Find transaction to check status
         const transaction = transactions.find(t => t.id === id);
 
-        if (!canDelete) {
-            // 🔒 Check if transaction is protected
-            if (transaction && (transaction.status === 'paid' || transaction.status === 'received')) {
-                alert(t('common.no_permission_delete'));
-                return;
+        // 🔒 BLINDAGEM DE CAIXA: Trava de exclusão para transações de receita já pagas/recebidas
+        // que possuam Nota Fiscal ativa OU cuja forma de pagamento tenha sido Dinheiro (Espécie)
+        if (transaction && type === 'income' && (transaction.status === 'paid' || transaction.status === 'received')) {
+            let hasActiveInvoice = false;
+            let invoiceNumber = '';
+
+            if (transaction.quote_id) {
+                try {
+                    const { data: invoices } = await supabase
+                        .from('fiscal_invoices')
+                        .select('id, invoice_number, payload, status')
+                        .eq('quote_id', transaction.quote_id)
+                        .neq('status', 'cancelado');
+
+                    if (invoices && invoices.length > 0) {
+                        hasActiveInvoice = true;
+                        const activeInvoice = invoices[0];
+                        invoiceNumber = activeInvoice.invoice_number || 
+                                       activeInvoice.payload?.retorno?.numeroNfse || 
+                                       activeInvoice.payload?.numeroNfse || 
+                                       activeInvoice.payload?.numeroNfe || 
+                                       activeInvoice.payload?.retorno?.numero || 
+                                       activeInvoice.payload?.numero || 
+                                       'Emitida';
+                    }
+                } catch (err) {
+                    console.error('Erro ao verificar nota fiscal ativa para a transação:', err);
+                }
+            }
+
+            const isCashPayment = transaction.payment_method === 'cash';
+
+            if (hasActiveInvoice || isCashPayment) {
+                setProtectedTransaction({
+                    transaction,
+                    invoiceNumber: hasActiveInvoice ? invoiceNumber : 'Lançamento em Dinheiro',
+                    idToDelete: id
+                });
+                setIsProtectedModalOpen(true);
+                return; // Bloqueia o fluxo padrão e abre o modal de liberação do admin
             }
         }
 
@@ -532,6 +576,28 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     transactionAmount={settlingTransaction.amount}
                     transactionDescription={settlingTransaction.description}
                     isVariableAmount={settlingTransaction.is_variable_amount}
+                />
+            )}
+
+            {protectedTransaction && (
+                <DeleteProtectionModal
+                    isOpen={isProtectedModalOpen}
+                    onClose={() => {
+                        setIsProtectedModalOpen(false);
+                        setProtectedTransaction(null);
+                    }}
+                    onConfirm={async () => {
+                        try {
+                            // Quando autorizado pelo admin (via código), executa a exclusão de forma direta e segura
+                            let scope: 'single' | 'future' | 'all' = 'single';
+                            await deleteTransaction(protectedTransaction.idToDelete, scope);
+                            notify('success', 'Transação protegida excluída com sucesso sob autorização do administrador.', 'Sucesso');
+                        } catch (err: any) {
+                            alert(err.message || 'Falha ao realizar a exclusão.');
+                        }
+                    }}
+                    transaction={protectedTransaction.transaction}
+                    invoiceNumber={protectedTransaction.invoiceNumber}
                 />
             )}
 
