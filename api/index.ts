@@ -622,8 +622,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             });
         }
 
-        const targetEndpoint = endpoint === 'nfse' && isNacional ? 'nfse/nacional' : endpoint;
-        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.34) → ${targetEndpoint}:`, JSON.stringify(finalPayload, null, 2));
+        // Em sandbox/teste, o PlugNotas não suporta /nfse/nacional com o CNPJ de teste padrão.
+        // Só usamos o endpoint Nacional em PRODUÇÃO com dados reais.
+        const targetEndpoint = (endpoint === 'nfse' && isNacional && !useTestData && !isSandbox) ? 'nfse/nacional' : endpoint;
+        console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.35) → ${targetEndpoint} | Nacional: ${isNacional} | Sandbox: ${isSandbox} | TestData: ${useTestData}:`, JSON.stringify(finalPayload, null, 2));
 
         const response = await axios.post(`${baseUrl}/${targetEndpoint}`, finalPayload, {
             headers: {
@@ -1334,14 +1336,38 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             ? (type === 'nfsenac') 
             : !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
             
-        const targetType = isNacional ? 'nfse/nacional' : (type === 'nfsenac' ? 'nfse' : type);
+        // Determina o endpoint para consulta. Se for Nacional, tenta nfse/nacional primeiro,
+        // com fallback para nfse caso a nota tenha sido emitida pelo endpoint municipal (compatibilidade retroativa).
+        const targetType = isNacional ? 'nfse/nacional' : (type === 'nfse' || type === 'nfsenac' ? 'nfse' : type);
 
-        // 2. Consultar na TecnoSpeed usando o endpoint correto
-        const response = await axios.get(`${baseUrl}/${targetType}/${id}`, {
-            headers: { 'X-API-KEY': apiKey }
-        });
-
-        const statusData = response.data;
+        // 2. Consultar na TecnoSpeed usando o endpoint correto, com fallback automático
+        let statusData: any;
+        let usedType = targetType;
+        
+        try {
+            const response = await axios.get(`${baseUrl}/${targetType}/${id}`, {
+                headers: { 'X-API-KEY': apiKey }
+            });
+            statusData = response.data;
+        } catch (primaryErr: any) {
+            // Fallback: se nfse/nacional retornou 404, tenta em nfse (nota pode ter sido emitida municipalmente)
+            if (primaryErr.response?.status === 404 && targetType === 'nfse/nacional') {
+                console.warn(`⚠️ [FISCAL-STATUS] Nota não encontrada em /nfse/nacional. Tentando fallback em /nfse...`);
+                try {
+                    const fallbackResponse = await axios.get(`${baseUrl}/nfse/${id}`, {
+                        headers: { 'X-API-KEY': apiKey }
+                    });
+                    statusData = fallbackResponse.data;
+                    usedType = 'nfse';
+                    console.log(`✅ [FISCAL-STATUS] Nota encontrada no fallback /nfse. ID: ${id}`);
+                } catch (fallbackErr: any) {
+                    // Também não encontrou em /nfse → propaga o erro original (404)
+                    throw primaryErr;
+                }
+            } else {
+                throw primaryErr;
+            }
+        }
         
         // Extrair status (NFSe Nacional tem estrutura diferente as vezes)
         const currentStatus = statusData.data?.status || statusData.status;
@@ -1352,7 +1378,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
                     const host = req.get('host');
                     const baseApiUrl = `${protocol}://${host}`;
-                    return `${baseApiUrl}/api/fiscal-module/${type}/${id}/${docType}?companyId=${companyId}`;
+                    return `${baseApiUrl}/api/fiscal-module/${usedType}/${id}/${docType}?companyId=${companyId}`;
                 };
 
                 const pdfUrl = getValidDocUrl('pdf');
