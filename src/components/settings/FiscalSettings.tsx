@@ -156,7 +156,9 @@ export function FiscalSettings() {
         simples_nacional_regime_apuracao: '1',
         pis_cofins_situacao_tributaria: '00',
         pis_cofins_csll_retencao_tipo: '1',
-        reforma_tributaria_calculadora_ativa: false
+        reforma_tributaria_calculadora_ativa: false,
+        reforma_tributaria_ibs_aliquota: '0.10',
+        reforma_tributaria_cbs_aliquota: '0.90'
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -211,6 +213,9 @@ export function FiscalSettings() {
             if (!newConfig.endereco.cidade && currentCompany.city) newConfig.endereco.cidade = currentCompany.city;
             if (!newConfig.endereco.cep && currentCompany.zip_code) newConfig.endereco.cep = currentCompany.zip_code;
             if (!newConfig.endereco.uf && currentCompany.state) newConfig.endereco.uf = currentCompany.state;
+
+            if (newConfig.reforma_tributaria_ibs_aliquota === undefined) newConfig.reforma_tributaria_ibs_aliquota = '0.10';
+            if (newConfig.reforma_tributaria_cbs_aliquota === undefined) newConfig.reforma_tributaria_cbs_aliquota = '0.90';
 
             return newConfig;
         });
@@ -1665,6 +1670,53 @@ export function FiscalSettings() {
                                         <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1 flex items-center gap-1">
                                             ⚠️ Sua empresa está configurada no Simples Nacional. O destaque de IBS/CBS é recomendado preventivamente para simular a transição tributária, mas as regras definitivas de cobrança entram em vigor a partir de agosto de 2026 principalmente para o Regime Geral.
                                         </p>
+                                    )}
+                                    {config.reforma_tributaria_calculadora_ativa && (
+                                        <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-white/50 dark:bg-slate-900/40 rounded-xl border border-emerald-500/10 backdrop-blur-sm animate-fadeIn">
+                                            <div className="space-y-1">
+                                                <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                                                    Alíquota de Teste CBS (%)
+                                                </label>
+                                                <div className="relative rounded-lg shadow-sm">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        max="100"
+                                                        value={config.reforma_tributaria_cbs_aliquota || '0.90'}
+                                                        onChange={(e) => setConfig({ ...config, reforma_tributaria_cbs_aliquota: e.target.value })}
+                                                        className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
+                                                        placeholder="0.90"
+                                                    />
+                                                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[9px] font-extrabold text-emerald-600/70">
+                                                        FED (0,9%)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                                                    Alíquota de Teste IBS (%)
+                                                </label>
+                                                <div className="relative rounded-lg shadow-sm">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        max="100"
+                                                        value={config.reforma_tributaria_ibs_aliquota || '0.10'}
+                                                        onChange={(e) => setConfig({ ...config, reforma_tributaria_ibs_aliquota: e.target.value })}
+                                                        className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
+                                                        placeholder="0.10"
+                                                    />
+                                                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[9px] font-extrabold text-emerald-600/70">
+                                                        EST/MUN (0,1%)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2 text-[10px] text-emerald-700/90 dark:text-emerald-300/90 leading-normal bg-emerald-500/5 dark:bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/10 mt-1">
+                                                💡 <strong>Período de Teste e Transição:</strong> O governo instituiu a alíquota simbólica total de <strong>1%</strong> (<strong>0,9% CBS</strong> e <strong>0,1% IBS</strong>) em caráter meramente informativo para homologação técnica dos ERPs, sem gerar cobranças adicionais imediatas.
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
