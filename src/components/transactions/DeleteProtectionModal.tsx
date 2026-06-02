@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ShieldAlert, Lock, XCircle, Send } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useEntity } from '../../context/EntityContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { whatsappService } from '../../services/whatsappService';
@@ -16,6 +17,7 @@ interface DeleteProtectionModalProps {
 
 export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction, invoiceNumber }: DeleteProtectionModalProps) {
     const { user, profile } = useAuth();
+    const { currentEntity } = useEntity();
     const [loadingSend, setLoadingSend] = useState(false);
     const [loadingConfirm, setLoadingConfirm] = useState(false);
     const [sentSuccessfully, setSentSuccessfully] = useState(false);
@@ -24,6 +26,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
     const [codeError, setCodeError] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
     const [adminPhone, setAdminPhone] = useState('');
+    const [phoneInput, setPhoneInput] = useState('');
     const [hasWaInstance, setHasWaInstance] = useState(false);
     const [waInstanceName, setWaInstanceName] = useState('');
 
@@ -54,10 +57,11 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
                     if (profData?.phone) {
                         setAdminPhone(profData.phone);
+                        setPhoneInput(profData.phone);
                     }
 
                     // 2. Busca uma instância conectada de WhatsApp para a empresa correspondente
-                    const companyId = transaction.company_id || profile?.company_id;
+                    const companyId = transaction.company_id || currentEntity.id || profile?.company_id;
                     if (companyId) {
                         const { data: waData } = await supabase
                             .from('instances')
@@ -70,7 +74,19 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                             setHasWaInstance(true);
                             setWaInstanceName(waData[0].instance_name);
                         } else {
-                            setHasWaInstance(false);
+                            // Fallback: Busca qualquer instância de WhatsApp conectada no sistema
+                            const { data: anyWa } = await supabase
+                                .from('instances')
+                                .select('instance_name')
+                                .eq('status', 'connected')
+                                .limit(1);
+
+                            if (anyWa && anyWa.length > 0) {
+                                setHasWaInstance(true);
+                                setWaInstanceName(anyWa[0].instance_name);
+                            } else {
+                                setHasWaInstance(false);
+                            }
                         }
                     }
                 } catch (err) {
@@ -80,12 +96,25 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
             fetchAdminData();
         }
-    }, [isOpen, transaction, profile]);
+    }, [isOpen, transaction, profile, currentEntity]);
 
     if (!isOpen) return null;
 
     // Disparar o código de liberação via WhatsApp
     const handleRequestCode = async () => {
+        let targetPhone = adminPhone.trim() || phoneInput.trim();
+
+        if (!targetPhone) {
+            setStatusMessage('Por favor, informe um número de telefone válido.');
+            return;
+        }
+
+        // Garante formatação correta do telefone (DDI + DDD + Numero)
+        let cleanPhone = targetPhone.replace(/\D/g, '');
+        if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+            cleanPhone = '55' + cleanPhone;
+        }
+
         setLoadingSend(true);
         setCodeError(false);
         setStatusMessage('');
@@ -97,21 +126,21 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         console.log(`[SEGURANÇA] Código Gerado: ${code} (Bypass Mestre: LUCRO_CERTO_BYPASS)`);
 
         try {
-            // Buscamos o telefone do administrador de forma redundante se ele não estiver carregado
-            let targetPhone = adminPhone;
-            if (!targetPhone) {
-                const { data: profData } = await supabase
-                    .from('profiles')
-                    .select('phone')
-                    .eq('email', 'carloscleton.nat@gmail.com')
-                    .maybeSingle();
-                if (profData?.phone) {
-                    targetPhone = profData.phone;
-                    setAdminPhone(profData.phone);
+            // Se o próprio administrador informou o telefone agora, salva no perfil dele no banco para futuras ocasiões!
+            if (isAdmin && cleanPhone && cleanPhone !== adminPhone) {
+                try {
+                    await supabase
+                        .from('profiles')
+                        .update({ phone: cleanPhone })
+                        .eq('email', 'carloscleton.nat@gmail.com');
+                    setAdminPhone(cleanPhone);
+                    console.log('✅ Telefone do administrador salvo com sucesso no banco de dados!');
+                } catch (dbErr) {
+                    console.warn('⚠️ Não foi possível salvar o telefone no perfil:', dbErr);
                 }
             }
 
-            if (hasWaInstance && waInstanceName && targetPhone) {
+            if (hasWaInstance && waInstanceName && cleanPhone) {
                 // Mensagem personalizada se for o próprio administrador ou se for um funcionário solicitando a ele
                 const message = isAdmin 
                     ? `🔐 *[Lucro Certo - Segurança]*\n\n` +
@@ -133,7 +162,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
                 await whatsappService.sendMessage({
                     instanceName: waInstanceName,
-                    number: targetPhone,
+                    number: cleanPhone,
                     text: message
                 });
 
@@ -167,7 +196,8 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         setLoadingConfirm(true);
         try {
             // Dispara notificação silenciosa de auditoria para o administrador
-            if (hasWaInstance && waInstanceName && adminPhone) {
+            const targetPhone = adminPhone || phoneInput;
+            if (hasWaInstance && waInstanceName && targetPhone) {
                 try {
                     const auditMsg = `⚠️ *[Lucro Certo - Auditoria Financeira]*\n\n` +
                         `A transação financeira protegida foi *EXCLUÍDA/CANCELADA* com sucesso:\n\n` +
@@ -180,7 +210,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
                     await whatsappService.sendMessage({
                         instanceName: waInstanceName,
-                        number: adminPhone,
+                        number: targetPhone.replace(/\D/g, ''),
                         text: auditMsg
                     });
                 } catch (auditErr) {
@@ -241,13 +271,46 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                 {/* Ações de verificação */}
                 <div className="space-y-4">
                     {!sentSuccessfully ? (
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-3">
+                            {/* Caso o telefone de Carlos não esteja cadastrado na tabela de perfis */}
+                            {!adminPhone && (
+                                <div className="space-y-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-xl border border-red-100 dark:border-red-900/30 text-xs">
+                                    {isAdmin ? (
+                                        <>
+                                            <p className="font-bold text-red-900 dark:text-red-300">
+                                                🚨 Telefone do Administrador não Cadastrado!
+                                            </p>
+                                            <p className="text-red-700 dark:text-red-400 mt-0.5">
+                                                Olá Carlos, digite seu número de WhatsApp pessoal abaixo (com DDD, ex: 31999999999) para receber a senha. O sistema salvará automaticamente no seu perfil!
+                                            </p>
+                                            <input
+                                                type="text"
+                                                placeholder="Ex: 31999999999"
+                                                value={phoneInput}
+                                                onChange={(e) => setPhoneInput(e.target.value)}
+                                                className="w-full h-10 px-3 mt-1.5 rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-slate-800 text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-red-500"
+                                            />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="font-bold text-red-900 dark:text-red-300">
+                                                🚨 Liberação Indisponível!
+                                            </p>
+                                            <p className="text-red-700 dark:text-red-400 mt-0.5">
+                                                O telefone de WhatsApp do Administrador (Carlos Cleton) não está cadastrado no sistema. Peça para o administrador cadastrar o telefone dele em seu Perfil para liberar esta função.
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
                             <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                                 Clique abaixo para gerar e disparar a senha temporária para o WhatsApp do Dono do Sistema.
                             </p>
                             <Button
                                 onClick={handleRequestCode}
                                 isLoading={loadingSend}
+                                disabled={!adminPhone && !phoneInput.trim()}
                                 className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2"
                             >
                                 <Send size={16} />
