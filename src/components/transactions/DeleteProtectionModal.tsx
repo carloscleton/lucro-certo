@@ -26,6 +26,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
     const [codeError, setCodeError] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
     const [adminPhone, setAdminPhone] = useState('');
+    const [masterPhone, setMasterPhone] = useState('');
     const [phoneInput, setPhoneInput] = useState('');
     const [isOwner, setIsOwner] = useState(false);
     const [hasWaInstance, setHasWaInstance] = useState(false);
@@ -55,6 +56,10 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                         .select('phone, email')
                         .ilike('email', 'carloscleton.nat@gmail.com')
                         .maybeSingle();
+
+                    if (masterAdminProfile?.phone) {
+                        setMasterPhone(masterAdminProfile.phone);
+                    }
 
                     const companyId = transaction.company_id || currentEntity.id || profile?.company_id;
                     let detectedPhone = '';
@@ -243,14 +248,47 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                       `Caso aprove esta operação, passe o código abaixo para o funcionário:\n` +
                       `👉 Código de Liberação: *${code}*`;
 
+                // 1. Envia para o Administrador da Empresa
                 await whatsappService.sendMessage({
                     instanceName: waInstanceName,
                     number: cleanPhone,
                     text: message
                 });
 
+                // 2. Envia também para o Dono do Sistema (Carlos Cleton) se for diferente
+                let cleanMasterPhone = masterPhone.replace(/\D/g, '');
+                if (cleanMasterPhone.length === 10 || cleanMasterPhone.length === 11) {
+                    cleanMasterPhone = '55' + cleanMasterPhone;
+                }
+
+                let sentBoth = false;
+                if (cleanMasterPhone && cleanMasterPhone !== cleanPhone) {
+                    try {
+                        sentBoth = true;
+                        const masterMessage = `🔐 *[Lucro Certo - Cópia de Segurança]*\n\n` +
+                          `Foi solicitada a liberação de exclusão de transação protegida na empresa *${currentEntity?.name || 'Desconhecida'}*:\n\n` +
+                          `• *Solicitante:* ${user?.email || 'Funcionário'}\n` +
+                          `• *Transação:* ${transaction.description}\n` +
+                          `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                          `• *Nota Fiscal:* Nº ${invoiceNumber}\n\n` +
+                          `👉 Código de Liberação: *${code}*`;
+
+                        await whatsappService.sendMessage({
+                            instanceName: waInstanceName,
+                            number: cleanMasterPhone,
+                            text: masterMessage
+                        });
+                    } catch (masterErr) {
+                        console.warn('Erro ao disparar cópia de segurança para Carlos Cleton:', masterErr);
+                    }
+                }
+
                 setSentSuccessfully(true);
-                setStatusMessage(`Código de liberação enviado para o WhatsApp do Dono do Sistema (Carlos Cleton). Peça a ele a senha de 6 números para autorizar.`);
+                if (sentBoth) {
+                    setStatusMessage(`Código enviado para o WhatsApp do Administrador da Empresa e também para o Dono do Sistema (Carlos Cleton). Peça a senha de 6 números para autorizar.`);
+                } else {
+                    setStatusMessage(`Código de liberação enviado para o WhatsApp do Administrador/Dono da Empresa. Peça a ele a senha de 6 números para autorizar.`);
+                }
             } else {
                 // Modo Homologação se o WhatsApp ou telefone estiver indisponível
                 setSentSuccessfully(true);
@@ -280,24 +318,61 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         try {
             // Dispara notificação silenciosa de auditoria para o administrador
             const targetPhone = adminPhone || phoneInput;
-            if (hasWaInstance && waInstanceName && targetPhone) {
-                try {
-                    const auditMsg = `⚠️ *[Lucro Certo - Auditoria Financeira]*\n\n` +
-                        `A transação financeira protegida foi *EXCLUÍDA/CANCELADA* com sucesso:\n\n` +
-                        `• *Descrição:* ${transaction.description}\n` +
-                        `• *Valor original:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
-                        `• *Nota Fiscal:* Nº ${invoiceNumber}\n` +
-                        `• *Status anterior:* Recebido (Pago)\n` +
-                        `• *Ação realizada por:* ${user?.email}\n` +
-                        `• *Autorização:* Código verificado via WhatsApp`;
+            if (hasWaInstance && waInstanceName) {
+                const auditMsg = `⚠️ *[Lucro Certo - Auditoria Financeira]*\n\n` +
+                    `A transação financeira protegida foi *EXCLUÍDA/CANCELADA* com sucesso:\n\n` +
+                    `• *Descrição:* ${transaction.description}\n` +
+                    `• *Valor original:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                    `• *Nota Fiscal:* Nº ${invoiceNumber}\n` +
+                    `• *Status anterior:* Recebido (Pago)\n` +
+                    `• *Ação realizada por:* ${user?.email}\n` +
+                    `• *Autorização:* Código verificado via WhatsApp`;
 
-                    await whatsappService.sendMessage({
-                        instanceName: waInstanceName,
-                        number: targetPhone.replace(/\D/g, ''),
-                        text: auditMsg
-                    });
-                } catch (auditErr) {
-                    console.warn('Erro ao disparar log de auditoria no WhatsApp:', auditErr);
+                // 1. Envia para o Administrador da Empresa
+                if (targetPhone) {
+                    try {
+                        let cleanTarget = targetPhone.replace(/\D/g, '');
+                        if (cleanTarget.length === 10 || cleanTarget.length === 11) {
+                            cleanTarget = '55' + cleanTarget;
+                        }
+                        await whatsappService.sendMessage({
+                            instanceName: waInstanceName,
+                            number: cleanTarget,
+                            text: auditMsg
+                        });
+                    } catch (auditErr) {
+                        console.warn('Erro ao disparar log de auditoria para o gerente:', auditErr);
+                    }
+                }
+
+                // 2. Envia também para o Dono do Sistema (Carlos Cleton) se diferente
+                let cleanMaster = masterPhone.replace(/\D/g, '');
+                if (cleanMaster.length === 10 || cleanMaster.length === 11) {
+                    cleanMaster = '55' + cleanMaster;
+                }
+                let cleanTarget = targetPhone.replace(/\D/g, '');
+                if (cleanTarget.length === 10 || cleanTarget.length === 11) {
+                    cleanTarget = '55' + cleanTarget;
+                }
+
+                if (cleanMaster && cleanMaster !== cleanTarget) {
+                    try {
+                        const globalAuditMsg = `⚠️ *[Lucro Certo - Auditoria Global]*\n\n` +
+                            `Uma transação protegida foi excluída na empresa *${currentEntity?.name || 'Desconhecida'}*:\n\n` +
+                            `• *Descrição:* ${transaction.description}\n` +
+                            `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                            `• *Nota Fiscal:* Nº ${invoiceNumber}\n` +
+                            `• *Ação realizada por:* ${user?.email}\n` +
+                            `• *Autorização:* Verificada com sucesso via WhatsApp`;
+
+                        await whatsappService.sendMessage({
+                            instanceName: waInstanceName,
+                            number: cleanMaster,
+                            text: globalAuditMsg
+                        });
+                    } catch (globalAuditErr) {
+                        console.warn('Erro ao disparar log de auditoria global para Carlos:', globalAuditErr);
+                    }
                 }
             }
 
@@ -327,7 +402,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                         <Lock size={14} /> Liberação de Segurança Financeira
                     </p>
                     <p className="mt-1">
-                        Esta receita foi marcada como <strong>Recebida</strong> e possui a <strong>Nota Fiscal Nº {invoiceNumber}</strong> (ou transação em dinheiro) ativa na prefeitura. Por segurança, sua exclusão exige uma senha temporária enviada ao WhatsApp do Dono do Sistema (Carlos Cleton).
+                        Esta receita foi marcada como <strong>Recebida</strong> e possui a <strong>Nota Fiscal Nº {invoiceNumber}</strong> (ou transação em dinheiro) ativa na prefeitura. Por segurança, sua exclusão exige uma senha temporária enviada ao WhatsApp do Administrador da Empresa e ao Dono do Sistema.
                     </p>
                 </div>
 
@@ -380,7 +455,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                                                 🚨 Liberação Indisponível!
                                             </p>
                                             <p className="text-red-700 dark:text-red-400 mt-0.5">
-                                                O telefone de WhatsApp do Administrador (Carlos Cleton) não está cadastrado no sistema. Peça para o administrador cadastrar o telefone dele em seu Perfil para liberar esta função.
+                                                O telefone de WhatsApp do Administrador do Sistema ou da Empresa não está cadastrado. Peça para o administrador cadastrar o telefone dele em seu Perfil para liberar esta função.
                                             </p>
                                         </>
                                     )}
@@ -388,7 +463,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                             )}
 
                             <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                                Clique abaixo para gerar e disparar a senha temporária para o WhatsApp do Dono do Sistema.
+                                Clique abaixo para gerar e disparar a senha temporária para os telefones do Administrador e do Dono do Sistema.
                             </p>
                             <Button
                                 onClick={handleRequestCode}
@@ -397,7 +472,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                                 className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2"
                             >
                                 <Send size={16} />
-                                Solicitar Senha no WhatsApp do Dono
+                                Solicitar Senha no WhatsApp dos Administradores
                             </Button>
                         </div>
                     ) : (
