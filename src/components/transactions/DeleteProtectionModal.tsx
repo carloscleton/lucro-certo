@@ -42,10 +42,10 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
     // Efeito para carregar dados do administrador e instâncias de WhatsApp
     useEffect(() => {
-        if (isOpen && isAdmin && transaction) {
+        if (isOpen && transaction) {
             const fetchAdminData = async () => {
                 try {
-                    // 1. Busca o telefone do administrador carloscleton.nat@gmail.com
+                    // 1. Busca o telefone do administrador carloscleton.nat@gmail.com de forma global
                     const { data: profData } = await supabase
                         .from('profiles')
                         .select('phone')
@@ -80,7 +80,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
             fetchAdminData();
         }
-    }, [isOpen, isAdmin, transaction, profile]);
+    }, [isOpen, transaction, profile]);
 
     if (!isOpen) return null;
 
@@ -97,26 +97,50 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         console.log(`[SEGURANÇA] Código Gerado: ${code} (Bypass Mestre: LUCRO_CERTO_BYPASS)`);
 
         try {
-            if (hasWaInstance && waInstanceName && adminPhone) {
-                const message = `🔐 *[Lucro Certo - Segurança]*\n\n` +
-                    `Foi solicitada a liberação para exclusão de uma transação financeira protegida por nota fiscal:\n\n` +
-                    `• *Transação:* ${transaction.description}\n` +
-                    `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
-                    `• *Data Pagamento:* ${formatDate(transaction.payment_date || transaction.date)}\n` +
-                    `• *Nota Fiscal:* Nº ${invoiceNumber}\n\n` +
-                    `Insira o código abaixo no sistema para confirmar a exclusão:\n` +
-                    `👉 *${code}* (Válido por 10 minutos)`;
+            // Buscamos o telefone do administrador de forma redundante se ele não estiver carregado
+            let targetPhone = adminPhone;
+            if (!targetPhone) {
+                const { data: profData } = await supabase
+                    .from('profiles')
+                    .select('phone')
+                    .eq('email', 'carloscleton.nat@gmail.com')
+                    .maybeSingle();
+                if (profData?.phone) {
+                    targetPhone = profData.phone;
+                    setAdminPhone(profData.phone);
+                }
+            }
+
+            if (hasWaInstance && waInstanceName && targetPhone) {
+                // Mensagem personalizada se for o próprio administrador ou se for um funcionário solicitando a ele
+                const message = isAdmin 
+                    ? `🔐 *[Lucro Certo - Segurança]*\n\n` +
+                      `Foi solicitada a liberação para exclusão de uma transação financeira protegida por nota fiscal:\n\n` +
+                      `• *Transação:* ${transaction.description}\n` +
+                      `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                      `• *Data Pagamento:* ${formatDate(transaction.payment_date || transaction.date)}\n` +
+                      `• *Nota Fiscal:* Nº ${invoiceNumber}\n\n` +
+                      `Insira o código abaixo no sistema para confirmar a exclusão:\n` +
+                      `👉 *${code}* (Válido por 10 minutos)`
+                    : `🔐 *[Lucro Certo - Solicitação de Liberação]*\n\n` +
+                      `O usuário *${user?.email || 'Funcionário'}* está solicitando a sua liberação para excluir/cancelar uma transação protegida por nota fiscal:\n\n` +
+                      `• *Transação:* ${transaction.description}\n` +
+                      `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                      `• *Data Pagamento:* ${formatDate(transaction.payment_date || transaction.date)}\n` +
+                      `• *Nota Fiscal:* Nº ${invoiceNumber}\n\n` +
+                      `Caso aprove esta operação, passe o código abaixo para o funcionário:\n` +
+                      `👉 Código de Liberação: *${code}*`;
 
                 await whatsappService.sendMessage({
                     instanceName: waInstanceName,
-                    number: adminPhone,
+                    number: targetPhone,
                     text: message
                 });
 
                 setSentSuccessfully(true);
-                setStatusMessage(`Código enviado para o WhatsApp final ${adminPhone.slice(-4)} com sucesso!`);
+                setStatusMessage(`Código de liberação enviado para o WhatsApp do Dono do Sistema (Carlos Cleton). Peça a ele a senha de 6 números para autorizar.`);
             } else {
-                // Modo Homologação se o WhatsApp estiver indisponível
+                // Modo Homologação se o WhatsApp ou telefone estiver indisponível
                 setSentSuccessfully(true);
                 setStatusMessage('Nenhuma instância ativa do WhatsApp conectada. Utilize o código de contingência para homologação.');
             }
@@ -146,12 +170,13 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
             if (hasWaInstance && waInstanceName && adminPhone) {
                 try {
                     const auditMsg = `⚠️ *[Lucro Certo - Auditoria Financeira]*\n\n` +
-                        `O administrador acabou de autorizar e *EXCLUIR* a transação financeira protegida:\n\n` +
+                        `A transação financeira protegida foi *EXCLUÍDA/CANCELADA* com sucesso:\n\n` +
                         `• *Descrição:* ${transaction.description}\n` +
                         `• *Valor original:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
                         `• *Nota Fiscal:* Nº ${invoiceNumber}\n` +
                         `• *Status anterior:* Recebido (Pago)\n` +
-                        `• *Autorizado por:* ${user?.email}`;
+                        `• *Ação realizada por:* ${user?.email}\n` +
+                        `• *Autorização:* Código verificado via WhatsApp`;
 
                     await whatsappService.sendMessage({
                         instanceName: waInstanceName,
@@ -173,69 +198,28 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         }
     };
 
-    // TELA 1: ACESSO TOTALMENTE NEGADO PARA FUNCIONÁRIOS COMUNS
-    if (!isAdmin) {
-        return (
-            <Modal
-                isOpen={isOpen}
-                onClose={onClose}
-                title="Acesso Negado - Transação Protegida"
-                icon={Lock}
-                variant="danger"
-                maxWidth="max-w-md"
-            >
-                <div className="flex flex-col items-center text-center space-y-4 py-4">
-                    <div className="h-16 w-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center border border-red-200 dark:border-red-800 shadow-md">
-                        <Lock className="text-red-600 dark:text-red-400 animate-pulse" size={32} />
-                    </div>
-
-                    <div className="space-y-2">
-                        <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                            Esta receita possui uma Nota Fiscal ativa
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-sm">
-                            Esta transação financeira já foi marcada como <strong>Recebida</strong> e possui a <strong>Nota Fiscal Nº {invoiceNumber}</strong> emitida e ativa na prefeitura.
-                        </p>
-                        <p className="text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border border-red-100 dark:border-red-900/30">
-                            Por razões de segurança contábil, ela não pode ser alterada ou excluída diretamente. Primeiro, cancele a Nota Fiscal correspondente na prefeitura para liberar esta ação.
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 pt-2">
-                            Apenas o administrador da plataforma (<strong>carloscleton.nat@gmail.com</strong>) pode solicitar um bypass de emergência para exclusão desta receita.
-                        </p>
-                    </div>
-
-                    <div className="w-full pt-4">
-                        <Button onClick={onClose} className="w-full bg-slate-800 hover:bg-slate-700 text-white">
-                            Entendido, Fechar
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
-        );
-    }
-
-    // TELA 2: TELA DO ADMINISTRADOR CARLOS CLETON COM PEDIDO DE SENHA VIA WHATSAPP
+    // MODAL UNIFICADO E ELEGANTE PARA TODOS OS USUÁRIOS
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Liberação de Segurança Financeira"
+            title="Transação Protegida - Autorização Requerida"
             icon={ShieldAlert}
             variant="warning"
             maxWidth="max-w-md"
         >
             <div className="space-y-5">
-                <div className="p-4 bg-amber-50 dark:bg-amber-950/10 rounded-xl border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-400 text-xs leading-relaxed">
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/10 rounded-2xl border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-400 text-xs leading-relaxed">
                     <p className="font-semibold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
-                        <ShieldAlert size={14} /> Atenção Administrador Carlos Cleton!
+                        <Lock size={14} /> Liberação de Segurança Financeira
                     </p>
                     <p className="mt-1">
-                        Você está prestes a forçar a exclusão de um lançamento financeiro que possui uma <strong>Nota Fiscal emitida e ativa (Nº {invoiceNumber})</strong>. Isso pode causar divergência de caixa se a nota não for cancelada na prefeitura também.
+                        Esta receita foi marcada como <strong>Recebida</strong> e possui a <strong>Nota Fiscal Nº {invoiceNumber}</strong> (ou transação em dinheiro) ativa na prefeitura. Por segurança, sua exclusão exige uma senha temporária enviada ao WhatsApp do Dono do Sistema (Carlos Cleton).
                     </p>
                 </div>
 
                 {/* Resumo da Transação */}
-                <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600 text-sm space-y-2">
+                <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600 text-sm space-y-2">
                     <div className="flex justify-between">
                         <span className="text-gray-500 dark:text-gray-400">Descrição:</span>
                         <span className="font-bold text-gray-900 dark:text-white truncate max-w-[200px]">{transaction.description}</span>
@@ -259,7 +243,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                     {!sentSuccessfully ? (
                         <div className="flex flex-col gap-2">
                             <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                                Solicite o código dinâmico que será enviado ao seu telefone pessoal cadastrado no sistema.
+                                Clique abaixo para gerar e disparar a senha temporária para o WhatsApp do Dono do Sistema.
                             </p>
                             <Button
                                 onClick={handleRequestCode}
@@ -267,13 +251,13 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                                 className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2"
                             >
                                 <Send size={16} />
-                                Solicitar Código de Liberação
+                                Solicitar Senha no WhatsApp do Dono
                             </Button>
                         </div>
                     ) : (
                         <div className="space-y-4 animate-in fade-in duration-200">
                             {statusMessage && (
-                                <p className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700 text-center font-medium">
+                                <p className="text-xs text-amber-800 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-center font-medium leading-relaxed">
                                     {statusMessage}
                                 </p>
                             )}
@@ -285,7 +269,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                                 <input
                                     type="text"
                                     maxLength={25}
-                                    placeholder="Digite o código ou chave mestra"
+                                    placeholder="Digite a senha de 6 números"
                                     value={verificationCode}
                                     onChange={(e) => {
                                         setVerificationCode(e.target.value);
@@ -314,7 +298,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                                     }}
                                     className="flex-1"
                                 >
-                                    Reenviar Código
+                                    Solicitar Novamente
                                 </Button>
                                 <Button
                                     onClick={handleConfirmDelete}
