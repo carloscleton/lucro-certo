@@ -609,7 +609,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                         services.forEach((s: any) => {
                             if (!s.codigoIbge) s.codigoIbge = companyIbge;
-                            if (!s.iss) s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
+                            if (!s.iss) s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: isNacional ? 1 : 7 };
                         });
                     }
                 }
@@ -618,6 +618,52 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 if (isNacional) {
                     item.versao = '1.00';
                 }
+
+                // ===================================================
+                // SANITIZAÇÃO ESPECÍFICA PARA NFS-e NACIONAL (ABRASF 2.04)
+                // O endpoint /nfse/nacional tem schema estrito e rejeita
+                // campos inválidos ou fora do intervalo aceito.
+                // ===================================================
+                if (isNacional && !useTestData) {
+                    // 1. tipoTributacao deve ser 1-6 para Nacional (7 = Isento é só municipal)
+                    if (item.servico) {
+                        const services = Array.isArray(item.servico) ? item.servico : [item.servico];
+                        services.forEach((s: any) => {
+                            if (s.iss) {
+                                // Se tipoTributacao for 7 (inválido no Nacional), converte para 1 (Normal)
+                                if (!s.iss.tipoTributacao || s.iss.tipoTributacao > 6 || s.iss.tipoTributacao < 1) {
+                                    s.iss.tipoTributacao = 1; // Normal (ISS devido)
+                                }
+                                // Se aliquota 0 com exigibilidade 1 (exigível), ajusta para exigibilidade 2 (Não incidência)
+                                if (s.iss.aliquota === 0 && s.iss.exigibilidade === 1) {
+                                    s.iss.exigibilidade = 2; // Não incidência
+                                    s.iss.tipoTributacao = 3; // Isenção
+                                }
+                                // aliquota deve ser um número positivo para tipo Normal (1)
+                                if (s.iss.tipoTributacao === 1 && (s.iss.aliquota === 0 || !s.iss.aliquota)) {
+                                    const cfgAliquota = parseFloat(config.simples_nacional_aliquota || config.default_iss_aliquota || '0');
+                                    s.iss.aliquota = cfgAliquota > 0 ? cfgAliquota : 2; // Usa config ou 2% como fallback
+                                }
+                            }
+                            // 2. Remove cnae do servico para Nacional (não faz parte do schema)
+                            delete s.cnae;
+                            // 3. Remove campos municipais que não existem no Nacional
+                            delete s.pis;
+                            delete s.cofins;
+                            delete s.inss;
+                            delete s.ir;
+                            delete s.csll;
+                        });
+                    }
+                    // 4. Garante codigoCidade do tomador seja apenas números (7 dígitos IBGE)
+                    if (item.tomador?.endereco?.codigoCidade) {
+                        item.tomador.endereco.codigoCidade = String(item.tomador.endereco.codigoCidade).replace(/\D/g, '').substring(0, 7);
+                    }
+                    // 5. Remove campos municipais do item raiz que não existem no Nacional
+                    delete item.pis;
+                    delete item.cofins;
+                }
+
                 return item;
             });
         }
