@@ -1355,19 +1355,21 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         // 1. Tentar descobrir o tipo da nota no nosso banco (NFS-e ou NF-e)
         let type = 'nfse'; // Default para NFSe que é o mais comum no projeto
         let isRecordFound = false;
+        let existingPayload: any = {};
         try {
             const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                 params: {
                     external_id: `eq.${id}`,
-                    select: 'type'
+                    select: 'type,payload'
                 },
                 headers: {
                     'apikey': SUPABASE_ANON_KEY!,
                     'Authorization': authHeader!
                 }
             });
-            if (invData?.[0]?.type) {
-                type = invData[0].type;
+            if (invData?.[0]) {
+                type = invData[0].type || 'nfse';
+                existingPayload = invData[0].payload || {};
                 isRecordFound = true;
                 console.log(`🔍 [FISCAL-STATUS] Tipo detectado no banco para ${id}: ${type}`);
             }
@@ -1430,10 +1432,30 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 const pdfUrl = getValidDocUrl('pdf');
                 const xmlUrl = getValidDocUrl('xml');
 
+                const innerData = statusData.data || statusData;
+                const invoiceNumber = innerData.numeroNfse || innerData.numero || innerData.numeroNfe || null;
+                const accessKey = innerData.chaveAcesso || innerData.chave_acesso || null;
+                const dpsNumber = innerData.dps?.numero || innerData.nacional?.dps?.numero || innerData.DPS?.infDPS?.nDPS || innerData.nDPS || null;
+                const dpsSerie = innerData.dps?.serie || innerData.nacional?.dps?.serie || innerData.DPS?.infDPS?.serie || innerData.serie || null;
+                const plugnotasId = innerData.id || null;
+                const protocol = innerData.protocolo || innerData.recibo || innerData.protocoloAutorizacao || null;
+
+                const updatedPayload = {
+                    ...existingPayload,
+                    retorno: statusData
+                };
+
                 await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
-                    status: currentStatus,
+                    status: String(currentStatus).toLowerCase(),
                     pdf_url: pdfUrl,
                     xml_url: xmlUrl,
+                    invoice_number: invoiceNumber ? String(invoiceNumber) : null,
+                    access_key: accessKey ? String(accessKey) : null,
+                    dps_number: dpsNumber ? String(dpsNumber) : null,
+                    dps_serie: dpsSerie ? String(dpsSerie) : null,
+                    plugnotas_id: plugnotasId ? String(plugnotasId) : null,
+                    protocol: protocol ? String(protocol) : null,
+                    payload: updatedPayload,
                     updated_at: new Date().toISOString()
                 }, {
                     headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
