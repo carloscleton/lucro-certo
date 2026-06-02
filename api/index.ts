@@ -919,14 +919,28 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                             }
                         ]
                     },
-                    nfseNacional: !!config.nfse_nacional
+                    nfseNacional: !!config.nfse_nacional,
+                    ...(config.reforma_tributaria_calculadora_ativa ? {
+                        calculadoraAutomatica: {
+                            regimeGeral: {
+                                ativo: true
+                            }
+                        }
+                    } : {})
                 }
             },
             nfe: {
                 ativo: true,
                 config: { 
                     producao: config.ambiente === 'producao',
-                    numeracaoAutomatica: true
+                    numeracaoAutomatica: true,
+                    ...(config.reforma_tributaria_calculadora_ativa ? {
+                        calculadoraAutomatica: {
+                            regimeGeral: {
+                                ativo: true
+                            }
+                        }
+                    } : {})
                 }
             }
         };
