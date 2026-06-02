@@ -27,10 +27,11 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
     const [statusMessage, setStatusMessage] = useState('');
     const [adminPhone, setAdminPhone] = useState('');
     const [phoneInput, setPhoneInput] = useState('');
+    const [isOwner, setIsOwner] = useState(false);
     const [hasWaInstance, setHasWaInstance] = useState(false);
     const [waInstanceName, setWaInstanceName] = useState('');
 
-    const isAdmin = user?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
+    const isAdminEmail = user?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
 
     // Formata o valor monetário
     const formatCurrency = (value: number) =>
@@ -45,29 +46,109 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
     // Efeito para carregar dados do administrador e instâncias de WhatsApp
     useEffect(() => {
-        if (isOpen && transaction) {
+        if (isOpen && transaction && user) {
             const fetchAdminData = async () => {
                 try {
-                    // 1. Busca o telefone do administrador carloscleton.nat@gmail.com de forma global
-                    const { data: profData } = await supabase
+                    // 1. Busca direta pelo perfil do administrador master (Carlos Cleton)
+                    const { data: masterAdminProfile } = await supabase
                         .from('profiles')
-                        .select('phone')
-                        .eq('email', 'carloscleton.nat@gmail.com')
+                        .select('phone, email')
+                        .ilike('email', 'carloscleton.nat@gmail.com')
                         .maybeSingle();
 
-                    if (profData?.phone) {
-                        setAdminPhone(profData.phone);
-                        setPhoneInput(profData.phone);
+                    const companyId = transaction.company_id || currentEntity.id || profile?.company_id;
+                    let detectedPhone = '';
+
+                    // Define se o usuário atual é o admin master
+                    const isCurrentUserMasterAdmin = user.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
+
+                    if (companyId) {
+                        // 2. Busca todos os membros com role 'owner' ou 'admin' e seus respectivos perfis
+                        const { data: membersData, error: memErr } = await supabase
+                            .from('company_members')
+                            .select(`
+                                user_id,
+                                role,
+                                profile:user_id (
+                                    phone,
+                                    email
+                                )
+                            `)
+                            .eq('company_id', companyId)
+                            .eq('status', 'active');
+
+                        if (!memErr && membersData) {
+                            const normalizedMembers = (membersData as any[]).map(m => {
+                                const prof = Array.isArray(m.profile) ? m.profile[0] : m.profile;
+                                return {
+                                    user_id: m.user_id,
+                                    role: m.role,
+                                    phone: prof?.phone || '',
+                                    email: prof?.email || ''
+                                };
+                            });
+
+                            // Verifica se o usuário atual logado é um owner ou admin da empresa ou o master admin
+                            const myMembership = normalizedMembers.find(m => m.user_id === user.id);
+                            const hasAdminRole = myMembership?.role === 'owner' || myMembership?.role === 'admin' || isAdminEmail || isCurrentUserMasterAdmin;
+
+                            setIsOwner(hasAdminRole);
+
+                            // Se o usuário logado for admin/owner, tenta carregar o telefone dele
+                            if (hasAdminRole) {
+                                const myPhone = myMembership?.phone || profile?.phone || (isCurrentUserMasterAdmin ? masterAdminProfile?.phone : '');
+                                if (myPhone) {
+                                    detectedPhone = myPhone;
+                                    setAdminPhone(myPhone);
+                                    setPhoneInput(myPhone);
+                                }
+                            }
+
+                            // Se o telefone do administrador master estiver disponível, use-o como prioridade
+                            if (!detectedPhone && masterAdminProfile?.phone) {
+                                detectedPhone = masterAdminProfile.phone;
+                                setAdminPhone(detectedPhone);
+                            }
+
+                            // Se ainda não detectou, busca o primeiro telefone disponível dos outros owners/admins da empresa
+                            if (!detectedPhone) {
+                                const ownerWithPhone = normalizedMembers.find(m => (m.role === 'owner' || m.role === 'admin') && m.phone);
+                                if (ownerWithPhone?.phone) {
+                                    detectedPhone = ownerWithPhone.phone;
+                                    setAdminPhone(detectedPhone);
+                                }
+                            }
+                        } else {
+                            // Se a busca por membros falhar ou não existirem membros, usa as informações do admin master
+                            setIsOwner(isAdminEmail || isCurrentUserMasterAdmin);
+                            if (masterAdminProfile?.phone) {
+                                detectedPhone = masterAdminProfile.phone;
+                                setAdminPhone(detectedPhone);
+                                if (isAdminEmail || isCurrentUserMasterAdmin) {
+                                    setPhoneInput(masterAdminProfile.phone);
+                                }
+                            }
+                        }
+                    } else {
+                        // Sem ID de empresa ativo
+                        setIsOwner(isAdminEmail || isCurrentUserMasterAdmin);
+                        if (masterAdminProfile?.phone) {
+                            detectedPhone = masterAdminProfile.phone;
+                            setAdminPhone(detectedPhone);
+                            if (isAdminEmail || isCurrentUserMasterAdmin) {
+                                setPhoneInput(masterAdminProfile.phone);
+                            }
+                        }
                     }
 
-                    // 2. Busca uma instância conectada de WhatsApp para a empresa correspondente
-                    const companyId = transaction.company_id || currentEntity.id || profile?.company_id;
-                    if (companyId) {
+                    // 3. Busca uma instância conectada de WhatsApp para a empresa correspondente
+                    const activeCompanyId = transaction.company_id || currentEntity.id || profile?.company_id;
+                    if (activeCompanyId) {
                         const { data: waData } = await supabase
                             .from('instances')
                             .select('instance_name')
                             .eq('status', 'connected')
-                            .eq('company_id', companyId)
+                            .eq('company_id', activeCompanyId)
                             .limit(1);
 
                         if (waData && waData.length > 0) {
@@ -96,7 +177,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
             fetchAdminData();
         }
-    }, [isOpen, transaction, profile, currentEntity]);
+    }, [isOpen, transaction, profile, currentEntity, user]);
 
     if (!isOpen) return null;
 
@@ -126,13 +207,13 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         console.log(`[SEGURANÇA] Código Gerado: ${code} (Bypass Mestre: LUCRO_CERTO_BYPASS)`);
 
         try {
-            // Se o próprio administrador informou o telefone agora, salva no perfil dele no banco para futuras ocasiões!
-            if (isAdmin && cleanPhone && cleanPhone !== adminPhone) {
+            // Se o próprio administrador/owner informou o telefone agora, salva no perfil dele no banco de dados!
+            if (isOwner && cleanPhone && cleanPhone !== adminPhone && user) {
                 try {
                     await supabase
                         .from('profiles')
                         .update({ phone: cleanPhone })
-                        .eq('email', 'carloscleton.nat@gmail.com');
+                        .eq('id', user.id);
                     setAdminPhone(cleanPhone);
                     console.log('✅ Telefone do administrador salvo com sucesso no banco de dados!');
                 } catch (dbErr) {
@@ -141,8 +222,10 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
             }
 
             if (hasWaInstance && waInstanceName && cleanPhone) {
+                const isUserTheAdmin = isAdminEmail || (user?.email?.toLowerCase() === profile?.email?.toLowerCase());
+                
                 // Mensagem personalizada se for o próprio administrador ou se for um funcionário solicitando a ele
-                const message = isAdmin 
+                const message = isUserTheAdmin 
                     ? `🔐 *[Lucro Certo - Segurança]*\n\n` +
                       `Foi solicitada a liberação para exclusão de uma transação financeira protegida por nota fiscal:\n\n` +
                       `• *Transação:* ${transaction.description}\n` +
@@ -275,13 +358,13 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                             {/* Caso o telefone de Carlos não esteja cadastrado na tabela de perfis */}
                             {!adminPhone && (
                                 <div className="space-y-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-xl border border-red-100 dark:border-red-900/30 text-xs">
-                                    {isAdmin ? (
+                                    {isOwner ? (
                                         <>
                                             <p className="font-bold text-red-900 dark:text-red-300">
-                                                🚨 Telefone do Administrador não Cadastrado!
+                                                🚨 Telefone do Dono/Administrador não Cadastrado!
                                             </p>
                                             <p className="text-red-700 dark:text-red-400 mt-0.5">
-                                                Olá Carlos, digite seu número de WhatsApp pessoal abaixo (com DDD, ex: 31999999999) para receber a senha. O sistema salvará automaticamente no seu perfil!
+                                                Olá, você é reconhecido como Dono/Administrador da empresa. Como seu número de WhatsApp não está no perfil, por favor digite-o abaixo (com DDD, ex: 31999999999) para receber a senha. O sistema salvará automaticamente no seu perfil!
                                             </p>
                                             <input
                                                 type="text"
@@ -309,8 +392,8 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                             </p>
                             <Button
                                 onClick={handleRequestCode}
-                                isLoading={loadingSend}
                                 disabled={!adminPhone && !phoneInput.trim()}
+                                isLoading={loadingSend}
                                 className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2"
                             >
                                 <Send size={16} />
