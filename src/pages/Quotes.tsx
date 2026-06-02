@@ -1675,7 +1675,12 @@ export function Quotes() {
                                         <td className="py-3 px-6 text-right">
                                             <div className="flex items-center justify-end gap-1.5">
                                                 {/* Edit Button */}
-                                                {(quote.status === 'draft' || quote.status === 'sent') && (
+                                                {(quote.status === 'draft' || 
+                                                  quote.status === 'sent' || 
+                                                  (quote.status === 'approved' && 
+                                                   quote.payment_status === 'none' && 
+                                                   (!quote.nfe_id || !quote.nfe_status || ['cancelado', 'rejeitado', 'erro', 'falha'].includes(quote.nfe_status.toLowerCase())))
+                                                 ) && (
                                                     <Tooltip content="Editar Proposta">
                                                         <button
                                                             onClick={() => navigate(`/dashboard/quotes/${quote.id}`)}
