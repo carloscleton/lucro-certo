@@ -13,5 +13,3 @@ SELECT cron.schedule(
   );
   $$
 );
-
-COMMENT ON JOB 'automation-dispatcher-job' IS 'Orquestrador de automações de WhatsApp (Resumo Financeiro, Aniversários, Atrasos)';

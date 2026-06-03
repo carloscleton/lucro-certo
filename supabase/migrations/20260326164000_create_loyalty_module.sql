@@ -88,7 +88,7 @@ ALTER TABLE loyalty_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE loyalty_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE loyalty_charges ENABLE ROW LEVEL SECURITY;
 
--- Simple RLS: Company members can see their own company's loyalty data
+DROP POLICY IF EXISTS "Company members can manage loyalty settings" ON loyalty_settings;
 CREATE POLICY "Company members can manage loyalty settings" ON loyalty_settings
     FOR ALL USING (
         EXISTS (
@@ -98,6 +98,7 @@ CREATE POLICY "Company members can manage loyalty settings" ON loyalty_settings
         )
     );
 
+DROP POLICY IF EXISTS "Company members can manage loyalty plans" ON loyalty_plans;
 CREATE POLICY "Company members can manage loyalty plans" ON loyalty_plans
     FOR ALL USING (
         EXISTS (
@@ -107,6 +108,7 @@ CREATE POLICY "Company members can manage loyalty plans" ON loyalty_plans
         )
     );
 
+DROP POLICY IF EXISTS "Company members can manage loyalty subscriptions" ON loyalty_subscriptions;
 CREATE POLICY "Company members can manage loyalty subscriptions" ON loyalty_subscriptions
     FOR ALL USING (
         EXISTS (
@@ -116,6 +118,7 @@ CREATE POLICY "Company members can manage loyalty subscriptions" ON loyalty_subs
         )
     );
 
+DROP POLICY IF EXISTS "Company members can manage loyalty charges" ON loyalty_charges;
 CREATE POLICY "Company members can manage loyalty charges" ON loyalty_charges
     FOR ALL USING (
         EXISTS (
@@ -126,18 +129,19 @@ CREATE POLICY "Company members can manage loyalty charges" ON loyalty_charges
     );
 
 -- PUBLIC ACCESS for portal (via token)
+DROP POLICY IF EXISTS "Public access to subscriptions via token" ON loyalty_subscriptions;
 CREATE POLICY "Public access to subscriptions via token" ON loyalty_subscriptions
     FOR SELECT USING (TRUE); -- We will filter by token in the app logic
 
 -- INDEXES
-CREATE INDEX idx_loyalty_settings_company ON loyalty_settings(company_id);
-CREATE INDEX idx_loyalty_plans_company ON loyalty_plans(company_id);
-CREATE INDEX idx_loyalty_subscriptions_company ON loyalty_subscriptions(company_id);
-CREATE INDEX idx_loyalty_subscriptions_contact ON loyalty_subscriptions(contact_id);
-CREATE INDEX idx_loyalty_subscriptions_token ON loyalty_subscriptions(portal_token);
-CREATE INDEX idx_loyalty_charges_subscription ON loyalty_charges(subscription_id);
-CREATE INDEX idx_loyalty_charges_company ON loyalty_charges(company_id);
-CREATE INDEX idx_loyalty_charges_transaction ON loyalty_charges(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_settings_company ON loyalty_settings(company_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_plans_company ON loyalty_plans(company_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_subscriptions_company ON loyalty_subscriptions(company_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_subscriptions_contact ON loyalty_subscriptions(contact_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_subscriptions_token ON loyalty_subscriptions(portal_token);
+CREATE INDEX IF NOT EXISTS idx_loyalty_charges_subscription ON loyalty_charges(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_charges_company ON loyalty_charges(company_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_charges_transaction ON loyalty_charges(transaction_id);
 -- 4. UPDATE CREATE COMPANY RPC (Includes slug and loyalty defaults)
 CREATE OR REPLACE FUNCTION public.create_company(
     name_input TEXT,
@@ -283,7 +287,14 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS tr_loyalty_settings_updated_at ON loyalty_settings;
 CREATE TRIGGER tr_loyalty_settings_updated_at BEFORE UPDATE ON loyalty_settings FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+DROP TRIGGER IF EXISTS tr_loyalty_plans_updated_at ON loyalty_plans;
 CREATE TRIGGER tr_loyalty_plans_updated_at BEFORE UPDATE ON loyalty_plans FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+DROP TRIGGER IF EXISTS tr_loyalty_subscriptions_updated_at ON loyalty_subscriptions;
 CREATE TRIGGER tr_loyalty_subscriptions_updated_at BEFORE UPDATE ON loyalty_subscriptions FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+DROP TRIGGER IF EXISTS tr_loyalty_charges_updated_at ON loyalty_charges;
 CREATE TRIGGER tr_loyalty_charges_updated_at BEFORE UPDATE ON loyalty_charges FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();

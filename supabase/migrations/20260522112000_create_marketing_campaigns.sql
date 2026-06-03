@@ -25,13 +25,14 @@ CREATE POLICY "Public can read active marketing campaigns"
     USING (is_active = true);
 
 -- Allow authenticated admins to do everything
+DROP POLICY IF EXISTS "Admins can manage marketing campaigns" ON public.marketing_campaigns;
 CREATE POLICY "Admins can manage marketing campaigns"
     ON public.marketing_campaigns
     FOR ALL
     USING (
         EXISTS (
             SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND is_admin = true
+            WHERE id = auth.uid() AND (user_type = 'admin' OR email = 'carloscleton.nat@gmail.com')
         )
     );
 

@@ -473,6 +473,20 @@ export function Login() {
         setMessage(null);
 
         try {
+            // Verifica status de bloqueio do usuário ou da empresa associada
+            const { data: blockedCheck, error: rpcError } = await supabase.rpc('check_user_blocked_status', {
+                email_input: forgotEmail.trim()
+            });
+
+            if (rpcError) {
+                console.warn('⚠️ Erro ao verificar status de bloqueio via RPC:', rpcError);
+            } else if (blockedCheck && (blockedCheck as any).is_blocked) {
+                setShowForgotPasswordModal(false);
+                setShowBannedModal(true);
+                setResetLoading(false);
+                return;
+            }
+
             const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
                 redirectTo: `${window.location.origin}/login`,
             });
@@ -826,8 +840,22 @@ export function Login() {
                                     <button
                                         type="button"
                                         className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                                        onClick={() => {
-                                            setForgotEmail(email);
+                                        onClick={async () => {
+                                            const targetEmail = email?.trim() || '';
+                                            if (targetEmail) {
+                                                setForgotEmail(targetEmail);
+                                                try {
+                                                    const { data: blockedCheck } = await supabase.rpc('check_user_blocked_status', {
+                                                        email_input: targetEmail
+                                                    });
+                                                    if (blockedCheck && (blockedCheck as any).is_blocked) {
+                                                        setShowBannedModal(true);
+                                                        return;
+                                                    }
+                                                } catch (e) {
+                                                    console.warn('Erro ao verificar status de bloqueio ao clicar em esqueceu senha:', e);
+                                                }
+                                            }
                                             setShowForgotPasswordModal(true);
                                         }}
                                     >

@@ -1,5 +1,19 @@
 -- DEFAULT PERMISSIONS FOR 7-DAY TRIAL USERS 🛡️📊
 -- This script sets the default module and tab access for new users as requested.
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (
+        SELECT oid::regprocedure AS func_sig
+        FROM pg_proc
+        WHERE proname = 'get_default_user_settings'
+          AND pronamespace = 'public'::regnamespace
+    ) LOOP
+        EXECUTE 'DROP FUNCTION IF EXISTS ' || r.func_sig || ' CASCADE';
+    END LOOP;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.get_default_user_settings()
 RETURNS JSONB
@@ -38,6 +52,20 @@ BEGIN
             'platform_billing', jsonb_build_object('admin', false, 'member', false)
         )
     );
+END;
+$$;
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (
+        SELECT oid::regprocedure AS func_sig
+        FROM pg_proc
+        WHERE proname = 'on_profile_created_set_defaults'
+          AND pronamespace = 'public'::regnamespace
+    ) LOOP
+        EXECUTE 'DROP FUNCTION IF EXISTS ' || r.func_sig || ' CASCADE';
+    END LOOP;
 END;
 $$;
 
