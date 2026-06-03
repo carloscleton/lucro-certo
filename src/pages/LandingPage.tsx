@@ -592,7 +592,7 @@ export function LandingPage() {
                         </div>
                         <div className="visual-image-container">
                             <img
-                                src={campaign.image_url || "/images/landing/certificado-digital.png"}
+                                src={campaign.section_image_url || "/images/landing/certificado-digital.png"}
                                 alt={campaign.title}
                                 className="visual-image"
                                 style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)' }}
@@ -769,7 +769,9 @@ export function LandingPage() {
                                     </div>
                                 )}
 
-                                <div className={`relative z-10 flex flex-col flex-1 min-h-0 p-6 md:p-10 ${currentCampaign.image_url ? 'text-left' : 'text-center'}`}>
+                                <div className={`relative z-20 flex flex-col w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md ${
+                                    currentCampaign.image_url ? 'md:w-[55%] text-left md:h-full justify-between p-6 md:p-10' : 'max-w-md text-center p-6 md:p-8'
+                                }`}>
                                     <div className="shrink-0">
                                         {!currentCampaign.image_url && (
                                             <>

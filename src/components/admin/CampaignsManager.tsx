@@ -27,7 +27,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
     }, [campaigns.length, localBanner, setLocalBanner]);
 
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploadingField, setUploadingField] = useState<string | null>(null);
     const [isGeneratingText, setIsGeneratingText] = useState(false);
 
     const handleAdd = () => {
@@ -63,22 +63,22 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
         handleUpdate(id, { is_active: !currentStatus });
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, id: string, field: string) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         try {
-            setUploadingImage(true);
+            setUploadingField(field);
             const fileExt = file.name.split('.').pop();
-            const fileName = `landing_banners/banner_${Date.now()}.${fileExt}`;
+            const fileName = `landing_banners/banner_${field}_${Date.now()}.${fileExt}`;
             const { publicUrl } = await storageService.upload(file, 'social_media_assets', fileName);
-            handleUpdate(id, { image_url: publicUrl });
+            handleUpdate(id, { [field]: publicUrl });
             notify('success', 'Imagem enviada com sucesso!');
         } catch (error) {
             console.error('Upload error:', error);
             notify('error', 'Erro ao enviar imagem.');
         } finally {
-            setUploadingImage(false);
+            setUploadingField(null);
         }
     };
 
@@ -227,23 +227,70 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Imagem de Destaque</label>
-                                        <div className="flex items-center gap-4">
-                                            {campaign.image_url && (
-                                                <div className="relative w-20 h-20 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex-shrink-0 group">
-                                                    <img src={campaign.image_url} alt="Imagem" className="w-full h-full object-cover" />
-                                                    <button onClick={() => handleUpdate(campaign.id, { image_url: '' })} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {/* Pop-up Image */}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Imagem do Pop-up Inicial</label>
+                                            <div className="flex items-center gap-2">
+                                                {campaign.image_url && (
+                                                    <div className="relative w-12 h-12 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex-shrink-0 group">
+                                                        <img src={campaign.image_url} alt="Pop-up" className="w-full h-full object-cover" />
+                                                        <button onClick={() => handleUpdate(campaign.id, { image_url: '' })} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <label className={`flex items-center justify-center gap-1 w-full py-2 px-3 border border-dashed rounded-lg cursor-pointer transition-colors text-xs ${uploadingField === 'image_url' ? 'bg-gray-100 border-gray-300' : 'bg-gray-50 hover:bg-gray-100 border-gray-300'}`}>
+                                                        {uploadingField === 'image_url' ? <RefreshCw size={12} className="animate-spin text-gray-500" /> : <Upload size={12} className="text-gray-500" />}
+                                                        <span className="text-gray-600">{uploadingField === 'image_url' ? 'Enviando...' : 'Escolher'}</span>
+                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, campaign.id, 'image_url')} disabled={!!uploadingField} />
+                                                    </label>
                                                 </div>
-                                            )}
-                                            <div className="flex-1">
-                                                <label className={`flex items-center justify-center gap-2 w-full py-3 px-4 border border-dashed rounded-xl cursor-pointer transition-colors ${uploadingImage ? 'bg-gray-100 border-gray-300' : 'bg-gray-50 hover:bg-gray-100 border-gray-300'}`}>
-                                                    {uploadingImage ? <RefreshCw size={16} className="animate-spin text-gray-500" /> : <Upload size={16} className="text-gray-500" />}
-                                                    <span className="text-sm text-gray-600">{uploadingImage ? 'Enviando imagem...' : 'Escolher arquivo de imagem'}</span>
-                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, campaign.id)} disabled={uploadingImage} />
-                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Hero Image */}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Imagem do Carrossel</label>
+                                            <div className="flex items-center gap-2">
+                                                {campaign.hero_image_url && (
+                                                    <div className="relative w-12 h-12 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex-shrink-0 group">
+                                                        <img src={campaign.hero_image_url} alt="Carrossel" className="w-full h-full object-cover" />
+                                                        <button onClick={() => handleUpdate(campaign.id, { hero_image_url: '' })} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <label className={`flex items-center justify-center gap-1 w-full py-2 px-3 border border-dashed rounded-lg cursor-pointer transition-colors text-xs ${uploadingField === 'hero_image_url' ? 'bg-gray-100 border-gray-300' : 'bg-gray-50 hover:bg-gray-100 border-gray-300'}`}>
+                                                        {uploadingField === 'hero_image_url' ? <RefreshCw size={12} className="animate-spin text-gray-500" /> : <Upload size={12} className="text-gray-500" />}
+                                                        <span className="text-gray-600">{uploadingField === 'hero_image_url' ? 'Enviando...' : 'Escolher'}</span>
+                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, campaign.id, 'hero_image_url')} disabled={!!uploadingField} />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Section Image */}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Imagem da Seção Fixa</label>
+                                            <div className="flex items-center gap-2">
+                                                {campaign.section_image_url && (
+                                                    <div className="relative w-12 h-12 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex-shrink-0 group">
+                                                        <img src={campaign.section_image_url} alt="Seção" className="w-full h-full object-cover" />
+                                                        <button onClick={() => handleUpdate(campaign.id, { section_image_url: '' })} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <label className={`flex items-center justify-center gap-1 w-full py-2 px-3 border border-dashed rounded-lg cursor-pointer transition-colors text-xs ${uploadingField === 'section_image_url' ? 'bg-gray-100 border-gray-300' : 'bg-gray-50 hover:bg-gray-100 border-gray-300'}`}>
+                                                        {uploadingField === 'section_image_url' ? <RefreshCw size={12} className="animate-spin text-gray-500" /> : <Upload size={12} className="text-gray-500" />}
+                                                        <span className="text-gray-600">{uploadingField === 'section_image_url' ? 'Enviando...' : 'Escolher'}</span>
+                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, campaign.id, 'section_image_url')} disabled={!!uploadingField} />
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

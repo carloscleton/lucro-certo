@@ -236,7 +236,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                 title: <>{restOfTitle} {lastWord && <span className="text-gradient">{lastWord}</span>}</>,
                 description: description,
                 points: displayPoints,
-                image: campaign.image_url || "/images/landing/certificado-digital.png",
+                image: campaign.hero_image_url || "/images/landing/certificado-digital.png",
                 accent: 'emerald',
                 buttonText: campaign.call_to_action,
                 buttonLink: campaign.link
