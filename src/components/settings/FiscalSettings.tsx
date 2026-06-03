@@ -1077,11 +1077,11 @@ export function FiscalSettings() {
         const effectiveCnpj = isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "08187168000160");
         const effectiveCity = isTest 
             ? (isNacional ? "3106200" : "4115200")
-            : (config.endereco?.codigoCidade || config.codigo_municipio || (isNacional ? "3106200" : "4115200"));
+            : (config.endereco?.codigoCidade || (isNacional ? "3106200" : "4115200"));
         
         const effectiveUf = isTest 
             ? (isNacional ? "MG" : "PR")
-            : (config.endereco?.uf || config.uf || (isNacional ? "MG" : "PR"));
+            : (config.endereco?.uf || (isNacional ? "MG" : "PR"));
 
         const effectiveCityDesc = isTest
             ? (isNacional ? "Belo Horizonte" : "Maringa")
