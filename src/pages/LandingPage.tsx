@@ -722,8 +722,10 @@ export function LandingPage() {
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                             <div 
                                 className={`relative bg-white dark:bg-slate-800 rounded-3xl w-full ${
-                                    currentCampaign.image_url ? 'max-w-3xl md:h-[480px] h-[80vh]' : 'max-w-[400px] h-[480px] max-h-[80vh]'
-                                } shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col md:flex-row overflow-hidden ${
+                                    currentCampaign.image_url 
+                                        ? 'max-w-3xl md:h-[480px] h-[80vh] grid grid-cols-1 md:grid-cols-12' 
+                                        : 'max-w-[400px] h-[480px] max-h-[80vh] flex flex-col'
+                                } shadow-2xl animate-in zoom-in-95 duration-300 border-2 overflow-hidden ${
                                     currentCampaign.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
                                     currentCampaign.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
                                     'border-purple-500 shadow-purple-500/20'
@@ -760,77 +762,115 @@ export function LandingPage() {
                                     </>
                                 )}
                                 
-                                {currentCampaign.image_url && (
-                                    <div className="w-full md:w-[45%] h-[200px] md:h-full bg-white dark:bg-slate-900/50 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-slate-700/50 relative overflow-hidden shrink-0 z-10">
-                                        <img 
-                                            src={currentCampaign.image_url} 
-                                            alt="Banner" 
-                                            className="w-full h-full object-contain p-6 md:p-8" 
-                                        />
-                                    </div>
-                                )}
+                                {currentCampaign.image_url ? (
+                                    <>
+                                        {/* Left Column (Image) */}
+                                        <div className="col-span-1 md:col-span-5 h-[180px] md:h-full bg-white dark:bg-slate-900/50 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-slate-700/50 relative overflow-hidden z-10">
+                                            <img 
+                                                src={currentCampaign.image_url} 
+                                                alt="Banner" 
+                                                className="w-full h-full object-contain p-6" 
+                                            />
+                                        </div>
 
-                                <div className={`relative z-20 flex flex-col w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md min-h-0 ${
-                                    currentCampaign.image_url ? 'md:w-[55%] text-left md:h-full justify-between p-6 md:p-10 flex-1 md:flex-none' : 'max-w-md text-center p-6 md:p-8 h-full'
-                                }`}>
-                                    <div className="shrink-0">
-                                        {!currentCampaign.image_url && (
-                                            <>
-                                                {currentCampaign.type === 'promo' && (
-                                                    <div className="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
-                                                        <Sparkles size={32} />
+                                        {/* Right Column (Content) */}
+                                        <div className="col-span-1 md:col-span-7 relative z-20 flex flex-col justify-between p-6 md:p-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md h-[calc(80vh-180px)] md:h-full min-h-0 animate-in fade-in duration-300">
+                                            <div className="shrink-0 text-left">
+                                                <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight leading-tight">{currentCampaign.title}</h2>
+                                            </div>
+
+                                            <div className="overflow-y-auto px-1 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
+                                                <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed text-left">
+                                                    {formatTextWithBold(currentCampaign.subtitle)}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="shrink-0 w-full flex flex-col gap-3 items-center md:items-start">
+                                                {currentCampaign.call_to_action && currentCampaign.link && (
+                                                    <a 
+                                                        href={currentCampaign.link} 
+                                                        onClick={() => setShowBanner(false)}
+                                                        className={`inline-block w-full text-center px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-sm ${
+                                                            currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
+                                                            currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
+                                                            'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
+                                                        }`}
+                                                    >
+                                                        {currentCampaign.call_to_action}
+                                                    </a>
+                                                )}
+                                                
+                                                {popupCampaigns.length > 1 && (
+                                                    <div className="flex justify-center w-full gap-2 mt-2">
+                                                        {popupCampaigns.map((_, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => setActivePopupIndex(idx)}
+                                                                className={`w-2 h-2 rounded-full transition-all ${idx === activePopupIndex ? 'bg-purple-600 w-4' : 'bg-gray-300'}`}
+                                                            />
+                                                        ))}
                                                     </div>
                                                 )}
-                                                {currentCampaign.type === 'info' && (
-                                                    <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
-                                                        <Award size={32} />
-                                                    </div>
-                                                )}
-                                                {currentCampaign.type === 'alert' && (
-                                                    <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
-                                                        <AlertTriangle size={32} />
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="relative z-20 flex flex-col w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md min-h-0 text-center p-6 md:p-8 h-full justify-between animate-in fade-in duration-300">
+                                        <div className="shrink-0">
+                                            {currentCampaign.type === 'promo' && (
+                                                <div className="w-12 h-12 mx-auto mb-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
+                                                    <Sparkles size={24} />
+                                                </div>
+                                            )}
+                                            {currentCampaign.type === 'info' && (
+                                                <div className="w-12 h-12 mx-auto mb-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
+                                                    <Award size={24} />
+                                                </div>
+                                            )}
+                                            {currentCampaign.type === 'alert' && (
+                                                <div className="w-12 h-12 mx-auto mb-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
+                                                    <AlertTriangle size={24} />
+                                                </div>
+                                            )}
+                                            
+                                            <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight leading-tight">{currentCampaign.title}</h2>
+                                        </div>
+
+                                        <div className="overflow-y-auto px-1 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
+                                            <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed text-left">
+                                                {formatTextWithBold(currentCampaign.subtitle)}
+                                            </div>
+                                        </div>
                                         
-                                        <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">{currentCampaign.title}</h2>
-                                    </div>
-
-                                    <div className="overflow-y-auto px-1 pb-2 mt-1 mb-6 flex-grow custom-scrollbar">
-                                        <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed text-left">
-                                            {formatTextWithBold(currentCampaign.subtitle)}
+                                        <div className="shrink-0 w-full flex flex-col gap-3 items-center">
+                                            {currentCampaign.call_to_action && currentCampaign.link && (
+                                                <a 
+                                                    href={currentCampaign.link} 
+                                                    onClick={() => setShowBanner(false)}
+                                                    className={`inline-block w-full text-center px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-sm ${
+                                                        currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
+                                                        currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
+                                                        'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
+                                                    }`}
+                                                >
+                                                    {currentCampaign.call_to_action}
+                                                </a>
+                                            )}
+                                            
+                                            {popupCampaigns.length > 1 && (
+                                                <div className="flex justify-center w-full gap-2 mt-2">
+                                                    {popupCampaigns.map((_, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => setActivePopupIndex(idx)}
+                                                            className={`w-2 h-2 rounded-full transition-all ${idx === activePopupIndex ? 'bg-purple-600 w-4' : 'bg-gray-300'}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    
-                                    <div className="shrink-0 w-full flex flex-col gap-3 items-center md:items-start">
-                                        {currentCampaign.call_to_action && currentCampaign.link && (
-                                            <a 
-                                                href={currentCampaign.link} 
-                                                onClick={() => setShowBanner(false)}
-                                                className={`inline-block w-full text-center px-8 py-3.5 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-base ${
-                                                    currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
-                                                    currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
-                                                    'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
-                                                }`}
-                                            >
-                                                {currentCampaign.call_to_action}
-                                            </a>
-                                        )}
-                                        
-                                        {popupCampaigns.length > 1 && (
-                                            <div className="flex justify-center w-full gap-2 mt-2">
-                                                {popupCampaigns.map((_, idx) => (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => setActivePopupIndex(idx)}
-                                                        className={`w-2 h-2 rounded-full transition-all ${idx === activePopupIndex ? 'bg-purple-600 w-4' : 'bg-gray-300'}`}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     );
