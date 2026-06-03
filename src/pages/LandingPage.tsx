@@ -765,12 +765,14 @@ export function LandingPage() {
                                 {currentCampaign.image_url ? (
                                     <>
                                         {/* Left Column (Image) */}
-                                        <div className="col-span-1 md:col-span-5 h-[180px] md:h-full bg-white dark:bg-slate-900/50 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-slate-700/50 relative overflow-hidden z-10">
+                                        <div className="col-span-1 md:col-span-5 h-[180px] md:h-full relative overflow-hidden z-10 shadow-[0_5px_15px_rgba(0,0,0,0.15)] md:shadow-[5px_0_20px_rgba(0,0,0,0.12)] border-b md:border-b-0 md:border-r border-gray-100/50 dark:border-slate-700/30">
                                             <img 
                                                 src={currentCampaign.image_url} 
                                                 alt="Banner" 
-                                                className="w-full h-full object-contain p-6" 
+                                                className="w-full h-full object-cover" 
                                             />
+                                            {/* Gradient overlay for depth */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-black/5 pointer-events-none"></div>
                                         </div>
 
                                         {/* Right Column (Content) */}
