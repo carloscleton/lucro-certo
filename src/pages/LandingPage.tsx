@@ -720,7 +720,9 @@ export function LandingPage() {
                     return (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                             <div 
-                                className={`relative bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col max-h-[85vh] overflow-hidden ${
+                                className={`relative bg-white dark:bg-slate-800 rounded-3xl w-full ${
+                                    currentCampaign.image_url ? 'max-w-4xl md:h-[540px]' : 'max-w-md'
+                                } shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col md:flex-row overflow-hidden ${
                                     currentCampaign.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
                                     currentCampaign.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
                                     'border-purple-500 shadow-purple-500/20'
@@ -735,7 +737,7 @@ export function LandingPage() {
 
                                 <button 
                                     onClick={() => setShowBanner(false)}
-                                    className="absolute top-3 right-3 p-1.5 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 rounded-full transition-colors z-30 backdrop-blur-md shadow-sm border border-gray-200/50 dark:border-slate-600/50"
+                                    className="absolute top-4 right-4 p-1.5 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 rounded-full transition-colors z-30 backdrop-blur-md shadow-sm border border-gray-200/50 dark:border-slate-600/50"
                                 >
                                     <X size={18} className="text-gray-600 dark:text-gray-300" />
                                 </button>
@@ -744,26 +746,32 @@ export function LandingPage() {
                                     <>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setActivePopupIndex(prev => (prev - 1 + popupCampaigns.length) % popupCampaigns.length); }}
-                                            className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-full shadow-md z-20 backdrop-blur-md transition-colors border border-gray-200/50 dark:border-slate-600/50 text-gray-700 dark:text-gray-200"
+                                            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-full shadow-md z-20 backdrop-blur-md transition-colors border border-gray-200/50 dark:border-slate-600/50 text-gray-700 dark:text-gray-200"
                                         >
                                             <ChevronLeft size={20} />
                                         </button>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setActivePopupIndex(prev => (prev + 1) % popupCampaigns.length); }}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-full shadow-md z-20 backdrop-blur-md transition-colors border border-gray-200/50 dark:border-slate-600/50 text-gray-700 dark:text-gray-200"
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-full shadow-md z-20 backdrop-blur-md transition-colors border border-gray-200/50 dark:border-slate-600/50 text-gray-700 dark:text-gray-200"
                                         >
                                             <ChevronRight size={20} />
                                         </button>
                                     </>
                                 )}
                                 
-                                <div className="text-center relative z-10 flex flex-col flex-1 min-h-0 mt-4 px-6">
+                                {currentCampaign.image_url && (
+                                    <div className="w-full md:w-[45%] h-[220px] md:h-full bg-white dark:bg-slate-900/50 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-slate-700/50 relative overflow-hidden shrink-0 z-10">
+                                        <img 
+                                            src={currentCampaign.image_url} 
+                                            alt="Banner" 
+                                            className="w-full h-full object-contain p-6 md:p-8" 
+                                        />
+                                    </div>
+                                )}
+
+                                <div className={`relative z-10 flex flex-col flex-1 min-h-0 p-6 md:p-10 ${currentCampaign.image_url ? 'text-left' : 'text-center'}`}>
                                     <div className="shrink-0">
-                                        {currentCampaign.image_url ? (
-                                            <div className="w-full flex justify-center mb-6">
-                                                <img src={currentCampaign.image_url} alt="Banner" className="w-full h-auto max-h-[300px] object-contain rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm" />
-                                            </div>
-                                        ) : (
+                                        {!currentCampaign.image_url && (
                                             <>
                                                 {currentCampaign.type === 'promo' && (
                                                     <div className="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
@@ -783,21 +791,21 @@ export function LandingPage() {
                                             </>
                                         )}
                                         
-                                        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{currentCampaign.title}</h2>
+                                        <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">{currentCampaign.title}</h2>
                                     </div>
 
-                                    <div className="overflow-y-auto px-2 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
+                                    <div className="overflow-y-auto px-1 pb-2 mt-1 mb-6 flex-grow custom-scrollbar">
                                         <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-[15px] leading-relaxed text-left">
                                             {formatTextWithBold(currentCampaign.subtitle)}
                                         </div>
                                     </div>
                                     
-                                    <div className="shrink-0 flex flex-col gap-3 items-center">
+                                    <div className="shrink-0 w-full flex flex-col gap-3 items-center md:items-start">
                                         {currentCampaign.call_to_action && currentCampaign.link && (
                                             <a 
                                                 href={currentCampaign.link} 
                                                 onClick={() => setShowBanner(false)}
-                                                className={`inline-block w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base ${
+                                                className={`inline-block w-full text-center px-8 py-3.5 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-base ${
                                                     currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
                                                     currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
                                                     'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
@@ -808,7 +816,7 @@ export function LandingPage() {
                                         )}
                                         
                                         {popupCampaigns.length > 1 && (
-                                            <div className="flex justify-center gap-2 mt-2">
+                                            <div className="flex justify-center w-full gap-2 mt-2">
                                                 {popupCampaigns.map((_, idx) => (
                                                     <button
                                                         key={idx}
