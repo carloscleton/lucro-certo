@@ -39,6 +39,7 @@ BEGIN
             NEW.payload->'nacional'->'dps'->>'numero',
             NEW.payload->'DPS'->'infDPS'->>'nDPS',
             NEW.payload->>'nDPS',
+            NEW.payload->'retorno'->'rps'->>'numero',
             NEW.payload->'rps'->>'numero',
             NEW.dps_number
         );
@@ -50,6 +51,7 @@ BEGIN
             NEW.payload->'nacional'->'dps'->>'serie',
             NEW.payload->'DPS'->'infDPS'->>'serie',
             NEW.payload->>'serie',
+            NEW.payload->'retorno'->'rps'->>'serie',
             NEW.payload->'rps'->>'serie',
             NEW.dps_serie
         );
