@@ -723,7 +723,7 @@ export function LandingPage() {
                             <div 
                                 className={`relative bg-white dark:bg-slate-800 rounded-3xl w-full ${
                                     currentCampaign.image_url 
-                                        ? 'max-w-3xl md:h-[480px] h-[80vh] grid grid-cols-1 md:grid-cols-12' 
+                                        ? 'max-w-4xl md:h-[480px] h-[85vh] flex flex-col md:flex-row' 
                                         : 'max-w-[400px] h-[480px] max-h-[80vh] flex flex-col'
                                 } shadow-2xl animate-in zoom-in-95 duration-300 border-2 overflow-hidden ${
                                     currentCampaign.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
@@ -765,18 +765,25 @@ export function LandingPage() {
                                 {currentCampaign.image_url ? (
                                     <>
                                         {/* Left Column (Image) */}
-                                        <div className="col-span-1 md:col-span-5 h-[180px] md:h-full relative overflow-hidden z-10 shadow-[0_5px_15px_rgba(0,0,0,0.15)] md:shadow-[5px_0_20px_rgba(0,0,0,0.12)] border-b md:border-b-0 md:border-r border-gray-100/50 dark:border-slate-700/30">
+                                        <div className="w-full md:w-[480px] h-[260px] md:h-full relative overflow-hidden z-10 shadow-[0_5px_15px_rgba(0,0,0,0.15)] md:shadow-[5px_0_20px_rgba(0,0,0,0.12)] border-b md:border-b-0 md:border-r border-gray-100/50 dark:border-slate-700/30 bg-slate-950 flex items-center justify-center shrink-0">
+                                            {/* Blurred background image for premium color matching aura */}
+                                            <div 
+                                                className="absolute inset-0 bg-cover bg-center filter blur-3xl opacity-50 scale-110 pointer-events-none"
+                                                style={{ backgroundImage: `url(${currentCampaign.image_url})` }}
+                                            />
+                                            {/* Proportional foreground image */}
                                             <img 
                                                 src={currentCampaign.image_url} 
                                                 alt="Banner" 
-                                                className="w-full h-full object-cover" 
+                                                className="relative z-10 max-w-full max-h-full p-4 drop-shadow-lg" 
+                                                style={{ objectFit: 'contain' }}
                                             />
                                             {/* Gradient overlay for depth */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-black/5 pointer-events-none"></div>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-black/5 pointer-events-none z-20"></div>
                                         </div>
 
                                         {/* Right Column (Content) */}
-                                        <div className="col-span-1 md:col-span-7 relative z-20 flex flex-col justify-between p-6 md:p-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md h-[calc(80vh-180px)] md:h-full min-h-0 animate-in fade-in duration-300">
+                                        <div className="flex-1 relative z-20 flex flex-col justify-between p-6 md:p-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md h-[calc(85vh-260px)] md:h-full min-h-0 animate-in fade-in duration-300">
                                             <div className="shrink-0 text-left">
                                                 <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight leading-tight">{currentCampaign.title}</h2>
                                             </div>
