@@ -765,17 +765,17 @@ export function LandingPage() {
                                 {currentCampaign.image_url ? (
                                     <>
                                         {/* Left Column (Image) */}
-                                        <div className="w-full h-[260px] md:h-full relative overflow-hidden z-10 shadow-[0_5px_15px_rgba(0,0,0,0.15)] md:shadow-[5px_0_20px_rgba(0,0,0,0.12)] border-b md:border-b-0 md:border-r border-gray-100/50 dark:border-slate-700/30 bg-slate-950 flex items-center justify-center">
+                                        <div className="w-full h-[260px] md:h-full relative overflow-hidden z-10 shadow-[0_5px_15px_rgba(0,0,0,0.15)] md:shadow-[5px_0_20px_rgba(0,0,0,0.12)] border-b md:border-b-0 md:border-r border-gray-100/50 dark:border-slate-700/30 flex items-center justify-center">
                                             {/* Blurred background image for premium color matching aura */}
                                             <div 
-                                                className="absolute inset-0 bg-cover bg-center filter blur-3xl opacity-50 scale-110 pointer-events-none"
+                                                className="absolute inset-0 bg-cover bg-center filter blur-2xl opacity-100 scale-110 pointer-events-none"
                                                 style={{ backgroundImage: `url(${currentCampaign.image_url})` }}
                                             />
                                             {/* Proportional foreground image */}
                                             <img 
                                                 src={currentCampaign.image_url} 
                                                 alt="Banner" 
-                                                className="relative z-10 max-w-full max-h-full p-4 drop-shadow-lg" 
+                                                className="relative z-10 max-w-full max-h-full p-4 drop-shadow-lg rounded-3xl" 
                                                 style={{ objectFit: 'contain' }}
                                             />
                                             {/* Gradient overlay for depth */}
