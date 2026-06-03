@@ -1073,47 +1073,83 @@ export function FiscalSettings() {
     const handleGenerateExample = () => {
         const isTest = config.use_test_data;
         const isNacional = !!config.nfse_nacional;
-        const mock: any = {
-            idIntegracao: `TEST_${Date.now()}`,
-            ...(isNacional ? { versao: "1.00" } : {}),
-            prestador: {
-                cpfCnpj: isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "00000000000100"),
-                inscricaoMunicipal: isNacional ? (isTest ? "1234567" : (config.inscricao_municipal || "1234567")) : (config.inscricao_municipal || "123456")
-            },
-            tomador: {
-                cpfCnpj: "00000000000000",
-                razaoSocial: "Cliente de Teste LTDA",
-                nomeFantasia: "teste",
-                email: "teste@exemplo.com",
-                endereco: {
-                    logradouro: "Rua de Teste",
-                    numero: "100",
-                    bairro: "Centro",
-                    codigoCidade: isNacional 
-                        ? (isTest ? "3106200" : (config.endereco?.codigoCidade || "3106200"))
-                        : (isTest ? "4115200" : (config.endereco?.codigoCidade || "4115200")),
-                    descricaoCidade: isNacional 
-                        ? (isTest ? "Belo Horizonte" : undefined)
-                        : (isTest ? "Maringá" : undefined),
-                    uf: isNacional 
-                        ? (isTest ? "MG" : (config.endereco?.uf || "MG"))
-                        : (isTest ? "PR" : (config.endereco?.uf || "PR")),
-                    cep: isNacional ? "31000000" : "87000000"
-                }
-            },
-            servico: [
-                {
-                    codigo: isNacional ? "010101" : "01.01",
-                    codigoTributacao: isNacional ? "010" : undefined,
-                    itemListaServico: "01.01",
-                    discriminacao: "Serviço de Teste via Laboratório JSON",
-                    valor: {
-                        servico: 100.00
-                    },
-                    quantidade: 1
-                }
-            ]
-        };
+        
+        const effectiveCnpj = isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "08187168000160");
+        const effectiveCity = isTest 
+            ? (isNacional ? "3106200" : "4115200")
+            : (config.endereco?.codigoCidade || config.codigo_municipio || (isNacional ? "3106200" : "4115200"));
+        
+        const effectiveUf = isTest 
+            ? (isNacional ? "MG" : "PR")
+            : (config.endereco?.uf || config.uf || (isNacional ? "MG" : "PR"));
+
+        const effectiveCityDesc = isTest
+            ? (isNacional ? "Belo Horizonte" : "Maringa")
+            : (config.endereco?.cidade || (isNacional ? "Belo Horizonte" : "Maringa"));
+
+        const mock: any = [
+            {
+                idIntegracao: `TEST_${Date.now()}`,
+                ...(isNacional ? { versao: "1.00" } : {}),
+                emitente: {
+                    tipo: 1,
+                    codigoCidade: effectiveCity
+                },
+                prestador: {
+                    cpfCnpj: effectiveCnpj,
+                    inscricaoMunicipal: isNacional 
+                        ? (isTest ? "1234567" : (config.inscricao_municipal || "1234567"))
+                        : (config.inscricao_municipal || "123456")
+                },
+                tomador: {
+                    cpfCnpj: "99999999999999",
+                    razaoSocial: "Empresa de Teste LTDA",
+                    inscricaoMunicipal: "8214100099",
+                    email: "teste@plugnotas.com.br",
+                    endereco: {
+                        descricaoCidade: effectiveCityDesc,
+                        cep: isNacional ? "31000000" : "87020100",
+                        tipoLogradouro: "Rua",
+                        logradouro: "Barao do rio branco",
+                        tipoBairro: "Centro",
+                        codigoCidade: effectiveCity,
+                        complemento: "sala 01",
+                        estado: effectiveUf,
+                        numero: "1001",
+                        bairro: "Centro"
+                    }
+                },
+                servico: [
+                    {
+                        codigo: isNacional ? "010101" : "01.01",
+                        discriminacao: "Descrição dos serviços prestados via Laboratório JSON",
+                        iss: {
+                            tipoTributacao: isNacional ? 1 : 6,
+                            exigibilidade: 1,
+                            retido: false,
+                            aliquota: isNacional ? parseFloat(config.simples_nacional_aliquota || '2.00') : 2
+                        },
+                        valor: {
+                            servico: 100.00
+                        },
+                        tributacaoTotal: {
+                            federal: {
+                                valor: 0.90,
+                                valorPercentual: 0.90
+                            },
+                            estadual: {
+                                valor: 0.00,
+                                valorPercentual: 0.00
+                            },
+                            municipal: {
+                                valor: 0.10,
+                                valorPercentual: 0.10
+                            }
+                        }
+                    }
+                ]
+            }
+        ];
         setTestJson(JSON.stringify(mock, null, 2));
     };
 
