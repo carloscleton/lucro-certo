@@ -32,6 +32,7 @@ import bannerCRM from '../assets/landing/landing_hero_crm.png';
 import bannerQuotes from '../assets/landing/landing_hero_quotes.png';
 import bannerWhatsApp from '../assets/landing/landing_hero_whatsapp.png';
 import bannerMulticompany from '../assets/landing/landing_hero_multicompany.png';
+import bannerCertificado from '../assets/landing/landing_hero_certificado_digital.png';
 
 import { HeroCarousel } from '../components/landing/HeroCarousel';
 
@@ -592,7 +593,7 @@ export function LandingPage() {
                         </div>
                         <div className="visual-image-container">
                             <img
-                                src={campaign.section_image_url || "/images/landing/certificado-digital.png"}
+                                src={campaign.section_image_url || bannerCertificado}
                                 alt={campaign.title}
                                 className="visual-image"
                                 style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(16, 185, 129, 0.2)' }}
@@ -721,7 +722,7 @@ export function LandingPage() {
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                             <div 
                                 className={`relative bg-white dark:bg-slate-800 rounded-3xl w-full ${
-                                    currentCampaign.image_url ? 'max-w-4xl md:h-[540px] h-[90vh]' : 'max-w-md max-h-[85vh]'
+                                    currentCampaign.image_url ? 'max-w-3xl md:h-[480px] h-[80vh]' : 'max-w-[400px] h-[480px] max-h-[80vh]'
                                 } shadow-2xl animate-in zoom-in-95 duration-300 border-2 flex flex-col md:flex-row overflow-hidden ${
                                     currentCampaign.type === 'alert' ? 'border-amber-500 shadow-amber-500/20' :
                                     currentCampaign.type === 'info' ? 'border-blue-500 shadow-blue-500/20' :
@@ -760,7 +761,7 @@ export function LandingPage() {
                                 )}
                                 
                                 {currentCampaign.image_url && (
-                                    <div className="w-full md:w-[45%] h-[220px] md:h-full bg-white dark:bg-slate-900/50 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-slate-700/50 relative overflow-hidden shrink-0 z-10">
+                                    <div className="w-full md:w-[45%] h-[200px] md:h-full bg-white dark:bg-slate-900/50 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-slate-700/50 relative overflow-hidden shrink-0 z-10">
                                         <img 
                                             src={currentCampaign.image_url} 
                                             alt="Banner" 
@@ -769,8 +770,8 @@ export function LandingPage() {
                                     </div>
                                 )}
 
-                                <div className={`relative z-20 flex flex-col w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shrink-0 min-h-0 ${
-                                    currentCampaign.image_url ? 'md:w-[55%] text-left md:h-full justify-between p-6 md:p-10 h-[calc(90vh-220px)]' : 'max-w-md text-center p-6 md:p-8 max-h-[85vh]'
+                                <div className={`relative z-20 flex flex-col w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md min-h-0 ${
+                                    currentCampaign.image_url ? 'md:w-[55%] text-left md:h-full justify-between p-6 md:p-10 flex-1 md:flex-none' : 'max-w-md text-center p-6 md:p-8 h-full'
                                 }`}>
                                     <div className="shrink-0">
                                         {!currentCampaign.image_url && (

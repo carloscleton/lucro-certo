@@ -29,6 +29,7 @@ import bannerLoyalty from '../../assets/landing/landing_hero_loyalty.png';
 import bannerMulticurrency from '../../assets/landing/landing_hero_multicurrency.png';
 import bannerMarketingCopilot from '../../assets/landing/landing_hero_marketing_copilot.png';
 import bannerFiscal from '../../assets/landing/landing_hero_fiscal_management.png';
+import bannerCertificado from '../../assets/landing/landing_hero_certificado_digital.png';
 
 interface Banner {
     tag: string;
@@ -236,7 +237,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                 title: <>{restOfTitle} {lastWord && <span className="text-gradient">{lastWord}</span>}</>,
                 description: description,
                 points: displayPoints,
-                image: campaign.hero_image_url || "/images/landing/certificado-digital.png",
+                image: campaign.hero_image_url || bannerCertificado,
                 accent: 'emerald',
                 buttonText: campaign.call_to_action,
                 buttonLink: campaign.link
