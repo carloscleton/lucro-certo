@@ -1477,8 +1477,8 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 const innerData = statusData.data || statusData;
                 const invoiceNumber = innerData.numeroNfse || innerData.numero || innerData.numeroNfe || null;
                 const accessKey = innerData.chaveAcesso || innerData.chave_acesso || null;
-                const dpsNumber = innerData.dps?.numero || innerData.nacional?.dps?.numero || innerData.DPS?.infDPS?.nDPS || innerData.nDPS || null;
-                const dpsSerie = innerData.dps?.serie || innerData.nacional?.dps?.serie || innerData.DPS?.infDPS?.serie || innerData.serie || null;
+                const dpsNumber = innerData.dps?.numero || innerData.nacional?.dps?.numero || innerData.DPS?.infDPS?.nDPS || innerData.nDPS || innerData.rps?.numero || null;
+                const dpsSerie = innerData.dps?.serie || innerData.nacional?.dps?.serie || innerData.DPS?.infDPS?.serie || innerData.serie || innerData.rps?.serie || null;
                 const plugnotasId = innerData.id || null;
                 const protocol = innerData.protocolo || innerData.recibo || innerData.protocoloAutorizacao || null;
 

@@ -827,8 +827,8 @@ export function Invoices() {
                                                     // Prioriza as novas colunas físicas do banco, fazendo fallback pro payload antigo
                                                     const num = invoice.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero;
                                                     const chaveAcesso = invoice.access_key || p?.retorno?.chaveAcesso || p?.chaveAcesso || '';
-                                                    const dpsNumero = invoice.dps_number || p?.retorno?.dps?.numero || p?.dps?.numero || p?.nacional?.dps?.numero || p?.DPS?.infDPS?.nDPS || p?.nDPS;
-                                                    const dpsSerie = invoice.dps_serie || p?.retorno?.dps?.serie || p?.dps?.serie || p?.nacional?.dps?.serie || p?.DPS?.infDPS?.serie || p?.serie;
+                                                    const dpsNumero = invoice.dps_number || p?.retorno?.dps?.numero || p?.dps?.numero || p?.nacional?.dps?.numero || p?.DPS?.infDPS?.nDPS || p?.nDPS || p?.retorno?.rps?.numero || p?.rps?.numero;
+                                                    const dpsSerie = invoice.dps_serie || p?.retorno?.dps?.serie || p?.dps?.serie || p?.nacional?.dps?.serie || p?.DPS?.infDPS?.serie || p?.serie || p?.retorno?.rps?.serie || p?.rps?.serie;
                                                     
                                                     const idIntegracao = invoice.payload?.idIntegracao || invoice.external_id || '';
                                                     
