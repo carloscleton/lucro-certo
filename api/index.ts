@@ -1245,19 +1245,47 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
         const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
-        const isNacional = type === 'nfsenac';
-        const targetType = isNacional ? 'nfse/nacional' : (type === 'nfsenac' ? 'nfse' : type);
+        let primaryType = type;
+        if (type === 'nfse' || type === 'nfsenac') {
+            const isNacional = type === 'nfsenac' || !!config.nfse_nacional;
+            primaryType = isNacional ? 'nfse/nacional' : 'nfse';
+        }
 
-        console.log(`📄 [FISCAL-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para ${targetType} ID: ${id}`);
+        console.log(`📄 [FISCAL-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para ${primaryType} ID: ${id}`);
 
-        const response = await axios.get(`${baseUrl}/${targetType}/${isXml ? 'xml' : 'pdf'}/${id}`, {
-            headers: { 'x-api-key': apiKey },
-            responseType: 'arraybuffer'
-        });
+        try {
+            const response = await axios.get(`${baseUrl}/${primaryType}/${isXml ? 'xml' : 'pdf'}/${id}`, {
+                headers: { 'x-api-key': apiKey },
+                responseType: 'arraybuffer'
+            });
 
-        res.setHeader('Content-Type', isXml ? 'application/xml' : 'application/pdf');
-        res.setHeader('Content-Disposition', `${isXml ? 'attachment' : 'inline'}; filename="${type}-${id}.${isXml ? 'xml' : 'pdf'}"`);
-        res.send(Buffer.from(response.data));
+            res.setHeader('Content-Type', isXml ? 'application/xml' : 'application/pdf');
+            res.setHeader('Content-Disposition', `${isXml ? 'attachment' : 'inline'}; filename="${type}-${id}.${isXml ? 'xml' : 'pdf'}"`);
+            return res.send(Buffer.from(response.data));
+        } catch (primaryErr: any) {
+            const isNfseEndpoint = primaryType === 'nfse' || primaryType === 'nfse/nacional';
+            const is404 = primaryErr.response?.status === 404;
+
+            if (isNfseEndpoint && is404) {
+                const fallbackType = primaryType === 'nfse' ? 'nfse/nacional' : 'nfse';
+                console.log(`⚠️ [FISCAL-DOWNLOAD] Não encontrado em ${primaryType}. Tentando fallback em ${fallbackType}...`);
+                try {
+                    const response = await axios.get(`${baseUrl}/${fallbackType}/${isXml ? 'xml' : 'pdf'}/${id}`, {
+                        headers: { 'x-api-key': apiKey },
+                        responseType: 'arraybuffer'
+                    });
+
+                    res.setHeader('Content-Type', isXml ? 'application/xml' : 'application/pdf');
+                    res.setHeader('Content-Disposition', `${isXml ? 'attachment' : 'inline'}; filename="${type}-${id}.${isXml ? 'xml' : 'pdf'}"`);
+                    return res.send(Buffer.from(response.data));
+                } catch (fallbackErr: any) {
+                    console.error(`❌ [FISCAL-DOWNLOAD] Erro no fallback (${fallbackType}):`, fallbackErr.response?.data || fallbackErr.message);
+                }
+            }
+
+            // Propaga o erro original caso não seja elegível para fallback ou o fallback também falhe
+            throw primaryErr;
+        }
     } catch (error: any) {
         console.error('❌ Erro no download fiscal:', error.response?.data || error.message);
         res.status(error.response?.status || 500).json({ 
