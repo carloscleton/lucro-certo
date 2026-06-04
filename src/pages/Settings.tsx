@@ -917,7 +917,7 @@ export function Settings() {
                                 </Button>
                             </div>
 
-                            <div className="overflow-hidden border border-gray-200 dark:border-slate-700 rounded-lg">
+                            <div className="overflow-x-auto custom-scrollbar border border-gray-200 dark:border-slate-700 rounded-lg">
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-gray-50 dark:bg-slate-900/50">
                                         <tr>
@@ -1029,7 +1029,7 @@ export function Settings() {
                         {invites.length > 0 && (
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('settings.pending_invites')}</h3>
-                                <div className="overflow-hidden border border-gray-200 dark:border-slate-700 rounded-lg">
+                                <div className="overflow-x-auto custom-scrollbar border border-gray-200 dark:border-slate-700 rounded-lg">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-gray-50 dark:bg-slate-900/50">
                                             <tr>
@@ -1121,7 +1121,7 @@ export function Settings() {
                                 </div>
 
                                 <div>
-                                    <div className="overflow-hidden border border-gray-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
+                                    <div className="overflow-x-auto custom-scrollbar border border-gray-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-gray-50 dark:bg-slate-900/50">
                                                 <tr>
@@ -1619,7 +1619,7 @@ export function Settings() {
                             <div className="p-8 overflow-y-auto space-y-10">
                                 <div className="space-y-8">
                                     {/* Módulos do Sistema */}
-                                    <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
+                                    <div className="overflow-x-auto custom-scrollbar border border-gray-100 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
                                                 <tr>
@@ -2012,7 +2012,7 @@ export function Settings() {
                                         <Lock size={18} className="text-orange-500" />
                                         {t('settings.module_access_matrix')}
                                     </h4>
-                                    <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm">
+                                    <div className="overflow-x-auto custom-scrollbar border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
                                                 <tr>
@@ -2071,7 +2071,7 @@ export function Settings() {
                                         <SettingsIcon size={18} className="text-purple-500" />
                                         Matriz de Acesso: Abas de Configuração
                                     </h4>
-                                    <div className="overflow-hidden border border-gray-100 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
+                                    <div className="overflow-x-auto custom-scrollbar border border-gray-100 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm">
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
                                                 <tr>
@@ -2819,7 +2819,7 @@ export function Settings() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-x-auto custom-scrollbar shadow-sm">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-gray-50/50 dark:bg-slate-900/50 text-gray-500 uppercase text-[10px] font-bold tracking-wider border-b border-gray-100 dark:border-slate-700">
                                             <tr>

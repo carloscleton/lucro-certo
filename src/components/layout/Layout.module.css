@@ -420,8 +420,14 @@
 @media (max-width: 768px) {
     .sidebar {
         position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 290px;
+        max-width: 85vw;
+        height: 100vh;
         transform: translateX(-100%);
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.25);
         /* Stronger shadow on mobile */
     }
 
@@ -431,5 +437,14 @@
 
     .mobileOverlay.open {
         display: block;
+    }
+
+    .header {
+        height: 60px;
+        padding: 0 var(--spacing-md);
+    }
+
+    .content {
+        padding: var(--spacing-md);
     }
 }

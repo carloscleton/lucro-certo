@@ -295,15 +295,15 @@ export function Layout() {
                     className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''}`}
                     data-tour="sidebar"
                 >
-                    <div className={styles.sidebarHeader}>
+                    <div className={`${styles.sidebarHeader} relative`}>
                         <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md mb-2 w-full flex justify-center border border-gray-100 dark:border-slate-700">
-                            <img src={logoFull} alt="Lucro Certo" className="w-full max-w-[280px] h-auto object-contain transition-transform hover:scale-105" />
+                            <img src={logoFull} alt="Lucro Certo" className="w-full max-w-[240px] h-auto object-contain transition-transform hover:scale-105" />
                         </div>
                         <button
-                            className="md:hidden ml-auto p-1 text-gray-500"
+                            className="md:hidden absolute right-3 top-3 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 z-10 transition-colors"
                             onClick={() => setSidebarOpen(false)}
                         >
-                            <X size={24} />
+                            <X size={18} />
                         </button>
                     </div>
 
@@ -521,13 +521,17 @@ export function Layout() {
             {/* Main Content */}
             <main className={styles.main}>
                 <header className={styles.header}>
-                    <button
-                        className="md:hidden p-2 -ml-2 text-gray-600"
-                        onClick={toggleSidebar}
-                    >
-                        <Menu size={24} />
-                    </button>
-                    <img src={logoFull} alt="Lucro Certo" className="h-20 w-auto object-contain md:hidden ml-2" />
+                    <div className="flex items-center gap-2">
+                        <button
+                            className="md:hidden p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            onClick={toggleSidebar}
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <img src={logoFull} alt="Lucro Certo" className="h-8 w-auto object-contain md:hidden" />
+                    </div>
+
+                    {/* Desktop Header Content */}
                     <div className="hidden md:flex items-center justify-between w-full">
                         {/* Pending Invite Banner */}
                         {pendingInvites.length > 0 && (
@@ -627,6 +631,25 @@ export function Layout() {
                                 {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                             </button>
                         </Tooltip>
+                    </div>
+
+                    {/* Mobile Header Actions */}
+                    <div className="flex md:hidden items-center gap-2">
+                        <button
+                            onClick={toggleTheme}
+                            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-gray-300 transition-colors"
+                            title={t('layout.toggle_theme')}
+                        >
+                            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                        </button>
+                        <button 
+                            onClick={() => setSidebarOpen(true)}
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm transition-transform hover:scale-105 active:scale-95"
+                            style={{ backgroundColor: currentEntityColor }}
+                            title="Ver Perfil / Trocar Empresa"
+                        >
+                            {currentEntity.name.charAt(0).toUpperCase()}
+                        </button>
                     </div>
                 </header>
 
