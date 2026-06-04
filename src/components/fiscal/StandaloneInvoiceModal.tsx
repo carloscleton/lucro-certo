@@ -361,17 +361,19 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     servico: items.map(i => {
                         const cleanValue = i.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
                         const val = parseFloat(cleanValue);
+                        const numVal = isNaN(val) ? 0 : val;
                         
                         const item: any = {
                             codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
                             codigoIbge: companyCityCode,
                             discriminacao: i.description,
                             valor: {
-                                servico: isNaN(val) ? 0 : val,
+                                servico: numVal * i.quantity,
                                 descontoCondicionado: 0,
                                 descontoIncondicionado: 0
                             },
                             quantidade: i.quantity,
+                            valorUnitario: numVal,
                             itemListaServico: i.taxCode.includes('.') ? i.taxCode : '01.01'
                         };
 

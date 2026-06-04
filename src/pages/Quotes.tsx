@@ -858,6 +858,7 @@ export function Quotes() {
                                 servico: totalVal
                             },
                             quantidade: 1,
+                            valorUnitario: totalVal,
                             itemListaServico: (firstItem.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
                             codigoTributacao: (firstItem.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0'),
                             codigoTributacaoNacional: finalNatCode,
@@ -923,9 +924,10 @@ export function Quotes() {
                                   descricao: item.description,
                                   discriminacao: item.description,
                                   valor: {
-                                      servico: item.unit_price
+                                      servico: Number(item.unit_price) * Number(item.quantity)
                                   },
                                   quantidade: item.quantity,
+                                  valorUnitario: Number(item.unit_price),
                                   itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
                                   codigoTributacao: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0'),
                                   codigoTributacaoNacional: finalNatCode,
@@ -985,9 +987,10 @@ export function Quotes() {
                                 descricao: item.description,
                                 discriminacao: item.description,
                                 valor: {
-                                    servico: item.unit_price
+                                    servico: Number(item.unit_price) * Number(item.quantity)
                                 },
                                 quantidade: item.quantity,
+                                valorUnitario: Number(item.unit_price),
                                 itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, '')
                             };
 
