@@ -1051,23 +1051,23 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     )}
 
                                     <div className="space-y-1.5">
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Valor Unitário</label>
-                                        <Input
-                                            type="text"
-                                            value={item.amount}
-                                            onChange={(e: any) => updateItem(item.id, 'amount', e.target.value)}
-                                            placeholder="0,00"
-                                            required
-                                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Quantidade</label>
                                         <Input
                                             type="number"
                                             min="1"
                                             value={item.quantity}
                                             onChange={(e: any) => updateItem(item.id, 'quantity', parseInt(e.target.value))}
+                                            required
+                                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Valor Unitário</label>
+                                        <Input
+                                            type="text"
+                                            value={item.amount}
+                                            onChange={(e: any) => updateItem(item.id, 'amount', e.target.value)}
+                                            placeholder="0,00"
                                             required
                                             className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
                                         />
