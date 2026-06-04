@@ -315,6 +315,8 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                                         {banner.buttonText && banner.buttonLink ? (
                                             <a 
                                                 href={banner.buttonLink} 
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30"
                                             >
                                                 {banner.buttonText}

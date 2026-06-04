@@ -585,6 +585,8 @@ export function LandingPage() {
                             {campaign.call_to_action && campaign.link && (
                                 <a 
                                     href={campaign.link} 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="inline-block px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 shadow-lg text-base bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30"
                                 >
                                     {campaign.call_to_action}
@@ -798,6 +800,8 @@ export function LandingPage() {
                                                 {currentCampaign.call_to_action && currentCampaign.link && (
                                                     <a 
                                                         href={currentCampaign.link} 
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
                                                         onClick={() => setShowBanner(false)}
                                                         className={`inline-block w-full text-center px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-sm ${
                                                             currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
@@ -855,6 +859,8 @@ export function LandingPage() {
                                             {currentCampaign.call_to_action && currentCampaign.link && (
                                                 <a 
                                                     href={currentCampaign.link} 
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
                                                     onClick={() => setShowBanner(false)}
                                                     className={`inline-block w-full text-center px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-sm ${
                                                         currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
