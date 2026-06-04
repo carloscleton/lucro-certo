@@ -186,7 +186,10 @@ export function LandingPage() {
                         <Link to="/dashboard" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">Acessar Sistema</Link>
                     ) : (
                         <>
-                            <Link to="/login" className="nav-link hidden sm:inline whitespace-nowrap">Acessar Conta</Link>
+                            <Link to="/login" className="nav-link text-xs md:text-sm font-semibold whitespace-nowrap">
+                                <span className="inline sm:hidden">Entrar</span>
+                                <span className="hidden sm:inline">Acessar Conta</span>
+                            </Link>
                             <Link to="/login?mode=signup" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">Começar Agora</Link>
                         </>
                     )}
