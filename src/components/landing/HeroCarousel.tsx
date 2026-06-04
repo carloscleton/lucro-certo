@@ -39,6 +39,7 @@ interface Banner {
     title: ReactNode;
     description: string;
     points: string[];
+    price?: string;
     image: string;
     accent: string;
     buttonText?: string;
@@ -237,6 +238,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                 title: <>{restOfTitle} {lastWord && <span className="text-gradient">{lastWord}</span>}</>,
                 description: description,
                 points: displayPoints,
+                price: campaign.price,
                 image: campaign.hero_image_url || bannerCertificado,
                 accent: 'emerald',
                 buttonText: campaign.call_to_action,
@@ -311,6 +313,14 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                                         ))}
                                     </div>
 
+                                    {banner.price && (
+                                        <div className="mb-2 mt-4 flex justify-center lg:justify-start">
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-xl w-fit">
+                                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Apenas:</span>
+                                                <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{banner.price}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="carousel-global-actions">
                                         {banner.buttonText && banner.buttonLink ? (
                                             <a 

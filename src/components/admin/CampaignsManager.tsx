@@ -16,6 +16,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                 call_to_action: localBanner.call_to_action || '',
                 link: localBanner.link || '',
                 type: localBanner.type || 'promo',
+                price: localBanner.price || '',
                 image_url: localBanner.image_url || '',
                 show_in_popup: localBanner.enabled || false,
                 show_in_hero: localBanner.enabled || false,
@@ -38,6 +39,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
             call_to_action: '',
             link: '',
             type: 'promo',
+            price: '',
             image_url: '',
             show_in_popup: true,
             show_in_hero: false,
@@ -190,10 +192,10 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                     </div>
 
                                     {/* Campos Básicos */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Título</label>
-                                            <input value={campaign.title} onChange={(e) => handleUpdate(campaign.id, { title: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" placeholder="Ex: Oferta Especial" />
+                                            <input value={campaign.title} onChange={(e) => handleUpdate(campaign.id, { title: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" placeholder="Ex: Adquira seu Certificado" />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Tema Visual</label>
@@ -202,6 +204,10 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                                 <option value="info">Informativo (Azul/Neutro)</option>
                                                 <option value="alert">Alerta Importante (Amarelo/Vermelho)</option>
                                             </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Valor do Anúncio (Opcional)</label>
+                                            <input value={campaign.price || ''} onChange={(e) => handleUpdate(campaign.id, { price: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" placeholder="Ex: R$ 199,00 ou Grátis" />
                                         </div>
                                     </div>
 
