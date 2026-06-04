@@ -362,13 +362,18 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         const cleanValue = i.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
                         const val = parseFloat(cleanValue);
                         const numVal = isNaN(val) ? 0 : val;
+                        const totalVal = numVal * i.quantity;
                         
+                        const formattedUnit = numVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const formattedTotal = totalVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const descSuffix = i.quantity > 1 ? ` (${i.quantity} x R$ ${formattedUnit} = R$ ${formattedTotal})` : '';
+
                         const item: any = {
                             codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
                             codigoIbge: companyCityCode,
-                            discriminacao: i.quantity > 1 ? `${i.description} (Qtd: ${i.quantity})` : i.description,
+                            discriminacao: `${i.description}${descSuffix}`,
                             valor: {
-                                servico: numVal * i.quantity,
+                                servico: totalVal,
                                 descontoCondicionado: 0,
                                 descontoIncondicionado: 0
                             },

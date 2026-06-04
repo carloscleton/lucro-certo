@@ -622,11 +622,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         const totalVal = s.valor?.servico ? Number(s.valor.servico) : 0;
                         const unitVal = s.valorUnitario ? Number(s.valorUnitario) : 0;
 
-                        if (qty > 1 && totalVal > 0 && !s.valorUnitario) {
-                            s.valorUnitario = Number((totalVal / qty).toFixed(2));
-                        } else if (qty > 1 && unitVal > 0 && (!s.valor || !s.valor.servico)) {
+                        if (qty > 1) {
+                            const calculatedTotal = totalVal > 0 ? totalVal : Number((unitVal * qty).toFixed(2));
+                            const calculatedUnit = unitVal > 0 ? unitVal : Number((calculatedTotal / qty).toFixed(2));
+
+                            s.quantidade = 1;
+                            s.valorUnitario = calculatedTotal;
                             if (!s.valor) s.valor = {};
-                            s.valor.servico = Number((unitVal * qty).toFixed(2));
+                            s.valor.servico = calculatedTotal;
+
+                            const formattedUnit = calculatedUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const formattedTotal = calculatedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const breakdownText = ` (${qty} x R$ ${formattedUnit} = R$ ${formattedTotal})`;
+
+                            if (s.descricao && !s.descricao.includes(breakdownText) && !s.descricao.includes('x R$')) {
+                                s.descricao = `${s.descricao}${breakdownText}`;
+                            }
+                            if (s.discriminacao && !s.discriminacao.includes(breakdownText) && !s.discriminacao.includes('x R$')) {
+                                s.discriminacao = `${s.discriminacao}${breakdownText}`;
+                            }
                         } else if (qty === 1 && totalVal > 0 && !s.valorUnitario) {
                             s.valorUnitario = totalVal;
                         }

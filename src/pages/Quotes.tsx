@@ -823,7 +823,17 @@ export function Quotes() {
                 if (isNacional && fullQuote.items.length > 1 && emissionStrategy === 'group') {
                     // GROUP/CONSOLIDATE STRATEGY
                     const totalVal = fullQuote.items.reduce((acc: number, item: any) => acc + (Number(item.unit_price) * Number(item.quantity)), 0);
-                    const combinedDesc = fullQuote.items.map((item: any) => `${item.description} (x${item.quantity})`).join(' + ');
+                    const combinedDesc = fullQuote.items.map((item: any) => {
+                        const unitPrice = Number(item.unit_price) || 0;
+                        const qty = Number(item.quantity) || 1;
+                        const totalPrice = unitPrice * qty;
+                        if (qty > 1) {
+                            const formattedUnit = unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const formattedTotal = totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            return `${item.description} (${qty} x R$ ${formattedUnit} = R$ ${formattedTotal})`;
+                        }
+                        return item.description;
+                    }).join(' + ');
                     
                     const firstItem = fullQuote.items[0];
                     const rawTaxCode = firstItem.codigo_tributacao_nacional || firstItem.codigo_tributacao || firstItem.service?.codigo_tributacao_nacional || (currentCompany.tecnospeed_config as any)?.default_taxation_code || '010101001';
@@ -898,6 +908,13 @@ export function Quotes() {
                         // Unique id for this sub-emission
                         const uniqueId = `${fullQuote.id}_${displayIndex}_${Date.now()}`;
 
+                        const unitPrice = Number(item.unit_price) || 0;
+                        const qty = Number(item.quantity) || 1;
+                        const totalPrice = unitPrice * qty;
+                        const formattedUnit = unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const formattedTotal = totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const descSuffix = qty > 1 ? ` (${qty} x R$ ${formattedUnit} = R$ ${formattedTotal})` : '';
+
                         const payload: any = {
                             idIntegracao: uniqueId,
                             codigoIbge: companyCityCode,
@@ -921,10 +938,10 @@ export function Quotes() {
                             servico: [{
                                   codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                                   codigoIbge: companyCityCode,
-                                  descricao: item.quantity > 1 ? `${item.description} (Qtd: ${item.quantity})` : item.description,
-                                  discriminacao: item.quantity > 1 ? `${item.description} (Qtd: ${item.quantity})` : item.description,
+                                  descricao: `${item.description}${descSuffix}`,
+                                  discriminacao: `${item.description}${descSuffix}`,
                                   valor: {
-                                      servico: Number(item.unit_price) * Number(item.quantity)
+                                      servico: totalPrice
                                   },
                                   quantidade: 1,
                                   itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
@@ -980,13 +997,20 @@ export function Quotes() {
                             }
                         },
                         servico: fullQuote.items.map((item: any) => {
+                            const unitPrice = Number(item.unit_price) || 0;
+                            const qty = Number(item.quantity) || 1;
+                            const totalPrice = unitPrice * qty;
+                            const formattedUnit = unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const formattedTotal = totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const descSuffix = qty > 1 ? ` (${qty} x R$ ${formattedUnit} = R$ ${formattedTotal})` : '';
+
                             const payloadItem: any = {
                                 codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                                 codigoIbge: companyCityCode,
-                                descricao: item.quantity > 1 ? `${item.description} (Qtd: ${item.quantity})` : item.description,
-                                discriminacao: item.quantity > 1 ? `${item.description} (Qtd: ${item.quantity})` : item.description,
+                                descricao: `${item.description}${descSuffix}`,
+                                discriminacao: `${item.description}${descSuffix}`,
                                 valor: {
-                                    servico: Number(item.unit_price) * Number(item.quantity)
+                                    servico: totalPrice
                                 },
                                 quantidade: 1,
                                 itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, '')
