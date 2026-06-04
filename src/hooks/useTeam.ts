@@ -181,6 +181,21 @@ export function useTeam() {
         }
     };
 
+    const updateMemberRole = async (memberId: string, role: 'admin' | 'member') => {
+        try {
+            const { error } = await supabase
+                .from('company_members')
+                .update({ role })
+                .eq('id', memberId);
+
+            if (error) throw error;
+            await fetchTeam();
+            return { error: null };
+        } catch (err: any) {
+            return { error: err.message };
+        }
+    };
+
     const cancelInvite = async (inviteId: string) => {
         try {
             const { error } = await supabase
@@ -209,6 +224,7 @@ export function useTeam() {
         error,
         inviteMember,
         removeMember,
+        updateMemberRole,
         cancelInvite,
         copyInviteLink,
         refresh: fetchTeam

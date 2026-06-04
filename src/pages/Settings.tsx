@@ -31,7 +31,7 @@ export function Settings() {
     const { t } = useTranslation();
     const { settings, loading, updateSettings, clonePersonalSettings } = useSettings();
     const { isAdmin, stats, usersList, companiesList, loading: adminLoading, refresh: refreshAdmin, deleteUser, deleteCompany, toggleUserBan, toggleCompanyBlock, updateUserLimit, updateUserConfig, updateCompanyConfig, updateAppSettings, appSettings } = useAdmin();
-    const { members, invites, loading: teamLoading, inviteMember, removeMember, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
+    const { members, invites, loading: teamLoading, inviteMember, removeMember, updateMemberRole, cancelInvite, copyInviteLink, refresh: refreshTeam } = useTeam();
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies } = useCompanies();
     const { createCharge, charges: recentCharges, loading: chargesLoading, fetchCharges: refreshCharges } = useCharges();
@@ -94,11 +94,49 @@ export function Settings() {
     const [inviting, setInviting] = useState(false);
 
     // Custom Technicians staff states
-    const { technicians, addTechnician, deleteTechnician } = useTechnicians();
+    const { technicians, addTechnician, updateTechnician, deleteTechnician } = useTechnicians();
     const [techName, setTechName] = useState('');
     const [techSpecialty, setTechSpecialty] = useState('');
     const [techPhone, setTechPhone] = useState('');
     const [addingTech, setAddingTech] = useState(false);
+
+    // Edit states for members and technicians
+    const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+    const [editMemberRole, setEditMemberRole] = useState<'admin' | 'member'>('member');
+    const [updatingMember, setUpdatingMember] = useState(false);
+
+    const [editingTechId, setEditingTechId] = useState<string | null>(null);
+    const [editTechName, setEditTechName] = useState('');
+    const [editTechSpecialty, setEditTechSpecialty] = useState('');
+    const [editTechPhone, setEditTechPhone] = useState('');
+    const [updatingTech, setUpdatingTech] = useState(false);
+
+    const handleSaveMemberRole = async (memberId: string) => {
+        setUpdatingMember(true);
+        const { error } = await updateMemberRole(memberId, editMemberRole);
+        setUpdatingMember(false);
+        if (error) {
+            alert('Erro ao atualizar função: ' + error);
+        } else {
+            setEditingMemberId(null);
+        }
+    };
+
+    const handleSaveTechnician = async (techId: string) => {
+        if (!editTechName) return;
+        setUpdatingTech(true);
+        const { error } = await updateTechnician(techId, {
+            name: editTechName,
+            specialty: editTechSpecialty || undefined,
+            phone: editTechPhone || undefined
+        });
+        setUpdatingTech(false);
+        if (error) {
+            alert('Erro ao atualizar profissional: ' + error);
+        } else {
+            setEditingTechId(null);
+        }
+    };
 
     const handleAddTechnician = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -913,9 +951,20 @@ export function Settings() {
                                                         <div className="text-xs text-gray-500">{m.profile.email}</div>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <span className={`px-2 py-0.5 rounded text-xs border capitalize ${m.role === 'owner' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300' : 'bg-gray-50 border-gray-200 dark:bg-slate-800 dark:border-slate-700'}`}>
-                                                            {m.role === 'owner' ? t('settings.platform_owner') : m.role === 'admin' ? t('settings.role_admin') : t('settings.role_member')}
-                                                        </span>
+                                                        {editingMemberId === m.id ? (
+                                                            <select
+                                                                value={editMemberRole}
+                                                                onChange={(e) => setEditMemberRole(e.target.value as 'admin' | 'member')}
+                                                                className="text-xs p-1 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                                                            >
+                                                                <option value="member">{t('settings.role_member')}</option>
+                                                                <option value="admin">{t('settings.role_admin')}</option>
+                                                            </select>
+                                                        ) : (
+                                                            <span className={`px-2 py-0.5 rounded text-xs border capitalize ${m.role === 'owner' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300' : 'bg-gray-50 border-gray-200 dark:bg-slate-800 dark:border-slate-700'}`}>
+                                                                {m.role === 'owner' ? t('settings.platform_owner') : m.role === 'admin' ? t('settings.role_admin') : t('settings.role_member')}
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <span className="px-2 py-0.5 rounded text-xs bg-green-50 text-green-700 border border-green-200">
@@ -927,14 +976,45 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
                                                         {m.role !== 'owner' && (
-                                                            <button
-                                                                onClick={() => {
-                                                                    if (confirm(t('settings.remove_member_confirm'))) removeMember(m.id);
-                                                                }}
-                                                                className="text-red-600 hover:text-red-800 text-xs font-medium"
-                                                            >
-                                                                {t('settings.remove_member')}
-                                                            </button>
+                                                            <div className="flex items-center justify-end gap-3">
+                                                                {editingMemberId === m.id ? (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleSaveMemberRole(m.id)}
+                                                                            disabled={updatingMember}
+                                                                            className="text-green-600 hover:text-green-800 text-xs font-bold"
+                                                                        >
+                                                                            {updatingMember ? 'Salvando...' : 'Salvar'}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setEditingMemberId(null)}
+                                                                            className="text-gray-500 hover:text-gray-700 text-xs font-medium"
+                                                                        >
+                                                                            Cancelar
+                                                                        </button>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setEditingMemberId(m.id);
+                                                                                setEditMemberRole(m.role as 'admin' | 'member');
+                                                                            }}
+                                                                            className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                                                                        >
+                                                                            Editar
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                if (confirm(t('settings.remove_member_confirm'))) removeMember(m.id);
+                                                                            }}
+                                                                            className="text-red-600 hover:text-red-800 text-xs font-medium"
+                                                                        >
+                                                                            {t('settings.remove_member')}
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -1063,31 +1143,94 @@ export function Settings() {
                                                     technicians.map((tech) => (
                                                         <tr key={tech.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                                             <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">
-                                                                {tech.name}
+                                                                {editingTechId === tech.id ? (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editTechName}
+                                                                        onChange={(e) => setEditTechName(e.target.value)}
+                                                                        className="text-xs p-1 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white w-full max-w-[150px]"
+                                                                        required
+                                                                    />
+                                                                ) : (
+                                                                    tech.name
+                                                                )}
                                                             </td>
                                                             <td className="px-4 py-3">
-                                                                <span className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-medium">
-                                                                    {tech.specialty || 'Geral'}
-                                                                </span>
+                                                                {editingTechId === tech.id ? (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editTechSpecialty}
+                                                                        onChange={(e) => setEditTechSpecialty(e.target.value)}
+                                                                        className="text-xs p-1 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white w-full max-w-[150px]"
+                                                                        placeholder="Ex: Geral"
+                                                                    />
+                                                                ) : (
+                                                                    <span className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-medium">
+                                                                        {tech.specialty || 'Geral'}
+                                                                    </span>
+                                                                )}
                                                             </td>
                                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">
-                                                                {tech.phone || 'Sem contato'}
+                                                                {editingTechId === tech.id ? (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editTechPhone}
+                                                                        onChange={(e) => setEditTechPhone(formatPhoneInput(e.target.value))}
+                                                                        className="text-xs p-1 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white w-full max-w-[150px]"
+                                                                        placeholder="(00) 00000-0000"
+                                                                    />
+                                                                ) : (
+                                                                    tech.phone || 'Sem contato'
+                                                                )}
                                                             </td>
                                                             <td className="px-4 py-3 text-gray-500">
                                                                 {new Date(tech.created_at).toLocaleDateString()}
                                                             </td>
                                                             <td className="px-4 py-3 text-right">
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        if (confirm(`Deseja realmente remover o técnico ${tech.name}?`)) {
-                                                                            const { error } = await deleteTechnician(tech.id);
-                                                                            if (error) alert(error);
-                                                                        }
-                                                                    }}
-                                                                    className="text-red-600 hover:text-red-800 text-xs font-bold transition-colors"
-                                                                >
-                                                                    Remover
-                                                                </button>
+                                                                <div className="flex items-center justify-end gap-3">
+                                                                    {editingTechId === tech.id ? (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => handleSaveTechnician(tech.id)}
+                                                                                disabled={updatingTech}
+                                                                                className="text-green-600 hover:text-green-800 text-xs font-bold transition-colors"
+                                                                            >
+                                                                                {updatingTech ? 'Salvando...' : 'Salvar'}
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => setEditingTechId(null)}
+                                                                                className="text-gray-500 hover:text-gray-700 text-xs font-medium transition-colors"
+                                                                            >
+                                                                                Cancelar
+                                                                            </button>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setEditingTechId(tech.id);
+                                                                                    setEditTechName(tech.name);
+                                                                                    setEditTechSpecialty(tech.specialty || '');
+                                                                                    setEditTechPhone(tech.phone || '');
+                                                                                }}
+                                                                                className="text-blue-600 hover:text-blue-800 text-xs font-bold transition-colors"
+                                                                            >
+                                                                                Editar
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    if (confirm(`Deseja realmente remover o técnico ${tech.name}?`)) {
+                                                                                        const { error } = await deleteTechnician(tech.id);
+                                                                                        if (error) alert(error);
+                                                                                    }
+                                                                                }}
+                                                                                className="text-red-600 hover:text-red-800 text-xs font-bold transition-colors"
+                                                                            >
+                                                                                Remover
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))
