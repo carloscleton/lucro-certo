@@ -60,6 +60,40 @@ const formatTextWithBold = (text: string) => {
     });
 };
 
+const renderPriceHighlight = (priceText: string) => {
+    if (!priceText) return null;
+    
+    // Pattern: DE: [value] POR/PARA/APENAS [value]
+    const dePorRegex = /de\s*:?\s*(.*?)\s+(por\s+apenas|por|para\s*:?|para|apenas|a)\s*(.*)/i;
+    const match = priceText.match(dePorRegex);
+    
+    if (match) {
+        const originalPrice = match[1].trim();
+        const connector = match[2].trim();
+        const promoPrice = match[3].trim();
+        
+        return (
+            <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1">
+                <span className="text-xs text-gray-400 dark:text-gray-500 line-through font-medium">
+                    De {originalPrice}
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                    {connector}
+                </span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                    {promoPrice}
+                </span>
+            </div>
+        );
+    }
+    
+    return (
+        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
+            {priceText}
+        </span>
+    );
+};
+
 const banners: Banner[] = [
     {
         tag: 'GESTÃO FINANCEIRA 2.0',
@@ -315,8 +349,8 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
 
                                     {banner.price && (
                                         <div className="mb-2 mt-4 flex justify-center lg:justify-start">
-                                            <div className="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-xl w-fit text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                                                {banner.price}
+                                            <div className="inline-flex items-center justify-center px-4 py-2.5 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl w-fit">
+                                                {renderPriceHighlight(banner.price)}
                                             </div>
                                         </div>
                                     )}
