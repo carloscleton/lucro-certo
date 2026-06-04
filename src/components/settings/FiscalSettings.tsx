@@ -1132,6 +1132,8 @@ export function FiscalSettings() {
                         valor: {
                             servico: 100.00
                         },
+                        quantidade: 1,
+                        valorUnitario: 100.00,
                         tributacaoTotal: {
                             federal: {
                                 valor: 0.90,

@@ -614,6 +614,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
                 }
 
+                // Auto-sanitize and auto-calculate valorUnitario and total service value for NFSe validation
+                if (item.servico) {
+                    const services = Array.isArray(item.servico) ? item.servico : [item.servico];
+                    services.forEach((s: any) => {
+                        const qty = s.quantidade ? Number(s.quantidade) : 1;
+                        const totalVal = s.valor?.servico ? Number(s.valor.servico) : 0;
+                        const unitVal = s.valorUnitario ? Number(s.valorUnitario) : 0;
+
+                        if (qty > 1 && totalVal > 0 && !s.valorUnitario) {
+                            s.valorUnitario = Number((totalVal / qty).toFixed(2));
+                        } else if (qty > 1 && unitVal > 0 && (!s.valor || !s.valor.servico)) {
+                            if (!s.valor) s.valor = {};
+                            s.valor.servico = Number((unitVal * qty).toFixed(2));
+                        } else if (qty === 1 && totalVal > 0 && !s.valorUnitario) {
+                            s.valorUnitario = totalVal;
+                        }
+                    });
+                }
+
                 // Garantir o campo versao se for Nacional (tanto para teste quanto real)
                 if (isNacional) {
                     item.versao = '1.00';
