@@ -207,7 +207,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Valor do Anúncio (Opcional)</label>
-                                            <input value={campaign.price || ''} onChange={(e) => handleUpdate(campaign.id, { price: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" placeholder="Ex: R$ 199,00 ou Grátis" />
+                                            <input value={campaign.price || ''} onChange={(e) => handleUpdate(campaign.id, { price: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" placeholder="Ex: DE: R$ 180 Por apenas R$ 120" />
                                         </div>
                                     </div>
 
