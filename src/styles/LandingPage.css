@@ -795,6 +795,7 @@
     padding: 3rem 2.5rem;
     border-radius: 24px;
     width: 350px;
+    max-width: 100%;
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
@@ -867,11 +868,25 @@
         text-align: center;
     }
 
+    .hero-section.carousel-mode {
+        padding-bottom: 5.5rem;
+    }
+
+    .carousel-slide-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        text-align: center;
+    }
+
     .hero-content p {
         margin: 0 auto 2.5rem;
     }
 
     .hero-actions {
+        justify-content: center;
+    }
+
+    .hero-stats {
         justify-content: center;
     }
 
@@ -892,7 +907,19 @@
 
 @media (max-width: 768px) {
     .hero-content h1 {
-        font-size: 3rem;
+        font-size: 2rem; /* Reduced to fit mobile viewports perfectly */
+    }
+
+    .section-header h2 {
+        font-size: 1.85rem;
+    }
+
+    .visual-content h3 {
+        font-size: 1.65rem;
+    }
+
+    .benefit-item {
+        justify-content: center;
     }
 
     .features-grid {
@@ -901,6 +928,56 @@
 
     .nav-links {
         display: none;
+    }
+
+    .stats-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+        padding: 3rem 5%;
+        margin-bottom: 3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .pricing-grid {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 2rem;
+    }
+
+    .pricing-card {
+        width: 100%;
+        max-width: 290px;
+        padding: 2rem 1.25rem;
+    }
+
+    .carousel-global-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    
+    .carousel-global-actions .btn-primary,
+    .carousel-global-actions .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .stats-bar {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 2.5rem 5%;
+    }
+
+    .carousel-nav-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .carousel-controls {
+        gap: 0.75rem;
+        bottom: 1rem;
     }
 }
 

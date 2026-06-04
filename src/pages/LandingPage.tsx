@@ -162,7 +162,7 @@ export function LandingPage() {
             {/* Nav and Background */}
             <nav className="landing-nav">
                 <div className="nav-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                    <img src={logoFull} alt="Lucro Certo" className="h-12 w-auto" style={{ height: '48px' }} />
+                    <img src={logoFull} alt="Lucro Certo" className="h-9 md:h-12 w-auto" />
                 </div>
                 <div className="nav-links">
                     <a href="#features" className="nav-link">Funcionalidades</a>
@@ -181,13 +181,13 @@ export function LandingPage() {
                         ))}
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div className="flex items-center gap-2 md:gap-4">
                     {session ? (
-                        <Link to="/dashboard" className="nav-btn">Acessar Sistema</Link>
+                        <Link to="/dashboard" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">Acessar Sistema</Link>
                     ) : (
                         <>
-                            <Link to="/login" className="nav-link">Acessar Conta</Link>
-                            <Link to="/login?mode=signup" className="nav-btn">Começar Agora</Link>
+                            <Link to="/login" className="nav-link hidden sm:inline whitespace-nowrap">Acessar Conta</Link>
+                            <Link to="/login?mode=signup" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">Começar Agora</Link>
                         </>
                     )}
                 </div>
@@ -680,7 +680,7 @@ export function LandingPage() {
             {/* Footer */}
             <footer style={{ padding: '4rem 5%', borderTop: '1px solid var(--glass-border)', textAlign: 'center' }}>
                 <div className="nav-logo" style={{ justifyContent: 'center', marginBottom: '1.5rem' }}>
-                    <img src={logoFull} alt="Lucro Certo" className="h-10 w-auto" style={{ height: '40px' }} />
+                    <img src={logoFull} alt="Lucro Certo" className="h-8 md:h-10 w-auto" />
                 </div>
                 <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
                     © 2026 Lucro Certo. Todos os direitos reservados.
