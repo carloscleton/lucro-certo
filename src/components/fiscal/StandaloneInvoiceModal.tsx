@@ -366,14 +366,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         const item: any = {
                             codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
                             codigoIbge: companyCityCode,
-                            discriminacao: i.description,
+                            discriminacao: i.quantity > 1 ? `${i.description} (Qtd: ${i.quantity})` : i.description,
                             valor: {
                                 servico: numVal * i.quantity,
                                 descontoCondicionado: 0,
                                 descontoIncondicionado: 0
                             },
-                            quantidade: i.quantity,
-                            valorUnitario: numVal,
+                            quantidade: 1,
                             itemListaServico: i.taxCode.includes('.') ? i.taxCode : '01.01'
                         };
 

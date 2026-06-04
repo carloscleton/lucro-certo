@@ -921,13 +921,12 @@ export function Quotes() {
                             servico: [{
                                   codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                                   codigoIbge: companyCityCode,
-                                  descricao: item.description,
-                                  discriminacao: item.description,
+                                  descricao: item.quantity > 1 ? `${item.description} (Qtd: ${item.quantity})` : item.description,
+                                  discriminacao: item.quantity > 1 ? `${item.description} (Qtd: ${item.quantity})` : item.description,
                                   valor: {
                                       servico: Number(item.unit_price) * Number(item.quantity)
                                   },
-                                  quantidade: item.quantity,
-                                  valorUnitario: Number(item.unit_price),
+                                  quantidade: 1,
                                   itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, ''),
                                   codigoTributacao: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 3).padEnd(3, '0'),
                                   codigoTributacaoNacional: finalNatCode,
@@ -984,13 +983,12 @@ export function Quotes() {
                             const payloadItem: any = {
                                 codigo: (item.codigo_servico_municipal || '001').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
                                 codigoIbge: companyCityCode,
-                                descricao: item.description,
-                                discriminacao: item.description,
+                                descricao: item.quantity > 1 ? `${item.description} (Qtd: ${item.quantity})` : item.description,
+                                discriminacao: item.quantity > 1 ? `${item.description} (Qtd: ${item.quantity})` : item.description,
                                 valor: {
                                     servico: Number(item.unit_price) * Number(item.quantity)
                                 },
-                                quantidade: item.quantity,
-                                valorUnitario: Number(item.unit_price),
+                                quantidade: 1,
                                 itemListaServico: (item.item_lista_servico || '01.01').replace(/[^\d.]/g, '')
                             };
 
