@@ -1723,7 +1723,7 @@ export function FiscalSettings() {
                                                         max="100"
                                                         value={config.reforma_tributaria_cbs_aliquota || '0.90'}
                                                         onChange={(e) => setConfig({ ...config, reforma_tributaria_cbs_aliquota: e.target.value })}
-                                                        className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
+                                                        className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 pl-3 pr-16 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
                                                         placeholder="0.90"
                                                     />
                                                     <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[9px] font-extrabold text-emerald-600/70">
@@ -1743,7 +1743,7 @@ export function FiscalSettings() {
                                                         max="100"
                                                         value={config.reforma_tributaria_ibs_aliquota || '0.10'}
                                                         onChange={(e) => setConfig({ ...config, reforma_tributaria_ibs_aliquota: e.target.value })}
-                                                        className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
+                                                        className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 pl-3 pr-24 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
                                                         placeholder="0.10"
                                                     />
                                                     <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[9px] font-extrabold text-emerald-600/70">
