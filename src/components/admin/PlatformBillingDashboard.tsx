@@ -91,9 +91,10 @@ export function PlatformBillingDashboard() {
         const { error } = await updateAppSettings(finalSettings);
         setSaving(false);
         if (error) {
-            alert('Erro ao salvar: ' + error);
+            notify('error', 'Erro ao salvar as configurações: ' + error, 'Erro');
         } else {
             sessionStorage.removeItem('draft_localBanner');
+            notify('success', 'Alterações salvas com sucesso!', 'Sucesso');
             refresh();
         }
     };
