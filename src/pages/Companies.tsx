@@ -6,10 +6,12 @@ import { CompanyList } from '../components/companies/CompanyList';
 import { CompanyForm } from '../components/companies/CompanyForm';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
+import { useEntity } from '../context/EntityContext';
 
 export function Companies() {
     const { profile } = useAuth(); // Get user profile for max_companies
     const { companies, loading, addCompany, updateCompany, deleteCompany } = useCompanies();
+    const { currentEntity } = useEntity();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCompany, setEditingCompany] = useState<Company | null>(null);
     const { t } = useTranslation();
@@ -41,6 +43,10 @@ export function Companies() {
     const maxCompanies = profile?.max_companies ?? 1; // Default to 1 if not set
     const canCreateCompany = (companies.length < maxCompanies) && (profile?.settings?.can_create_companies !== false);
 
+    const filteredCompanies = currentEntity.type === 'company'
+        ? companies.filter(c => c.id === currentEntity.id)
+        : companies;
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -70,7 +76,7 @@ export function Companies() {
             </div>
 
             <CompanyList
-                companies={companies}
+                companies={filteredCompanies}
                 onEdit={handleOpenModal}
                 onDelete={deleteCompany}
             />
@@ -84,3 +90,4 @@ export function Companies() {
         </div>
     );
 }
+
