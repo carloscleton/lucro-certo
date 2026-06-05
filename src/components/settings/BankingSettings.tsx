@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Landmark, Save, Trash2, Power, Info, ToggleLeft, ToggleRight, Shield, Sparkles, Plus, X } from 'lucide-react';
+import { Landmark, Save, Trash2, Power, Info, Shield, Sparkles, Plus, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
@@ -487,13 +487,15 @@ export function BankingSettings() {
                                             <span className="block text-xs text-gray-400">Ativar este banco para geração de pagamentos e DDA.</span>
                                         </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsActive(!isActive)}
-                                        className="text-indigo-600 transition-colors"
-                                    >
-                                        {isActive ? <ToggleRight size={40} /> : <ToggleLeft size={40} className="text-gray-400" />}
-                                    </button>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={isActive}
+                                            onChange={() => setIsActive(!isActive)}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                    </label>
                                 </div>
 
                                 {/* Toggle específico de DDA */}
@@ -507,13 +509,15 @@ export function BankingSettings() {
                                             <span className="block text-xs text-gray-400">Buscar automaticamente boletos de fornecedores registrados neste banco.</span>
                                         </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setDdaEnabled(!ddaEnabled)}
-                                        className="text-indigo-600 transition-colors"
-                                    >
-                                        {ddaEnabled ? <ToggleRight size={40} /> : <ToggleLeft size={40} className="text-gray-400" />}
-                                    </button>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={ddaEnabled}
+                                            onChange={() => setDdaEnabled(!ddaEnabled)}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                    </label>
                                 </div>
 
                                 {/* Campos Dinâmicos do Formulário */}
