@@ -19,7 +19,12 @@ CREATE TABLE IF NOT EXISTS public.company_banking_configs (
 ALTER TABLE public.company_banking_configs ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS
-CREATE POLICY "Admins can view company banking configs"
+DROP POLICY IF EXISTS "Admins can view company banking configs" ON public.company_banking_configs;
+DROP POLICY IF EXISTS "Admins can manage company banking configs" ON public.company_banking_configs;
+DROP POLICY IF EXISTS "Owners and admins can view company banking configs" ON public.company_banking_configs;
+DROP POLICY IF EXISTS "Owners and admins can manage company banking configs" ON public.company_banking_configs;
+
+CREATE POLICY "Owners and admins can view company banking configs"
 ON public.company_banking_configs
 FOR SELECT
 TO authenticated
@@ -28,11 +33,11 @@ USING (
         SELECT 1 FROM public.company_members cm
         WHERE cm.company_id = company_banking_configs.company_id
         AND cm.user_id = auth.uid()
-        AND cm.role = 'admin'
+        AND cm.role IN ('owner', 'admin')
     )
 );
 
-CREATE POLICY "Admins can manage company banking configs"
+CREATE POLICY "Owners and admins can manage company banking configs"
 ON public.company_banking_configs
 FOR ALL
 TO authenticated
@@ -41,7 +46,7 @@ USING (
         SELECT 1 FROM public.company_members cm
         WHERE cm.company_id = company_banking_configs.company_id
         AND cm.user_id = auth.uid()
-        AND cm.role = 'admin'
+        AND cm.role IN ('owner', 'admin')
     )
 )
 WITH CHECK (
@@ -49,7 +54,7 @@ WITH CHECK (
         SELECT 1 FROM public.company_members cm
         WHERE cm.company_id = company_banking_configs.company_id
         AND cm.user_id = auth.uid()
-        AND cm.role = 'admin'
+        AND cm.role IN ('owner', 'admin')
     )
 );
 
