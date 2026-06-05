@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Landmark, Save, Trash2, Power, Info, ToggleLeft, ToggleRight, Shield, Sparkles } from 'lucide-react';
-import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
@@ -151,15 +150,7 @@ export function BankingSettings() {
         }
     };
 
-    const handleToggleActive = async (configId: string, currentStatus: boolean) => {
-        try {
-            const { error } = await toggleConfig(configId, !currentStatus);
-            if (error) throw error;
-            notify('success', `Banco ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`, 'Status Atualizado');
-        } catch (err: any) {
-            notify('error', err.message || 'Erro ao alterar status.', 'Erro');
-        }
-    };
+
 
     if (loading) return <div className="p-4 text-center text-gray-500">Carregando integrações bancárias...</div>;
 
