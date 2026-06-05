@@ -527,12 +527,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const TEST_IM_NACIONAL = '1234567';     // Belo Horizonte (Nacional)
         
         // Se estivermos em Sandbox, a prioridade é FUNCIONAR. 
-        // O laboratório de teste (isLabTest) não deve forçar dados de teste se o usuário desmarcou a opção de teste e possui certificado.
-        const useTestData = (config.use_test_data === true) || 
+        // A Tecnospeed converteu o CNPJ de teste padrão para NFSe Nacional em Jun/2026.
+        // Portanto, se for Municipal (!isNacional) e tiver certificado, ignoramos use_test_data e usamos os reais.
+        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+        const forceTestData = config.use_test_data === true && (!hasCert || isNacional);
+        const useTestData = forceTestData || 
                           (isSandbox && !hasCert) || 
                           (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
 
-        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
 
         console.log(`🧾 [FISCAL-EMITIR] Ambiente: ${config.ambiente} | Sandbox: ${isSandbox} | HasCert: ${hasCert} (${certId}) | UseTestData: ${useTestData} | Nacional: ${isNacional}`);
@@ -545,7 +547,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 });
                 
                 const discoverId = issuerInfo.data?.data?.certificado || issuerInfo.data?.certificado || issuerInfo.data?.data?.certificadoId;
-                if (discoverId) certId = discoverId;
+                if (discoverId && !certId) certId = discoverId; // Só sobrescreve se não tiver no banco
             } catch (discoverErr: any) {
                 console.warn(`⚠️ [FISCAL-EMITIR] Não foi possível autodescobrir o certificado`);
             }
@@ -1216,10 +1218,12 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
         
         const certId = config.certificado_id || config.certificadoId || config.certificado;
         const hasCert = !!certId && certId !== 'null' && certId !== 'undefined';
-        const useTestData = (config.use_test_data === true) || (isSandbox && !hasCert);
+        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+        const forceTestData = config.use_test_data === true && (!hasCert || isNacional);
+        const useTestData = forceTestData || (isSandbox && !hasCert);
         
         if (useTestData) {
-            cnpj = '08184315000104'; // CNPJ da TecnoSpeed usado no modo teste/sandbox
+            cnpj = '08187168000160'; // CNPJ da TecnoSpeed usado no modo teste/sandbox
             console.log(`🛠️ [FISCAL-CONSULTAR] Modo Teste Ativo. Forçando CNPJ para ${cnpj} para localizar as notas do Sandbox.`);
         }
 
