@@ -197,7 +197,7 @@ const resolveProvider = (providerId: string, bankConfig?: any) => {
 };
 
 export function BankingSettings() {
-    const { currentEntity, refresh: refreshEntity } = useEntity();
+    const { currentEntity, availableEntities, refresh: refreshEntity } = useEntity();
     const { configs, loading, saveConfig, deleteConfig, testConnection } = useBankingSettings();
     const { notify } = useNotification();
 
@@ -217,6 +217,9 @@ export function BankingSettings() {
 
     const isCompany = currentEntity && currentEntity.type === 'company';
     const isModuleEnabled = isCompany ? !!currentEntity.banking_module_enabled : false;
+
+    const companies = availableEntities.filter(e => e.type === 'company');
+    const hasMultipleCompanies = companies.length > 1;
 
     // Carrega configuração local quando um provedor de banco é selecionado
     const handleSelectProvider = (providerId: string) => {
@@ -284,11 +287,16 @@ export function BankingSettings() {
 
         // 2. Salva a configuração no banco
         setSaving(true);
+        const finalConfig = { ...config };
+        if (!hasMultipleCompanies) {
+            finalConfig.cnpj = currentEntity.cnpj || '';
+        }
+
         const { error } = await saveConfig({
             provider: selectedProvider,
             is_active: isActive,
             dda_enabled: ddaEnabled,
-            config: config
+            config: finalConfig
         });
 
         setSaving(false);
@@ -527,6 +535,20 @@ export function BankingSettings() {
                                     </div>
                                     
                                     {currentProviderDetails?.fields.map(field => {
+                                        if (field.key === 'cnpj' && !hasMultipleCompanies) {
+                                            return (
+                                                <div key={field.key} className="space-y-1">
+                                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight">
+                                                        {field.label}
+                                                    </label>
+                                                    <div className="px-3 py-2 border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 rounded-lg text-sm text-gray-500 dark:text-gray-400">
+                                                        {currentEntity.cnpj || 'Sem CNPJ cadastrado'}
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400">Preenchido automaticamente a partir do cadastro da empresa.</p>
+                                                </div>
+                                            );
+                                        }
+
                                         if (field.type === 'textarea' || field.type === 'textarea_hidden') {
                                             return (
                                                 <div key={field.key} className="space-y-1">
