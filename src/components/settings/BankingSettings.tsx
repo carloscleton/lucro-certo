@@ -207,6 +207,7 @@ export function BankingSettings() {
     const [config, setConfig] = useState<Record<string, any>>({});
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
+    const [testOnlyLoading, setTestOnlyLoading] = useState(false);
     const [togglingModule, setTogglingModule] = useState(false);
 
     // Modal States
@@ -261,6 +262,23 @@ export function BankingSettings() {
             notify('error', err.message || 'Erro ao atualizar módulo bancário.', 'Erro');
         } finally {
             setTogglingModule(false);
+        }
+    };
+
+    const handleTestOnly = async () => {
+        if (!selectedProvider) return;
+        setTestOnlyLoading(true);
+        try {
+            const testResult = await testConnection(selectedProvider, config);
+            if (!testResult.success) {
+                notify('error', testResult.message, 'Falha na Validação');
+            } else {
+                notify('success', 'Conexão estabelecida com sucesso! Credenciais válidas.', 'Sucesso');
+            }
+        } catch (err) {
+            notify('error', 'Não foi possível validar as credenciais agora.', 'Erro de Conexão');
+        } finally {
+            setTestOnlyLoading(false);
         }
     };
 
@@ -590,8 +608,18 @@ export function BankingSettings() {
                                     {/* Ações de Salvar e Testar */}
                                     <div className="pt-6 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3">
                                         <Button
+                                            variant="outline"
+                                            onClick={handleTestOnly}
+                                            isLoading={testOnlyLoading}
+                                            disabled={saving || testing}
+                                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-slate-700 dark:text-indigo-400 dark:hover:bg-slate-800"
+                                        >
+                                            {testOnlyLoading ? 'Testando...' : 'Testar Conexão'}
+                                        </Button>
+                                        <Button
                                             onClick={handleSave}
                                             isLoading={saving || testing}
+                                            disabled={testOnlyLoading}
                                             className="bg-indigo-600 hover:bg-indigo-700"
                                         >
                                             <Save size={18} className="mr-2" />
