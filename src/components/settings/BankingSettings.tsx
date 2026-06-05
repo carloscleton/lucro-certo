@@ -60,7 +60,7 @@ const BANK_PROVIDERS = [
 
 export function BankingSettings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
-    const { configs, loading, saveConfig, toggleConfig, deleteConfig, testConnection } = useBankingSettings();
+    const { configs, loading, saveConfig, deleteConfig, testConnection } = useBankingSettings();
     const { notify } = useNotification();
 
     const [selectedProvider, setSelectedProvider] = useState<string>('');
