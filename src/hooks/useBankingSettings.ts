@@ -13,18 +13,24 @@ export interface BankingConfig {
     updated_at?: string;
 }
 
+// Cache global para preservar dados entre trocas de aba e evitar recarregamento visual
+const globalConfigsCache: Record<string, BankingConfig[]> = {};
+const globalLoadingCache: Record<string, boolean> = {};
+
 export function useBankingSettings() {
     const { currentEntity } = useEntity();
-    const [configs, setConfigs] = useState<BankingConfig[]>([]);
-    const [loading, setLoading] = useState(true);
+    const entityId = currentEntity?.id || 'none';
 
-    const fetchConfigs = useCallback(async () => {
-        if (!currentEntity || currentEntity.type !== 'company') {
+    const [configs, setConfigs] = useState<BankingConfig[]>(globalConfigsCache[entityId] || []);
+    const [loading, setLoading] = useState<boolean>(globalLoadingCache[entityId] !== false && !globalConfigsCache[entityId]);
+
+    const fetchConfigs = useCallback(async (silent = false) => {
+        if (!currentEntity || currentEntity.type !== 'company' || !currentEntity.id) {
             setLoading(false);
             return;
         }
 
-        setLoading(true);
+        if (!silent) setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('company_banking_configs')
@@ -32,17 +38,22 @@ export function useBankingSettings() {
                 .eq('company_id', currentEntity.id);
 
             if (error) throw error;
-            setConfigs(data || []);
+            
+            const fetchedData = data || [];
+            setConfigs(fetchedData);
+            globalConfigsCache[currentEntity.id] = fetchedData;
+            globalLoadingCache[currentEntity.id] = false;
         } catch (error) {
             console.error('Error fetching banking configs:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [currentEntity]);
 
     useEffect(() => {
-        fetchConfigs();
-    }, [fetchConfigs]);
+        const hasCache = !!globalConfigsCache[entityId];
+        fetchConfigs(hasCache);
+    }, [fetchConfigs, entityId]);
 
     const saveConfig = async (configData: Omit<BankingConfig, 'id' | 'company_id'>) => {
         if (!currentEntity || currentEntity.type !== 'company') return { error: 'Not in company context' };

@@ -16,18 +16,24 @@ export interface PaymentGateway {
     created_at?: string;
 }
 
+// Cache global para preservar dados entre trocas de aba e evitar recarregamento visual
+const globalGatewaysCache: Record<string, PaymentGateway[]> = {};
+const globalLoadingCache: Record<string, boolean> = {};
+
 export function usePaymentGateways() {
     const { currentEntity } = useEntity();
-    const [gateways, setGateways] = useState<PaymentGateway[]>([]);
-    const [loading, setLoading] = useState(true);
+    const entityId = currentEntity?.id || 'none';
 
-    const fetchGateways = useCallback(async () => {
-        if (!currentEntity || currentEntity.type !== 'company') {
+    const [gateways, setGateways] = useState<PaymentGateway[]>(globalGatewaysCache[entityId] || []);
+    const [loading, setLoading] = useState<boolean>(globalLoadingCache[entityId] !== false && !globalGatewaysCache[entityId]);
+
+    const fetchGateways = useCallback(async (silent = false) => {
+        if (!currentEntity || currentEntity.type !== 'company' || !currentEntity.id) {
             setLoading(false);
             return;
         }
 
-        setLoading(true);
+        if (!silent) setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('company_payment_gateways')
@@ -35,17 +41,22 @@ export function usePaymentGateways() {
                 .eq('company_id', currentEntity.id);
 
             if (error) throw error;
-            setGateways(data || []);
+            
+            const fetchedData = data || [];
+            setGateways(fetchedData);
+            globalGatewaysCache[currentEntity.id] = fetchedData;
+            globalLoadingCache[currentEntity.id] = false;
         } catch (error) {
             console.error('Error fetching payment gateways:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [currentEntity]);
 
     useEffect(() => {
-        fetchGateways();
-    }, [fetchGateways]);
+        const hasCache = !!globalGatewaysCache[entityId];
+        fetchGateways(hasCache);
+    }, [fetchGateways, entityId]);
 
     const saveGateway = async (gatewayData: Omit<PaymentGateway, 'id' | 'company_id'>) => {
         if (!currentEntity || currentEntity.type !== 'company') return { error: 'Not in company context' };
