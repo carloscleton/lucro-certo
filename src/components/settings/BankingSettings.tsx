@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Landmark, Save, Trash2, Power, Info, ToggleLeft, ToggleRight, CheckCircle2, Shield, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Landmark, Save, Trash2, Power, Info, ToggleLeft, ToggleRight, Shield, Sparkles } from 'lucide-react';
 import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -47,7 +47,7 @@ const BANK_PROVIDERS = [
 ];
 
 export function BankingSettings() {
-    const { currentEntity, refreshEntity } = useEntity();
+    const { currentEntity, refresh: refreshEntity } = useEntity();
     const { configs, loading, saveConfig, toggleConfig, deleteConfig, testConnection } = useBankingSettings();
     const { notify } = useNotification();
 

@@ -26,6 +26,7 @@ export interface Entity {
     settings?: any;
     fiscal_module_enabled?: boolean;
     payments_module_enabled?: boolean;
+    banking_module_enabled?: boolean;
     crm_module_enabled?: boolean;
     has_social_copilot?: boolean;
     automations_module_enabled?: boolean;
@@ -97,6 +98,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         settings,
                         fiscal_module_enabled,
                         payments_module_enabled,
+                        banking_module_enabled,
                         crm_module_enabled,
                         has_social_copilot,
                         automations_module_enabled,
@@ -142,6 +144,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     settings: item.company.settings,
                     fiscal_module_enabled: item.company.fiscal_module_enabled,
                     payments_module_enabled: item.company.payments_module_enabled,
+                    banking_module_enabled: item.company.banking_module_enabled,
                     crm_module_enabled: item.company.crm_module_enabled,
                     has_social_copilot: item.company.has_social_copilot,
                     automations_module_enabled: item.company.automations_module_enabled,
