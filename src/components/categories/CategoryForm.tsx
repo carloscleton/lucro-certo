@@ -7,6 +7,7 @@ import { Modal } from '../ui/Modal';
 import { Tag } from 'lucide-react';
 import type { Category } from '../../hooks/useCategories';
 import { useCompanies } from '../../hooks/useCompanies';
+import { useEntity } from '../../context/EntityContext';
 import { useAutoSave } from '../../hooks/useAutoSave';
 
 interface CategoryFormProps {
@@ -23,6 +24,11 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
     const [budgetLimit, setBudgetLimit] = useState(0);
     const [loading, setLoading] = useState(false);
     const { companies } = useCompanies();
+    const { currentEntity } = useEntity();
+
+    const filteredCompanies = currentEntity.type === 'company'
+        ? companies.filter(c => c.id === currentEntity.id)
+        : companies;
 
     useEffect(() => {
         if (initialData) {
@@ -116,8 +122,8 @@ export function CategoryForm({ isOpen, onClose, onSubmit, initialData }: Categor
                             value={companyId}
                             onChange={e => setCompanyId(e.target.value)}
                         >
-                            <option value="">Pessoal (Individual)</option>
-                            {companies.map(company => (
+                            {currentEntity.type !== 'company' && <option value="">Pessoal (Individual)</option>}
+                            {filteredCompanies.map(company => (
                                 <option key={company.id} value={company.id}>
                                     {company.trade_name}
                                 </option>
