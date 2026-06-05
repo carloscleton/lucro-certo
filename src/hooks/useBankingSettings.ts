@@ -5,7 +5,7 @@ import { useEntity } from '../context/EntityContext';
 export interface BankingConfig {
     id: string;
     company_id: string;
-    provider: 'itau_cnab' | 'inter_api' | 'stark_api';
+    provider: string;
     is_active: boolean;
     dda_enabled: boolean;
     config: Record<string, any>;
@@ -104,11 +104,19 @@ export function useBankingSettings() {
         // Simulação de teste de conexão para as credenciais bancárias
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        if (provider === 'inter_api' && (!config.client_id || !config.client_secret)) {
-            return { success: false, message: 'Chaves de API Client ID e Client Secret são obrigatórias.' };
-        }
-        if (provider === 'itau_cnab' && (!config.branch || !config.account)) {
-            return { success: false, message: 'Agência e Conta são campos obrigatórios para o Itaú CNAB.' };
+        const isApi = provider.endsWith('_api') || config.custom_type === 'api';
+        
+        if (isApi) {
+            if (provider === 'inter_api' && (!config.client_id || !config.client_secret)) {
+                return { success: false, message: 'Chaves de API Client ID e Client Secret são obrigatórias.' };
+            }
+            if (provider === 'stark_api' && !config.project_id) {
+                return { success: false, message: 'Project ID é obrigatório para Stark Bank.' };
+            }
+        } else {
+            if (!config.branch || !config.account) {
+                return { success: false, message: 'Agência e Conta são campos obrigatórios para a integração.' };
+            }
         }
         
         return { success: true, message: 'Conexão validada com sucesso (ambiente simulado).' };
