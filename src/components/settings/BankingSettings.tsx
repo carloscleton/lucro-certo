@@ -24,6 +24,19 @@ const BANK_PROVIDERS = [
         ]
     },
     {
+        id: 'bb_cnab',
+        name: 'Banco do Brasil (CNAB 240)',
+        desc: 'Remessa de lote de boletos e Pix via arquivo CNAB 240.',
+        fields: [
+            { key: 'branch', label: 'Agência', placeholder: '0000' },
+            { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
+            { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
+            { key: 'account_digit', label: 'Dígito Conta', placeholder: '0' },
+            { key: 'transmission_code', label: 'Número do Convênio', placeholder: 'Código de convênio BB (7 dígitos)' },
+            { key: 'cnpj', label: 'CNPJ da Conta', placeholder: '00.000.000/0000-00' }
+        ]
+    },
+    {
         id: 'inter_api',
         name: 'Banco Inter (API)',
         desc: 'Integração em tempo real para pagamentos e DDA.',
@@ -53,6 +66,7 @@ export function BankingSettings() {
 
     const [selectedProvider, setSelectedProvider] = useState<string>('');
     const [ddaEnabled, setDdaEnabled] = useState(false);
+    const [isActive, setIsActive] = useState(false);
     const [config, setConfig] = useState<Record<string, string>>({});
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
@@ -68,9 +82,11 @@ export function BankingSettings() {
 
         if (existing) {
             setDdaEnabled(existing.dda_enabled);
+            setIsActive(existing.is_active);
             setConfig(existing.config || {});
         } else {
             setDdaEnabled(false);
+            setIsActive(true);
             setConfig({});
         }
     };
@@ -122,7 +138,7 @@ export function BankingSettings() {
         setSaving(true);
         const { error } = await saveConfig({
             provider: selectedProvider as any,
-            is_active: true,
+            is_active: isActive,
             dda_enabled: ddaEnabled,
             config: config
         });
@@ -211,22 +227,21 @@ export function BankingSettings() {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            {bankConfig && (
-                                                <Tooltip content={bankConfig.is_active ? 'Desativar Banco' : 'Ativar Banco'}>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleToggleActive(bankConfig.id, bankConfig.is_active);
-                                                        }}
-                                                        className={`p-1 rounded-md transition-colors ${bankConfig.is_active ? 'text-indigo-500 hover:bg-indigo-50' : 'text-gray-300 hover:bg-gray-100'}`}
-                                                    >
-                                                        <Power size={18} />
-                                                    </button>
-                                                </Tooltip>
-                                            )}
-                                            {bankConfig?.is_active && (
-                                                <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                                        <div>
+                                            {bankConfig ? (
+                                                bankConfig.is_active ? (
+                                                    <span className="text-[10px] bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold">
+                                                        ATIVO
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] bg-gray-100 text-gray-400 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                                                        INATIVO
+                                                    </span>
+                                                )
+                                            ) : (
+                                                <span className="text-[10px] bg-gray-50 text-gray-300 dark:bg-slate-800 dark:text-slate-600 px-2 py-0.5 rounded-full">
+                                                    Vazio
+                                                </span>
                                             )}
                                         </div>
                                     </button>
@@ -264,6 +279,26 @@ export function BankingSettings() {
                                             <Trash2 size={16} />
                                         </Button>
                                     )}
+                                </div>
+
+                                {/* Toggle específico de Ativação do Banco */}
+                                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900 rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-indigo-600">
+                                            <Power size={20} />
+                                        </div>
+                                        <div>
+                                            <span className="block text-sm font-semibold dark:text-white">Status da Integração</span>
+                                            <span className="block text-xs text-gray-400">Ativar este banco para geração de pagamentos e DDA.</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsActive(!isActive)}
+                                        className="text-indigo-600 transition-colors"
+                                    >
+                                        {isActive ? <ToggleRight size={40} /> : <ToggleLeft size={40} className="text-gray-400" />}
+                                    </button>
                                 </div>
 
                                 {/* Toggle específico de DDA */}
