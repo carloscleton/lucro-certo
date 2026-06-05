@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Edit2, Trash2, CheckCircle, Paperclip, Download, FileText, Repeat, TrendingUp } from 'lucide-react';
 import type { Transaction } from '../../hooks/useTransactions';
 import { Tooltip } from '../ui/Tooltip';
@@ -13,10 +14,44 @@ interface TransactionListProps {
     onToggleStatus: (t: Transaction) => void;
     canDelete?: boolean;
     onViewQuote?: (quoteId: string) => void;
+    onSelectionChange?: (selectedIds: string[]) => void;
+    showSelection?: boolean;
 }
 
-export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus, canDelete = true, onViewQuote }: TransactionListProps) {
+export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus, canDelete = true, onViewQuote, onSelectionChange, showSelection = false }: TransactionListProps) {
     const { members } = useTeam();
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    // Reseta a seleção quando as transações mudam (ex: filtro de data)
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [transactions]);
+
+    useEffect(() => {
+        if (onSelectionChange) {
+            onSelectionChange(Array.from(selectedIds));
+        }
+    }, [selectedIds, onSelectionChange]);
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            // Seleciona todos que estão pendentes (normalmente só queremos pagar os pendentes)
+            // mas para flexibilidade, seleciona todos os listados.
+            setSelectedIds(new Set(transactions.map(t => t.id)));
+        } else {
+            setSelectedIds(new Set());
+        }
+    };
+
+    const handleSelectOne = (id: string) => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedIds(newSet);
+    };
 
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
@@ -88,6 +123,16 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-slate-700">
                         <tr>
+                            {showSelection && (
+                                <th className="px-3 py-3 w-[4%] text-center">
+                                    <input 
+                                        type="checkbox" 
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        checked={transactions.length > 0 && selectedIds.size === transactions.length}
+                                        onChange={handleSelectAll}
+                                    />
+                                </th>
+                            )}
                             <th className="px-3 py-3 w-[25%]">Descrição</th>
                             <th className="px-3 py-3 w-[10%]">Resp.</th>
                             <th className="px-3 py-3 w-[12%]">Vencimento</th>
@@ -101,6 +146,16 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
                     <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                         {transactions.map((t) => (
                             <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
+                                {showSelection && (
+                                    <td className="px-3 py-3 text-center">
+                                        <input 
+                                            type="checkbox" 
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            checked={selectedIds.has(t.id)}
+                                            onChange={() => handleSelectOne(t.id)}
+                                        />
+                                    </td>
+                                )}
                                 <td className="px-3 py-3 font-medium text-gray-900 dark:text-white truncate max-w-[120px] lg:max-w-[250px]">
                                     <div className="flex items-center gap-1.5 min-w-0">
                                         <Tooltip content={t.description}>

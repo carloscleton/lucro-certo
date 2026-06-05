@@ -64,12 +64,22 @@ export function useCompanies() {
         if (!user) return;
         try {
             const { data, error } = await supabase
-                .from('companies')
-                .select('*')
-                .order('trade_name');
+                .from('company_members')
+                .select(`
+                    company:companies (
+                        *
+                    )
+                `)
+                .eq('user_id', user.id);
 
             if (error) throw error;
-            setCompanies(data || []);
+
+            const companiesList = (data || [])
+                .map((item: any) => item.company)
+                .filter(Boolean)
+                .sort((a: any, b: any) => (a.trade_name || '').localeCompare(b.trade_name || ''));
+
+            setCompanies(companiesList as Company[]);
         } catch (error) {
             console.error('Error fetching companies:', error);
         } finally {

@@ -19,6 +19,8 @@ import { useCompanies } from '../hooks/useCompanies';
 import { useTeam } from '../hooks/useTeam';
 import { useCRM } from '../hooks/useCRM';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
+import { CnabExportModal } from '../components/financial/CnabExportModal';
+import { Download } from 'lucide-react';
 
 interface TransactionPageProps {
     type: 'expense' | 'income';
@@ -62,6 +64,13 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     } | null>(null);
     const [sendingSummary, setSendingSummary] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
+
+    // Seleção em lote para CNAB
+    const [selectedTransactionIds, setSelectedTransactionIds] = useState<string[]>([]);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const selectedTransactions = useMemo(() => 
+        transactions.filter(t => selectedTransactionIds.includes(t.id)), 
+    [transactions, selectedTransactionIds]);
 
     const handlePrint = useReactToPrint({
         contentRef: reportRef,
@@ -482,6 +491,15 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                             <MessageSquare size={18} className="mr-2" />
                             {t('transactions.send_summary_whatsapp')}
                         </Button>
+                        {type === 'expense' && selectedTransactionIds.length > 0 && (
+                            <Button 
+                                onClick={() => setIsExportModalOpen(true)}
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                                <Download size={18} className="mr-2" />
+                                Pagar em Lote ({selectedTransactionIds.length})
+                            </Button>
+                        )}
                         <Button onClick={handleAddStart}>
                             <Plus size={20} className="mr-2" />
                             {t('transactions.new_transaction')}
@@ -543,6 +561,8 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                 onToggleStatus={handleToggleStatus}
                 canDelete={canDelete}
                 onViewQuote={handleViewQuote}
+                showSelection={type === 'expense'}
+                onSelectionChange={(ids) => setSelectedTransactionIds(ids)}
             />
 
             <TransactionForm
@@ -588,7 +608,6 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     }}
                     onConfirm={async () => {
                         try {
-                            // Quando autorizado pelo admin (via código), executa a exclusão de forma direta e segura
                             let scope: 'single' | 'future' | 'all' = 'single';
                             await deleteTransaction(protectedTransaction.idToDelete, scope);
                             notify('success', 'Transação protegida excluída com sucesso sob autorização do administrador.', 'Sucesso');
@@ -598,6 +617,16 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     }}
                     transaction={protectedTransaction.transaction}
                     invoiceNumber={protectedTransaction.invoiceNumber}
+                />
+            )}
+
+            {isExportModalOpen && (
+                <CnabExportModal
+                    isOpen={isExportModalOpen}
+                    onClose={() => setIsExportModalOpen(false)}
+                    selectedTransactions={selectedTransactions}
+                    companyCnpj={companies.find(c => c.id === currentEntity.id)?.cnpj || ''}
+                    companyName={companies.find(c => c.id === currentEntity.id)?.legal_name || currentEntity.name || ''}
                 />
             )}
 
