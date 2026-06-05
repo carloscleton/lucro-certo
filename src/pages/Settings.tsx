@@ -20,6 +20,7 @@ import { WebhookSettings } from './WebhookSettings';
 import { WhatsApp } from './WhatsApp';
 import { FiscalSettings } from '../components/settings/FiscalSettings';
 import { PaymentSettings } from '../components/settings/PaymentSettings';
+import { BankingSettings } from '../components/settings/BankingSettings';
 import { SubscriptionSettings } from '../components/settings/SubscriptionSettings';
 import { PlatformBillingDashboard } from '../components/admin/PlatformBillingDashboard';
 import { useCharges } from '../hooks/useCharges';
@@ -1409,6 +1410,10 @@ export function Settings() {
 
                 {activeTab === 'payments' && (
                     <PaymentSettings />
+                )}
+
+                {activeTab === 'banking' && (
+                    <BankingSettings />
                 )}
 
                 {activeTab === 'loyalty' && currentCompany?.loyalty_module_enabled && (

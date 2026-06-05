@@ -21,7 +21,8 @@ import {
     Calendar,
     Award,
     Calculator,
-    Receipt
+    Receipt,
+    Landmark
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -266,6 +267,14 @@ export const SETTINGS_TABS: TabDefinition[] = [
         icon: CreditCard,
         color: 'emerald',
         desc: 'Chaves de API e Gateways',
+        defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'banking',
+        label: 'Bancos e DDA',
+        icon: Landmark,
+        color: 'indigo',
+        desc: 'Contas, credenciais bancárias e DDA',
         defaultPermissions: { admin: true, member: false }
     },
     {
