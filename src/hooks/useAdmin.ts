@@ -40,6 +40,7 @@ export interface AdminCompany {
     members_count: number;
     fiscal_module_enabled: boolean;
     payments_module_enabled: boolean;
+    banking_module_enabled: boolean;
     crm_module_enabled: boolean;
     settings?: any;
     logo_url?: string;
@@ -192,16 +193,17 @@ export function useAdmin() {
             if (!silent) setLoading(false);
         }
     };
-    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, loyalty: boolean, warranty: boolean, allowedTypes: string[], settings?: any, loyaltyFee: number = 5.00, loyaltySplit: boolean = false) => {
+    const updateCompanyConfig = async (companyId: string, fiscal: boolean, payments: boolean, banking: boolean, crm: boolean, marketing: boolean, automations: boolean, leadRadar: boolean, loyalty: boolean, warranty: boolean, allowedTypes: string[], settings?: any, loyaltyFee: number = 5.00, loyaltySplit: boolean = false) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
-        console.log('Updating Company Config:', { companyId, fiscal, payments, crm, marketing, loyalty, warranty, allowedTypes, settings, loyaltyFee, loyaltySplit });
+        console.log('Updating Company Config:', { companyId, fiscal, payments, banking, crm, marketing, loyalty, warranty, allowedTypes, settings, loyaltyFee, loyaltySplit });
 
         try {
             const { error } = await supabase.rpc('admin_update_company_config', {
                 target_company_id: companyId,
                 fiscal_enabled: fiscal,
                 payments_enabled: payments,
+                banking_enabled: banking,
                 crm_enabled: crm,
                 marketing_enabled: marketing,
                 automations_enabled: automations,
@@ -223,6 +225,7 @@ export function useAdmin() {
                         ...c, 
                         fiscal_module_enabled: fiscal, 
                         payments_module_enabled: payments, 
+                        banking_module_enabled: banking, 
                         crm_module_enabled: crm, 
                         marketing_enabled: marketing,
                         automations_module_enabled: automations,

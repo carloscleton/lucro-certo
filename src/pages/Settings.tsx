@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -602,6 +602,7 @@ export function Settings() {
                     { key: 'automations', label: 'Automações', icon: Sparkles, color: 'blue' },
                     { key: 'fiscal', label: t('settings.tab_fiscal'), icon: Calculator, color: 'indigo' },
                     { key: 'loyalty', label: 'Clube de Fidelidade', icon: Award, color: 'indigo' },
+                    { key: 'banking', label: 'Bancos e DDA', icon: Landmark, color: 'indigo' },
                     { key: 'subscription', label: 'Plano e Assinatura', icon: Zap, color: 'blue' },
                     ...(isAdmin ? [
                         { key: 'platform_billing', label: 'Gestão da Plataforma', icon: Activity, color: 'emerald' },
@@ -612,6 +613,7 @@ export function Settings() {
                     // 1. Feature Availability / Plan Check
                     if (tab.key === 'loyalty' && !currentCompany?.loyalty_module_enabled) return false;
                     if (tab.key === 'fiscal' && (currentEntity.type !== 'company' || !currentCompany?.fiscal_module_enabled)) return false;
+                    if (tab.key === 'banking' && currentEntity.type !== 'company') return false;
                     
                     if (!isTrial) {
                         if (tab.key === 'payments' && (currentEntity.type !== 'company' || !currentCompany?.payments_module_enabled)) return false;
@@ -1663,6 +1665,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Módulo Bancário & DDA</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">Configurações de contas bancárias, credenciais de APIs e DDA automático.</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.banking_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, banking_module_enabled: e.target.checked })} />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
                                                         <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.crm_module')}</h4>
                                                         <p className="text-xs text-gray-500 leading-tight">{t('settings.crm_module_desc')}</p>
                                                     </td>
@@ -2140,6 +2156,7 @@ export function Settings() {
                                             tempCompanyConfig.id,
                                             !!tempCompanyConfig.fiscal_module_enabled,
                                             !!tempCompanyConfig.payments_module_enabled,
+                                            !!tempCompanyConfig.banking_module_enabled,
                                             !!tempCompanyConfig.crm_module_enabled,
                                             !!tempCompanyConfig.has_social_copilot,
                                             !!tempCompanyConfig.automations_module_enabled,
@@ -2150,7 +2167,6 @@ export function Settings() {
                                             tempCompanyConfig.settings || {},
                                             tempCompanyConfig.loyalty_platform_fee || 5,
                                             !!tempCompanyConfig.loyalty_split_enabled
-
                                         );
                                         setSavingConfig(false);
                                         if (error) {
