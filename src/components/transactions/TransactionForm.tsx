@@ -69,6 +69,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [pdfFilePendingPassword, setPdfFilePendingPassword] = useState<File | null>(null);
     const [pdfPassword, setPdfPassword] = useState('');
     const [decryptedPdfPages, setDecryptedPdfPages] = useState<string[]>([]);
+    const [saveFile, setSaveFile] = useState(false); // Desligado por padrão: só lê, não salva
 
     // Optimized memory for local file preview
     const fileUrl = useMemo(() => {
@@ -110,6 +111,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         setPdfFilePendingPassword(null);
         setPdfPassword('');
         setDecryptedPdfPages([]);
+        setSaveFile(false);
 
         if (initialData) {
             setDescription(initialData.description || '');
@@ -285,17 +287,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const analyzeDocument = async (fileToAnalyze: File, password?: string) => {
         setIsAnalyzing(true);
         try {
-            // 1. Instant Upload for Persistence (Autosave)
-            const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-            const filePath = `attachments/temp/${fileName}`;
+            // 1. Upload para storage (somente se saveFile estiver ativado)
+            let uploadedPublicUrl = '';
 
-            // Use unified storage service
-            const { publicUrl } = await storageService.upload(fileToAnalyze, 'attachments', filePath);
-
-            // Persist for autosave immediately
-            setTempAttachmentUrl(publicUrl);
-            setTempAttachmentPath(filePath);
+            if (saveFile) {
+                const fileExt = fileToAnalyze.name.split('.').pop() || 'tmp';
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+                const filePath = `attachments/temp/${fileName}`;
+                const { publicUrl } = await storageService.upload(fileToAnalyze, 'attachments', filePath);
+                uploadedPublicUrl = publicUrl;
+                setTempAttachmentUrl(publicUrl);
+                setTempAttachmentPath(filePath);
+            }
 
             let extractedText = '';
             let pdfFirstPageImageBase64: string | null = null;
@@ -439,7 +442,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 payload.text_content = extractedText;
                 if (pdfFirstPageImageBase64) payload.image_url = pdfFirstPageImageBase64;
             } else {
-                payload.image_url = publicUrl;
+                payload.image_url = uploadedPublicUrl || undefined;
             }
 
             const { data, error: invokeError } = await supabase.functions.invoke('financial-vision', { body: payload });
@@ -1030,7 +1033,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         {(file || tempAttachmentUrl || (initialData?.attachment_url && !removedAttachment)) && (
                             <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border mb-3">
                                 <div className="flex justify-between items-center mb-2">
-                                    <p className="text-[10px] font-bold uppercase">Visualização</p>
+                                    <p className="text-[10px] font-bold uppercase">Anexo / Comprovante</p>
                                     {isAnalyzing && <div className="text-[10px] text-emerald-600 font-bold animate-pulse">ANALISANDO...</div>}
                                 </div>
                                 {(file || tempAttachmentUrl) ? (
@@ -1056,7 +1059,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
-                                                onClick={() => {
+                                                onClick={async () => {
+                                                    // Se foi salvo no storage, apaga da nuvem também
+                                                    if (tempAttachmentPath) {
+                                                        try { await supabase.storage.from('attachments').remove([tempAttachmentPath]); } catch(e) { console.debug(e); }
+                                                    }
                                                     setFile(null);
                                                     setTempAttachmentUrl('');
                                                     setTempAttachmentPath('');
@@ -1066,7 +1073,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     setDecryptedPdfPages([]);
                                                     setShowEmbeddedPreview(false);
                                                 }}
-                                                title="Remover"
+                                                title="Remover arquivo"
                                             >
                                                 <Trash2 size={16} />
                                             </Button>
@@ -1095,8 +1102,19 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
-                                                onClick={() => { setRemovedAttachment(true); setNotes(''); setBarcode(''); setDecryptedPdfPages([]); setShowEmbeddedPreview(false); }}
-                                                title="Remover"
+                                                onClick={async () => {
+                                                    // Apaga o arquivo da nuvem ao remover
+                                                    const pathToDelete = initialData?.attachment_path;
+                                                    if (pathToDelete) {
+                                                        try { await supabase.storage.from('attachments').remove([pathToDelete]); } catch(e) { console.debug(e); }
+                                                    }
+                                                    setRemovedAttachment(true);
+                                                    setNotes('');
+                                                    setBarcode('');
+                                                    setDecryptedPdfPages([]);
+                                                    setShowEmbeddedPreview(false);
+                                                }}
+                                                title="Excluir arquivo"
                                             >
                                                 <Trash2 size={16} />
                                             </Button>
@@ -1141,11 +1159,37 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             </div>
                         )}
 
+                        {/* Toggle: Salvar arquivo */}
+                        <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-slate-800/60 border border-dashed rounded-xl mb-1">
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="save-file-toggle" className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+                                    💾 Salvar arquivo no sistema
+                                </label>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500">(só leitura por padrão)</span>
+                            </div>
+                            <button
+                                id="save-file-toggle"
+                                type="button"
+                                role="switch"
+                                aria-checked={saveFile}
+                                onClick={() => setSaveFile(prev => !prev)}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                                    saveFile ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'
+                                }`}
+                            >
+                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
+                                    saveFile ? 'translate-x-4' : 'translate-x-1'
+                                }`} />
+                            </button>
+                        </div>
+
                         <div className="flex items-center justify-center w-full">
-                            <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:bg-slate-700">
+                            <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors">
                                 <div className="flex flex-col items-center justify-center pt-2">
-                                    <p className="text-xs text-gray-500"><span className="font-semibold">Clique para anexar</span></p>
-                                    <p className="text-[10px] text-gray-400 font-bold">PDF, PNG, JPG (5MB)</p>
+                                    <p className="text-xs text-gray-500"><span className="font-semibold">Clique para ler com IA</span></p>
+                                    <p className="text-[10px] text-gray-400 font-bold">
+                                        {saveFile ? '📎 Arquivo será salvo' : '🔍 Apenas leitura — não salva'} · PDF, PNG, JPG (5MB)
+                                    </p>
                                 </div>
                                 <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.webp" />
                             </label>
