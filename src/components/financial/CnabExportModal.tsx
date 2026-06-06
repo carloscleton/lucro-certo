@@ -242,6 +242,64 @@ const getBarcodeFromTransaction = (t: Transaction): string | null => {
     return null;
 };
 
+const BANK_UPLOAD_INSTRUCTIONS: Record<string, string[]> = {
+    '001': [
+        'Acesse o Gerenciador Financeiro do Banco do Brasil.',
+        'Vá no menu principal e selecione Arquivos > Transmitir > Pagamentos.',
+        'Selecione o arquivo de remessa (.txt) baixado e confirme o envio.',
+        'Acesse o menu de liberação de pagamentos para autorizar o lote de transações.'
+    ],
+    '341': [
+        'Acesse o portal Itaú Empresas (Internet Banking).',
+        'Vá em Transmissão de Arquivos > Enviar arquivo.',
+        'Selecione o serviço correspondente a "Contas a Pagar" (ou Pagamento de Títulos) e envie o arquivo .txt.',
+        'Confirme com seu token e vá para a tela de pendências para assinar a liberação.'
+    ],
+    '237': [
+        'Acesse o portal Bradesco Net Empresa.',
+        'Navegue até Transmissão de Arquivos > Pagamentos > Enviar Remessa.',
+        'Selecione o arquivo de remessa .txt baixado e clique em Enviar.',
+        'Acesse o menu Autorização de Pagamentos para assinar e liberar as transações.'
+    ],
+    '033': [
+        'Acesse o Santander Office (Internet Banking).',
+        'Navegue até o menu Transferência de Arquivos > Enviar.',
+        'Selecione o layout correspondente a pagamentos e selecione o arquivo de remessa .txt.',
+        'Acesse a lista de assinaturas pendentes para aprovar a remessa com seu token/certificado.'
+    ],
+    '104': [
+        'Acesse o Internet Banking da Caixa Econômica Federal PJ.',
+        'Navegue até o menu PAGAMENTOS > Transmissão de Arquivo (ou utilize o Gerenciador Financeiro Caixa).',
+        'Selecione o arquivo de remessa .txt baixado e clique em Transmitir.',
+        'Vá na lista de assinaturas pendentes para autorizar a liberação dos valores.'
+    ],
+    '756': [
+        'Acesse o Sicoobnet Empresarial.',
+        'Vá no menu Transferência de Arquivos > Enviar.',
+        'Selecione o tipo de arquivo como "Pagamento de Títulos / Remessa" e envie o arquivo .txt.',
+        'Efetue a liberação dos pagamentos no menu de autorizações pendentes.'
+    ],
+    '748': [
+        'Acesse o Sicredi Internet Empresas.',
+        'Vá no menu Arquivos > Enviar Arquivo > Pagamentos.',
+        'Selecione o arquivo de remessa .txt baixado e clique em Enviar.',
+        'Vá na fila de aprovações pendentes para assinar e liberar as transações.'
+    ],
+    '077': [
+        'Acesse a Conta Digital PJ do Banco Inter.',
+        'Vá no menu Gestão de Pagamentos > Upload de Arquivos.',
+        'Selecione o arquivo de remessa .txt baixado e faça o upload.',
+        'Acesse o aplicativo do Banco Inter no seu celular e autorize os pagamentos na fila de aprovação.'
+    ]
+};
+
+const DEFAULT_INSTRUCTIONS = [
+    'Acesse o Internet Banking Corporativo da sua instituição financeira.',
+    'Procure pela seção de "Transmissão de Arquivos", "Envio de CNAB" ou "Remessa de Pagamentos".',
+    'Faça o upload do arquivo de remessa (.txt) baixado.',
+    'Acesse o menu de pendências ou liberação de pagamentos do seu banco para assinar e confirmar os pagamentos com seu token.'
+];
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function CnabExportModal({ isOpen, onClose, selectedTransactions, companyCnpj, companyName }: CnabExportModalProps) {
@@ -275,6 +333,20 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
 
     const bankConfig = configs.find(c => c.id === selectedConfigId);
     const bankCode = bankConfig ? (bankConfig.config?.bank_code || getBankCodeFromProvider(bankConfig.provider)) : '';
+    
+    const selectedBankName = useMemo(() => {
+        if (!bankConfig) return '';
+        const isCust = bankConfig.provider.startsWith('custom_');
+        return isCust 
+            ? (bankConfig.config?.custom_name || 'Banco Personalizado') 
+            : (BANK_TEMPLATES[bankCode]?.bankName || 'seu Banco');
+    }, [bankConfig, bankCode]);
+
+    const instructions = useMemo(() => {
+        if (!selectedConfigId) return null;
+        return BANK_UPLOAD_INSTRUCTIONS[bankCode] || DEFAULT_INSTRUCTIONS;
+    }, [selectedConfigId, bankCode]);
+
     const isCustomBank = !!bankConfig?.provider.startsWith('custom_');
     const hasAgencyAndAccount = !!(
         bankConfig?.config?.branch && 
@@ -512,6 +584,25 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
                                 ))}
                             </div>
                         </div>
+
+                        {/* Guia de Upload no Banco */}
+                        {selectedConfigId && instructions && (
+                            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800 rounded-xl p-4 space-y-2.5 animate-in fade-in slide-in-from-bottom-2 duration-350">
+                                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                    <Info size={16} />
+                                    <h5 className="text-xs font-bold uppercase tracking-wider">
+                                        Como importar no {selectedBankName}
+                                    </h5>
+                                </div>
+                                <ol className="list-decimal pl-4 text-xs text-gray-600 dark:text-gray-300 space-y-1.5 leading-relaxed">
+                                    {instructions.map((step, idx) => (
+                                        <li key={idx} className="marker:text-indigo-500 marker:font-bold">
+                                            {step}
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer */}
