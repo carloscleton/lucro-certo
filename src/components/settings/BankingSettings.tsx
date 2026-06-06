@@ -142,6 +142,11 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Stark Bank (API)',
         desc: 'Integração em tempo real de pagamentos corporativos e DDA.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '343' },
+            { key: 'branch', label: 'Agência', placeholder: '0001' },
+            { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
+            { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
+            { key: 'account_digit', label: 'Dígito Conta', placeholder: '0' },
             { key: 'project_id', label: 'Project ID', placeholder: 'ID do Projeto no Stark Bank' },
             { key: 'environment', label: 'Ambiente (sandbox / production)', placeholder: 'sandbox' },
             { key: 'private_key', label: 'Chave Privada (ECDSA PEM)', placeholder: 'Cole a chave privada gerada do Stark Bank aqui', type: 'textarea_hidden' }
@@ -152,6 +157,11 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Asaas (API)',
         desc: 'Integração via API da conta digital Asaas para liquidação e DDA.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '623' },
+            { key: 'branch', label: 'Agência', placeholder: '0001' },
+            { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
+            { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
+            { key: 'account_digit', label: 'Dígito Conta', placeholder: '0' },
             { key: 'api_key', label: 'API Key (Token de Acesso)', placeholder: '$prod_... ou $sandbox_...', type: 'password' },
             { key: 'environment', label: 'Ambiente (sandbox / production)', placeholder: 'sandbox' }
         ]
@@ -161,6 +171,11 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Mercado Pago (API)',
         desc: 'Integração via API Mercado Pago.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '323' },
+            { key: 'branch', label: 'Agência', placeholder: '0001' },
+            { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
+            { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
+            { key: 'account_digit', label: 'Dígito Conta', placeholder: '0' },
             { key: 'access_token', label: 'Access Token', placeholder: 'APP_USR-...', type: 'password' },
             { key: 'public_key', label: 'Public Key', placeholder: 'APP_USR-...' }
         ]
