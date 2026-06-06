@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
-import { X, Download, AlertCircle, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
+import { X, Download, AlertCircle, CheckCircle2, AlertTriangle, Info, Landmark, Save } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 import { useBankingSettings } from '../../hooks/useBankingSettings';
 import type { CompanyBankInfo, PaymentItem } from '../../services/cnab/cnab240Generator';
 import { generateCnab240 } from '../../services/cnab/cnab240Generator';
 import { BANK_TEMPLATES } from '../../services/cnab/bankTemplates';
 import type { Transaction } from '../../hooks/useTransactions';
+import { supabase } from '../../lib/supabase';
 
 interface CnabExportModalProps {
     isOpen: boolean;
@@ -14,6 +16,138 @@ interface CnabExportModalProps {
     companyCnpj: string;
     companyName: string;
 }
+
+// ─── Modal de confirmação / preenchimento de dados bancários ────────────────
+interface MissingBankDataModalProps {
+    bankName: string;
+    currentBranch: string;
+    currentAccount: string;
+    currentBranchDigit: string;
+    currentAccountDigit: string;
+    onSaveAndContinue: (data: { branch: string; branch_digit: string; account: string; account_digit: string }) => void;
+    onContinueAnyway: () => void;
+    onCancel: () => void;
+    isSaving: boolean;
+}
+
+function MissingBankDataModal({
+    bankName, currentBranch, currentAccount, currentBranchDigit, currentAccountDigit,
+    onSaveAndContinue, onContinueAnyway, onCancel, isSaving
+}: MissingBankDataModalProps) {
+    const [branch, setBranch] = useState(currentBranch);
+    const [branchDigit, setBranchDigit] = useState(currentBranchDigit);
+    const [account, setAccount] = useState(currentAccount);
+    const [accountDigit, setAccountDigit] = useState(currentAccountDigit);
+
+    const hasData = branch.trim() && account.trim();
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-slate-700 animate-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="flex items-center gap-3 p-5 border-b border-gray-100 dark:border-slate-800 bg-amber-50 dark:bg-amber-950/30">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 shrink-0">
+                        <Landmark size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">Dados bancários incompletos</h4>
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 truncate">{bankName}</p>
+                    </div>
+                    <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-5 space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                        Esta conta bancária não possui <strong>Agência</strong> e <strong>Conta Corrente</strong> configuradas.
+                        Preencha abaixo para que o arquivo CNAB seja gerado corretamente — os dados serão salvos automaticamente.
+                    </p>
+
+                    <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-4 space-y-3 border border-gray-100 dark:border-slate-700">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Dados da Conta para CNAB</p>
+
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2">
+                                <Input
+                                    label="Agência"
+                                    value={branch}
+                                    onChange={e => setBranch(e.target.value.replace(/\D/g, ''))}
+                                    placeholder="0000"
+                                    maxLength={6}
+                                    className="dark:bg-slate-900 dark:border-slate-600"
+                                />
+                            </div>
+                            <div>
+                                <Input
+                                    label="Dígito"
+                                    value={branchDigit}
+                                    onChange={e => setBranchDigit(e.target.value.replace(/\D/g, ''))}
+                                    placeholder="0"
+                                    maxLength={2}
+                                    className="dark:bg-slate-900 dark:border-slate-600"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2">
+                                <Input
+                                    label="Conta Corrente"
+                                    value={account}
+                                    onChange={e => setAccount(e.target.value.replace(/\D/g, ''))}
+                                    placeholder="00000"
+                                    maxLength={12}
+                                    className="dark:bg-slate-900 dark:border-slate-600"
+                                />
+                            </div>
+                            <div>
+                                <Input
+                                    label="Dígito"
+                                    value={accountDigit}
+                                    onChange={e => setAccountDigit(e.target.value.replace(/\D/g, ''))}
+                                    placeholder="0"
+                                    maxLength={2}
+                                    className="dark:bg-slate-900 dark:border-slate-600"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {!hasData && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <AlertTriangle size={13} />
+                            Sem Agência e Conta, o arquivo CNAB poderá ser rejeitado pelo banco.
+                        </p>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex flex-col gap-2 p-5 pt-0">
+                    <Button
+                        onClick={() => onSaveAndContinue({ branch, branch_digit: branchDigit, account, account_digit: accountDigit })}
+                        isLoading={isSaving}
+                        disabled={!hasData || isSaving}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-500/20 border-none"
+                    >
+                        <Save size={16} className="mr-2" />
+                        Salvar e Gerar Remessa
+                    </Button>
+                    <button
+                        onClick={onContinueAnyway}
+                        disabled={isSaving}
+                        className="w-full text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                        Continuar sem preencher (arquivo pode ser rejeitado)
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 const getBankCodeFromProvider = (provider: string): string => {
     if (provider.startsWith('bb_')) return '001';
@@ -24,111 +158,80 @@ const getBankCodeFromProvider = (provider: string): string => {
     if (provider.startsWith('sicoob_')) return '756';
     if (provider.startsWith('sicredi_')) return '748';
     if (provider.startsWith('inter_')) return '077';
-    return '001'; // Default BB
+    return '001';
 };
 
 const getBarcodeFromTransaction = (t: Transaction): string | null => {
     if (!t.notes) return null;
 
-    // 1. Tenta extrair usando o delimitador oficial da IA
-    const match = t.notes.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
+    const match = t.notes.match(/>{1,}BARCODE_DATA<{1,}([\s\S]*?)>{1,}END_BARCODE<{1,}/);
     if (match) {
         const cleaned = match[1].replace(/\D/g, '');
-        if (cleaned.length >= 44 && cleaned.length <= 48) {
-            return cleaned;
-        }
+        if (cleaned.length >= 44 && cleaned.length <= 48) return cleaned;
     }
 
-    // 2. Busca qualquer bloco de texto que contenha entre 44 e 48 dígitos
-    // Remove caracteres comuns de formatação como pontos, espaços e hifens
-    // mas preserva quebras de linha para analisar linha por linha
     const lines = t.notes.split('\n');
     for (const line of lines) {
         const cleanedLine = line.replace(/\D/g, '');
-        if (cleanedLine.length >= 44 && cleanedLine.length <= 48) {
-            return cleanedLine;
-        }
+        if (cleanedLine.length >= 44 && cleanedLine.length <= 48) return cleanedLine;
     }
 
-    // 3. Busca no texto completo (caso esteja quebrado em várias linhas ou tenha formatação muito complexa)
     const cleanedAll = t.notes.replace(/\D/g, '');
-    if (cleanedAll.length >= 44 && cleanedAll.length <= 48) {
-        return cleanedAll;
-    }
+    if (cleanedAll.length >= 44 && cleanedAll.length <= 48) return cleanedAll;
 
-    // 4. Procura padrão de linha digitável ou código de barras com espaços/pontos no meio
     const longNumPattern = /[0-9.\-\s]{40,60}/g;
     const matches = t.notes.match(longNumPattern);
     if (matches) {
         for (const m of matches) {
             const cleanM = m.replace(/\D/g, '');
-            if (cleanM.length >= 44 && cleanM.length <= 48) {
-                return cleanM;
-            }
+            if (cleanM.length >= 44 && cleanM.length <= 48) return cleanM;
         }
     }
 
     return null;
 };
 
-export function CnabExportModal({ isOpen, onClose, selectedTransactions, companyCnpj, companyName }: CnabExportModalProps) {
-    const { configs, loading } = useBankingSettings();
-    const [selectedConfigId, setSelectedConfigId] = useState<string>('');
+// ─── Main Component ──────────────────────────────────────────────────────────
 
-    // Analisa todas as transações selecionadas e seus respectivos códigos de barras
+export function CnabExportModal({ isOpen, onClose, selectedTransactions, companyCnpj, companyName }: CnabExportModalProps) {
+    const { configs, loading, refresh } = useBankingSettings();
+    const [selectedConfigId, setSelectedConfigId] = useState<string>('');
+    const [showMissingDataModal, setShowMissingDataModal] = useState(false);
+    const [isSavingBankData, setIsSavingBankData] = useState(false);
+
     const processedTransactions = useMemo(() => {
         return selectedTransactions.map(t => {
             const barcode = getBarcodeFromTransaction(t);
-            return {
-                transaction: t,
-                barcode,
-                isValid: !!barcode && t.status !== 'paid'
-            };
+            return { transaction: t, barcode, isValid: !!barcode && t.status !== 'paid' };
         });
     }, [selectedTransactions]);
 
-    const validPayments = useMemo(() => {
-        return processedTransactions.filter(p => p.isValid);
-    }, [processedTransactions]);
-
+    const validPayments = useMemo(() => processedTransactions.filter(p => p.isValid), [processedTransactions]);
     const hasInvalidPayments = processedTransactions.length > validPayments.length;
 
     if (!isOpen) return null;
 
-    const handleExport = () => {
-        if (!selectedConfigId) {
-            alert('Selecione uma conta bancária de origem.');
-            return;
-        }
+    const bankConfig = configs.find(c => c.id === selectedConfigId);
+    const bankCode = bankConfig ? getBankCodeFromProvider(bankConfig.provider) : '';
+    const hasAgencyAndAccount = !!(bankConfig?.config?.branch && bankConfig?.config?.account);
 
-        const bankConfig = configs.find(c => c.id === selectedConfigId);
+    // ── Executa geração do CNAB ──────────────────────────────────────────────
+    const doExport = (overrideConfig?: { branch: string; branch_digit: string; account: string; account_digit: string }) => {
         if (!bankConfig) return;
+        const effectiveConfig = overrideConfig
+            ? { ...bankConfig.config, ...overrideConfig }
+            : bankConfig.config;
 
-        const bankCode = getBankCodeFromProvider(bankConfig.provider);
-
-        // Verifica se a conta possui agência e conta correntes configurados (essencial para CNAB)
-        if (!bankConfig.config?.branch || !bankConfig.config?.account) {
-            if (!confirm('Esta conta bancária não possui Agência ou Conta configurados no cadastro. O arquivo CNAB pode ser gerado incompleto e rejeitado pelo banco. Deseja continuar assim mesmo?')) {
-                return;
-            }
-        }
-
-        // Monta informações da empresa para o CNAB
         const company: CompanyBankInfo = {
             cnpj: companyCnpj,
             legal_name: companyName,
-            bankCode: bankCode,
-            agency: bankConfig.config?.branch || '',
-            agency_dv: bankConfig.config?.branch_digit || '0',
-            account: bankConfig.config?.account || '',
-            account_dv: bankConfig.config?.account_digit || '0',
-            company_code: bankConfig.config?.transmission_code || ''
+            bankCode,
+            agency: effectiveConfig?.branch || '',
+            agency_dv: effectiveConfig?.branch_digit || '0',
+            account: effectiveConfig?.account || '',
+            account_dv: effectiveConfig?.account_digit || '0',
+            company_code: effectiveConfig?.transmission_code || ''
         };
-
-        if (validPayments.length === 0) {
-            alert('Nenhum dos lançamentos selecionados possui um Código de Barras válido em suas observações.');
-            return;
-        }
 
         const payments: PaymentItem[] = validPayments.map(item => ({
             id: item.transaction.id,
@@ -140,8 +243,6 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
 
         try {
             const cnabContent = generateCnab240(company, payments, 1);
-            
-            // Download file
             const blob = new Blob([cnabContent], { type: 'text/plain;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -151,11 +252,43 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-
+            setShowMissingDataModal(false);
             onClose();
         } catch (error: any) {
             console.error('Erro ao gerar CNAB:', error);
-            alert('Erro ao gerar arquivo CNAB: ' + error.message);
+        }
+    };
+
+    // ── Botão principal de exportação ────────────────────────────────────────
+    const handleExport = () => {
+        if (!selectedConfigId) return;
+        if (!bankConfig) return;
+        if (validPayments.length === 0) return;
+
+        if (!hasAgencyAndAccount) {
+            setShowMissingDataModal(true);
+            return;
+        }
+
+        doExport();
+    };
+
+    // ── Salva dados bancários no Supabase e depois exporta ───────────────────
+    const handleSaveAndContinue = async (data: { branch: string; branch_digit: string; account: string; account_digit: string }) => {
+        if (!bankConfig) return;
+        setIsSavingBankData(true);
+        try {
+            const newConfig = { ...bankConfig.config, ...data };
+            await supabase
+                .from('bank_accounts')
+                .update({ config: newConfig })
+                .eq('id', bankConfig.id);
+            if (refresh) await refresh();
+            doExport(data);
+        } catch (err) {
+            console.error('Erro ao salvar dados bancários:', err);
+        } finally {
+            setIsSavingBankData(false);
         }
     };
 
@@ -166,162 +299,187 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
     const validAmount = validPayments.reduce((acc, p) => acc + p.transaction.amount, 0);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-                {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50">
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                            Preparar Remessa de Pagamento (CNAB 240)
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Gere o arquivo para fazer upload no Internet Banking de qualquer banco.
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 p-1.5 hover:bg-gray-100 dark:hover:bg-slate-850 rounded-lg transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
-
-                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                    {/* Resumo da seleção */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Total Selecionado</span>
-                            <span className="block text-2xl font-black text-gray-950 dark:text-white mt-1">
-                                {formatCurrency(totalAmount)}
-                            </span>
-                            <span className="text-xs text-gray-500 mt-1 block">
-                                {selectedTransactions.length} lançamentos marcados
-                            </span>
+        <>
+            {/* Modal principal */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-slate-800 bg-gradient-to-r from-blue-600 to-indigo-600">
+                        <div>
+                            <h3 className="text-lg font-bold text-white">
+                                Preparar Remessa de Pagamento (CNAB 240)
+                            </h3>
+                            <p className="text-xs text-blue-100 mt-1">
+                                Gere o arquivo para fazer upload no Internet Banking de qualquer banco.
+                            </p>
                         </div>
-                        <div className="bg-blue-50/50 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100/30 dark:border-blue-900/30">
-                            <span className="block text-xs font-semibold uppercase tracking-wider text-blue-500">Pronto para Exportar</span>
-                            <span className="block text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
-                                {formatCurrency(validAmount)}
-                            </span>
-                            <span className="text-xs text-blue-750 dark:text-blue-300 mt-1 block font-medium">
-                                {validPayments.length} de {selectedTransactions.length} títulos com código de barras
-                            </span>
-                        </div>
+                        <button
+                            onClick={onClose}
+                            className="text-white/70 hover:text-white p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
                     </div>
 
-                    {/* Seleção de Conta de Origem */}
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                            Conta Bancária de Origem
-                        </label>
-                        {loading ? (
-                            <div className="text-sm text-gray-500 animate-pulse bg-gray-150 h-10 rounded-lg"></div>
-                        ) : configs.length === 0 ? (
-                            <div className="text-sm text-red-500 bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border border-red-200/30">
-                                Nenhuma conta bancária configurada. Acesse as <strong>Configurações &gt; Bancos e DDA</strong> para adicionar uma conta de origem.
+                    <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                        {/* Resumo */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Total Selecionado</span>
+                                <span className="block text-2xl font-black text-gray-950 dark:text-white mt-1">{formatCurrency(totalAmount)}</span>
+                                <span className="text-xs text-gray-500 mt-1 block">{selectedTransactions.length} lançamentos marcados</span>
                             </div>
-                        ) : (
-                            <div>
-                                <select
-                                    value={selectedConfigId}
-                                    onChange={(e) => setSelectedConfigId(e.target.value)}
-                                    className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white font-medium text-sm transition-shadow outline-none"
-                                >
-                                    <option value="">Selecione a conta de onde sairá o dinheiro...</option>
-                                    {configs.map(config => {
-                                        const bankCode = getBankCodeFromProvider(config.provider);
-                                        const bankName = BANK_TEMPLATES[bankCode]?.bankName || 'Banco';
-                                        const hasAgencyAndAccount = config.config?.branch && config.config?.account;
-                                        return (
-                                            <option key={config.id} value={config.id}>
-                                                {bankName} {hasAgencyAndAccount ? `(Ag: ${config.config.branch} / CC: ${config.config.account})` : '(API / Sem dados de agência)'}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                                {selectedConfigId && !configs.find(c => c.id === selectedConfigId)?.config?.branch && (
-                                    <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-2.5 rounded-lg border border-amber-250/20 flex gap-2">
-                                        <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                                        <span>Esta conta foi configurada via API. Para exportação de arquivo CNAB, preencha os dados de Agência e Conta nas Configurações da conta bancária.</span>
+                            <div className="bg-blue-50/50 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100/30 dark:border-blue-900/30">
+                                <span className="block text-xs font-semibold uppercase tracking-wider text-blue-500">Pronto para Exportar</span>
+                                <span className="block text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">{formatCurrency(validAmount)}</span>
+                                <span className="text-xs text-blue-750 dark:text-blue-300 mt-1 block font-medium">
+                                    {validPayments.length} de {selectedTransactions.length} títulos com código de barras
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Conta Bancária de Origem */}
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                                Conta Bancária de Origem
+                            </label>
+                            {loading ? (
+                                <div className="text-sm text-gray-500 animate-pulse bg-gray-150 h-10 rounded-lg" />
+                            ) : configs.length === 0 ? (
+                                <div className="text-sm text-red-500 bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border border-red-200/30">
+                                    Nenhuma conta bancária configurada. Acesse as <strong>Configurações &gt; Bancos e DDA</strong> para adicionar uma conta de origem.
+                                </div>
+                            ) : (
+                                <div>
+                                    <select
+                                        value={selectedConfigId}
+                                        onChange={(e) => setSelectedConfigId(e.target.value)}
+                                        className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white font-medium text-sm transition-shadow outline-none"
+                                    >
+                                        <option value="">Selecione a conta de onde sairá o dinheiro...</option>
+                                        {configs.map(config => {
+                                            const code = getBankCodeFromProvider(config.provider);
+                                            const bankName = BANK_TEMPLATES[code]?.bankName || 'Banco';
+                                            const hasFull = config.config?.branch && config.config?.account;
+                                            return (
+                                                <option key={config.id} value={config.id}>
+                                                    {bankName} {hasFull
+                                                        ? `(Ag: ${config.config.branch} / CC: ${config.config.account})`
+                                                        : '⚠ Sem dados de agência/conta'}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+
+                                    {/* Alerta de dados faltando */}
+                                    {selectedConfigId && !hasAgencyAndAccount && (
+                                        <div className="mt-2 flex items-start gap-2.5 px-3 py-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+                                            <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                                                    Agência e Conta não configuradas
+                                                </p>
+                                                <p className="text-[11px] text-amber-600 dark:text-amber-500 mt-0.5">
+                                                    Ao baixar a remessa, você poderá preencher e salvar esses dados antes de continuar.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Badge verde quando dados estão ok */}
+                                    {selectedConfigId && hasAgencyAndAccount && (
+                                        <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
+                                            <CheckCircle2 size={14} className="text-emerald-500" />
+                                            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                                                Ag: {bankConfig?.config?.branch}-{bankConfig?.config?.branch_digit || '0'} &nbsp;|&nbsp; CC: {bankConfig?.config?.account}-{bankConfig?.config?.account_digit || '0'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Aviso de lançamentos sem código */}
+                        {hasInvalidPayments && (
+                            <div className="bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/50 rounded-xl p-4 flex items-start gap-3">
+                                <AlertTriangle className="text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" size={20} />
+                                <div className="text-sm text-amber-800 dark:text-amber-300 space-y-1.5 leading-relaxed">
+                                    <p className="font-bold">Atenção: Existem lançamentos sem código de barras!</p>
+                                    <p className="text-xs">O arquivo de remessa CNAB exige que todos os boletos tenham o código de barras ou a linha digitável cadastrados.</p>
+                                    <p className="text-xs font-semibold bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg border border-amber-200/20">
+                                        💡 <strong>Como resolver:</strong> Abra ou edite a despesa e cole o código de barras no campo <strong>Observações</strong>. Você também pode arrastar o PDF do boleto para que a IA faça a leitura automática do código.
                                     </p>
-                                )}
+                                </div>
                             </div>
                         )}
-                    </div>
 
-                    {/* Explicação / Dica se houver algum lançamento sem código de barras */}
-                    {hasInvalidPayments && (
-                        <div className="bg-amber-55/40 dark:bg-amber-950/20 border border-amber-200/30 rounded-xl p-4 flex items-start gap-3">
-                            <AlertTriangle className="text-amber-550 dark:text-amber-400 shrink-0 mt-0.5" size={20} />
-                            <div className="text-sm text-amber-800 dark:text-amber-300 space-y-1.5 leading-relaxed">
-                                <p className="font-bold">Atenção: Existem lançamentos sem código de barras!</p>
-                                <p className="text-xs">
-                                    O arquivo de remessa CNAB exige que todos os boletos tenham o código de barras ou a linha digitável cadastrados.
-                                </p>
-                                <p className="text-xs font-semibold bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg border border-amber-200/20">
-                                    💡 <strong>Como resolver:</strong> Abra ou edite a despesa e cole o código de barras (apenas os números) no campo <strong>Observações</strong>. Você também pode arrastar o PDF do boleto para que a IA faça a leitura automática do código.
-                                </p>
+                        {/* Lista de lançamentos */}
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                                Lançamentos Selecionados ({selectedTransactions.length})
+                            </label>
+                            <div className="border border-gray-100 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-slate-800 max-h-[200px] overflow-y-auto">
+                                {processedTransactions.map(({ transaction: t, isValid }) => (
+                                    <div key={t.id} className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors">
+                                        <div className="min-w-0 pr-4">
+                                            <span className="block text-sm font-semibold text-gray-800 dark:text-white truncate">{t.description}</span>
+                                            <span className="text-xs text-gray-500">
+                                                Vencimento: {new Date(t.date).toLocaleDateString('pt-BR')} {t.contact?.name ? `• ${t.contact.name}` : ''}
+                                            </span>
+                                        </div>
+                                        <div className="text-right shrink-0 flex items-center gap-3">
+                                            <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(t.amount)}</span>
+                                            {isValid ? (
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full border border-green-200/10">
+                                                    <CheckCircle2 size={10} /> Pronto
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-200/10">
+                                                    <AlertCircle size={10} /> Sem código
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    )}
+                    </div>
 
-                    {/* Lista de lançamentos selecionados */}
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                            Lançamentos Selecionados ({selectedTransactions.length})
-                        </label>
-                        <div className="border border-gray-100 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-slate-800 max-h-[200px] overflow-y-auto">
-                            {processedTransactions.map(({ transaction: t, isValid }) => (
-                                <div key={t.id} className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors">
-                                    <div className="min-w-0 pr-4">
-                                        <span className="block text-sm font-semibold text-gray-800 dark:text-white truncate">
-                                            {t.description}
-                                        </span>
-                                        <span className="text-xs text-gray-500">
-                                            Vencimento: {new Date(t.date).toLocaleDateString('pt-BR')} {t.contact?.name ? `• ${t.contact.name}` : ''}
-                                        </span>
-                                    </div>
-                                    <div className="text-right shrink-0 flex items-center gap-3">
-                                        <span className="text-sm font-bold text-gray-900 dark:text-white">
-                                            {formatCurrency(t.amount)}
-                                        </span>
-                                        {isValid ? (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full border border-green-200/10">
-                                                <CheckCircle2 size={10} />
-                                                Pronto
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-200/10">
-                                                <AlertCircle size={10} />
-                                                Sem código
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                    {/* Footer */}
+                    <div className="p-5 bg-gray-50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-150 dark:border-slate-800">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                            <Info size={14} className="text-gray-450" />
+                            <span>Apenas títulos marcados como "Pronto" serão incluídos no arquivo.</span>
                         </div>
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <div className="p-5 bg-gray-50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-150 dark:border-slate-800">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                        <Info size={14} className="text-gray-450" />
-                        <span>Apenas títulos marcados como "Pronto" serão incluídos no arquivo.</span>
-                    </div>
-                    <div className="flex gap-2 w-full sm:w-auto shrink-0 justify-end">
-                        <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancelar</Button>
-                        <Button 
-                            onClick={handleExport} 
-                            disabled={!selectedConfigId || validPayments.length === 0}
-                            className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto shadow-md shadow-blue-500/15"
-                        >
-                            <Download size={18} className="mr-2" />
-                            Baixar Remessa ({validPayments.length})
-                        </Button>
+                        <div className="flex gap-2 w-full sm:w-auto shrink-0 justify-end">
+                            <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancelar</Button>
+                            <Button
+                                onClick={handleExport}
+                                disabled={!selectedConfigId || validPayments.length === 0}
+                                className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto shadow-md shadow-blue-500/15"
+                            >
+                                <Download size={18} className="mr-2" />
+                                Baixar Remessa ({validPayments.length})
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+            {/* Modal de dados bancários faltando */}
+            {showMissingDataModal && bankConfig && (
+                <MissingBankDataModal
+                    bankName={BANK_TEMPLATES[bankCode]?.bankName || bankConfig.provider}
+                    currentBranch={bankConfig.config?.branch || ''}
+                    currentBranchDigit={bankConfig.config?.branch_digit || ''}
+                    currentAccount={bankConfig.config?.account || ''}
+                    currentAccountDigit={bankConfig.config?.account_digit || ''}
+                    onSaveAndContinue={handleSaveAndContinue}
+                    onContinueAnyway={() => { setShowMissingDataModal(false); doExport(); }}
+                    onCancel={() => setShowMissingDataModal(false)}
+                    isSaving={isSavingBankData}
+                />
+            )}
+        </>
     );
 }

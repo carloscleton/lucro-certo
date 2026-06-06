@@ -119,6 +119,10 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Banco Inter (API)',
         desc: 'Integração em tempo real para pagamentos e DDA.',
         fields: [
+            { key: 'branch', label: 'Agência', placeholder: '0000' },
+            { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
+            { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
+            { key: 'account_digit', label: 'Dígito Conta', placeholder: '0' },
             { key: 'client_id', label: 'Client ID', placeholder: 'Chave obtida no console Inter' },
             { key: 'client_secret', label: 'Client Secret', placeholder: 'Segredo da API Inter', type: 'password' },
             { key: 'certificate_pem', label: 'Certificado Público (PEM)', placeholder: 'Cole o conteúdo do arquivo .key ou .crt público aqui', type: 'textarea' },
