@@ -307,6 +307,7 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
     const [selectedConfigId, setSelectedConfigId] = useState<string>('');
     const [showMissingDataModal, setShowMissingDataModal] = useState(false);
     const [isSavingBankData, setIsSavingBankData] = useState(false);
+    const [fileExtension, setFileExtension] = useState<'rem' | 'txt'>('txt');
 
     useEffect(() => {
         if (configs && configs.length > 0 && !selectedConfigId) {
@@ -318,6 +319,17 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
             }
         }
     }, [configs, selectedConfigId]);
+
+    useEffect(() => {
+        if (selectedConfigId && configs) {
+            const config = configs.find(c => c.id === selectedConfigId);
+            if (config) {
+                const code = config.config?.bank_code || getBankCodeFromProvider(config.provider);
+                const isRem = ['077', '104', '756', '748'].includes(code);
+                setFileExtension(isRem ? 'rem' : 'txt');
+            }
+        }
+    }, [selectedConfigId, configs]);
 
     const processedTransactions = useMemo(() => {
         return selectedTransactions.map(t => {
@@ -387,9 +399,7 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
             const link = document.createElement('a');
             link.href = url;
             const dataHoje = new Date().toISOString().split('T')[0].replace(/-/g, '');
-            const isRem = ['077', '104', '756', '748'].includes(company.bankCode);
-            const extension = isRem ? 'rem' : 'txt';
-            link.setAttribute('download', `remessa_${company.bankCode}_${dataHoje}.${extension}`);
+            link.setAttribute('download', `remessa_${company.bankCode}_${dataHoje}.${fileExtension}`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -541,6 +551,39 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
                                 </div>
                             )}
                         </div>
+
+                        {/* Extensão do Arquivo */}
+                        {selectedConfigId && (
+                            <div className="bg-slate-50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-slate-800 space-y-3">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-gray-405 dark:text-gray-400">
+                                    Formato / Extensão do Arquivo
+                                </label>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="file-extension"
+                                            value="rem"
+                                            checked={fileExtension === 'rem'}
+                                            onChange={() => setFileExtension('rem')}
+                                            className="w-4 h-4 text-indigo-650 focus:ring-indigo-500 border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                                        />
+                                        <span>Arquivo de Remessa (.rem)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="file-extension"
+                                            value="txt"
+                                            checked={fileExtension === 'txt'}
+                                            onChange={() => setFileExtension('txt')}
+                                            className="w-4 h-4 text-indigo-650 focus:ring-indigo-500 border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                                        />
+                                        <span>Arquivo de Texto (.txt)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Aviso de lançamentos sem código */}
                         {hasInvalidPayments && (
