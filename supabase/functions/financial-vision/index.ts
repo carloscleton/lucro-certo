@@ -41,7 +41,7 @@ Sua tarefa é ler os dados extraídos do documento anexado (que pode ser uma not
 IMPORTANTE:
 1. Identifique o Valor Total exato, Data de Vencimento/Pagamento, e Nome do Emissor/Favorecido.
 2. O campo "notes_suggestion" DEVE ser usado como um relatório detalhado! Nele, você deve colocar TUDO que houver de útil no documento (CNPJ do emissor, número de referência, período de apuração, número do documento, código da receita, observações originais, etc).
-3. CRÍTICO PARA PAGAMENTOS: Se o documento for pagável (boleto com linha digitável, DARF com código de barras, código PIX), você DEVE extrair O CÓDIGO LITERALMENTE IDÊNTICO AO ARQUIVO original. Não abrevie.
+3. CRÍTICO - EXTRAÇÃO DE CÓDIGO DE BARRAS/LINHA DIGITÁVEL: Procure ATIVAMENTE por sequências numéricas longas (44 a 47 dígitos) no documento. Em boletos bancários, a linha digitável aparece no formato: XXXXX.XXXXX XXXXX.XXXXXX XXXXX.XXXXXX X XXXXXXXXXXXXXX (com pontos e espaços). No campo "barcode" do JSON, forneça TODOS os dígitos sem espaços, pontos ou traços. Se não encontrar, retorne null.
 
 Modelos para o "notes_suggestion" (Use este template exato se aplicável, substituindo [ ] por informações. Embeleze usando Markdown):
 **CÓDIGO PARA PAGAMENTO**
@@ -102,7 +102,7 @@ Regras:
                         content: messagesContent
                     }
                 ],
-                max_tokens: 1500
+                max_tokens: 2000
             })
         });
 

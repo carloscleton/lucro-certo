@@ -357,16 +357,48 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             } catch (decodeErr) { console.debug(decodeErr); }
                         }
 
-                        const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,75}/g);
-                        if (potentialBarcodeMatch) {
-                            for (const possible of potentialBarcodeMatch) {
-                                const clean = possible.replace(/[^\d]/g, '');
-                                if (clean.length >= 44 && clean.length <= 48) {
-                                    extractedText += `\n>>>>BARCODE_DATA<<<<${clean}>>>>END_BARCODE<<<<\n`;
-                                    break;
+                        // --- Barcode / Linha Digitável Detection ---
+                        // Strategy: join all text items tightly (no spaces) then scan, 
+                        // because PDF text items can be fragmented across tokens.
+                        // Also try joining with spaces to catch human-readable linha digitável format.
+                        
+                        const textJoined = sortedItems.map((item: any) => item.str).join('');
+                        const textWithSpaces = sortedItems.map((item: any) => item.str).join(' ');
+                        
+                        if (!extractedText.includes('>>>>BARCODE_DATA<<<<')) {
+                            // Pattern 1: Raw 44-48 digit numeric barcode (no spaces/dots)
+                            const rawBarcode = textJoined.match(/\d{44,48}/);
+                            if (rawBarcode) {
+                                extractedText += `\n>>>>BARCODE_DATA<<<<${rawBarcode[0]}>>>>END_BARCODE<<<<\n`;
+                            } else {
+                                // Pattern 2: Linha digitável com pontos e espaços
+                                // Ex: 00190.00009 02801.872059 90000.963301 1 10100000003677
+                                // Ex: 341.9 36307 .76538 3 60460000037700
+                                // Normalize: remove spaces, keep digits and dots, then strip non-digits
+                                const linhaDigMatch = textWithSpaces.match(
+                                    /\d{4,5}[\.\s]\d{5,6}\s+\d{4,6}[\.\s]\d{5,6}\s+\d{4,6}[\.\s]\d{5,6}\s+\d\s+\d{14,15}/
+                                );
+                                if (linhaDigMatch) {
+                                    const cleanCode = linhaDigMatch[0].replace(/[^\d]/g, '');
+                                    if (cleanCode.length >= 44 && cleanCode.length <= 48) {
+                                        extractedText += `\n>>>>BARCODE_DATA<<<<${cleanCode}>>>>END_BARCODE<<<<\n`;
+                                    }
+                                } else {
+                                    // Pattern 3: Fallback – any continuous sequence of digits, dots, hyphens ≥ 40 chars
+                                    const potentialBarcodeMatch = textWithSpaces.match(/[\d][\d\.\-\s]{38,73}[\d]/g);
+                                    if (potentialBarcodeMatch) {
+                                        for (const possible of potentialBarcodeMatch) {
+                                            const clean = possible.replace(/[^\d]/g, '');
+                                            if (clean.length >= 44 && clean.length <= 48) {
+                                                extractedText += `\n>>>>BARCODE_DATA<<<<${clean}>>>>END_BARCODE<<<<\n`;
+                                                break;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
+
 
                         const cleanText = pageText.replace(/\s+/g, '');
                         const textPixMatch = cleanText.match(/000201[a-zA-Z0-9]*?6304[a-fA-F0-9]{4}/i) ||
