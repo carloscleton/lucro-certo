@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Edit2, Trash2, CheckCircle, Paperclip, Download, FileText, Repeat, TrendingUp } from 'lucide-react';
 import type { Transaction } from '../../hooks/useTransactions';
 import { Tooltip } from '../ui/Tooltip';
@@ -21,26 +21,29 @@ interface TransactionListProps {
 export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus, canDelete = true, onViewQuote, onSelectionChange, showSelection = false }: TransactionListProps) {
     const { members } = useTeam();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const onSelectionChangeRef = useRef(onSelectionChange);
+
+    useEffect(() => {
+        onSelectionChangeRef.current = onSelectionChange;
+    }, [onSelectionChange]);
 
     // Reseta a seleção quando as transações mudam (ex: filtro de data)
     useEffect(() => {
         setSelectedIds(new Set());
+        onSelectionChangeRef.current?.([]);
     }, [transactions]);
 
-    useEffect(() => {
-        if (onSelectionChange) {
-            onSelectionChange(Array.from(selectedIds));
-        }
-    }, [selectedIds, onSelectionChange]);
-
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let newSet: Set<string>;
         if (e.target.checked) {
             // Seleciona todos que estão pendentes (normalmente só queremos pagar os pendentes)
             // mas para flexibilidade, seleciona todos os listados.
-            setSelectedIds(new Set(transactions.map(t => t.id)));
+            newSet = new Set(transactions.map(t => t.id));
         } else {
-            setSelectedIds(new Set());
+            newSet = new Set();
         }
+        setSelectedIds(newSet);
+        onSelectionChangeRef.current?.(Array.from(newSet));
     };
 
     const handleSelectOne = (id: string) => {
@@ -51,6 +54,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
             newSet.add(id);
         }
         setSelectedIds(newSet);
+        onSelectionChangeRef.current?.(Array.from(newSet));
     };
 
     const formatCurrency = (value: number) =>
