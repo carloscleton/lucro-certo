@@ -20,7 +20,8 @@ import { useTeam } from '../hooks/useTeam';
 import { useCRM } from '../hooks/useCRM';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 import { CnabExportModal } from '../components/financial/CnabExportModal';
-import { Download } from 'lucide-react';
+import { CnabImportReturnModal } from '../components/financial/CnabImportReturnModal';
+import { Download, Upload } from 'lucide-react';
 
 interface TransactionPageProps {
     type: 'expense' | 'income';
@@ -30,7 +31,7 @@ interface TransactionPageProps {
 function TransactionPage({ type, title }: TransactionPageProps) {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { transactions, loading, isRefreshing, error, addTransaction, updateTransaction, deleteTransaction } = useTransactions(type);
+    const { transactions, loading, isRefreshing, error, addTransaction, updateTransaction, deleteTransaction, refresh } = useTransactions(type);
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Filters from URL or Defaults
@@ -68,6 +69,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
     // Seleção em lote para CNAB
     const [selectedTransactionIds, setSelectedTransactionIds] = useState<string[]>([]);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const selectedTransactions = useMemo(() => 
         transactions.filter(t => selectedTransactionIds.includes(t.id)), 
     [transactions, selectedTransactionIds]);
@@ -491,6 +493,14 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                             <MessageSquare size={18} className="mr-2" />
                             {t('transactions.send_summary_whatsapp')}
                         </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="border-indigo-200 dark:border-indigo-850 text-indigo-650 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                        >
+                            <Upload size={18} className="mr-2" />
+                            Importar Retorno
+                        </Button>
                         {type === 'expense' && selectedTransactionIds.length > 0 && (
                             <Button 
                                 onClick={() => setIsExportModalOpen(true)}
@@ -627,6 +637,14 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                     selectedTransactions={selectedTransactions}
                     companyCnpj={companies.find(c => c.id === currentEntity.id)?.cnpj || ''}
                     companyName={companies.find(c => c.id === currentEntity.id)?.legal_name || currentEntity.name || ''}
+                />
+            )}
+
+            {isImportModalOpen && (
+                <CnabImportReturnModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    onRefresh={refresh}
                 />
             )}
 

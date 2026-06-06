@@ -76,6 +76,55 @@ export interface PaymentItem {
     beneficiary_name?: string;
 }
 
+export const modulo10 = (num: string): number => {
+    let sum = 0;
+    let weight = 2;
+    for (let i = num.length - 1; i >= 0; i--) {
+        let val = parseInt(num[i]) * weight;
+        if (val > 9) {
+            val = Math.floor(val / 10) + (val % 10);
+        }
+        sum += val;
+        weight = weight === 2 ? 1 : 2;
+    }
+    const remainder = sum % 10;
+    return remainder === 0 ? 0 : 10 - remainder;
+};
+
+export const modulo11Bank = (num: string): number => {
+    let sum = 0;
+    let weight = 2;
+    for (let i = num.length - 1; i >= 0; i--) {
+        sum += parseInt(num[i]) * weight;
+        weight = weight === 9 ? 2 : weight + 1;
+    }
+    const remainder = sum % 11;
+    const dv = 11 - remainder;
+    if (dv === 0 || dv === 10 || dv === 11) return 1;
+    return dv;
+};
+
+export const modulo11Utility = (num: string): number => {
+    let sum = 0;
+    let weight = 2;
+    for (let i = num.length - 1; i >= 0; i--) {
+        sum += parseInt(num[i]) * weight;
+        weight = weight === 9 ? 2 : weight + 1;
+    }
+    const remainder = sum % 11;
+    if (remainder === 0 || remainder === 1) return 0;
+    if (remainder === 10) return 1;
+    return 11 - remainder;
+};
+
+export interface BoletoValidationResult {
+    isValid: boolean;
+    type: 'bank' | 'utility' | 'invalid';
+    clean: string;
+    barcode: string;
+    errors: string[];
+}
+
 export const getBarcodeFromLinhaDigitavel = (linha: string): string => {
     const clean = linha.replace(/\D/g, '');
     if (clean.length === 44) return clean; // Já é um código de barras
@@ -98,6 +147,90 @@ export const getBarcodeFromLinhaDigitavel = (linha: string): string => {
     return clean.padEnd(44, '0').substring(0, 44); // Fallback de segurança
 };
 
+export const validateBoleto = (linha: string): BoletoValidationResult => {
+    const errors: string[] = [];
+    const clean = linha.replace(/\D/g, '');
+    
+    if (!clean) {
+        return { isValid: false, type: 'invalid', clean: '', barcode: '', errors: ['Código vazio'] };
+    }
+    
+    if (clean.length !== 44 && clean.length !== 47 && clean.length !== 48) {
+        return { 
+            isValid: false, 
+            type: 'invalid', 
+            clean, 
+            barcode: '', 
+            errors: [`Tamanho inválido (${clean.length} dígitos). Deve ter 44, 47 ou 48 dígitos`] 
+        };
+    }
+    
+    const isUtility = clean.startsWith('8') && (clean.length === 48 || clean.length === 44);
+    const type = isUtility ? 'utility' : 'bank';
+    const barcode = getBarcodeFromLinhaDigitavel(clean);
+    
+    if (isUtility) {
+        if (clean.length === 48) {
+            // Validar os DVs dos 4 blocos
+            const b1 = clean.substring(0, 12);
+            const b2 = clean.substring(12, 24);
+            const b3 = clean.substring(24, 36);
+            const b4 = clean.substring(36, 48);
+            
+            const refVal = clean[2];
+            const useMod11 = refVal === '7' || refVal === '9';
+            
+            const calcDv = (num: string) => {
+                return useMod11 ? modulo11Utility(num) : modulo10(num);
+            };
+            
+            if (calcDv(b1.substring(0, 11)) !== parseInt(b1[11])) {
+                errors.push('Dígito verificador do Bloco 1 inválido');
+            }
+            if (calcDv(b2.substring(0, 11)) !== parseInt(b2[11])) {
+                errors.push('Dígito verificador do Bloco 2 inválido');
+            }
+            if (calcDv(b3.substring(0, 11)) !== parseInt(b3[11])) {
+                errors.push('Dígito verificador do Bloco 3 inválido');
+            }
+            if (calcDv(b4.substring(0, 11)) !== parseInt(b4[11])) {
+                errors.push('Dígito verificador do Bloco 4 inválido');
+            }
+        }
+    } else {
+        if (clean.length === 47) {
+            // Validar DVs dos 3 campos
+            const f1 = clean.substring(0, 9);
+            const dv1 = parseInt(clean[9]);
+            const f2 = clean.substring(10, 20);
+            const dv2 = parseInt(clean[20]);
+            const f3 = clean.substring(21, 31);
+            const dv3 = parseInt(clean[31]);
+            
+            if (modulo10(f1) !== dv1) errors.push('Dígito verificador do Campo 1 inválido');
+            if (modulo10(f2) !== dv2) errors.push('Dígito verificador do Campo 2 inválido');
+            if (modulo10(f3) !== dv3) errors.push('Dígito verificador do Campo 3 inválido');
+        }
+        
+        // Validar DV Geral do código de barras
+        if (barcode.length === 44) {
+            const barcodeWithoutDv = barcode.substring(0, 4) + barcode.substring(5);
+            const dvGeral = parseInt(barcode[4]);
+            if (modulo11Bank(barcodeWithoutDv) !== dvGeral) {
+                errors.push('Dígito verificador geral do código de barras inválido');
+            }
+        }
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        type,
+        clean,
+        barcode,
+        errors
+    };
+};
+
 export const generateCnab240 = (
     company: CompanyBankInfo,
     payments: PaymentItem[],
@@ -108,6 +241,19 @@ export const generateCnab240 = (
     const timeNow = formatTime();
     let lines: string[] = [];
     
+    // Separar os pagamentos por tipo
+    const bankPayments = payments.filter(p => {
+        const rawBarcode = p.barcode || p.linha_digitavel || '';
+        const validation = validateBoleto(rawBarcode);
+        return validation.type === 'bank';
+    });
+    
+    const utilityPayments = payments.filter(p => {
+        const rawBarcode = p.barcode || p.linha_digitavel || '';
+        const validation = validateBoleto(rawBarcode);
+        return validation.type === 'utility';
+    });
+    
     // --- HEADER DE ARQUIVO (Registro 0) ---
     let header = '';
     header += padNum(company.bankCode, 3); // 01.0 Banco
@@ -116,7 +262,6 @@ export const generateCnab240 = (
     header += ''.padEnd(9, ' '); // 04.0 Brancos
     header += '2'; // 05.0 Tipo Inscrição (2 = CNPJ)
     header += padNum(company.cnpj, 14); // 06.0 Inscrição
-    // Código do convênio (varia muito por banco, padrão Febraban é 20, preencheremos com zeros e espaços)
     header += padAlpha(company.company_code || '', 20); // 07.0 Código do Convênio no Banco
     header += padNum(company.agency, 5); // 08.0 Agência
     header += padAlpha(company.agency_dv, 1); // 09.0 DV Agência
@@ -129,152 +274,207 @@ export const generateCnab240 = (
     header += '1'; // 16.0 Código Remessa/Retorno (1=Remessa)
     header += dateToday; // 17.0 Data de Geração
     header += timeNow; // 18.0 Hora de Geração
-    header += padNum(sequentialNSA, 6); // 19.0 NSA (Número Sequencial do Arquivo)
+    header += padNum(sequentialNSA, 6); // 19.0 NSA
     header += '081'; // 20.0 Versão Layout Febraban
     header += padNum(0, 5); // 21.0 Densidade Arquivo
-    header += ''.padEnd(20, ' '); // 22.0 Para Uso Reservado do Banco
-    header += ''.padEnd(20, ' '); // 23.0 Para Uso Reservado da Empresa
+    header += ''.padEnd(20, ' '); // 22.0 Reservado Banco
+    header += ''.padEnd(20, ' '); // 23.0 Reservado Empresa
     header += ''.padEnd(29, ' '); // 24.0 Brancos
     lines.push(header);
 
-    // --- HEADER DE LOTE (Registro 1) ---
-    // Vamos criar um lote único para pagamentos de boletos (Segmento J)
-    const lotNumber = 1;
-    let lotHeader = '';
-    lotHeader += padNum(company.bankCode, 3); // 01.1 Banco
-    lotHeader += padNum(lotNumber, 4); // 02.1 Lote (1)
-    lotHeader += '1'; // 03.1 Tipo Registro (1)
-    lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento, D=Débito)
-    lotHeader += '20'; // 05.1 Tipo de Serviço (20=Pagamento Fornecedor/Boletos)
-    lotHeader += '31'; // 06.1 Forma Lançamento (31 = Pagamento Títulos Outros Bancos / qualquer boleto)
-    lotHeader += '040'; // 07.1 Versão Layout do Lote
-    lotHeader += ' '; // 08.1 Brancos
-    lotHeader += '2'; // 09.1 Tipo Inscrição (2=CNPJ)
-    lotHeader += padNum(company.cnpj, 14); // 10.1 Inscrição
-    lotHeader += padAlpha(company.company_code || '', 20); // 11.1 Convênio
-    lotHeader += padNum(company.agency, 5); // 12.1 Agência
-    lotHeader += padAlpha(company.agency_dv, 1); // 13.1 DV Agência
-    lotHeader += padNum(company.account, 12); // 14.1 Conta
-    lotHeader += padAlpha(company.account_dv, 1); // 15.1 DV Conta
-    lotHeader += padAlpha('', 1); // 16.1 DV Ag/Conta
-    lotHeader += padAlpha(company.legal_name, 30); // 17.1 Nome da Empresa
-    lotHeader += ''.padEnd(40, ' '); // 18.1 Mensagem
-    lotHeader += padAlpha(company.legal_name, 30); // 19.1 Endereço Empresa (simplificado, colando o nome pq muitos bancos ignoram se endereco n for necessario)
-    // O padrão manda colocar Rua, etc. Mas por segurança vamos mandar vazio no lote de pagamentos se não for exigido.
-    lotHeader = lotHeader.substring(0, 153) + ''.padEnd(87, ' '); // Zerando o resto para evitar quebra de colunas (153 + 87 = 240)
-    lines.push(lotHeader);
+    let lotNumber = 1;
 
-    // --- DETALHES (Registro 3 - Segmento J) ---
-    let totalAmount = 0;
-    let sequenceInLot = 1;
+    // --- LOTE DE BOLETOS BANCÁRIOS (Segmento J) ---
+    if (bankPayments.length > 0) {
+        const currentLot = lotNumber++;
+        let lotHeader = '';
+        lotHeader += padNum(company.bankCode, 3); // 01.1 Banco
+        lotHeader += padNum(currentLot, 4); // 02.1 Lote
+        lotHeader += '1'; // 03.1 Tipo Registro (1)
+        lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento)
+        lotHeader += '20'; // 05.1 Tipo de Serviço (20=Pagamento Fornecedor/Boletos)
+        lotHeader += '31'; // 06.1 Forma Lançamento (31 = Pagamento Títulos Outros Bancos)
+        lotHeader += '040'; // 07.1 Versão Layout do Lote
+        lotHeader += ' '; // 08.1 Brancos
+        lotHeader += '2'; // 09.1 Tipo Inscrição (2=CNPJ)
+        lotHeader += padNum(company.cnpj, 14); // 10.1 Inscrição
+        lotHeader += padAlpha(company.company_code || '', 20); // 11.1 Convênio
+        lotHeader += padNum(company.agency, 5); // 12.1 Agência
+        lotHeader += padAlpha(company.agency_dv, 1); // 13.1 DV Agência
+        lotHeader += padNum(company.account, 12); // 14.1 Conta
+        lotHeader += padAlpha(company.account_dv, 1); // 15.1 DV Conta
+        lotHeader += padAlpha('', 1); // 16.1 DV Ag/Conta
+        lotHeader += padAlpha(company.legal_name, 30); // 17.1 Nome da Empresa
+        lotHeader += ''.padEnd(40, ' '); // 18.1 Mensagem
+        lotHeader += padAlpha(company.legal_name, 30); // 19.1 Endereço Empresa
+        lotHeader = lotHeader.substring(0, 153) + ''.padEnd(87, ' ');
+        lines.push(lotHeader);
 
-    payments.forEach((payment) => {
-        let det = '';
-        det += padNum(company.bankCode, 3); // 01.3 Banco
-        det += padNum(lotNumber, 4); // 02.3 Lote
-        det += '3'; // 03.3 Tipo Registro (3=Detalhe)
-        det += padNum(sequenceInLot++, 5); // 04.3 Sequencial do Registro no Lote
-        det += 'J'; // 05.3 Cód Segmento (J = Pagamento de Títulos)
-        det += '0'; // 06.3 Tipo Movimento (0=Inclusão)
-        det += '00'; // 07.3 Cód Inst Movimento (00 = Inclusão de Pagamento)
-        
-        // Código de Barras (44 Posições) - Tratando conversão de Linha Digitável
-        // Layout Febraban Segmento J: posições 18-61 = código de barras completo (44 chars)
-        // Estrutura do código de barras:
-        //   [0-2]   = Banco Cedente (3)        -> pos CNAB 18-20
-        //   [3]     = Moeda (1)                -> pos CNAB 21
-        //   [4]     = DV Código de Barras (1)  -> pos CNAB 22
-        //   [5-8]   = Fator de Vencimento (4)  -> pos CNAB 23-26
-        //   [9-18]  = Valor Nominal (10)        -> pos CNAB 27-36
-        //   [19-43] = Campo Livre (25)          -> pos CNAB 37-61
-        const rawBarcode = payment.barcode || payment.linha_digitavel || '';
-        const safeBarcode = getBarcodeFromLinhaDigitavel(rawBarcode);
-        const bc = safeBarcode.padEnd(44, '0').substring(0, 44);
-        
-        det += bc.substring(0, 3);  // 08.3 Banco Cedente (3)
-        det += bc.substring(3, 4);  // 09.3 Moeda (1)
-        det += bc.substring(4, 5);  // 10.3 DV do Código de Barras (1)
-        det += bc.substring(5, 9);  // 11.3 Fator de Vencimento (4)
-        det += bc.substring(9, 19); // 12.3 Valor Nominal (10)
-        det += bc.substring(19, 44);// 13.3 Campo Livre (25)
+        let lotAmount = 0;
+        let sequenceInLot = 1;
 
-        det += padAlpha(payment.beneficiary_name || 'FORNECEDOR', 30); // 14.3 Nome do Cedente (pos 62-91)
-        det += formatDate(payment.due_date);       // 15.3 Data Vencimento (pos 92-99)
-        det += formatCurrency(payment.amount, 15); // 16.3 Valor do Título (pos 100-114)
-        det += formatCurrency(0, 15);              // 17.3 Desconto/Abatimento (pos 115-129)
-        det += formatCurrency(0, 15);              // 18.3 Acréscimos/Mora (pos 130-144)
-        det += dateToday;                          // 19.3 Data do Pagamento (pos 145-152)
-        det += formatCurrency(payment.amount, 15); // 20.3 Valor do Pagamento (pos 153-167)
-        det += formatCurrency(0, 15);              // 21.3 Quantidade de Moeda (pos 168-182)
-        det += padAlpha(payment.id.substring(0, 20), 20); // 22.3 Seu Número (pos 183-202)
-        det += ''.padEnd(20, ' ');  // 23.3 Nosso Número no Banco (pos 203-222)
-        det += '09';                // 24.3 Código Moeda (09 = Real) (pos 223-224)
-        det += ''.padEnd(6, ' ');   // 25.3 Brancos (pos 225-230)
-        det += ''.padEnd(10, ' ');  // 26.3 Ocorrências (pos 231-240)
-        
-        lines.push(det);
+        bankPayments.forEach((payment) => {
+            // Segmento J
+            let det = '';
+            det += padNum(company.bankCode, 3); // 01.3 Banco
+            det += padNum(currentLot, 4); // 02.3 Lote
+            det += '3'; // 03.3 Tipo Registro (3=Detalhe)
+            det += padNum(sequenceInLot++, 5); // 04.3 Sequencial
+            det += 'J'; // 05.3 Cód Segmento
+            det += '0'; // 06.3 Tipo Movimento (0=Inclusão)
+            det += '00'; // 07.3 Cód Inst Movimento
+            
+            const rawBarcode = payment.barcode || payment.linha_digitavel || '';
+            const safeBarcode = getBarcodeFromLinhaDigitavel(rawBarcode);
+            const bc = safeBarcode.padEnd(44, '0').substring(0, 44);
+            
+            det += bc.substring(0, 3);  // 08.3 Banco Cedente (3)
+            det += bc.substring(3, 4);  // 09.3 Moeda (1)
+            det += bc.substring(4, 5);  // 10.3 DV do Código de Barras (1)
+            det += bc.substring(5, 9);  // 11.3 Fator de Vencimento (4)
+            det += bc.substring(9, 19); // 12.3 Valor Nominal (10)
+            det += bc.substring(19, 44);// 13.3 Campo Livre (25)
 
-        // --- DETALHES (Registro 3 - Segmento J-52) ---
-        // Obrigatório no Inter e outros bancos para detalhar Pagador/Recebedor
-        let det52 = '';
-        det52 += padNum(company.bankCode, 3); // 01.3 Banco
-        det52 += padNum(lotNumber, 4); // 02.3 Lote
-        det52 += '3'; // 03.3 Tipo Registro (3=Detalhe)
-        det52 += padNum(sequenceInLot++, 5); // 04.3 Sequencial (aumenta o sequencial)
-        det52 += 'J'; // 05.3 Cód Segmento
-        det52 += ' '; // 06.3 Brancos
-        det52 += '00'; // 07.3 Cód Inst Movimento (00 = Inclusão)
-        det52 += '52'; // 08.3 Identificação Registro Opcional (52)
-        
-        // Pagador (Nossa Empresa)
-        const isCnpj = company.cnpj.replace(/\D/g, '').length > 11;
-        det52 += isCnpj ? '2' : '1'; // 09.3 Tipo Inscrição Sacado
-        det52 += padNum(company.cnpj, 15); // 10.3 Inscrição Sacado
-        det52 += padAlpha(company.legal_name, 40); // 11.3 Nome do Sacado
-        
-        // Beneficiário (Fornecedor)
-        // Não temos o CNPJ/CPF exato na interface atual, então enviamos 0 (Isento/Não informado)
-        det52 += '0'; // 12.3 Tipo Inscrição Beneficiário
-        det52 += padNum(0, 15); // 13.3 Inscrição Beneficiário
-        det52 += padAlpha(payment.beneficiary_name || 'FORNECEDOR', 40); // 14.3 Nome do Beneficiário
-        
-        // Sacador / Avalista
-        det52 += '0'; // 15.3 Tipo Inscrição Sacador/Avalista
-        det52 += padNum(0, 15); // 16.3 Inscrição Sacador/Avalista
-        det52 += padAlpha('', 40); // 17.3 Nome Sacador/Avalista
-        
-        det52 += ''.padEnd(53, ' '); // 18.3 Brancos para completar 240
-        
-        lines.push(det52);
-        
-        totalAmount += payment.amount;
-    });
+            det += padAlpha(payment.beneficiary_name || 'FORNECEDOR', 30); // 14.3 Nome do Cedente
+            det += formatDate(payment.due_date);       // 15.3 Data Vencimento
+            det += formatCurrency(payment.amount, 15); // 16.3 Valor do Título
+            det += formatCurrency(0, 15);              // 17.3 Desconto/Abatimento
+            det += formatCurrency(0, 15);              // 18.3 Acréscimos/Mora
+            det += dateToday;                          // 19.3 Data do Pagamento
+            det += formatCurrency(payment.amount, 15); // 20.3 Valor do Pagamento
+            det += formatCurrency(0, 15);              // 21.3 Quantidade de Moeda
+            det += padAlpha(payment.id.substring(0, 20), 20); // 22.3 Seu Número
+            det += ''.padEnd(20, ' ');  // 23.3 Nosso Número no Banco
+            det += '09';                // 24.3 Código Moeda (09 = Real)
+            det += ''.padEnd(6, ' ');   // 25.3 Brancos
+            det += ''.padEnd(10, ' ');  // 26.3 Ocorrências
+            lines.push(det);
 
-    // --- TRAILER DO LOTE (Registro 5) ---
-    // Qtd registros no lote = 1 (header) + sequenceInLot-1 (detalhes gerados) + 1 (este trailer)
-    const qtdRegistrosLote = 1 + (sequenceInLot - 1) + 1;
-    let lotTrailer = '';
-    lotTrailer += padNum(company.bankCode, 3); // 01.5 Banco
-    lotTrailer += padNum(lotNumber, 4); // 02.5 Lote
-    lotTrailer += '5'; // 03.5 Tipo Registro (5)
-    lotTrailer += ''.padEnd(9, ' '); // 04.5 Brancos
-    lotTrailer += padNum(qtdRegistrosLote, 6); // 05.5 Qtd Registros no Lote
-    lotTrailer += formatCurrency(totalAmount, 18); // 06.5 Somatória dos Valores
-    lotTrailer += padNum(0, 18); // 07.5 Somatória Qtd Moeda
-    lotTrailer += ''.padEnd(181, ' '); // 08.5 Brancos (completando 240 caracteres)
-    lines.push(lotTrailer);
+            // Segmento J-52
+            let det52 = '';
+            det52 += padNum(company.bankCode, 3); // 01.3 Banco
+            det52 += padNum(currentLot, 4); // 02.3 Lote
+            det52 += '3'; // 03.3 Tipo Registro (3=Detalhe)
+            det52 += padNum(sequenceInLot++, 5); // 04.3 Sequencial
+            det52 += 'J'; // 05.3 Cód Segmento
+            det52 += ' '; // 06.3 Brancos
+            det52 += '00'; // 07.3 Cód Inst Movimento
+            det52 += '52'; // 08.3 Identificação Registro Opcional (52)
+            
+            const isCnpj = company.cnpj.replace(/\D/g, '').length > 11;
+            det52 += isCnpj ? '2' : '1'; // 09.3 Tipo Inscrição Sacado
+            det52 += padNum(company.cnpj, 15); // 10.3 Inscrição Sacado
+            det52 += padAlpha(company.legal_name, 40); // 11.3 Nome do Sacado
+            
+            det52 += '0'; // 12.3 Tipo Inscrição Beneficiário
+            det52 += padNum(0, 15); // 13.3 Inscrição Beneficiário
+            det52 += padAlpha(payment.beneficiary_name || 'FORNECEDOR', 40); // 14.3 Nome do Beneficiário
+            
+            det52 += '0'; // 15.3 Tipo Inscrição Sacador/Avalista
+            det52 += padNum(0, 15); // 16.3 Inscrição Sacador/Avalista
+            det52 += padAlpha('', 40); // 17.3 Nome Sacador/Avalista
+            det52 += ''.padEnd(53, ' '); // 18.3 Brancos
+            lines.push(det52);
+            
+            lotAmount += payment.amount;
+        });
+
+        // Trailer do Lote (Registro 5)
+        const qtdRegistrosLote = 1 + (sequenceInLot - 1) + 1;
+        let lotTrailer = '';
+        lotTrailer += padNum(company.bankCode, 3); // 01.5 Banco
+        lotTrailer += padNum(currentLot, 4); // 02.5 Lote
+        lotTrailer += '5'; // 03.5 Tipo Registro
+        lotTrailer += ''.padEnd(9, ' '); // 04.5 Brancos
+        lotTrailer += padNum(qtdRegistrosLote, 6); // 05.5 Qtd Registros Lote
+        lotTrailer += formatCurrency(lotAmount, 18); // 06.5 Somatória Valores
+        lotTrailer += padNum(0, 18); // 07.5 Somatória Qtd Moeda
+        lotTrailer += ''.padEnd(181, ' '); // 08.5 Brancos
+        lines.push(lotTrailer);
+    }
+
+    // --- LOTE DE CONCESSIONÁRIAS / TRIBUTOS (Segmento O) ---
+    if (utilityPayments.length > 0) {
+        const currentLot = lotNumber++;
+        let lotHeader = '';
+        lotHeader += padNum(company.bankCode, 3); // 01.1 Banco
+        lotHeader += padNum(currentLot, 4); // 02.1 Lote
+        lotHeader += '1'; // 03.1 Tipo Registro (1)
+        lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento)
+        lotHeader += '22'; // 05.1 Tipo de Serviço (22=Pagamento Contas e Tributos/Concessionárias)
+        lotHeader += '13'; // 06.1 Forma Lançamento (13=Pagamento de Concessionárias / Tributos com Cód Barras)
+        lotHeader += '040'; // 07.1 Versão Layout
+        lotHeader += ' '; // 08.1 Brancos
+        lotHeader += '2'; // 09.1 Tipo Inscrição (2=CNPJ)
+        lotHeader += padNum(company.cnpj, 14); // 10.1 Inscrição
+        lotHeader += padAlpha(company.company_code || '', 20); // 11.1 Convênio
+        lotHeader += padNum(company.agency, 5); // 12.1 Agência
+        lotHeader += padAlpha(company.agency_dv, 1); // 13.1 DV Agência
+        lotHeader += padNum(company.account, 12); // 14.1 Conta
+        lotHeader += padAlpha(company.account_dv, 1); // 15.1 DV Conta
+        lotHeader += padAlpha('', 1); // 16.1 DV Ag/Conta
+        lotHeader += padAlpha(company.legal_name, 30); // 17.1 Nome da Empresa
+        lotHeader += ''.padEnd(40, ' '); // 18.1 Mensagem
+        lotHeader += padAlpha(company.legal_name, 30); // 19.1 Endereço Empresa
+        lotHeader = lotHeader.substring(0, 153) + ''.padEnd(87, ' ');
+        lines.push(lotHeader);
+
+        let lotAmount = 0;
+        let sequenceInLot = 1;
+
+        utilityPayments.forEach((payment) => {
+            // Segmento O
+            let det = '';
+            det += padNum(company.bankCode, 3); // 01.3 Banco
+            det += padNum(currentLot, 4); // 02.3 Lote
+            det += '3'; // 03.3 Tipo Registro (3=Detalhe)
+            det += padNum(sequenceInLot++, 5); // 04.3 Sequencial
+            det += 'O'; // 05.3 Cód Segmento (O = Concessionárias/Tributos)
+            det += ' '; // 06.3 Brancos
+            det += '00'; // 07.3 Cód Inst Movimento
+            
+            const rawBarcode = payment.barcode || payment.linha_digitavel || '';
+            const safeBarcode = getBarcodeFromLinhaDigitavel(rawBarcode);
+            const bc = safeBarcode.padEnd(44, '0').substring(0, 44);
+            det += bc; // 08.3 Código de Barras (44 posições)
+            
+            det += padAlpha(payment.beneficiary_name || 'CONCESSIONARIA', 30); // 09.3 Nome
+            det += formatDate(payment.due_date);       // 10.3 Data Vencimento
+            det += dateToday;                          // 11.3 Data Pagamento
+            det += formatCurrency(payment.amount, 15); // 12.3 Valor
+            det += padAlpha(payment.id.substring(0, 20), 20); // 13.3 Seu Número
+            det += ''.padEnd(20, ' ');  // 14.3 Nosso Número
+            det += ''.padEnd(68, ' ');  // 15.3 Brancos
+            det += ''.padEnd(10, ' ');  // 16.3 Ocorrências
+            lines.push(det);
+
+            lotAmount += payment.amount;
+        });
+
+        // Trailer do Lote (Registro 5)
+        const qtdRegistrosLote = 1 + (sequenceInLot - 1) + 1;
+        let lotTrailer = '';
+        lotTrailer += padNum(company.bankCode, 3); // 01.5 Banco
+        lotTrailer += padNum(currentLot, 4); // 02.5 Lote
+        lotTrailer += '5'; // 03.5 Tipo Registro
+        lotTrailer += ''.padEnd(9, ' '); // 04.5 Brancos
+        lotTrailer += padNum(qtdRegistrosLote, 6); // 05.5 Qtd Registros Lote
+        lotTrailer += formatCurrency(lotAmount, 18); // 06.5 Somatória Valores
+        lotTrailer += padNum(0, 18); // 07.5 Somatória Qtd Moeda
+        lotTrailer += ''.padEnd(181, ' '); // 08.5 Brancos
+        lines.push(lotTrailer);
+    }
 
     // --- TRAILER DO ARQUIVO (Registro 9) ---
-    // Qtd total = linhas já geradas (header arquivo + header lote + detalhes + trailer lote) + 1 (este trailer)
     let trailer = '';
     trailer += padNum(company.bankCode, 3); // 01.9 Banco
     trailer += '9999'; // 02.9 Lote (9999)
     trailer += '9'; // 03.9 Tipo Registro (9)
     trailer += ''.padEnd(9, ' '); // 04.9 Brancos
-    trailer += padNum(1, 6); // 05.9 Qtd de Lotes no Arquivo (1 lote)
-    trailer += padNum(lines.length + 1, 6); // 06.9 Qtd de Registros no Arquivo (todas linhas + este trailer)
-    trailer += padNum(0, 6); // 07.9 Qtd de Contas para Conciliação (zeros)
-    trailer += ''.padEnd(205, ' '); // 08.9 Brancos (completando 240)
+    trailer += padNum(lotNumber - 1, 6); // 05.9 Qtd de Lotes no Arquivo
+    trailer += padNum(lines.length + 1, 6); // 06.9 Qtd de Registros no Arquivo
+    trailer += padNum(0, 6); // 07.9 Qtd de Contas para Conciliação
+    trailer += ''.padEnd(205, ' '); // 08.9 Brancos
     lines.push(trailer);
 
     return lines.join('\r\n'); // CNAB requer CRLF

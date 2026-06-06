@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useBankingSettings, encodeBankingConfig } from '../../hooks/useBankingSettings';
 import type { CompanyBankInfo, PaymentItem } from '../../services/cnab/cnab240Generator';
-import { generateCnab240 } from '../../services/cnab/cnab240Generator';
+import { generateCnab240, validateBoleto } from '../../services/cnab/cnab240Generator';
 import { BANK_TEMPLATES } from '../../services/cnab/bankTemplates';
 import type { Transaction } from '../../hooks/useTransactions';
 import { supabase } from '../../lib/supabase';
@@ -333,8 +333,14 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
 
     const processedTransactions = useMemo(() => {
         return selectedTransactions.map(t => {
-            const barcode = getBarcodeFromTransaction(t);
-            return { transaction: t, barcode, isValid: !!barcode && t.status !== 'paid' };
+            const rawBarcode = getBarcodeFromTransaction(t);
+            const validation = rawBarcode ? validateBoleto(rawBarcode) : null;
+            return { 
+                transaction: t, 
+                rawBarcode, 
+                validation, 
+                isValid: !!validation && validation.type !== 'invalid' && t.status !== 'paid' 
+            };
         });
     }, [selectedTransactions]);
 
@@ -386,7 +392,7 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
 
         const payments: PaymentItem[] = validPayments.map(item => ({
             id: item.transaction.id,
-            barcode: item.barcode!.replace(/\D/g, ''),
+            barcode: item.rawBarcode!.replace(/\D/g, ''),
             amount: item.transaction.amount,
             due_date: item.transaction.date,
             beneficiary_name: (item.transaction.contact as any)?.name || item.transaction.description
@@ -605,28 +611,74 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
                                 Lançamentos Selecionados ({selectedTransactions.length})
                             </label>
                             <div className="border border-gray-100 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-slate-800 max-h-[200px] overflow-y-auto">
-                                {processedTransactions.map(({ transaction: t, isValid }) => (
-                                    <div key={t.id} className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors">
-                                        <div className="min-w-0 pr-4">
-                                            <span className="block text-sm font-semibold text-gray-800 dark:text-white truncate">{t.description}</span>
-                                            <span className="text-xs text-gray-500">
-                                                Vencimento: {new Date(t.date).toLocaleDateString('pt-BR')} {t.contact?.name ? `• ${t.contact.name}` : ''}
-                                            </span>
+                                {processedTransactions.map(({ transaction: t, rawBarcode, validation, isValid }) => {
+                                    const hasBarcode = !!rawBarcode;
+                                    const isWarning = validation && !validation.isValid;
+                                    const isError = !isValid;
+                                    
+                                    return (
+                                        <div key={t.id} className="p-3.5 flex flex-col md:flex-row md:items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors gap-3">
+                                            <div className="min-w-0 flex-1 space-y-1">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-sm font-semibold text-gray-800 dark:text-white truncate">
+                                                        {t.description}
+                                                    </span>
+                                                    {validation && (
+                                                        <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                                            validation.type === 'utility'
+                                                                ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-200/10'
+                                                                : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200/10'
+                                                        }`}>
+                                                            {validation.type === 'utility' ? 'Concessionária' : 'Bancário'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
+                                                    <span>Vencimento: {new Date(t.date).toLocaleDateString('pt-BR')}</span>
+                                                    {t.contact?.name && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span className="truncate">{t.contact.name}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Detalhes do código de barras */}
+                                                {hasBarcode && validation && (
+                                                    <div className="pt-1 space-y-0.5">
+                                                        <code className="text-[10px] font-mono bg-gray-50 dark:bg-slate-900/60 px-1.5 py-0.5 rounded text-gray-500 dark:text-gray-400 block w-full overflow-x-auto truncate whitespace-nowrap">
+                                                            {validation.clean}
+                                                        </code>
+                                                        {validation.errors.length > 0 && (
+                                                            <div className="text-[10px] text-amber-600 dark:text-amber-400 flex items-start gap-1">
+                                                                <AlertTriangle size={10} className="shrink-0 mt-0.5" />
+                                                                <span className="leading-tight">{validation.errors.join(', ')}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="flex items-center justify-between md:justify-end gap-3 shrink-0">
+                                                <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(t.amount)}</span>
+                                                
+                                                {isError ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full border border-red-200/10">
+                                                        <AlertCircle size={10} /> Inválido
+                                                    </span>
+                                                ) : isWarning ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-200/10">
+                                                        <AlertTriangle size={10} /> Com aviso
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-200/10">
+                                                        <CheckCircle2 size={10} /> Pronto
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-right shrink-0 flex items-center gap-3">
-                                            <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(t.amount)}</span>
-                                            {isValid ? (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full border border-green-200/10">
-                                                    <CheckCircle2 size={10} /> Pronto
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-200/10">
-                                                    <AlertCircle size={10} /> Sem código
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 
