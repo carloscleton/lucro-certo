@@ -20,7 +20,7 @@ import { useAutoSave } from '../../hooks/useAutoSave';
 
 import { supabase } from '../../lib/supabase';
 import { storageService } from '../../lib/storageService';
-import { calculateNextDates, formatBrazilianDate } from '../../utils/dateUtils';
+import { calculateNextDates, formatBrazilianDate, formatDateString } from '../../utils/dateUtils';
 import { useNotification } from '../../context/NotificationContext';
 import { formatBRL, parseBRL } from '../../utils/currencyUtils';
 interface TransactionFormProps {
@@ -59,6 +59,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [tempAttachmentUrl, setTempAttachmentUrl] = useState('');
     const [tempAttachmentPath, setTempAttachmentPath] = useState('');
     const [tempAttachmentName, setTempAttachmentName] = useState('');
+    const [aiSuggestions, setAiSuggestions] = useState<{
+        description?: string;
+        amount?: string;
+        date?: string;
+    } | null>(null);
+    const [pdfPasswordRequired, setPdfPasswordRequired] = useState(false);
+    const [pdfFilePendingPassword, setPdfFilePendingPassword] = useState<File | null>(null);
+    const [pdfPassword, setPdfPassword] = useState('');
 
     // Optimized memory for local file preview
     const fileUrl = useMemo(() => {
@@ -89,6 +97,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
     // Load saved company preference for this transaction type
     useEffect(() => {
+        // Reset all recurrence overrides, exclusions and pending states to prevent leaks
+        setExclusions([]);
+        setOverrides({});
+        setEditingInstallment(null);
+        setTempOverrideAmount('');
+        setTempOverrideDate('');
+        setAiSuggestions(null);
+        setPdfPasswordRequired(false);
+        setPdfFilePendingPassword(null);
+        setPdfPassword('');
+
         if (initialData) {
             setDescription(initialData.description || '');
             setAmount(initialData.amount ? formatBRL(initialData.amount) : '');
@@ -112,6 +131,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
             setRemovedAttachment(false);
             setFile(null);
+            setTempAttachmentUrl('');
+            setTempAttachmentPath('');
+            setTempAttachmentName('');
         } else {
             // New transaction - prioritize current context, fallback to saved preference
             const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
@@ -213,7 +235,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
 
 
-    const analyzeDocument = async (fileToAnalyze: File) => {
+    const analyzeDocument = async (fileToAnalyze: File, password?: string) => {
         setIsAnalyzing(true);
         try {
             // 1. Instant Upload for Persistence (Autosave)
@@ -238,7 +260,23 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
                     const arrayBuffer = await fileToAnalyze.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let pdf;
+                    try {
+                        pdf = await pdfjsLib.getDocument({ data: arrayBuffer, password }).promise;
+                    } catch (pdfErr: any) {
+                        if (pdfErr.name === 'PasswordException' || pdfErr.code === 1 || pdfErr.message?.toLowerCase().includes('password')) {
+                            setPdfFilePendingPassword(fileToAnalyze);
+                            setPdfPasswordRequired(true);
+                            setIsAnalyzing(false);
+                            if (password) {
+                                notify('error', 'Senha incorreta para o PDF. Tente novamente.', 'Erro de Senha');
+                            } else {
+                                notify('warning', 'Este PDF está protegido por senha. Por favor, insira a senha para descriptografá-lo.', 'Senha Requerida');
+                            }
+                            return;
+                        }
+                        throw pdfErr;
+                    }
 
                     const QrScanner = (await import('qr-scanner')).default;
 
@@ -340,9 +378,17 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             if (invokeError) throw new Error(invokeError.message || 'Erro ao chamar função de IA');
 
             if (data && !data.error) {
-                if (data.description) setDescription(data.description);
-                if (data.amount) setAmount(formatBRL(data.amount));
-                if (data.date) setDate(data.date);
+                if (initialData) {
+                    setAiSuggestions({
+                        description: data.description || undefined,
+                        amount: data.amount ? formatBRL(data.amount) : undefined,
+                        date: data.date || undefined
+                    });
+                } else {
+                    if (data.description) setDescription(data.description);
+                    if (data.amount) setAmount(formatBRL(data.amount));
+                    if (data.date) setDate(data.date);
+                }
                 let finalNotes = data.notes_suggestion || '';
                 let paymentBlock = '';
                 if (extractedText) {
@@ -365,6 +411,16 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         } finally {
             setIsAnalyzing(false);
         }
+    };
+
+    const handlePasswordSubmit = async () => {
+        if (!pdfFilePendingPassword || !pdfPassword) return;
+        const fileToAnalyze = pdfFilePendingPassword;
+        const password = pdfPassword;
+        setPdfPasswordRequired(false);
+        setPdfFilePendingPassword(null);
+        setPdfPassword('');
+        await analyzeDocument(fileToAnalyze, password);
     };
 
     const handleSubmit = async (e: FormEvent) => {
@@ -801,6 +857,73 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             })()}
                         </div>
 
+                        {aiSuggestions && (
+                            (() => {
+                                const hasDiff = 
+                                    (aiSuggestions.description && aiSuggestions.description !== description) ||
+                                    (aiSuggestions.amount && aiSuggestions.amount !== amount) ||
+                                    (aiSuggestions.date && aiSuggestions.date !== date);
+                                
+                                if (!hasDiff) return null;
+
+                                return (
+                                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/40 rounded-xl space-y-2 text-xs mb-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <p className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
+                                            <span>💡 IA detectou novos dados no anexo:</span>
+                                        </p>
+                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 text-[10px]">
+                                            {aiSuggestions.description && aiSuggestions.description !== description && (
+                                                <div>
+                                                    <span className="font-semibold block text-gray-500">Descrição:</span>
+                                                    <span className="line-through text-red-500 block">{description || '(vazio)'}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold block">{aiSuggestions.description}</span>
+                                                </div>
+                                            )}
+                                            {aiSuggestions.amount && aiSuggestions.amount !== amount && (
+                                                <div>
+                                                    <span className="font-semibold block text-gray-500">Valor:</span>
+                                                    <span className="line-through text-red-500 block">{amount || '(vazio)'}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold block">{aiSuggestions.amount}</span>
+                                                </div>
+                                            )}
+                                            {aiSuggestions.date && aiSuggestions.date !== date && (
+                                                <div>
+                                                    <span className="font-semibold block text-gray-500">Vencimento:</span>
+                                                    <span className="line-through text-red-500 block">{formatDateString(date)}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold block">{formatDateString(aiSuggestions.date)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2 justify-end pt-1">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-[10px] text-gray-500 hover:text-gray-700 h-7"
+                                                onClick={() => setAiSuggestions(null)}
+                                            >
+                                                Ignorar
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] h-7 px-3 rounded-lg border-none"
+                                                onClick={() => {
+                                                    if (aiSuggestions.description) setDescription(aiSuggestions.description);
+                                                    if (aiSuggestions.amount) setAmount(aiSuggestions.amount);
+                                                    if (aiSuggestions.date) setDate(aiSuggestions.date);
+                                                    setAiSuggestions(null);
+                                                    notify('success', 'Dados da IA aplicados!');
+                                                }}
+                                            >
+                                                Aplicar Sugestões
+                                            </Button>
+                                        </div>
+                                    </div>
+                                );
+                            })()
+                        )}
+
                         {(file || tempAttachmentUrl || (initialData?.attachment_url && !removedAttachment)) && (
                             <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border mb-3">
                                 <div className="flex justify-between items-center mb-2">
@@ -930,6 +1053,60 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     <textarea readOnly className="w-full h-[60vh] rounded-lg border p-4 text-sm font-mono" value={notes} />
                     <div className="flex justify-end mt-4">
                         <Button type="button" onClick={() => setShowNotesModal(false)} className="px-6">Fechar</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal de Senha do PDF */}
+            <Modal
+                isOpen={pdfPasswordRequired}
+                onClose={() => {
+                    setPdfPasswordRequired(false);
+                    setPdfFilePendingPassword(null);
+                    setPdfPassword('');
+                }}
+                title="PDF Protegido por Senha"
+                subtitle="Este arquivo está criptografado. Digite a senha para que a IA possa ler e preencher os dados."
+                icon={Paperclip}
+                maxWidth="max-w-md"
+            >
+                <div className="flex flex-col gap-4 p-4">
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Senha do PDF</label>
+                        <input
+                            type="password"
+                            value={pdfPassword}
+                            onChange={(e) => setPdfPassword(e.target.value)}
+                            placeholder="Digite a senha do documento"
+                            className="h-10 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700 text-gray-800 dark:text-gray-100"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handlePasswordSubmit();
+                                }
+                            }}
+                            autoFocus
+                        />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setPdfPasswordRequired(false);
+                                setPdfFilePendingPassword(null);
+                                setPdfPassword('');
+                            }}
+                            className="px-4 h-9 text-xs font-semibold hover:bg-gray-100 dark:hover:bg-slate-700 transition-all active:scale-95"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handlePasswordSubmit}
+                            className="bg-emerald-600 hover:bg-emerald-700 px-4 h-9 text-xs text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all hover:scale-[1.02] active:scale-95 border-none font-bold"
+                        >
+                            Descriptografar
+                        </Button>
                     </div>
                 </div>
             </Modal>
