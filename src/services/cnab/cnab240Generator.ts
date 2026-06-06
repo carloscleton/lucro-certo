@@ -146,8 +146,7 @@ export const generateCnab240 = (
     lotHeader += '1'; // 03.1 Tipo Registro (1)
     lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento, D=Débito)
     lotHeader += '20'; // 05.1 Tipo de Serviço (20=Pagamento Fornecedor/Boletos)
-    lotHeader += '01'; // 06.1 Forma Lançamento (01 = Crédito em C/C, mas para Boletos geralmente usa-se 30 ou 31, Padrão 30=Liq Titulos de Cobrança)
-    lotHeader = lotHeader.substring(0, 9) + '30' + lotHeader.substring(11); // Atualizando para 30
+    lotHeader += '30'; // 06.1 Forma Lançamento (30 = Liq Titulos de Cobrança)
     lotHeader += '041'; // 07.1 Versão Layout do Lote
     lotHeader += ' '; // 08.1 Brancos
     lotHeader += '2'; // 09.1 Tipo Inscrição (2=CNPJ)
