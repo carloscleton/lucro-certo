@@ -179,7 +179,7 @@ export const generateCnab240 = (
         det += padAlpha(payment.id.substring(0, 20), 20); // 21.3 Seu Número (Nosso controle)
         det += ''.padEnd(20, ' '); // 22.3 Nosso Número (Controle do Banco)
         det += '15'; // 23.3 Código Moeda (15 = Real)
-        det += ''.padEnd(6, ' '); // 24.3 Brancos
+        det += ''.padEnd(24, ' '); // 24.3 Brancos (completando 240 caracteres)
         
         lines.push(det);
         totalAmount += payment.amount;
@@ -195,7 +195,7 @@ export const generateCnab240 = (
     lotTrailer += padNum(sequenceInLot + 1, 6); // 05.5 Qtd Registros Lote
     lotTrailer += formatCurrency(totalAmount, 18); // 06.5 Valor Total Lote
     lotTrailer += padNum(0, 18); // 07.5 Qtd Moeda Total
-    lotTrailer += ''.padEnd(171, ' '); // 08.5 Brancos/Aviso (Total de 240)
+    lotTrailer += ''.padEnd(181, ' '); // 08.5 Brancos (completando 240 caracteres)
     lines.push(lotTrailer);
 
     // --- TRAILER DO ARQUIVO (Registro 9) ---
