@@ -191,15 +191,17 @@ export const generateCnab240 = (
 
         det += padAlpha(payment.beneficiary_name || 'FORNECEDOR', 30); // 14.3 Nome do Cedente
         det += formatDate(payment.due_date); // 15.3 Data Vencimento
-        det += formatCurrency(payment.amount, 15); // 16.3 Valor do Título
-        det += formatCurrency(0, 15); // 17.3 Desconto/Abatimento
-        det += formatCurrency(0, 15); // 18.3 Acréscimos/Mora
-        det += formatCurrency(payment.amount, 15); // 19.3 Valor a Pagar
-        det += formatCurrency(0, 15); // 20.3 Quantidade de Moeda
-        det += padAlpha(payment.id.substring(0, 20), 20); // 21.3 Seu Número (Nosso controle)
-        det += ''.padEnd(20, ' '); // 22.3 Nosso Número (Controle do Banco)
-        det += '15'; // 23.3 Código Moeda (15 = Real)
-        det += ''.padEnd(24, ' '); // 24.3 Brancos (completando 240 caracteres)
+        det += formatCurrency(payment.amount, 15); // 16.3 Valor do Título (pos 100-114)
+        det += formatCurrency(0, 15); // 17.3 Desconto/Abatimento (pos 115-129)
+        det += formatCurrency(0, 15); // 18.3 Acréscimos/Mora (pos 130-144)
+        det += dateToday; // 19.3 Data do Pagamento (pos 145-152)
+        det += formatCurrency(payment.amount, 15); // 20.3 Valor do Pagamento (pos 153-167)
+        det += formatCurrency(0, 15); // 21.3 Quantidade de Moeda (pos 168-182)
+        det += padAlpha(payment.id.substring(0, 20), 20); // 22.3 Seu Número (pos 183-202)
+        det += ''.padEnd(20, ' '); // 23.3 Nosso Número no Banco (pos 203-222)
+        det += '09'; // 24.3 Código Moeda (09 = Real) (pos 223-224)
+        det += ''.padEnd(6, ' '); // 25.3 Brancos (pos 225-230)
+        det += ''.padEnd(10, ' '); // 26.3 Ocorrências (pos 231-240)
         
         lines.push(det);
 
