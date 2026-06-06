@@ -41,6 +41,34 @@ function MissingBankDataModal({
 
     const hasData = branch.trim() && account.trim();
 
+    const handleBranchChange = (val: string) => {
+        if (/[-/. ]/.test(val)) {
+            const parts = val.split(/[-/. ]/);
+            if (parts.length >= 2) {
+                const brPart = parts[0].replace(/[^0-9a-zA-Z]/g, '');
+                const digPart = parts.slice(1).join('').replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+                setBranch(brPart);
+                setBranchDigit(digPart);
+                return;
+            }
+        }
+        setBranch(val.replace(/[^0-9a-zA-Z]/g, ''));
+    };
+
+    const handleAccountChange = (val: string) => {
+        if (/[-/. ]/.test(val)) {
+            const parts = val.split(/[-/. ]/);
+            if (parts.length >= 2) {
+                const accPart = parts[0].replace(/[^0-9a-zA-Z]/g, '');
+                const digPart = parts.slice(1).join('').replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+                setAccount(accPart);
+                setAccountDigit(digPart);
+                return;
+            }
+        }
+        setAccount(val.replace(/[^0-9a-zA-Z]/g, ''));
+    };
+
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-slate-700 animate-in zoom-in-95 duration-200">
@@ -73,7 +101,7 @@ function MissingBankDataModal({
                                 <Input
                                     label="Agência"
                                     value={branch}
-                                    onChange={e => setBranch(e.target.value.replace(/\D/g, ''))}
+                                    onChange={e => handleBranchChange(e.target.value)}
                                     placeholder="0000"
                                     maxLength={6}
                                     className="dark:bg-slate-900 dark:border-slate-600"
@@ -83,7 +111,7 @@ function MissingBankDataModal({
                                 <Input
                                     label="Dígito"
                                     value={branchDigit}
-                                    onChange={e => setBranchDigit(e.target.value.replace(/\D/g, ''))}
+                                    onChange={e => setBranchDigit(e.target.value.replace(/[^0-9a-zA-Z]/g, '').toUpperCase())}
                                     placeholder="0"
                                     maxLength={2}
                                     className="dark:bg-slate-900 dark:border-slate-600"
@@ -96,7 +124,7 @@ function MissingBankDataModal({
                                 <Input
                                     label="Conta Corrente"
                                     value={account}
-                                    onChange={e => setAccount(e.target.value.replace(/\D/g, ''))}
+                                    onChange={e => handleAccountChange(e.target.value)}
                                     placeholder="00000"
                                     maxLength={12}
                                     className="dark:bg-slate-900 dark:border-slate-600"
@@ -106,7 +134,7 @@ function MissingBankDataModal({
                                 <Input
                                     label="Dígito"
                                     value={accountDigit}
-                                    onChange={e => setAccountDigit(e.target.value.replace(/\D/g, ''))}
+                                    onChange={e => setAccountDigit(e.target.value.replace(/[^0-9a-zA-Z]/g, '').toUpperCase())}
                                     placeholder="0"
                                     maxLength={2}
                                     className="dark:bg-slate-900 dark:border-slate-600"

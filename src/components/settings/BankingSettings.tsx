@@ -594,7 +594,44 @@ export function BankingSettings() {
                                                 label={field.label}
                                                 type={field.type || 'text'}
                                                 value={config[field.key] || ''}
-                                                onChange={e => setConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    if (field.key === 'account' && /[-/. ]/.test(val)) {
+                                                        const parts = val.split(/[-/. ]/);
+                                                        if (parts.length >= 2) {
+                                                            const accPart = parts[0].replace(/[^0-9a-zA-Z]/g, '');
+                                                            const digPart = parts.slice(1).join('').replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+                                                            setConfig(prev => ({
+                                                                ...prev,
+                                                                account: accPart,
+                                                                account_digit: digPart
+                                                            }));
+                                                            return;
+                                                        }
+                                                    }
+                                                    if (field.key === 'branch' && /[-/. ]/.test(val)) {
+                                                        const parts = val.split(/[-/. ]/);
+                                                        if (parts.length >= 2) {
+                                                            const brPart = parts[0].replace(/[^0-9a-zA-Z]/g, '');
+                                                            const digPart = parts.slice(1).join('').replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+                                                            setConfig(prev => ({
+                                                                ...prev,
+                                                                branch: brPart,
+                                                                branch_digit: digPart
+                                                             }));
+                                                             return;
+                                                         }
+                                                     }
+                                                     if (field.key === 'account_digit' || field.key === 'branch_digit') {
+                                                         setConfig(prev => ({ ...prev, [field.key]: val.replace(/[^0-9a-zA-Z]/g, '').toUpperCase() }));
+                                                         return;
+                                                     }
+                                                     if (field.key === 'account' || field.key === 'branch') {
+                                                         setConfig(prev => ({ ...prev, [field.key]: val.replace(/[^0-9a-zA-Z]/g, '') }));
+                                                         return;
+                                                     }
+                                                     setConfig(prev => ({ ...prev, [field.key]: val }));
+                                                 }}
                                                 placeholder={field.placeholder}
                                                 autoComplete="off"
                                                 className="dark:bg-slate-900 dark:border-slate-700"
