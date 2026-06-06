@@ -548,15 +548,23 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 } catch (err) { console.debug(err); }
             }
 
-            // Se o arquivo foi trocado e ainda não foi upado pela análise (improvável mas possível)
-            if (file && !tempAttachmentUrl) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-                const filePath = `attachments/${fileName}`;
+            // Se o arquivo foi trocado e ainda não foi upado pela análise (e saveFile está ativado)
+            if (file) {
+                if (saveFile) {
+                    if (!tempAttachmentUrl) {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+                        const filePath = `attachments/${fileName}`;
 
-                const { publicUrl } = await storageService.upload(file, 'attachments', filePath);
-                attachmentUrl = publicUrl;
-                attachmentPath = filePath;
+                        const { publicUrl } = await storageService.upload(file, 'attachments', filePath);
+                        attachmentUrl = publicUrl;
+                        attachmentPath = filePath;
+                    }
+                } else {
+                    // Se o arquivo foi selecionado mas saveFile está desativado, garante que não seja salvo nenhum anexo
+                    attachmentUrl = null;
+                    attachmentPath = null;
+                }
             }
 
             // Auto-save pending installment edit before submitting
