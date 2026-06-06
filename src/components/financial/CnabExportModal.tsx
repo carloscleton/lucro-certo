@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { X, Download, AlertCircle, CheckCircle2, AlertTriangle, Info, Landmark, Save } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -249,6 +249,17 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
     const [selectedConfigId, setSelectedConfigId] = useState<string>('');
     const [showMissingDataModal, setShowMissingDataModal] = useState(false);
     const [isSavingBankData, setIsSavingBankData] = useState(false);
+
+    useEffect(() => {
+        if (configs && configs.length > 0 && !selectedConfigId) {
+            const defaultConfig = configs.find(c => c.config?.is_default);
+            if (defaultConfig) {
+                setSelectedConfigId(defaultConfig.id);
+            } else if (configs.length === 1) {
+                setSelectedConfigId(configs[0].id);
+            }
+        }
+    }, [configs, selectedConfigId]);
 
     const processedTransactions = useMemo(() => {
         return selectedTransactions.map(t => {

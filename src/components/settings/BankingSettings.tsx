@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Landmark, Save, Trash2, Power, Info, Shield, Sparkles, Plus, X } from 'lucide-react';
+import { Landmark, Save, Trash2, Power, Info, Shield, Sparkles, Plus, X, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
@@ -216,12 +216,13 @@ const resolveProvider = (providerId: string, bankConfig?: any) => {
 
 export function BankingSettings() {
     const { currentEntity, availableEntities, refresh: refreshEntity } = useEntity();
-    const { configs, loading, saveConfig, deleteConfig, testConnection } = useBankingSettings();
+    const { configs, loading, saveConfig, deleteConfig, testConnection, refresh } = useBankingSettings();
     const { notify } = useNotification();
 
     const [selectedProvider, setSelectedProvider] = useState<string>('');
     const [ddaEnabled, setDdaEnabled] = useState(false);
     const [isActive, setIsActive] = useState(false);
+    const [isDefault, setIsDefault] = useState(false);
     const [config, setConfig] = useState<Record<string, any>>({});
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
@@ -248,10 +249,12 @@ export function BankingSettings() {
         if (existing) {
             setDdaEnabled(existing.dda_enabled);
             setIsActive(existing.is_active);
+            setIsDefault(!!existing.config?.is_default);
             setConfig(existing.config || {});
         } else {
             setDdaEnabled(false);
             setIsActive(true);
+            setIsDefault(false);
             // Se for um banco customizado sendo recém criado, mantém os metadados
             if (providerId.startsWith('custom_') && config.custom_name && config.custom_type) {
                 // mantém metadados
@@ -323,7 +326,7 @@ export function BankingSettings() {
 
         // 2. Salva a configuração no banco
         setSaving(true);
-        const finalConfig = { ...config };
+        const finalConfig: Record<string, any> = { ...config, is_default: isDefault };
         if (!hasMultipleCompanies) {
             finalConfig.cnpj = currentEntity.cnpj || '';
         }
@@ -334,6 +337,24 @@ export function BankingSettings() {
             dda_enabled: ddaEnabled,
             config: finalConfig
         });
+
+        if (!error && isDefault) {
+            try {
+                const otherConfigs = configs.filter(c => c.provider !== selectedProvider);
+                for (const other of otherConfigs) {
+                    if (other.config?.is_default) {
+                        const cleanConfig = { ...other.config, is_default: false };
+                        await supabase
+                            .from('company_banking_configs')
+                            .update({ config: cleanConfig })
+                            .eq('id', other.id);
+                    }
+                }
+                if (refresh) await refresh();
+            } catch (err) {
+                console.error('Erro ao remover status de padrão das outras contas:', err);
+            }
+        }
 
         setSaving(false);
         if (error) {
@@ -354,6 +375,7 @@ export function BankingSettings() {
             desc: resolved.desc,
             is_active: c.is_active,
             dda_enabled: c.dda_enabled,
+            is_default: !!c.config?.is_default,
             isConfigured: true
         };
     });
@@ -368,6 +390,7 @@ export function BankingSettings() {
                 desc: config.custom_type === 'api' ? 'Integração via API personalizada.' : 'Remessa via arquivo CNAB 240 personalizado.',
                 is_active: isActive,
                 dda_enabled: ddaEnabled,
+                is_default: isDefault,
                 isConfigured: false
             };
         } else {
@@ -379,6 +402,7 @@ export function BankingSettings() {
                     desc: homologated.desc,
                     is_active: isActive,
                     dda_enabled: ddaEnabled,
+                    is_default: isDefault,
                     isConfigured: false
                 };
             }
@@ -450,9 +474,16 @@ export function BankingSettings() {
                                             <div className={`p-2 rounded-lg ${provider.isConfigured ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
                                                 <Landmark size={20} />
                                             </div>
-                                            <div className="text-left">
-                                                <span className="block font-medium dark:text-white text-sm">{provider.name}</span>
-                                                <span className="text-[10px] text-gray-500">
+                                             <div className="text-left">
+                                                 <div className="flex items-center gap-1.5">
+                                                     <span className="block font-medium dark:text-white text-sm">{provider.name}</span>
+                                                     {provider.is_default && (
+                                                         <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                                             Padrão
+                                                         </span>
+                                                     )}
+                                                 </div>
+                                                 <span className="text-[10px] text-gray-500">
                                                     {provider.isConfigured ? (provider.dda_enabled ? 'DDA Ativo' : 'DDA Inativo') : 'Não Salvo'}
                                                 </span>
                                             </div>
@@ -559,6 +590,28 @@ export function BankingSettings() {
                                             className="sr-only peer"
                                             checked={ddaEnabled}
                                             onChange={() => setDdaEnabled(!ddaEnabled)}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+
+                                {/* Toggle de Banco Padrão */}
+                                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900 rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-indigo-600">
+                                            <CheckCircle2 size={20} />
+                                        </div>
+                                        <div>
+                                            <span className="block text-sm font-semibold dark:text-white">Banco Padrão</span>
+                                            <span className="block text-xs text-gray-400">Definir este banco como padrão para as operações do sistema.</span>
+                                        </div>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={isDefault}
+                                            onChange={() => setIsDefault(!isDefault)}
                                         />
                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                                     </label>
