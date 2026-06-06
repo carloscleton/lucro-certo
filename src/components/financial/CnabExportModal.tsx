@@ -20,26 +20,30 @@ interface CnabExportModalProps {
 // ─── Modal de confirmação / preenchimento de dados bancários ────────────────
 interface MissingBankDataModalProps {
     bankName: string;
+    isCustom?: boolean;
+    currentBankCode?: string;
     currentBranch: string;
     currentAccount: string;
     currentBranchDigit: string;
     currentAccountDigit: string;
-    onSaveAndContinue: (data: { branch: string; branch_digit: string; account: string; account_digit: string }) => void;
+    onSaveAndContinue: (data: { bank_code?: string; branch: string; branch_digit: string; account: string; account_digit: string }) => void;
     onContinueAnyway: () => void;
     onCancel: () => void;
     isSaving: boolean;
 }
 
 function MissingBankDataModal({
-    bankName, currentBranch, currentAccount, currentBranchDigit, currentAccountDigit,
+    bankName, isCustom = false, currentBankCode = '',
+    currentBranch, currentAccount, currentBranchDigit, currentAccountDigit,
     onSaveAndContinue, onContinueAnyway, onCancel, isSaving
 }: MissingBankDataModalProps) {
+    const [bankCode, setBankCode] = useState(currentBankCode);
     const [branch, setBranch] = useState(currentBranch);
     const [branchDigit, setBranchDigit] = useState(currentBranchDigit);
     const [account, setAccount] = useState(currentAccount);
     const [accountDigit, setAccountDigit] = useState(currentAccountDigit);
 
-    const hasData = branch.trim() && account.trim();
+    const hasData = branch.trim() && account.trim() && (!isCustom || bankCode.trim());
 
     const handleBranchChange = (val: string) => {
         if (/[-/. ]/.test(val)) {
@@ -89,12 +93,25 @@ function MissingBankDataModal({
                 {/* Body */}
                 <div className="p-5 space-y-4">
                     <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        Esta conta bancária não possui <strong>Agência</strong> e <strong>Conta Corrente</strong> configuradas.
+                        Esta conta bancária não possui as configurações básicas necessárias.
                         Preencha abaixo para que o arquivo CNAB seja gerado corretamente — os dados serão salvos automaticamente.
                     </p>
 
                     <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-4 space-y-3 border border-gray-100 dark:border-slate-700">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Dados da Conta para CNAB</p>
+
+                        {isCustom && (
+                            <div className="mb-3">
+                                <Input
+                                    label="Código do Banco (ex: 260)"
+                                    value={bankCode}
+                                    onChange={e => setBankCode(e.target.value.replace(/\D/g, ''))}
+                                    placeholder="000"
+                                    maxLength={3}
+                                    className="dark:bg-slate-900 dark:border-slate-600"
+                                />
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-3 gap-3">
                             <div className="col-span-2">
@@ -142,11 +159,11 @@ function MissingBankDataModal({
                             </div>
                         </div>
                     </div>
-
+                    
                     {!hasData && (
                         <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                             <AlertTriangle size={13} />
-                            Sem Agência e Conta, o arquivo CNAB poderá ser rejeitado pelo banco.
+                            Sem os dados bancários corretos, o arquivo CNAB poderá ser rejeitado pelo banco.
                         </p>
                     )}
                 </div>
@@ -154,7 +171,13 @@ function MissingBankDataModal({
                 {/* Footer */}
                 <div className="flex flex-col gap-2 p-5 pt-0">
                     <Button
-                        onClick={() => onSaveAndContinue({ branch, branch_digit: branchDigit, account, account_digit: accountDigit })}
+                        onClick={() => onSaveAndContinue({
+                            ...(isCustom ? { bank_code: bankCode } : {}),
+                            branch,
+                            branch_digit: branchDigit,
+                            account,
+                            account_digit: accountDigit
+                        })}
                         isLoading={isSaving}
                         disabled={!hasData || isSaving}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-500/20 border-none"
@@ -240,11 +263,16 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
     if (!isOpen) return null;
 
     const bankConfig = configs.find(c => c.id === selectedConfigId);
-    const bankCode = bankConfig ? getBankCodeFromProvider(bankConfig.provider) : '';
-    const hasAgencyAndAccount = !!(bankConfig?.config?.branch && bankConfig?.config?.account);
+    const bankCode = bankConfig ? (bankConfig.config?.bank_code || getBankCodeFromProvider(bankConfig.provider)) : '';
+    const isCustomBank = !!bankConfig?.provider.startsWith('custom_');
+    const hasAgencyAndAccount = !!(
+        bankConfig?.config?.branch && 
+        bankConfig?.config?.account &&
+        (!isCustomBank || bankConfig?.config?.bank_code)
+    );
 
     // ── Executa geração do CNAB ──────────────────────────────────────────────
-    const doExport = (overrideConfig?: { branch: string; branch_digit: string; account: string; account_digit: string }) => {
+    const doExport = (overrideConfig?: { bank_code?: string; branch: string; branch_digit: string; account: string; account_digit: string }) => {
         if (!bankConfig) return;
         const effectiveConfig = overrideConfig
             ? { ...bankConfig.config, ...overrideConfig }
@@ -253,7 +281,7 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
         const company: CompanyBankInfo = {
             cnpj: companyCnpj,
             legal_name: companyName,
-            bankCode,
+            bankCode: effectiveConfig?.bank_code || bankCode,
             agency: effectiveConfig?.branch || '',
             agency_dv: effectiveConfig?.branch_digit || '0',
             account: effectiveConfig?.account || '',
@@ -308,7 +336,7 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
         try {
             const newConfig = { ...bankConfig.config, ...data };
             await supabase
-                .from('bank_accounts')
+                .from('company_banking_configs')
                 .update({ config: newConfig })
                 .eq('id', bankConfig.id);
             if (refresh) await refresh();
@@ -386,14 +414,15 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
                                     >
                                         <option value="">Selecione a conta de onde sairá o dinheiro...</option>
                                         {configs.map(config => {
-                                            const code = getBankCodeFromProvider(config.provider);
-                                            const bankName = BANK_TEMPLATES[code]?.bankName || 'Banco';
-                                            const hasFull = config.config?.branch && config.config?.account;
+                                            const isCust = config.provider.startsWith('custom_');
+                                            const code = config.config?.bank_code || getBankCodeFromProvider(config.provider);
+                                            const bankName = isCust ? (config.config?.custom_name || 'Banco Personalizado') : (BANK_TEMPLATES[code]?.bankName || 'Banco');
+                                            const hasFull = config.config?.branch && config.config?.account && (!isCust || config.config?.bank_code);
                                             return (
                                                 <option key={config.id} value={config.id}>
                                                     {bankName} {hasFull
-                                                        ? `(Ag: ${config.config.branch} / CC: ${config.config.account})`
-                                                        : '⚠ Sem dados de agência/conta'}
+                                                        ? `(Banco: ${code || '?'} | Ag: ${config.config.branch} | CC: ${config.config.account})`
+                                                        : `⚠ Sem dados completos (Banco: ${code || '?'})`}
                                                 </option>
                                             );
                                         })}
@@ -497,7 +526,9 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
             {/* Modal de dados bancários faltando */}
             {showMissingDataModal && bankConfig && (
                 <MissingBankDataModal
-                    bankName={BANK_TEMPLATES[bankCode]?.bankName || bankConfig.provider}
+                    bankName={bankConfig.provider.startsWith('custom_') ? (bankConfig.config?.custom_name || 'Banco Personalizado') : (BANK_TEMPLATES[bankCode]?.bankName || bankConfig.provider)}
+                    isCustom={bankConfig.provider.startsWith('custom_')}
+                    currentBankCode={bankConfig.config?.bank_code || ''}
                     currentBranch={bankConfig.config?.branch || ''}
                     currentBranchDigit={bankConfig.config?.branch_digit || ''}
                     currentAccount={bankConfig.config?.account || ''}

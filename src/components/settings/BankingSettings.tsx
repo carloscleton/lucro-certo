@@ -160,6 +160,7 @@ const BANK_PROVIDERS: BankProvider[] = [
 ];
 
 const CUSTOM_CNAB_FIELDS: BankField[] = [
+    { key: 'bank_code', label: 'Código do Banco (ex: 260, 001)', placeholder: '000' },
     { key: 'branch', label: 'Agência', placeholder: '0000' },
     { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
     { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
