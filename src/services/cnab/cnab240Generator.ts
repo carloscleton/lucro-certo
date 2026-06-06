@@ -76,6 +76,28 @@ export interface PaymentItem {
     beneficiary_name?: string;
 }
 
+export const getBarcodeFromLinhaDigitavel = (linha: string): string => {
+    const clean = linha.replace(/\D/g, '');
+    if (clean.length === 44) return clean; // Já é um código de barras
+    if (clean.length === 47) {
+        // Converte Linha Digitável (47) para Código de Barras (44)
+        const banco = clean.substring(0, 3);
+        const moeda = clean.substring(3, 4);
+        const livre1 = clean.substring(4, 9);
+        const livre2 = clean.substring(10, 20);
+        const livre3 = clean.substring(21, 31);
+        const dvGeral = clean.substring(32, 33);
+        const fatorVencimento = clean.substring(33, 37);
+        const valor = clean.substring(37, 47);
+        return `${banco}${moeda}${dvGeral}${fatorVencimento}${valor}${livre1}${livre2}${livre3}`;
+    }
+    if (clean.length === 48) {
+        // Concessionária: 4 blocos de 12 (11 dados + 1 DV)
+        return clean.substring(0, 11) + clean.substring(12, 23) + clean.substring(24, 35) + clean.substring(36, 47);
+    }
+    return clean.padEnd(44, '0').substring(0, 44); // Fallback de segurança
+};
+
 export const generateCnab240 = (
     company: CompanyBankInfo,
     payments: PaymentItem[],
@@ -157,10 +179,9 @@ export const generateCnab240 = (
         det += '0'; // 06.3 Tipo Movimento (0=Inclusão)
         det += '00'; // 07.3 Cód Inst Movimento (00 = Inclusão de Pagamento)
         
-        // Código de Barras (44 Posições) - Se tiver linha digitável mas não código de barras, falha febraban strict
-        // Para simplificar, assumimos que barcode existe. Em produção real, deveríamos extrair barcode da linha digitavel.
-        const barcode = payment.barcode || payment.linha_digitavel?.replace(/\D/g, '') || '';
-        const safeBarcode = padNum(barcode.substring(0, 44), 44); // Código de Barras tem exatamente 44 dígitos
+        // Código de Barras (44 Posições) - Tratando conversão de Linha Digitável
+        const rawBarcode = payment.barcode || payment.linha_digitavel || '';
+        const safeBarcode = getBarcodeFromLinhaDigitavel(rawBarcode);
         
         det += safeBarcode.substring(0, 3); // 08.3 Banco Beneficiário
         det += safeBarcode.substring(3, 4); // 09.3 Moeda
@@ -182,6 +203,40 @@ export const generateCnab240 = (
         det += ''.padEnd(24, ' '); // 24.3 Brancos (completando 240 caracteres)
         
         lines.push(det);
+
+        // --- DETALHES (Registro 3 - Segmento J-52) ---
+        // Obrigatório no Inter e outros bancos para detalhar Pagador/Recebedor
+        let det52 = '';
+        det52 += padNum(company.bankCode, 3); // 01.3 Banco
+        det52 += padNum(lotNumber, 4); // 02.3 Lote
+        det52 += '3'; // 03.3 Tipo Registro (3=Detalhe)
+        det52 += padNum(sequenceInLot++, 5); // 04.3 Sequencial (aumenta o sequencial)
+        det52 += 'J'; // 05.3 Cód Segmento
+        det52 += ' '; // 06.3 Brancos
+        det52 += '00'; // 07.3 Cód Inst Movimento (00 = Inclusão)
+        det52 += '52'; // 08.3 Identificação Registro Opcional (52)
+        
+        // Pagador (Nossa Empresa)
+        const isCnpj = company.cnpj.replace(/\D/g, '').length > 11;
+        det52 += isCnpj ? '2' : '1'; // 09.3 Tipo Inscrição Sacado
+        det52 += padNum(company.cnpj, 15); // 10.3 Inscrição Sacado
+        det52 += padAlpha(company.legal_name, 40); // 11.3 Nome do Sacado
+        
+        // Beneficiário (Fornecedor)
+        // Não temos o CNPJ/CPF exato na interface atual, então enviamos 0 (Isento/Não informado)
+        det52 += '0'; // 12.3 Tipo Inscrição Beneficiário
+        det52 += padNum(0, 15); // 13.3 Inscrição Beneficiário
+        det52 += padAlpha(payment.beneficiary_name || 'FORNECEDOR', 40); // 14.3 Nome do Beneficiário
+        
+        // Sacador / Avalista
+        det52 += '0'; // 15.3 Tipo Inscrição Sacador/Avalista
+        det52 += padNum(0, 15); // 16.3 Inscrição Sacador/Avalista
+        det52 += padAlpha('', 40); // 17.3 Nome Sacador/Avalista
+        
+        det52 += ''.padEnd(53, ' '); // 18.3 Brancos para completar 240
+        
+        lines.push(det52);
+        
         totalAmount += payment.amount;
     });
 
