@@ -213,7 +213,7 @@ export function CnabImportReturnModal({ isOpen, onClose, onRefresh }: CnabImport
                 
                 const isExpense = item.transaction.type === 'expense';
                 const targetStatus = isExpense ? 'paid' : 'received';
-                const paymentMethod = item.parsedItem.segmentType === 'J' ? 'bank_transfer' : 'boleto';
+                const paymentMethod = (item.parsedItem.segmentType === 'J' || item.parsedItem.segmentType === 'O') ? 'transfer' : 'boleto';
 
                 const notesText = `Liquidado automaticamente via Retorno CNAB em ${new Date().toLocaleDateString('pt-BR')} (Ref: ${item.parsedItem.nossoNumero || 'N/A'}).`;
                 
@@ -605,9 +605,15 @@ function TableMatches({
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold ${
                                     item.parsedItem.segmentType === 'J'
                                         ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-200/10'
+                                        : item.parsedItem.segmentType === 'O'
+                                        ? 'bg-pink-50 dark:bg-pink-950/20 text-pink-600 dark:text-pink-400 border border-pink-200/10'
                                         : 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200/10'
                                 }`}>
-                                    {item.parsedItem.segmentType === 'J' ? 'PAGTO (J)' : 'COBRANÇA (T/U)'}
+                                    {item.parsedItem.segmentType === 'J'
+                                        ? 'PAGTO (J)'
+                                        : item.parsedItem.segmentType === 'O'
+                                        ? 'PAGTO CONC. (O)'
+                                        : 'COBRANÇA (T/U)'}
                                 </span>
                             </td>
                             <td className="p-3">
