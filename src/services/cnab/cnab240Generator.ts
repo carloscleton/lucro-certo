@@ -146,8 +146,8 @@ export const generateCnab240 = (
     lotHeader += '1'; // 03.1 Tipo Registro (1)
     lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento, D=Débito)
     lotHeader += '20'; // 05.1 Tipo de Serviço (20=Pagamento Fornecedor/Boletos)
-    lotHeader += '30'; // 06.1 Forma Lançamento (30 = Liq Titulos de Cobrança)
-    lotHeader += '041'; // 07.1 Versão Layout do Lote
+    lotHeader += '31'; // 06.1 Forma Lançamento (31 = Pagamento Títulos Outros Bancos / qualquer boleto)
+    lotHeader += '040'; // 07.1 Versão Layout do Lote
     lotHeader += ' '; // 08.1 Brancos
     lotHeader += '2'; // 09.1 Tipo Inscrição (2=CNPJ)
     lotHeader += padNum(company.cnpj, 14); // 10.1 Inscrição
@@ -179,29 +179,38 @@ export const generateCnab240 = (
         det += '00'; // 07.3 Cód Inst Movimento (00 = Inclusão de Pagamento)
         
         // Código de Barras (44 Posições) - Tratando conversão de Linha Digitável
+        // Layout Febraban Segmento J: posições 18-61 = código de barras completo (44 chars)
+        // Estrutura do código de barras:
+        //   [0-2]   = Banco Cedente (3)        -> pos CNAB 18-20
+        //   [3]     = Moeda (1)                -> pos CNAB 21
+        //   [4]     = DV Código de Barras (1)  -> pos CNAB 22
+        //   [5-8]   = Fator de Vencimento (4)  -> pos CNAB 23-26
+        //   [9-18]  = Valor Nominal (10)        -> pos CNAB 27-36
+        //   [19-43] = Campo Livre (25)          -> pos CNAB 37-61
         const rawBarcode = payment.barcode || payment.linha_digitavel || '';
         const safeBarcode = getBarcodeFromLinhaDigitavel(rawBarcode);
+        const bc = safeBarcode.padEnd(44, '0').substring(0, 44);
         
-        det += safeBarcode.substring(0, 3); // 08.3 Banco Beneficiário
-        det += safeBarcode.substring(3, 4); // 09.3 Moeda
-        det += safeBarcode.substring(4, 5); // 10.3 DV do Código de Barras
-        det += safeBarcode.substring(5, 9); // 11.3 Fator Vencimento
-        det += safeBarcode.substring(9, 19); // 12.3 Valor do Título no Código de Barras
-        det += safeBarcode.substring(19, 44); // 13.3 Campo Livre do Código de Barras
+        det += bc.substring(0, 3);  // 08.3 Banco Cedente (3)
+        det += bc.substring(3, 4);  // 09.3 Moeda (1)
+        det += bc.substring(4, 5);  // 10.3 DV do Código de Barras (1)
+        det += bc.substring(5, 9);  // 11.3 Fator de Vencimento (4)
+        det += bc.substring(9, 19); // 12.3 Valor Nominal (10)
+        det += bc.substring(19, 44);// 13.3 Campo Livre (25)
 
-        det += padAlpha(payment.beneficiary_name || 'FORNECEDOR', 30); // 14.3 Nome do Cedente
-        det += formatDate(payment.due_date); // 15.3 Data Vencimento
+        det += padAlpha(payment.beneficiary_name || 'FORNECEDOR', 30); // 14.3 Nome do Cedente (pos 62-91)
+        det += formatDate(payment.due_date);       // 15.3 Data Vencimento (pos 92-99)
         det += formatCurrency(payment.amount, 15); // 16.3 Valor do Título (pos 100-114)
-        det += formatCurrency(0, 15); // 17.3 Desconto/Abatimento (pos 115-129)
-        det += formatCurrency(0, 15); // 18.3 Acréscimos/Mora (pos 130-144)
-        det += dateToday; // 19.3 Data do Pagamento (pos 145-152)
+        det += formatCurrency(0, 15);              // 17.3 Desconto/Abatimento (pos 115-129)
+        det += formatCurrency(0, 15);              // 18.3 Acréscimos/Mora (pos 130-144)
+        det += dateToday;                          // 19.3 Data do Pagamento (pos 145-152)
         det += formatCurrency(payment.amount, 15); // 20.3 Valor do Pagamento (pos 153-167)
-        det += formatCurrency(0, 15); // 21.3 Quantidade de Moeda (pos 168-182)
+        det += formatCurrency(0, 15);              // 21.3 Quantidade de Moeda (pos 168-182)
         det += padAlpha(payment.id.substring(0, 20), 20); // 22.3 Seu Número (pos 183-202)
-        det += ''.padEnd(20, ' '); // 23.3 Nosso Número no Banco (pos 203-222)
-        det += '09'; // 24.3 Código Moeda (09 = Real) (pos 223-224)
-        det += ''.padEnd(6, ' '); // 25.3 Brancos (pos 225-230)
-        det += ''.padEnd(10, ' '); // 26.3 Ocorrências (pos 231-240)
+        det += ''.padEnd(20, ' ');  // 23.3 Nosso Número no Banco (pos 203-222)
+        det += '09';                // 24.3 Código Moeda (09 = Real) (pos 223-224)
+        det += ''.padEnd(6, ' ');   // 25.3 Brancos (pos 225-230)
+        det += ''.padEnd(10, ' ');  // 26.3 Ocorrências (pos 231-240)
         
         lines.push(det);
 
@@ -242,27 +251,30 @@ export const generateCnab240 = (
     });
 
     // --- TRAILER DO LOTE (Registro 5) ---
+    // Qtd registros no lote = 1 (header) + sequenceInLot-1 (detalhes gerados) + 1 (este trailer)
+    const qtdRegistrosLote = 1 + (sequenceInLot - 1) + 1;
     let lotTrailer = '';
     lotTrailer += padNum(company.bankCode, 3); // 01.5 Banco
     lotTrailer += padNum(lotNumber, 4); // 02.5 Lote
     lotTrailer += '5'; // 03.5 Tipo Registro (5)
     lotTrailer += ''.padEnd(9, ' '); // 04.5 Brancos
-    // Quantidade de Registros no Lote (Header + Detalhes + Trailer)
-    lotTrailer += padNum(sequenceInLot + 1, 6); // 05.5 Qtd Registros Lote
-    lotTrailer += formatCurrency(totalAmount, 18); // 06.5 Valor Total Lote
-    lotTrailer += padNum(0, 18); // 07.5 Qtd Moeda Total
+    lotTrailer += padNum(qtdRegistrosLote, 6); // 05.5 Qtd Registros no Lote
+    lotTrailer += formatCurrency(totalAmount, 18); // 06.5 Somatória dos Valores
+    lotTrailer += padNum(0, 18); // 07.5 Somatória Qtd Moeda
     lotTrailer += ''.padEnd(181, ' '); // 08.5 Brancos (completando 240 caracteres)
     lines.push(lotTrailer);
 
     // --- TRAILER DO ARQUIVO (Registro 9) ---
+    // Qtd total = linhas já geradas (header arquivo + header lote + detalhes + trailer lote) + 1 (este trailer)
     let trailer = '';
     trailer += padNum(company.bankCode, 3); // 01.9 Banco
     trailer += '9999'; // 02.9 Lote (9999)
     trailer += '9'; // 03.9 Tipo Registro (9)
     trailer += ''.padEnd(9, ' '); // 04.9 Brancos
-    trailer += padNum(1, 6); // 05.9 Qtd de Lotes no Arquivo
-    trailer += padNum(lines.length + 1, 6); // 06.9 Qtd de Registros no Arquivo (inclui header e este trailer)
-    trailer += ''.padEnd(211, ' '); // 08.9 Brancos
+    trailer += padNum(1, 6); // 05.9 Qtd de Lotes no Arquivo (1 lote)
+    trailer += padNum(lines.length + 1, 6); // 06.9 Qtd de Registros no Arquivo (todas linhas + este trailer)
+    trailer += padNum(0, 6); // 07.9 Qtd de Contas para Conciliação (zeros)
+    trailer += ''.padEnd(205, ' '); // 08.9 Brancos (completando 240)
     lines.push(trailer);
 
     return lines.join('\r\n'); // CNAB requer CRLF
