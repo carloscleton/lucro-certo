@@ -29,9 +29,10 @@ export function TransactionList({ transactions, onEdit, onDelete, onToggleStatus
 
     // Reseta a seleção quando as transações mudam (ex: filtro de data)
     useEffect(() => {
+        if (!showSelection) return;
         setSelectedIds(new Set());
         onSelectionChangeRef.current?.([]);
-    }, [transactions]);
+    }, [transactions, showSelection]);
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         let newSet: Set<string>;

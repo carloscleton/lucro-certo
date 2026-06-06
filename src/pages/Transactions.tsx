@@ -562,7 +562,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                 canDelete={canDelete}
                 onViewQuote={handleViewQuote}
                 showSelection={type === 'expense'}
-                onSelectionChange={(ids) => setSelectedTransactionIds(ids)}
+                onSelectionChange={type === 'expense' ? (ids) => setSelectedTransactionIds(ids) : undefined}
             />
 
             <TransactionForm
