@@ -1037,30 +1037,29 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                     {isAnalyzing && <div className="text-[10px] text-emerald-600 font-bold animate-pulse">ANALISANDO...</div>}
                                 </div>
                                 {(file || tempAttachmentUrl) ? (
-                                    <div className="flex flex-col items-center gap-3">
+                                    <div className="flex flex-col gap-2">
+                                        {/* Nome do arquivo */}
                                         <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 w-full shadow-sm">
-                                            <FileText size={16} className="text-emerald-500" />
+                                            <FileText size={16} className="text-emerald-500 shrink-0" />
                                             <p className="text-xs font-bold truncate flex-1 text-gray-700 dark:text-gray-300">{file?.name || tempAttachmentName}</p>
                                         </div>
-                                        <div className="flex items-center gap-2 w-full">
+                                        {/* Botões de ação */}
+                                        <div className="grid grid-cols-2 gap-2 w-full">
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                className="flex-1 text-[10px] font-bold h-9 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 transition-all active:scale-95"
+                                                className="text-[11px] font-bold h-9 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 transition-all active:scale-95 flex items-center justify-center gap-1.5"
                                                 onClick={() => setShowEmbeddedPreview(!showEmbeddedPreview)}
                                             >
-                                                {showEmbeddedPreview ? <EyeOff size={14} className="mr-1.5" /> : <Eye size={14} className="mr-1.5" />}
-                                                {showEmbeddedPreview ? 'FECHAR PREVIEW' : 'VER NO SITE'}
+                                                {showEmbeddedPreview ? <EyeOff size={13} /> : <Eye size={13} />}
+                                                {showEmbeddedPreview ? 'Fechar' : 'Visualizar'}
                                             </Button>
-
                                             <Button
                                                 type="button"
-                                                variant="ghost"
                                                 size="sm"
-                                                className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
+                                                className="text-[11px] font-bold h-9 bg-red-500 hover:bg-red-600 text-white border-none shadow-md shadow-red-500/30 transition-all active:scale-95 flex items-center justify-center gap-1.5"
                                                 onClick={async () => {
-                                                    // Se foi salvo no storage, apaga da nuvem também
                                                     if (tempAttachmentPath) {
                                                         try { await supabase.storage.from('attachments').remove([tempAttachmentPath]); } catch(e) { console.debug(e); }
                                                     }
@@ -1073,37 +1072,36 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     setDecryptedPdfPages([]);
                                                     setShowEmbeddedPreview(false);
                                                 }}
-                                                title="Remover arquivo"
                                             >
-                                                <Trash2 size={16} />
+                                                <Trash2 size={13} />
+                                                Remover Arquivo
                                             </Button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center gap-3">
+                                    <div className="flex flex-col gap-2">
+                                        {/* Documento salvo na nuvem */}
                                         <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 w-full shadow-sm">
-                                            <Paperclip size={16} className="text-blue-500" />
-                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Documento Vinculado</p>
+                                            <Paperclip size={16} className="text-blue-500 shrink-0" />
+                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex-1">Documento Vinculado</p>
                                         </div>
-                                        <div className="flex items-center gap-2 w-full">
+                                        {/* Botões de ação */}
+                                        <div className="grid grid-cols-2 gap-2 w-full">
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                className="flex-1 text-[10px] font-bold h-9 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 transition-all active:scale-95"
+                                                className="text-[11px] font-bold h-9 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 transition-all active:scale-95 flex items-center justify-center gap-1.5"
                                                 onClick={() => setShowEmbeddedPreview(!showEmbeddedPreview)}
                                             >
-                                                {showEmbeddedPreview ? <EyeOff size={14} className="mr-1.5" /> : <Eye size={14} className="mr-1.5" />}
-                                                {showEmbeddedPreview ? 'FECHAR PREVIEW' : 'VER NO SITE'}
+                                                {showEmbeddedPreview ? <EyeOff size={13} /> : <Eye size={13} />}
+                                                {showEmbeddedPreview ? 'Fechar' : 'Visualizar'}
                                             </Button>
-
                                             <Button
                                                 type="button"
-                                                variant="ghost"
                                                 size="sm"
-                                                className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
+                                                className="text-[11px] font-bold h-9 bg-red-500 hover:bg-red-600 text-white border-none shadow-md shadow-red-500/30 transition-all active:scale-95 flex items-center justify-center gap-1.5"
                                                 onClick={async () => {
-                                                    // Apaga o arquivo da nuvem ao remover
                                                     const pathToDelete = initialData?.attachment_path;
                                                     if (pathToDelete) {
                                                         try { await supabase.storage.from('attachments').remove([pathToDelete]); } catch(e) { console.debug(e); }
@@ -1114,9 +1112,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     setDecryptedPdfPages([]);
                                                     setShowEmbeddedPreview(false);
                                                 }}
-                                                title="Excluir arquivo"
                                             >
-                                                <Trash2 size={16} />
+                                                <Trash2 size={13} />
+                                                Excluir Arquivo
                                             </Button>
                                         </div>
                                     </div>
