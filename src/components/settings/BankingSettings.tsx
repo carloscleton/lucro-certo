@@ -28,6 +28,7 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Banco Itaú (CNAB 240)',
         desc: 'Remessa de lote de boletos e Pix via arquivo CNAB 240.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '341' },
             { key: 'branch', label: 'Agência', placeholder: '0000' },
             { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
             { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
@@ -41,6 +42,7 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Banco do Brasil (CNAB 240)',
         desc: 'Remessa de lote de boletos e Pix via arquivo CNAB 240.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '001' },
             { key: 'branch', label: 'Agência', placeholder: '0000' },
             { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
             { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
@@ -54,6 +56,7 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Banco Bradesco (CNAB 240)',
         desc: 'Remessa de lote de boletos e Pix via arquivo CNAB 240.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '237' },
             { key: 'branch', label: 'Agência', placeholder: '0000' },
             { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
             { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
@@ -67,6 +70,7 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Banco Santander (CNAB 240)',
         desc: 'Remessa de lote de boletos e Pix via arquivo CNAB 240.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '033' },
             { key: 'branch', label: 'Agência', placeholder: '0000' },
             { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
             { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
@@ -80,6 +84,7 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Caixa Econômica Federal (CNAB 240)',
         desc: 'Remessa de lote de boletos e Pix via arquivo CNAB 240.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '104' },
             { key: 'branch', label: 'Agência', placeholder: '0000' },
             { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
             { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
@@ -93,6 +98,7 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Sicoob (CNAB 240)',
         desc: 'Remessa de lote de boletos e Pix via arquivo CNAB 240.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '756' },
             { key: 'branch', label: 'Agência', placeholder: '0000' },
             { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
             { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
@@ -106,6 +112,7 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Sicredi (CNAB 240)',
         desc: 'Remessa de lote de boletos e Pix via arquivo CNAB 240.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '748' },
             { key: 'branch', label: 'Agência', placeholder: '0000' },
             { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
             { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
@@ -119,6 +126,7 @@ const BANK_PROVIDERS: BankProvider[] = [
         name: 'Banco Inter (API)',
         desc: 'Integração em tempo real para pagamentos e DDA.',
         fields: [
+            { key: 'bank_code', label: 'Código do Banco', placeholder: '077' },
             { key: 'branch', label: 'Agência', placeholder: '0000' },
             { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
             { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
@@ -170,6 +178,11 @@ const CUSTOM_CNAB_FIELDS: BankField[] = [
 ];
 
 const CUSTOM_API_FIELDS: BankField[] = [
+    { key: 'bank_code', label: 'Código do Banco (ex: 260, 001)', placeholder: '000' },
+    { key: 'branch', label: 'Agência', placeholder: '0000' },
+    { key: 'branch_digit', label: 'Dígito Agência', placeholder: '0' },
+    { key: 'account', label: 'Conta Corrente', placeholder: '00000' },
+    { key: 'account_digit', label: 'Dígito Conta', placeholder: '0' },
     { key: 'api_url', label: 'URL Base da API (Endpoint)', placeholder: 'https://api.exemplo.com/v1' },
     { key: 'client_id', label: 'Client ID', placeholder: 'Chave de acesso da API' },
     { key: 'client_secret', label: 'Client Secret', placeholder: 'Segredo ou senha de acesso', type: 'password' },
@@ -622,6 +635,10 @@ export function BankingSettings() {
                                                              }));
                                                              return;
                                                          }
+                                                     }
+                                                     if (field.key === 'bank_code') {
+                                                         setConfig(prev => ({ ...prev, [field.key]: val.replace(/\D/g, '') }));
+                                                         return;
                                                      }
                                                      if (field.key === 'account_digit' || field.key === 'branch_digit') {
                                                          setConfig(prev => ({ ...prev, [field.key]: val.replace(/[^0-9a-zA-Z]/g, '').toUpperCase() }));
