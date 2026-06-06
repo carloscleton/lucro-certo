@@ -46,6 +46,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [file, setFile] = useState<File | null>(null);
     const [dealId, setDealId] = useState('');
     const [notes, setNotes] = useState('');
+    const [barcode, setBarcode] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [overrides, setOverrides] = useState<Record<number, { amount?: number; date?: string }>>({});
@@ -101,7 +102,14 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setFrequency(initialData.frequency || 'monthly');
             setRecurringCount((initialData as any).recurring_count || 12);
             setDealId(initialData.deal_id || '');
-            setNotes(initialData.notes || '');
+            
+            // Extrai o código de barras das notas
+            const notesVal = initialData.notes || '';
+            const barcodeMarker = notesVal.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
+            const extractedBarcode = barcodeMarker ? barcodeMarker[1].trim() : '';
+            setBarcode(extractedBarcode);
+            setNotes(notesVal.replace(/>+BARCODE_DATA<+[\s\S]*?>+END_BARCODE<+/g, '').trim());
+
             setRemovedAttachment(false);
             setFile(null);
         } else {
@@ -122,6 +130,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setRecurringCount(12);
             setDealId('');
             setNotes('');
+            setBarcode('');
             setRemovedAttachment(false);
             setFile(null);
             setTempAttachmentUrl('');
@@ -340,7 +349,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     const localPixMatch = extractedText.match(/>+PIX_DATA<+([\s\S]*?)>+END_PIX<+/);
                     if (localPixMatch) paymentBlock += `>>>>PIX_DATA<<<<${localPixMatch[1].trim()}>>>>END_PIX<<<<\n`;
                     const localBarcodeMatch = extractedText.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
-                    if (localBarcodeMatch) paymentBlock += `>>>>BARCODE_DATA<<<<${localBarcodeMatch[1].trim()}>>>>END_BARCODE<<<<\n`;
+                    if (localBarcodeMatch) {
+                        setBarcode(localBarcodeMatch[1].trim());
+                    }
                 }
                 if (paymentBlock) finalNotes = paymentBlock + "\n" + finalNotes;
                 setNotes(prev => prev ? `${prev}\n${finalNotes}` : finalNotes);
@@ -367,6 +378,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         }
 
         try {
+            const cleanedNotes = notes
+                .replace(/>+BARCODE_DATA<+[\s\S]*?>+END_BARCODE<+/g, '')
+                .trim();
+            const finalNotes = barcode.trim()
+                ? `>>>>BARCODE_DATA<<<<${barcode.trim()}>>>>END_BARCODE<<<<\n${cleanedNotes}`
+                : cleanedNotes;
+
             let attachmentUrl = removedAttachment ? null : (tempAttachmentUrl || initialData?.attachment_url);
             let attachmentPath = removedAttachment ? null : (tempAttachmentPath || initialData?.attachment_path);
 
@@ -427,7 +445,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     overrides: Object.keys(finalOverrides).length > 0 ? finalOverrides : undefined,
                     exclusions: exclusions.length > 0 ? exclusions : undefined,
                     propagate: propagateChanges,
-                    notes: notes
+                    notes: finalNotes
                 });
             } else {
                 await onSubmit({
@@ -449,7 +467,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                     overrides: Object.keys(overrides).length > 0 ? overrides : undefined,
                     exclusions: exclusions.length > 0 ? exclusions : undefined,
                     propagate: propagateChanges,
-                    notes: notes
+                    notes: finalNotes
                 });
             }
             clearCache();
@@ -573,6 +591,18 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 {contacts.filter(c => c.type === (isExpense ? 'supplier' : 'client')).map(contact => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
                             </select>
                         </div>
+
+                        {isExpense && (
+                            <div className="md:col-span-2">
+                                <Input
+                                    label="Código de Barras / Linha Digitável"
+                                    value={barcode}
+                                    onChange={e => setBarcode(e.target.value)}
+                                    placeholder="Cole ou digite o código de barras do boleto (apenas números ou formatado)"
+                                    preserveCase
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 space-y-3">
@@ -721,9 +751,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             <textarea className="flex min-h-[80px] w-full rounded-lg border px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Informações importantes sobre este lançamento..." />
                             {(() => {
                                 const pixMarker = notes.match(/>+PIX_DATA<+([\s\S]*?)>+END_PIX<+/);
-                                const barcodeMarker = notes.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
                                 const pixCode = pixMarker ? pixMarker[1].trim() : null;
-                                const barcodeCode = barcodeMarker ? barcodeMarker[1].trim() : null;
+                                const barcodeCode = barcode.trim() || null;
                                 if (!pixCode && !barcodeCode) return null;
                                 return (
                                     <div className="mt-2 p-4 bg-white dark:bg-slate-800 border border-emerald-500/30 rounded-2xl flex flex-col gap-8 shadow-lg shadow-emerald-500/5 overflow-hidden animate-in zoom-in-95 duration-300">
@@ -807,6 +836,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     setTempAttachmentPath('');
                                                     setTempAttachmentName('');
                                                     setNotes('');
+                                                    setBarcode('');
                                                     setShowEmbeddedPreview(false);
                                                 }}
                                                 title="Remover"
@@ -838,7 +868,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
-                                                onClick={() => { setRemovedAttachment(true); setNotes(''); setShowEmbeddedPreview(false); }}
+                                                onClick={() => { setRemovedAttachment(true); setNotes(''); setBarcode(''); setShowEmbeddedPreview(false); }}
                                                 title="Remover"
                                             >
                                                 <Trash2 size={16} />
