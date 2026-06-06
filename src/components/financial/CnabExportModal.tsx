@@ -399,13 +399,19 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
         }));
 
         try {
-            const cnabContent = generateCnab240(company, payments, 1);
+            const nsa = 1; // Número Seqüencial de Arquivo
+            const cnabContent = generateCnab240(company, payments, nsa);
             const blob = new Blob([cnabContent], { type: 'text/plain;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            const dataHoje = new Date().toISOString().split('T')[0].replace(/-/g, '');
-            link.setAttribute('download', `remessa_${company.bankCode}_${dataHoje}.${fileExtension}`);
+            
+            let filename = `remessa_${company.bankCode}_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.${fileExtension}`;
+            if (company.bankCode === '077') {
+                const nsaString = String(nsa).padStart(6, '0');
+                filename = `CI240_001_${nsaString}.${fileExtension.toUpperCase()}`;
+            }
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
