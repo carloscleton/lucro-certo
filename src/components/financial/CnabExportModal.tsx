@@ -387,7 +387,9 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
             const link = document.createElement('a');
             link.href = url;
             const dataHoje = new Date().toISOString().split('T')[0].replace(/-/g, '');
-            link.setAttribute('download', `remessa_${company.bankCode}_${dataHoje}.txt`);
+            const isRem = ['077', '104', '756', '748'].includes(company.bankCode);
+            const extension = isRem ? 'rem' : 'txt';
+            link.setAttribute('download', `remessa_${company.bankCode}_${dataHoje}.${extension}`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
