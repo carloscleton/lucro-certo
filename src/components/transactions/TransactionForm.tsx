@@ -67,6 +67,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     const [pdfPasswordRequired, setPdfPasswordRequired] = useState(false);
     const [pdfFilePendingPassword, setPdfFilePendingPassword] = useState<File | null>(null);
     const [pdfPassword, setPdfPassword] = useState('');
+    const [decryptedPdfPages, setDecryptedPdfPages] = useState<string[]>([]);
 
     // Optimized memory for local file preview
     const fileUrl = useMemo(() => {
@@ -107,6 +108,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         setPdfPasswordRequired(false);
         setPdfFilePendingPassword(null);
         setPdfPassword('');
+        setDecryptedPdfPages([]);
 
         if (initialData) {
             setDescription(initialData.description || '');
@@ -224,16 +226,60 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         }
     }, [isOpen, initialData]);
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0] || null;
-        if (selectedFile) {
-            setFile(selectedFile);
-            setTempAttachmentName(selectedFile.name);
-            await analyzeDocument(selectedFile);
+    const checkPdfPasswordRequired = async (fileToCheck: File): Promise<boolean> => {
+        if (fileToCheck.type !== 'application/pdf' && !fileToCheck.name.toLowerCase().endsWith('.pdf')) {
+            return false;
+        }
+        try {
+            const pdfjsLib = await import('pdfjs-dist');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+            const arrayBuffer = await fileToCheck.arrayBuffer();
+            await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            return false; // Decrypted successfully without password
+        } catch (err: any) {
+            if (err.name === 'PasswordException' || err.code === 1 || err.message?.toLowerCase().includes('password')) {
+                return true; // Password required!
+            }
+            return false;
         }
     };
 
+    const verifyPdfPassword = async (fileToCheck: File, passwordToCheck: string): Promise<boolean> => {
+        try {
+            const pdfjsLib = await import('pdfjs-dist');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+            const arrayBuffer = await fileToCheck.arrayBuffer();
+            await pdfjsLib.getDocument({ data: arrayBuffer, password: passwordToCheck }).promise;
+            return true;
+        } catch (err: any) {
+            return false;
+        }
+    };
 
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0] || null;
+        if (selectedFile) {
+            setIsAnalyzing(true);
+            try {
+                const needsPassword = await checkPdfPasswordRequired(selectedFile);
+                if (needsPassword) {
+                    setPdfFilePendingPassword(selectedFile);
+                    setPdfPasswordRequired(true);
+                    notify('warning', 'Este PDF está protegido por senha. Por favor, insira a senha para descriptografá-lo.', 'Senha Requerida');
+                    return;
+                }
+
+                // Normal flow if no password required
+                setFile(selectedFile);
+                setTempAttachmentName(selectedFile.name);
+                await analyzeDocument(selectedFile);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setIsAnalyzing(false);
+            }
+        }
+    };
 
     const analyzeDocument = async (fileToAnalyze: File, password?: string) => {
         setIsAnalyzing(true);
@@ -252,33 +298,19 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
             let extractedText = '';
             let pdfFirstPageImageBase64: string | null = null;
+            const renderedPages: string[] = [];
 
-            // 2. OCR Analysis (Optional - if it fails, the IA can still use the image/url)
+            // 2. OCR Analysis
             try {
                 if (fileToAnalyze.type === 'application/pdf' || fileToAnalyze.name.toLowerCase().endsWith('.pdf')) {
                     const pdfjsLib = await import('pdfjs-dist');
                     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
                     const arrayBuffer = await fileToAnalyze.arrayBuffer();
-                    let pdf;
-                    try {
-                        pdf = await pdfjsLib.getDocument({ data: arrayBuffer, password }).promise;
-                    } catch (pdfErr: any) {
-                        if (pdfErr.name === 'PasswordException' || pdfErr.code === 1 || pdfErr.message?.toLowerCase().includes('password')) {
-                            setPdfFilePendingPassword(fileToAnalyze);
-                            setPdfPasswordRequired(true);
-                            setIsAnalyzing(false);
-                            if (password) {
-                                notify('error', 'Senha incorreta para o PDF. Tente novamente.', 'Erro de Senha');
-                            } else {
-                                notify('warning', 'Este PDF está protegido por senha. Por favor, insira a senha para descriptografá-lo.', 'Senha Requerida');
-                            }
-                            return;
-                        }
-                        throw pdfErr;
-                    }
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, password }).promise;
 
                     const QrScanner = (await import('qr-scanner')).default;
+                    const pagesToRender = Math.min(pdf.numPages, 5);
 
                     for (let i = 1; i <= pdf.numPages; i++) {
                         const page = await pdf.getPage(i);
@@ -293,33 +325,35 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         const pageText = sortedItems.map((item: any) => item.str).join(' ');
                         extractedText += pageText + '\n';
 
-                        for (const scale of [1.5, 2.5, 3.5]) {
+                        // Render pages to canvases for OCR, QR scanning, and custom viewer
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement("canvas");
+                        const context = canvas.getContext("2d", { willReadFrequently: true });
+                        if (context) {
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            context.imageSmoothingEnabled = false;
+                            await (page as any).render({ canvasContext: context, viewport: viewport }).promise;
+                            
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                            if (i === 1) {
+                                pdfFirstPageImageBase64 = dataUrl;
+                            }
+                            if (i <= pagesToRender) {
+                                renderedPages.push(dataUrl);
+                            }
+
                             try {
-                                const viewport = page.getViewport({ scale });
-                                const canvas = document.createElement("canvas");
-                                const context = canvas.getContext("2d", { willReadFrequently: true });
-                                if (context) {
-                                    canvas.height = viewport.height;
-                                    canvas.width = viewport.width;
-                                    context.imageSmoothingEnabled = false;
-                                    await (page as any).render({ canvasContext: context, viewport: viewport }).promise;
-                                    if (i === 1 && scale === 1.5) {
-                                        pdfFirstPageImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                                const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
+                                if (result && result.data && result.data.length > 10) {
+                                    const foundText = result.data;
+                                    if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
+                                        extractedText += `\n>>>>PIX_DATA<<<<${foundText}>>>>END_PIX<<<<\n`;
+                                    } else {
+                                        extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
                                     }
-                                    try {
-                                        const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
-                                        if (result && result.data && result.data.length > 10) {
-                                            const foundText = result.data;
-                                            if (foundText.includes('000201') && foundText.includes('BR.GOV.BCB.PIX')) {
-                                                extractedText += `\n>>>>PIX_DATA<<<<${foundText}>>>>END_PIX<<<<\n`;
-                                            } else {
-                                                extractedText += `\n>>>>QR_DATA<<<<${foundText}>>>>END_QR<<<<\n`;
-                                            }
-                                            break;
-                                        }
-                                    } catch (decodeErr) { console.debug(decodeErr); }
                                 }
-                            } catch (e) { console.debug(e); }
+                            } catch (decodeErr) { console.debug(decodeErr); }
                         }
 
                         const potentialBarcodeMatch = pageText.match(/[0-9.\-\s]{40,75}/g);
@@ -339,7 +373,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         if (textPixMatch && !extractedText.includes('>>>>PIX_DATA<<<<')) {
                             extractedText += `\n>>>>PIX_DATA<<<<${textPixMatch[0]}>>>>END_PIX<<<<\n`;
                         }
-                        if (i >= 5) break;
                     }
                 } else if (fileToAnalyze.type.startsWith('image/')) {
                     const QrScanner = (await import('qr-scanner')).default;
@@ -364,8 +397,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 console.warn('OCR error ignored, fallback to IA vision:', ocrErr);
             }
 
-            // 3. IA Processing (Financial Vision)
+            // Save decrypted pages for custom rendering (so the preview doesn't show browser password prompt)
+            setDecryptedPdfPages(renderedPages);
 
+            // 3. IA Processing (Financial Vision)
             const payload: any = { type };
             if (extractedText) {
                 payload.text_content = extractedText;
@@ -404,7 +439,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 notify('success', 'Documento analisado com sucesso!', 'IA Financeira');
             } else if (data && data.error) throw new Error(data.error);
 
-            // Cleanup can be handled by R2 lifecycle policy
         } catch (err: any) {
             console.error('Error analyzing document:', err);
             notify('error', err.message || 'Falha ao analisar documento.', 'Erro na IA');
@@ -417,9 +451,22 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         if (!pdfFilePendingPassword || !pdfPassword) return;
         const fileToAnalyze = pdfFilePendingPassword;
         const password = pdfPassword;
+
+        setIsAnalyzing(true);
+        const isCorrect = await verifyPdfPassword(fileToAnalyze, password);
+        if (!isCorrect) {
+            notify('error', 'Senha incorreta para o PDF. Tente novamente.', 'Erro de Senha');
+            setIsAnalyzing(false);
+            return;
+        }
+
+        // Correct password!
         setPdfPasswordRequired(false);
         setPdfFilePendingPassword(null);
         setPdfPassword('');
+
+        setFile(fileToAnalyze);
+        setTempAttachmentName(fileToAnalyze.name);
         await analyzeDocument(fileToAnalyze, password);
     };
 
@@ -960,6 +1007,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     setTempAttachmentName('');
                                                     setNotes('');
                                                     setBarcode('');
+                                                    setDecryptedPdfPages([]);
                                                     setShowEmbeddedPreview(false);
                                                 }}
                                                 title="Remover"
@@ -991,7 +1039,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-9 w-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 dark:hover:border-red-900/40 transition-all"
-                                                onClick={() => { setRemovedAttachment(true); setNotes(''); setBarcode(''); setShowEmbeddedPreview(false); }}
+                                                onClick={() => { setRemovedAttachment(true); setNotes(''); setBarcode(''); setDecryptedPdfPages([]); setShowEmbeddedPreview(false); }}
                                                 title="Remover"
                                             >
                                                 <Trash2 size={16} />
@@ -1002,11 +1050,26 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
                                 {showEmbeddedPreview && (fileUrl || tempAttachmentUrl || initialData?.attachment_url) && (
                                     <div className="mt-4 border-t pt-4 animate-in fade-in zoom-in duration-300">
-                                        <div className="relative w-full aspect-[4/3] bg-white rounded-lg overflow-hidden border">
-                                            {(file?.type === 'application/pdf' || (tempAttachmentUrl?.toLowerCase().includes('.pdf')) || (initialData?.attachment_url?.toLowerCase().includes('.pdf'))) ? (
+                                        <div className="relative w-full min-h-[300px] max-h-[60vh] overflow-y-auto bg-gray-100 dark:bg-slate-900 rounded-lg p-3 border scrollbar-thin">
+                                            {decryptedPdfPages.length > 0 ? (
+                                                <div className="flex flex-col gap-3">
+                                                    {decryptedPdfPages.map((pageImg, idx) => (
+                                                        <div key={idx} className="relative w-full bg-white dark:bg-slate-800 rounded-lg shadow border overflow-hidden">
+                                                            <img
+                                                                src={pageImg}
+                                                                alt={`Página ${idx + 1}`}
+                                                                className="w-full h-auto object-contain"
+                                                            />
+                                                            <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full select-none">
+                                                                Pág. {idx + 1} de {decryptedPdfPages.length}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (file?.type === 'application/pdf' || (tempAttachmentUrl?.toLowerCase().includes('.pdf')) || (initialData?.attachment_url?.toLowerCase().includes('.pdf'))) ? (
                                                 <iframe
                                                     src={`${fileUrl || tempAttachmentUrl || initialData?.attachment_url}#toolbar=0&navpanes=0`}
-                                                    className="w-full h-full border-none"
+                                                    className="w-full h-full min-h-[400px] border-none"
                                                     title="Document Preview"
                                                 />
                                             ) : (
