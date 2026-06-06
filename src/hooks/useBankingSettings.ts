@@ -17,6 +17,38 @@ export interface BankingConfig {
 const globalConfigsCache: Record<string, BankingConfig[]> = {};
 const globalLoadingCache: Record<string, boolean> = {};
 
+const SENSITIVE_PEM_FIELDS = ['certificate_pem', 'private_key_pem', 'private_key'];
+
+export function encodeBankingConfig(config: Record<string, any>): Record<string, any> {
+    if (!config) return {};
+    const encoded = { ...config };
+    for (const key of SENSITIVE_PEM_FIELDS) {
+        if (typeof encoded[key] === 'string' && encoded[key].trim()) {
+            const val = encoded[key].trim();
+            if (!val.startsWith('base64:')) {
+                encoded[key] = 'base64:' + btoa(unescape(encodeURIComponent(val)));
+            }
+        }
+    }
+    return encoded;
+}
+
+export function decodeBankingConfig(config: Record<string, any>): Record<string, any> {
+    if (!config) return {};
+    const decoded = { ...config };
+    for (const key of SENSITIVE_PEM_FIELDS) {
+        if (typeof decoded[key] === 'string' && decoded[key].startsWith('base64:')) {
+            try {
+                const base64Str = decoded[key].substring(7);
+                decoded[key] = decodeURIComponent(escape(atob(base64Str)));
+            } catch (err) {
+                console.error('Error decoding config field ' + key + ':', err);
+            }
+        }
+    }
+    return decoded;
+}
+
 export function useBankingSettings() {
     const { currentEntity } = useEntity();
     const entityId = currentEntity?.id || 'none';
@@ -38,8 +70,10 @@ export function useBankingSettings() {
                 .eq('company_id', currentEntity.id);
 
             if (error) throw error;
-            
-            const fetchedData = data || [];
+            const fetchedData = (data || []).map(item => ({
+                ...item,
+                config: decodeBankingConfig(item.config)
+            }));
             setConfigs(fetchedData);
             globalConfigsCache[currentEntity.id] = fetchedData;
             globalLoadingCache[currentEntity.id] = false;
@@ -59,11 +93,13 @@ export function useBankingSettings() {
         if (!currentEntity || currentEntity.type !== 'company') return { error: 'Not in company context' };
 
         try {
+            const encodedConfig = encodeBankingConfig(configData.config);
             const { data, error } = await supabase
                 .from('company_banking_configs')
                 .upsert({
                     company_id: currentEntity.id,
-                    ...configData
+                    ...configData,
+                    config: encodedConfig
                 }, {
                     onConflict: 'company_id,provider'
                 })

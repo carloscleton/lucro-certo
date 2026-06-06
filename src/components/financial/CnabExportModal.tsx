@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { X, Download, AlertCircle, CheckCircle2, AlertTriangle, Info, Landmark, Save } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { useBankingSettings } from '../../hooks/useBankingSettings';
+import { useBankingSettings, encodeBankingConfig } from '../../hooks/useBankingSettings';
 import type { CompanyBankInfo, PaymentItem } from '../../services/cnab/cnab240Generator';
 import { generateCnab240 } from '../../services/cnab/cnab240Generator';
 import { BANK_TEMPLATES } from '../../services/cnab/bankTemplates';
@@ -346,9 +346,10 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
         setIsSavingBankData(true);
         try {
             const newConfig = { ...bankConfig.config, ...data };
+            const encodedNewConfig = encodeBankingConfig(newConfig);
             await supabase
                 .from('company_banking_configs')
-                .update({ config: newConfig })
+                .update({ config: encodedNewConfig })
                 .eq('id', bankConfig.id);
             if (refresh) await refresh();
             doExport(data);

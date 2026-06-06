@@ -3,7 +3,7 @@ import { Landmark, Save, Trash2, Power, Info, Shield, Sparkles, Plus, X, CheckCi
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
-import { useBankingSettings } from '../../hooks/useBankingSettings';
+import { useBankingSettings, encodeBankingConfig } from '../../hooks/useBankingSettings';
 import { useEntity } from '../../context/EntityContext';
 import { useNotification } from '../../context/NotificationContext';
 import { supabase } from '../../lib/supabase';
@@ -344,9 +344,10 @@ export function BankingSettings() {
                 for (const other of otherConfigs) {
                     if (other.config?.is_default) {
                         const cleanConfig = { ...other.config, is_default: false };
+                        const encodedCleanConfig = encodeBankingConfig(cleanConfig);
                         await supabase
                             .from('company_banking_configs')
-                            .update({ config: cleanConfig })
+                            .update({ config: encodedCleanConfig })
                             .eq('id', other.id);
                     }
                 }
