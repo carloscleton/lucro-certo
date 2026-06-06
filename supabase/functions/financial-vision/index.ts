@@ -63,7 +63,8 @@ Responda APENAS um JSON válido no seguinte formato:
   "date": "YYYY-MM-DD",
   "category_suggestion": "nome da categoria sugerida",
   "contact_suggestion": "Nome claro da Empresa, Órgão (ex: Receita Federal) ou Pessoa",
-  "notes_suggestion": "O relatório completo e estruturado do documento, com o código de barras no topo se existir"
+  "notes_suggestion": "O relatório completo e estruturado do documento, com o código de barras no topo se existir",
+  "barcode": "linha digitável ou código de barras de 44 a 48 dígitos se houver no documento (somente números ou formato padrão), caso contrário null"
 }
 
 Regras:

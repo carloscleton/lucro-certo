@@ -63,6 +63,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         description?: string;
         amount?: string;
         date?: string;
+        barcode?: string;
     } | null>(null);
     const [pdfPasswordRequired, setPdfPasswordRequired] = useState(false);
     const [pdfFilePendingPassword, setPdfFilePendingPassword] = useState<File | null>(null);
@@ -413,11 +414,29 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             if (invokeError) throw new Error(invokeError.message || 'Erro ao chamar função de IA');
 
             if (data && !data.error) {
+                // Resolvendo o código de barras do OCR local ou da IA
+                let resolvedBarcode = '';
+                if (extractedText) {
+                    const localBarcodeMatch = extractedText.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
+                    if (localBarcodeMatch) {
+                        resolvedBarcode = localBarcodeMatch[1].trim();
+                    }
+                }
+                if (!resolvedBarcode && data.barcode) {
+                    resolvedBarcode = data.barcode.trim();
+                }
+
+                // Preenche o campo de código de barras diretamente
+                if (resolvedBarcode) {
+                    setBarcode(resolvedBarcode);
+                }
+
                 if (initialData) {
                     setAiSuggestions({
                         description: data.description || undefined,
                         amount: data.amount ? formatBRL(data.amount) : undefined,
-                        date: data.date || undefined
+                        date: data.date || undefined,
+                        barcode: resolvedBarcode || undefined
                     });
                 } else {
                     if (data.description) setDescription(data.description);
@@ -429,10 +448,6 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                 if (extractedText) {
                     const localPixMatch = extractedText.match(/>+PIX_DATA<+([\s\S]*?)>+END_PIX<+/);
                     if (localPixMatch) paymentBlock += `>>>>PIX_DATA<<<<${localPixMatch[1].trim()}>>>>END_PIX<<<<\n`;
-                    const localBarcodeMatch = extractedText.match(/>+BARCODE_DATA<+([\s\S]*?)>+END_BARCODE<+/);
-                    if (localBarcodeMatch) {
-                        setBarcode(localBarcodeMatch[1].trim());
-                    }
                 }
                 if (paymentBlock) finalNotes = paymentBlock + "\n" + finalNotes;
                 setNotes(prev => prev ? `${prev}\n${finalNotes}` : finalNotes);
@@ -909,10 +924,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                 const hasDiff = 
                                     (aiSuggestions.description && aiSuggestions.description !== description) ||
                                     (aiSuggestions.amount && aiSuggestions.amount !== amount) ||
-                                    (aiSuggestions.date && aiSuggestions.date !== date);
+                                    (aiSuggestions.date && aiSuggestions.date !== date) ||
+                                    (aiSuggestions.barcode && aiSuggestions.barcode !== barcode);
                                 
                                 if (!hasDiff) return null;
-
+ 
                                 return (
                                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/40 rounded-xl space-y-2 text-xs mb-3 animate-in fade-in slide-in-from-top-1 duration-200">
                                         <p className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
@@ -941,6 +957,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                 </div>
                                             )}
                                         </div>
+                                        {aiSuggestions.barcode && aiSuggestions.barcode !== barcode && (
+                                            <div className="text-[10px] pt-1.5 border-t border-blue-200/50 dark:border-blue-900/20">
+                                                <span className="font-semibold block text-gray-500">Código de Barras:</span>
+                                                <span className="line-through text-red-500 block truncate">{barcode || '(vazio)'}</span>
+                                                <span className="text-emerald-600 dark:text-emerald-400 font-bold block truncate">{aiSuggestions.barcode}</span>
+                                            </div>
+                                        )}
                                         <div className="flex gap-2 justify-end pt-1">
                                             <Button
                                                 type="button"
@@ -959,6 +982,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                                                     if (aiSuggestions.description) setDescription(aiSuggestions.description);
                                                     if (aiSuggestions.amount) setAmount(aiSuggestions.amount);
                                                     if (aiSuggestions.date) setDate(aiSuggestions.date);
+                                                    if (aiSuggestions.barcode) setBarcode(aiSuggestions.barcode);
                                                     setAiSuggestions(null);
                                                     notify('success', 'Dados da IA aplicados!');
                                                 }}
