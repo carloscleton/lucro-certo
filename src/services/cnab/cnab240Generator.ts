@@ -262,7 +262,7 @@ export const getFilenameForBank = (
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
     
     if (template?.filenamePattern === 'bb') {
-        return `CI240_001_${nsaString}.${extension.toUpperCase()}`;
+        return `CI240_${padNum(bankCode, 3)}_${nsaString}.${extension.toUpperCase()}`;
     }
     
     return `remessa_${bankCode}_${today}.${extension}`;

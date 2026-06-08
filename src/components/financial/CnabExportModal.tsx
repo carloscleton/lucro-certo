@@ -373,7 +373,7 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
     );
 
     // ── Executa geração do CNAB ──────────────────────────────────────────────
-    const doExport = (overrideConfig?: { bank_code?: string; branch: string; branch_digit: string; account: string; account_digit: string }) => {
+    const doExport = async (overrideConfig?: { bank_code?: string; branch: string; branch_digit: string; account: string; account_digit: string }) => {
         if (!bankConfig) return;
         const effectiveConfig = overrideConfig
             ? { ...bankConfig.config, ...overrideConfig }
@@ -399,7 +399,9 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
         }));
 
         try {
-            const nsa = 1; // Número Seqüencial de Arquivo
+            const currentNsa = effectiveConfig?.last_nsa ? Number(effectiveConfig.last_nsa) : 0;
+            const nsa = currentNsa + 1;
+            
             const cnabContent = generateCnab240(company, payments, nsa);
             const blob = new Blob([cnabContent], { type: 'text/plain;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -411,6 +413,17 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
+            // Persiste o novo NSA nas configurações bancárias da empresa
+            const updatedConfig = { ...effectiveConfig, last_nsa: nsa };
+            const encodedNewConfig = encodeBankingConfig(updatedConfig);
+            await supabase
+                .from('company_banking_configs')
+                .update({ config: encodedNewConfig })
+                .eq('id', bankConfig.id);
+            
+            if (refresh) await refresh();
+
             setShowMissingDataModal(false);
             onClose();
         } catch (error: any) {
