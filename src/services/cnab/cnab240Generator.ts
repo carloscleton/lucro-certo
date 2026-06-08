@@ -324,30 +324,24 @@ export const generateCnab240 = (
     let lotNumber = 1;
 
     // --- LOTE DE BOLETOS BANCÁRIOS (Segmento J) ---
-    // Verificar se o banco usa forma de lançamento fixa (ex: Inter usa '01' para tudo)
-    const formaLancamentoBoleto = bank.formaLancamentoBoleto;
-    const singleLotForBoletos = bank.singleLotForBoletos;
-
+    // Dividir pagamentos bancários em próprio banco (30) e outros bancos (31)
     const ownBankPayments: PaymentItem[] = [];
     const otherBankPayments: PaymentItem[] = [];
 
-    if (singleLotForBoletos || formaLancamentoBoleto) {
-        // Bancos como Inter: todos os boletos vão em um único lote
-        ownBankPayments.push(...bankPayments);
-    } else {
-        // Padrão FEBRABAN: separar por banco (30 = próprio, 31 = outros)
-        bankPayments.forEach(p => {
-            const rawBarcode = p.barcode || p.linha_digitavel || '';
-            const validation = validateBoleto(rawBarcode);
-            const bc = validation.barcode;
-            const boletoBankCode = bc.substring(0, 3);
-            if (boletoBankCode === company.bankCode) {
-                ownBankPayments.push(p);
-            } else {
-                otherBankPayments.push(p);
-            }
-        });
-    }
+    bankPayments.forEach(p => {
+        const rawBarcode = p.barcode || p.linha_digitavel || '';
+        const validation = validateBoleto(rawBarcode);
+        const bc = validation.barcode;
+        const boletoBankCode = bc.substring(0, 3);
+        if (boletoBankCode === company.bankCode) {
+            ownBankPayments.push(p);
+        } else {
+            otherBankPayments.push(p);
+        }
+    });
+
+    // Tipo de serviço para boletos: '20' (padrão FEBRABAN) ou o valor específico do banco
+    const tipoServicoBoleto = bank.tipoServicoBoleto || '20';
 
     const generateBankLot = (lotPayments: PaymentItem[], formaLancamento: string) => {
         const currentLot = lotNumber++;
@@ -356,8 +350,8 @@ export const generateCnab240 = (
         lotHeader += padNum(currentLot, 4); // 02.1 Lote
         lotHeader += '1'; // 03.1 Tipo Registro (1)
         lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento)
-        lotHeader += '20'; // 05.1 Tipo de Serviço (20=Pagamento Fornecedor/Boletos)
-        lotHeader += formaLancamento; // 06.1 Forma Lançamento (30 ou 31)
+        lotHeader += tipoServicoBoleto; // 05.1 Tipo de Serviço (20=Fornecedor, 98=Diversos)
+        lotHeader += formaLancamento; // 06.1 Forma Lançamento (30=próprio, 31=outros)
         lotHeader += padNum(bank.layoutVersionLot || '040', 3); // 07.1 Versão Layout do Lote
         lotHeader += ' '; // 08.1 Brancos
         lotHeader += tipoInscricao; // 09.1 Tipo Inscrição (1=CPF / 2=CNPJ)
@@ -457,19 +451,12 @@ export const generateCnab240 = (
         lines.push(lotTrailer);
     };
 
-    if (formaLancamentoBoleto) {
-        // Banco com forma de lançamento fixa (ex: Inter '01'): um único lote para todos
-        if (ownBankPayments.length > 0) {
-            generateBankLot(ownBankPayments, formaLancamentoBoleto);
-        }
-    } else {
-        // Padrão FEBRABAN: 30 = próprio banco, 31 = outros bancos
-        if (ownBankPayments.length > 0) {
-            generateBankLot(ownBankPayments, '30');
-        }
-        if (otherBankPayments.length > 0) {
-            generateBankLot(otherBankPayments, '31');
-        }
+    // Padrão FEBRABAN: 30 = próprio banco, 31 = outros bancos
+    if (ownBankPayments.length > 0) {
+        generateBankLot(ownBankPayments, '30');
+    }
+    if (otherBankPayments.length > 0) {
+        generateBankLot(otherBankPayments, '31');
     }
 
     // --- LOTE DE CONCESSIONÁRIAS / TRIBUTOS (Segmento O) ---
