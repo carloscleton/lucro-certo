@@ -39,21 +39,59 @@ const parseCnabCurrency = (valStr: string): number => {
 const getSegmentJOccurrenceDesc = (code: string): { desc: string; isSuccess: boolean; isRejected: boolean } => {
     const map: Record<string, string> = {
         '00': 'Débito/Pagamento Efetivado',
+        '03': 'Débito Autorizado pelo Banco',
         '05': 'Pagamento Efetuado',
         'BD': 'Confirmação de Pagamento',
         '12': 'Pagamento Efetivado/Confirmado',
         'A4': 'Pagamento Agendado',
+        'A5': 'Pagamento em Data Futura',
+        'A6': 'Pagamento Agendado com Sucesso',
+        'AE': 'Data Pagamento Alterada',
+        'AG': 'Número do Lote Inválido',
+        'AH': 'Número Sequencial Inválido',
+        'AI': 'Produto Inexistente',
+        'AJ': 'Tipo de Movimento Inválido',
+        'DA': 'Data de Vencimento Inválida',
+        'DB': 'Data de Vencimento Anterior à Emissão',
         'HA': 'Lote não Aceito',
+        'HB': 'Inscrição da Empresa Inválida',
+        'HC': 'Convênio com Banco Inválido',
+        'HD': 'Agência/Conta Inválida',
+        'HE': 'Data de Pagamento Inválida',
+        'HF': 'Data de Pagamento Antecipada',
+        'HG': 'Data de Pagamento Posterior',
+        'HH': 'Data de Pagamento Inválida para OC',
+        'HI': 'Código de Barras Divergente',
+        'HJ': 'Nosso Número Inválido',
+        'HK': 'Seu Número Inválido',
+        'HL': 'Valor Nominal Inválido',
         'HM': 'Erro nos Dados do Favorecido',
         'HN': 'Código de Barras Inválido',
+        'HO': 'Valor do Desconto Inválido',
         'HP': 'Favorecido Divergente',
+        'HQ': 'Valor da Mora Inválido',
+        'HR': 'Valor da Multa Inválido',
+        'HU': 'Valor do INSS Inválido',
+        'HV': 'Valor do COFINS Inválido',
+        'HW': 'Valor do CSLL Inválido',
+        'HX': 'Valor do IR Inválido',
+        'HY': 'Valor do ISS Inválido',
         'IA': 'Pagamento Bloqueado',
+        'IB': 'Valor do Documento Inválido',
+        'IC': 'Insuficiência de Saldo/Limite',
+        'ID': 'Conta Encerrada',
+        'IE': 'Conta Bloqueada',
+        'IF': 'Débito não Autorizado',
+        'NA': 'Banco Cedente sem Convênio',
+        'NB': 'Tipo de Moeda Inválido',
         'YA': 'Insuficiência de Saldo',
+        'YB': 'Número do Documento Exigido',
+        'YC': 'Cedente/Favorecido não Cadastrado',
     };
 
     const desc = map[code.toUpperCase()] || `Ocorrência ${code}`;
-    const successCodes = ['00', '05', 'BD', '12'];
-    const pendingCodes = ['A4'];
+    const successCodes = ['00', '03', '05', 'BD', '12'];
+    const pendingCodes = ['A4', 'A5', 'A6', 'AE'];
     
     return {
         desc,
@@ -67,15 +105,27 @@ const getSegmentTMovementDesc = (code: string): { desc: string; isSuccess: boole
     const map: Record<string, string> = {
         '02': 'Entrada Confirmada',
         '03': 'Entrada Rejeitada',
+        '04': 'Transferência de Carteira/Entrada',
+        '05': 'Transferência de Carteira/Baixa',
         '06': 'Liquidação (Título Pago)',
+        '07': 'Confirmação de Recebimento de Instrução',
         '09': 'Baixa de Título Efetivada',
+        '10': 'Baixa Rejeitada',
+        '14': 'Alteração de Vencimento Confirmada',
         '17': 'Liquidação após baixa',
+        '20': 'Em Ser',
+        '23': 'Encaminhado a Protesto',
         '24': 'Instrução Rejeitada',
+        '25': 'Confirmação de Baixa de Protesto',
+        '26': 'Confirmação de Alteração de Multa',
+        '27': 'Liquidação em Condicional',
+        '28': 'Liquidação por Saldo',
+        '30': 'Alteração de Dados Rejeitada',
     };
 
     const desc = map[code] || `Movimento ${code}`;
-    const isSuccess = ['06', '17'].includes(code);
-    const isRejected = ['03', '24'].includes(code);
+    const isSuccess = ['06', '17', '27', '28'].includes(code);
+    const isRejected = ['03', '10', '24', '30'].includes(code);
 
     return {
         desc,

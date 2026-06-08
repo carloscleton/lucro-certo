@@ -500,5 +500,14 @@ export const generateCnab240 = (
     trailer += ''.padEnd(205, ' '); // 08.9 Brancos
     lines.push(trailer);
 
+    // --- VALIDAÇÃO: Garantir que todas as linhas tenham exatamente 240 posições ---
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].length < 240) {
+            lines[i] = lines[i].padEnd(240, ' ');
+        } else if (lines[i].length > 240) {
+            lines[i] = lines[i].substring(0, 240);
+        }
+    }
+
     return lines.join('\r\n'); // CNAB requer CRLF
 };
