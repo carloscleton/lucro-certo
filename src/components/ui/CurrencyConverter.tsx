@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeftRight, TrendingUp, Info } from 'lucide-react';
+import { API_BASE_URL } from '../../lib/constants';
 
 const FLAGS: Record<string, string> = {
   BRL: '🇧🇷',
@@ -29,7 +30,7 @@ export const CurrencyConverter: React.FC = () => {
         const fetchAllRates = async () => {
             try {
                 // We fetch BRL based rates
-                const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,PYG-BRL,ARS-BRL');
+                const res = await fetch(`${API_BASE_URL}/exchange-rates`);
                 if (res.ok) {
                     const json = await res.json();
                     const newRates = { ...INITIAL_RATES };

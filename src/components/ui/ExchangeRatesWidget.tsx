@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Tooltip } from './Tooltip';
+import { API_BASE_URL } from '../../lib/constants';
 
 interface ExchangeData {
     USDBRL: { bid: string; pctChange: string; };
@@ -13,7 +14,7 @@ export function ExchangeRatesWidget() {
     useEffect(() => {
         const fetchRates = async () => {
             try {
-                const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL');
+                const res = await fetch(`${API_BASE_URL}/exchange-rates`);
                 if (res.ok) {
                     const json = await res.json();
                     setData(json);
