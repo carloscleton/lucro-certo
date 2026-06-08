@@ -8,6 +8,9 @@ export interface BankTemplate {
     // Tipo de Serviço no Header de Lote para boletos (padrão: '20' = Pagamento Fornecedor)
     // Alguns bancos usam códigos diferentes, ex: Inter usa '98' (Pagamentos Diversos)
     tipoServicoBoleto?: string;
+    // Forma de Lançamento no Header de Lote para concessionárias/tributos (padrão: '13')
+    // Banco Inter exige '11'
+    formaLancamentoUtility?: string;
 }
 
 export const BANK_TEMPLATES: Record<string, BankTemplate> = {
@@ -16,7 +19,7 @@ export const BANK_TEMPLATES: Record<string, BankTemplate> = {
     '033': { bankCode: '033', bankName: 'BANCO SANTANDER (BRASIL) S.A.' },
     '041': { bankCode: '041', bankName: 'BANRISUL S.A.' },
     '070': { bankCode: '070', bankName: 'BRB - BCO DE BRASILIA S.A.' },
-    '077': { bankCode: '077', bankName: 'BANCO INTER S.A.', layoutVersionFile: '080', layoutVersionLot: '040', filenamePattern: 'bb', tipoServicoBoleto: '98' },
+    '077': { bankCode: '077', bankName: 'BANCO INTER S.A.', layoutVersionFile: '080', layoutVersionLot: '040', filenamePattern: 'bb', tipoServicoBoleto: '98', formaLancamentoUtility: '11' },
     '085': { bankCode: '085', bankName: 'COOPERATIVA CENTRAL AILOS' },
     '104': { bankCode: '104', bankName: 'CAIXA ECONOMICA FEDERAL' },
     '136': { bankCode: '136', bankName: 'UNICRED' },

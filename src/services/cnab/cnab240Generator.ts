@@ -468,7 +468,7 @@ export const generateCnab240 = (
         lotHeader += '1'; // 03.1 Tipo Registro (1)
         lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento)
         lotHeader += '22'; // 05.1 Tipo de Serviço (22=Pagamento Contas e Tributos/Concessionárias)
-        lotHeader += '13'; // 06.1 Forma Lançamento (13=Pagamento de Concessionárias / Tributos com Cód Barras)
+        lotHeader += bank.formaLancamentoUtility || '13'; // 06.1 Forma Lançamento (13=Pagamento de Concessionárias, 11=Banco Inter)
         lotHeader += padNum(bank.layoutVersionLot || '040', 3); // 07.1 Versão Layout
         lotHeader += ' '; // 08.1 Brancos
         lotHeader += tipoInscricao; // 09.1 Tipo Inscrição (1=CPF / 2=CNPJ)
