@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useBankingSettings, encodeBankingConfig } from '../../hooks/useBankingSettings';
 import type { CompanyBankInfo, PaymentItem } from '../../services/cnab/cnab240Generator';
-import { generateCnab240, validateBoleto } from '../../services/cnab/cnab240Generator';
+import { generateCnab240, validateBoleto, getFilenameForBank } from '../../services/cnab/cnab240Generator';
 import { BANK_TEMPLATES } from '../../services/cnab/bankTemplates';
 import type { Transaction } from '../../hooks/useTransactions';
 import { supabase } from '../../lib/supabase';
@@ -406,11 +406,7 @@ export function CnabExportModal({ isOpen, onClose, selectedTransactions, company
             const link = document.createElement('a');
             link.href = url;
             
-            let filename = `remessa_${company.bankCode}_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.${fileExtension}`;
-            if (company.bankCode === '077') {
-                const nsaString = String(nsa).padStart(6, '0');
-                filename = `CI240_001_${nsaString}.${fileExtension.toUpperCase()}`;
-            }
+            const filename = getFilenameForBank(company.bankCode, nsa, fileExtension);
             link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();

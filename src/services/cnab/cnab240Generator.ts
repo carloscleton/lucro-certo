@@ -252,6 +252,22 @@ export const validateBoleto = (linha: string): BoletoValidationResult => {
     };
 };
 
+export const getFilenameForBank = (
+    bankCode: string,
+    nsa: number,
+    extension: string
+): string => {
+    const template = BANK_TEMPLATES[bankCode];
+    const nsaString = String(nsa).padStart(6, '0');
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    
+    if (template?.filenamePattern === 'bb') {
+        return `CI240_001_${nsaString}.${extension.toUpperCase()}`;
+    }
+    
+    return `remessa_${bankCode}_${today}.${extension}`;
+};
+
 export const generateCnab240 = (
     company: CompanyBankInfo,
     payments: PaymentItem[],
@@ -298,7 +314,7 @@ export const generateCnab240 = (
     header += dateToday; // 17.0 Data de Geração
     header += timeNow; // 18.0 Hora de Geração
     header += padNum(sequentialNSA, 6); // 19.0 NSA
-    header += '081'; // 20.0 Versão Layout Febraban
+    header += bank.layoutVersionFile || '081'; // 20.0 Versão Layout Febraban
     header += padNum(0, 5); // 21.0 Densidade Arquivo
     header += ''.padEnd(20, ' '); // 22.0 Reservado Banco
     header += ''.padEnd(20, ' '); // 23.0 Reservado Empresa
@@ -308,7 +324,23 @@ export const generateCnab240 = (
     let lotNumber = 1;
 
     // --- LOTE DE BOLETOS BANCÁRIOS (Segmento J) ---
-    if (bankPayments.length > 0) {
+    // Dividir pagamentos bancários em próprio banco (30) e outros bancos (31)
+    const ownBankPayments: PaymentItem[] = [];
+    const otherBankPayments: PaymentItem[] = [];
+
+    bankPayments.forEach(p => {
+        const rawBarcode = p.barcode || p.linha_digitavel || '';
+        const validation = validateBoleto(rawBarcode);
+        const bc = validation.barcode;
+        const boletoBankCode = bc.substring(0, 3);
+        if (boletoBankCode === company.bankCode) {
+            ownBankPayments.push(p);
+        } else {
+            otherBankPayments.push(p);
+        }
+    });
+
+    const generateBankLot = (lotPayments: PaymentItem[], formaLancamento: string) => {
         const currentLot = lotNumber++;
         let lotHeader = '';
         lotHeader += padNum(company.bankCode, 3); // 01.1 Banco
@@ -316,8 +348,8 @@ export const generateCnab240 = (
         lotHeader += '1'; // 03.1 Tipo Registro (1)
         lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento)
         lotHeader += '20'; // 05.1 Tipo de Serviço (20=Pagamento Fornecedor/Boletos)
-        lotHeader += '31'; // 06.1 Forma Lançamento (31 = Pagamento Títulos Outros Bancos)
-        lotHeader += '040'; // 07.1 Versão Layout do Lote
+        lotHeader += formaLancamento; // 06.1 Forma Lançamento (30 ou 31)
+        lotHeader += padNum(bank.layoutVersionLot || '040', 3); // 07.1 Versão Layout do Lote
         lotHeader += ' '; // 08.1 Brancos
         lotHeader += tipoInscricao; // 09.1 Tipo Inscrição (1=CPF / 2=CNPJ)
         lotHeader += padNum(company.cnpj, 14); // 10.1 Inscrição
@@ -336,7 +368,7 @@ export const generateCnab240 = (
         let lotAmount = 0;
         let sequenceInLot = 1;
 
-        bankPayments.forEach((payment) => {
+        lotPayments.forEach((payment) => {
             // Segmento J
             let det = '';
             det += padNum(company.bankCode, 3); // 01.3 Banco
@@ -414,6 +446,13 @@ export const generateCnab240 = (
         lotTrailer += padNum(0, 18); // 07.5 Somatória Qtd Moeda
         lotTrailer += ''.padEnd(181, ' '); // 08.5 Brancos
         lines.push(lotTrailer);
+    };
+
+    if (ownBankPayments.length > 0) {
+        generateBankLot(ownBankPayments, '30');
+    }
+    if (otherBankPayments.length > 0) {
+        generateBankLot(otherBankPayments, '31');
     }
 
     // --- LOTE DE CONCESSIONÁRIAS / TRIBUTOS (Segmento O) ---
@@ -426,7 +465,7 @@ export const generateCnab240 = (
         lotHeader += 'C'; // 04.1 Operação (C=Crédito/Pagamento)
         lotHeader += '22'; // 05.1 Tipo de Serviço (22=Pagamento Contas e Tributos/Concessionárias)
         lotHeader += '13'; // 06.1 Forma Lançamento (13=Pagamento de Concessionárias / Tributos com Cód Barras)
-        lotHeader += '040'; // 07.1 Versão Layout
+        lotHeader += padNum(bank.layoutVersionLot || '040', 3); // 07.1 Versão Layout
         lotHeader += ' '; // 08.1 Brancos
         lotHeader += tipoInscricao; // 09.1 Tipo Inscrição (1=CPF / 2=CNPJ)
         lotHeader += padNum(company.cnpj, 14); // 10.1 Inscrição

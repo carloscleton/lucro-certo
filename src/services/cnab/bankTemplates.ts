@@ -2,15 +2,18 @@ export interface BankTemplate {
     bankCode: string; // 3 chars
     bankName: string; // up to 30 chars
     companyCodeLength?: number;
+    layoutVersionFile?: string;
+    layoutVersionLot?: string;
+    filenamePattern?: 'bb' | 'generic';
 }
 
 export const BANK_TEMPLATES: Record<string, BankTemplate> = {
     // Bancos comerciais e múltiplos
-    '001': { bankCode: '001', bankName: 'BANCO DO BRASIL S.A.' },
+    '001': { bankCode: '001', bankName: 'BANCO DO BRASIL S.A.', layoutVersionFile: '080', layoutVersionLot: '040', filenamePattern: 'bb' },
     '033': { bankCode: '033', bankName: 'BANCO SANTANDER (BRASIL) S.A.' },
     '041': { bankCode: '041', bankName: 'BANRISUL S.A.' },
     '070': { bankCode: '070', bankName: 'BRB - BCO DE BRASILIA S.A.' },
-    '077': { bankCode: '077', bankName: 'BANCO INTER S.A.' },
+    '077': { bankCode: '077', bankName: 'BANCO INTER S.A.', layoutVersionFile: '080', layoutVersionLot: '040', filenamePattern: 'bb' },
     '085': { bankCode: '085', bankName: 'COOPERATIVA CENTRAL AILOS' },
     '104': { bankCode: '104', bankName: 'CAIXA ECONOMICA FEDERAL' },
     '136': { bankCode: '136', bankName: 'UNICRED' },
