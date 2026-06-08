@@ -5,6 +5,11 @@ export interface BankTemplate {
     layoutVersionFile?: string;
     layoutVersionLot?: string;
     filenamePattern?: 'bb' | 'generic';
+    // Se definido, usa esta forma de lançamento fixa para boletos (ignora 30/31)
+    // Ex: Inter PAG240 usa '01' para qualquer boleto
+    formaLancamentoBoleto?: string;
+    // Se true, usa apenas um lote para todos os boletos (sem separar por banco)
+    singleLotForBoletos?: boolean;
 }
 
 export const BANK_TEMPLATES: Record<string, BankTemplate> = {
@@ -13,7 +18,7 @@ export const BANK_TEMPLATES: Record<string, BankTemplate> = {
     '033': { bankCode: '033', bankName: 'BANCO SANTANDER (BRASIL) S.A.' },
     '041': { bankCode: '041', bankName: 'BANRISUL S.A.' },
     '070': { bankCode: '070', bankName: 'BRB - BCO DE BRASILIA S.A.' },
-    '077': { bankCode: '077', bankName: 'BANCO INTER S.A.', layoutVersionFile: '080', layoutVersionLot: '040', filenamePattern: 'bb' },
+    '077': { bankCode: '077', bankName: 'BANCO INTER S.A.', layoutVersionFile: '080', layoutVersionLot: '040', filenamePattern: 'bb', formaLancamentoBoleto: '01', singleLotForBoletos: true },
     '085': { bankCode: '085', bankName: 'COOPERATIVA CENTRAL AILOS' },
     '104': { bankCode: '104', bankName: 'CAIXA ECONOMICA FEDERAL' },
     '136': { bankCode: '136', bankName: 'UNICRED' },

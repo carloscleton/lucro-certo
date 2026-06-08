@@ -324,21 +324,30 @@ export const generateCnab240 = (
     let lotNumber = 1;
 
     // --- LOTE DE BOLETOS BANCÁRIOS (Segmento J) ---
-    // Dividir pagamentos bancários em próprio banco (30) e outros bancos (31)
+    // Verificar se o banco usa forma de lançamento fixa (ex: Inter usa '01' para tudo)
+    const formaLancamentoBoleto = bank.formaLancamentoBoleto;
+    const singleLotForBoletos = bank.singleLotForBoletos;
+
     const ownBankPayments: PaymentItem[] = [];
     const otherBankPayments: PaymentItem[] = [];
 
-    bankPayments.forEach(p => {
-        const rawBarcode = p.barcode || p.linha_digitavel || '';
-        const validation = validateBoleto(rawBarcode);
-        const bc = validation.barcode;
-        const boletoBankCode = bc.substring(0, 3);
-        if (boletoBankCode === company.bankCode) {
-            ownBankPayments.push(p);
-        } else {
-            otherBankPayments.push(p);
-        }
-    });
+    if (singleLotForBoletos || formaLancamentoBoleto) {
+        // Bancos como Inter: todos os boletos vão em um único lote
+        ownBankPayments.push(...bankPayments);
+    } else {
+        // Padrão FEBRABAN: separar por banco (30 = próprio, 31 = outros)
+        bankPayments.forEach(p => {
+            const rawBarcode = p.barcode || p.linha_digitavel || '';
+            const validation = validateBoleto(rawBarcode);
+            const bc = validation.barcode;
+            const boletoBankCode = bc.substring(0, 3);
+            if (boletoBankCode === company.bankCode) {
+                ownBankPayments.push(p);
+            } else {
+                otherBankPayments.push(p);
+            }
+        });
+    }
 
     const generateBankLot = (lotPayments: PaymentItem[], formaLancamento: string) => {
         const currentLot = lotNumber++;
@@ -448,11 +457,19 @@ export const generateCnab240 = (
         lines.push(lotTrailer);
     };
 
-    if (ownBankPayments.length > 0) {
-        generateBankLot(ownBankPayments, '30');
-    }
-    if (otherBankPayments.length > 0) {
-        generateBankLot(otherBankPayments, '31');
+    if (formaLancamentoBoleto) {
+        // Banco com forma de lançamento fixa (ex: Inter '01'): um único lote para todos
+        if (ownBankPayments.length > 0) {
+            generateBankLot(ownBankPayments, formaLancamentoBoleto);
+        }
+    } else {
+        // Padrão FEBRABAN: 30 = próprio banco, 31 = outros bancos
+        if (ownBankPayments.length > 0) {
+            generateBankLot(ownBankPayments, '30');
+        }
+        if (otherBankPayments.length > 0) {
+            generateBankLot(otherBankPayments, '31');
+        }
     }
 
     // --- LOTE DE CONCESSIONÁRIAS / TRIBUTOS (Segmento O) ---
