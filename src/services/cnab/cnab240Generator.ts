@@ -165,8 +165,29 @@ export const validateBoleto = (linha: string): BoletoValidationResult => {
         };
     }
     
-    const isUtility = clean.startsWith('8') && (clean.length === 48 || clean.length === 44);
+    const isUtility = clean.startsWith('8');
     const type = isUtility ? 'utility' : 'bank';
+
+    if (type === 'utility' && clean.length !== 44 && clean.length !== 48) {
+        return {
+            isValid: false,
+            type: 'invalid',
+            clean,
+            barcode: '',
+            errors: [`Código de concessionária/tributo deve ter 44 ou 48 dígitos (possui ${clean.length})`]
+        };
+    }
+
+    if (type === 'bank' && clean.length !== 44 && clean.length !== 47) {
+        return {
+            isValid: false,
+            type: 'invalid',
+            clean,
+            barcode: '',
+            errors: [`Boleto bancário deve ter 44 ou 47 dígitos (possui ${clean.length})`]
+        };
+    }
+
     const barcode = getBarcodeFromLinhaDigitavel(clean);
     
     if (isUtility) {
