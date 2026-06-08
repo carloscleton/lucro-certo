@@ -1,0 +1,13 @@
+node_modules
+android
+ios
+dist
+api/node_modules
+api/dist
+.git
+.vercel
+scratch
+tmp
+brain
+*.log
+public/videos/apresentacao.mp4

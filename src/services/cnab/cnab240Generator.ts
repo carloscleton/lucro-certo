@@ -276,12 +276,14 @@ export const generateCnab240 = (
     });
     
     // --- HEADER DE ARQUIVO (Registro 0) ---
+    const isCnpjCompany = company.cnpj.replace(/\D/g, '').length > 11;
+    const tipoInscricao = isCnpjCompany ? '2' : '1'; // 1=CPF (Pessoa Física), 2=CNPJ (Pessoa Jurídica)
     let header = '';
     header += padNum(company.bankCode, 3); // 01.0 Banco
     header += '0000'; // 02.0 Lote (0000)
     header += '0'; // 03.0 Tipo Registro (0)
     header += ''.padEnd(9, ' '); // 04.0 Brancos
-    header += '2'; // 05.0 Tipo Inscrição (2 = CNPJ)
+    header += tipoInscricao; // 05.0 Tipo Inscrição (1=CPF / 2=CNPJ)
     header += padNum(company.cnpj, 14); // 06.0 Inscrição
     header += padAlpha(company.company_code || '', 20); // 07.0 Código do Convênio no Banco
     header += padNum(company.agency, 5); // 08.0 Agência
@@ -317,7 +319,7 @@ export const generateCnab240 = (
         lotHeader += '31'; // 06.1 Forma Lançamento (31 = Pagamento Títulos Outros Bancos)
         lotHeader += '040'; // 07.1 Versão Layout do Lote
         lotHeader += ' '; // 08.1 Brancos
-        lotHeader += '2'; // 09.1 Tipo Inscrição (2=CNPJ)
+        lotHeader += tipoInscricao; // 09.1 Tipo Inscrição (1=CPF / 2=CNPJ)
         lotHeader += padNum(company.cnpj, 14); // 10.1 Inscrição
         lotHeader += padAlpha(company.company_code || '', 20); // 11.1 Convênio
         lotHeader += padNum(company.agency, 5); // 12.1 Agência
@@ -426,7 +428,7 @@ export const generateCnab240 = (
         lotHeader += '13'; // 06.1 Forma Lançamento (13=Pagamento de Concessionárias / Tributos com Cód Barras)
         lotHeader += '040'; // 07.1 Versão Layout
         lotHeader += ' '; // 08.1 Brancos
-        lotHeader += '2'; // 09.1 Tipo Inscrição (2=CNPJ)
+        lotHeader += tipoInscricao; // 09.1 Tipo Inscrição (1=CPF / 2=CNPJ)
         lotHeader += padNum(company.cnpj, 14); // 10.1 Inscrição
         lotHeader += padAlpha(company.company_code || '', 20); // 11.1 Convênio
         lotHeader += padNum(company.agency, 5); // 12.1 Agência
