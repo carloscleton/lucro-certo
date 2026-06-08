@@ -23,6 +23,39 @@ import { storageService } from '../../lib/storageService';
 import { calculateNextDates, formatBrazilianDate, formatDateString } from '../../utils/dateUtils';
 import { useNotification } from '../../context/NotificationContext';
 import { formatBRL, parseBRL } from '../../utils/currencyUtils';
+import { validateBoleto } from '../../services/cnab/cnab240Generator';
+
+const findValidBarcode = (text: string): string | null => {
+    if (!text) return null;
+
+    // 1. Clean all non-digits to see if there is a contiguous valid block of numbers
+    const cleanOnlyDigits = text.replace(/\D/g, '');
+    for (const len of [48, 47, 44]) {
+        for (let i = 0; i <= cleanOnlyDigits.length - len; i++) {
+            const candidate = cleanOnlyDigits.substring(i, i + len);
+            if (validateBoleto(candidate).isValid) {
+                return candidate;
+            }
+        }
+    }
+
+    // 2. Scan for spaced digit sequences (like typical linas digitáveis / barcodes in OCR text)
+    const regex = /[\d][\d\.\-\s]{35,80}[\d]/g;
+    const matches = text.match(regex);
+    if (matches) {
+        for (const match of matches) {
+            const clean = match.replace(/\D/g, '');
+            if (clean.length === 44 || clean.length === 47 || clean.length === 48) {
+                if (validateBoleto(clean).isValid) {
+                    return clean;
+                }
+            }
+        }
+    }
+
+    return null;
+};
+
 interface TransactionFormProps {
     type: TransactionType;
     isOpen: boolean;
@@ -369,36 +402,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         const textWithSpaces = sortedItems.map((item: any) => item.str).join(' ');
                         
                         if (!extractedText.includes('>>>>BARCODE_DATA<<<<')) {
-                            // Pattern 1: Raw 44-48 digit numeric barcode (no spaces/dots)
-                            const rawBarcode = textJoined.match(/\d{44,48}/);
-                            if (rawBarcode) {
-                                extractedText += `\n>>>>BARCODE_DATA<<<<${rawBarcode[0]}>>>>END_BARCODE<<<<\n`;
-                            } else {
-                                // Pattern 2: Linha digitável com pontos e espaços
-                                // Ex: 00190.00009 02801.872059 90000.963301 1 10100000003677
-                                // Ex: 341.9 36307 .76538 3 60460000037700
-                                // Normalize: remove spaces, keep digits and dots, then strip non-digits
-                                const linhaDigMatch = textWithSpaces.match(
-                                    /\d{4,5}[\.\s]\d{5,6}\s+\d{4,6}[\.\s]\d{5,6}\s+\d{4,6}[\.\s]\d{5,6}\s+\d\s+\d{14,15}/
-                                );
-                                if (linhaDigMatch) {
-                                    const cleanCode = linhaDigMatch[0].replace(/[^\d]/g, '');
-                                    if (cleanCode.length >= 44 && cleanCode.length <= 48) {
-                                        extractedText += `\n>>>>BARCODE_DATA<<<<${cleanCode}>>>>END_BARCODE<<<<\n`;
-                                    }
-                                } else {
-                                    // Pattern 3: Fallback – any continuous sequence of digits, dots, hyphens ≥ 40 chars
-                                    const potentialBarcodeMatch = textWithSpaces.match(/[\d][\d\.\-\s]{38,73}[\d]/g);
-                                    if (potentialBarcodeMatch) {
-                                        for (const possible of potentialBarcodeMatch) {
-                                            const clean = possible.replace(/[^\d]/g, '');
-                                            if (clean.length >= 44 && clean.length <= 48) {
-                                                extractedText += `\n>>>>BARCODE_DATA<<<<${clean}>>>>END_BARCODE<<<<\n`;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
+                            const validBc = findValidBarcode(textJoined) || findValidBarcode(textWithSpaces);
+                            if (validBc) {
+                                extractedText += `\n>>>>BARCODE_DATA<<<<${validBc}>>>>END_BARCODE<<<<\n`;
                             }
                         }
 
