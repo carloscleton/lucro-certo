@@ -394,15 +394,48 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                         }
 
                         // --- Barcode / Linha Digitável Detection ---
-                        // Strategy: join all text items tightly (no spaces) then scan, 
-                        // because PDF text items can be fragmented across tokens.
-                        // Also try joining with spaces to catch human-readable linha digitável format.
-                        
-                        const textJoined = sortedItems.map((item: any) => item.str).join('');
-                        const textWithSpaces = sortedItems.map((item: any) => item.str).join(' ');
-                        
+                        // Strategy: Use a robust search that cleans the text and validates the barcode/linha digitável DVs.
+                        // We try multiple sorting thresholds (5, 15, 25, and unsorted) to ensure that even slightly 
+                        // misaligned text blocks are sorted correctly left-to-right on the same line.
                         if (!extractedText.includes('>>>>BARCODE_DATA<<<<')) {
-                            const validBc = findValidBarcode(textJoined) || findValidBarcode(textWithSpaces);
+                            const unsortedItems = [...content.items];
+                            
+                            const sorted5Items = [...content.items].sort((a: any, b: any) => {
+                                if (Math.abs(b.transform[5] - a.transform[5]) > 5) return b.transform[5] - a.transform[5];
+                                return a.transform[4] - b.transform[4];
+                            });
+
+                            const sorted15Items = [...content.items].sort((a: any, b: any) => {
+                                if (Math.abs(b.transform[5] - a.transform[5]) > 15) return b.transform[5] - a.transform[5];
+                                return a.transform[4] - b.transform[4];
+                            });
+
+                            const sorted25Items = [...content.items].sort((a: any, b: any) => {
+                                if (Math.abs(b.transform[5] - a.transform[5]) > 25) return b.transform[5] - a.transform[5];
+                                return a.transform[4] - b.transform[4];
+                            });
+
+                            const candidates = [
+                                // Try 15 first (usually the most robust line height grouping)
+                                sorted15Items.map((item: any) => item.str).join(''),
+                                sorted15Items.map((item: any) => item.str).join(' '),
+                                // Try 5 next (default sorting)
+                                sorted5Items.map((item: any) => item.str).join(''),
+                                sorted5Items.map((item: any) => item.str).join(' '),
+                                // Try 25 next (tighter horizontal grouping)
+                                sorted25Items.map((item: any) => item.str).join(''),
+                                sorted25Items.map((item: any) => item.str).join(' '),
+                                // Try unsorted (original layout stream order)
+                                unsortedItems.map((item: any) => item.str).join(''),
+                                unsortedItems.map((item: any) => item.str).join(' ')
+                            ];
+
+                            let validBc = null;
+                            for (const cand of candidates) {
+                                validBc = findValidBarcode(cand);
+                                if (validBc) break;
+                            }
+
                             if (validBc) {
                                 extractedText += `\n>>>>BARCODE_DATA<<<<${validBc}>>>>END_BARCODE<<<<\n`;
                             }
@@ -446,9 +479,11 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             const payload: any = { type };
             if (extractedText) {
                 payload.text_content = extractedText;
-                if (pdfFirstPageImageBase64) payload.image_url = pdfFirstPageImageBase64;
-            } else {
-                payload.image_url = uploadedPublicUrl || undefined;
+            }
+            if (pdfFirstPageImageBase64) {
+                payload.image_url = pdfFirstPageImageBase64;
+            } else if (uploadedPublicUrl) {
+                payload.image_url = uploadedPublicUrl;
             }
 
             const { data, error: invokeError } = await supabase.functions.invoke('financial-vision', { body: payload });
