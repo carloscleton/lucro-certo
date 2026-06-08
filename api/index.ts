@@ -589,7 +589,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const forceTestData = config.use_test_data === true && (!hasCert || isNacional);
         const useTestData = forceTestData || 
                           (isSandbox && !hasCert) || 
-                          (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104');
+                          (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104') ||
+                          isLabTest === true;
 
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
 
@@ -659,6 +660,16 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             item.tomador.endereco.codigoCidade = targetIbge;
                             item.tomador.endereco.uf = 'MG';
                         }
+                    }
+                    // Inject unique rps.numero and rps.serie if missing, to bypass PlugNotas' disabled automatic numbering in sandbox
+                    if (!item.rps) {
+                        item.rps = {};
+                    }
+                    if (!item.rps.numero) {
+                        item.rps.numero = String(Math.floor(Math.random() * 900000) + 100000);
+                    }
+                    if (!item.rps.serie) {
+                        item.rps.serie = "1";
                     }
                 } else {
                     const companyIbge = config.endereco?.codigoCidade || config.codigo_municipio || '3106200';
