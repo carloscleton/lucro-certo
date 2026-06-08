@@ -85,7 +85,11 @@ export function CnabImportReturnModal({ isOpen, onClose, onRefresh }: CnabImport
             if (error) throw error;
 
             const matchedResults: MatchResult[] = parsed.map(item => {
-                const tx = (candidates || []).find(t => t.id.startsWith(item.idPrefix));
+                const tx = (candidates || []).find(t => {
+                    const cleanDbId = t.id.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    const cleanFileId = item.idPrefix.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    return cleanDbId.startsWith(cleanFileId);
+                });
                 let matchStatus: MatchResult['matchStatus'] = 'not_found';
                 let selected = false;
 
