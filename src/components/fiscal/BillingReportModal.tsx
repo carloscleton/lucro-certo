@@ -76,12 +76,12 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
         rejected: filteredInvoices.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase())).length,
         processing: filteredInvoices.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length,
         
-        // Faturáveis: Notas autorizadas (completas) que não foram canceladas
-        billableCount: filteredInvoices.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length,
+        // Cobráveis: Notas autorizadas ou canceladas (ambas foram geradas com sucesso)
+        billableCount: filteredInvoices.filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase())).length,
         
-        // Soma dos valores das notas faturáveis
+        // Soma dos valores das notas cobráveis
         billableAmount: filteredInvoices
-            .filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase()))
+            .filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase()))
             .reduce((acc, curr) => {
                 const p = curr.payload;
                 if (!p) return acc;
@@ -296,9 +296,9 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                         <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Autorizadas</p>
                         <div className="flex items-baseline gap-1.5">
                             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.authorized}</span>
-                            <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">com sucesso</span>
+                            <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">ativas</span>
                         </div>
-                        <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-2">Prontas para faturamento</p>
+                        <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-2">Emissão com sucesso</p>
                     </div>
 
                     <div className="bg-slate-500/5 dark:bg-slate-500/10 p-4 rounded-2xl border border-slate-500/10 shadow-sm">
@@ -307,16 +307,17 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                             <span className="text-2xl font-black text-slate-600 dark:text-slate-400">{stats.cancelled}</span>
                             <span className="text-xs text-slate-600/70 dark:text-slate-400/70">canceladas</span>
                         </div>
-                        <p className="text-[10px] text-slate-600/80 dark:text-slate-400/80 mt-2">Desconsideradas na cobrança</p>
+                        <p className="text-[10px] text-slate-600/80 dark:text-slate-400/80 mt-2">Computadas na cobrança</p>
                     </div>
 
                     <div className="bg-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-500/10 text-white">
-                        <p className="text-[9px] font-black text-blue-100 uppercase tracking-widest mb-1">Valor Faturado</p>
-                        <p className="text-xl font-black truncate">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.billableAmount)}
-                        </p>
-                        <p className="text-[10px] text-blue-100/90 mt-2">
-                            Ref. {stats.billableCount} nota{stats.billableCount === 1 ? '' : 's'} autorizada{stats.billableCount === 1 ? '' : 's'}
+                        <p className="text-[9px] font-black text-blue-100 uppercase tracking-widest mb-1">Total Cobrável</p>
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-2xl font-black text-white">{stats.billableCount}</span>
+                            <span className="text-xs text-blue-100 font-bold">notas</span>
+                        </div>
+                        <p className="text-[10px] text-blue-100/90 mt-2 font-medium">
+                            Valor total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.billableAmount)}
                         </p>
                     </div>
                 </div>
