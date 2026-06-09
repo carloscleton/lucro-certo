@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Download, Search, XCircle, CheckCircle2, Clock3, BarChart3, Filter, User } from 'lucide-react';
+import { Download, XCircle, CheckCircle2, Clock3, BarChart3, User } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Tooltip } from '../ui/Tooltip';
