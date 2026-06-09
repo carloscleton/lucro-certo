@@ -15,6 +15,7 @@ import { ResultModal } from '../components/ui/ResultModal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
+import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
 
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
@@ -55,6 +56,7 @@ export function Invoices() {
         message: '',
         isLoading: false
     });
+    const [selectedInvoiceDetail, setSelectedInvoiceDetail] = useState<any | null>(null);
 
 
 
@@ -234,67 +236,8 @@ export function Invoices() {
         setShowNewModal(true);
     };
 
-    const handleViewInternal = async (invoice: any) => {
-        let finalPdfUrl = invoice.pdf_url;
-        let finalXmlUrl = invoice.xml_url;
-        
-        setIsRefreshing(invoice.id);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-            
-            // 1. Busca PDF se necessário
-            if (!finalPdfUrl || !finalPdfUrl.startsWith('http')) {
-                try {
-                    const blob = await fiscalService.downloadPDF(
-                        invoice.external_id, 
-                        invoice.type || 'nfse', 
-                        invoice.company_id, 
-                        session.access_token
-                    );
-                    finalPdfUrl = window.URL.createObjectURL(blob);
-                } catch (pdfErr) {
-                    console.error('[Visualizar] Erro ao buscar PDF dinâmico:', pdfErr);
-                }
-            }
-
-            // 2. Busca XML se necessário
-            if (!finalXmlUrl || !finalXmlUrl.startsWith('http')) {
-                try {
-                    const blob = await fiscalService.downloadXML(
-                        invoice.external_id, 
-                        invoice.type || 'nfse', 
-                        invoice.company_id, 
-                        session.access_token
-                    );
-                    finalXmlUrl = window.URL.createObjectURL(blob);
-                } catch (xmlErr) {
-                    console.error('[Visualizar] Erro ao buscar XML dinâmico:', xmlErr);
-                }
-            }
-            
-            setResultModal({
-                isOpen: true,
-                title: 'Visualizador da Nota',
-                message: 'Aqui você pode conferir o PDF e o XML da nota autorizada.',
-                type: 'success',
-                data: {
-                    ...invoice.payload,
-                    pdf: { url: finalPdfUrl },
-                    xml: { url: finalXmlUrl }
-                }
-            });
-        } catch (error) {
-            console.error('[Visualizar] Erro geral na visualização:', error);
-            setResultModal({
-                isOpen: true,
-                title: 'Erro na Visualização',
-                message: 'Não foi possível gerar a visualização da nota fiscal agora. Tente baixar os arquivos.',
-                type: 'error'
-            });
-        } finally {
-            setIsRefreshing(null);
-        }
+    const handleViewInternal = (invoice: any) => {
+        setSelectedInvoiceDetail(invoice);
     };
 
     const getPhoneFromPayload = (invoice: any): string => {
@@ -1260,6 +1203,15 @@ export function Invoices() {
                         const p = inv.payload;
                         return inv.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero || 'Emitida';
                     })()}
+                />
+            )}
+
+            {selectedInvoiceDetail && (
+                <InvoiceDetailModal
+                    isOpen={!!selectedInvoiceDetail}
+                    onClose={() => setSelectedInvoiceDetail(null)}
+                    invoice={selectedInvoiceDetail}
+                    onRefresh={refresh}
                 />
             )}
 

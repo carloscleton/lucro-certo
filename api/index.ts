@@ -1242,6 +1242,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
             try {
                 await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
                     status: 'cancelado',
+                    cancellation_reason: justificativa,
                     updated_at: new Date().toISOString()
                 }, {
                     headers: {
