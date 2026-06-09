@@ -368,7 +368,11 @@ export function Login() {
 
                     const isSystemAdmin = authData.user.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
                     if (profileData?.status === 'blocked' && !isSystemAdmin) {
-                        await supabase.auth.signOut();
+                        try {
+                            await supabase.auth.signOut();
+                        } catch (err) {
+                            console.warn('⚠️ Blocked profile signOut error:', err);
+                        }
                         setShowBannedModal(true);
                         setLoading(false);
                         return;
@@ -385,7 +389,11 @@ export function Login() {
 
                     const castedMembership = membershipData as any;
                     if (castedMembership?.company?.status === 'blocked' && !isSystemAdmin) {
-                        await supabase.auth.signOut();
+                        try {
+                            await supabase.auth.signOut();
+                        } catch (err) {
+                            console.warn('⚠️ Blocked company signOut error:', err);
+                        }
                         setShowBannedModal(true);
                         setLoading(false);
                         return;

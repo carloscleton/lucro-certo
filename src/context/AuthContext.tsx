@@ -91,7 +91,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (data) {
                 const isSystemAdmin = data.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
                 if (data.status === 'blocked' && !isSystemAdmin) {
-                    await supabase.auth.signOut();
+                    try {
+                        await supabase.auth.signOut();
+                    } catch (err) {
+                        console.warn('⚠️ Blocked profile signOut error:', err);
+                    }
                     return;
                 }
                 let companyId: string | undefined;
@@ -138,7 +142,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     async function signOut() {
-        await supabase.auth.signOut();
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.warn('⚠️ Error during signOut:', err);
+        }
     }
 
     const authValue = useMemo(() => ({
