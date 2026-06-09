@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search, MessageCircle, Mail } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search, MessageCircle, Mail, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -16,6 +16,7 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
+import { BillingReportModal } from '../components/fiscal/BillingReportModal';
 
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
@@ -27,6 +28,7 @@ export function Invoices() {
     
     const [showNewModal, setShowNewModal] = useState(false);
     const [showConsultaModal, setShowConsultaModal] = useState(false);
+    const [showBillingModal, setShowBillingModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info', data?: any}>({
@@ -608,6 +610,14 @@ export function Invoices() {
                         Consultar Notas
                     </Button>
                     <Button 
+                        variant="ghost" 
+                        onClick={() => setShowBillingModal(true)} 
+                        className="flex-1 md:flex-none h-11 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700"
+                    >
+                        <BarChart3 size={16} className="mr-2 text-blue-500" />
+                        Relatório de Cobrança
+                    </Button>
+                    <Button 
                         variant="primary" 
                         onClick={() => setShowNewModal(true)} 
                         className="flex-1 md:flex-none h-11 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 font-bold text-xs"
@@ -1028,6 +1038,14 @@ export function Invoices() {
                 <ConsultaNotasModal 
                     onClose={() => setShowConsultaModal(false)} 
                     companyId={currentEntity.id!}
+                />
+            )}
+
+            {showBillingModal && (
+                <BillingReportModal 
+                    isOpen={showBillingModal}
+                    onClose={() => setShowBillingModal(false)}
+                    invoices={invoices}
                 />
             )}
 

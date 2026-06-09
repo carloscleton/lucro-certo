@@ -20,6 +20,20 @@ export interface FiscalInvoice {
     access_key?: string;
     plugnotas_id?: string;
     protocol?: string;
+    created_by?: string;
+    created_by_profile?: {
+        id: string;
+        full_name?: string;
+        email: string;
+    };
+    cancelled_by?: string;
+    cancelled_by_profile?: {
+        id: string;
+        full_name?: string;
+        email: string;
+    };
+    cancelled_at?: string;
+    cancellation_reason?: string;
     created_at: string;
     updated_at: string;
 }
@@ -65,6 +79,16 @@ export function useInvoices() {
                 .from('fiscal_invoices')
                 .select(`
                     *,
+                    created_by_profile:profiles!created_by (
+                        id,
+                        full_name,
+                        email
+                    ),
+                    cancelled_by_profile:profiles!cancelled_by (
+                        id,
+                        full_name,
+                        email
+                    ),
                     quote:quote_id (
                         quote_number,
                         title,
