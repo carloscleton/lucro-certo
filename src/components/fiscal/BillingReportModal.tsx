@@ -76,6 +76,28 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
         rejected: filteredInvoices.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase())).length,
         processing: filteredInvoices.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length,
         
+        // Valores das ativas/autorizadas
+        authorizedAmount: filteredInvoices
+            .filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase()))
+            .reduce((acc, curr) => {
+                const p = curr.payload;
+                if (!p) return acc;
+                const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
+                const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
+                return acc + Number(val);
+            }, 0),
+
+        // Valores das canceladas
+        cancelledAmount: filteredInvoices
+            .filter(i => i.status?.toLowerCase() === 'cancelado')
+            .reduce((acc, curr) => {
+                const p = curr.payload;
+                if (!p) return acc;
+                const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
+                const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
+                return acc + Number(val);
+            }, 0),
+
         // Cobráveis: Notas autorizadas ou canceladas (ambas foram geradas com sucesso)
         billableCount: filteredInvoices.filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase())).length,
         
@@ -296,18 +318,22 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                         <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Autorizadas</p>
                         <div className="flex items-baseline gap-1.5">
                             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.authorized}</span>
-                            <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">ativas</span>
+                            <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-semibold">ativas</span>
                         </div>
-                        <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-2">Emissão com sucesso</p>
+                        <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-2 font-medium">
+                            Valor total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.authorizedAmount)}
+                        </p>
                     </div>
 
                     <div className="bg-slate-500/5 dark:bg-slate-500/10 p-4 rounded-2xl border border-slate-500/10 shadow-sm">
                         <p className="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">Canceladas</p>
                         <div className="flex items-baseline gap-1.5">
                             <span className="text-2xl font-black text-slate-600 dark:text-slate-400">{stats.cancelled}</span>
-                            <span className="text-xs text-slate-600/70 dark:text-slate-400/70">canceladas</span>
+                            <span className="text-xs text-slate-600/70 dark:text-slate-400/70 font-semibold">canceladas</span>
                         </div>
-                        <p className="text-[10px] text-slate-600/80 dark:text-slate-400/80 mt-2">Computadas na cobrança</p>
+                        <p className="text-[10px] text-slate-600/80 dark:text-slate-400/80 mt-2 font-medium">
+                            Valor total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.cancelledAmount)}
+                        </p>
                     </div>
 
                     <div className="bg-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-500/10 text-white">
