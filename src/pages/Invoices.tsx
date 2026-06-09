@@ -900,61 +900,68 @@ export function Invoices() {
                                                         </button>
                                                     </Tooltip>
                                                 )}
+                                                {invoice.external_id && (
+                                                    <Tooltip content="Visualizar Nota (PDF/XML)">
+                                                        <button
+                                                            onClick={() => handleViewInternal(invoice)}
+                                                            disabled={isRefreshing === invoice.id}
+                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm"
+                                                        >
+                                                            {isRefreshing === invoice.id ? (
+                                                                <RefreshCw size={18} className="animate-spin" />
+                                                            ) : (
+                                                                <Eye size={18} />
+                                                            )}
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
 
-                                                {invoice.external_id && (['concluido', 'autorizado'].includes(invoice.status?.toLowerCase())) && (
+                                                {invoice.external_id && invoice.pdf_url && ['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
+                                                    <Tooltip content="Ver Link Externo">
+                                                        <button
+                                                            onClick={() => window.open(invoice.pdf_url, '_blank')}
+                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all shadow-sm"
+                                                        >
+                                                            <ExternalLink size={18} />
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
+
+                                                {invoice.external_id && ['concluido', 'autorizado'].includes(invoice.status?.toLowerCase()) && (
+                                                    <Tooltip content="Cancelar na Prefeitura">
+                                                        <button
+                                                            onClick={() => setCancelModal({ isOpen: true, invoice })}
+                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all shadow-sm"
+                                                        >
+                                                            <XCircle size={18} />
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
+
+                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
+                                                    <Tooltip content="Baixar PDF">
+                                                        <button
+                                                            onClick={() => handleDownloadPDF(invoice.external_id!, invoice.type, invoice.company_id)}
+                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
+                                                        >
+                                                            <Download size={18} />
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
+
+                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
+                                                    <Tooltip content="Baixar XML">
+                                                        <button
+                                                            onClick={() => handleDownloadXML(invoice.external_id!, invoice.type, invoice.company_id)}
+                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-orange-600 dark:text-orange-400 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-all shadow-sm"
+                                                        >
+                                                            <FileCode size={18} />
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
+
+                                                {invoice.external_id && ['concluido', 'autorizado'].includes(invoice.status?.toLowerCase()) && (
                                                     <>
-                                                        {invoice.pdf_url && (
-                                                            <Tooltip content="Ver Link Externo">
-                                                                <button
-                                                                    onClick={() => window.open(invoice.pdf_url, '_blank')}
-                                                                    className="h-10 w-10 flex items-center justify-center glass-morphism text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all shadow-sm"
-                                                                >
-                                                                    <ExternalLink size={18} />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-
-                                                        <Tooltip content="Visualizar Nota (PDF/XML)">
-                                                            <button
-                                                                onClick={() => handleViewInternal(invoice)}
-                                                                disabled={isRefreshing === invoice.id}
-                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm"
-                                                            >
-                                                                {isRefreshing === invoice.id ? (
-                                                                    <RefreshCw size={18} className="animate-spin" />
-                                                                ) : (
-                                                                    <Eye size={18} />
-                                                                )}
-                                                            </button>
-                                                        </Tooltip>
-
-                                                        <Tooltip content="Cancelar na Prefeitura">
-                                                            <button
-                                                                onClick={() => setCancelModal({ isOpen: true, invoice })}
-                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all shadow-sm"
-                                                            >
-                                                                <XCircle size={18} />
-                                                            </button>
-                                                        </Tooltip>
-
-                                                        <Tooltip content="Baixar PDF">
-                                                            <button
-                                                                onClick={() => handleDownloadPDF(invoice.external_id!, invoice.type, invoice.company_id)}
-                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
-                                                            >
-                                                                <Download size={18} />
-                                                            </button>
-                                                        </Tooltip>
-
-                                                        <Tooltip content="Baixar XML">
-                                                            <button
-                                                                onClick={() => handleDownloadXML(invoice.external_id!, invoice.type, invoice.company_id)}
-                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-orange-600 dark:text-orange-400 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-all shadow-sm"
-                                                            >
-                                                                <FileCode size={18} />
-                                                            </button>
-                                                        </Tooltip>
-
                                                         {config?.send_whatsapp_automatically && (
                                                             <Tooltip content="Enviar por WhatsApp">
                                                                 <button
