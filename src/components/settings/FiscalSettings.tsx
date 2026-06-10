@@ -79,6 +79,7 @@ export function FiscalSettings() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [certPassword, setCertPassword] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
+    const [showNfeioApiKey, setShowNfeioApiKey] = useState(false);
     const [showWebhookToken, setShowWebhookToken] = useState(false);
     const [diagnostic, setDiagnostic] = useState<{
         isOpen: boolean;
@@ -3087,13 +3088,24 @@ export function FiscalSettings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Input
-                        label="Chave de API (API Key)"
-                        type="password"
-                        value={nfeioConfig.apiKey}
-                        onChange={(e) => setNfeioConfig({ ...nfeioConfig, apiKey: e.target.value })}
-                        placeholder="Ex: api_key_..."
-                    />
+                    <div className="relative">
+                        <Input
+                            label="Chave de API (API Key)"
+                            type={showNfeioApiKey ? 'text' : 'password'}
+                            value={nfeioConfig.apiKey}
+                            onChange={(e) => setNfeioConfig({ ...nfeioConfig, apiKey: e.target.value })}
+                            placeholder="Ex: api_key_..."
+                            preserveCase={true}
+                            autoComplete="off"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowNfeioApiKey(!showNfeioApiKey)}
+                            className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                            {showNfeioApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
                     <Input
                         label="ID da Empresa (Company ID)"
                         value={nfeioConfig.companyId}
