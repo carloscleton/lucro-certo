@@ -829,24 +829,38 @@ export function FiscalSettings() {
         }
 
         setUploadingCert(true);
+        const isNfeio = activeProvider === 'nfeio';
         const isExternal = !!config.use_external_webhook;
+        const targetProviderName = isNfeio ? 'NFe.io' : (isExternal ? 'Webhook Externo' : 'TecnoSpeed');
+
         setDiagnostic({
             isOpen: true,
             steps: [
                 { title: 'Validando dados locais', status: 'loading' },
                 { title: 'Autenticando sessão', status: 'pending' },
                 { title: 'Enviando para Backend', status: 'pending' },
-                { title: isExternal ? 'Processando no Webhook Externo' : 'Processando na TecnoSpeed', status: 'pending' }
+                { title: `Processando na ${targetProviderName}`, status: 'pending' }
             ],
             logs: [`Iniciando upload de ${file.name}`]
         });
 
         try {
             if (!certPassword) throw new Error('Senha do certificado não informada');
-            const isSandbox = config.ambiente === 'homologacao';
-            const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-            const baseUrl = isExternal ? config.external_webhook_url : (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
-            const maskedKey = isExternal ? 'AUTORIZAÇÃO WEBHOOK' : (config.tecnospeed_api_key ? `${config.tecnospeed_api_key.substring(0, 4)}...${config.tecnospeed_api_key.substring(config.tecnospeed_api_key.length - 4)}` : 'NÃO INFORMADA');
+            
+            let isSandbox = false;
+            let baseUrl = '';
+            let maskedKey = '';
+
+            if (isNfeio) {
+                isSandbox = nfeioConfig.ambiente === 'homologacao';
+                baseUrl = `https://api.nfse.io/v2/companies/${nfeioConfig.companyId}/certificates`;
+                maskedKey = nfeioConfig.apiKey ? `${nfeioConfig.apiKey.substring(0, 4)}...${nfeioConfig.apiKey.substring(nfeioConfig.apiKey.length - 4)}` : 'NÃO INFORMADA';
+            } else {
+                isSandbox = config.ambiente === 'homologacao';
+                const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+                baseUrl = isExternal ? config.external_webhook_url : (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+                maskedKey = isExternal ? 'AUTORIZAÇÃO WEBHOOK' : (config.tecnospeed_api_key ? `${config.tecnospeed_api_key.substring(0, 4)}...${config.tecnospeed_api_key.substring(config.tecnospeed_api_key.length - 4)}` : 'NÃO INFORMADA');
+            }
 
             setDiagnostic(prev => ({
                 ...prev,
@@ -854,7 +868,7 @@ export function FiscalSettings() {
                 logs: [
                     ...prev.logs, 
                     'Dados locais validados',
-                    `Ambiente: ${isExternal ? 'INTEGRAÇÃO EXTERNA (WEBHOOK)' : config.ambiente?.toUpperCase()}`,
+                    `Ambiente: ${isExternal ? 'INTEGRAÇÃO EXTERNA (WEBHOOK)' : (isSandbox ? 'HOMOLOGACAO' : 'PRODUCAO')}`,
                     `URL Alvo: ${baseUrl}`,
                     `API Key: ${maskedKey}`
                 ]
@@ -872,27 +886,11 @@ export function FiscalSettings() {
 
             const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token, config);
             
-            const targetLog = isExternal
-                ? 'Certificado recebido! Iniciando vínculo automático com o Webhook Externo...'
-                : 'Certificado recebido! Iniciando vínculo automático com a TecnoSpeed...';
-
-            setDiagnostic(prev => ({
-                ...prev,
-                steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'loading' } : s),
-                logs: [...prev.logs, targetLog]
-            }));
-            
-            // Vincular automaticamente o certificado ao emitente
-            try {
-                const syncResult = await fiscalService.syncIssuer(currentEntity.id, {
-                    ...config,
-                    certificado_id: response.id
-                }, token);
-
-                // ATUALIZAR ESTADO LOCAL IMEDIATAMENTE
+            if (isNfeio) {
+                // Para NFe.io, o upload já realiza o vínculo. Finalizamos com sucesso direto!
                 const updatedConfig = {
                     ...config,
-                    certificado_id: response.id, // O backend retorna 'id' na raiz do objeto
+                    certificado_id: response.id,
                     certificado_vencimento: response.vencimento,
                     certificado_sujeito: response.sujeito,
                     certificado_status: 'ativo'
@@ -901,26 +899,59 @@ export function FiscalSettings() {
 
                 setDiagnostic(prev => ({
                     ...prev,
-                    steps: prev.steps.map((s, i) => i === 3 ? { ...s, status: 'success' } : s),
-                    logs: [...prev.logs, 'Vínculo concluído com sucesso!', 'Resposta Sync: ' + JSON.stringify(syncResult)]
+                    steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'success' } : s),
+                    logs: [...prev.logs, 'Certificado processado e vinculado com sucesso na NFe.io!']
                 }));
-            } catch (syncErr: any) {
-                console.warn('Falha no auto-sync, mas o certificado foi enviado:', syncErr);
-                
-                // Mesmo se o sync falhar, vamos atualizar o estado com o ID que subiu
-                setConfig(prev => ({
-                    ...prev,
-                    certificado_id: response.id,
-                    certificado_vencimento: response.vencimento,
-                    certificado_sujeito: response.sujeito,
-                    certificado_status: 'ativo'
-                }));
+            } else {
+                const targetLog = isExternal
+                    ? 'Certificado recebido! Iniciando vínculo automático com o Webhook Externo...'
+                    : 'Certificado recebido! Iniciando vínculo automático com a TecnoSpeed...';
 
                 setDiagnostic(prev => ({
                     ...prev,
-                    steps: prev.steps.map((s, i) => i === 3 ? { ...s, status: 'error', msg: 'Vínculo manual necessário' } : s),
-                    logs: [...prev.logs, 'AVISO: O certificado subiu, mas falhou ao vincular automaticamente. Clique em "Sincronizar Emitente" manualmente.']
+                    steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'loading' } : s),
+                    logs: [...prev.logs, targetLog]
                 }));
+                
+                // Vincular automaticamente o certificado ao emitente
+                try {
+                    const syncResult = await fiscalService.syncIssuer(currentEntity.id, {
+                        ...config,
+                        certificado_id: response.id
+                    }, token);
+
+                    // ATUALIZAR ESTADO LOCAL IMEDIATAMENTE
+                    const updatedConfig = {
+                        ...config,
+                        certificado_id: response.id,
+                        certificado_vencimento: response.vencimento,
+                        certificado_sujeito: response.sujeito,
+                        certificado_status: 'ativo'
+                    };
+                    setConfig(updatedConfig);
+
+                    setDiagnostic(prev => ({
+                        ...prev,
+                        steps: prev.steps.map((s, i) => i === 3 ? { ...s, status: 'success' } : s),
+                        logs: [...prev.logs, 'Vínculo concluído com sucesso!', 'Resposta Sync: ' + JSON.stringify(syncResult)]
+                    }));
+                } catch (syncErr: any) {
+                    console.warn('Falha no auto-sync, mas o certificado foi enviado:', syncErr);
+                    
+                    setConfig(prev => ({
+                        ...prev,
+                        certificado_id: response.id,
+                        certificado_vencimento: response.vencimento,
+                        certificado_sujeito: response.sujeito,
+                        certificado_status: 'ativo'
+                    }));
+
+                    setDiagnostic(prev => ({
+                        ...prev,
+                        steps: prev.steps.map((s, i) => i === 3 ? { ...s, status: 'error', msg: 'Vínculo manual necessário' } : s),
+                        logs: [...prev.logs, 'AVISO: O certificado subiu, mas falhou ao vincular automaticamente. Clique em "Sincronizar Emitente" manualmente.']
+                    }));
+                }
             }
             
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -3034,7 +3065,9 @@ export function FiscalSettings() {
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">ID PlugNotas</p>
+                                        <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                            {activeProvider === 'nfeio' ? 'ID NFe.io' : 'ID PlugNotas'}
+                                        </p>
                                         <p className="text-sm font-mono text-emerald-700 dark:text-emerald-300">
                                             {config.certificado_id.substring(0, 8)}...
                                         </p>
@@ -3254,7 +3287,7 @@ export function FiscalSettings() {
                 isOpen={diagnostic.isOpen}
                 onClose={() => setDiagnostic(prev => ({ ...prev, isOpen: false }))}
                 title="Diagnóstico de Envio"
-                description="Status da integração com PlugNotas"
+                description={activeProvider === 'nfeio' ? "Status da integração com NFe.io" : "Status da integração com PlugNotas"}
                 steps={diagnostic.steps}
                 logs={diagnostic.logs}
                 action={{
