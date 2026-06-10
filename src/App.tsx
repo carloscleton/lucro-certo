@@ -157,7 +157,11 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   // Is Exempt (Cortesia)?
   const isExempt = currentEntity.settings?.billing_exempt === true;
   
-  if (!isAdmin && !isExempt && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked)) {
+  // Is temporary bypass active (24 hours)?
+  const bypassUntil = currentEntity.settings?.bypass_until;
+  const isBypassed = bypassUntil && new Date(bypassUntil) > new Date();
+  
+  if (!isAdmin && !isExempt && !isBypassed && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked)) {
     return <Navigate to="/payment-required" replace />;
   }
 

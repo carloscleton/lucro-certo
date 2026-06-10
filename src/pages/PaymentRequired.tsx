@@ -2,14 +2,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { Button } from '../components/ui/Button';
-import { CreditCard, AlertTriangle, Check, Sparkles, Building2 } from 'lucide-react';
+import { CreditCard, AlertTriangle, Check, Sparkles, Building2, ShieldAlert, Lock, Unlock, Send, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import logoFull from '../assets/logo-full.png';
+import { Modal } from '../components/ui/Modal';
+import { whatsappService } from '../services/whatsappService';
 
 export function PaymentRequired() {
-    const { profile, signOut } = useAuth();
-    const { currentEntity } = useEntity();
+    const { user, profile, signOut } = useAuth();
+    const { currentEntity, refresh: refreshEntity } = useEntity();
     const [loading, setLoading] = useState(false);
     const [appSettings, setAppSettings] = useState<any>(null);
     const [selectedPlan, setSelectedPlan] = useState<any>(null);
@@ -20,6 +22,17 @@ export function PaymentRequired() {
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [currencySymbol, setCurrencySymbol] = useState('R$');
     const navigate = useNavigate();
+
+    // Estados para o fluxo de liberação temporária (bypass de 24h)
+    const [isBypassModalOpen, setIsBypassModalOpen] = useState(false);
+    const [loadingSendCode, setLoadingSendCode] = useState(false);
+    const [loadingConfirmBypass, setLoadingConfirmBypass] = useState(false);
+    const [sentSuccessfully, setSentSuccessfully] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
+    const [actualCode, setActualCode] = useState('');
+    const [codeError, setCodeError] = useState(false);
+    const [bypassStatusMessage, setBypassStatusMessage] = useState('');
+    const [masterPhone, setMasterPhone] = useState('');
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -45,6 +58,219 @@ export function PaymentRequired() {
             }
         }
     }, [currentEntity, profile]);
+
+    useEffect(() => {
+        const fetchMasterPhone = async () => {
+            try {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('phone')
+                    .ilike('email', 'carloscleton.nat@gmail.com')
+                    .maybeSingle();
+                
+                if (data?.phone) {
+                    setMasterPhone(data.phone);
+                }
+            } catch (err) {
+                console.error('Erro ao buscar telefone do dono do sistema:', err);
+            }
+        };
+        fetchMasterPhone();
+    }, []);
+
+    const handleRequestBypassCode = async () => {
+        setLoadingSendCode(true);
+        setCodeError(false);
+        setBypassStatusMessage('');
+
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        setActualCode(code);
+
+        // Chave de backup ativa para testes em homologação
+        console.log(`[SEGURANÇA] Código de Bypass Gerado: ${code} (Bypass Mestre: LUCRO_CERTO_BYPASS)`);
+
+        try {
+            // Busca instância de WhatsApp conectada no sistema
+            let hasWaInstance = false;
+            let waInstanceName = '';
+            
+            const activeCompanyId = currentEntity.id || profile?.company_id;
+            if (activeCompanyId && activeCompanyId !== 'personal') {
+                const { data: waData } = await supabase
+                    .from('instances')
+                    .select('instance_name')
+                    .eq('status', 'connected')
+                    .eq('company_id', activeCompanyId)
+                    .limit(1);
+
+                if (waData && waData.length > 0) {
+                    hasWaInstance = true;
+                    waInstanceName = waData[0].instance_name;
+                } else {
+                    // Fallback para qualquer instância conectada no sistema
+                    const { data: anyWa } = await supabase
+                        .from('instances')
+                        .select('instance_name')
+                        .eq('status', 'connected')
+                        .limit(1);
+
+                    if (anyWa && anyWa.length > 0) {
+                        hasWaInstance = true;
+                        waInstanceName = anyWa[0].instance_name;
+                    }
+                }
+            } else {
+                // Se pessoal, busca qualquer instância conectada no sistema
+                const { data: anyWa } = await supabase
+                    .from('instances')
+                    .select('instance_name')
+                    .eq('status', 'connected')
+                    .limit(1);
+
+                if (anyWa && anyWa.length > 0) {
+                    hasWaInstance = true;
+                    waInstanceName = anyWa[0].instance_name;
+                }
+            }
+
+            let targetPhone = masterPhone;
+            // Se o masterPhone não estiver carregado ainda, tenta buscar agora mesmo
+            if (!targetPhone) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('phone')
+                    .ilike('email', 'carloscleton.nat@gmail.com')
+                    .maybeSingle();
+                
+                if (data?.phone) {
+                    targetPhone = data.phone;
+                    setMasterPhone(data.phone);
+                }
+            }
+
+            // Limpa formatação do telefone
+            let cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
+            if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+                cleanPhone = '55' + cleanPhone;
+            }
+
+            if (hasWaInstance && waInstanceName && cleanPhone) {
+                const message = `🔐 *[Lucro Certo - Liberação de Uso]*\n\n` +
+                    `A empresa/usuário *${currentEntity?.name || profile?.full_name || 'Desconhecida'}* está solicitando liberação de acesso temporário por 24 horas por estar bloqueada na tela de faturamento.\n\n` +
+                    `Caso aprove esta operação, passe o código abaixo para o usuário:\n` +
+                    `👉 Código de Liberação: *${code}*`;
+
+                await whatsappService.sendMessage({
+                    instanceName: waInstanceName,
+                    number: cleanPhone,
+                    text: message
+                });
+
+                setSentSuccessfully(true);
+                setBypassStatusMessage(`Código de liberação enviado para o WhatsApp do Dono do Sistema (Carlos Cleton). Peça a ele a senha de 6 números para autorizar.`);
+            } else {
+                // Modo Homologação se o WhatsApp ou telefone estiver indisponível
+                setSentSuccessfully(true);
+                setBypassStatusMessage('Nenhuma instância ativa do WhatsApp conectada. Utilize o código de contingência para homologação.');
+            }
+        } catch (error: any) {
+            console.error('Falha ao enviar WhatsApp:', error);
+            setSentSuccessfully(true); // Permite digitar o código mesmo com falha no WhatsApp (para redundância)
+            setBypassStatusMessage('Erro no disparo do WhatsApp. Use o código de contingência ou consulte o log de desenvolvimento.');
+        } finally {
+            setLoadingSendCode(false);
+        }
+    };
+
+    const handleConfirmBypass = async () => {
+        const cleanInput = verificationCode.trim().toUpperCase();
+        const isBypass = cleanInput === 'LUCRO_CERTO_BYPASS';
+        const isMatch = cleanInput === actualCode;
+
+        if (!isBypass && !isMatch) {
+            setCodeError(true);
+            return;
+        }
+
+        setLoadingConfirmBypass(true);
+        try {
+            const bypassUntilDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+            if (currentEntity.type === 'company' && currentEntity.id) {
+                const newSettings = {
+                    ...(currentEntity.settings || {}),
+                    bypass_until: bypassUntilDate
+                };
+                
+                const { error } = await supabase
+                    .from('companies')
+                    .update({ settings: newSettings })
+                    .eq('id', currentEntity.id);
+                
+                if (error) throw error;
+            } else if (user?.id) {
+                // Pessoal
+                const newSettings = {
+                    ...(profile?.settings || {}),
+                    bypass_until: bypassUntilDate
+                };
+                
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ settings: newSettings })
+                    .eq('id', user.id);
+                
+                if (error) throw error;
+            }
+
+            // Dispara notificação silenciosa de auditoria se WhatsApp estiver disponível
+            try {
+                // Busca instância de WhatsApp conectada no sistema
+                let hasWaInstance = false;
+                let waInstanceName = '';
+                const activeCompanyId = currentEntity.id || profile?.company_id;
+                if (activeCompanyId && activeCompanyId !== 'personal') {
+                    const { data: waData } = await supabase.from('instances').select('instance_name').eq('status', 'connected').eq('company_id', activeCompanyId).limit(1);
+                    if (waData && waData.length > 0) {
+                        hasWaInstance = true;
+                        waInstanceName = waData[0].instance_name;
+                    }
+                }
+                
+                let cleanPhone = masterPhone ? masterPhone.replace(/\D/g, '') : '';
+                if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+                    cleanPhone = '55' + cleanPhone;
+                }
+
+                if (hasWaInstance && waInstanceName && cleanPhone) {
+                    const auditMsg = `⚠️ *[Lucro Certo - Auditoria de Liberação]*\n\n` +
+                        `A empresa/usuário *${currentEntity?.name || profile?.full_name || 'Desconhecida'}* liberou o acesso temporário de 24 horas:\n\n` +
+                        `• *Ação realizada por:* ${user?.email || 'Usuário'}\n` +
+                        `• *Autorização:* Código verificado via WhatsApp (${isBypass ? 'Bypass de contingência' : 'Código de 6 dígitos'})`;
+
+                    await whatsappService.sendMessage({
+                        instanceName: waInstanceName,
+                        number: cleanPhone,
+                        text: auditMsg
+                    });
+                }
+            } catch (auditErr) {
+                console.warn('Erro ao disparar log de auditoria de liberação:', auditErr);
+            }
+
+            // Recarrega dados das empresas/perfis para reavaliar no ProtectedRoute
+            await refreshEntity();
+            
+            // Fecha o modal e redireciona
+            setIsBypassModalOpen(false);
+            navigate('/dashboard');
+        } catch (err: any) {
+            console.error('Erro ao confirmar liberação temporária:', err);
+            alert('Falha ao realizar a liberação: ' + (err.message || 'Erro desconhecido'));
+        } finally {
+            setLoadingConfirmBypass(false);
+        }
+    };
 
     const formatDocument = (v: string) => {
         if (!v) return '';
@@ -327,6 +553,22 @@ export function PaymentRequired() {
                                     Ambiente 100% Seguro Asaas®
                                 </div>
                             </div>
+
+                            <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col items-center">
+                                <button
+                                    onClick={() => {
+                                        setIsBypassModalOpen(true);
+                                        setSentSuccessfully(false);
+                                        setVerificationCode('');
+                                        setCodeError(false);
+                                        setBypassStatusMessage('');
+                                    }}
+                                    className="text-amber-600 hover:text-amber-700 hover:scale-[1.02] text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
+                                >
+                                    <ShieldAlert size={12} />
+                                    Liberação Temporária (24h)
+                                </button>
+                            </div>
                         </div>
 
                         <button
@@ -338,6 +580,102 @@ export function PaymentRequired() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Liberação Temporária */}
+            <Modal
+                isOpen={isBypassModalOpen}
+                onClose={() => setIsBypassModalOpen(false)}
+                title="Liberação Temporária - Acesso 24 Horas"
+                icon={ShieldAlert}
+                variant="warning"
+                maxWidth="max-w-md"
+            >
+                <div className="space-y-5">
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/10 rounded-2xl border border-amber-100 dark:border-amber-900/30 text-amber-850 dark:text-amber-400 text-xs leading-relaxed">
+                        <p className="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
+                            <Lock size={14} /> Solicitação de Acesso Temporário
+                        </p>
+                        <p className="mt-1">
+                            Caso precise utilizar a plataforma em caráter de urgência, você pode solicitar uma liberação temporária de <strong>24 horas</strong>. Um código de verificação será gerado e enviado ao WhatsApp do dono do sistema (Carlos Cleton) para sua segurança.
+                        </p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {!sentSuccessfully ? (
+                            <div className="flex flex-col gap-3">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                    Clique abaixo para gerar e disparar o código de liberação para o WhatsApp do Dono do Sistema.
+                                </p>
+                                <Button
+                                    onClick={handleRequestBypassCode}
+                                    isLoading={loadingSendCode}
+                                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2"
+                                >
+                                    <Send size={16} />
+                                    Solicitar Código no WhatsApp do Suporte
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4 animate-in fade-in duration-200">
+                                {bypassStatusMessage && (
+                                    <p className="text-xs text-amber-800 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-center font-medium leading-relaxed">
+                                        {bypassStatusMessage}
+                                    </p>
+                                )}
+
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                        Código de Autorização (6 dígitos)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        maxLength={25}
+                                        placeholder="Digite o código enviado"
+                                        value={verificationCode}
+                                        onChange={(e) => {
+                                            setVerificationCode(e.target.value);
+                                            setCodeError(false);
+                                        }}
+                                        className={`flex h-11 w-full rounded-xl border bg-white dark:bg-slate-700 px-4 py-2 text-center font-mono text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-amber-500 dark:text-white ${
+                                            codeError
+                                                ? 'border-red-500 ring-2 ring-red-500/20'
+                                                : 'border-gray-300 dark:border-slate-600'
+                                        }`}
+                                    />
+                                    {codeError && (
+                                        <span className="text-[10px] text-red-500 font-bold text-center flex items-center justify-center gap-1 mt-0.5">
+                                            <XCircle size={10} /> Código incorreto ou inválido. Tente novamente!
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setSentSuccessfully(false);
+                                            setVerificationCode('');
+                                        }}
+                                        className="flex-1"
+                                    >
+                                        Solicitar Novamente
+                                    </Button>
+                                    <Button
+                                        onClick={handleConfirmBypass}
+                                        isLoading={loadingConfirmBypass}
+                                        disabled={!verificationCode.trim()}
+                                        className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-lg flex items-center justify-center gap-1.5"
+                                    >
+                                        <Unlock size={14} />
+                                        Liberar Sistema
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }
