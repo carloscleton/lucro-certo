@@ -209,7 +209,8 @@ export function FiscalSettings() {
         cnae: '',
         inscricaoMunicipal: '',
         aliquotaIss: '',
-        simplesNacional: true
+        simplesNacional: true,
+        cityServiceCode: ''
     });
 
     const isDirty = useMemo(() => {
@@ -277,7 +278,8 @@ export function FiscalSettings() {
             cnae: nfe.cnae || '',
             inscricaoMunicipal: nfe.inscricaoMunicipal || '',
             aliquotaIss: nfe.aliquotaIss || '',
-            simplesNacional: nfe.simplesNacional !== undefined ? nfe.simplesNacional : true
+            simplesNacional: nfe.simplesNacional !== undefined ? nfe.simplesNacional : true,
+            cityServiceCode: nfe.cityServiceCode || ''
         });
     }, [currentCompany?.id]); // Depender apenas do ID
 
@@ -3188,12 +3190,18 @@ export function FiscalSettings() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <Input
                         label="CNAE Padrão"
                         value={nfeioConfig.cnae}
                         onChange={(e) => setNfeioConfig({ ...nfeioConfig, cnae: e.target.value })}
                         placeholder="Ex: 6201501"
+                    />
+                    <Input
+                        label="Código de Serviço Municipal"
+                        value={nfeioConfig.cityServiceCode}
+                        onChange={(e) => setNfeioConfig({ ...nfeioConfig, cityServiceCode: e.target.value })}
+                        placeholder="Ex: 1.01 ou 101"
                     />
                     <Input
                         label="Inscrição Municipal"

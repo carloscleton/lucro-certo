@@ -666,7 +666,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         item.rps = {};
                     }
                     if (!item.rps.numero) {
-                        item.rps.numero = String(Math.floor(Math.random() * 900000) + 100000);
+                        item.rps.numero = Math.floor(Math.random() * 900000) + 100000;
+                    } else {
+                        item.rps.numero = Number(item.rps.numero);
                     }
                     if (!item.rps.serie) {
                         item.rps.serie = "1";
