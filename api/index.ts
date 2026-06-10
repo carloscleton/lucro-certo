@@ -335,9 +335,79 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
     try {
         // Usar config enviada pelo frontend ou buscar no banco se não houver
         const bodyConfig = req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config) : req.body.config) : null;
-        const { config, realCompanyId: resolvedId } = bodyConfig 
-            ? { config: bodyConfig, realCompanyId: companyId } 
-            : await getCompanyFiscalConfig(authHeader!, companyId);
+        const { config: dbConfig, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId);
+        const config = bodyConfig || dbConfig;
+        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+
+        // --- ROTEAMENTO NFE.IO ---
+        if (activeProvider === 'nfeio') {
+            const nfeioConfig = settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                return res.status(400).json({ error: 'Configuração da NFe.io incompleta para upload de certificado.' });
+            }
+
+            const apiKeyNfe = nfeioConfig.apiKey.trim();
+            const companyIdNfe = nfeioConfig.companyId.trim();
+
+            console.log(`🔐 [NFEIO-CERTIFICADO] Enviando certificado para NFe.io Empresa: ${companyIdNfe}`);
+
+            const nfeioForm = new FormData();
+            nfeioForm.append('File', file.buffer, {
+                filename: file.originalname || 'certificado.pfx',
+                contentType: file.mimetype
+            });
+            nfeioForm.append('Password', String(senha));
+
+            const response = await axios.post(`https://api.nfse.io/v2/companies/${companyIdNfe}/certificates`, nfeioForm, {
+                headers: {
+                    ...nfeioForm.getHeaders(),
+                    'Authorization': apiKeyNfe
+                },
+                timeout: 30000
+            });
+
+            const certData = response.data;
+            const certId = certData?.id || certData?.certificateId || 'nfeio_cert';
+            const vencimento = certData?.validUntil || certData?.vencimento || certData?.expirationDate || certData?.endDate || new Date(Date.now() + 365*24*60*60*1000).toISOString();
+            const sujeito = certData?.subject || certData?.sujeito || certData?.commonName || certData?.nome || 'Certificado NFe.io';
+
+            if (SUPABASE_URL) {
+                try {
+                    const currentConfig = dbConfig || {};
+                    const updatedConfig = {
+                        ...currentConfig,
+                        certificado_id: certId,
+                        certificado_vencimento: vencimento,
+                        certificado_sujeito: sujeito,
+                        certificado_status: 'ativo',
+                        ultima_atualizacao: new Date().toISOString()
+                    };
+
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                        tecnospeed_config: updatedConfig
+                    }, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader!,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    fiscalConfigCache.delete(companyId);
+                    console.log(`✅ Certificado NFe.io (${certId}) e metadados salvos localmente.`);
+                } catch (dbErr: any) {
+                    console.warn('⚠️ Não foi possível salvar metadados do certificado NFe.io localmente:', dbErr.message);
+                }
+            }
+
+            return res.json({
+                message: 'Certificado processado com sucesso na NFe.io',
+                id: certId,
+                vencimento: vencimento,
+                sujeito: sujeito,
+                status: 'ativo'
+            });
+        }
 
         // --- INTERCEPTOR DE WEBHOOK EXTERNO PARA CERTIFICADO ---
         if (config.use_external_webhook && config.external_webhook_url) {
