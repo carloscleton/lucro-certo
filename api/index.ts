@@ -156,7 +156,8 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
     const authHeader = req.headers.authorization;
 
     try {
-        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config, settings } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -179,6 +180,46 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
             } catch (dbErr) {
                 console.warn('⚠️ Falha ao buscar external_id:', id);
             }
+        }
+
+        // --- ROTEAMENTO NFE.IO ---
+        if (type === 'nfeio' || activeProvider === 'nfeio') {
+            const nfeioConfig = settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                return res.status(400).json({ error: 'Configuração da NFe.io incompleta para cancelamento.' });
+            }
+
+            const apiKeyNfe = nfeioConfig.apiKey.trim();
+            const companyIdNfe = nfeioConfig.companyId.trim();
+
+            console.log(`🚫 [NFEIO-CANCELAR] Cancelando nota NFe.io ID: ${id}`);
+            
+            const response = await axios.delete(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`, {
+                headers: {
+                    'Authorization': apiKeyNfe
+                }
+            });
+
+            // Atualizar status no Supabase
+            if (SUPABASE_URL) {
+                try {
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                        status: 'cancelado',
+                        cancellation_reason: justificativa,
+                        updated_at: new Date().toISOString()
+                    }, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader!,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } catch (dbErr: any) {
+                    console.warn('⚠️ Falha ao atualizar status de cancelamento NFe.io no banco:', dbErr.message);
+                }
+            }
+
+            return res.json({ success: true, ...response.data });
         }
         
         if (!type || (type !== 'nfe' && type !== 'nfse')) {
@@ -523,9 +564,108 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     }
 
     try {
-        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId);
+        const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId);
         if (!config) {
             return res.status(400).json({ error: 'Configuração fiscal não encontrada.' });
+        }
+
+        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+        
+        if (activeProvider === 'nfeio') {
+            const nfeioConfig = settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                return res.status(400).json({ error: 'Configuração da NFe.io incompleta (Chave de API ou ID da Empresa ausente).' });
+            }
+
+            const isSandbox = nfeioConfig.ambiente === 'homologacao';
+            const apiKey = nfeioConfig.apiKey.trim();
+            const companyIdNfe = nfeioConfig.companyId.trim();
+
+            const firstItem = Array.isArray(payload) ? payload[0] : payload;
+            const taxNumber = String(firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
+            const borrowerType = taxNumber.length === 11 ? 'NaturalPerson' : (taxNumber.length === 14 ? 'LegalEntity' : 'Undefined');
+
+            // Mapeamento de endereço do tomador
+            const tomadorEnd = firstItem?.tomador?.endereco || {};
+            
+            const nfeioPayload = {
+                cityServiceCode: String(nfeioConfig.cityServiceCode || firstItem?.servico?.codigo || nfeioConfig.cnae || '1.01').trim(),
+                description: String(firstItem?.servico?.discriminacao || firstItem?.servico?.descricao || 'Prestação de serviço').trim(),
+                servicesAmount: Number(firstItem?.servico?.valor?.servico || firstItem?.servico?.valorUnitario || 0),
+                environmentType: isSandbox ? 'test' : 'production',
+                borrower: {
+                    type: borrowerType,
+                    federalTaxNumber: taxNumber || '0',
+                    name: String(firstItem?.tomador?.razaoSocial || firstItem?.tomador?.nomeFantasia || 'CLIENTE NAO IDENTIFICADO').trim(),
+                    email: firstItem?.tomador?.email || null,
+                    address: {
+                        country: 'BRA',
+                        postalCode: String(tomadorEnd.cep || '').replace(/\D/g, ''),
+                        street: String(tomadorEnd.logradouro || '').trim(),
+                        number: String(tomadorEnd.numero || '').trim(),
+                        district: String(tomadorEnd.bairro || '').trim(),
+                        state: String(tomadorEnd.uf || '').trim().toUpperCase(),
+                        city: {
+                            code: String(tomadorEnd.codigoCidade || '').trim(),
+                            name: String(tomadorEnd.cidade || '').trim()
+                        }
+                    }
+                }
+            };
+
+            console.log(`🧾 [NFEIO-EMITIR] Enviando Payload para NFe.io (Sandbox: ${isSandbox}):`, JSON.stringify(nfeioPayload, null, 2));
+
+            const response = await axios.post(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices`, nfeioPayload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': apiKey
+                }
+            });
+
+            const docId = response.data?.id;
+            const status = response.data?.status || response.data?.flowStatus || 'Created';
+            
+            if (docId && SUPABASE_URL) {
+                console.log(`💾 [DB-SAVE] Salvando nota NFe.io ${docId} para empresa ${resolvedId}`);
+                try {
+                    const mappedStatus = String(status).toLowerCase() === 'issued' ? 'concluido' : (String(status).toLowerCase() === 'error' ? 'erro' : 'processando');
+                    
+                    const getValidDocUrl = (docType: 'pdf' | 'xml') => {
+                        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                        const host = req.get('host');
+                        const baseApiUrl = `${protocol}://${host}`;
+                        return `${baseApiUrl}/api/fiscal-module/nfeio/${docId}/${docType}?companyId=${companyId}`;
+                    };
+
+                    const pdfUrl = getValidDocUrl('pdf');
+                    const xmlUrl = getValidDocUrl('xml');
+
+                    await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                        company_id: resolvedId,
+                        quote_id: quoteId || null,
+                        external_id: docId,
+                        type: 'nfeio',
+                        status: mappedStatus,
+                        pdf_url: pdfUrl,
+                        xml_url: xmlUrl,
+                        payload: {
+                            ...nfeioPayload,
+                            retorno: response.data
+                        }
+                    }, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader!,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal'
+                        }
+                    });
+                } catch (dbErr: any) {
+                    console.error('❌ [DB-SAVE] Erro ao salvar nota NFe.io no banco:', dbErr.message);
+                }
+            }
+
+            return res.json({ ...response.data, proxy_version: '1.0.35_nfeio', mode: 'nfeio' });
         }
 
         // --- MODO EXCLUSIVO: WEBHOOK EXTERNO (JSON RELAY) ---
@@ -1210,63 +1350,7 @@ app.post(['/fiscal-module/save-config', '/api/fiscal-module/save-config'], authe
     }
 });
 
-app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
-    const { id, type, companyId, justificativa } = req.body;
-    const authHeader = req.headers.authorization;
 
-    if (!id || !type || !companyId || !justificativa) {
-        return res.status(400).json({ error: 'ID da nota, tipo, companyId e justificativa são obrigatórios.' });
-    }
-
-    try {
-        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId);
-        const apiKey = sanitizeKey(config.tecnospeed_api_key);
-        const isSandbox = config.ambiente === 'homologacao';
-        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
-        const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
-
-        const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
-        
-        console.log(`🚫 [FISCAL-CANCELAR] Solicitando cancelamento da ${type} ${id}`);
-        
-        const response = await axios.post(`${baseUrl}/${endpoint}/${id}/cancelar`, {
-            justificativa: justificativa
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey
-            }
-        });
-
-        // Atualizar status no Supabase
-        if (SUPABASE_URL) {
-            try {
-                await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
-                    status: 'cancelado',
-                    cancellation_reason: justificativa,
-                    updated_at: new Date().toISOString()
-                }, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY!,
-                        'Authorization': authHeader!,
-                        'Content-Type': 'application/json'
-                    }
-                });
-            } catch (dbErr: any) {
-                console.warn('⚠️ Falha ao atualizar status de cancelamento no banco:', dbErr.message);
-            }
-        }
-
-        res.json({ success: true, ...response.data });
-    } catch (error: any) {
-        console.error('❌ Erro ao cancelar nota:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json({ 
-            error: 'Falha ao cancelar nota na TecnoSpeed', 
-            detail: error.response?.data || error.message 
-        });
-    }
-});
 
 app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/periodo'], authenticate, async (req, res) => {
     const { companyId, dataInicial, dataFinal, tipo, ator } = req.query;
@@ -1277,7 +1361,73 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
     }
 
     try {
-        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config, settings } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+
+        if (activeProvider === 'nfeio') {
+            const nfeioConfig = settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                return res.status(400).json({ error: 'Configuração da NFe.io incompleta (Chave de API ou ID da Empresa ausente).' });
+            }
+
+            const isSandbox = nfeioConfig.ambiente === 'homologacao';
+            const apiKeyNfe = nfeioConfig.apiKey.trim();
+            const companyIdNfe = nfeioConfig.companyId.trim();
+
+            console.log(`🔍 [NFEIO-CONSULTAR] Listando notas NFe.io para empresa: ${companyIdNfe}`);
+            
+            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices`, {
+                params: {
+                    environment: isSandbox ? 'test' : 'production'
+                },
+                headers: {
+                    'Authorization': apiKeyNfe
+                }
+            });
+
+            const serviceInvoices = response.data?.serviceInvoices || [];
+            
+            // Filtrar na memória por dataInicial e dataFinal se fornecidos
+            const start = dataInicial ? new Date(`${dataInicial}T00:00:00`) : null;
+            const end = dataFinal ? new Date(`${dataFinal}T23:59:59`) : null;
+
+            const filtered = serviceInvoices.filter((item: any) => {
+                if (!item.createdOn) return false;
+                const createdDate = new Date(item.createdOn);
+                if (start && createdDate < start) return false;
+                if (end && createdDate > end) return false;
+                return true;
+            });
+
+            const mappedNotas = filtered.map((item: any) => {
+                const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                const host = req.get('host');
+                const baseApiUrl = `${protocol}://${host}`;
+                const pdfUrl = `${baseApiUrl}/api/fiscal-module/nfeio/${item.id}/pdf?companyId=${companyId}`;
+                const xmlUrl = `${baseApiUrl}/api/fiscal-module/nfeio/${item.id}/xml?companyId=${companyId}`;
+                
+                let situacao = 'PROCESSANDO';
+                const s = String(item.status || item.flowStatus || '').trim().toLowerCase();
+                if (s === 'issued' || s === 'issuedcontingency') situacao = 'CONCLUIDO';
+                else if (s === 'cancelled') situacao = 'CANCELADO';
+                else if (s === 'error' || s === 'issuedenied') situacao = 'ERRO';
+
+                return {
+                    id: item.id,
+                    situacao,
+                    tomador: item.borrower?.federalTaxNumber || 'CLIENTE NAO IDENTIFICADO',
+                    emissao: item.createdOn ? new Date(item.createdOn).toLocaleDateString('pt-BR') : '',
+                    autorizacao: item.createdOn ? new Date(item.createdOn).toLocaleDateString('pt-BR') : '',
+                    valorServico: item.servicesAmount || 0,
+                    numeroNfse: item.number ? String(item.number) : '',
+                    pdf: pdfUrl,
+                    xml: xmlUrl
+                };
+            });
+
+            return res.json({ success: true, notas: mappedNotas });
+        }
+
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -1340,7 +1490,30 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
     try {
         // Tentar obter a configuração usando a função com cache
-        const { config } = await getCompanyFiscalConfig(authHeader, companyId as string);
+        const { config, settings } = await getCompanyFiscalConfig(authHeader, companyId as string);
+
+        if (type === 'nfeio' || settings?.fiscal_provider === 'nfeio') {
+            const nfeioConfig = settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                return res.status(404).json({ error: 'Configuração da NFe.io não encontrada.' });
+            }
+
+            const apiKeyNfe = nfeioConfig.apiKey.trim();
+            const companyIdNfe = nfeioConfig.companyId.trim();
+
+            console.log(`📄 [NFEIO-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para nota NFe.io ID: ${id}`);
+            
+            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`, {
+                headers: {
+                    'Authorization': apiKeyNfe
+                },
+                responseType: 'arraybuffer'
+            });
+
+            res.setHeader('Content-Type', isXml ? 'application/xml' : 'application/pdf');
+            res.setHeader('Content-Disposition', `${isXml ? 'attachment' : 'inline'}; filename="${type}-${id}.${isXml ? 'xml' : 'pdf'}"`);
+            return res.send(Buffer.from(response.data));
+        }
 
         if (!config || !config.tecnospeed_api_key) {
             return res.status(404).json({ error: 'Configuração fiscal não encontrada ou sem API Key.' });
@@ -1495,11 +1668,10 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
     }
 
     try {
-        const { config, realCompanyId: resolvedId } = await getCompanyFiscalConfig(authHeader!, companyId as any);
+        const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId as any);
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
-        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
+        const baseUrl = (isSandbox ? (config.endpoint_homologacao || 'https://api.sandbox.plugnotas.com.br') : (config.endpoint_producao || 'https://api.plugnotas.com.br')).toLowerCase().replace(/\/$/, '');
 
         // 1. Tentar descobrir o tipo da nota no nosso banco (NFS-e ou NF-e)
         let type = 'nfse'; // Default para NFSe que é o mais comum no projeto
@@ -1524,6 +1696,73 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             }
         } catch (dbErr) {
             console.warn(`⚠️ [FISCAL-STATUS] Não foi possível detectar o tipo da nota ${id} no banco. Tentando ${type} por padrão.`);
+        }
+
+        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+
+        if (type === 'nfeio' || (activeProvider === 'nfeio' && !isRecordFound)) {
+            const nfeioConfig = settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                return res.status(400).json({ error: 'Configuração da NFe.io incompleta.' });
+            }
+
+            const apiKeyNfe = nfeioConfig.apiKey.trim();
+            const companyIdNfe = nfeioConfig.companyId.trim();
+
+            console.log(`🔍 [NFEIO-STATUS] Consultando status da nota NFe.io ID: ${id}`);
+            
+            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`, {
+                headers: {
+                    'Authorization': apiKeyNfe
+                }
+            });
+
+            const statusData = response.data;
+            const currentStatus = statusData.status || statusData.flowStatus || 'Created';
+
+            if (currentStatus && SUPABASE_URL) {
+                try {
+                    const getValidDocUrl = (docType: 'pdf' | 'xml') => {
+                        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                        const host = req.get('host');
+                        const baseApiUrl = `${protocol}://${host}`;
+                        return `${baseApiUrl}/api/fiscal-module/nfeio/${id}/${docType}?companyId=${companyId}`;
+                    };
+
+                    const pdfUrl = getValidDocUrl('pdf');
+                    const xmlUrl = getValidDocUrl('xml');
+
+                    const invoiceNumber = statusData.number || null;
+                    const accessKey = statusData.verificationCode || null;
+                    const rpsNumber = statusData.rpsNumber || null;
+                    const rpsSerie = statusData.rpsSerialNumber || null;
+                    const protocol = statusData.protocol || null;
+
+                    const mappedStatus = String(currentStatus).toLowerCase() === 'issued' ? 'concluido' : (String(currentStatus).toLowerCase() === 'cancelled' ? 'cancelado' : (String(currentStatus).toLowerCase() === 'error' ? 'erro' : 'processando'));
+
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                        status: mappedStatus,
+                        pdf_url: pdfUrl,
+                        xml_url: xmlUrl,
+                        invoice_number: invoiceNumber ? String(invoiceNumber) : null,
+                        access_key: accessKey ? String(accessKey) : null,
+                        dps_number: rpsNumber ? String(rpsNumber) : null,
+                        dps_serie: rpsSerie ? String(rpsSerie) : null,
+                        protocol: protocol ? String(protocol) : null,
+                        payload: {
+                            ...existingPayload,
+                            retorno: statusData
+                        },
+                        updated_at: new Date().toISOString()
+                    }, {
+                        headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
+                    });
+                } catch (dbErr: any) {
+                    console.warn('⚠️ Falha ao atualizar status local NFe.io:', dbErr.message);
+                }
+            }
+
+            return res.json(statusData);
         }
 
         // Determinar se é nacional:
@@ -1631,15 +1870,11 @@ app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'
     }
 
     try {
-        const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
-        const apiKey = sanitizeKey(config.tecnospeed_api_key);
-        const isSandbox = config.ambiente === 'homologacao';
-        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-        const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
-        const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
+        const { config, settings } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
 
         // Se o tipo não for explícito, tentar detectar
-        if (type !== 'nfe' && type !== 'nfse') {
+        if (type !== 'nfe' && type !== 'nfse' && type !== 'nfeio') {
             try {
                 const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                     params: { external_id: `eq.${id}`, select: 'type' },
@@ -1653,6 +1888,30 @@ app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'
                 console.warn(`⚠️ [FISCAL-EMAIL] Falha ao detectar tipo no banco para ${id}:`, dbErr.message);
             }
         }
+
+        if (type === 'nfeio' || activeProvider === 'nfeio') {
+            const nfeioConfig = settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                return res.status(400).json({ error: 'Configuração da NFe.io incompleta para reenvio de e-mail.' });
+            }
+            const apiKeyNfe = nfeioConfig.apiKey.trim();
+            const companyIdNfe = nfeioConfig.companyId.trim();
+
+            console.log(`✉️ [NFEIO-EMAIL] Solicitando reenvio de e-mail para nota NFe.io ID: ${id}`);
+            const response = await axios.put(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/sendemail`, {}, {
+                headers: {
+                    'Authorization': apiKeyNfe
+                }
+            });
+
+            return res.json({ success: true, data: response.data });
+        }
+
+        const apiKey = sanitizeKey(config.tecnospeed_api_key);
+        const isSandbox = config.ambiente === 'homologacao';
+        const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+        const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
+        const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
         const targetUrl = `${baseUrl}/${type}/email/${id}`;
         console.log(`✉️ [FISCAL-EMAIL] Solicitando reenvio de e-mail para ${type} ID: ${id} via PlugNotas`);
@@ -1679,7 +1938,7 @@ app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'
 
 
 // Cache em memória para configurações fiscais de empresas (permite acesso público a PDFs e XMLs)
-export const fiscalConfigCache = new Map<string, { config: any; realCompanyId: string; expiresAt: number }>();
+export const fiscalConfigCache = new Map<string, { config: any; realCompanyId: string; settings?: any; expiresAt: number }>();
 
 // Helper para buscar configuração fiscal da empresa no Supabase
 async function getCompanyFiscalConfig(authHeader: string | null, companyId: string) {
@@ -1691,7 +1950,8 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
         console.log(`⚡ [FISCAL-CACHE] Configuração fiscal recuperada do cache para: ${companyId}`);
         return {
             config: cached.config,
-            realCompanyId: cached.realCompanyId
+            realCompanyId: cached.realCompanyId,
+            settings: cached.settings || {}
         };
     }
 
@@ -1722,7 +1982,7 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
             const response = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
                 params: {
                     [column]: `eq.${cleanId}`,
-                    select: 'id,tecnospeed_config,fiscal_module_enabled'
+                    select: 'id,tecnospeed_config,fiscal_module_enabled,settings'
                 },
                 headers
             });
@@ -1736,7 +1996,7 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
             const fallbackResponse = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
                 params: {
                     [column]: `eq.${cleanId}`,
-                    select: 'id,tecnospeed_config,fiscal_module_enabled'
+                    select: 'id,tecnospeed_config,fiscal_module_enabled,settings'
                 },
                 headers: {
                     'apikey': SUPABASE_SERVICE_ROLE_KEY,
@@ -1752,32 +2012,35 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
                 console.warn(`⚠️ [FISCAL-CACHE] Falha ao obter dados frescos para ${companyId}. Usando cache expirado de fallback.`);
                 return {
                     config: cached.config,
-                    realCompanyId: cached.realCompanyId
+                    realCompanyId: cached.realCompanyId,
+                    settings: cached.settings || {}
                 };
             }
             throw new Error(`Empresa (${companyId}) não encontrada ou acesso negado no Supabase.`);
         }
         
         if (!company.fiscal_module_enabled) throw new Error('Módulo fiscal não habilitado para esta empresa.');
-        if (!company.tecnospeed_config) throw new Error('Configuração da TecnoSpeed não encontrada para esta empresa.');
 
         const result = {
-            config: company.tecnospeed_config,
-            realCompanyId: company.id
+            config: company.tecnospeed_config || {},
+            realCompanyId: company.id,
+            settings: company.settings || {}
         };
 
         // Salvar no cache com 1 dia de expiração (para dar máxima resiliência a cliques de clientes finais no WhatsApp)
         fiscalConfigCache.set(companyId, {
-            config: company.tecnospeed_config,
+            config: company.tecnospeed_config || {},
             realCompanyId: company.id,
+            settings: company.settings || {},
             expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24 horas
         });
 
         // Também indexa pelo ID resolvido para garantir que ambos funcionem no cache (UUID e CNPJ)
         if (company.id !== companyId) {
             fiscalConfigCache.set(company.id, {
-                config: company.tecnospeed_config,
+                config: company.tecnospeed_config || {},
                 realCompanyId: company.id,
+                settings: company.settings || {},
                 expiresAt: Date.now() + 24 * 60 * 60 * 1000
             });
         }
@@ -1789,7 +2052,8 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
             console.warn(`⚠️ [FISCAL-CACHE] Erro ao buscar dados frescos para ${companyId}. Usando cache expirado de fallback.`);
             return {
                 config: cached.config,
-                realCompanyId: cached.realCompanyId
+                realCompanyId: cached.realCompanyId,
+                settings: cached.settings || {}
             };
         }
         console.error('❌ Erro ao buscar config fiscal:', error.response?.data || error.message);
