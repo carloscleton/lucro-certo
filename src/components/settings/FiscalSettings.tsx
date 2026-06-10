@@ -3185,6 +3185,9 @@ export function FiscalSettings() {
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 text-xs rounded-full border border-amber-200 dark:border-amber-900/30">
                     <Info size={14} />
                     Disponível sob consulta comercial
+                </div>
+            </div>
+        )}
 
         {/* Bloco Compartilhado: Certificado Digital (A1) */}
         {(activeSubTab === 'tecnospeed' || activeSubTab === 'nfeio') && (
