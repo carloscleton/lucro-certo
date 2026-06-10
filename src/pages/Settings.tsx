@@ -1642,25 +1642,60 @@ export function Settings() {
                                                             <p className="text-xs text-gray-500 leading-tight">{t('settings.fiscal_module_desc')}</p>
                                                         </div>
                                                         {tempCompanyConfig.fiscal_module_enabled && (
-                                                            <div className="mt-3 p-3 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/50 dark:border-indigo-800/20 space-y-2">
-                                                                <label className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
-                                                                    Tecnologia / Provedor Fiscal
+                                                            <div className="mt-3 p-3 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/50 dark:border-indigo-800/20 space-y-3">
+                                                                <label className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400 block mb-1">
+                                                                    Emissores Fiscais Autorizados
                                                                 </label>
-                                                                <select
-                                                                    value={tempCompanyConfig.settings?.fiscal_provider || 'tecnospeed'}
-                                                                    onChange={(e) => setTempCompanyConfig({
-                                                                        ...tempCompanyConfig,
-                                                                        settings: {
-                                                                            ...(tempCompanyConfig.settings || {}),
-                                                                            fiscal_provider: e.target.value
-                                                                        }
-                                                                    })}
-                                                                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800/50 rounded-lg text-indigo-900 dark:text-indigo-200 focus:ring-1 focus:ring-indigo-500 outline-none"
-                                                                >
-                                                                    <option value="tecnospeed">TecnoSpeed</option>
-                                                                    <option value="nfeio">NFe.io</option>
-                                                                    <option value="other">Outro (Customizado)</option>
-                                                                </select>
+                                                                <div className="flex flex-col gap-2.5">
+                                                                    {(() => {
+                                                                        const enabledList = tempCompanyConfig.settings?.enabled_fiscal_providers || 
+                                                                            (tempCompanyConfig.settings?.fiscal_provider ? [tempCompanyConfig.settings.fiscal_provider] : ['tecnospeed']);
+                                                                        
+                                                                        const providers = [
+                                                                            { id: 'tecnospeed', name: 'TecnoSpeed' },
+                                                                            { id: 'nfeio', name: 'NFe.io' },
+                                                                            { id: 'other', name: 'Outro (Customizado)' }
+                                                                        ];
+
+                                                                        const toggleProvider = (id: string) => {
+                                                                            let next = [...enabledList];
+                                                                            if (next.includes(id)) {
+                                                                                next = next.filter(p => p !== id);
+                                                                            } else {
+                                                                                next.push(id);
+                                                                            }
+                                                                            if (next.length === 0) {
+                                                                                next = ['tecnospeed'];
+                                                                            }
+                                                                            let currentActive = tempCompanyConfig.settings?.fiscal_provider || 'tecnospeed';
+                                                                            if (!next.includes(currentActive)) {
+                                                                                currentActive = next[0];
+                                                                            }
+                                                                            setTempCompanyConfig({
+                                                                                ...tempCompanyConfig,
+                                                                                settings: {
+                                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                                    enabled_fiscal_providers: next,
+                                                                                    fiscal_provider: currentActive
+                                                                                }
+                                                                            });
+                                                                        };
+
+                                                                        return providers.map(p => (
+                                                                            <label key={p.id} className="flex items-center gap-2 cursor-pointer group text-xs">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                                                    checked={enabledList.includes(p.id)}
+                                                                                    onChange={() => toggleProvider(p.id)}
+                                                                                />
+                                                                                <span className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-600">
+                                                                                    {p.name}
+                                                                                </span>
+                                                                            </label>
+                                                                        ));
+                                                                    })()}
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </td>

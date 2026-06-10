@@ -164,7 +164,43 @@ export function FiscalSettings() {
     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
     const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
+    const enabledProviders = useMemo(() => {
+        const list = currentCompany?.settings?.enabled_fiscal_providers;
+        if (Array.isArray(list) && list.length > 0) return list;
+        return [activeProvider || 'tecnospeed'];
+    }, [currentCompany, activeProvider]);
+
     const [activeSubTab, setActiveSubTab] = useState<'tecnospeed' | 'nfeio' | 'other'>('tecnospeed');
+    const [changingActiveProvider, setChangingActiveProvider] = useState(false);
+
+    useEffect(() => {
+        if (enabledProviders.includes(activeProvider)) {
+            setActiveSubTab(activeProvider as any);
+        } else if (enabledProviders.length > 0) {
+            setActiveSubTab(enabledProviders[0] as any);
+        }
+    }, [activeProvider, enabledProviders]);
+
+    const handleSelectActiveProvider = async (provider: string) => {
+        if (!currentEntity.id || currentEntity.type === 'personal') return;
+        setChangingActiveProvider(true);
+        try {
+            const updatedSettings = {
+                ...(currentCompany?.settings || {}),
+                fiscal_provider: provider
+            };
+            await updateCompany(currentEntity.id, {
+                settings: updatedSettings
+            });
+            await refreshEntity();
+        } catch (err) {
+            console.error('Erro ao mudar provedor ativo:', err);
+            alert('Não foi possível atualizar o emissor ativo.');
+        } finally {
+            setChangingActiveProvider(false);
+        }
+    };
+
     const [savingNfeio, setSavingNfeio] = useState(false);
     const [nfeioConfig, setNfeioConfig] = useState({
         apiKey: '',
@@ -175,12 +211,6 @@ export function FiscalSettings() {
         aliquotaIss: '',
         simplesNacional: true
     });
-
-    useEffect(() => {
-        if (activeProvider) {
-            setActiveSubTab(activeProvider as any);
-        }
-    }, [activeProvider]);
 
     const isDirty = useMemo(() => {
         if (!currentCompany) return false;
@@ -1560,60 +1590,127 @@ export function FiscalSettings() {
             </div>
 
             <div className={`transition-opacity duration-200 ${moduleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none grayscale'}`}>
+                {/* Active Provider Selector (Only shown if multiple are enabled) */}
+                {enabledProviders.length > 1 && (
+                    <div className="bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-slate-900/40 dark:to-purple-950/10 border border-indigo-100/80 dark:border-indigo-900/30 p-5 rounded-2xl mb-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <Scale size={18} className="text-indigo-600 dark:text-indigo-400" />
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Emissor Fiscal Ativo</h4>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Selecione qual das tecnologias autorizadas será utilizada para emissão de notas fiscais:
+                            </p>
+                        </div>
+                        <div className="flex gap-2 self-stretch md:self-auto bg-gray-100/80 dark:bg-slate-800/60 p-1 rounded-xl">
+                            {enabledProviders.includes('tecnospeed') && (
+                                <button
+                                    type="button"
+                                    disabled={changingActiveProvider}
+                                    onClick={() => handleSelectActiveProvider('tecnospeed')}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                        activeProvider === 'tecnospeed'
+                                            ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    TecnoSpeed
+                                </button>
+                            )}
+                            {enabledProviders.includes('nfeio') && (
+                                <button
+                                    type="button"
+                                    disabled={changingActiveProvider}
+                                    onClick={() => handleSelectActiveProvider('nfeio')}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                        activeProvider === 'nfeio'
+                                            ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    NFe.io
+                                </button>
+                            )}
+                            {enabledProviders.includes('other') && (
+                                <button
+                                    type="button"
+                                    disabled={changingActiveProvider}
+                                    onClick={() => handleSelectActiveProvider('other')}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                        activeProvider === 'other'
+                                            ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    Outros
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Sub-tabs Navigation */}
-                <div className="flex border-b border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/20 p-1 rounded-xl gap-2 mb-6">
-                    <button
-                        type="button"
-                        onClick={() => setActiveSubTab('tecnospeed')}
-                        className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'tecnospeed'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
-                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
-                        }`}
-                    >
-                        <Building2 size={16} />
-                        TecnoSpeed
-                        {activeProvider === 'tecnospeed' && (
-                            <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                {enabledProviders.length > 1 && (
+                    <div className="flex border-b border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/20 p-1 rounded-xl gap-2 mb-6">
+                        {enabledProviders.includes('tecnospeed') && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveSubTab('tecnospeed')}
+                                className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'tecnospeed'
+                                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
+                                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
+                                }`}
+                            >
+                                <Building2 size={16} />
+                                TecnoSpeed
+                                {activeProvider === 'tecnospeed' && (
+                                    <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                                )}
+                            </button>
                         )}
-                    </button>
 
-                    <button
-                        type="button"
-                        onClick={() => setActiveSubTab('nfeio')}
-                        className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'nfeio'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
-                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
-                        }`}
-                    >
-                        <Send size={16} />
-                        NFe.io
-                        {activeProvider === 'nfeio' && (
-                            <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                        {enabledProviders.includes('nfeio') && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveSubTab('nfeio')}
+                                className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'nfeio'
+                                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
+                                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
+                                }`}
+                            >
+                                <Send size={16} />
+                                NFe.io
+                                {activeProvider === 'nfeio' && (
+                                    <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                                )}
+                            </button>
                         )}
-                    </button>
 
-                    <button
-                        type="button"
-                        onClick={() => setActiveSubTab('other')}
-                        className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'other'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
-                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
-                        }`}
-                    >
-                        <Globe size={16} />
-                        Outros
-                        {activeProvider === 'other' && (
-                            <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                        {enabledProviders.includes('other') && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveSubTab('other')}
+                                className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'other'
+                                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
+                                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
+                                }`}
+                            >
+                                <Globe size={16} />
+                                Outros
+                                {activeProvider === 'other' && (
+                                    <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                                )}
+                            </button>
                         )}
-                    </button>
-                </div>
+                    </div>
+                )}
 
-                {activeSubTab !== activeProvider && (
+                {enabledProviders.length > 1 && activeSubTab !== activeProvider && (
                     <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-4 rounded-2xl flex items-start gap-3 mb-6">
                         <Info size={20} className="text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
                         <div>
                             <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Tecnologia Fiscal Inativa</h4>
-                            <p className="text-xs text-amber-700 dark:text-amber-500 mt-1 font-bold">Esta tecnologia não é a ativa no momento para sua empresa. O sistema continuará emitindo notas através de <strong>{activeProvider === 'tecnospeed' ? 'TecnoSpeed' : activeProvider === 'nfeio' ? 'NFe.io' : 'Outro Provedor'}</strong>. Para mudar, solicite ao administrador do sistema.</p>
+                            <p className="text-xs text-amber-700 dark:text-amber-500 mt-1 font-bold">Esta tecnologia não é a ativa no momento para sua empresa. O sistema continuará emitindo notas através de <strong>{activeProvider === 'tecnospeed' ? 'TecnoSpeed' : activeProvider === 'nfeio' ? 'NFe.io' : 'Outro Provedor'}</strong>. Você pode alterar o emissor ativo no painel de seleção acima.</p>
                         </div>
                     </div>
                 )}
