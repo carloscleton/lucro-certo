@@ -1637,8 +1637,32 @@ export function Settings() {
                                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
-                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.fiscal_module')}</h4>
-                                                        <p className="text-xs text-gray-500 leading-tight">{t('settings.fiscal_module_desc')}</p>
+                                                        <div className="mb-2">
+                                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.fiscal_module')}</h4>
+                                                            <p className="text-xs text-gray-500 leading-tight">{t('settings.fiscal_module_desc')}</p>
+                                                        </div>
+                                                        {tempCompanyConfig.fiscal_module_enabled && (
+                                                            <div className="mt-3 p-3 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/50 dark:border-indigo-800/20 space-y-2">
+                                                                <label className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                                                                    Tecnologia / Provedor Fiscal
+                                                                </label>
+                                                                <select
+                                                                    value={tempCompanyConfig.settings?.fiscal_provider || 'tecnospeed'}
+                                                                    onChange={(e) => setTempCompanyConfig({
+                                                                        ...tempCompanyConfig,
+                                                                        settings: {
+                                                                            ...(tempCompanyConfig.settings || {}),
+                                                                            fiscal_provider: e.target.value
+                                                                        }
+                                                                    })}
+                                                                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800/50 rounded-lg text-indigo-900 dark:text-indigo-200 focus:ring-1 focus:ring-indigo-500 outline-none"
+                                                                >
+                                                                    <option value="tecnospeed">TecnoSpeed</option>
+                                                                    <option value="nfeio">NFe.io</option>
+                                                                    <option value="other">Outro (Customizado)</option>
+                                                                </select>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">

@@ -163,6 +163,25 @@ export function FiscalSettings() {
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
 
+    const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
+    const [activeSubTab, setActiveSubTab] = useState<'tecnospeed' | 'nfeio' | 'other'>('tecnospeed');
+    const [savingNfeio, setSavingNfeio] = useState(false);
+    const [nfeioConfig, setNfeioConfig] = useState({
+        apiKey: '',
+        companyId: '',
+        ambiente: 'homologacao',
+        cnae: '',
+        inscricaoMunicipal: '',
+        aliquotaIss: '',
+        simplesNacional: true
+    });
+
+    useEffect(() => {
+        if (activeProvider) {
+            setActiveSubTab(activeProvider as any);
+        }
+    }, [activeProvider]);
+
     const isDirty = useMemo(() => {
         if (!currentCompany) return false;
         if (!!currentCompany.fiscal_module_enabled !== moduleEnabled) return true;
@@ -207,7 +226,7 @@ export function FiscalSettings() {
             if (!newConfig.telefone && currentCompany.phone) newConfig.telefone = currentCompany.phone;
             if (!newConfig.endereco) newConfig.endereco = {};
             if (!newConfig.endereco.logradouro && currentCompany.street) newConfig.endereco.logradouro = currentCompany.street;
-            if (!newConfig.endereco.numero && currentCompany.number) newConfig.endereco.numero = currentCompany.number;
+            if (!newConfig.endereco.numero && currentCompany.number) newConfig.endereco.number = currentCompany.number;
             if (!newConfig.endereco.complemento && currentCompany.complement) newConfig.endereco.complemento = currentCompany.complement;
             if (!newConfig.endereco.bairro && currentCompany.neighborhood) newConfig.endereco.bairro = currentCompany.neighborhood;
             if (!newConfig.endereco.cidade && currentCompany.city) newConfig.endereco.cidade = currentCompany.city;
@@ -218,6 +237,17 @@ export function FiscalSettings() {
             if (newConfig.reforma_tributaria_cbs_aliquota === undefined) newConfig.reforma_tributaria_cbs_aliquota = '0.90';
 
             return newConfig;
+        });
+
+        const nfe = currentCompany.settings?.nfeio_config || {};
+        setNfeioConfig({
+            apiKey: nfe.apiKey || '',
+            companyId: nfe.companyId || '',
+            ambiente: nfe.ambiente || 'homologacao',
+            cnae: nfe.cnae || '',
+            inscricaoMunicipal: nfe.inscricaoMunicipal || '',
+            aliquotaIss: nfe.aliquotaIss || '',
+            simplesNacional: nfe.simplesNacional !== undefined ? nfe.simplesNacional : true
         });
     }, [currentCompany?.id]); // Depender apenas do ID
 
@@ -708,6 +738,46 @@ export function FiscalSettings() {
             });
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleSaveNfeio = async () => {
+        if (!currentEntity.id || currentEntity.type === 'personal') {
+            setResultModal({
+                isOpen: true,
+                title: 'Aviso',
+                message: 'Configurações fiscais são exclusivas para empresas. Mude o contexto no topo.',
+                type: 'info'
+            });
+            return;
+        }
+        setSavingNfeio(true);
+        try {
+            const updatedSettings = {
+                ...(currentCompany?.settings || {}),
+                nfeio_config: nfeioConfig
+            };
+            await updateCompany(currentEntity.id, {
+                settings: updatedSettings,
+                fiscal_module_enabled: moduleEnabled
+            });
+            await refreshEntity();
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: 'As configurações da NFe.io foram salvas com sucesso.',
+                type: 'success'
+            });
+        } catch (error) {
+            console.error(error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Salvar',
+                message: 'Não foi possível salvar as configurações da NFe.io.',
+                type: 'error'
+            });
+        } finally {
+            setSavingNfeio(false);
         }
     };
 
@@ -1465,52 +1535,113 @@ export function FiscalSettings() {
 
     return (
         <>
-            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
-                {isDirty && (
-                    <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/30 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400">
-                                <AlertCircle size={20} className="animate-bounce" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider leading-none">Alterações pendentes detectadas!</p>
-                                <p className="text-xs text-amber-700 dark:text-amber-500 font-bold mt-1">Você modificou as configurações. Clique em "Salvar" para aplicar as mudanças antes de testar ou sincronizar.</p>
-                            </div>
+            {/* Módulo Toggle */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden mb-6">
+                <div className="p-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${moduleEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                            <ShieldCheck size={20} />
                         </div>
-                        <Button 
-                            type="button" 
-                            onClick={handleSave} 
-                            className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl px-5 py-2.5 font-black uppercase text-[10px] tracking-widest shadow-md transition-all self-stretch sm:self-auto text-center justify-center"
-                        >
-                            Salvar Agora
-                        </Button>
-                    </div>
-                )}
-                {/* Módulo Toggle */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    <div className="p-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${moduleEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-                                <ShieldCheck size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Status do Módulo Fiscal</h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Ative para habilitar a emissão de notas e o menu lateral</p>
-                            </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Status do Módulo Fiscal</h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Ative para habilitar a emissão de notas e o menu lateral</p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={moduleEnabled}
-                                onChange={(e) => setModuleEnabled(e.target.checked)}
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={moduleEnabled}
+                            onChange={(e) => setModuleEnabled(e.target.checked)}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div className={`transition-opacity duration-200 ${moduleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none grayscale'}`}>
+                {/* Sub-tabs Navigation */}
+                <div className="flex border-b border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/20 p-1 rounded-xl gap-2 mb-6">
+                    <button
+                        type="button"
+                        onClick={() => setActiveSubTab('tecnospeed')}
+                        className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'tecnospeed'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
+                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
+                        }`}
+                    >
+                        <Building2 size={16} />
+                        TecnoSpeed
+                        {activeProvider === 'tecnospeed' && (
+                            <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                        )}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveSubTab('nfeio')}
+                        className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'nfeio'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
+                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
+                        }`}
+                    >
+                        <Send size={16} />
+                        NFe.io
+                        {activeProvider === 'nfeio' && (
+                            <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                        )}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveSubTab('other')}
+                        className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'other'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
+                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
+                        }`}
+                    >
+                        <Globe size={16} />
+                        Outros
+                        {activeProvider === 'other' && (
+                            <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                        )}
+                    </button>
                 </div>
 
-                <div className={`space-y-8 transition-opacity duration-200 ${moduleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none grayscale'}`}>
+                {activeSubTab !== activeProvider && (
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-4 rounded-2xl flex items-start gap-3 mb-6">
+                        <Info size={20} className="text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
+                        <div>
+                            <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Tecnologia Fiscal Inativa</h4>
+                            <p className="text-xs text-amber-700 dark:text-amber-500 mt-1 font-bold">Esta tecnologia não é a ativa no momento para sua empresa. O sistema continuará emitindo notas através de <strong>{activeProvider === 'tecnospeed' ? 'TecnoSpeed' : activeProvider === 'nfeio' ? 'NFe.io' : 'Outro Provedor'}</strong>. Para mudar, solicite ao administrador do sistema.</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Sub-tab 1: TecnoSpeed */}
+                {activeSubTab === 'tecnospeed' && (
+                    <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                        {isDirty && (
+                            <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/30 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400">
+                                        <AlertCircle size={20} className="animate-bounce" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider leading-none">Alterações pendentes detectadas!</p>
+                                        <p className="text-xs text-amber-700 dark:text-amber-500 font-bold mt-1">Você modificou as configurações. Clique em "Salvar" para aplicar as mudanças antes de testar ou sincronizar.</p>
+                                    </div>
+                                </div>
+                                <Button 
+                                    type="button" 
+                                    onClick={handleSave} 
+                                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl px-5 py-2.5 font-black uppercase text-[10px] tracking-widest shadow-md transition-all self-stretch sm:self-auto text-center justify-center"
+                                >
+                                    Salvar Agora
+                                </Button>
+                            </div>
+                        )}
+                        <div className="space-y-8">
                     <div className="flex items-start gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-900/30">
                         <Building2 className="text-indigo-600 mt-1" size={24} />
                         <div>
@@ -2900,6 +3031,118 @@ export function FiscalSettings() {
                     </div>
                 </div>
             </form>
+        )}
+
+        {/* Sub-tab 2: NFe.io */}
+        {activeSubTab === 'nfeio' && (
+            <div className="space-y-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div className="flex items-start gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-900/30">
+                    <Building2 className="text-indigo-600 mt-1" size={24} />
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Configurações NFe.io</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Insira as credenciais da sua conta NFe.io para ativação e integração da emissão de notas fiscais.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Input
+                        label="Chave de API (API Key)"
+                        type="password"
+                        value={nfeioConfig.apiKey}
+                        onChange={(e) => setNfeioConfig({ ...nfeioConfig, apiKey: e.target.value })}
+                        placeholder="Ex: api_key_..."
+                    />
+                    <Input
+                        label="ID da Empresa (Company ID)"
+                        value={nfeioConfig.companyId}
+                        onChange={(e) => setNfeioConfig({ ...nfeioConfig, companyId: e.target.value })}
+                        placeholder="Ex: 5f9b..."
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Ambiente
+                        </label>
+                        <select
+                            value={nfeioConfig.ambiente}
+                            onChange={(e) => setNfeioConfig({ ...nfeioConfig, ambiente: e.target.value })}
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        >
+                            <option value="homologacao">Homologação (Testes)</option>
+                            <option value="producao">Produção (Real)</option>
+                        </select>
+                    </div>
+
+                    <div className="flex items-center mt-6">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={nfeioConfig.simplesNacional}
+                                onChange={(e) => setNfeioConfig({ ...nfeioConfig, simplesNacional: e.target.checked })}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Optante pelo Simples Nacional</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Input
+                        label="CNAE Padrão"
+                        value={nfeioConfig.cnae}
+                        onChange={(e) => setNfeioConfig({ ...nfeioConfig, cnae: e.target.value })}
+                        placeholder="Ex: 6201501"
+                    />
+                    <Input
+                        label="Inscrição Municipal"
+                        value={nfeioConfig.inscricaoMunicipal}
+                        onChange={(e) => setNfeioConfig({ ...nfeioConfig, inscricaoMunicipal: e.target.value })}
+                        placeholder="Ex: 123456"
+                    />
+                    <Input
+                        label="Alíquota ISS (%)"
+                        value={nfeioConfig.aliquotaIss}
+                        onChange={(e) => setNfeioConfig({ ...nfeioConfig, aliquotaIss: e.target.value })}
+                        placeholder="Ex: 2.0"
+                    />
+                </div>
+
+                <div className="flex justify-end pt-4">
+                    <Button
+                        type="button"
+                        onClick={handleSaveNfeio}
+                        isLoading={savingNfeio}
+                        variant="primary"
+                    >
+                        <Save size={18} className="mr-2" />
+                        Salvar Configurações NFe.io
+                    </Button>
+                </div>
+            </div>
+        )}
+
+        {/* Sub-tab 3: Outros */}
+        {activeSubTab === 'other' && (
+            <div className="space-y-6 bg-white dark:bg-slate-800 p-12 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm text-center">
+                <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Globe size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Outras Tecnologias Fiscais</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                    Integrações personalizadas ou com outros provedores de serviços fiscais (ex: Focus NFe, e-Notas, etc.).
+                </p>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 text-xs rounded-full border border-amber-200 dark:border-amber-900/30">
+                    <Info size={14} />
+                    Disponível sob consulta comercial
+                </div>
+            </div>
+        )}
+    </div>
 
             {/* Modal de Diagnóstico */}
             <DiagnosticModal
