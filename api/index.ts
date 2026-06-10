@@ -346,22 +346,23 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
                 return res.status(400).json({ error: 'Configuração da NFe.io incompleta para upload de certificado.' });
             }
 
-            const apiKeyNfe = nfeioConfig.apiKey.trim();
+            apiKey = nfeioConfig.apiKey.trim();
             const companyIdNfe = nfeioConfig.companyId.trim();
+            baseUrl = `https://api.nfse.io/v2/companies/${companyIdNfe}/certificates`;
 
             console.log(`🔐 [NFEIO-CERTIFICADO] Enviando certificado para NFe.io Empresa: ${companyIdNfe}`);
 
-            const nfeioForm = new FormData();
-            nfeioForm.append('File', file.buffer, {
+            form = new FormData();
+            form.append('File', file.buffer, {
                 filename: file.originalname || 'certificado.pfx',
                 contentType: file.mimetype
             });
-            nfeioForm.append('Password', String(senha));
+            form.append('Password', String(senha));
 
-            const response = await axios.post(`https://api.nfse.io/v2/companies/${companyIdNfe}/certificates`, nfeioForm, {
+            const response = await axios.post(baseUrl, form, {
                 headers: {
-                    ...nfeioForm.getHeaders(),
-                    'Authorization': apiKeyNfe
+                    ...form.getHeaders(),
+                    'Authorization': apiKey
                 },
                 timeout: 30000
             });
@@ -413,31 +414,34 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
         if (config.use_external_webhook && config.external_webhook_url) {
             console.log(`🚀 [EXTERNAL-MODE] Enviando certificado para o webhook externo: ${config.external_webhook_url}`);
             
+            baseUrl = config.external_webhook_url;
+            apiKey = config.external_webhook_token || '';
+
             const headers: any = { 
                 'X-Source': 'LucroCerto-Fiscal-Proxy',
                 'X-Company-ID': companyId
             };
 
-            if (config.external_webhook_token) {
-                headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
+            if (apiKey) {
+                headers['Authorization'] = `Bearer ${apiKey}`;
             }
 
-            const webhookForm = new FormData();
-            webhookForm.append('arquivo', file.buffer, {
+            form = new FormData();
+            form.append('arquivo', file.buffer, {
                 filename: file.originalname || 'certificado.pfx'
             });
-            webhookForm.append('senha', String(senha));
-            webhookForm.append('company_id', companyId);
-            webhookForm.append('action', 'upload_certificate');
+            form.append('senha', String(senha));
+            form.append('company_id', companyId);
+            form.append('action', 'upload_certificate');
 
             let externalCertId = 'ext_' + Math.random().toString(36).substring(2, 10);
             let externalVencimento = new Date(Date.now() + 365*24*60*60*1000).toISOString();
             let externalSujeito = 'Certificado Vinculado via Webhook Externo';
 
             try {
-                const response = await axios.post(config.external_webhook_url, webhookForm, {
+                const response = await axios.post(baseUrl, form, {
                     headers: {
-                        ...webhookForm.getHeaders(),
+                        ...form.getHeaders(),
                         ...headers
                     },
                     timeout: 30000
@@ -570,9 +574,9 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
             error: 'Erro no upload do certificado', 
             detail: errorDetail,
             debug: {
-                url: `${baseUrl}/certificado`,
+                url: baseUrl || 'URL não definida',
                 method: 'POST',
-                headers_sent: Object.keys(form.getHeaders()),
+                headers_sent: form ? Object.keys(form.getHeaders()) : [],
                 apiKey_provided: !!apiKey,
                 file_info: {
                     name: file.originalname,
