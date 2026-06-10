@@ -33,6 +33,7 @@ export function PaymentRequired() {
     const [codeError, setCodeError] = useState(false);
     const [bypassStatusMessage, setBypassStatusMessage] = useState('');
     const [masterPhone, setMasterPhone] = useState('');
+    const [showManualButton, setShowManualButton] = useState(false);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -70,25 +71,29 @@ export function PaymentRequired() {
                 
                 if (data?.phone) {
                     setMasterPhone(data.phone);
+                } else {
+                    setMasterPhone('5584998071213'); // Fallback
                 }
             } catch (err) {
                 console.error('Erro ao buscar telefone do dono do sistema:', err);
+                setMasterPhone('5584998071213'); // Fallback
             }
         };
         fetchMasterPhone();
     }, []);
-
+ 
     const handleRequestBypassCode = async () => {
         setLoadingSendCode(true);
         setCodeError(false);
         setBypassStatusMessage('');
-
+        setShowManualButton(false);
+ 
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         setActualCode(code);
-
+ 
         // Chave de backup ativa para testes em homologação
         console.log(`[SEGURANÇA] Código de Bypass Gerado: ${code} (Bypass Mestre: LUCRO_CERTO_BYPASS)`);
-
+ 
         try {
             // Busca instância de WhatsApp conectada no sistema
             let hasWaInstance = false;
@@ -102,7 +107,7 @@ export function PaymentRequired() {
                     .eq('status', 'connected')
                     .eq('company_id', activeCompanyId)
                     .limit(1);
-
+ 
                 if (waData && waData.length > 0) {
                     hasWaInstance = true;
                     waInstanceName = waData[0].instance_name;
@@ -113,7 +118,7 @@ export function PaymentRequired() {
                         .select('instance_name')
                         .eq('status', 'connected')
                         .limit(1);
-
+ 
                     if (anyWa && anyWa.length > 0) {
                         hasWaInstance = true;
                         waInstanceName = anyWa[0].instance_name;
@@ -126,16 +131,16 @@ export function PaymentRequired() {
                     .select('instance_name')
                     .eq('status', 'connected')
                     .limit(1);
-
+ 
                 if (anyWa && anyWa.length > 0) {
                     hasWaInstance = true;
                     waInstanceName = anyWa[0].instance_name;
                 }
             }
-
-            let targetPhone = masterPhone;
+ 
+            let targetPhone = masterPhone || '5584998071213';
             // Se o masterPhone não estiver carregado ainda, tenta buscar agora mesmo
-            if (!targetPhone) {
+            if (!targetPhone || targetPhone === '5584998071213') {
                 const { data } = await supabase
                     .from('profiles')
                     .select('phone')
@@ -145,38 +150,47 @@ export function PaymentRequired() {
                 if (data?.phone) {
                     targetPhone = data.phone;
                     setMasterPhone(data.phone);
+                } else {
+                    targetPhone = '5584998071213';
+                    setMasterPhone('5584998071213');
                 }
             }
-
+ 
             // Limpa formatação do telefone
             let cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
             if (cleanPhone.length === 10 || cleanPhone.length === 11) {
                 cleanPhone = '55' + cleanPhone;
             }
-
+            if (!cleanPhone) {
+                cleanPhone = '5584998071213';
+            }
+ 
             if (hasWaInstance && waInstanceName && cleanPhone) {
                 const message = `🔐 *[Lucro Certo - Liberação de Uso]*\n\n` +
                     `A empresa/usuário *${currentEntity?.name || profile?.full_name || 'Desconhecida'}* está solicitando liberação de acesso temporário por 24 horas por estar bloqueada na tela de faturamento.\n\n` +
                     `Caso aprove esta operação, passe o código abaixo para o usuário:\n` +
                     `👉 Código de Liberação: *${code}*`;
-
+ 
                 await whatsappService.sendMessage({
                     instanceName: waInstanceName,
                     number: cleanPhone,
                     text: message
                 });
-
+ 
                 setSentSuccessfully(true);
+                setShowManualButton(false);
                 setBypassStatusMessage(`Código de liberação enviado para o WhatsApp do Dono do Sistema (Carlos Cleton). Peça a ele a senha de 6 números para autorizar.`);
             } else {
                 // Modo Homologação se o WhatsApp ou telefone estiver indisponível
                 setSentSuccessfully(true);
-                setBypassStatusMessage('Nenhuma instância ativa do WhatsApp conectada. Utilize o código de contingência para homologação.');
+                setShowManualButton(true);
+                setBypassStatusMessage('Nenhuma instância ativa do WhatsApp conectada para envio automático. Utilize o botão abaixo para enviar o código manualmente para o dono do sistema.');
             }
         } catch (error: any) {
             console.error('Falha ao enviar WhatsApp:', error);
             setSentSuccessfully(true); // Permite digitar o código mesmo com falha no WhatsApp (para redundância)
-            setBypassStatusMessage('Erro no disparo do WhatsApp. Use o código de contingência ou consulte o log de desenvolvimento.');
+            setShowManualButton(true);
+            setBypassStatusMessage('Erro no disparo automático do WhatsApp. Utilize o botão abaixo para abrir seu WhatsApp e enviar o código manualmente.');
         } finally {
             setLoadingSendCode(false);
         }
@@ -618,9 +632,31 @@ export function PaymentRequired() {
                         ) : (
                             <div className="space-y-4 animate-in fade-in duration-200">
                                 {bypassStatusMessage && (
-                                    <p className="text-xs text-amber-800 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-center font-medium leading-relaxed">
+                                    <p className="text-xs text-amber-800 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-center font-medium leading-relaxed font-sans">
                                         {bypassStatusMessage}
                                     </p>
+                                )}
+
+                                {showManualButton && (
+                                    <div className="flex flex-col gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 text-xs">
+                                        <p className="text-emerald-800 dark:text-emerald-400 font-semibold text-center mb-2">
+                                            Clique no botão abaixo para abrir seu WhatsApp e enviar a mensagem com o código:
+                                        </p>
+                                        <a
+                                            href={`https://api.whatsapp.com/send?phone=${masterPhone || '5584998071213'}&text=${encodeURIComponent(
+                                                `🔐 *[Lucro Certo - Liberação]*\n\n` +
+                                                `Solicito liberação temporária de 24h para o sistema Lucro Certo.\n` +
+                                                `• Empresa/Usuário: ${currentEntity?.name || profile?.full_name || 'Desconhecida'}\n` +
+                                                `• Código de Liberação: *${actualCode}*`
+                                            )}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-full bg-emerald-600 hover:bg-emerald-750 text-white font-bold py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all"
+                                        >
+                                            <Send size={16} />
+                                            Enviar Código pelo meu WhatsApp
+                                        </a>
+                                    </div>
                                 )}
 
                                 <div className="flex flex-col gap-1.5">
