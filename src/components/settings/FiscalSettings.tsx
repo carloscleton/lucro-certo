@@ -1071,7 +1071,7 @@ export function FiscalSettings() {
     const handleTestJson = async () => {
         if (!testJson.trim()) return;
         
-        if (isDirty) {
+        if (activeSubTab === 'tecnospeed' && isDirty) {
             setResultModal({
                 isOpen: true,
                 title: 'Alterações não Salvas',
@@ -1205,21 +1205,28 @@ export function FiscalSettings() {
     };
 
     const handleGenerateExample = () => {
-        const isTest = config.use_test_data;
-        const isNacional = !!config.nfse_nacional;
+        const isNfeio = activeSubTab === 'nfeio';
+        const isTest = isNfeio ? true : config.use_test_data;
+        const isNacional = isNfeio ? false : !!config.nfse_nacional;
         
         const effectiveCnpj = isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "08187168000160");
-        const effectiveCity = isTest 
-            ? (isNacional ? "3106200" : "4115200")
-            : (config.endereco?.codigoCidade || (isNacional ? "3106200" : "4115200"));
+        const effectiveCity = isNfeio
+            ? (config.endereco?.codigoCidade || "3550308")
+            : (isTest 
+                ? (isNacional ? "3106200" : "4115200")
+                : (config.endereco?.codigoCidade || (isNacional ? "3106200" : "4115200")));
         
-        const effectiveUf = isTest 
-            ? (isNacional ? "MG" : "PR")
-            : (config.endereco?.uf || (isNacional ? "MG" : "PR"));
+        const effectiveUf = isNfeio
+            ? (config.endereco?.uf || "SP")
+            : (isTest 
+                ? (isNacional ? "MG" : "PR")
+                : (config.endereco?.uf || (isNacional ? "MG" : "PR")));
 
-        const effectiveCityDesc = isTest
-            ? (isNacional ? "Belo Horizonte" : "Maringa")
-            : (config.endereco?.cidade || (isNacional ? "Belo Horizonte" : "Maringa"));
+        const effectiveCityDesc = isNfeio
+            ? (config.endereco?.cidade || "Sao Paulo")
+            : (isTest
+                ? (isNacional ? "Belo Horizonte" : "Maringa")
+                : (config.endereco?.cidade || (isNacional ? "Belo Horizonte" : "Maringa")));
 
         const mock: any = [
             {
@@ -1231,18 +1238,20 @@ export function FiscalSettings() {
                 },
                 prestador: {
                     cpfCnpj: effectiveCnpj,
-                    inscricaoMunicipal: isNacional 
-                        ? (isTest ? "1234567" : (config.inscricao_municipal || "1234567"))
-                        : (config.inscricao_municipal || "123456")
+                    inscricaoMunicipal: isNfeio
+                        ? (nfeioConfig.inscricaoMunicipal || "123456")
+                        : (isNacional 
+                            ? (isTest ? "1234567" : (config.inscricao_municipal || "1234567"))
+                            : (config.inscricao_municipal || "123456"))
                 },
                 tomador: {
                     cpfCnpj: "99999999999999",
                     razaoSocial: "Empresa de Teste LTDA",
                     inscricaoMunicipal: "8214100099",
-                    email: "teste@plugnotas.com.br",
+                    email: "teste@nfe.io",
                     endereco: {
                         descricaoCidade: effectiveCityDesc,
-                        cep: isNacional ? "31000000" : "87020100",
+                        cep: isNfeio ? "01001000" : (isNacional ? "31000000" : "87020100"),
                         tipoLogradouro: "Rua",
                         logradouro: "Barao do rio branco",
                         tipoBairro: "Centro",
@@ -1255,13 +1264,15 @@ export function FiscalSettings() {
                 },
                 servico: [
                     {
-                        codigo: isNacional ? "010101" : "01.01",
-                        discriminacao: "Descrição dos serviços prestados via Laboratório JSON",
+                        codigo: isNfeio 
+                            ? (nfeioConfig.cityServiceCode || nfeioConfig.cnae || "1.01")
+                            : (isNacional ? "010101" : "01.01"),
+                        discriminacao: isNfeio ? "Prestação de serviço de teste via NFe.io" : "Descrição dos serviços prestados via Laboratório JSON",
                         iss: {
-                            tipoTributacao: isNacional ? 1 : 6,
+                            tipoTributacao: isNfeio ? 1 : (isNacional ? 1 : 6),
                             exigibilidade: 1,
                             retido: false,
-                            aliquota: isNacional ? parseFloat(config.simples_nacional_aliquota || '2.00') : 2
+                            aliquota: isNfeio ? parseFloat(nfeioConfig.aliquotaIss || '2.00') : (isNacional ? parseFloat(config.simples_nacional_aliquota || '2.00') : 2)
                         },
                         valor: {
                             servico: 100.00
@@ -2929,104 +2940,6 @@ export function FiscalSettings() {
                                 </div>
                             )}
                         </div>
-
-                        {config.ambiente === 'homologacao' && (
-                            <div className="mt-8 pt-6 border-t-2 border-dashed border-gray-200 dark:border-slate-800">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
-                                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                                        Laboratório de Testes (JSON Manual)
-                                        <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800">
-                                            v1.1.0
-                                        </span>
-                                    </h3>
-                                </div>
-                                
-                                <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-xl border border-purple-100 dark:border-purple-900/20">
-                                    <p className="text-xs text-purple-700 dark:text-purple-300 mb-4">
-                                        Use esta área para testar payloads JSON diretamente. Útil para validar campos específicos exigidos pela TecnoSpeed.
-                                    </p>
-                                    
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-xs font-medium text-gray-500 uppercase">Conteúdo do JSON</label>
-                                            <label className="text-xs text-purple-600 font-medium cursor-pointer hover:underline flex items-center gap-1">
-                                                <ExternalLink size={12} />
-                                                Carregar Arquivo .json
-                                                <input type="file" accept=".json" onChange={handleFileJson} className="hidden" />
-                                            </label>
-                                        </div>
-                                        
-                                        <textarea
-                                            value={testJson}
-                                            onChange={(e) => setTestJson(e.target.value)}
-                                            className="w-full h-48 p-3 text-xs font-mono bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                                            placeholder='{ "prestador": { ... }, "tomador": { ... }, "servico": { ... } }'
-                                        />
-                                        
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex gap-2">
-                                                {lastTestResult && (
-                                                    <Tooltip content="Visualizar Último Resultado (PDF/XML)">
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="border-purple-200 text-purple-600 hover:bg-purple-50 h-10 w-10 p-0 flex items-center justify-center rounded-xl transition-all active:scale-90"
-                                                            onClick={() => setResultModal({
-                                                                isOpen: true,
-                                                                title: 'Visualizar Nota de Teste',
-                                                                message: 'Visualizando o último resultado emitido pelo laboratório.',
-                                                                type: 'success',
-                                                                data: lastTestResult
-                                                            })}
-                                                        >
-                                                            <Eye size={18} />
-                                                        </Button>
-                                                    </Tooltip>
-                                                )}
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-purple-600 hover:bg-purple-100 h-10 font-bold"
-                                                    onClick={handleGenerateExample}
-                                                    disabled={testingJson}
-                                                >
-                                                    Gerar Exemplo
-                                                </Button>
-                                            </div>
-                                            <div className="flex gap-3">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-10 px-4 rounded-xl font-medium"
-                                                    onClick={() => {
-                                                        setTestJson('');
-                                                        setLastTestResult(null);
-                                                    }}
-                                                    disabled={!testJson || testingJson}
-                                                >
-                                                    Limpar
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 h-10 rounded-xl shadow-lg shadow-purple-500/20"
-                                                    onClick={handleTestJson}
-                                                    isLoading={testingJson}
-                                                    disabled={!testJson || testingJson}
-                                                >
-                                                    <Send size={16} className="mr-2" />
-                                                    Emitir Via JSON Manual
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
 
@@ -3197,6 +3110,109 @@ export function FiscalSettings() {
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 text-xs rounded-full border border-amber-200 dark:border-amber-900/30">
                     <Info size={14} />
                     Disponível sob consulta comercial
+                </div>
+            </div>
+        )}
+
+        {/* Bloco Compartilhado: Laboratório de Testes (JSON Manual) */}
+        {((activeSubTab === 'tecnospeed' && config.ambiente === 'homologacao') || 
+          (activeSubTab === 'nfeio' && nfeioConfig.ambiente === 'homologacao')) && (
+            <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                    <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                        Laboratório de Testes (JSON Manual)
+                        <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800">
+                            v1.2.0
+                        </span>
+                    </h3>
+                </div>
+                
+                <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-xl border border-purple-100 dark:border-purple-900/20">
+                    <p className="text-xs text-purple-700 dark:text-purple-300 mb-4">
+                        Use esta área para testar payloads JSON diretamente. Útil para validar campos específicos exigidos pela {activeSubTab === 'nfeio' ? 'NFe.io' : 'TecnoSpeed'}.
+                    </p>
+                    
+                    <div className="flex flex-col gap-4">
+                        <div className="flex justify-between items-center">
+                            <label className="text-xs font-medium text-gray-500 uppercase">Conteúdo do JSON</label>
+                            <label className="text-xs text-purple-600 font-medium cursor-pointer hover:underline flex items-center gap-1">
+                                <ExternalLink size={12} />
+                                Carregar Arquivo .json
+                                <input type="file" accept=".json" onChange={handleFileJson} className="hidden" />
+                            </label>
+                        </div>
+                        
+                        <textarea
+                            value={testJson}
+                            onChange={(e) => setTestJson(e.target.value)}
+                            className="w-full h-48 p-3 text-xs font-mono bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            placeholder={activeSubTab === 'nfeio' 
+                                ? '[\n  {\n    "tomador": {\n      "cpfCnpj": "99999999999999",\n      "razaoSocial": "Empresa de Teste LTDA",\n      "endereco": {\n        "logradouro": "Rua Teste",\n        "numero": "1001",\n        "bairro": "Centro",\n        "cep": "01001000",\n        "uf": "SP",\n        "cidade": "Sao Paulo"\n      }\n    },\n    "servico": [\n      {\n        "codigo": "1.01",\n        "discriminacao": "Prestação de serviço via NFe.io",\n        "valorUnitario": 100.00\n      }\n    ]\n  }\n]'
+                                : '{ "prestador": { ... }, "tomador": { ... }, "servico": { ... } }'
+                            }
+                        />
+                        
+                        <div className="flex justify-between items-center">
+                            <div className="flex gap-2">
+                                {lastTestResult && (
+                                    <Tooltip content="Visualizar Último Resultado (PDF/XML)">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-purple-200 text-purple-600 hover:bg-purple-50 h-10 w-10 p-0 flex items-center justify-center rounded-xl transition-all active:scale-90"
+                                            onClick={() => setResultModal({
+                                                isOpen: true,
+                                                title: 'Visualizar Nota de Teste',
+                                                message: 'Visualizando o último resultado emitido pelo laboratório.',
+                                                type: 'success',
+                                                data: lastTestResult
+                                            })}
+                                        >
+                                            <Eye size={18} />
+                                        </Button>
+                                    </Tooltip>
+                                )}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-purple-600 hover:bg-purple-100 h-10 font-bold"
+                                    onClick={handleGenerateExample}
+                                    disabled={testingJson}
+                                >
+                                    Gerar Exemplo
+                                </Button>
+                            </div>
+                            <div className="flex gap-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-10 px-4 rounded-xl font-medium"
+                                    onClick={() => {
+                                        setTestJson('');
+                                        setLastTestResult(null);
+                                    }}
+                                    disabled={!testJson || testingJson}
+                                >
+                                    Limpar
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 h-10 rounded-xl shadow-lg shadow-purple-500/20"
+                                    onClick={handleTestJson}
+                                    isLoading={testingJson}
+                                    disabled={!testJson || testingJson}
+                                >
+                                    <Send size={16} className="mr-2" />
+                                    Emitir Via JSON Manual
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         )}

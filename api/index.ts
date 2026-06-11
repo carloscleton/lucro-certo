@@ -662,10 +662,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Mapeamento de endereço do tomador
             const tomadorEnd = firstItem?.tomador?.endereco || {};
             
+            const serviceItem = Array.isArray(firstItem?.servico) ? firstItem?.servico[0] : firstItem?.servico;
+            
             const nfeioPayload = {
-                cityServiceCode: String(nfeioConfig.cityServiceCode || firstItem?.servico?.codigo || nfeioConfig.cnae || '1.01').trim(),
-                description: String(firstItem?.servico?.discriminacao || firstItem?.servico?.descricao || 'Prestação de serviço').trim(),
-                servicesAmount: Number(firstItem?.servico?.valor?.servico || firstItem?.servico?.valorUnitario || 0),
+                cityServiceCode: String(nfeioConfig.cityServiceCode || serviceItem?.codigo || nfeioConfig.cnae || '1.01').trim(),
+                description: String(serviceItem?.discriminacao || serviceItem?.descricao || 'Prestação de serviço').trim(),
+                servicesAmount: Number(serviceItem?.valor?.servico || serviceItem?.valorUnitario || 0),
                 environmentType: isSandbox ? 'test' : 'production',
                 borrower: {
                     type: borrowerType,
