@@ -272,8 +272,17 @@ export function LandingPage() {
                     id: currentCampaign.id,
                     title: currentCampaign.title,
                     subtitle: currentCampaign.subtitle,
+                    call_to_action: currentCampaign.call_to_action || '',
+                    link: currentCampaign.link || '',
+                    whatsapp: currentCampaign.whatsapp || '',
+                    email: currentCampaign.email || '',
+                    webhook: currentCampaign.webhook || '',
                     type: currentCampaign.type,
-                    price: currentCampaign.price || null
+                    price: currentCampaign.price || null,
+                    image_url: currentCampaign.image_url || null,
+                    show_in_popup: !!currentCampaign.show_in_popup,
+                    show_in_hero: !!currentCampaign.show_in_hero,
+                    show_as_section: !!currentCampaign.show_as_section
                 }
             };
 
