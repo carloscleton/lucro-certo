@@ -2935,17 +2935,33 @@ app.post('/api/public/campaign-webhook', async (req, res) => {
                 } else if (SUPABASE_ANON_KEY) {
                     headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
                 }
-                const dbRes = await axios.get(`${SUPABASE_URL}/rest/v1/instances?phone_number=eq.${cleanCampaignPhone}&select=instance_name`, {
+
+                console.log(`🔍 Buscando instâncias no Supabase para corresponder com número de campanha: ${cleanCampaignPhone}...`);
+                const dbRes = await axios.get(`${SUPABASE_URL}/rest/v1/instances?select=instance_name,phone_number`, {
                     headers,
-                    timeout: 3000
+                    timeout: 4000
                 });
-                if (dbRes.data && dbRes.data.length > 0) {
-                    const instanceName = dbRes.data[0].instance_name;
-                    console.log(`📱 Encontrada instância "${instanceName}" para o número ${cleanCampaignPhone}`);
-                    enrichedPayload = {
-                        ...payload,
-                        whatsapp_instance_name: instanceName
-                    };
+
+                if (dbRes.data && Array.isArray(dbRes.data)) {
+                    console.log(`   [Proxy] Total de instâncias cadastradas encontradas: ${dbRes.data.length}`);
+                    const campaignLast8 = cleanCampaignPhone.slice(-8);
+
+                    const matchingInst = dbRes.data.find((inst: any) => {
+                        if (!inst.phone_number) return false;
+                        const cleanInstPhone = inst.phone_number.replace(/\D/g, '');
+                        return cleanInstPhone.slice(-8) === campaignLast8;
+                    });
+
+                    if (matchingInst) {
+                        const instanceName = matchingInst.instance_name;
+                        console.log(`   📱 Match encontrado! Instância: "${instanceName}" para o número ${matchingInst.phone_number}`);
+                        enrichedPayload = {
+                            ...payload,
+                            whatsapp_instance_name: instanceName
+                        };
+                    } else {
+                        console.log(`   ⚠️ Nenhuma instância correspondente aos últimos 8 dígitos (${campaignLast8}) foi encontrada.`);
+                    }
                 }
             } catch (err: any) {
                 console.warn('⚠️ Erro ao buscar nome da instância no Supabase:', err.message);
