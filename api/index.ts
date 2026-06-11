@@ -2921,10 +2921,42 @@ app.post('/api/public/campaign-webhook', async (req, res) => {
         return res.status(400).json({ error: 'URL do Webhook obrigatória' });
     }
 
+    // Tenta obter o nome da instância de WhatsApp no Supabase
+    let enrichedPayload = { ...payload };
+    if (SUPABASE_URL && (SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY) && payload?.campaign?.whatsapp) {
+        const cleanCampaignPhone = payload.campaign.whatsapp.replace(/\D/g, '');
+        if (cleanCampaignPhone) {
+            try {
+                const headers: Record<string, string> = {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!
+                };
+                if (SUPABASE_SERVICE_ROLE_KEY) {
+                    headers['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+                } else if (SUPABASE_ANON_KEY) {
+                    headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
+                }
+                const dbRes = await axios.get(`${SUPABASE_URL}/rest/v1/instances?phone_number=eq.${cleanCampaignPhone}&select=instance_name`, {
+                    headers,
+                    timeout: 3000
+                });
+                if (dbRes.data && dbRes.data.length > 0) {
+                    const instanceName = dbRes.data[0].instance_name;
+                    console.log(`📱 Encontrada instância "${instanceName}" para o número ${cleanCampaignPhone}`);
+                    enrichedPayload = {
+                        ...payload,
+                        whatsapp_instance_name: instanceName
+                    };
+                }
+            } catch (err: any) {
+                console.warn('⚠️ Erro ao buscar nome da instância no Supabase:', err.message);
+            }
+        }
+    }
+
     try {
         console.log(`📡 Sending campaign webhook via proxy to ${webhook_url}...`);
         
-        const response = await axios.post(webhook_url, payload, {
+        const response = await axios.post(webhook_url, enrichedPayload, {
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'LucroCerto-CampaignWebhook/1.0'

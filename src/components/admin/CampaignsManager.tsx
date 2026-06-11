@@ -102,7 +102,8 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                     title: (editingCampaign.title || 'CAMPANHA TESTE').toUpperCase(),
                     subtitle: (editingCampaign.subtitle || 'SUBTÍTULO TESTE').toUpperCase(),
                     type: editingCampaign.type || 'promo',
-                    price: editingCampaign.price || 'R$ 100'
+                    price: editingCampaign.price || 'R$ 100',
+                    whatsapp: editingCampaign.whatsapp || ''
                 }
             };
 
