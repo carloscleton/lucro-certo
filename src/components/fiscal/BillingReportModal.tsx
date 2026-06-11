@@ -98,6 +98,17 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                 return acc + Number(val);
             }, 0),
 
+        // Valores das em processamento
+        processingAmount: filteredInvoices
+            .filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase()))
+            .reduce((acc, curr) => {
+                const p = curr.payload;
+                if (!p) return acc;
+                const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
+                const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
+                return acc + Number(val);
+            }, 0),
+
         // Cobráveis: Notas autorizadas ou canceladas (ambas foram geradas com sucesso)
         billableCount: filteredInvoices.filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase())).length,
         
@@ -290,7 +301,7 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                 </div>
 
                 {/* 2. Key Metrics Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Período</p>
                         <div className="flex items-baseline gap-1.5">
@@ -308,6 +319,17 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                         </div>
                         <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-2 font-medium">
                             Valor total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.authorizedAmount)}
+                        </p>
+                    </div>
+
+                    <div className="bg-blue-500/5 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-500/10 shadow-sm">
+                        <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Processando</p>
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{stats.processing}</span>
+                            <span className="text-xs text-blue-600/70 dark:text-blue-400/70 font-semibold">em curso</span>
+                        </div>
+                        <p className="text-[10px] text-blue-600/80 dark:text-blue-400/80 mt-2 font-medium">
+                            Valor total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.processingAmount)}
                         </p>
                     </div>
 
