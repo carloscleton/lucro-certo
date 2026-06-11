@@ -225,6 +225,48 @@
     border-color: #cbd5e1;
 }
 
+.btn-watch-video {
+    background: rgba(255, 255, 255, 0.85);
+    padding: 0.85rem 2rem;
+    border-radius: 12px;
+    color: var(--text-dark);
+    font-weight: 600;
+    border: 1.5px solid rgba(37, 99, 235, 0.15);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.03);
+}
+
+.btn-watch-video svg {
+    color: var(--primary-blue);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
+}
+
+.btn-watch-video:hover {
+    background: var(--surface-white);
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1);
+}
+
+.btn-watch-video:hover svg {
+    transform: scale(1.2) rotate(8deg);
+    color: var(--secondary-blue);
+}
+
+.btn-watch-video:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.05);
+}
+
+
 .hero-image-container {
     position: relative;
     display: flex;
@@ -959,7 +1001,8 @@
     }
     
     .carousel-global-actions .btn-primary,
-    .carousel-global-actions .btn-secondary {
+    .carousel-global-actions .btn-secondary,
+    .carousel-global-actions .btn-watch-video {
         width: 100%;
         justify-content: center;
     }

@@ -371,7 +371,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                                                     {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
                                                     <ChevronRight size={18} />
                                                 </button>
-                                                <button onClick={() => setIsVideoModalOpen(true)} className="btn-secondary">
+                                                <button onClick={() => setIsVideoModalOpen(true)} className="btn-watch-video">
                                                     <PlayCircle size={18} />
                                                     Conhecer Sistema
                                                 </button>
