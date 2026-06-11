@@ -111,6 +111,15 @@ export function LandingPage() {
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [currencySymbol, setCurrencySymbol] = useState('R$');
 
+    const [leadName, setLeadName] = useState('');
+    const [leadPhone, setLeadPhone] = useState('');
+    const [leadDoc, setLeadDoc] = useState('');
+    const [isLeadFormActive, setIsLeadFormActive] = useState(false);
+
+    useEffect(() => {
+        setIsLeadFormActive(false);
+    }, [activePopupIndex, showBanner]);
+
     useEffect(() => {
         const fetchPlans = async () => {
             try {
@@ -189,6 +198,45 @@ export function LandingPage() {
         const regType = isBoth ? 'BOTH' : (isPJ ? 'PJ' : 'PF');
         
         navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}&currency=${selectedCurrency}&registration-type=${regType}`);
+    };
+
+    const getWhatsAppNumber = (url: string) => {
+        if (!url) return '5584998071213';
+        const match = url.match(/(?:wa\.me\/|phone=)(\d+)/);
+        if (match && match[1]) {
+            return match[1];
+        }
+        const clean = url.replace(/[+\s-]/g, '');
+        if (/^\d+$/.test(clean) && clean.length >= 8) {
+            return clean;
+        }
+        return '5584998071213';
+    };
+
+    const handleLeadSubmit = (e: React.FormEvent, currentCampaign: any) => {
+        e.preventDefault();
+        if (!leadName.trim() || !leadPhone.trim() || !leadDoc.trim()) {
+            return;
+        }
+
+        const destinationPhone = getWhatsAppNumber(currentCampaign.link);
+        
+        const messageText = `Olá! Tenho interesse na oferta: *${currentCampaign.title}*
+
+*Meus Dados:*
+- *Nome:* ${leadName.trim()}
+- *Telefone:* ${leadPhone.trim()}
+- *CPF/CNPJ:* ${leadDoc.trim()}`;
+
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${destinationPhone}&text=${encodeURIComponent(messageText)}`;
+        
+        window.open(whatsappUrl, '_blank');
+        
+        setShowBanner(false);
+        setIsLeadFormActive(false);
+        setLeadName('');
+        setLeadPhone('');
+        setLeadDoc('');
     };
 
     return (
@@ -829,115 +877,243 @@ export function LandingPage() {
                                         </div>
 
                                         {/* Right Column (Content) */}
-                                        <div className="relative z-20 flex flex-col justify-between p-6 md:p-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md h-[calc(85vh-260px)] md:h-full min-h-0 animate-in fade-in duration-300">
-                                            <div className="shrink-0 text-left">
-                                                <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight leading-tight">{currentCampaign.title}</h2>
-                                            </div>
+                                        <div className="relative z-20 flex flex-col justify-between p-6 md:p-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md h-[calc(85vh-260px)] md:h-full min-h-0 animate-in fade-in duration-300 w-full">
+                                            {isLeadFormActive ? (
+                                                <form onSubmit={(e) => handleLeadSubmit(e, currentCampaign)} className="flex flex-col gap-3 text-left w-full h-full justify-between">
+                                                    <div className="space-y-3 flex-grow overflow-y-auto pr-1">
+                                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Preencha seus dados</h3>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">Por favor, insira as informações obrigatórias para prosseguir com a compra via WhatsApp.</p>
+                                                        
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Nome Completo *</label>
+                                                            <input 
+                                                                type="text" 
+                                                                required 
+                                                                value={leadName} 
+                                                                onChange={(e) => setLeadName(e.target.value)} 
+                                                                placeholder="Seu nome completo" 
+                                                                className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                            />
+                                                        </div>
 
-                                            <div className="overflow-y-auto px-1 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
-                                                <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed text-left">
-                                                    {formatTextWithBold(currentCampaign.subtitle)}
-                                                </div>
-                                            </div>
-                                            
-                                            {currentCampaign.price && (
-                                                <div className="shrink-0 w-full flex items-center justify-center mb-4 px-4 py-3 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl">
-                                                    {renderPriceHighlight(currentCampaign.price)}
-                                                </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">WhatsApp / Telefone *</label>
+                                                            <input 
+                                                                type="tel" 
+                                                                required 
+                                                                value={leadPhone} 
+                                                                onChange={(e) => setLeadPhone(e.target.value)} 
+                                                                placeholder="(00) 00000-0000" 
+                                                                className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">CNPJ ou CPF *</label>
+                                                            <input 
+                                                                type="text" 
+                                                                required 
+                                                                value={leadDoc} 
+                                                                onChange={(e) => setLeadDoc(e.target.value)} 
+                                                                placeholder="000.000.000-00 ou 00.000.000/0000-00" 
+                                                                className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="shrink-0 flex gap-2 w-full mt-2">
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setIsLeadFormActive(false)} 
+                                                            className="flex-1 px-3 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg text-xs transition-all"
+                                                        >
+                                                            Voltar
+                                                        </button>
+                                                        <button 
+                                                            type="submit" 
+                                                            className={`flex-[2] text-center px-4 py-2 rounded-lg font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-xs ${
+                                                                currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
+                                                                currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
+                                                                'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
+                                                            }`}
+                                                        >
+                                                            Finalizar no WhatsApp
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            ) : (
+                                                <>
+                                                    <div className="shrink-0 text-left">
+                                                        <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight leading-tight">{currentCampaign.title}</h2>
+                                                    </div>
+
+                                                    <div className="overflow-y-auto px-1 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
+                                                        <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed text-left">
+                                                            {formatTextWithBold(currentCampaign.subtitle)}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {currentCampaign.price && (
+                                                        <div className="shrink-0 w-full flex items-center justify-center mb-4 px-4 py-3 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl">
+                                                            {renderPriceHighlight(currentCampaign.price)}
+                                                        </div>
+                                                    )}
+                                                    <div className="shrink-0 w-full flex flex-col gap-3 items-center md:items-start">
+                                                        {currentCampaign.call_to_action && currentCampaign.link && (
+                                                            <button 
+                                                                onClick={() => setIsLeadFormActive(true)}
+                                                                className={`inline-block w-full text-center px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-sm ${
+                                                                    currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
+                                                                    currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
+                                                                    'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
+                                                                }`}
+                                                            >
+                                                                {currentCampaign.call_to_action}
+                                                            </button>
+                                                        )}
+                                                        
+                                                        {popupCampaigns.length > 1 && (
+                                                            <div className="flex justify-center w-full gap-2 mt-2">
+                                                                {popupCampaigns.map((_, idx) => (
+                                                                    <button
+                                                                        key={idx}
+                                                                        onClick={() => setActivePopupIndex(idx)}
+                                                                        className={`w-2 h-2 rounded-full transition-all ${idx === activePopupIndex ? 'bg-purple-600 w-4' : 'bg-gray-300'}`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
                                             )}
-                                            <div className="shrink-0 w-full flex flex-col gap-3 items-center md:items-start">
-                                                {currentCampaign.call_to_action && currentCampaign.link && (
-                                                    <a 
-                                                        href={currentCampaign.link} 
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={() => setShowBanner(false)}
-                                                        className={`inline-block w-full text-center px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-sm ${
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="relative z-20 flex flex-col w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md min-h-0 text-center p-6 md:p-8 h-full justify-between animate-in fade-in duration-300">
+                                        {isLeadFormActive ? (
+                                            <form onSubmit={(e) => handleLeadSubmit(e, currentCampaign)} className="flex flex-col gap-3 text-left w-full h-full justify-between">
+                                                <div className="space-y-3 flex-grow overflow-y-auto pr-1">
+                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Preencha seus dados</h3>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Por favor, insira as informações obrigatórias para prosseguir com a compra via WhatsApp.</p>
+                                                    
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Nome Completo *</label>
+                                                        <input 
+                                                            type="text" 
+                                                            required 
+                                                            value={leadName} 
+                                                            onChange={(e) => setLeadName(e.target.value)} 
+                                                            placeholder="Seu nome completo" 
+                                                            className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">WhatsApp / Telefone *</label>
+                                                        <input 
+                                                            type="tel" 
+                                                            required 
+                                                            value={leadPhone} 
+                                                            onChange={(e) => setLeadPhone(e.target.value)} 
+                                                            placeholder="(00) 00000-0000" 
+                                                            className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">CNPJ ou CPF *</label>
+                                                        <input 
+                                                            type="text" 
+                                                            required 
+                                                            value={leadDoc} 
+                                                            onChange={(e) => setLeadDoc(e.target.value)} 
+                                                            placeholder="000.000.000-00 ou 00.000.000/0000-00" 
+                                                            className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="shrink-0 flex gap-2 w-full mt-4">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setIsLeadFormActive(false)} 
+                                                        className="flex-1 px-3 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg text-xs transition-all"
+                                                    >
+                                                        Voltar
+                                                    </button>
+                                                    <button 
+                                                        type="submit" 
+                                                        className={`flex-[2] text-center px-4 py-2 rounded-lg font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-xs ${
                                                             currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
                                                             currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
                                                             'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
                                                         }`}
                                                     >
-                                                        {currentCampaign.call_to_action}
-                                                    </a>
-                                                )}
+                                                        Finalizar no WhatsApp
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        ) : (
+                                            <>
+                                                <div className="shrink-0">
+                                                    {currentCampaign.type === 'promo' && (
+                                                        <div className="w-12 h-12 mx-auto mb-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
+                                                            <Sparkles size={24} />
+                                                        </div>
+                                                    )}
+                                                    {currentCampaign.type === 'info' && (
+                                                        <div className="w-12 h-12 mx-auto mb-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
+                                                            <Award size={24} />
+                                                        </div>
+                                                    )}
+                                                    {currentCampaign.type === 'alert' && (
+                                                        <div className="w-12 h-12 mx-auto mb-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
+                                                            <AlertTriangle size={24} />
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight leading-tight">{currentCampaign.title}</h2>
+                                                </div>
+
+                                                <div className="overflow-y-auto px-1 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
+                                                    <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed text-left">
+                                                        {formatTextWithBold(currentCampaign.subtitle)}
+                                                    </div>
+                                                </div>
                                                 
-                                                {popupCampaigns.length > 1 && (
-                                                    <div className="flex justify-center w-full gap-2 mt-2">
-                                                        {popupCampaigns.map((_, idx) => (
-                                                            <button
-                                                                key={idx}
-                                                                onClick={() => setActivePopupIndex(idx)}
-                                                                className={`w-2 h-2 rounded-full transition-all ${idx === activePopupIndex ? 'bg-purple-600 w-4' : 'bg-gray-300'}`}
-                                                            />
-                                                        ))}
+                                                {currentCampaign.price && (
+                                                    <div className="shrink-0 w-full flex items-center justify-center mb-4 px-4 py-3 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl">
+                                                        {renderPriceHighlight(currentCampaign.price)}
                                                     </div>
                                                 )}
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="relative z-20 flex flex-col w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md min-h-0 text-center p-6 md:p-8 h-full justify-between animate-in fade-in duration-300">
-                                        <div className="shrink-0">
-                                            {currentCampaign.type === 'promo' && (
-                                                <div className="w-12 h-12 mx-auto mb-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-purple-200 dark:shadow-none">
-                                                    <Sparkles size={24} />
+                                                <div className="shrink-0 w-full flex flex-col gap-3 items-center">
+                                                    {currentCampaign.call_to_action && currentCampaign.link && (
+                                                        <button 
+                                                            onClick={() => setIsLeadFormActive(true)}
+                                                            className={`inline-block w-full text-center px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-sm ${
+                                                                currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
+                                                                currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
+                                                                'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
+                                                            }`}
+                                                        >
+                                                            {currentCampaign.call_to_action}
+                                                        </button>
+                                                    )}
+                                                    
+                                                    {popupCampaigns.length > 1 && (
+                                                        <div className="flex justify-center w-full gap-2 mt-2">
+                                                            {popupCampaigns.map((_, idx) => (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => setActivePopupIndex(idx)}
+                                                                    className={`w-2 h-2 rounded-full transition-all ${idx === activePopupIndex ? 'bg-purple-600 w-4' : 'bg-gray-300'}`}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                            {currentCampaign.type === 'info' && (
-                                                <div className="w-12 h-12 mx-auto mb-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
-                                                    <Award size={24} />
-                                                </div>
-                                            )}
-                                            {currentCampaign.type === 'alert' && (
-                                                <div className="w-12 h-12 mx-auto mb-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
-                                                    <AlertTriangle size={24} />
-                                                </div>
-                                            )}
-                                            
-                                            <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight leading-tight">{currentCampaign.title}</h2>
-                                        </div>
-
-                                        <div className="overflow-y-auto px-1 pb-2 mt-1 mb-4 flex-grow custom-scrollbar">
-                                            <div className="text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed text-left">
-                                                {formatTextWithBold(currentCampaign.subtitle)}
-                                            </div>
-                                        </div>
-                                        
-                                        {currentCampaign.price && (
-                                            <div className="shrink-0 w-full flex items-center justify-center mb-4 px-4 py-3 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl">
-                                                {renderPriceHighlight(currentCampaign.price)}
-                                            </div>
+                                            </>
                                         )}
-                                        <div className="shrink-0 w-full flex flex-col gap-3 items-center">
-                                            {currentCampaign.call_to_action && currentCampaign.link && (
-                                                <a 
-                                                    href={currentCampaign.link} 
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={() => setShowBanner(false)}
-                                                    className={`inline-block w-full text-center px-8 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg text-sm ${
-                                                        currentCampaign.type === 'alert' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' :
-                                                        currentCampaign.type === 'info' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' :
-                                                        'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
-                                                    }`}
-                                                >
-                                                    {currentCampaign.call_to_action}
-                                                </a>
-                                            )}
-                                            
-                                            {popupCampaigns.length > 1 && (
-                                                <div className="flex justify-center w-full gap-2 mt-2">
-                                                    {popupCampaigns.map((_, idx) => (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => setActivePopupIndex(idx)}
-                                                            className={`w-2 h-2 rounded-full transition-all ${idx === activePopupIndex ? 'bg-purple-600 w-4' : 'bg-gray-300'}`}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
                                 )}
                             </div>
