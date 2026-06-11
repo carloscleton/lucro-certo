@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Layout, Zap, Upload, RefreshCw, Wand2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Layout, Zap, Upload, RefreshCw, Wand2, Copy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { storageService } from '../../lib/storageService';
 
@@ -59,6 +59,20 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
         if (!confirm('Deseja realmente excluir esta campanha?')) return;
         const newCampaigns = campaigns.filter((c: any) => c.id !== id);
         setLocalBanner({ ...localBanner, campaigns: newCampaigns });
+    };
+
+    const handleClone = (id: string) => {
+        const campaignToClone = campaigns.find((c: any) => c.id === id);
+        if (!campaignToClone) return;
+        const clonedCampaign = {
+            ...campaignToClone,
+            id: crypto.randomUUID(),
+            title: campaignToClone.title ? `${campaignToClone.title} (Cópia)` : 'Cópia',
+            is_active: false
+        };
+        setLocalBanner({ ...localBanner, campaigns: [...campaigns, clonedCampaign] });
+        setEditingId(clonedCampaign.id);
+        notify('success', 'Campanha clonada com sucesso!');
     };
 
     const toggleStatus = (id: string, currentStatus: boolean) => {
@@ -153,6 +167,13 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => handleClone(campaign.id)}
+                                        className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                        title="Clonar Campanha"
+                                    >
+                                        <Copy size={18} />
+                                    </button>
                                     <button 
                                         onClick={() => setEditingId(editingId === campaign.id ? null : campaign.id)}
                                         className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
