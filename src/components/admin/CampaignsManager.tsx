@@ -80,6 +80,23 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
     }, [campaigns.length, localBanner, setLocalBanner]);
 
     const [editingCampaign, setEditingCampaign] = useState<any | null>(null);
+    const [instances, setInstances] = useState<any[]>([]);
+
+    React.useEffect(() => {
+        const fetchInstances = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('instances')
+                    .select('instance_name, evolution_instance_id, phone_number');
+                if (!error && data) {
+                    setInstances(data);
+                }
+            } catch (err) {
+                console.error("Erro ao buscar instâncias:", err);
+            }
+        };
+        fetchInstances();
+    }, []);
     const [isNewCampaign, setIsNewCampaign] = useState(false);
     const [uploadingField, setUploadingField] = useState<string | null>(null);
     const [isGeneratingText, setIsGeneratingText] = useState(false);
@@ -103,7 +120,8 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                     subtitle: (editingCampaign.subtitle || 'SUBTÍTULO TESTE').toUpperCase(),
                     type: editingCampaign.type || 'promo',
                     price: editingCampaign.price || 'R$ 100',
-                    whatsapp: editingCampaign.whatsapp || ''
+                    whatsapp: editingCampaign.whatsapp || '',
+                    whatsapp_instance_name: editingCampaign.whatsapp_instance_name || ''
                 }
             };
 
@@ -143,6 +161,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
             whatsapp: '',
             email: '',
             webhook: '',
+            whatsapp_instance_name: '',
             type: 'promo',
             price: '',
             image_url: '',
@@ -515,6 +534,50 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                     )}
                                 </div>
                                 <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 block">URL para envio automático de dados em formato JSON (POST) ao capturar novos leads.</span>
+                            </div>
+
+                            {/* Campo: Instância do WhatsApp */}
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Instância do WhatsApp (Opcional)</label>
+                                <div className="flex gap-2">
+                                    <select 
+                                        value={instances.some(i => i.instance_name === editingCampaign.whatsapp_instance_name) ? editingCampaign.whatsapp_instance_name : (editingCampaign.whatsapp_instance_name ? "custom" : "")} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === "custom") {
+                                                handleDraftUpdate({ whatsapp_instance_name: '' });
+                                            } else {
+                                                const inst = instances.find(i => i.instance_name === val);
+                                                const updates: any = { whatsapp_instance_name: val };
+                                                if (inst && inst.phone_number) {
+                                                    updates.whatsapp = inst.phone_number;
+                                                }
+                                                handleDraftUpdate(updates);
+                                            }
+                                        }} 
+                                        className="flex-1 text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-gray-900 dark:text-white"
+                                    >
+                                        <option value="">NENHUMA INSTÂNCIA SELECIONADA</option>
+                                        {instances.map((inst) => (
+                                            <option key={inst.evolution_instance_id} value={inst.instance_name}>
+                                                {inst.instance_name.toUpperCase()} {inst.phone_number ? `(${inst.phone_number})` : ''}
+                                            </option>
+                                        ))}
+                                        <option value="custom">OUTRA (DIGITAR NOME)...</option>
+                                    </select>
+                                    
+                                    {(editingCampaign.whatsapp_instance_name === '' || !instances.some(i => i.instance_name === editingCampaign.whatsapp_instance_name)) && (
+                                        <input 
+                                            type="text"
+                                            value={editingCampaign.whatsapp_instance_name || ''} 
+                                            onChange={(e) => handleDraftUpdate({ whatsapp_instance_name: e.target.value.toUpperCase() })} 
+                                            className="flex-1 text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-gray-900 dark:text-white" 
+                                            placeholder="NOME DA INSTÂNCIA" 
+                                            style={{ textTransform: 'uppercase' }}
+                                        />
+                                    )}
+                                </div>
+                                <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 block">Associe uma instância do WhatsApp para ser enviada nas notificações de lead.</span>
                             </div>
 
                             {/* Imagem */}

@@ -2921,9 +2921,15 @@ app.post('/api/public/campaign-webhook', async (req, res) => {
         return res.status(400).json({ error: 'URL do Webhook obrigatória' });
     }
 
-    // Tenta obter o nome da instância de WhatsApp no Supabase
+    // Tenta obter o nome da instância de WhatsApp no Supabase ou usa o do payload se já presente
     let enrichedPayload = { ...payload };
-    if (SUPABASE_URL && (SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY) && payload?.campaign?.whatsapp) {
+    const campaignInstanceName = payload?.campaign?.whatsapp_instance_name;
+
+    if (campaignInstanceName && campaignInstanceName.trim() !== '') {
+        const trimmedInstance = campaignInstanceName.trim();
+        enrichedPayload.whatsapp_instance_name = trimmedInstance;
+        console.log(`   📱 Instância do WhatsApp configurada diretamente na campanha: "${trimmedInstance}"`);
+    } else if (SUPABASE_URL && (SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY) && payload?.campaign?.whatsapp) {
         const cleanCampaignPhone = payload.campaign.whatsapp.replace(/\D/g, '');
         if (cleanCampaignPhone) {
             try {
@@ -2957,7 +2963,11 @@ app.post('/api/public/campaign-webhook', async (req, res) => {
                         console.log(`   📱 Match encontrado! Instância: "${instanceName}" para o número ${matchingInst.phone_number}`);
                         enrichedPayload = {
                             ...payload,
-                            whatsapp_instance_name: instanceName
+                            whatsapp_instance_name: instanceName,
+                            campaign: {
+                                ...payload.campaign,
+                                whatsapp_instance_name: instanceName
+                            }
                         };
                     } else {
                         console.log(`   ⚠️ Nenhuma instância correspondente aos últimos 8 dígitos (${campaignLast8}) foi encontrada.`);

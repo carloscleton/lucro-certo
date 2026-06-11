@@ -275,7 +275,8 @@ export function LandingPage() {
                     image_url: currentCampaign.image_url || null,
                     show_in_popup: !!currentCampaign.show_in_popup,
                     show_in_hero: !!currentCampaign.show_in_hero,
-                    show_as_section: !!currentCampaign.show_as_section
+                    show_as_section: !!currentCampaign.show_as_section,
+                    whatsapp_instance_name: currentCampaign.whatsapp_instance_name || ''
                 }
             };
 
