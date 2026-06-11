@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Layout, Zap, Upload, RefreshCw, Wand2, Copy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { storageService } from '../../lib/storageService';
+import { API_BASE_URL } from '../../lib/constants';
 
 const getWhatsAppNumber = (url: string) => {
     if (!url) return '';
@@ -82,6 +83,54 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
     const [isNewCampaign, setIsNewCampaign] = useState(false);
     const [uploadingField, setUploadingField] = useState<string | null>(null);
     const [isGeneratingText, setIsGeneratingText] = useState(false);
+    const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+
+    const handleTestWebhook = async () => {
+        if (!editingCampaign?.webhook) return;
+        setIsTestingWebhook(true);
+        try {
+            const testPayload = {
+                event: 'webhook_test',
+                timestamp: new Date().toISOString(),
+                lead: {
+                    name: 'CLIENTE TESTE WEBHOOK',
+                    phone: '5584998071213',
+                    email: 'TESTE@LUCROCERTO.COM'
+                },
+                campaign: {
+                    id: editingCampaign.id,
+                    title: (editingCampaign.title || 'CAMPANHA TESTE').toUpperCase(),
+                    subtitle: (editingCampaign.subtitle || 'SUBTÍTULO TESTE').toUpperCase(),
+                    type: editingCampaign.type || 'promo',
+                    price: editingCampaign.price || 'R$ 100'
+                }
+            };
+
+            const base = API_BASE_URL.replace(/\/$/, '');
+            const response = await fetch(`${base}/api/public/campaign-webhook`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    webhook_url: editingCampaign.webhook.trim(),
+                    payload: testPayload
+                })
+            });
+
+            if (response.ok) {
+                notify('success', 'Webhook testado com sucesso! Verifique o recebimento.');
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                notify('error', `Erro ao testar: ${errData.message || 'Código ' + response.status}`);
+            }
+        } catch (err: any) {
+            console.error("Erro no teste de webhook:", err);
+            notify('error', `Falha ao testar webhook: ${err.message || 'Erro de conexão.'}`);
+        } finally {
+            setIsTestingWebhook(false);
+        }
+    };
 
     const handleAdd = () => {
         const newCampaign = {
@@ -428,7 +477,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                         placeholder="Ex: 55(84) 9 9807-1213" 
                                     />
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">E-mail de Notificação (Opcional)</label>
                                     <input 
                                         type="email"
@@ -444,14 +493,27 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                             {/* Novo Campo: Webhook de Leads */}
                             <div>
                                 <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Webhook de Notificação (Opcional)</label>
-                                <input 
-                                    type="url"
-                                    value={editingCampaign.webhook || ''} 
-                                    onChange={(e) => handleDraftUpdate({ webhook: e.target.value })} 
-                                    className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-gray-900 dark:text-white" 
-                                    placeholder="Ex: https://api.seuservico.com/leads" 
-                                />
-                                <span className="text-[9px] text-gray-400 dark:text-gray-500">URL para envio automático de dados em formato JSON (POST) ao capturar novos leads.</span>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="url"
+                                        value={editingCampaign.webhook || ''} 
+                                        onChange={(e) => handleDraftUpdate({ webhook: e.target.value })} 
+                                        className="flex-1 text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-gray-900 dark:text-white" 
+                                        placeholder="Ex: https://api.seuservico.com/leads" 
+                                    />
+                                    {editingCampaign.webhook && editingCampaign.webhook.trim() && (
+                                        <button 
+                                            type="button" 
+                                            onClick={handleTestWebhook} 
+                                            disabled={isTestingWebhook}
+                                            className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition-all shadow-sm shadow-emerald-500/20 flex items-center gap-1.5 whitespace-nowrap"
+                                        >
+                                            {isTestingWebhook ? <RefreshCw size={12} className="animate-spin" /> : <Zap size={12} />}
+                                            Testar
+                                        </button>
+                                    )}
+                                </div>
+                                <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 block">URL para envio automático de dados em formato JSON (POST) ao capturar novos leads.</span>
                             </div>
 
                             {/* Imagem */}

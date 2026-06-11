@@ -22,6 +22,7 @@ import { useEntity } from '../context/EntityContext';
 import { supabase } from '../lib/supabase';
 import { PaymentRequired } from './PaymentRequired';
 import logoFull from '../assets/logo-full.png';
+import { API_BASE_URL } from '../lib/constants';
 
 // Import images used in detailed feature sections
 import bannerMarketingCopilot from '../assets/landing/landing_hero_marketing_copilot.png';
@@ -145,9 +146,11 @@ export function LandingPage() {
     const [leadPhone, setLeadPhone] = useState('');
     const [leadEmail, setLeadEmail] = useState('');
     const [isLeadFormActive, setIsLeadFormActive] = useState(false);
+    const [isLeadSuccess, setIsLeadSuccess] = useState(false);
 
     useEffect(() => {
         setIsLeadFormActive(false);
+        setIsLeadSuccess(false);
     }, [activePopupIndex, showBanner]);
 
     useEffect(() => {
@@ -233,18 +236,6 @@ export function LandingPage() {
         navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}&currency=${selectedCurrency}&registration-type=${regType}`);
     };
 
-    const getWhatsAppNumber = (url: string) => {
-        if (!url) return '5584998071213';
-        const match = url.match(/(?:wa\.me\/|phone=)(\d+)/);
-        if (match && match[1]) {
-            return match[1];
-        }
-        const clean = url.replace(/[+\s-]/g, '');
-        if (/^\d+$/.test(clean) && clean.length >= 8) {
-            return clean;
-        }
-        return '5584998071213';
-    };
 
     const handleLeadSubmit = async (e: React.FormEvent, currentCampaign: any) => {
         e.preventDefault();
@@ -252,7 +243,6 @@ export function LandingPage() {
             return;
         }
 
-        const destinationPhone = (currentCampaign.whatsapp || getWhatsAppNumber(currentCampaign.link)).replace(/\D/g, '');
         const cleanLeadPhone = leadPhone.replace(/\D/g, '');
         const cleanEmail = leadEmail.trim().toUpperCase() || null;
         const cleanName = leadName.trim().toUpperCase();
@@ -292,20 +282,23 @@ export function LandingPage() {
             console.log("Disparando Webhook para:", webhookUrl, leadPayload);
 
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
-                
-                await fetch(webhookUrl, {
+                const base = API_BASE_URL.replace(/\/$/, '');
+                const response = await fetch(`${base}/api/public/campaign-webhook`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(leadPayload),
-                    signal: controller.signal
+                    body: JSON.stringify({
+                        webhook_url: webhookUrl,
+                        payload: leadPayload
+                    })
                 });
                 
-                clearTimeout(timeoutId);
-                console.log("Webhook enviado com sucesso!");
+                if (response.ok) {
+                    console.log("Webhook enviado com sucesso!");
+                } else {
+                    console.error("Erro ao enviar webhook:", response.status);
+                }
             } catch (err) {
                 console.error("Erro ao enviar payload para o webhook:", err);
             }
@@ -313,18 +306,7 @@ export function LandingPage() {
             console.log("Nenhum webhook configurado para esta campanha.");
         }
         
-        const messageText = `Olá! Tenho interesse na oferta: *${currentCampaign.title}*
- 
-*Meus Dados:*
-- *Nome:* ${cleanName}
-- *Telefone:* ${cleanLeadPhone}${cleanEmail ? `\n- *E-mail:* ${cleanEmail}` : ''}`;
-
-        const whatsappUrl = `https://api.whatsapp.com/send?phone=${destinationPhone}&text=${encodeURIComponent(messageText)}`;
-        
-        window.open(whatsappUrl, '_blank');
-        
-        setShowBanner(false);
-        setIsLeadFormActive(false);
+        setIsLeadSuccess(true);
         setLeadName('');
         setLeadPhone('');
         setLeadEmail('');
@@ -974,11 +956,25 @@ export function LandingPage() {
 
                                         {/* Right Column (Content) */}
                                         <div className="relative z-20 flex flex-col justify-between p-6 md:p-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md h-[calc(85vh-260px)] md:h-full min-h-0 animate-in fade-in duration-300 w-full">
-                                            {isLeadFormActive ? (
+                                            {isLeadSuccess ? (
+                                                <div className="flex flex-col items-center justify-center text-center p-6 gap-4 h-full my-auto animate-in fade-in duration-350 w-full">
+                                                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/10 animate-bounce">
+                                                        <CheckCircle2 size={32} />
+                                                    </div>
+                                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cadastro Confirmado!</h3>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[280px]">Seus dados foram enviados com sucesso para processamento.</p>
+                                                    <button 
+                                                        onClick={() => { setShowBanner(false); setIsLeadSuccess(false); }}
+                                                        className="mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/20"
+                                                    >
+                                                        Fechar
+                                                    </button>
+                                                </div>
+                                            ) : isLeadFormActive ? (
                                                 <form onSubmit={(e) => handleLeadSubmit(e, currentCampaign)} className="flex flex-col gap-3 text-left w-full h-full justify-between">
                                                     <div className="space-y-3 flex-grow overflow-y-auto pr-1">
                                                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">Preencha seus dados</h3>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">Por favor, insira as informações obrigatórias para prosseguir com a compra via WhatsApp.</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">Por favor, insira as informações obrigatórias para prosseguir.</p>
                                                         
                                                         <div>
                                                             <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Nome Completo *</label>
@@ -1034,7 +1030,7 @@ export function LandingPage() {
                                                                 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
                                                             }`}
                                                         >
-                                                            Finalizar no WhatsApp
+                                                            Finalizar Cadastro
                                                         </button>
                                                     </div>
                                                 </form>
@@ -1087,11 +1083,26 @@ export function LandingPage() {
                                     </>
                                 ) : (
                                     <div className="relative z-20 flex flex-col w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md min-h-0 text-center p-6 md:p-8 h-full justify-between animate-in fade-in duration-300">
-                                        {isLeadFormActive ? (
+                                        {isLeadSuccess ? (
+                                            <div className="flex flex-col items-center justify-center text-center p-6 gap-4 h-full my-auto animate-in fade-in duration-350 w-full">
+                                                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/10 animate-bounce">
+                                                    <CheckCircle2 size={32} />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cadastro Confirmado!</h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[280px]">Seus dados foram enviados com sucesso para processamento.</p>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => { setShowBanner(false); setIsLeadSuccess(false); }}
+                                                    className="mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/20"
+                                                >
+                                                    Fechar
+                                                </button>
+                                            </div>
+                                        ) : isLeadFormActive ? (
                                             <form onSubmit={(e) => handleLeadSubmit(e, currentCampaign)} className="flex flex-col gap-3 text-left w-full h-full justify-between">
                                                 <div className="space-y-3 flex-grow overflow-y-auto pr-1">
                                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">Preencha seus dados</h3>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Por favor, insira as informações obrigatórias para prosseguir com a compra via WhatsApp.</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Por favor, insira as informações obrigatórias para prosseguir.</p>
                                                     
                                                     <div>
                                                         <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Nome Completo *</label>
@@ -1147,7 +1158,7 @@ export function LandingPage() {
                                                             'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
                                                         }`}
                                                     >
-                                                        Finalizar no WhatsApp
+                                                        Finalizar Cadastro
                                                     </button>
                                                 </div>
                                             </form>

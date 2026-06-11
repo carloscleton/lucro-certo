@@ -2913,6 +2913,44 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
     }
 });
 
+// --- PUBLIC CAMPAIGN WEBHOOK PROXY ---
+app.post('/api/public/campaign-webhook', async (req, res) => {
+    const { webhook_url, payload } = req.body;
+
+    if (!webhook_url) {
+        return res.status(400).json({ error: 'URL do Webhook obrigatória' });
+    }
+
+    try {
+        console.log(`📡 Sending campaign webhook via proxy to ${webhook_url}...`);
+        
+        const response = await axios.post(webhook_url, payload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'LucroCerto-CampaignWebhook/1.0'
+            },
+            timeout: 10000 // 10 seconds timeout
+        });
+
+        console.log(`✅ Webhook sent successfully! Status: ${response.status}`);
+        return res.json({ 
+            success: true, 
+            status: response.status, 
+            data: response.data 
+        });
+    } catch (error: any) {
+        const status = error.response?.status || 500;
+        const detail = error.response?.data || error.message;
+        console.error('❌ Erro no proxy do webhook da campanha:', error.message);
+        return res.status(status).json({ 
+            success: false,
+            error: 'Erro ao enviar dados para o webhook', 
+            message: error.message,
+            detail: typeof detail === 'object' ? JSON.stringify(detail) : detail
+        });
+    }
+});
+
 // --- FINAL HANDLERS ---
 
 // Rota de fallback para 404 - Retorna JSON em vez do HTML padrão do Express
