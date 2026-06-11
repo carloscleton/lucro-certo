@@ -91,6 +91,36 @@ const renderPriceHighlight = (priceText: string) => {
     );
 };
 
+const formatWhatsAppMask = (raw: string) => {
+    let digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    
+    // If digits doesn't start with '55', prepend it automatically
+    if (digits.length > 0 && !digits.startsWith('55')) {
+        if (digits[0] !== '5') {
+            digits = '55' + digits;
+        } else if (digits.length >= 2 && digits[1] !== '5') {
+            digits = '55' + digits.substring(1);
+        }
+    }
+    
+    // Format: 55(84) 9 9807-1213
+    if (digits.length <= 2) {
+        return digits; // "55"
+    }
+    if (digits.length <= 4) {
+        return `55(${digits.substring(2, 4)}`;
+    }
+    if (digits.length <= 5) {
+        return `55(${digits.substring(2, 4)}) ${digits.substring(4, 5)}`;
+    }
+    if (digits.length <= 9) {
+        return `55(${digits.substring(2, 4)}) ${digits.substring(4, 5)} ${digits.substring(5)}`;
+    }
+    const truncated = digits.substring(0, 13);
+    return `55(${truncated.substring(2, 4)}) ${truncated.substring(4, 5)} ${truncated.substring(5, 9)}-${truncated.substring(9)}`;
+};
+
 export function LandingPage() {
     const navigate = useNavigate();
     const { currentEntity } = useEntity();
@@ -219,13 +249,14 @@ export function LandingPage() {
             return;
         }
 
-        const destinationPhone = currentCampaign.whatsapp || getWhatsAppNumber(currentCampaign.link);
+        const destinationPhone = (currentCampaign.whatsapp || getWhatsAppNumber(currentCampaign.link)).replace(/\D/g, '');
+        const cleanLeadPhone = leadPhone.replace(/\D/g, '');
         
         const messageText = `Olá! Tenho interesse na oferta: *${currentCampaign.title}*
 
 *Meus Dados:*
-- *Nome:* ${leadName.trim()}
-- *Telefone:* ${leadPhone.trim()}${leadEmail.trim() ? `\n- *E-mail:* ${leadEmail.trim()}` : ''}`;
+- *Nome:* ${leadName.trim().toUpperCase()}
+- *Telefone:* ${cleanLeadPhone}${leadEmail.trim() ? `\n- *E-mail:* ${leadEmail.trim().toUpperCase()}` : ''}`;
 
         const whatsappUrl = `https://api.whatsapp.com/send?phone=${destinationPhone}&text=${encodeURIComponent(messageText)}`;
         
@@ -894,9 +925,10 @@ export function LandingPage() {
                                                                 type="text" 
                                                                 required 
                                                                 value={leadName} 
-                                                                onChange={(e) => setLeadName(e.target.value)} 
-                                                                placeholder="Seu nome completo" 
+                                                                onChange={(e) => setLeadName(e.target.value.toUpperCase())} 
+                                                                placeholder="SEU NOME COMPLETO" 
                                                                 className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                                style={{ textTransform: 'uppercase' }}
                                                             />
                                                         </div>
 
@@ -906,8 +938,8 @@ export function LandingPage() {
                                                                 type="tel" 
                                                                 required 
                                                                 value={leadPhone} 
-                                                                onChange={(e) => setLeadPhone(e.target.value)} 
-                                                                placeholder="(00) 00000-0000" 
+                                                                onChange={(e) => setLeadPhone(formatWhatsAppMask(e.target.value))} 
+                                                                placeholder="55(84) 9 9807-1213" 
                                                                 className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                             />
                                                         </div>
@@ -917,9 +949,10 @@ export function LandingPage() {
                                                             <input 
                                                                 type="email" 
                                                                 value={leadEmail} 
-                                                                onChange={(e) => setLeadEmail(e.target.value)} 
-                                                                placeholder="seu-email@dominio.com" 
+                                                                onChange={(e) => setLeadEmail(e.target.value.toUpperCase())} 
+                                                                placeholder="SEU-EMAIL@DOMINIO.COM" 
                                                                 className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                                style={{ textTransform: 'uppercase' }}
                                                             />
                                                         </div>
                                                     </div>
@@ -1005,9 +1038,10 @@ export function LandingPage() {
                                                             type="text" 
                                                             required 
                                                             value={leadName} 
-                                                            onChange={(e) => setLeadName(e.target.value)} 
-                                                            placeholder="Seu nome completo" 
+                                                            onChange={(e) => setLeadName(e.target.value.toUpperCase())} 
+                                                            placeholder="SEU NOME COMPLETO" 
                                                             className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                            style={{ textTransform: 'uppercase' }}
                                                         />
                                                     </div>
 
@@ -1017,8 +1051,8 @@ export function LandingPage() {
                                                             type="tel" 
                                                             required 
                                                             value={leadPhone} 
-                                                            onChange={(e) => setLeadPhone(e.target.value)} 
-                                                            placeholder="(00) 00000-0000" 
+                                                            onChange={(e) => setLeadPhone(formatWhatsAppMask(e.target.value))} 
+                                                            placeholder="55(84) 9 9807-1213" 
                                                             className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                         />
                                                     </div>
@@ -1028,9 +1062,10 @@ export function LandingPage() {
                                                         <input 
                                                             type="email" 
                                                             value={leadEmail} 
-                                                            onChange={(e) => setLeadEmail(e.target.value)} 
-                                                            placeholder="seu-email@dominio.com" 
+                                                            onChange={(e) => setLeadEmail(e.target.value.toUpperCase())} 
+                                                            placeholder="SEU-EMAIL@DOMINIO.COM" 
                                                             className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                                                            style={{ textTransform: 'uppercase' }}
                                                         />
                                                     </div>
                                                 </div>
