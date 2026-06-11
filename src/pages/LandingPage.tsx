@@ -113,7 +113,7 @@ export function LandingPage() {
 
     const [leadName, setLeadName] = useState('');
     const [leadPhone, setLeadPhone] = useState('');
-    const [leadDoc, setLeadDoc] = useState('');
+    const [leadEmail, setLeadEmail] = useState('');
     const [isLeadFormActive, setIsLeadFormActive] = useState(false);
 
     useEffect(() => {
@@ -165,7 +165,7 @@ export function LandingPage() {
     }, []);
 
     useEffect(() => {
-        if (showBanner && landingCampaigns.length > 0) {
+        if (showBanner && landingCampaigns.length > 0 && !isLeadFormActive) {
             const popupCampaigns = landingCampaigns.filter(c => c.show_in_popup);
             if (popupCampaigns.length <= 1) return;
             const timer = setInterval(() => {
@@ -173,7 +173,7 @@ export function LandingPage() {
             }, 6000); // 6 seconds slide
             return () => clearInterval(timer);
         }
-    }, [showBanner, landingCampaigns]);
+    }, [showBanner, landingCampaigns, isLeadFormActive]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -215,18 +215,17 @@ export function LandingPage() {
 
     const handleLeadSubmit = (e: React.FormEvent, currentCampaign: any) => {
         e.preventDefault();
-        if (!leadName.trim() || !leadPhone.trim() || !leadDoc.trim()) {
+        if (!leadName.trim() || !leadPhone.trim()) {
             return;
         }
 
-        const destinationPhone = getWhatsAppNumber(currentCampaign.link);
+        const destinationPhone = currentCampaign.whatsapp || getWhatsAppNumber(currentCampaign.link);
         
         const messageText = `Olá! Tenho interesse na oferta: *${currentCampaign.title}*
 
 *Meus Dados:*
 - *Nome:* ${leadName.trim()}
-- *Telefone:* ${leadPhone.trim()}
-- *CPF/CNPJ:* ${leadDoc.trim()}`;
+- *Telefone:* ${leadPhone.trim()}${leadEmail.trim() ? `\n- *E-mail:* ${leadEmail.trim()}` : ''}`;
 
         const whatsappUrl = `https://api.whatsapp.com/send?phone=${destinationPhone}&text=${encodeURIComponent(messageText)}`;
         
@@ -236,7 +235,7 @@ export function LandingPage() {
         setIsLeadFormActive(false);
         setLeadName('');
         setLeadPhone('');
-        setLeadDoc('');
+        setLeadEmail('');
     };
 
     return (
@@ -833,13 +832,18 @@ export function LandingPage() {
                                 <div className="absolute inset-0 bg-gradient-to-t from-white/95 via-white/70 to-transparent dark:from-slate-900/95 dark:via-slate-900/70 dark:to-transparent z-0 pointer-events-none"></div>
 
                                 <button 
-                                    onClick={() => setShowBanner(false)}
+                                    onClick={() => {
+                                        setShowBanner(false);
+                                        setLeadName('');
+                                        setLeadPhone('');
+                                        setLeadEmail('');
+                                    }}
                                     className="absolute top-4 right-4 p-1.5 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 rounded-full transition-colors z-30 backdrop-blur-md shadow-sm border border-gray-200/50 dark:border-slate-600/50"
                                 >
                                     <X size={18} className="text-gray-600 dark:text-gray-300" />
                                 </button>
                                 
-                                {popupCampaigns.length > 1 && (
+                                {popupCampaigns.length > 1 && !isLeadFormActive && (
                                     <>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setActivePopupIndex(prev => (prev - 1 + popupCampaigns.length) % popupCampaigns.length); }}
@@ -909,13 +913,12 @@ export function LandingPage() {
                                                         </div>
 
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">CNPJ ou CPF *</label>
+                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">E-mail (Opcional)</label>
                                                             <input 
-                                                                type="text" 
-                                                                required 
-                                                                value={leadDoc} 
-                                                                onChange={(e) => setLeadDoc(e.target.value)} 
-                                                                placeholder="000.000.000-00 ou 00.000.000/0000-00" 
+                                                                type="email" 
+                                                                value={leadEmail} 
+                                                                onChange={(e) => setLeadEmail(e.target.value)} 
+                                                                placeholder="seu-email@dominio.com" 
                                                                 className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                             />
                                                         </div>
@@ -1021,13 +1024,12 @@ export function LandingPage() {
                                                     </div>
 
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">CNPJ ou CPF *</label>
+                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">E-mail (Opcional)</label>
                                                         <input 
-                                                            type="text" 
-                                                            required 
-                                                            value={leadDoc} 
-                                                            onChange={(e) => setLeadDoc(e.target.value)} 
-                                                            placeholder="000.000.000-00 ou 00.000.000/0000-00" 
+                                                            type="email" 
+                                                            value={leadEmail} 
+                                                            onChange={(e) => setLeadEmail(e.target.value)} 
+                                                            placeholder="seu-email@dominio.com" 
                                                             className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                         />
                                                     </div>

@@ -3,6 +3,19 @@ import { Plus, Edit2, Trash2, Save, X, Layout, Zap, Upload, RefreshCw, Wand2, Co
 import { supabase } from '../../lib/supabase';
 import { storageService } from '../../lib/storageService';
 
+const getWhatsAppNumber = (url: string) => {
+    if (!url) return '';
+    const match = url.match(/(?:wa\.me\/|phone=)(\d+)/);
+    if (match && match[1]) {
+        return match[1];
+    }
+    const clean = url.replace(/[+\s-]/g, '');
+    if (/^\d+$/.test(clean) && clean.length >= 8) {
+        return clean;
+    }
+    return '';
+};
+
 export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSaveSettings }: any) => {
     const campaigns = localBanner?.campaigns || [];
     
@@ -15,6 +28,8 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                 subtitle: localBanner.subtitle || '',
                 call_to_action: localBanner.call_to_action || '',
                 link: localBanner.link || '',
+                whatsapp: getWhatsAppNumber(localBanner.link || ''),
+                email: '',
                 type: localBanner.type || 'promo',
                 price: localBanner.price || '',
                 image_url: localBanner.image_url || '',
@@ -38,6 +53,8 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
             subtitle: '',
             call_to_action: '',
             link: '',
+            whatsapp: '',
+            email: '',
             type: 'promo',
             price: '',
             image_url: '',
@@ -243,14 +260,36 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                         <textarea value={campaign.subtitle} onChange={(e) => handleUpdate(campaign.id, { subtitle: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 min-h-[80px]" placeholder="Dicas de desconto, vantagens do produto..." />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Texto do Botão</label>
                                             <input value={campaign.call_to_action} onChange={(e) => handleUpdate(campaign.id, { call_to_action: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" placeholder="Ex: Eu Quero!" />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Link do Botão</label>
-                                            <input value={campaign.link} onChange={(e) => handleUpdate(campaign.id, { link: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" placeholder="https://" />
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">WhatsApp de Destino *</label>
+                                            <input 
+                                                required 
+                                                value={campaign.whatsapp !== undefined ? campaign.whatsapp : getWhatsAppNumber(campaign.link || '')} 
+                                                onChange={(e) => {
+                                                    const cleanPhone = e.target.value.replace(/\D/g, '');
+                                                    handleUpdate(campaign.id, { 
+                                                        whatsapp: cleanPhone,
+                                                        link: cleanPhone ? `https://wa.me/${cleanPhone}` : ''
+                                                    });
+                                                }} 
+                                                className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" 
+                                                placeholder="Ex: 5584998071213" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">E-mail de Notificação (Opcional)</label>
+                                            <input 
+                                                type="email"
+                                                value={campaign.email || ''} 
+                                                onChange={(e) => handleUpdate(campaign.id, { email: e.target.value })} 
+                                                className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" 
+                                                placeholder="Ex: contato@empresa.com" 
+                                            />
                                         </div>
                                     </div>
 
