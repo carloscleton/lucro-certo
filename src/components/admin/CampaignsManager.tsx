@@ -17,7 +17,11 @@ const getWhatsAppNumber = (url: string) => {
 };
 
 export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSaveSettings }: any) => {
-    const campaigns = localBanner?.campaigns || [];
+    const campaigns = (localBanner?.campaigns || []).map((c: any) => ({
+        ...c,
+        whatsapp: c.whatsapp !== undefined ? c.whatsapp : getWhatsAppNumber(c.link || ''),
+        email: c.email !== undefined ? c.email : ''
+    }));
     
     React.useEffect(() => {
         // Migração transparente do banner antigo para o novo formato de campanhas (se houver banner antigo e a lista de campanhas estiver vazia)
@@ -260,8 +264,8 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                         <textarea value={campaign.subtitle} onChange={(e) => handleUpdate(campaign.id, { subtitle: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 min-h-[80px]" placeholder="Dicas de desconto, vantagens do produto..." />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="md:col-span-2">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Texto do Botão</label>
                                             <input value={campaign.call_to_action} onChange={(e) => handleUpdate(campaign.id, { call_to_action: e.target.value })} className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" placeholder="Ex: Eu Quero!" />
                                         </div>
@@ -269,7 +273,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">WhatsApp de Destino *</label>
                                             <input 
                                                 required 
-                                                value={campaign.whatsapp !== undefined ? campaign.whatsapp : getWhatsAppNumber(campaign.link || '')} 
+                                                value={campaign.whatsapp} 
                                                 onChange={(e) => {
                                                     const cleanPhone = e.target.value.replace(/\D/g, '');
                                                     handleUpdate(campaign.id, { 
@@ -285,7 +289,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">E-mail de Notificação (Opcional)</label>
                                             <input 
                                                 type="email"
-                                                value={campaign.email || ''} 
+                                                value={campaign.email} 
                                                 onChange={(e) => handleUpdate(campaign.id, { email: e.target.value })} 
                                                 className="w-full text-sm p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-500" 
                                                 placeholder="Ex: contato@empresa.com" 
