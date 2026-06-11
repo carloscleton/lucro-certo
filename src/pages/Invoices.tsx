@@ -630,7 +630,7 @@ export function Invoices() {
 
             {/* Stats */}
             {!isLoading && invoices.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
                         <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl">
                             <CheckCircle2 size={24} />
@@ -650,6 +650,17 @@ export function Invoices() {
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Processando</p>
                             <p className="text-2xl font-black text-gray-900 dark:text-white">
                                 {invoices.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="p-3 bg-slate-100 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 rounded-2xl">
+                            <XCircle size={24} />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Canceladas</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                {invoices.filter(i => i.status?.toLowerCase() === 'cancelado').length}
                             </p>
                         </div>
                     </div>
