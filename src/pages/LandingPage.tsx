@@ -246,7 +246,7 @@ export function LandingPage() {
         return '5584998071213';
     };
 
-    const handleLeadSubmit = (e: React.FormEvent, currentCampaign: any) => {
+    const handleLeadSubmit = async (e: React.FormEvent, currentCampaign: any) => {
         e.preventDefault();
         if (!leadName.trim() || !leadPhone.trim()) {
             return;
@@ -256,6 +256,9 @@ export function LandingPage() {
         const cleanLeadPhone = leadPhone.replace(/\D/g, '');
         const cleanEmail = leadEmail.trim().toUpperCase() || null;
         const cleanName = leadName.trim().toUpperCase();
+
+        console.log("Submetendo Lead:", { cleanName, cleanLeadPhone, cleanEmail });
+        console.log("Configurações da Campanha:", currentCampaign);
 
         // Dispara webhook se configurado
         if (currentCampaign.webhook && currentCampaign.webhook.trim()) {
@@ -286,15 +289,28 @@ export function LandingPage() {
                 }
             };
 
-            fetch(webhookUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(leadPayload)
-            }).catch(err => {
+            console.log("Disparando Webhook para:", webhookUrl, leadPayload);
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+                
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(leadPayload),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                console.log("Webhook enviado com sucesso!");
+            } catch (err) {
                 console.error("Erro ao enviar payload para o webhook:", err);
-            });
+            }
+        } else {
+            console.log("Nenhum webhook configurado para esta campanha.");
         }
         
         const messageText = `Olá! Tenho interesse na oferta: *${currentCampaign.title}*
