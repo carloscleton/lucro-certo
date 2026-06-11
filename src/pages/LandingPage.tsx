@@ -180,7 +180,10 @@ export function LandingPage() {
                                 is_active: bannerData.enabled,
                              }];
                         }
-                        const active = activeCampaigns.filter((c: any) => c.is_active);
+                        const active = activeCampaigns.filter((c: any) => c.is_active).map((c: any) => ({
+                            ...c,
+                            webhook: c.webhook || ''
+                        }));
                         setLandingCampaigns(active);
                         if (active.some((c: any) => c.show_in_popup)) {
                             setShowBanner(true);
@@ -251,12 +254,45 @@ export function LandingPage() {
 
         const destinationPhone = (currentCampaign.whatsapp || getWhatsAppNumber(currentCampaign.link)).replace(/\D/g, '');
         const cleanLeadPhone = leadPhone.replace(/\D/g, '');
+        const cleanEmail = leadEmail.trim().toUpperCase() || null;
+        const cleanName = leadName.trim().toUpperCase();
+
+        // Dispara webhook se configurado
+        if (currentCampaign.webhook && currentCampaign.webhook.trim()) {
+            const webhookUrl = currentCampaign.webhook.trim();
+            const leadPayload = {
+                event: 'lead_captured',
+                timestamp: new Date().toISOString(),
+                lead: {
+                    name: cleanName,
+                    phone: cleanLeadPhone,
+                    email: cleanEmail
+                },
+                campaign: {
+                    id: currentCampaign.id,
+                    title: currentCampaign.title,
+                    subtitle: currentCampaign.subtitle,
+                    type: currentCampaign.type,
+                    price: currentCampaign.price || null
+                }
+            };
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(leadPayload)
+            }).catch(err => {
+                console.error("Erro ao enviar payload para o webhook:", err);
+            });
+        }
         
         const messageText = `Olá! Tenho interesse na oferta: *${currentCampaign.title}*
-
+ 
 *Meus Dados:*
-- *Nome:* ${leadName.trim().toUpperCase()}
-- *Telefone:* ${cleanLeadPhone}${leadEmail.trim() ? `\n- *E-mail:* ${leadEmail.trim().toUpperCase()}` : ''}`;
+- *Nome:* ${cleanName}
+- *Telefone:* ${cleanLeadPhone}${cleanEmail ? `\n- *E-mail:* ${cleanEmail}` : ''}`;
 
         const whatsappUrl = `https://api.whatsapp.com/send?phone=${destinationPhone}&text=${encodeURIComponent(messageText)}`;
         
