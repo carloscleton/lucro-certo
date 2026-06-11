@@ -630,7 +630,7 @@ app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-sta
 });
 
 app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, async (req, res) => {
-    const { companyId, payload, type, quoteId, isLabTest } = req.body;
+    const { companyId, payload, type, quoteId, isLabTest, provider } = req.body;
     const authHeader = req.headers.authorization;
 
     if (!companyId || !payload) {
@@ -643,7 +643,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             return res.status(400).json({ error: 'Configuração fiscal não encontrada.' });
         }
 
-        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+        const activeProvider = isLabTest ? (provider || settings?.fiscal_provider || 'tecnospeed') : (settings?.fiscal_provider || 'tecnospeed');
         
         if (activeProvider === 'nfeio') {
             const nfeioConfig = settings?.nfeio_config;

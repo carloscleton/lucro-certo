@@ -1095,7 +1095,8 @@ export function FiscalSettings() {
             if (!token) throw new Error('Sessão expirada.');
 
             const payload = JSON.parse(testJson);
-            const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token, undefined, true);
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : 'tecnospeed';
+            const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token, undefined, true, targetProvider);
             const wrappedResponse = wrapFiscalLinks(response, currentEntity.id!, token);
             
             // Detecção ultra-robusta de ID e Status (Tratando documentos, data, Array ou Objeto)
@@ -3024,6 +3025,12 @@ export function FiscalSettings() {
                         value={nfeioConfig.companyId}
                         onChange={(e) => setNfeioConfig({ ...nfeioConfig, companyId: e.target.value })}
                         placeholder="Ex: 5f9b..."
+                        preserveCase={true}
+                        error={
+                            nfeioConfig.companyId && nfeioConfig.companyId.trim().length === 24
+                                ? 'Aviso: Esse ID tem 24 caracteres (padrão de ID de Conta). O ID da Empresa na NFe.io geralmente tem 32 caracteres (ex: fec1854455894d6b8efe72a2ef6cd43a).'
+                                : undefined
+                        }
                     />
                 </div>
 
