@@ -182,7 +182,7 @@ export function Checkout() {
                                     <span className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
                                         {(() => {
                                             const currencyCode = charge.currency || window.__CURRENCY_CODE__ || 'BRL';
-                                            const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : 'pt-BR'));
+                                            const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
                                             return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(charge.amount);
                                         })()}
                                     </span>

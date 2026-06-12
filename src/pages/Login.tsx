@@ -650,7 +650,7 @@ export function Login() {
                                         <div className="text-right">
                                             <span className="text-xl font-black text-blue-700">
                                                 {(() => {
-                                                    const symbols: any = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': '₲' };
+                                                    const symbols: any = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': '₲', 'GBP': '£' };
                                                     return symbols[selectedCurrency] || '$';
                                                 })()} {searchParams.get('checkout-price')}
                                             </span>
@@ -711,12 +711,13 @@ export function Login() {
                                                 );
                                             })}
                                         </div>
-                                        <div className="flex-1 grid grid-cols-4 gap-1">
+                                        <div className="flex-1 grid grid-cols-5 gap-1">
                                             {[
                                                 { code: 'BRL', label: 'R$', desc: 'Real (BRL)' },
                                                 { code: 'USD', label: '$', desc: 'Dólar (USD)' },
                                                 { code: 'EUR', label: '€', desc: 'Euro (EUR)' },
-                                                { code: 'PYG', label: '₲', desc: 'Guarani (PYG)' }
+                                                { code: 'PYG', label: '₲', desc: 'Guarani (PYG)' },
+                                                { code: 'GBP', label: '£', desc: 'Libra Esterlina (GBP)' }
                                             ].map(item => (
                                                 <Tooltip key={item.code} content={item.desc} position="top" className="w-full">
                                                     <button

@@ -6,6 +6,7 @@ const currencyConfig: Record<string, { locale: string; format: Intl.NumberFormat
     EUR: { locale: 'pt-PT', format: { style: 'currency', currency: 'EUR' } },
     PYG: { locale: 'es-PY', format: { style: 'currency', currency: 'PYG', maximumFractionDigits: 0 } },
     ARS: { locale: 'es-AR', format: { style: 'currency', currency: 'ARS' } },
+    GBP: { locale: 'en-GB', format: { style: 'currency', currency: 'GBP' } },
 };
 
 export const useCurrency = () => {

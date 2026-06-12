@@ -72,7 +72,7 @@ app.get('/health', (req, res) => {
 app.get(['/exchange-rates', '/api/exchange-rates'], async (req, res) => {
     try {
         // 1. Tenta a AwesomeAPI com timeout curto (5s)
-        const response = await axios.get('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,PYG-BRL,ARS-BRL', {
+        const response = await axios.get('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,PYG-BRL,ARS-BRL,GBP-BRL', {
             timeout: 5000
         });
         return res.json(response.data);
@@ -106,6 +106,10 @@ app.get(['/exchange-rates', '/api/exchange-rates'], async (req, res) => {
                 ARSBRL: {
                     bid: rates.ARS ? (1 / rates.ARS).toFixed(6) : "0.005800",
                     pctChange: "0.00"
+                },
+                GBPBRL: {
+                    bid: rates.GBP ? (1 / rates.GBP).toFixed(4) : "6.5000",
+                    pctChange: "0.00"
                 }
             };
             return res.json(mockAwesomeData);
@@ -117,7 +121,8 @@ app.get(['/exchange-rates', '/api/exchange-rates'], async (req, res) => {
                 USDBRL: { bid: "5.0000", pctChange: "0.00" },
                 EURBRL: { bid: "5.4000", pctChange: "0.00" },
                 PYGBRL: { bid: "0.000800", pctChange: "0.00" },
-                ARSBRL: { bid: "0.005800", pctChange: "0.00" }
+                ARSBRL: { bid: "0.005800", pctChange: "0.00" },
+                GBPBRL: { bid: "6.5000", pctChange: "0.00" }
             };
             return res.json(absoluteFallback);
         }

@@ -317,7 +317,7 @@ export function PaymentRequired() {
 
     const updateCurrency = (code: string) => {
         setSelectedCurrency(code);
-        const symbols: Record<string, string> = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': 'Gs.' };
+        const symbols: Record<string, string> = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': 'Gs.', 'GBP': '£' };
         setCurrencySymbol(symbols[code] || '$');
     };
 
@@ -442,7 +442,7 @@ export function PaymentRequired() {
 
                     <div className="flex justify-center mt-6">
                         <div className="inline-flex items-center gap-1 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200">
-                            {['BRL', 'USD', 'EUR', 'PYG'].map(code => (
+                            {['BRL', 'USD', 'EUR', 'PYG', 'GBP'].map(code => (
                                 <button
                                     key={code}
                                     onClick={() => updateCurrency(code)}

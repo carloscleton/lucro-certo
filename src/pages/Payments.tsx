@@ -352,7 +352,7 @@ export function Payments() {
                                                 <span className="text-lg font-black text-gray-900 dark:text-white tabular-nums tracking-tighter italic">
                                                     {(() => {
                                                         const currencyCode = charge.currency || 'BRL';
-                                                        const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : 'pt-BR'));
+                                                        const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
                                                         return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(charge.amount);
                                                     })()}
                                                 </span>
@@ -497,6 +497,7 @@ export function Payments() {
                                     <option value="EUR">Euro (€)</option>
                                     <option value="PYG">Guarani (Gs.)</option>
                                     <option value="ARS">Peso Arg ($)</option>
+                                    <option value="GBP">Libra Esterlina (£)</option>
                                 </select>
                             </div>
                         </div>
@@ -685,7 +686,7 @@ export function Payments() {
                             <span className="text-4xl font-black text-gray-900 dark:text-white italic tracking-tighter tabular-nums">
                                 {(() => {
                                     const currencyCode = viewingCharge.currency || 'BRL';
-                                    const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : 'pt-BR'));
+                                    const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
                                     return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(viewingCharge.amount);
                                 })()}
                             </span>

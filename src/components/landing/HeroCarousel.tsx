@@ -178,7 +178,7 @@ const banners: Banner[] = [
         tagColor: 'rgba(212, 175, 55, 0.1)',
         tagTextColor: '#d4af37',
         title: <>Sua Empresa em <span className="text-gradient">Qualquer Moeda</span></>,
-        description: 'BRL, USD, EUR ou PYG. Agora o Lucro Certo aceita transações em múltiplas moedas com conversão inteligente.',
+        description: 'BRL, USD, EUR, PYG ou GBP. Agora o Lucro Certo aceita transações em múltiplas moedas com conversão inteligente.',
         points: ['Gestão Multi-Moedas', 'Taxas de Câmbio em Tempo Real', 'Relatórios Globais Consolidados'],
         image: bannerMulticurrency,
         accent: 'gold'

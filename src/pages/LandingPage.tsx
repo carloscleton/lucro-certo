@@ -217,7 +217,7 @@ export function LandingPage() {
 
     const updateCurrency = (code: string) => {
         setSelectedCurrency(code);
-        const symbols: Record<string, string> = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': 'Gs.' };
+        const symbols: Record<string, string> = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': 'Gs.', 'GBP': '£' };
         setCurrencySymbol(symbols[code] || '$');
     };
 
@@ -326,7 +326,7 @@ export function LandingPage() {
                     {landingPlans.length > 0 && <a href="#pricing" className="nav-link">Planos</a>}
                     
                     <div className="flex items-center gap-1 bg-white/10 p-1 rounded-lg backdrop-blur-md border border-white/20 ml-4">
-                        {['BRL', 'USD', 'EUR', 'PYG'].map(code => (
+                        {['BRL', 'USD', 'EUR', 'PYG', 'GBP'].map(code => (
                             <button
                                 key={code}
                                 onClick={() => updateCurrency(code)}
@@ -625,7 +625,7 @@ export function LandingPage() {
                         </div>
                         <h3>Expanda seus horizontes sem fronteiras</h3>
                         <p>
-                            O Lucro Certo agora é global. Controle suas contas em BRL, USD, EUR ou PYG com conversão automática e relatórios consolidados em uma única tela.
+                            O Lucro Certo agora é global. Controle suas contas em BRL, USD, EUR, PYG ou GBP com conversão automática e relatórios consolidados em uma única tela.
                         </p>
                         <ul className="feature-list">
                             <li><CheckCircle2 size={18} className="check-icon" /> <strong>Conversão Inteligente:</strong> Câmbio atualizado automaticamente.</li>
@@ -780,7 +780,7 @@ export function LandingPage() {
                 <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                         <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O sistema aceita moedas estrangeiras?</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim! O Lucro Certo agora suporta BRL, USD, EUR e PYG, permitindo que você gerencie transações internacionais com conversão de câmbio em tempo real e relatórios consolidados.</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim! O Lucro Certo agora suporta BRL, USD, EUR, PYG e GBP, permitindo que você gerencie transações internacionais com conversão de câmbio em tempo real e relatórios consolidados.</p>
                     </div>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                         <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Como funciona a integração com Webhooks?</h4>

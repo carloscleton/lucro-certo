@@ -18,7 +18,8 @@ const FLAGS: Record<string, string> = {
   USD: '🇺🇸',
   EUR: '🇪🇺',
   PYG: '🇵🇾',
-  ARS: '🇦🇷'
+  ARS: '🇦🇷',
+  GBP: '🇬🇧'
 };
 
 export const CurrencyInput: React.FC<CurrencyInputProps> = ({ 

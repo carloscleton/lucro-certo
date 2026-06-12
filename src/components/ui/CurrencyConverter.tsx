@@ -7,7 +7,8 @@ const FLAGS: Record<string, string> = {
   USD: '🇺🇸',
   EUR: '🇪🇺',
   PYG: '🇵🇾',
-  ARS: '🇦🇷'
+  ARS: '🇦🇷',
+  GBP: '🇬🇧'
 };
 
 const INITIAL_RATES: Record<string, number> = {
@@ -15,7 +16,8 @@ const INITIAL_RATES: Record<string, number> = {
   USD: 5.0,
   EUR: 5.4,
   PYG: 0.0008, // 1 BRL = 1250 PYG approximately
-  ARS: 0.0058  // 1 BRL = 172 ARS approximately
+  ARS: 0.0058, // 1 BRL = 172 ARS approximately
+  GBP: 6.5    // 1 BRL = 0.15 GBP approximately
 };
 
 export const CurrencyConverter: React.FC = () => {
@@ -38,6 +40,7 @@ export const CurrencyConverter: React.FC = () => {
                     if (json.EURBRL) newRates.EUR = parseFloat(json.EURBRL.bid);
                     if (json.PYGBRL) newRates.PYG = parseFloat(json.PYGBRL.bid);
                     if (json.ARSBRL) newRates.ARS = parseFloat(json.ARSBRL.bid);
+                    if (json.GBPBRL) newRates.GBP = parseFloat(json.GBPBRL.bid);
                     setRates(newRates);
                 }
             } catch (err) {

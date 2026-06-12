@@ -843,6 +843,7 @@ export function Settings() {
                                 <option value="EUR">🇪🇺 Euro (EUR)</option>
                                 <option value="PYG">🇵🇾 Guarani Paraguaio (PYG)</option>
                                 <option value="ARS">🇦🇷 Peso Argentino (ARS)</option>
+                                <option value="GBP">🇬🇧 Libra Esterlina (GBP)</option>
                             </select>
                             <p className="text-xs text-gray-500 mt-2">Gateways de pagamento podem ter restrições dependendo da moeda selecionada.</p>
                         </div>
