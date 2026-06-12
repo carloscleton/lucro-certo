@@ -681,44 +681,53 @@ export function Login() {
                                     <div className="flex gap-2">
                                         <div className="flex-1 flex gap-1">
                                             {[
-                                                { id: 'PF', icon: <User size={14} />, label: 'PF' },
-                                                { id: 'PJ', icon: <Building2 size={14} />, label: 'PJ' },
-                                                { id: 'BOTH', icon: <div className="flex -space-x-1"><User size={10}/><Building2 size={10}/></div>, label: 'Ambos' }
+                                                { id: 'PF', icon: <User size={14} />, label: 'PF', desc: 'Pessoa Física' },
+                                                { id: 'PJ', icon: <Building2 size={14} />, label: 'PJ', desc: 'Pessoa Jurídica' },
+                                                { id: 'BOTH', icon: <div className="flex -space-x-1"><User size={10}/><Building2 size={10}/></div>, label: 'Ambos', desc: 'Pessoa Física e Jurídica' }
                                             ].map(t => {
                                                 const isAllowed = !allowedRegistrationType || allowedRegistrationType === 'BOTH' || allowedRegistrationType === t.id;
                                                 
                                                 if (!isAllowed) return null;
                                                 
                                                 return (
-                                                    <button
-                                                        key={t.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setRegistrationType(t.id as any);
-                                                            // Limpa campos para evitar confusão
-                                                            if (t.id === 'PF') {
-                                                                setCnpjStr('');
-                                                                setCompanyName('');
-                                                            }
-                                                        }}
-                                                        className={`flex-1 flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all ${registrationType === t.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
-                                                    >
-                                                        {t.icon}
-                                                        <span className="font-bold text-[9px]">{t.label}</span>
-                                                    </button>
+                                                    <Tooltip key={t.id} content={t.desc} position="top" className="flex-1">
+                                                        <button
+                                                            type="button"
+                                                            title={t.desc}
+                                                            onClick={() => {
+                                                                setRegistrationType(t.id as any);
+                                                                // Limpa campos para evitar confusão
+                                                                if (t.id === 'PF') {
+                                                                    setCnpjStr('');
+                                                                    setCompanyName('');
+                                                                }
+                                                            }}
+                                                            className={`w-full flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all ${registrationType === t.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
+                                                        >
+                                                            {t.icon}
+                                                            <span className="font-bold text-[9px]">{t.label}</span>
+                                                        </button>
+                                                    </Tooltip>
                                                 );
                                             })}
                                         </div>
                                         <div className="flex-1 grid grid-cols-4 gap-1">
-                                            {['BRL', 'USD', 'EUR', 'PYG'].map(code => (
-                                                <button
-                                                    key={code}
-                                                    type="button"
-                                                    onClick={() => setSelectedCurrency(code)}
-                                                    className={`flex items-center justify-center p-1.5 rounded-xl border-2 transition-all ${selectedCurrency === code ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
-                                                >
-                                                    <span className="text-[10px] font-black">{code === 'PYG' ? '₲' : (code === 'BRL' ? 'R$' : (code === 'USD' ? '$' : '€'))}</span>
-                                                </button>
+                                            {[
+                                                { code: 'BRL', label: 'R$', desc: 'Real (BRL)' },
+                                                { code: 'USD', label: '$', desc: 'Dólar (USD)' },
+                                                { code: 'EUR', label: '€', desc: 'Euro (EUR)' },
+                                                { code: 'PYG', label: '₲', desc: 'Guarani (PYG)' }
+                                            ].map(item => (
+                                                <Tooltip key={item.code} content={item.desc} position="top" className="w-full">
+                                                    <button
+                                                        type="button"
+                                                        title={item.desc}
+                                                        onClick={() => setSelectedCurrency(item.code)}
+                                                        className={`w-full flex items-center justify-center p-1.5 rounded-xl border-2 transition-all ${selectedCurrency === item.code ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-gray-50 text-gray-400 hover:border-gray-100'}`}
+                                                    >
+                                                        <span className="text-[10px] font-black">{item.label}</span>
+                                                    </button>
+                                                </Tooltip>
                                             ))}
                                         </div>
                                     </div>

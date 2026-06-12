@@ -4,9 +4,10 @@ interface TooltipProps {
     content: string;
     children: ReactNode;
     position?: 'top' | 'bottom' | 'left' | 'right';
+    className?: string;
 }
 
-export function Tooltip({ content, children, position = 'top' }: TooltipProps) {
+export function Tooltip({ content, children, position = 'top', className = '' }: TooltipProps) {
     const positionClasses = {
         top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
         bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
@@ -22,7 +23,7 @@ export function Tooltip({ content, children, position = 'top' }: TooltipProps) {
     };
 
     return (
-        <div className="relative inline-flex items-center justify-center group/tooltip hover:z-[100]">
+        <div className={`relative inline-flex items-center justify-center group/tooltip hover:z-[100] ${className}`}>
             {children}
             <div className={`
                 absolute ${positionClasses[position]}
