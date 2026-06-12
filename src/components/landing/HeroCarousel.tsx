@@ -1,5 +1,6 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     Radar,
     Sparkles,
@@ -94,130 +95,6 @@ const renderPriceHighlight = (priceText: string) => {
     );
 };
 
-const banners: Banner[] = [
-    {
-        tag: 'GESTÃO FINANCEIRA 2.0',
-        tagIcon: <BarChart3 size={16} />,
-        tagColor: 'rgba(37, 99, 235, 0.1)',
-        tagTextColor: '#2563eb',
-        title: <>Domine suas Finanças com <span className="text-gradient">Inteligência</span></>,
-        description: 'Muito além de um controle financeiro. O Lucro Certo oferece previsibilidade real e organização absoluta.',
-        points: ['Fluxo de Caixa em Tempo Real', 'Conciliação Bancária Automática', 'Relatórios de Lucratividade'],
-        image: bannerFinancial,
-        accent: 'blue'
-    },
-    {
-        tag: 'RADAR DE LEADS IA',
-        tagIcon: <Radar size={16} />,
-        tagColor: 'rgba(16, 185, 129, 0.1)',
-        tagTextColor: '#10b981',
-        title: <>A IA que <span className="text-gradient">Encontra Clientes</span> para Você</>,
-        description: 'Nossa tecnologia mapeia o mercado, qualifica leads e inicia abordagens automáticas no WhatsApp.',
-        points: ['Prospecção Direcionada', 'Qualificação por Perfil', 'Abordagem Automática (API)'],
-        image: bannerRadar,
-        accent: 'emerald'
-    },
-    {
-        tag: 'MARKETING COPILOT',
-        tagIcon: <Sparkles size={16} />,
-        tagColor: 'rgba(99, 102, 241, 0.1)',
-        tagTextColor: '#6366f1',
-        title: <>Suas Redes Sociais no <span className="text-gradient">Piloto Automático</span></>,
-        description: 'Crie cronogramas, artes e legendas profissionais em segundos direto do seu celular.',
-        points: ['Gerador de Imagens IA', 'Legendas Persuasivas', 'Calendário de Postagens'],
-        image: bannerMarketing,
-        accent: 'indigo'
-    },
-    {
-        tag: 'CRM & VENDAS',
-        tagIcon: <Users size={16} />,
-        tagColor: 'rgba(236, 72, 153, 0.1)',
-        tagTextColor: '#ec4899',
-        title: <>Transforme Leads em <span className="text-gradient">Clientes Fiéis</span></>,
-        description: 'Gestão completa do pipeline de vendas. Organize seus contatos e nunca perca uma oportunidade.',
-        points: ['Funil de Vendas Visual', 'Histórico de Interações', 'Automação de Follow-up'],
-        image: bannerCRM,
-        accent: 'pink'
-    },
-    {
-        tag: 'ORÇAMENTOS PROFISSIONAIS',
-        tagIcon: <DollarSign size={16} />,
-        tagColor: 'rgba(245, 158, 11, 0.1)',
-        tagTextColor: '#f59e0b',
-        title: <>Propostas que <span className="text-gradient">Vendem por Você</span></>,
-        description: 'Crie orçamentos lindíssimos em segundos e envie via WhatsApp para seus clientes.',
-        points: ['Modelos Customizáveis', 'Assinatura Digital Rápida', 'Status de Leitura (WhatsApp)'],
-        image: bannerQuotes,
-        accent: 'amber'
-    },
-    {
-        tag: 'AUTOMAÇÃO WHATSAPP',
-        tagIcon: <CreditCard size={16} />,
-        tagColor: 'rgba(20, 184, 166, 0.1)',
-        tagTextColor: '#14b8a6',
-        title: <>Régua de Cobrança <span className="text-gradient">Automática</span></>,
-        description: 'Reduza a inadimplência com lembretes inteligentes de pagamento direto no app favorito.',
-        points: ['Lembretes de Vencimento', 'Links de Pagamento Direto', 'Baixa Automática no Caixa'],
-        image: bannerWhatsApp,
-        accent: 'teal'
-    },
-    {
-        tag: 'MULTI-EMPRESAS',
-        tagIcon: <Users size={16} />,
-        tagColor: 'rgba(107, 114, 128, 0.1)',
-        tagTextColor: '#4b5563',
-        title: <>Gerencie <span className="text-gradient">Vários Negócios</span></>,
-        description: 'Troque entre empresas com um clique. Tenha uma visão consolidada de todas as suas unidades.',
-        points: ['Consolidação de Dados', 'Acessos Diferenciados', 'Interligação de Estoques'],
-        image: bannerMulticompany,
-        accent: 'slate'
-    },
-    {
-        tag: 'CONTROLE GLOBAL 2.0',
-        tagIcon: <DollarSign size={16} />,
-        tagColor: 'rgba(212, 175, 55, 0.1)',
-        tagTextColor: '#d4af37',
-        title: <>Sua Empresa em <span className="text-gradient">Qualquer Moeda</span></>,
-        description: 'BRL, USD, EUR, PYG ou GBP. Agora o Lucro Certo aceita transações em múltiplas moedas com conversão inteligente.',
-        points: ['Gestão Multi-Moedas', 'Taxas de Câmbio em Tempo Real', 'Relatórios Globais Consolidados'],
-        image: bannerMulticurrency,
-        accent: 'gold'
-    },
-    {
-        tag: 'GESTÃO FISCAL',
-        tagIcon: <Receipt size={16} />,
-        tagColor: 'rgba(16, 185, 129, 0.1)',
-        tagTextColor: '#10b981',
-        title: <>Emissão de <span className="text-gradient">Notas Fiscais</span> Simplificada</>,
-        description: 'Emita NF-e e NFS-e em segundos diretamente do seu faturamento. Tudo sincronizado com as prefeituras e SEFAZ.',
-        points: ['Emissão de NF-e e NFS-e', 'Histórico de PDF e XML', 'Sincronização Automática'],
-        image: bannerFiscal,
-        accent: 'emerald'
-    },
-    {
-        tag: 'MARKETING COPILOT',
-        tagIcon: <Sparkles size={16} />,
-        tagColor: 'rgba(99, 102, 241, 0.1)',
-        tagTextColor: '#6366f1',
-        title: <>Sua Marca no <span className="text-gradient">Piloto Automático</span></>,
-        description: 'Brand Kit completo com logo, cores e IA que gera posts e vídeos sincronizados com seu DNA.',
-        points: ['Brand Kit Personalizado', 'Geração de Vídeos IA (Kling/Google)', 'Postagem Automática Agendada'],
-        image: bannerMarketingCopilot,
-        accent: 'indigo'
-    },
-    {
-        tag: 'CLUBE DE FIDELIDADE',
-        tagIcon: <Award size={16} />,
-        tagColor: 'rgba(79, 70, 229, 0.1)',
-        tagTextColor: '#4f46e5',
-        title: <>Crie um <span className="text-gradient">Clube de Vantagens</span> Lucrativo</>,
-        description: 'Venda assinaturas recorrentes para seus clientes. Planos de cashback, serviços e benefícios automáticos direto no sistema.',
-        points: ['Faturamento Recorrente Mensal', 'Portal de Assinante Exclusivo', 'Régua de Cobrança (WhatsApp)'],
-        image: bannerLoyalty,
-        accent: 'indigo'
-    }
-];
-
 interface HeroCarouselProps {
     session: any;
     setIsVideoModalOpen: (open: boolean) => void;
@@ -226,10 +103,179 @@ interface HeroCarouselProps {
 
 export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }: HeroCarouselProps) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [currentSlide, setCurrentSlide] = useState(0);
 
+    const translatedBanners: Banner[] = [
+        {
+            tag: t('landing.carousel.banners.b1.tag'),
+            tagIcon: <BarChart3 size={16} />,
+            tagColor: 'rgba(37, 99, 235, 0.1)',
+            tagTextColor: '#2563eb',
+            title: <>{t('landing.carousel.banners.b1.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b1.title_p2')}</span></>,
+            description: t('landing.carousel.banners.b1.desc'),
+            points: [
+                t('landing.carousel.banners.b1.p1'),
+                t('landing.carousel.banners.b1.p2'),
+                t('landing.carousel.banners.b1.p3')
+            ],
+            image: bannerFinancial,
+            accent: 'blue'
+        },
+        {
+            tag: t('landing.carousel.banners.b2.tag'),
+            tagIcon: <Radar size={16} />,
+            tagColor: 'rgba(16, 185, 129, 0.1)',
+            tagTextColor: '#10b981',
+            title: <>{t('landing.carousel.banners.b2.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b2.title_p2')}</span>{t('landing.carousel.banners.b2.title_p3')}</>,
+            description: t('landing.carousel.banners.b2.desc'),
+            points: [
+                t('landing.carousel.banners.b2.p1'),
+                t('landing.carousel.banners.b2.p2'),
+                t('landing.carousel.banners.b2.p3')
+            ],
+            image: bannerRadar,
+            accent: 'emerald'
+        },
+        {
+            tag: t('landing.carousel.banners.b3.tag'),
+            tagIcon: <Sparkles size={16} />,
+            tagColor: 'rgba(99, 102, 241, 0.1)',
+            tagTextColor: '#6366f1',
+            title: <>{t('landing.carousel.banners.b3.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b3.title_p2')}</span></>,
+            description: t('landing.carousel.banners.b3.desc'),
+            points: [
+                t('landing.carousel.banners.b3.p1'),
+                t('landing.carousel.banners.b3.p2'),
+                t('landing.carousel.banners.b3.p3')
+            ],
+            image: bannerMarketing,
+            accent: 'indigo'
+        },
+        {
+            tag: t('landing.carousel.banners.b4.tag'),
+            tagIcon: <Users size={16} />,
+            tagColor: 'rgba(236, 72, 153, 0.1)',
+            tagTextColor: '#ec4899',
+            title: <>{t('landing.carousel.banners.b4.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b4.title_p2')}</span></>,
+            description: t('landing.carousel.banners.b4.desc'),
+            points: [
+                t('landing.carousel.banners.b4.p1'),
+                t('landing.carousel.banners.b4.p2'),
+                t('landing.carousel.banners.b4.p3')
+            ],
+            image: bannerCRM,
+            accent: 'pink'
+        },
+        {
+            tag: t('landing.carousel.banners.b5.tag'),
+            tagIcon: <DollarSign size={16} />,
+            tagColor: 'rgba(245, 158, 11, 0.1)',
+            tagTextColor: '#f59e0b',
+            title: <>{t('landing.carousel.banners.b5.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b5.title_p2')}</span></>,
+            description: t('landing.carousel.banners.b5.desc'),
+            points: [
+                t('landing.carousel.banners.b5.p1'),
+                t('landing.carousel.banners.b5.p2'),
+                t('landing.carousel.banners.b5.p3')
+            ],
+            image: bannerQuotes,
+            accent: 'amber'
+        },
+        {
+            tag: t('landing.carousel.banners.b6.tag'),
+            tagIcon: <CreditCard size={16} />,
+            tagColor: 'rgba(20, 184, 166, 0.1)',
+            tagTextColor: '#14b8a6',
+            title: <>{t('landing.carousel.banners.b6.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b6.title_p2')}</span></>,
+            description: t('landing.carousel.banners.b6.desc'),
+            points: [
+                t('landing.carousel.banners.b6.p1'),
+                t('landing.carousel.banners.b6.p2'),
+                t('landing.carousel.banners.b6.p3')
+            ],
+            image: bannerWhatsApp,
+            accent: 'teal'
+        },
+        {
+            tag: t('landing.carousel.banners.b7.tag'),
+            tagIcon: <Users size={16} />,
+            tagColor: 'rgba(107, 114, 128, 0.1)',
+            tagTextColor: '#4b5563',
+            title: <>{t('landing.carousel.banners.b7.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b7.title_p2')}</span></>,
+            description: t('landing.carousel.banners.b7.desc'),
+            points: [
+                t('landing.carousel.banners.b7.p1'),
+                t('landing.carousel.banners.b7.p2'),
+                t('landing.carousel.banners.b7.p3')
+            ],
+            image: bannerMulticompany,
+            accent: 'slate'
+        },
+        {
+            tag: t('landing.carousel.banners.b8.tag'),
+            tagIcon: <DollarSign size={16} />,
+            tagColor: 'rgba(212, 175, 55, 0.1)',
+            tagTextColor: '#d4af37',
+            title: <>{t('landing.carousel.banners.b8.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b8.title_p2')}</span></>,
+            description: t('landing.carousel.banners.b8.desc'),
+            points: [
+                t('landing.carousel.banners.b8.p1'),
+                t('landing.carousel.banners.b8.p2'),
+                t('landing.carousel.banners.b8.p3')
+            ],
+            image: bannerMulticurrency,
+            accent: 'gold'
+        },
+        {
+            tag: t('landing.carousel.banners.b9.tag'),
+            tagIcon: <Receipt size={16} />,
+            tagColor: 'rgba(16, 185, 129, 0.1)',
+            tagTextColor: '#10b981',
+            title: <>{t('landing.carousel.banners.b9.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b9.title_p2')}</span>{t('landing.carousel.banners.b9.title_p3')}</>,
+            description: t('landing.carousel.banners.b9.desc'),
+            points: [
+                t('landing.carousel.banners.b9.p1'),
+                t('landing.carousel.banners.b9.p2'),
+                t('landing.carousel.banners.b9.p3')
+            ],
+            image: bannerFiscal,
+            accent: 'emerald'
+        },
+        {
+            tag: t('landing.carousel.banners.b10.tag'),
+            tagIcon: <Sparkles size={16} />,
+            tagColor: 'rgba(99, 102, 241, 0.1)',
+            tagTextColor: '#6366f1',
+            title: <>{t('landing.carousel.banners.b10.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b10.title_p2')}</span></>,
+            description: t('landing.carousel.banners.b10.desc'),
+            points: [
+                t('landing.carousel.banners.b10.p1'),
+                t('landing.carousel.banners.b10.p2'),
+                t('landing.carousel.banners.b10.p3')
+            ],
+            image: bannerMarketingCopilot,
+            accent: 'indigo'
+        },
+        {
+            tag: t('landing.carousel.banners.b11.tag'),
+            tagIcon: <Award size={16} />,
+            tagColor: 'rgba(79, 70, 229, 0.1)',
+            tagTextColor: '#4f46e5',
+            title: <>{t('landing.carousel.banners.b11.title_p1')}<span className="text-gradient">{t('landing.carousel.banners.b11.title_p2')}</span>{t('landing.carousel.banners.b11.title_p3')}</>,
+            description: t('landing.carousel.banners.b11.desc'),
+            points: [
+                t('landing.carousel.banners.b11.p1'),
+                t('landing.carousel.banners.b11.p2'),
+                t('landing.carousel.banners.b11.p3')
+            ],
+            image: bannerLoyalty,
+            accent: 'indigo'
+        }
+    ];
+
     // Compute active banners dynamically based on landingCampaigns
-    const activeBanners = [...banners];
+    const activeBanners = [...translatedBanners];
     
     if (landingCampaigns && landingCampaigns.length > 0) {
         const heroCampaigns = landingCampaigns.filter((c: any) => c.show_in_hero);
@@ -368,12 +414,12 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                                         ) : (
                                             <>
                                                 <button onClick={() => navigate(session ? '/dashboard' : '/login?mode=signup&checkout-plan=trial&checkout-price=0')} className="btn-primary">
-                                                    {session ? 'Ir para o Dashboard' : 'Teste Grátis por 7 dias'}
+                                                    {session ? t('landing.carousel.go_dashboard') : t('landing.hero.free_trial')}
                                                     <ChevronRight size={18} />
                                                 </button>
                                                 <button onClick={() => setIsVideoModalOpen(true)} className="btn-watch-video">
                                                     <PlayCircle size={18} />
-                                                    Conhecer Sistema
+                                                    {t('landing.hero.learn_system')}
                                                 </button>
                                             </>
                                         )}
@@ -381,12 +427,12 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                                     <div className="hero-stats animate-stats">
                                         <div className="mini-stat">
                                             <span className="stat-val">+R$ 2.4M</span>
-                                            <span className="stat-desc">Transacionados</span>
+                                            <span className="stat-desc">{t('landing.hero.transacted')}</span>
                                         </div>
                                         <div className="mini-divider"></div>
                                         <div className="mini-stat">
                                             <span className="stat-val">1.2k+</span>
-                                            <span className="stat-desc">Empresas Ativas</span>
+                                            <span className="stat-desc">{t('landing.hero.active_companies')}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -419,7 +465,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
 
                 {/* Carousel Controls */}
                 <div className="carousel-controls">
-                    <button onClick={prevSlide} className="carousel-nav-btn prev" aria-label="Slide Anterior">
+                    <button onClick={prevSlide} className="carousel-nav-btn prev" aria-label={t('landing.carousel.prev_slide')}>
                         <ArrowLeft size={16} strokeWidth={1.5} />
                     </button>
                     <div className="carousel-dots">
@@ -432,7 +478,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                             />
                         ))}
                     </div>
-                    <button onClick={nextSlide} className="carousel-nav-btn next" aria-label="Próximo Slide">
+                    <button onClick={nextSlide} className="carousel-nav-btn next" aria-label={t('landing.carousel.next_slide')}>
                         <ArrowRight size={16} strokeWidth={1.5} />
                     </button>
                 </div>

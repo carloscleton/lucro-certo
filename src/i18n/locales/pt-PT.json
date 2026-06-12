@@ -573,5 +573,307 @@
     "language": {
         "title": "Idioma",
         "select": "Selecionar idioma"
+    },
+    "landing": {
+        "nav": {
+            "features": "Funcionalidades",
+            "ai": "Inteligência Artificial",
+            "plans": "Planos",
+            "access_system": "Aceder ao Sistema",
+            "access_account": "Aceder à Conta",
+            "enter": "Entrar",
+            "start_now": "Começar Agora"
+        },
+        "hero": {
+            "free_trial": "Teste Grátis por 7 dias",
+            "learn_system": "Conhecer o Sistema",
+            "transacted": "Transacionados",
+            "active_companies": "Empresas Ativas",
+            "features_title": "Controlo Total, Esforço Zero",
+            "features_subtitle": "Ferramentas desenhadas para empresários que não têm tempo a perder.",
+            "stats_precision": "Precisão Financeira",
+            "stats_currencies": "Moedas Suportadas",
+            "stats_leads": "Extração de Leads",
+            "stats_productivity": "Mais Produtividade",
+            "go_dashboard": "Ir para o Painel"
+        },
+        "trust_bar": "O SISTEMA QUE É DESTAQUE NO MERCADO FINANCEIRO",
+        "features": {
+            "financial": {
+                "title": "Controlo Financeiro Total",
+                "desc": "Gestão completa de Contas a Pagar e Receber. Organize o seu fluxo de caixa por categorias, centros de custo e receba alertas de vencimento."
+            },
+            "crm": {
+                "title": "CRM & Vendas",
+                "desc": "Gestão de contactos, histórico de interações e pipeline de vendas. Transforme leads em clientes com um fluxo organizado."
+            },
+            "quotes": {
+                "title": "Orçamentos & Encomendas",
+                "desc": "Crie orçamentos profissionais com um clique, envie via WhatsApp e converta em vendas rapidamente com controlo de estado."
+            },
+            "loyalty": {
+                "title": "Clube de Fidelidade",
+                "desc": "Fidelize os seus clientes com planos de assinatura e recorrência. Gere previsibilidade de caixa com faturação automática."
+            },
+            "fiscal": {
+                "title": "Faturas (NF-e/NFS-e)",
+                "desc": "Emita faturas de serviço e produtos diretamente pelo sistema. Histórico completo com download de XML e PDF em um clique."
+            }
+        },
+        "detailed_features": {
+            "financial": {
+                "tag": "GESTÃO DE CAIXA PROFISSIONAL",
+                "title": "Domine cada cêntimo da sua empresa",
+                "desc": "Esqueça as folhas de cálculo complicadas. O Lucro Certo oferece um Livro Analítico completo para visualizar exatamente para onde o seu dinheiro está a ir.",
+                "p1": "Contas a Pagar e Receber: Controlo absoluto de prazos e valores.",
+                "p2": "DRE Automática: Demonstração de Resultados do Exercício em tempo real.",
+                "p3": "Anexos Digitalizados: Guarde comprovativos e faturas direto na transação.",
+                "p4": "Fluxo de Caixa Mensal: Previsão de saldo para os próximos meses."
+            },
+            "radar": {
+                "tag": "RADAR DE LEADS IA",
+                "title": "Deixe a IA caçar os seus clientes",
+                "desc": "A nossa tecnologia exclusiva mapeia o Google Maps e Redes Sociais atrás do seu cliente ideal. O sistema não só encontra, como também qualifica e entra em contacto sozinho.",
+                "p1": "Mineração automática agendada",
+                "p2": "Abordagem no WhatsApp via Bots",
+                "p3": "Filtros por região e nicho de atuação"
+            },
+            "copilot": {
+                "tag": "MARKETING COPILOT",
+                "title": "A sua Marca no Piloto Automático com Brand Kit",
+                "desc": "Chega de perder horas a pensar no que publicar. O Copilot cria cronogramas, artes e legendas profissionais sincronizadas com o seu Brand Kit (logótipo, cores e tom de voz).",
+                "p1": "Brand Kit Centralizado: O seu logótipo e cores em tudo.",
+                "p2": "Geração de Legendas & Vídeos: IA que entende o seu negócio.",
+                "p3": "Autopilot Agendado: Publicações automáticas no Instagram."
+            },
+            "crm": {
+                "tag": "CRM & VENDAS",
+                "title": "Transforme Leads em Clientes Fiéis",
+                "desc": "Gestão completa do pipeline de vendas. Organize os seus contactos e nunca perca uma oportunidade.",
+                "p1": "Funil de Vendas Visual: Acompanhe as negociações etapa por etapa.",
+                "p2": "Histórico de Interações: Tudo documentado no perfil do cliente.",
+                "p3": "Automação de Follow-up: Lembretes automáticos para a sua equipa."
+            },
+            "quotes": {
+                "tag": "ORÇAMENTOS PROFISSIONAIS",
+                "title": "Propostas que Vendem por Si",
+                "desc": "Crie orçamentos lindíssimos em segundos e envie via WhatsApp para os seus clientes com aprovação digital.",
+                "p1": "Modelos Personalizáveis: Templates com a cara da sua empresa.",
+                "p2": "Assinatura Digital Rápida: Os seus clientes aprovam no próprio telemóvel.",
+                "p3": "Estado de Leitura: Saiba exatamente quando o cliente abriu a proposta."
+            },
+            "whatsapp": {
+                "tag": "AUTOMAÇÃO WHATSAPP",
+                "title": "Régua de Cobrança Automática",
+                "desc": "Reduza a inadimplência com lembretes inteligentes de pagamento enviados diretamente para o WhatsApp dos seus clientes.",
+                "p1": "Lembretes de Vencimento: Mensagens automáticas via WhatsApp.",
+                "p2": "Links de Pagamento Direto: Envie a fatura pronta para pagamento (Multibanco/Pix/Cartão).",
+                "p3": "Baixa Automática no Caixa: Tudo é reconciliado assim que o cliente paga."
+            },
+            "multicompany": {
+                "tag": "MULTI-EMPRESAS",
+                "title": "Gerencie Vários Negócios",
+                "desc": "Troque entre empresas com um clique. Tenha uma visão consolidada de todas as suas unidades sem precisar de sair do sistema.",
+                "p1": "Consolidação de Dados: Veja o lucro total de todas as empresas juntas.",
+                "p2": "Acessos Diferenciados: Defina quem pode ver cada filial.",
+                "p3": "Interligação de Inventários: Movimente produtos entre as lojas facilmente."
+            },
+            "multicurrency": {
+                "tag": "CONTROLO MULTI-MOEDAS",
+                "title": "Expanda os seus horizontes sem fronteiras",
+                "desc": "O Lucro Certo agora é global. Controle as suas contas em BRL, USD, EUR, PYG ou GBP com conversão automática e relatórios consolidados numa única tela.",
+                "p1": "Conversão Inteligente: Câmbio atualizado automaticamente.",
+                "p2": "Faturação Internacional: Receba em qualquer moeda.",
+                "p3": "Visão Global: Entenda o lucro total do seu império."
+            },
+            "billing": {
+                "tag": "FATURAÇÃO AUTOMÁTICA",
+                "title": "Gestão de Assinantes Sem Stresse",
+                "desc": "Venda o acesso ao seu sistema e deixe que a nossa plataforma cuide do resto. Régua de cobrança automática, bloqueio de utilizadores em falta e renovação instantânea.",
+                "p1": "Régua de Cobrança: WhatsApp automático antes do vencimento.",
+                "p2": "Checkout Integrado: Os seus clientes pagam em segundos.",
+                "p3": "Gestão Centralizada: Painel administrativo para controlo total de associados."
+            },
+            "loyalty": {
+                "tag": "CLUBE DE FIDELIDADE",
+                "title": "Transforme a sua Prestação de Serviço em Recorrência",
+                "desc": "Chega de depender apenas de vendas avulsas. Com o Clube de Fidelidade, cria planos de benefícios que os seus clientes pagam todo o mês, garantindo estabilidade financeira.",
+                "p1": "Planos Personalizados: Defina quais serviços e descontos fazem parte de cada nível.",
+                "p2": "Cashback Automático: Incentive novas compras devolvendo parte do valor.",
+                "p3": "Gestão de Assinaturas: Controle quem está ativo, em falta ou em período extra."
+            },
+            "fiscal": {
+                "tag": "GESTÃO FISCAL DESCOMPLICADA",
+                "title": "Emita Faturas em Segundos",
+                "desc": "Diga adeus aos portais lentos do governo. Com o Lucro Certo, emite faturas diretamente do seu faturamento, com preenchimento automático.",
+                "p1": "Emissão em 1 Clique: Gere faturas direto dos seus orçamentos aprovados.",
+                "p2": "Histórico Centralizado: Ficheiros organizados e prontos para o seu contabilista.",
+                "p3": "Envio Automático: Os seus clientes recebem a fatura na hora.",
+                "p4": "Sincronização Total: Estado atualizado em tempo real com as autoridades fiscais."
+            }
+        },
+        "faq": {
+            "title": "Perguntas Frequentes",
+            "subtitle": "Tudo o que precisa de saber para começar com segurança.",
+            "q1": "O sistema aceita moedas estrangeiras?",
+            "a1": "Sim! O Lucro Certo agora suporta BRL, USD, EUR, PYG e GBP, permitindo gerir transações internacionais com conversão em tempo real e relatórios consolidados.",
+            "q2": "Como funciona a automação do WhatsApp?",
+            "a2": "Pode conectar o seu próprio número de WhatsApp ao sistema. A partir daí, o Lucro Certo pode enviar lembretes de cobrança automáticos, propostas e notificações de faturas.",
+            "q3": "É difícil configurar a emissão de faturas?",
+            "a3": "Não! A nossa equipa de suporte ajuda-o a configurar o seu Certificado Digital. Uma vez configurado, o sistema preenche e emite a fatura automaticamente a partir de cada venda.",
+            "q4": "Os meus dados financeiros estão seguros?",
+            "a4": "Com certeza. Utilizamos encriptação de nível bancário e alojamento seguro nos servidores da Google Cloud. Os seus dados são confidenciais e protegidos.",
+            "q5": "Existe fidelidade ou posso cancelar quando quiser?",
+            "a5": "Não há contrato de fidelidade. Pode cancelar a sua assinatura a qualquer momento diretamente pelo painel do sistema, sem multas ou burocracia."
+        },
+        "pricing": {
+            "title": "O Plano Certo para Si",
+            "subtitle": "Sem taxas ocultas. Transparência total para o seu lucro.",
+            "popular_badge": "Mais Popular",
+            "period": {
+                "mês": "mês",
+                "ano": "ano",
+                "month": "mês",
+                "year": "ano"
+            }
+        },
+        "footer": {
+            "rights": "© 2026 Lucro Certo. Todos os direitos reservados.",
+            "privacy": "Privacidade",
+            "terms": "Termos de Utilização",
+            "support": "Suporte"
+        },
+        "carousel": {
+            "banners": {
+                "b1": {
+                    "tag": "GESTÃO FINANCEIRA 2.0",
+                    "title_p1": "Domine as suas Finanças com ",
+                    "title_p2": "Inteligência",
+                    "desc": "Muito além de um controlo financeiro. O Lucro Certo oferece previsibilidade real e organização absoluta.",
+                    "p1": "Fluxo de Caixa em Tempo Real",
+                    "p2": "Reconciliação Bancária Automática",
+                    "p3": "Relatórios de Rentabilidade"
+                },
+                "b2": {
+                    "tag": "RADAR DE LEADS IA",
+                    "title_p1": "A IA que ",
+                    "title_p2": "Encontra Clientes",
+                    "title_p3": " para Si",
+                    "desc": "A nossa tecnologia mapeia o mercado, qualifica leads e inicia abordagens automáticas no WhatsApp.",
+                    "p1": "Prospeção Direcionada",
+                    "p2": "Qualificação por Perfil",
+                    "p3": "Abordagem Automática (API)"
+                },
+                "b3": {
+                    "tag": "MARKETING COPILOT",
+                    "title_p1": "As suas Redes Sociais no ",
+                    "title_p2": "Piloto Automático",
+                    "desc": "Crie cronogramas, artes e legendas profissionais em segundos direto do seu telemóvel.",
+                    "p1": "Gerador de Imagens IA",
+                    "p2": "Legendas Persuasivas",
+                    "p3": "Calendário de Publicações"
+                },
+                "b4": {
+                    "tag": "CRM & VENDAS",
+                    "title_p1": "Transforme Leads em ",
+                    "title_p2": "Clientes Fiéis",
+                    "desc": "Gestão completa do pipeline de vendas. Organize os seus contactos e nunca perca uma oportunidade.",
+                    "p1": "Funil de Vendas Visual",
+                    "p2": "Histórico de Interações",
+                    "p3": "Automação de Follow-up"
+                },
+                "b5": {
+                    "tag": "ORÇAMENTOS PROFISSIONAIS",
+                    "title_p1": "Propostas que ",
+                    "title_p2": "Vendem por Si",
+                    "desc": "Crie orçamentos lindíssimos em segundos e envie via WhatsApp para os seus clientes.",
+                    "p1": "Modelos Personalizáveis",
+                    "p2": "Assinatura Digital Rápida",
+                    "p3": "Estado de Leitura (WhatsApp)"
+                },
+                "b6": {
+                    "tag": "AUTOMAÇÃO WHATSAPP",
+                    "title_p1": "Régua de Cobrança ",
+                    "title_p2": "Automática",
+                    "desc": "Reduza a inadimplência com lembretes inteligentes de pagamento direto na app favorita.",
+                    "p1": "Lembretes de Vencimento",
+                    "p2": "Links de Pagamento Direto",
+                    "p3": "Reconciliação Automática no Caixa"
+                },
+                "b7": {
+                    "tag": "MULTI-EMPRESAS",
+                    "title_p1": "Gerencie ",
+                    "title_p2": "Vários Negócios",
+                    "desc": "Troque entre empresas com um clique. Tenha uma visão consolidada de todas as suas unidades.",
+                    "p1": "Consolidação de Dados",
+                    "p2": "Acessos Diferenciados",
+                    "p3": "Interligação de Inventários"
+                },
+                "b8": {
+                    "tag": "CONTROLO GLOBAL 2.0",
+                    "title_p1": "A sua Empresa em ",
+                    "title_p2": "Qualquer Moeda",
+                    "desc": "BRL, USD, EUR, PYG ou GBP. Agora o Lucro Certo aceita transações em múltiplas moedas com conversão inteligente.",
+                    "p1": "Gestão Multi-Moedas",
+                    "p2": "Taxas de Câmbio em Tempo Real",
+                    "p3": "Relatórios Globais Consolidados"
+                },
+                "b9": {
+                    "tag": "GESTÃO FISCAL",
+                    "title_p1": "Emissão de ",
+                    "title_p2": "Faturas",
+                    "title_p3": " Simplificada",
+                    "desc": "Emita faturas em segundos diretamente do seu faturamento. Tudo sincronizado com as autoridades fiscais.",
+                    "p1": "Emissão de Faturas",
+                    "p2": "Histórico de Ficheiros",
+                    "p3": "Sincronização Automática"
+                },
+                "b10": {
+                    "tag": "MARKETING COPILOT",
+                    "title_p1": "A sua Marca no ",
+                    "title_p2": "Piloto Automático",
+                    "desc": "Brand Kit completo com logótipo, cores e IA que gera publicações e vídeos sincronizados com o seu DNA.",
+                    "p1": "Brand Kit Personalizado",
+                    "p2": "Geração de Vídeos IA (Kling/Google)",
+                    "p3": "Publicação Automática Agendada"
+                },
+                "b11": {
+                    "tag": "CLUBE DE FIDELIDADE",
+                    "title_p1": "Crie um ",
+                    "title_p2": "Clube de Vantagens",
+                    "title_p3": " Lucrativo",
+                    "desc": "Venda assinaturas recorrentes para os seus clientes. Planos de cashback, serviços e benefícios automáticos direto no sistema.",
+                    "p1": "Faturamento Recorrente Mensal",
+                    "p2": "Portal de Assinante Exclusivo",
+                    "p3": "Lembretes de Cobrança (WhatsApp)"
+                }
+            },
+            "go_dashboard": "Ir para o Painel",
+            "prev_slide": "Slide Anterior",
+            "next_slide": "Próximo Slide"
+        },
+        "campaigns": {
+            "special_offer": "OFERTA ESPECIAL",
+            "news": "NOVIDADE",
+            "highlight": "DESTAQUE"
+        },
+        "lead": {
+            "success_title": "Registo Confirmado!",
+            "success_subtitle": "Os seus dados foram enviados com sucesso para processamento.",
+            "close": "Fechar",
+            "form_title": "Preencha os seus dados",
+            "form_subtitle": "Por favor, introduza as informações obrigatórias para prosseguir.",
+            "fullname_label": "Nome Completo *",
+            "fullname_placeholder": "O SEU NOME COMPLETO",
+            "phone_label": "WhatsApp / Telefone *",
+            "phone_placeholder": "55(84) 9 9807-1213",
+            "email_label": "E-mail (Opcional)",
+            "email_placeholder": "O-SEU-EMAIL@DOMINIO.COM",
+            "back": "Voltar",
+            "submit": "Finalizar Registo"
+        },
+        "video": {
+            "title": "Apresentação Lucro Certo"
+        }
     }
 }

@@ -573,5 +573,306 @@
     "language": {
         "title": "Langue",
         "select": "Sélectionner la langue"
+    },
+    "landing": {
+        "nav": {
+            "features": "Fonctionnalités",
+            "ai": "Intelligence Artificielle",
+            "plans": "Tarifs",
+            "access_system": "Accéder au Système",
+            "access_account": "Accéder au Compte",
+            "enter": "Se Connecter",
+            "start_now": "Commencer Maintenant"
+        },
+        "hero": {
+            "free_trial": "Essai Gratuit de 7 jours",
+            "learn_system": "Découvrir le Système",
+            "transacted": "Transactionné",
+            "active_companies": "Entreprises Actives",
+            "features_title": "Contrôle Total, Zéro Effort",
+            "features_subtitle": "Des outils conçus pour les entrepreneurs qui n'ont pas de temps à perdre.",
+            "stats_precision": "Précision Financière",
+            "stats_currencies": "Devises Supportées",
+            "stats_leads": "Extraction de Leads",
+            "stats_productivity": "Plus de Productivité",
+            "go_dashboard": "Aller au Tableau de Bord"
+        },
+        "trust_bar": "LE SYSTÈME PHARE SUR LE MARCHÉ FINANCIER",
+        "features": {
+            "financial": {
+                "title": "Contrôle Financier Total",
+                "desc": "Gestion complète des Comptes Clients et Fournisseurs. Organisez votre trésorerie par catégories, centres de coûts et recevez des alertes d'échéance."
+            },
+            "crm": {
+                "title": "CRM & Ventes",
+                "desc": "Gestion des contacts, historique des interactions et pipeline de ventes. Transformez vos leads en clients avec un flux organisé."
+            },
+            "quotes": {
+                "title": "Devis & Commandes",
+                "desc": "Créez des devis professionnels en un clic, envoyez-les via WhatsApp et convertissez-les rapidement en ventes grâce au suivi de statut."
+            },
+            "loyalty": {
+                "title": "Club de Fidélité",
+                "desc": "Fidélisez vos clients avec des abonnements récurrents. Générez de la prévisibilité de trésorerie avec la facturation automatique."
+            },
+            "fiscal": {
+                "title": "Factures Électroniques",
+                "desc": "Émettez des factures de services et de produits directement depuis le système. Historique complet avec téléchargement XML et PDF en un clic."
+            }
+        },
+        "detailed_features": {
+            "financial": {
+                "tag": "GESTION DE TRÉSORERIE PROFESSIONNELLE",
+                "title": "Maîtrisez chaque centime de votre entreprise",
+                "desc": "Oubliez les tableurs compliqués. Lucro Certo propose un Grand Livre Analytique complet pour visualiser exactement où va votre argent.",
+                "p1": "Comptes Clients et Fournisseurs : Contrôle absolu des échéances et des montants.",
+                "p2": "SIG Automatique : Compte de résultat en temps réel.",
+                "p3": "Pièces Jointes Numérisées : Conservez les justificatifs et factures directement dans la transaction.",
+                "p4": "Plan de Trésorerie Mensuel : Prévisions de solde pour les mois à venir."
+            },
+            "radar": {
+                "tag": "RADAR DE LEADS IA",
+                "title": "Laissez l'IA chasser vos clients",
+                "desc": "Notre technologie exclusive cartographie Google Maps et les Réseaux Sociaux pour trouver votre client idéal. Le système trouve, qualifie et contacte tout seul.",
+                "p1": "Prospection automatique planifiée",
+                "p2": "Approche WhatsApp via des Bots",
+                "p3": "Filtres par région et secteur d'activité"
+            },
+            "copilot": {
+                "tag": "MARKETING COPILOT",
+                "title": "Votre Marque en Pilote Automatique avec Brand Kit",
+                "desc": "Ne perdez plus d'heures à concevoir vos publications. Le Copilot crée des calendriers, des visuels et des légendes professionnelles synchronisées avec votre Brand Kit.",
+                "p1": "Brand Kit Centralisé : Votre logo et vos couleurs partout.",
+                "p2": "Génération de Légendes & Vidéos : Une IA qui comprend votre secteur.",
+                "p3": "Autopilot Planifié : Publications automatiques sur Instagram."
+            },
+            "crm": {
+                "tag": "CRM & VENTES",
+                "title": "Transformez vos Leads en Clients Fidèles",
+                "desc": "Gestion complète du pipeline de ventes. Organisez vos contacts et ne manquez plus aucune opportunité.",
+                "p1": "Entonnoir de Ventes Visuel : Suivez les négociations étape par étape.",
+                "p2": "Historique des Interactions : Tout est documenté sur le profil client.",
+                "p3": "Automatisation du Suivi : Rappels automatiques pour votre équipe."
+            },
+            "quotes": {
+                "tag": "DEVIS PROFESSIONNELS",
+                "title": "Des Propositions qui Vendent pour Vous",
+                "desc": "Créez de superbes devis en quelques secondes et envoyez-les via WhatsApp avec signature électronique.",
+                "p1": "Modèles Personnalisables : Des templates à l'image de votre entreprise.",
+                "p2": "Signature Électronique Rapide : Vos clients valident directement sur leur mobile.",
+                "p3": "Statut de Lecture : Sachez exactement quand le client a ouvert l'offre."
+            },
+            "whatsapp": {
+                "tag": "AUTOMATISATION WHATSAPP",
+                "title": "Relance de Paiement Automatique",
+                "desc": "Réduisez les impayés grâce à des rappels intelligents envoyés directement sur le WhatsApp de vos clients.",
+                "p1": "Rappels d'Échéance : Messages automatiques via WhatsApp.",
+                "p2": "Liens de Paiement Direct : Envoyez la facture prête à payer (Pix/Carte).",
+                "p3": "Rapprochement Automatique : Tout est lettré dès que le client paie."
+            },
+            "multicompany": {
+                "tag": "MULTI-ENTREPRISES",
+                "title": "Gerez Plusieurs Activités",
+                "desc": "Basculez entre vos entreprises en un clic. Obtenez une vue consolidée de toutes vos structures sans quitter le système.",
+                "p1": "Consolidation des Données : Visualisez le bénéfice global de toutes vos structures.",
+                "p2": "Accès Différenciés : Définissez les droits de consultation par filiale.",
+                "p3": "Interconnexion des Stocks : Transférez facilement des produits d'un magasin à l'autre."
+            },
+            "multicurrency": {
+                "tag": "GESTION MULTI-DEVISES",
+                "title": "Élargissez vos horizons sans frontières",
+                "desc": "Lucro Certo devient mondial. Suivez vos comptes en BRL, USD, EUR, PYG ou GBP avec conversion automatique et rapports consolidés sur un seul écran.",
+                "p1": "Conversion Intelligente : Taux de change mis à jour automatiquement.",
+                "p2": "Facturation Internationale : Recevez vos paiements dans n'importe quelle devise.",
+                "p3": "Vision Globale : Analysez le bénéfice total de votre empire."
+            },
+            "billing": {
+                "tag": "FACTURATION AUTOMATIQUE",
+                "title": "Gestion des Abonnés Sans Stress",
+                "desc": "Vendez l'accès à votre service et laissez notre plateforme s'occuper du reste. Relances automatiques, blocage des comptes impayés et renouvellement instantané.",
+                "p1": "Régulateur de Facturation : WhatsApp automatique avant l'échéance.",
+                "p2": "Checkout Intégré : Vos clients paient par carte ou virement en quelques secondes.",
+                "p3": "Gestion Centralisée : Tableau de bord pour le contrôle total des membres."
+            },
+            "loyalty": {
+                "tag": "CLUB DE FIDÉLITÉ",
+                "title": "Transformez vos Prestations en Revenus Récurrents",
+                "desc": "Ne dépendez plus uniquement de ventes ponctuelles. Avec le Club de Fidélité, créez des offres par abonnement que vos clients paient mensuellement.",
+                "p1": "Offres Personnalisées : Définissez les services et réductions inclus dans chaque niveau.",
+                "p2": "Cashback Automatique : Incitez aux réachats en reversant une partie du montant.",
+                "p3": "Gestion des Abonnements : Suivez les abonnés actifs, en retard de paiement ou suspendus."
+            },
+            "fiscal": {
+                "tag": "GESTION FISCALE SIMPLIFIÉE",
+                "title": "Émettez vos Factures en Quelques Secondes",
+                "desc": "Dites adieu aux portails administratifs lents. Avec Lucro Certo, émettez vos factures directement depuis vos ventes.",
+                "p1": "Émission en 1 Clic : Générez des factures à partir de vos devis acceptés.",
+                "p2": "Historique Centralizado : XML et PDF organisés et prêts pour votre comptable.",
+                "p3": "Envoi Automatique : Vos clients reçoivent la facture par e-mail et WhatsApp instantanément.",
+                "p4": "Synchronisation Totale : Statut mis à jour en temps réel avec les administrations fiscales."
+            }
+        },
+        "faq": {
+            "title": "Questions Fréquentes",
+            "subtitle": "Tout ce que vous devez savoir pour démarrer sereinement.",
+            "q1": "Le système accepte-t-il les devises étrangères ?",
+            "a1": "Oui ! Lucro Certo prend en charge le BRL, l'USD, l'EUR, le PYG et le GBP, vous permettant de gérer vos transactions internationales avec taux de change en temps réel.",
+            "q2": "Comment fonctionne l'automatisation WhatsApp ?",
+            "a2": "Vous pouvez connecter votre propre numéro WhatsApp. Lucro Certo enverra automatiquement les rappels de paiement, les devis et les notifications de factures.",
+            "q3": "Est-il difficile de configurer la facturation ?",
+            "a3": "Non ! Notre équipe support vous aide à configurer votre Certificat Numérique. Une fois fait, le système génère et émet la facture automatiquement lors de chaque vente.",
+            "q4": "Mes données financières sont-elles sécurisées ?",
+            "a4": "Absolument. Nous utilisons un cryptage de niveau bancaire et un hébergement sécurisé sur Google Cloud. Vos données sont confidentielles et protégées.",
+            "q5": "Y a-t-il un engagement ou puis-je résilier quand je veux ?",
+            "a5": "Il n'y a aucun engagement de durée. Vous pouvez résilier votre abonnement à tout moment directement depuis le tableau de bord, sans frais ni justificatif."
+        },
+        "pricing": {
+            "title": "Le Tarif Adapté à Vos Besoins",
+            "subtitle": "Aucun frais caché. Transparence totale pour vos bénéfices.",
+            "popular_badge": "Le Plus Populaire",
+            "period": {
+                "mês": "mois",
+                "ano": "an",
+                "month": "mois",
+                "year": "an"
+            }
+        },
+        "footer": {
+            "rights": "© 2026 Lucro Certo. Tous droits réservés.",
+            "privacy": "Confidentialité",
+            "terms": "Conditions d'Utilisation",
+            "support": "Support"
+        },
+        "carousel": {
+            "banners": {
+                "b1": {
+                    "tag": "GESTION FINANCIÈRE 2.0",
+                    "title_p1": "Maîtrisez vos Finances avec ",
+                    "title_p2": "Intelligence",
+                    "desc": "Bien plus qu'un simple contrôle financier. Lucro Certo offre une prévisibilité réelle et une organisation absolue.",
+                    "p1": "Flux de Trésorerie en Temps Réel",
+                    "p2": "Rapprochement Bancaire Automatique",
+                    "p3": "Rapports de Rentabilité"
+                },
+                "b2": {
+                    "tag": "RADAR DE LEADS IA",
+                    "title_p1": "L'IA qui ",
+                    "title_p2": "Trouve des Clients",
+                    "title_p3": " pour Vous",
+                    "desc": "Notre technologie analyse le marché, qualifie les leads et lance des approches automatiques sur WhatsApp.",
+                    "p1": "Prospection Ciblé",
+                    "p2": "Qualification par Profil",
+                    "p3": "Approche Automatique (API)"
+                },
+                "b3": {
+                    "tag": "MARKETING COPILOT",
+                    "title_p1": "Vos Réseaux Sociaux sur ",
+                    "title_p2": "Pilote Automatique",
+                    "desc": "Créez des calendriers, des visuels et des légendes professionnels en quelques secondes depuis votre téléphone.",
+                    "p1": "Générateur d'Images IA",
+                    "p2": "Légendes Persuasives",
+                    "p3": "Calendrier de Publications"
+                },
+                "b4": {
+                    "tag": "CRM & VENTES",
+                    "title_p1": "Transformez vos Leads en ",
+                    "title_p2": "Clients Fidèles",
+                    "desc": "Gestion complète du pipeline de ventes. Organisez vos contacts et ne manquez aucune opportunité.",
+                    "p1": "Entonnoir de Ventes Visuel",
+                    "p2": "Historique des Interactions",
+                    "p3": "Automatisation du Suivi"
+                },
+                "b5": {
+                    "tag": "DEVIS PROFESSIONNELS",
+                    "title_p1": "Des Propositions qui ",
+                    "title_p2": "Vendent pour Vous",
+                    "desc": "Créez de superbes devis en quelques secondes et envoyez-les par WhatsApp à vos clients.",
+                    "p1": "Modèles Personnalisables",
+                    "p2": "Signature Électronique Rapide",
+                    "p3": "Statut de Lecture (WhatsApp)"
+                },
+                "b6": {
+                    "tag": "AUTOMATISATION WHATSAPP",
+                    "title_p1": "Relance ",
+                    "title_p2": "Automatique",
+                    "desc": "Réduisez les retards de paiement avec des rappels intelligents directement sur leur application préférée.",
+                    "p1": "Rappels d'Échéance",
+                    "p2": "Liens de Paiement Direct",
+                    "p3": "Rapprochement Automatique en Trésorerie"
+                },
+                "b7": {
+                    "tag": "MULTI-ENTREPRISES",
+                    "title_p1": "Gérez ",
+                    "title_p2": "Plusieurs Activités",
+                    "desc": "Basculez entre vos structures en un clic. Obtenez une vue consolidée de toutes vos filiales.",
+                    "p1": "Consolidation des Données",
+                    "p2": "Accès Différenciés",
+                    "p3": "Interconnexion des Stocks"
+                },
+                "b8": {
+                    "tag": "GESTION DEVISE 2.0",
+                    "title_p1": "Votre Entreprise en ",
+                    "title_p2": "N'importe Quelle Devise",
+                    "desc": "BRL, USD, EUR, PYG ou GBP. Lucro Certo accepte désormais les transactions multi-devises avec conversion intelligente.",
+                    "p1": "Gestion Multi-Devises",
+                    "p2": "Taux de Change en Temps Réel",
+                    "p3": "Rapports Globaux Consolidés"
+                },
+                "b9": {
+                    "tag": "GESTION FISCALE",
+                    "title_p1": "Facturation Électronique ",
+                    "title_p2": "Simplifiée",
+                    "desc": "Émettez vos factures en quelques secondes directement depuis vos ventes. Tout est synchronisé avec les administrations.",
+                    "p1": "Émission de Factures",
+                    "p2": "Historique PDF et XML",
+                    "p3": "Synchronisation Automatique"
+                },
+                "b10": {
+                    "tag": "MARKETING COPILOT",
+                    "title_p1": "Votre Marque sur ",
+                    "title_p2": "Piloto Automatique",
+                    "desc": "Brand Kit complet avec logo, couleurs et IA qui génère des posts et vidéos synchronisés avec votre ADN.",
+                    "p1": "Brand Kit Personnalisé",
+                    "p2": "Génération Vidéo IA (Kling/Google)",
+                    "p3": "Planification des Publications"
+                },
+                "b11": {
+                    "tag": "CLUB DE FIDÉLITÉ",
+                    "title_p1": "Créez un Club de ",
+                    "title_p2": "Fidélisation",
+                    "title_p3": " Rentable",
+                    "desc": "Vendez des abonnements récurrents à vos clients. Cashback, services automatiques et avantages inclus.",
+                    "p1": "Revenus Récurrents Mensuels",
+                    "p2": "Portail Abonné Exclusif",
+                    "p3": "Relances Factures (WhatsApp)"
+                }
+            },
+            "go_dashboard": "Aller au Tableau de Bord",
+            "prev_slide": "Diapositive Précédente",
+            "next_slide": "Diapositive Suivante"
+        },
+        "campaigns": {
+            "special_offer": "OFFRE SPÉCIALE",
+            "news": "NOUVEAUTÉ",
+            "highlight": "EN VEDETTE"
+        },
+        "lead": {
+            "success_title": "Inscription Confirmée !",
+            "success_subtitle": "Vos données ont été envoyées avec succès pour traitement.",
+            "close": "Fermer",
+            "form_title": "Remplissez vos coordonnées",
+            "form_subtitle": "Veuillez saisir les informations obligatoires pour continuer.",
+            "fullname_label": "Nom Complet *",
+            "fullname_placeholder": "VOTRE NOM COMPLET",
+            "phone_label": "WhatsApp / Téléphone *",
+            "phone_placeholder": "55(84) 9 9807-1213",
+            "email_label": "E-mail (Optionnel)",
+            "email_placeholder": "VOTRE-EMAIL@DOMAINE.COM",
+            "back": "Retour",
+            "submit": "Finaliser l'Inscription"
+        },
+        "video": {
+            "title": "Présentation de Lucro Certo"
+        }
     }
 }

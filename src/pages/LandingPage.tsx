@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '../components/ui/LanguageSelector';
 import {
     ShieldCheck,
     Radar,
@@ -124,6 +126,7 @@ const formatWhatsAppMask = (raw: string) => {
 
 export function LandingPage() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { currentEntity } = useEntity();
     const { session } = useAuth();
     
@@ -321,32 +324,46 @@ export function LandingPage() {
                     <img src={logoFull} alt="Lucro Certo" className="h-9 md:h-12 w-auto" />
                 </div>
                 <div className="nav-links">
-                    <a href="#features" className="nav-link">Funcionalidades</a>
-                    <a href="#ai" className="nav-link">Inteligência Artificial</a>
-                    {landingPlans.length > 0 && <a href="#pricing" className="nav-link">Planos</a>}
+                    <a href="#features" className="nav-link">{t('landing.nav.features')}</a>
+                    <a href="#ai" className="nav-link">{t('landing.nav.ai')}</a>
+                    {landingPlans.length > 0 && <a href="#pricing" className="nav-link">{t('landing.nav.plans')}</a>}
                     
-                    <div className="flex items-center gap-1 bg-white/10 p-1 rounded-lg backdrop-blur-md border border-white/20 ml-4">
-                        {['BRL', 'USD', 'EUR', 'PYG', 'GBP'].map(code => (
-                            <button
-                                key={code}
-                                onClick={() => updateCurrency(code)}
-                                className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${selectedCurrency === code ? 'bg-white text-blue-600 shadow-sm' : 'text-white/60 hover:text-white'}`}
-                            >
-                                {code}
-                            </button>
-                        ))}
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 p-1 rounded-lg border border-gray-200 dark:border-slate-700 ml-4">
+                        {['BRL', 'USD', 'EUR', 'PYG', 'GBP'].map(code => {
+                            const currencyNames: Record<string, string> = {
+                                'BRL': 'BRL - Real Brasileiro (Moeda)',
+                                'USD': 'USD - Dólar Americano (Moeda)',
+                                'EUR': 'EUR - Euro (Moeda)',
+                                'PYG': 'PYG - Guarani Paraguaio (Moeda)',
+                                'GBP': 'GBP - Libra Esterlina (Moeda)'
+                            };
+                            return (
+                                <button
+                                    key={code}
+                                    onClick={() => updateCurrency(code)}
+                                    title={currencyNames[code]}
+                                    className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${selectedCurrency === code ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                                >
+                                    {code}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="ml-2">
+                        <LanguageSelector />
                     </div>
                 </div>
                 <div className="flex items-center gap-2 md:gap-4">
                     {session ? (
-                        <Link to="/dashboard" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">Acessar Sistema</Link>
+                        <Link to="/dashboard" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">{t('landing.nav.access_system')}</Link>
                     ) : (
                         <>
                             <Link to="/login" className="nav-link text-xs md:text-sm font-semibold whitespace-nowrap">
-                                <span className="inline sm:hidden">Entrar</span>
-                                <span className="hidden sm:inline">Acessar Conta</span>
+                                <span className="inline sm:hidden">{t('landing.nav.enter')}</span>
+                                <span className="hidden sm:inline">{t('landing.nav.access_account')}</span>
                             </Link>
-                            <Link to="/login?mode=signup" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">Começar Agora</Link>
+                            <Link to="/login?mode=signup" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">{t('landing.nav.start_now')}</Link>
                         </>
                     )}
                 </div>
@@ -357,7 +374,7 @@ export function LandingPage() {
 
             {/* Trust Bar (Media) */}
             <section className="media-bar" style={{ padding: '2rem 5%', background: '#fff', borderBottom: '1px solid var(--glass-border)', textAlign: 'center' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '1.5rem', letterSpacing: '1px' }}>O SISTEMA QUE É DESTAQUE NO MERCADO FINANCEIRO</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '1.5rem', letterSpacing: '1px' }}>{t('landing.trust_bar')}</p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '4rem', alignItems: 'center', opacity: 0.6, filter: 'grayscale(1)' }}>
                     <img src="/images/landing/media-logos.png" alt="Destaque na Mídia" style={{ maxHeight: '40px', width: 'auto' }} />
                 </div>
@@ -367,27 +384,27 @@ export function LandingPage() {
             <section className="stats-bar">
                 <div className="stat-item">
                     <span className="stat-number">98%</span>
-                    <span className="stat-label">Precisão Financeira</span>
+                    <span className="stat-label">{t('landing.hero.stats_precision')}</span>
                 </div>
                 <div className="stat-item">
                     <span className="stat-number">+5</span>
-                    <span className="stat-label">Moedas Suportadas</span>
+                    <span className="stat-label">{t('landing.hero.stats_currencies')}</span>
                 </div>
                 <div className="stat-item">
                     <span className="stat-number">24/7</span>
-                    <span className="stat-label">Extração de Leads</span>
+                    <span className="stat-label">{t('landing.hero.stats_leads')}</span>
                 </div>
                 <div className="stat-item">
                     <span className="stat-number">10x</span>
-                    <span className="stat-label">Mais Produtividade</span>
+                    <span className="stat-label">{t('landing.hero.stats_productivity')}</span>
                 </div>
             </section>
 
             {/* Features Grid */}
             <section id="features" className="features-section">
                 <div className="section-header">
-                    <h2>Controle Total, Esforço Zero</h2>
-                    <p>Ferramentas projetadas para empresários que não têm tempo a perder.</p>
+                    <h2>{t('landing.hero.features_title')}</h2>
+                    <p>{t('landing.hero.features_subtitle')}</p>
                 </div>
 
                 <div className="features-grid">
@@ -395,36 +412,36 @@ export function LandingPage() {
                         <div className="feature-icon">
                             <BarChart3 size={32} />
                         </div>
-                        <h3>Controle Financeiro Total</h3>
-                        <p>Gestão completa de Contas a Pagar e Receber. Organize seu fluxo de caixa por categorias, centros de custo e receba alertas de vencimento.</p>
+                        <h3>{t('landing.features.financial.title')}</h3>
+                        <p>{t('landing.features.financial.desc')}</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon">
                             <Users size={32} />
                         </div>
-                        <h3>CRM & Vendas</h3>
-                        <p>Gestão de contatos, histórico de interações e pipeline de vendas. Transforme leads em clientes com um fluxo organizado.</p>
+                        <h3>{t('landing.features.crm.title')}</h3>
+                        <p>{t('landing.features.crm.desc')}</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon">
                             <DollarSign size={32} />
                         </div>
-                        <h3>Orçamentos & Pedidos</h3>
-                        <p>Crie orçamentos profissionais com um clique, envie via WhatsApp e converta em vendas rapidamente com controle de status.</p>
+                        <h3>{t('landing.features.quotes.title')}</h3>
+                        <p>{t('landing.features.quotes.desc')}</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon" style={{ background: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5' }}>
                             <Gift size={32} />
                         </div>
-                        <h3>Clube de Fidelidade</h3>
-                        <p>Fidelize seus clientes com planos de assinatura e recorrência. Gere previsibilidade de caixa com faturamento automático.</p>
+                        <h3>{t('landing.features.loyalty.title')}</h3>
+                        <p>{t('landing.features.loyalty.desc')}</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }}>
                             <Receipt size={32} />
                         </div>
-                        <h3>Notas Fiscais (NF-e/NFS-e)</h3>
-                        <p>Emita notas fiscais de serviço e produtos diretamente pelo sistema. Histórico completo com download de XML e PDF em um clique.</p>
+                        <h3>{t('landing.features.fiscal.title')}</h3>
+                        <p>{t('landing.features.fiscal.desc')}</p>
                     </div>
                 </div>
             </section>
@@ -435,17 +452,17 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: 'var(--primary-blue)', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <BarChart3 size={20} />
-                            GESTÃO DE CAIXA PROFISSIONAL
+                            {t('landing.detailed_features.financial.tag')}
                         </div>
-                        <h3>Domine cada centavo da sua empresa</h3>
+                        <h3>{t('landing.detailed_features.financial.title')}</h3>
                         <p>
-                            Esqueça as planilhas complicadas. O Lucro Certo oferece um Livro Analítico completo para você visualizar exatamente para onde seu dinheiro está indo.
+                            {t('landing.detailed_features.financial.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Contas a Pagar e Receber:</strong> Controle absoluto de prazos e valores.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>DRE Automática:</strong> Demonstrativo de Resultados do Exercício em tempo real.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Anexos Digitalizados:</strong> Guarde comprovantes e notas direto na transação.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Fluxo de Caixa Mensal:</strong> Previsão de saldo para os próximos meses.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.financial.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.financial.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.financial.p3')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.financial.p4')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -461,16 +478,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Radar size={20} />
-                            RADAR DE LEADS IA
+                            {t('landing.detailed_features.radar.tag')}
                         </div>
-                        <h3>Deixe a IA caçar os seus clientes</h3>
+                        <h3>{t('landing.detailed_features.radar.title')}</h3>
                         <p>
-                            Nossa tecnologia exclusiva mapeia o Google Maps e Redes Sociais atrás do seu cliente ideal. O sistema não só encontra, como também qualifica e entra em contato sozinho.
+                            {t('landing.detailed_features.radar.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> Mineração automática agendada</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Abordagem no WhatsApp via Bots</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> Filtros por região e nicho de atuação</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.radar.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.radar.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.radar.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -486,16 +503,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#6366f1', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Sparkles size={20} />
-                            MARKETING COPILOT
+                            {t('landing.detailed_features.copilot.tag')}
                         </div>
-                        <h3>Sua Marca no Piloto Automático com Brand Kit</h3>
+                        <h3>{t('landing.detailed_features.copilot.title')}</h3>
                         <p>
-                            Chega de perder horas pensando no que postar. O Copilot cria cronogramas, artes e legendas profissionais sincronizadas com o seu Brand Kit (logo, cores e tom de voz).
+                            {t('landing.detailed_features.copilot.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Brand Kit Centralizado:</strong> Sua logo e cores em tudo.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Geração de Legendas & Vídeos:</strong> IA que entende seu negócio.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Autopilot Agendado:</strong> Postagens automáticas no Instagram.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.copilot.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.copilot.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.copilot.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -513,16 +530,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#ec4899', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Users size={20} />
-                            CRM & VENDAS
+                            {t('landing.detailed_features.crm.tag')}
                         </div>
-                        <h3>Transforme Leads em Clientes Fiéis</h3>
+                        <h3>{t('landing.detailed_features.crm.title')}</h3>
                         <p>
-                            Gestão completa do pipeline de vendas. Organize seus contatos e nunca perca uma oportunidade.
+                            {t('landing.detailed_features.crm.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Funil de Vendas Visual:</strong> Acompanhe as negociações etapa por etapa.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Histórico de Interações:</strong> Tudo documentado no perfil do cliente.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Automação de Follow-up:</strong> Lembretes automáticos para sua equipe.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.crm.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.crm.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.crm.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -540,16 +557,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#f59e0b', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <DollarSign size={20} />
-                            ORÇAMENTOS PROFISSIONAIS
+                            {t('landing.detailed_features.quotes.tag')}
                         </div>
-                        <h3>Propostas que Vendem por Você</h3>
+                        <h3>{t('landing.detailed_features.quotes.title')}</h3>
                         <p>
-                            Crie orçamentos lindíssimos em segundos e envie via WhatsApp para seus clientes com aprovação digital.
+                            {t('landing.detailed_features.quotes.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Modelos Customizáveis:</strong> Templates com a cara da sua empresa.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Assinatura Digital Rápida:</strong> Seus clientes aprovam no próprio celular.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Status de Leitura:</strong> Saiba exatamente quando o cliente abriu a proposta.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.quotes.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.quotes.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.quotes.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -567,16 +584,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <CreditCard size={20} />
-                            AUTOMAÇÃO WHATSAPP
+                            {t('landing.detailed_features.whatsapp.tag')}
                         </div>
-                        <h3>Régua de Cobrança Automática</h3>
+                        <h3>{t('landing.detailed_features.whatsapp.title')}</h3>
                         <p>
-                            Reduza a inadimplência com lembretes inteligentes de pagamento enviados diretamente para o WhatsApp dos seus clientes.
+                            {t('landing.detailed_features.whatsapp.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Lembretes de Vencimento:</strong> Mensagens automáticas via WhatsApp.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Links de Pagamento Direto:</strong> Envie a fatura pronta para pagamento (Pix/Cartão).</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Baixa Automática no Caixa:</strong> Tudo é reconciliado assim que o cliente paga.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.whatsapp.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.whatsapp.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.whatsapp.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -594,16 +611,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#4b5563', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Users size={20} />
-                            MULTI-EMPRESAS
+                            {t('landing.detailed_features.multicompany.tag')}
                         </div>
-                        <h3>Gerencie Vários Negócios</h3>
+                        <h3>{t('landing.detailed_features.multicompany.title')}</h3>
                         <p>
-                            Troque entre empresas com um clique. Tenha uma visão consolidada de todas as suas unidades sem precisar sair do sistema.
+                            {t('landing.detailed_features.multicompany.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Consolidação de Dados:</strong> Veja o lucro total de todas as empresas juntas.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Acessos Diferenciados:</strong> Defina quem pode ver cada filial.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Interligação de Estoques:</strong> Movimente produtos entre as lojas facilmente.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.multicompany.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.multicompany.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.multicompany.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -621,16 +638,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#d4af37', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <DollarSign size={20} />
-                            CONTROLE MULTI-MOEDAS
+                            {t('landing.detailed_features.multicurrency.tag')}
                         </div>
-                        <h3>Expanda seus horizontes sem fronteiras</h3>
+                        <h3>{t('landing.detailed_features.multicurrency.title')}</h3>
                         <p>
-                            O Lucro Certo agora é global. Controle suas contas em BRL, USD, EUR, PYG ou GBP com conversão automática e relatórios consolidados em uma única tela.
+                            {t('landing.detailed_features.multicurrency.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Conversão Inteligente:</strong> Câmbio atualizado automaticamente.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Faturamento Internacional:</strong> Receba em qualquer moeda.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Visão Global:</strong> Entenda o lucro total do seu império.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.multicurrency.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.multicurrency.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.multicurrency.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -648,16 +665,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#ec4899', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <CreditCard size={20} />
-                            FATURAMENTO AUTOMÁTICO
+                            {t('landing.detailed_features.billing.tag')}
                         </div>
-                        <h3>Gestão de Assinantes Sem Stress</h3>
+                        <h3>{t('landing.detailed_features.billing.title')}</h3>
                         <p>
-                            Venda o acesso ao seu sistema e deixe que a nossa plataforma cuide do resto. Régua de cobrança automática, bloqueio de inadimplentes e renovação instantânea.
+                            {t('landing.detailed_features.billing.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Régua de Cobrança:</strong> WhatsApp automático antes do vencimento.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Checkout Integrado:</strong> Seus clientes pagam via PIX ou Cartão em segundos.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Gestão Centralizada:</strong> Painel administrativo para controle total de associados.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.billing.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.billing.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.billing.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -675,16 +692,16 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#4f46e5', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Award size={20} />
-                            CLUBE DE FIDELIDADE
+                            {t('landing.detailed_features.loyalty.tag')}
                         </div>
-                        <h3>Transforme sua Prestação de Serviço em Recorrência</h3>
+                        <h3>{t('landing.detailed_features.loyalty.title')}</h3>
                         <p>
-                            Chega de depender apenas de vendas avulsas. Com o Clube de Fidelidade, você cria planos de benefícios que seus clientes pagam todo mês, garantindo estabilidade financeira.
+                            {t('landing.detailed_features.loyalty.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Planos Personalizados:</strong> Defina quais serviços e descontos fazem parte de cada nível.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Cashback Automático:</strong> Incentive novas compras devolvendo parte do valor ao cliente fiel.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Gestão de Assinaturas:</strong> Controle quem está ativo, inadimplente ou em período extra.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.loyalty.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.loyalty.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.loyalty.p3')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -702,17 +719,17 @@ export function LandingPage() {
                     <div className="visual-content">
                         <div style={{ color: '#0ea5e9', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Receipt size={20} />
-                            GESTÃO FISCAL DESCOMPLICADA
+                            {t('landing.detailed_features.fiscal.tag')}
                         </div>
-                        <h3>Emita Notas Fiscais em Segundos</h3>
+                        <h3>{t('landing.detailed_features.fiscal.title')}</h3>
                         <p>
-                            Diga adeus aos portais lentos das prefeituras. Com o Lucro Certo, você emite NF-e e NFS-e direto do seu faturamento, com preenchimento automático de dados.
+                            {t('landing.detailed_features.fiscal.desc')}
                         </p>
                         <ul className="feature-list">
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Emissão em 1 Clique:</strong> Gere notas direto dos seus orçamentos aprovados.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Histórico Centralizado:</strong> XML e PDF organizados e prontos para o seu contador.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Envio Automático:</strong> Seus clientes recebem a nota por e-mail e WhatsApp na hora.</li>
-                            <li><CheckCircle2 size={18} className="check-icon" /> <strong>Sincronização Total:</strong> Status atualizado em tempo real com a SEFAZ e Prefeituras.</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.fiscal.p1')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.fiscal.p2')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.fiscal.p3')}</li>
+                            <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.fiscal.p4')}</li>
                         </ul>
                     </div>
                     <div className="visual-image-container">
@@ -731,7 +748,7 @@ export function LandingPage() {
                         <div className="visual-content">
                             <div style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <ShieldCheck size={20} />
-                                {campaign.type === 'promo' ? 'OFERTA ESPECIAL' : campaign.type === 'info' ? 'NOVIDADE' : 'DESTAQUE'}
+                                {campaign.type === 'promo' ? t('landing.campaigns.special_offer') : campaign.type === 'info' ? t('landing.campaigns.news') : t('landing.campaigns.highlight')}
                             </div>
                             <h3>{campaign.title}</h3>
                             <div className="mb-8 flex flex-col gap-3 text-[1.05rem] text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -774,29 +791,29 @@ export function LandingPage() {
             {/* FAQ Section */}
             <section id="faq" className="features-section" style={{ background: 'rgba(37, 99, 235, 0.02)' }}>
                 <div className="section-header">
-                    <h2>Perguntas Frequentes</h2>
-                    <p>Tudo o que você precisa saber para começar com segurança.</p>
+                    <h2>{t('landing.faq.title')}</h2>
+                    <p>{t('landing.faq.subtitle')}</p>
                 </div>
                 <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O sistema aceita moedas estrangeiras?</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim! O Lucro Certo agora suporta BRL, USD, EUR, PYG e GBP, permitindo que você gerencie transações internacionais com conversão de câmbio em tempo real e relatórios consolidados.</p>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>{t('landing.faq.q1')}</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('landing.faq.a1')}</p>
                     </div>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Como funciona a integração com Webhooks?</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Nossa API robusta permite que você conecte o Lucro Certo a qualquer ferramenta externa. Com os Webhooks, você recebe notificações automáticas de pagamentos, novos leads e status de cobrança em tempo real.</p>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>{t('landing.faq.q2')}</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('landing.faq.a2')}</p>
                     </div>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O que é o Clube de Fidelidade?</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>É um módulo que permite criar planos de assinatura para seus clientes. Eles pagam um valor mensal fixo e têm direito a benefícios como descontos em serviços, cashback ou atendimentos exclusivos, tudo faturado automaticamente.</p>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>{t('landing.faq.q3')}</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('landing.faq.a3')}</p>
                     </div>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O sistema emite notas fiscais para todo o Brasil?</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim! O Lucro Certo está integrado com os principais webservices nacionais, suportando a emissão de NFS-e para milhares de cidades e NF-e de produtos para todos os estados brasileiros.</p>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>{t('landing.faq.q4')}</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('landing.faq.a4')}</p>
                     </div>
                     <div className="faq-item" style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>O Lucro Certo é seguro?</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Sim. Utilizamos criptografia de nível bancário e servidores seguros na AWS e Supabase para garantir que seus dados financeiros e de clientes estejam sempre protegidos.</p>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-dark)' }}>{t('landing.faq.q5')}</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('landing.faq.a5')}</p>
                     </div>
                 </div>
             </section>
@@ -805,16 +822,16 @@ export function LandingPage() {
             {landingPlans.length > 0 && (
                 <section id="pricing" className="pricing-section">
                     <div className="section-header">
-                        <h2>O Plano Certo para Você</h2>
-                        <p>Sem taxas escondidas. Transparência total para o seu lucro.</p>
+                        <h2>{t('landing.pricing.title')}</h2>
+                        <p>{t('landing.pricing.subtitle')}</p>
                     </div>
 
                     <div className="pricing-grid">
                         {landingPlans.map((plan, idx) => (
                             <div key={idx} className={`pricing-card ${plan.is_popular ? 'popular' : ''}`}>
-                                {plan.is_popular && <div className="popular-badge">Mais Popular</div>}
+                                {plan.is_popular && <div className="popular-badge">{t('landing.pricing.popular_badge')}</div>}
                                 <h3>{plan.name}</h3>
-                                <div className="price">{currencySymbol} {plan.price}<span>/{plan.period}</span></div>
+                                <div className="price">{currencySymbol} {plan.price}<span>/{t('landing.pricing.period.' + plan.period, { defaultValue: plan.period })}</span></div>
                                 {plan.observation && (
                                     <div className="text-sm font-medium mb-4 px-2" style={{ color: "var(--primary-color, #2563eb)", marginTop: "-10px" }}>
                                         {plan.observation}
@@ -849,12 +866,12 @@ export function LandingPage() {
                     <img src={logoFull} alt="Lucro Certo" className="h-8 md:h-10 w-auto" />
                 </div>
                 <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                    © 2026 Lucro Certo. Todos os direitos reservados.
+                    {t('landing.footer.rights')}
                 </p>
                 <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1.5rem', justifyContent: 'center' }}>
-                    <a href="#" className="nav-link">Privacidade</a>
-                    <a href="#" className="nav-link">Termos de Uso</a>
-                    <a href="#" className="nav-link">Suporte</a>
+                    <a href="#" className="nav-link">{t('landing.footer.privacy')}</a>
+                    <a href="#" className="nav-link">{t('landing.footer.terms')}</a>
+                    <a href="#" className="nav-link">{t('landing.footer.support')}</a>
                 </div>
             </footer>
             {/* Video Modal */}
@@ -869,7 +886,7 @@ export function LandingPage() {
                                 width="100%"
                                 height="100%"
                                 src="https://www.youtube.com/embed/vDxFacAITnA?autoplay=1"
-                                title="Apresentação Lucro Certo"
+                                title={t('landing.video.title')}
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
@@ -962,53 +979,53 @@ export function LandingPage() {
                                                     <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/10 animate-bounce">
                                                         <CheckCircle2 size={32} />
                                                     </div>
-                                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cadastro Confirmado!</h3>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[280px]">Seus dados foram enviados com sucesso para processamento.</p>
+                                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('landing.lead.success_title')}</h3>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[280px]">{t('landing.lead.success_subtitle')}</p>
                                                     <button 
                                                         onClick={() => { setShowBanner(false); setIsLeadSuccess(false); }}
                                                         className="mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/20"
                                                     >
-                                                        Fechar
+                                                        {t('landing.lead.close')}
                                                     </button>
                                                 </div>
                                             ) : isLeadFormActive ? (
                                                 <form onSubmit={(e) => handleLeadSubmit(e, currentCampaign)} className="flex flex-col gap-3 text-left w-full h-full justify-between">
                                                     <div className="space-y-3 flex-grow overflow-y-auto pr-1">
-                                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Preencha seus dados</h3>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">Por favor, insira as informações obrigatórias para prosseguir.</p>
+                                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('landing.lead.form_title')}</h3>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('landing.lead.form_subtitle')}</p>
                                                         
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Nome Completo *</label>
+                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('landing.lead.fullname_label')}</label>
                                                             <input 
                                                                 type="text" 
                                                                 required 
                                                                 value={leadName} 
                                                                 onChange={(e) => setLeadName(e.target.value.toUpperCase())} 
-                                                                placeholder="SEU NOME COMPLETO" 
+                                                                placeholder={t('landing.lead.fullname_placeholder')} 
                                                                 className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                                 style={{ textTransform: 'uppercase' }}
                                                             />
                                                         </div>
 
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">WhatsApp / Telefone *</label>
+                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('landing.lead.phone_label')}</label>
                                                             <input 
                                                                 type="tel" 
                                                                 required 
                                                                 value={leadPhone} 
                                                                 onChange={(e) => setLeadPhone(formatWhatsAppMask(e.target.value))} 
-                                                                placeholder="55(84) 9 9807-1213" 
+                                                                placeholder={t('landing.lead.phone_placeholder')} 
                                                                 className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                             />
                                                         </div>
 
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">E-mail (Opcional)</label>
+                                                            <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('landing.lead.email_label')}</label>
                                                             <input 
                                                                 type="email" 
                                                                 value={leadEmail} 
                                                                 onChange={(e) => setLeadEmail(e.target.value.toUpperCase())} 
-                                                                placeholder="SEU-EMAIL@DOMINIO.COM" 
+                                                                placeholder={t('landing.lead.email_placeholder')} 
                                                                 className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                                 style={{ textTransform: 'uppercase' }}
                                                             />
@@ -1021,7 +1038,7 @@ export function LandingPage() {
                                                             onClick={() => setIsLeadFormActive(false)} 
                                                             className="flex-1 px-3 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg text-xs transition-all"
                                                         >
-                                                            Voltar
+                                                            {t('landing.lead.back')}
                                                         </button>
                                                         <button 
                                                             type="submit" 
@@ -1031,7 +1048,7 @@ export function LandingPage() {
                                                                 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
                                                             }`}
                                                         >
-                                                            Finalizar Cadastro
+                                                            {t('landing.lead.submit')}
                                                         </button>
                                                     </div>
                                                 </form>
@@ -1089,54 +1106,54 @@ export function LandingPage() {
                                                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/10 animate-bounce">
                                                     <CheckCircle2 size={32} />
                                                 </div>
-                                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cadastro Confirmado!</h3>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[280px]">Seus dados foram enviados com sucesso para processamento.</p>
+                                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('landing.lead.success_title')}</h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[280px]">{t('landing.lead.success_subtitle')}</p>
                                                 <button 
                                                     type="button"
                                                     onClick={() => { setShowBanner(false); setIsLeadSuccess(false); }}
                                                     className="mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/20"
                                                 >
-                                                    Fechar
+                                                    {t('landing.lead.close')}
                                                 </button>
                                             </div>
                                         ) : isLeadFormActive ? (
                                             <form onSubmit={(e) => handleLeadSubmit(e, currentCampaign)} className="flex flex-col gap-3 text-left w-full h-full justify-between">
                                                 <div className="space-y-3 flex-grow overflow-y-auto pr-1">
-                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Preencha seus dados</h3>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Por favor, insira as informações obrigatórias para prosseguir.</p>
+                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('landing.lead.form_title')}</h3>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('landing.lead.form_subtitle')}</p>
                                                     
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Nome Completo *</label>
+                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('landing.lead.fullname_label')}</label>
                                                         <input 
                                                             type="text" 
                                                             required 
                                                             value={leadName} 
                                                             onChange={(e) => setLeadName(e.target.value.toUpperCase())} 
-                                                            placeholder="SEU NOME COMPLETO" 
+                                                            placeholder={t('landing.lead.fullname_placeholder')} 
                                                             className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                             style={{ textTransform: 'uppercase' }}
                                                         />
                                                     </div>
 
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">WhatsApp / Telefone *</label>
+                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('landing.lead.phone_label')}</label>
                                                         <input 
                                                             type="tel" 
                                                             required 
                                                             value={leadPhone} 
                                                             onChange={(e) => setLeadPhone(formatWhatsAppMask(e.target.value))} 
-                                                            placeholder="55(84) 9 9807-1213" 
+                                                            placeholder={t('landing.lead.phone_placeholder')} 
                                                             className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                         />
                                                     </div>
 
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">E-mail (Opcional)</label>
+                                                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('landing.lead.email_label')}</label>
                                                         <input 
                                                             type="email" 
                                                             value={leadEmail} 
                                                             onChange={(e) => setLeadEmail(e.target.value.toUpperCase())} 
-                                                            placeholder="SEU-EMAIL@DOMINIO.COM" 
+                                                            placeholder={t('landing.lead.email_placeholder')} 
                                                             className="w-full text-xs p-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-purple-500 text-gray-900 dark:text-white"
                                                             style={{ textTransform: 'uppercase' }}
                                                         />
@@ -1149,7 +1166,7 @@ export function LandingPage() {
                                                         onClick={() => setIsLeadFormActive(false)} 
                                                         className="flex-1 px-3 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg text-xs transition-all"
                                                     >
-                                                        Voltar
+                                                        {t('landing.lead.back')}
                                                     </button>
                                                     <button 
                                                         type="submit" 
@@ -1159,7 +1176,7 @@ export function LandingPage() {
                                                             'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/30'
                                                         }`}
                                                     >
-                                                        Finalizar Cadastro
+                                                        {t('landing.lead.submit')}
                                                     </button>
                                                 </div>
                                             </form>
