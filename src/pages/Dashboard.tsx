@@ -69,14 +69,14 @@ export function Dashboard() {
             refreshDashboard();
             setResultModal({
                 isOpen: true,
-                title: 'Lançamento Removido',
-                message: 'A operação foi concluída com sucesso.',
+                title: t('dashboard.transaction_removed'),
+                message: t('dashboard.operation_success'),
                 type: 'success'
             });
         } catch (error: any) {
             setResultModal({
                 isOpen: true,
-                title: 'Erro na Exclusão',
+                title: t('dashboard.delete_error_title'),
                 message: error.message || t('common.delete_error'),
                 type: 'error'
             });
@@ -135,8 +135,8 @@ export function Dashboard() {
         } catch (error: any) {
             setResultModal({
                 isOpen: true,
-                title: 'Erro na Operação',
-                message: error.message || 'Erro ao atualizar transação',
+                title: t('dashboard.operation_error_title'),
+                message: error.message || t('dashboard.operation_error_message'),
                 type: 'error'
             });
             throw error;
@@ -272,42 +272,42 @@ export function Dashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-sm group hover:border-blue-200 transition-all">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Usuários</span>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">{t('dashboard.admin_users')}</span>
                             <Users size={14} className="text-blue-500" />
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-white leading-tight">{adminStats.total_users}</div>
-                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Plataforma Global</div>
+                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">{t('dashboard.admin_global_platform')}</div>
                     </div>
 
                     <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-sm group hover:border-purple-200 transition-all">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Empresas</span>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">{t('dashboard.admin_companies')}</span>
                             <Building size={14} className="text-purple-500" />
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-white leading-tight">{adminStats.total_companies}</div>
-                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Contas corporativas</div>
+                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">{t('dashboard.admin_corporate_accounts')}</div>
                     </div>
 
                     <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-sm group hover:border-emerald-200 transition-all">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Comissões</span>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">{t('dashboard.admin_commissions')}</span>
                             <DollarSign size={14} className="text-emerald-500" />
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-white leading-tight">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(adminStats.total_commission || 0)}
+                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL', maximumFractionDigits: 0 }).format(adminStats.total_commission || 0)}
                         </div>
-                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Líquido estimado</div>
+                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">{t('dashboard.admin_estimated_net')}</div>
                     </div>
 
                     <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-sm group hover:border-blue-300 transition-all">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Volume</span>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">{t('dashboard.volume')}</span>
                             <TrendingUp size={14} className="text-blue-600" />
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-white leading-tight">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(adminStats.total_revenue || 0)}
+                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL', maximumFractionDigits: 0 }).format(adminStats.total_revenue || 0)}
                         </div>
-                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">Total processado</div>
+                        <div className="text-[9px] text-gray-400 dark:text-slate-500 mt-1">{t('dashboard.total_processed')}</div>
                     </div>
                 </div>
             )}
@@ -316,7 +316,7 @@ export function Dashboard() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{greeting}, {firstName}</h1>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">Informativo financeiro para o período selecionado</p>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.financial_info_subtitle')}</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -336,7 +336,7 @@ export function Dashboard() {
                             onChange={handleStartDateChange}
                             className="bg-transparent px-2 py-1 dark:text-white text-xs font-bold focus:outline-none"
                         />
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest px-1">Até</span>
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest px-1">{t('dashboard.until')}</span>
                         <input
                             type="date"
                             value={endDate}
@@ -449,10 +449,10 @@ export function Dashboard() {
                 isOpen={deleteConfirmOpen}
                 onClose={() => setDeleteConfirmOpen(false)}
                 onConfirm={() => executeDelete('single')}
-                title="Confirmar Exclusão"
+                title={t('dashboard.confirm_delete_title')}
                 message={t('common.confirm_delete') || 'Deseja realmente remover este lançamento? Esta ação não pode ser desfeita.'}
                 variant="danger"
-                confirmLabel="Sim, Excluir"
+                confirmLabel={t('dashboard.confirm_delete_btn')}
                 isLoading={isDeleting}
             />
 
@@ -460,27 +460,27 @@ export function Dashboard() {
             <ChoiceModal
                 isOpen={recurrenceChoiceOpen}
                 onClose={() => setRecurrenceChoiceOpen(false)}
-                title="Lançamento Recorrente"
-                description="Identificamos que este item faz parte de uma série. O que deseja apagar?"
+                title={t('dashboard.recurring_transaction_title')}
+                description={t('dashboard.recurring_transaction_desc')}
                 choices={[
                     { 
                         id: 'single', 
-                        label: 'Apenas este lançamento', 
-                        description: 'Remove somente a data selecionada.',
+                        label: t('dashboard.choice_only_this'), 
+                        description: t('dashboard.choice_only_this_desc'),
                         icon: <Trash2 size={18} />,
                         variant: 'danger'
                     },
                     { 
                         id: 'future', 
-                        label: 'Este e os futuros', 
-                        description: 'Preserva o histórico, remove daqui para frente.',
+                        label: t('dashboard.choice_this_and_future'), 
+                        description: t('dashboard.choice_this_and_future_desc'),
                         icon: <CalendarRange size={18} />,
                         variant: 'danger'
                     },
                     { 
                         id: 'all', 
-                        label: 'Todos da série', 
-                        description: 'Remove o histórico completo desta repetição.',
+                        label: t('dashboard.choice_all_series'), 
+                        description: t('dashboard.choice_all_series_desc'),
                         icon: <ListChecks size={18} />,
                         variant: 'danger'
                     }

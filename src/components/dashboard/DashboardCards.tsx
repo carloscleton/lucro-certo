@@ -1,5 +1,6 @@
 import { ArrowDownCircle, ArrowUpCircle, DollarSign, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import type { DashboardMetrics } from '../../hooks/useDashboard';
+import { useTranslation } from 'react-i18next';
 
 interface DashboardCardsProps {
     metrics: DashboardMetrics;
@@ -8,6 +9,8 @@ interface DashboardCardsProps {
 }
 
 export function DashboardCards({ metrics, previousPeriod, onCardClick }: DashboardCardsProps) {
+    const { t } = useTranslation();
+
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(val);
 
@@ -29,14 +32,14 @@ export function DashboardCards({ metrics, previousPeriod, onCardClick }: Dashboa
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">Receitas (Efetuado)</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_income_title')}</p>
                         <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.income)}
                         </h3>
                         {incomeGrowth && (
                             <div className={`flex items-center gap-1 mt-2 text-[10px] font-bold ${Number(incomeGrowth) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 {Number(incomeGrowth) >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                                {incomeGrowth}% <span className="opacity-60 font-medium">vs mês anterior</span>
+                                {incomeGrowth}% <span className="opacity-60 font-medium">{t('dashboard.vs_previous_month')}</span>
                             </div>
                         )}
                     </div>
@@ -53,14 +56,14 @@ export function DashboardCards({ metrics, previousPeriod, onCardClick }: Dashboa
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">Despesas (Pago)</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_expense_title')}</p>
                         <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.expense)}
                         </h3>
                         {expenseGrowth && (
                             <div className={`flex items-center gap-1 mt-2 text-[10px] font-bold ${Number(expenseGrowth) <= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 {Number(expenseGrowth) <= 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
-                                {Math.abs(Number(expenseGrowth))}% <span className="opacity-60 font-medium">vs mês anterior</span>
+                                {Math.abs(Number(expenseGrowth))}% <span className="opacity-60 font-medium">{t('dashboard.vs_previous_month')}</span>
                             </div>
                         )}
                     </div>
@@ -77,11 +80,11 @@ export function DashboardCards({ metrics, previousPeriod, onCardClick }: Dashboa
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">Compromissos</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_commitments_title')}</p>
                         <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.totalPayable)}
                         </h3>
-                        <p className="text-[10px] text-gray-400 mt-2 font-medium">Pendentes no período</p>
+                        <p className="text-[10px] text-gray-400 mt-2 font-medium">{t('dashboard.pending_in_period')}</p>
                     </div>
                     <div className="p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
                         <DollarSign size={22} />
@@ -96,11 +99,11 @@ export function DashboardCards({ metrics, previousPeriod, onCardClick }: Dashboa
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">A Receber</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_receivable_title')}</p>
                         <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.totalReceivable)}
                         </h3>
-                        <p className="text-[10px] text-gray-400 mt-2 font-medium">Expectativa de entrada</p>
+                        <p className="text-[10px] text-gray-400 mt-2 font-medium">{t('dashboard.expected_inflow')}</p>
                     </div>
                     <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                         <Wallet size={22} />
@@ -115,12 +118,14 @@ export function DashboardCards({ metrics, previousPeriod, onCardClick }: Dashboa
             >
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">Recuperação</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_recovery_title')}</p>
                         <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                             {formatCurrency(metrics.rejectedTotal)}
                         </h3>
                         <p className="text-[10px] text-pink-500 mt-2 font-bold uppercase tracking-tighter">
-                            {metrics.rejectedCount} Oportunidade{metrics.rejectedCount !== 1 ? 's' : ''}
+                            {metrics.rejectedCount === 1 
+                                ? t('dashboard.opportunity_count', { count: metrics.rejectedCount }) 
+                                : t('dashboard.opportunity_count_plural', { count: metrics.rejectedCount })}
                         </p>
                     </div>
                     <div className="p-2.5 bg-pink-50 dark:bg-pink-900/20 rounded-xl text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform">

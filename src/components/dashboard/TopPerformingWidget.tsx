@@ -1,6 +1,7 @@
 import { Trophy, TrendingUp } from 'lucide-react';
 import type { Category } from '../../hooks/useCategories';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface TopPerformingWidgetProps {
     expensesByCategory: { category_id: string; amount: number }[];
@@ -9,6 +10,8 @@ interface TopPerformingWidgetProps {
 
 export function TopPerformingWidget({ expensesByCategory, categories }: TopPerformingWidgetProps) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
+
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
@@ -16,7 +19,7 @@ export function TopPerformingWidget({ expensesByCategory, categories }: TopPerfo
     const topCategories = expensesByCategory.slice(0, 3).map((item, index) => {
         const category = categories.find(c => c.id === item.category_id);
         return {
-            name: category?.name || 'Sem Categoria',
+            name: category?.name || t('dashboard.no_category_title'),
             amount: item.amount,
             rank: index + 1
         };
@@ -30,9 +33,9 @@ export function TopPerformingWidget({ expensesByCategory, categories }: TopPerfo
                 <div>
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Trophy size={16} className="text-amber-500" />
-                        Pódio de Despesas
+                        {t('dashboard.expense_podium')}
                     </h3>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">As 3 maiores saídas por categoria</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{t('dashboard.top_expenses_sub')}</p>
                 </div>
             </div>
 
@@ -58,7 +61,7 @@ export function TopPerformingWidget({ expensesByCategory, categories }: TopPerfo
                                     {item.name}
                                 </p>
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                                    Impacto Financeiro
+                                    {t('dashboard.financial_impact')}
                                 </p>
                             </div>
 
@@ -68,7 +71,7 @@ export function TopPerformingWidget({ expensesByCategory, categories }: TopPerfo
                                 </p>
                                 <div className="flex items-center justify-end gap-0.5 text-[9px] font-bold text-red-500">
                                     <TrendingUp size={10} />
-                                    ALTO
+                                    {t('dashboard.impact_high')}
                                 </div>
                             </div>
                         </div>
@@ -81,7 +84,7 @@ export function TopPerformingWidget({ expensesByCategory, categories }: TopPerfo
                     onClick={() => navigate('/dashboard/reports')}
                     className="w-full py-3 rounded-xl bg-blue-500/10 dark:bg-blue-400/10 border border-blue-200/50 dark:border-blue-800/30 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-sm hover:shadow-blue-200 dark:hover:shadow-none"
                 >
-                    Ver Relatório Completo
+                    {t('dashboard.view_full_report')}
                 </button>
             </div>
         </div>

@@ -1,6 +1,7 @@
 import { AlertTriangle, Clock, CalendarClock, Calendar, Tag, FileText, Bell, X, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import type { Alert } from '../../hooks/useDashboard';
+import { useTranslation } from 'react-i18next';
 
 interface AlertsProps {
     alerts: Alert[];
@@ -9,6 +10,7 @@ interface AlertsProps {
 
 export function Alerts({ alerts, onQuickPay }: AlertsProps) {
     const [modalOpen, setModalOpen] = useState(false);
+    const { t } = useTranslation();
 
     if (alerts.length === 0) return null;
 
@@ -45,7 +47,7 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
             case 'overdue':
                 return {
                     icon: AlertTriangle,
-                    title: 'Conta Atrasada',
+                    title: t('dashboard.overdue_title'),
                     borderColor: 'border-red-500',
                     bgColor: 'bg-red-50 dark:bg-red-900/20',
                     iconBg: 'bg-red-100 dark:bg-red-900/40',
@@ -57,7 +59,7 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
             case 'due_soon':
                 return {
                     icon: Clock,
-                    title: 'Vence em Breve',
+                    title: t('dashboard.due_soon_title'),
                     borderColor: 'border-amber-500',
                     bgColor: 'bg-amber-50 dark:bg-amber-900/20',
                     iconBg: 'bg-amber-100 dark:bg-amber-900/40',
@@ -69,7 +71,7 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
             case 'recovery_due':
                 return {
                     icon: CalendarClock,
-                    title: 'Retorno Agendado',
+                    title: t('dashboard.recovery_due_title'),
                     borderColor: 'border-pink-500',
                     bgColor: 'bg-pink-50 dark:bg-pink-900/20',
                     iconBg: 'bg-pink-100 dark:bg-pink-900/40',
@@ -95,7 +97,9 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                     <div className="flex items-center gap-3 flex-wrap">
                         {/* Total count */}
                         <span className="text-sm font-bold text-gray-800 dark:text-gray-100">
-                            {alerts.length} alerta{alerts.length > 1 ? 's' : ''}
+                            {alerts.length === 1 
+                                ? t('dashboard.alert_count', { count: alerts.length }) 
+                                : t('dashboard.alert_count_plural', { count: alerts.length })}
                         </span>
 
                         {/* Separator */}
@@ -106,7 +110,9 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                             <div className="flex items-center gap-1.5">
                                 <AlertTriangle size={13} className="text-red-600 dark:text-red-400" />
                                 <span className="text-xs font-semibold text-red-700 dark:text-red-300">
-                                    {overdueAlerts.length} atrasada{overdueAlerts.length > 1 ? 's' : ''}
+                                    {overdueAlerts.length === 1 
+                                        ? t('dashboard.overdue_alert_count', { count: overdueAlerts.length }) 
+                                        : t('dashboard.overdue_alert_count_plural', { count: overdueAlerts.length })}
                                 </span>
                                 <span className="text-xs font-bold text-red-600 dark:text-red-400 hidden sm:inline">
                                     ({formatCurrency(overdueTotal)})
@@ -119,7 +125,9 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                             <div className="flex items-center gap-1.5">
                                 <Clock size={13} className="text-amber-600 dark:text-amber-400" />
                                 <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                                    {dueSoonAlerts.length} vence{dueSoonAlerts.length > 1 ? 'm' : ''} em breve
+                                    {dueSoonAlerts.length === 1 
+                                        ? t('dashboard.due_soon_alert_count', { count: dueSoonAlerts.length }) 
+                                        : t('dashboard.due_soon_alert_count_plural', { count: dueSoonAlerts.length })}
                                 </span>
                                 <span className="text-xs font-bold text-amber-600 dark:text-amber-400 hidden sm:inline">
                                     ({formatCurrency(dueSoonTotal)})
@@ -130,7 +138,7 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                 </div>
 
                 <div className="flex items-center gap-1 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
-                    <span className="text-xs font-semibold hidden sm:inline">Ver detalhes</span>
+                    <span className="text-xs font-semibold hidden sm:inline">{t('dashboard.view_details')}</span>
                     <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                 </div>
             </button>
@@ -155,9 +163,11 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                                     <Bell className="text-white" size={24} />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-white">Alertas Financeiros</h2>
+                                    <h2 className="text-xl font-bold text-white">{t('dashboard.financial_alerts')}</h2>
                                     <p className="text-white/80 text-sm mt-0.5">
-                                        {alerts.length} alerta{alerts.length > 1 ? 's' : ''} encontrado{alerts.length > 1 ? 's' : ''}
+                                        {alerts.length === 1 
+                                            ? t('dashboard.alerts_found', { count: alerts.length }) 
+                                            : t('dashboard.alerts_found_plural', { count: alerts.length })}
                                     </p>
                                 </div>
                             </div>
@@ -169,7 +179,9 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-full">
                                     <AlertTriangle size={13} className="text-red-600 dark:text-red-400" />
                                     <span className="text-xs font-semibold text-red-700 dark:text-red-300">
-                                        {overdueAlerts.length} atrasada{overdueAlerts.length > 1 ? 's' : ''} — {formatCurrency(overdueTotal)}
+                                        {overdueAlerts.length === 1 
+                                            ? t('dashboard.overdue_alert_count', { count: overdueAlerts.length }) 
+                                            : t('dashboard.overdue_alert_count_plural', { count: overdueAlerts.length })} — {formatCurrency(overdueTotal)}
                                     </span>
                                 </div>
                             )}
@@ -177,7 +189,9 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-full">
                                     <Clock size={13} className="text-amber-600 dark:text-amber-400" />
                                     <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                                        {dueSoonAlerts.length} vence{dueSoonAlerts.length > 1 ? 'm' : ''} em breve — {formatCurrency(dueSoonTotal)}
+                                        {dueSoonAlerts.length === 1 
+                                            ? t('dashboard.due_soon_alert_count', { count: dueSoonAlerts.length }) 
+                                            : t('dashboard.due_soon_alert_count_plural', { count: dueSoonAlerts.length })} — {formatCurrency(dueSoonTotal)}
                                     </span>
                                 </div>
                             )}
@@ -185,7 +199,9 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-full">
                                     <CalendarClock size={13} className="text-pink-600 dark:text-pink-400" />
                                     <span className="text-xs font-semibold text-pink-700 dark:text-pink-300">
-                                        {recoveryAlerts.length} retorno{recoveryAlerts.length > 1 ? 's' : ''} agendado{recoveryAlerts.length > 1 ? 's' : ''}
+                                        {recoveryAlerts.length === 1 
+                                            ? t('dashboard.recovery_alert_count', { count: recoveryAlerts.length }) 
+                                            : t('dashboard.recovery_alert_count_plural', { count: recoveryAlerts.length })}
                                     </span>
                                 </div>
                             )}
@@ -195,6 +211,7 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-3">
                             {alerts.map((alert) => {
                                 const config = getAlertConfig(alert.type);
+                                if (!config) return null;
                                 const Icon = config.icon;
 
                                 return (
@@ -243,7 +260,9 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                                                     <span className="text-[10px] font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-md border border-red-100 dark:border-red-800/50 flex-shrink-0 whitespace-nowrap">
                                                         {(() => {
                                                             const days = getDaysDifference(alert.date);
-                                                            return `${days} dia${days !== 1 ? 's' : ''} de atraso`;
+                                                            return days === 1 
+                                                                ? t('dashboard.days_late', { count: days }) 
+                                                                : t('dashboard.days_late_plural', { count: days });
                                                         })()}
                                                     </span>
                                                 )}
@@ -260,7 +279,7 @@ export function Alerts({ alerts, onQuickPay }: AlertsProps) {
                                                         title="Pagar / Receber"
                                                     >
                                                         <CheckCircle2 size={14} />
-                                                        Pagar
+                                                        {t('dashboard.settle_btn')}
                                                     </button>
                                                 )}
                                             </div>

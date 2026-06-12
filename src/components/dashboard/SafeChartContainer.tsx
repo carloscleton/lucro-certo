@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface SafeChartContainerProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ interface SafeChartContainerProps {
 export function SafeChartContainer({ children, fallback, className = "w-full h-full relative" }: SafeChartContainerProps) {
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -50,10 +52,11 @@ export function SafeChartContainer({ children, fallback, className = "w-full h-f
       ) : (
         fallback || (
           <div className="w-full h-full flex items-center justify-center">
-            <div className="animate-pulse text-gray-400 text-sm">Preparando gráfico...</div>
+            <div className="animate-pulse text-gray-400 text-sm">{t('dashboard.preparing_chart', 'Preparando gráfico...')}</div>
           </div>
         )
       )}
     </div>
   );
 }
+

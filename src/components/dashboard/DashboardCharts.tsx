@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import type { ChartData } from '../../hooks/useDashboard';
 import { useMemo } from 'react';
 import { SafeChartContainer } from './SafeChartContainer';
+import { useTranslation } from 'react-i18next';
 
 // Aggregate daily data into weeks for better visualization
 function aggregateByWeek(data: ChartData[]): { name: string; income: number; expense: number; balance: number }[] {
@@ -50,6 +51,7 @@ const formatCurrency = (value: number) =>
     new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
 const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
+    const { t } = useTranslation();
     if (!active || !payload?.length) return null;
 
     const data = payload[0].payload;
@@ -61,7 +63,7 @@ const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
     return (
         <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-3 shadow-xl min-w-[220px] max-w-[300px]">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
-                {isDaily ? `Dia ${label}` : `Semana de ${label}`}
+                {isDaily ? t('dashboard.chart_day', { label }) : t('dashboard.chart_week_of', { label })}
             </p>
             
             <div className="space-y-3">
@@ -70,7 +72,7 @@ const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                            <span className="text-xs text-gray-600 dark:text-gray-300">Receitas</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-300">{t('dashboard.chart_income')}</span>
                         </div>
                         <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                             {formatCurrency(income)}
@@ -79,7 +81,7 @@ const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                            <span className="text-xs text-gray-600 dark:text-gray-300">Despesas</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-300">{t('dashboard.chart_expense')}</span>
                         </div>
                         <span className="text-xs font-bold text-red-600 dark:text-red-400">
                             {formatCurrency(expense)}
@@ -90,20 +92,20 @@ const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
                 {/* Transaction Details (Specific Dates) */}
                 {details.length > 0 && (
                     <div className="space-y-2">
-                        {details.map((t: any, idx: number) => (
+                        {details.map((tItem: any, idx: number) => (
                             <div key={idx} className="bg-gray-50 dark:bg-slate-900/40 p-2 rounded-lg border border-gray-100 dark:border-slate-700/50">
                                 <p className="text-[10px] font-bold text-gray-700 dark:text-gray-200 truncate mb-1">
-                                    {t.description}
+                                    {tItem.description}
                                 </p>
                                 <div className="grid grid-cols-2 gap-2 text-[9px] text-gray-500 dark:text-gray-400">
                                     <div>
-                                        <span className="block opacity-60 uppercase">Vencimento</span>
-                                        <span className="font-medium">{formatDateString(t.dueDate)}</span>
+                                        <span className="block opacity-60 uppercase">{t('dashboard.chart_due_date')}</span>
+                                        <span className="font-medium">{formatDateString(tItem.dueDate)}</span>
                                     </div>
-                                    {(t.status === 'paid' || t.status === 'received') && (
+                                    {(tItem.status === 'paid' || tItem.status === 'received') && (
                                         <div>
-                                            <span className="block opacity-60 uppercase">Pagamento</span>
-                                            <span className="font-medium text-blue-600 dark:text-blue-400">{formatDateString(t.paymentDate)}</span>
+                                            <span className="block opacity-60 uppercase">{t('dashboard.chart_payment_date')}</span>
+                                            <span className="font-medium text-blue-600 dark:text-blue-400">{formatDateString(tItem.paymentDate)}</span>
                                         </div>
                                     )}
                                 </div>
@@ -114,7 +116,7 @@ const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
 
                 {/* Final Balance */}
                 <div className="pt-1.5 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Saldo do Dia</span>
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{t('dashboard.chart_daily_balance')}</span>
                     <span className={`text-xs font-bold ${balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                         {formatCurrency(balance)}
                     </span>
@@ -124,34 +126,38 @@ const CustomTooltip = ({ active, payload, label, isDaily }: any) => {
     );
 };
 
-const CustomLegend = () => (
-    <div className="flex items-center justify-center gap-6 pt-2">
-        <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #10b981, #34d399)' }} />
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Receitas</span>
+const CustomLegend = () => {
+    const { t } = useTranslation();
+    return (
+        <div className="flex items-center justify-center gap-6 pt-2">
+            <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #10b981, #34d399)' }} />
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('dashboard.chart_income')}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #ef4444, #f87171)' }} />
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('dashboard.chart_expense')}</span>
+            </div>
         </div>
-        <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, #ef4444, #f87171)' }} />
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Despesas</span>
-        </div>
-    </div>
-);
+    );
+};
 
 export function DashboardCharts({ data }: { data: ChartData[] }) {
     const weeklyData = useMemo(() => aggregateByWeek(data), [data]);
     const isDaily = data.length <= 31;
+    const { t } = useTranslation();
 
     if (weeklyData.length === 0) {
         return (
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 h-[400px] flex items-center justify-center transition-colors">
-                <p className="text-gray-400 dark:text-gray-500">Nenhum dado para o período selecionado</p>
+                <p className="text-gray-400 dark:text-gray-500">{t('dashboard.no_data')}</p>
             </div>
         );
     }
 
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 h-[400px] flex flex-col transition-colors">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Fluxo de Caixa</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('dashboard.cash_flow')}</h3>
             <div className="flex-1 w-full min-h-[300px] min-w-0">
                 <SafeChartContainer 
                     key={weeklyData.length} // Force re-render if data count changed
@@ -204,14 +210,14 @@ export function DashboardCharts({ data }: { data: ChartData[] }) {
                             <Legend content={<CustomLegend />} />
                             <Bar
                                 dataKey="income"
-                                name="Receitas"
+                                name={t('dashboard.chart_income')}
                                 fill="url(#incomeGradient)"
                                 radius={[4, 4, 0, 0]}
                                 maxBarSize={isDaily ? 16 : 48}
                             />
                             <Bar
                                 dataKey="expense"
-                                name="Despesas"
+                                name={t('dashboard.chart_expense')}
                                 fill="url(#expenseGradient)"
                                 radius={[4, 4, 0, 0]}
                                 maxBarSize={isDaily ? 16 : 48}

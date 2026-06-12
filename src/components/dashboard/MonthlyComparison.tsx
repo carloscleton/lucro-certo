@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface MonthlyComparisonProps {
     currentIncome: number;
@@ -17,6 +18,8 @@ export function MonthlyComparison({
     currentMonthLabel,
     previousMonthLabel,
 }: MonthlyComparisonProps) {
+    const { t } = useTranslation();
+
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
@@ -30,7 +33,6 @@ export function MonthlyComparison({
     const currentBalance = currentIncome - currentExpense;
     const previousBalance = previousIncome - previousExpense;
     const balanceChange = calcChange(currentBalance, Math.abs(previousBalance) > 0 ? previousBalance : 1);
-
 
     const ComparisonCard = ({
         label,
@@ -56,7 +58,7 @@ export function MonthlyComparison({
                     <div>
                         <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(current)}</p>
                         <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                            ant: {formatCurrency(previous)}
+                            {t('dashboard.prev_abbr')} {formatCurrency(previous)}
                         </p>
                     </div>
                     <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${isGood
@@ -79,7 +81,7 @@ export function MonthlyComparison({
             <div className="flex items-center gap-2 mb-4">
                 <BarChart3 size={20} className="text-purple-600" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Comparativo Mensal
+                    {t('dashboard.monthly_comparison')}
                 </h3>
                 <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
                     {previousMonthLabel} → {currentMonthLabel}
@@ -88,21 +90,21 @@ export function MonthlyComparison({
 
             <div className="flex flex-col sm:flex-row gap-3">
                 <ComparisonCard
-                    label="Receitas"
+                    label={t('dashboard.comparison_revenues')}
                     current={currentIncome}
                     previous={previousIncome}
                     change={incomeChange}
                     isPositiveGood={true}
                 />
                 <ComparisonCard
-                    label="Despesas"
+                    label={t('dashboard.comparison_expenses')}
                     current={currentExpense}
                     previous={previousExpense}
                     change={expenseChange}
                     isPositiveGood={false}
                 />
                 <ComparisonCard
-                    label="Resultado"
+                    label={t('dashboard.comparison_result')}
                     current={currentBalance}
                     previous={previousBalance}
                     change={balanceChange}

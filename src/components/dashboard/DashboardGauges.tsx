@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { SafeChartContainer } from './SafeChartContainer';
+import { useTranslation } from 'react-i18next';
 
 interface GaugeProps {
     value: number; // 0 to 100
@@ -62,6 +63,8 @@ interface DashboardGaugesProps {
 }
 
 export function DashboardGauges({ income, expense }: DashboardGaugesProps) {
+    const { t } = useTranslation();
+
     // Profit Margin = (Income - Expense) / Income
     const profitMargin = income > 0 ? Math.max(0, ((income - expense) / income) * 100) : 0;
     
@@ -73,19 +76,19 @@ export function DashboardGauges({ income, expense }: DashboardGaugesProps) {
         <div className="glass-card p-6 rounded-2xl transition-all hover:shadow-2xl hover:translate-y-[-2px] duration-300">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Eficiência Operacional
+                {t('dashboard.operational_efficiency')}
             </h3>
             <div className="grid grid-cols-2 gap-4">
                 <Gauge 
                     value={profitMargin} 
-                    label="Margem de Lucro" 
-                    description="O quanto da receita sobra após as despesas."
+                    label={t('dashboard.profit_margin')} 
+                    description={t('dashboard.profit_margin_desc')}
                     color="#10b981"
                 />
                 <Gauge 
                     value={healthScore} 
-                    label="Saúde de Caixa" 
-                    description="Capacidade de cobrir gastos futuros."
+                    label={t('dashboard.cash_health')} 
+                    description={t('dashboard.cash_health_desc')}
                     color="#6366f1"
                 />
             </div>

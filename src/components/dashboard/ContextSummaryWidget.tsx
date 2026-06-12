@@ -1,11 +1,14 @@
 import { User, Building2, TrendingUp, TrendingDown, Scale } from 'lucide-react';
 import type { ContextMetrics } from '../../hooks/useDashboard';
+import { useTranslation } from 'react-i18next';
 
 interface ContextSummaryWidgetProps {
     contextMetrics: ContextMetrics;
 }
 
 export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetProps) {
+    const { t } = useTranslation();
+
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(value);
 
@@ -54,7 +57,7 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
                         <TrendingUp size={13} className="text-emerald-500" />
-                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Recebido</span>
+                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('dashboard.received')}</span>
                     </div>
                     <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(income)}</p>
                 </div>
@@ -63,7 +66,7 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
                         <TrendingDown size={13} className="text-red-500" />
-                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pago</span>
+                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('dashboard.paid')}</span>
                     </div>
                     <p className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(expense)}</p>
                 </div>
@@ -72,7 +75,7 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
                         <Scale size={13} className={balance >= 0 ? 'text-blue-500' : 'text-orange-500'} />
-                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Saldo</span>
+                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('dashboard.balance')}</span>
                     </div>
                     <p className={`text-sm font-bold ${balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
                         {formatCurrency(balance)}
@@ -84,7 +87,7 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
             {income > 0 && (
                 <div className="mt-4">
                     <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                        <span>Comprometido</span>
+                        <span>{t('dashboard.committed')}</span>
                         <span>{Math.min(Math.round((expense / income) * 100), 100)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 overflow-hidden">
@@ -102,15 +105,15 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
         <div className="space-y-2">
             <div className="flex items-center gap-2 px-1">
                 <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Comparativo do Período
+                    {t('dashboard.period_comparison')}
                 </h3>
                 <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
                 <ContextCard
                     icon={User}
-                    label="Pessoal"
-                    sublabel="Pessoa física · Realizado"
+                    label={t('dashboard.personal')}
+                    sublabel={t('dashboard.personal_sub')}
                     income={personal.income}
                     expense={personal.expense}
                     balance={personal.balance}
@@ -120,8 +123,8 @@ export function ContextSummaryWidget({ contextMetrics }: ContextSummaryWidgetPro
                 />
                 <ContextCard
                     icon={Building2}
-                    label="Empresarial"
-                    sublabel="Pessoa jurídica · Realizado"
+                    label={t('dashboard.business')}
+                    sublabel={t('dashboard.business_sub')}
                     income={business.income}
                     expense={business.expense}
                     balance={business.balance}

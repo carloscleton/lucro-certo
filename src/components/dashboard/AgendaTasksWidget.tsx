@@ -1,6 +1,7 @@
 import { Calendar, Clock, CheckSquare, Phone, Video, Mail, ArrowRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface AgendaTasksWidgetProps {
     tasks: any[];
@@ -8,6 +9,7 @@ interface AgendaTasksWidgetProps {
 
 export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     const getTypeIcon = (type: string) => {
         switch (type) {
@@ -24,9 +26,9 @@ export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
                 <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Calendar size={20} className="text-sky-500" />
-                        Agenda & Compromissos
+                        {t('dashboard.agenda_commitments')}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Suas próximas tarefas pendentes</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.pending_tasks_sub')}</p>
                 </div>
                 <button 
                     onClick={() => navigate('/dashboard/agenda')}
@@ -40,7 +42,7 @@ export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
                 {tasks.length === 0 ? (
                     <div className="py-8 text-center border-2 border-dashed border-gray-50 dark:border-slate-700/50 rounded-2xl">
                         <Calendar className="mx-auto text-gray-300 dark:text-gray-600 mb-2" size={32} />
-                        <p className="text-sm text-gray-400">Tudo em dia! Nenhuma tarefa pendente.</p>
+                        <p className="text-sm text-gray-400">{t('dashboard.no_pending_tasks')}</p>
                     </div>
                 ) : (
                     tasks.map((task) => {
@@ -65,13 +67,13 @@ export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
                                             {task.title}
                                         </h4>
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${isPast ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-sky-50 text-sky-600 border border-sky-100'}`}>
-                                            {isPast ? 'ATRASADO' : 'EM BREVE'}
+                                            {isPast ? t('dashboard.overdue_badge') : t('dashboard.upcoming_badge')}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-3 mt-1.5">
                                         <div className="flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-gray-400">
                                             <Clock size={10} />
-                                            {format(parseISO(task.due_date), "dd/MM 'às' HH:mm")}
+                                            {format(parseISO(task.due_date), t('dashboard.agenda_date_format'))}
                                         </div>
                                         {relatedName && (
                                             <>
@@ -94,7 +96,7 @@ export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
                     onClick={() => navigate('/dashboard/agenda')}
                     className="w-full mt-4 py-2 text-xs font-bold text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/10 rounded-lg transition-all"
                 >
-                    Ver Agenda Completa
+                    {t('dashboard.view_full_agenda')}
                 </button>
             )}
 

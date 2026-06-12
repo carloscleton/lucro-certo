@@ -6,6 +6,7 @@ import { Tooltip } from '../ui/Tooltip';
 import type { UpcomingBill } from '../../hooks/useUpcomingBills';
 import { formatDateString } from '../../utils/dateUtils';
 import { SettleModal } from '../transactions/SettleModal';
+import { useTranslation } from 'react-i18next';
 
 interface UpcomingBillsWidgetProps {
     onRefreshMetrics?: () => void;
@@ -15,6 +16,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
     const { bills, loading, refresh } = useUpcomingBills(30);
     const { updateTransaction } = useTransactions('expense');
     const { updateTransaction: updateIncome } = useTransactions('income');
+    const { t } = useTranslation();
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,7 +74,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
         <div className="flex items-center justify-between py-2 px-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group">
             <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex-shrink-0 flex items-center justify-center">
-                    <Tooltip content="Marcar como pago">
+                    <Tooltip content={t('dashboard.mark_as_paid')}>
                         <button
                             onClick={() => handleOpenModal(bill)}
                             className="w-5 h-5 rounded border-2 border-gray-300 dark:border-slate-600 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors flex items-center justify-center group-hover:scale-110"
@@ -121,6 +123,8 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
     }) => {
         if (bills.length === 0) return null;
 
+        const extraCount = bills.length - 5;
+
         return (
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -135,7 +139,9 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                     ))}
                     {bills.length > 5 && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
-                            ... mais {bills.length - 5} contas
+                            {extraCount === 1 
+                                ? t('dashboard.more_bills', { count: extraCount }) 
+                                : t('dashboard.more_bills_plural', { count: extraCount })}
                         </p>
                     )}
                 </div>
@@ -166,13 +172,13 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                 <div className="flex items-center gap-3 mb-4">
                     <Calendar className="w-5 h-5 text-emerald-600" />
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                        Próximas Contas
+                        {t('dashboard.upcoming_bills_title')}
                     </h3>
                 </div>
                 <div className="text-center py-8">
                     <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Nenhuma conta pendente nos próximos 30 dias!
+                        {t('dashboard.no_pending_30_days')}
                     </p>
                 </div>
             </div>
@@ -187,12 +193,14 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                     <div className="flex items-center gap-3">
                         <Calendar className="w-5 h-5 text-emerald-600" />
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                            Próximas Contas (30 dias)
+                            {t('dashboard.upcoming_bills_30_days')}
                         </h3>
                     </div>
                     {bills.overdue.length > 0 && (
                         <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold rounded-full">
-                            {bills.overdue.length} vencida{bills.overdue.length > 1 ? 's' : ''}
+                            {bills.overdue.length === 1 
+                                ? t('dashboard.overdue_bills_badge', { count: bills.overdue.length }) 
+                                : t('dashboard.overdue_bills_badge_plural', { count: bills.overdue.length })}
                         </span>
                     )}
                 </div>
@@ -201,21 +209,21 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
             {/* Bills List */}
             <div className="p-6 space-y-6 max-h-[500px] overflow-y-auto">
                 <BillSection
-                    title="VENCIDAS"
+                    title={t('dashboard.section_overdue')}
                     bills={bills.overdue}
                     icon={<AlertCircle className="w-4 h-4 text-red-600" />}
                     color="text-red-600 dark:text-red-400"
                 />
 
                 <BillSection
-                    title="ESTA SEMANA"
+                    title={t('dashboard.section_this_week')}
                     bills={bills.thisWeek}
                     icon={<AlertCircle className="w-4 h-4 text-yellow-600" />}
                     color="text-yellow-600 dark:text-yellow-400"
                 />
 
                 <BillSection
-                    title="PRÓXIMAS"
+                    title={t('dashboard.section_upcoming')}
                     bills={bills.upcoming}
                     icon={<Calendar className="w-4 h-4 text-emerald-600" />}
                     color="text-emerald-600 dark:text-emerald-400"
@@ -228,7 +236,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                     <div className="flex items-center gap-2">
                         <TrendingDown className="w-4 h-4 text-red-600" />
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Total a Pagar <span className="text-[10px] text-gray-400 dark:text-gray-500">(pendente)</span>
+                            {t('dashboard.total_to_pay')} <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('dashboard.pending_suffix')}</span>
                         </span>
                     </div>
                     <span className="text-sm font-bold text-red-600 dark:text-red-400">
@@ -240,7 +248,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                     <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-emerald-600" />
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Total a Receber <span className="text-[10px] text-gray-400 dark:text-gray-500">(pendente)</span>
+                            {t('dashboard.total_to_receive')} <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('dashboard.pending_suffix')}</span>
                         </span>
                     </div>
                     <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
@@ -251,7 +259,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
                 <div className="pt-2 border-t border-gray-200 dark:border-slate-700">
                     <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-gray-900 dark:text-white">
-                            Saldo Previsto
+                            {t('dashboard.forecast_balance')}
                         </span>
                         <span className={`text-lg font-bold ${bills.netBalance >= 0
                             ? 'text-emerald-600 dark:text-emerald-400'

@@ -1,4 +1,5 @@
 import type { Category } from '../../hooks/useCategories';
+import { useTranslation } from 'react-i18next';
 
 interface BudgetProgressProps {
     categories: Category[];
@@ -6,6 +7,8 @@ interface BudgetProgressProps {
 }
 
 export function BudgetProgress({ categories, expenses }: BudgetProgressProps) {
+    const { t } = useTranslation();
+
     // Filter categories that have a budget limit
     const budgetCategories = categories.filter(c => c.budget_limit && c.budget_limit > 0);
 
@@ -13,7 +16,7 @@ export function BudgetProgress({ categories, expenses }: BudgetProgressProps) {
 
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Metas Mensais</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('dashboard.monthly_goals')}</h3>
             <div className="space-y-4">
                 {budgetCategories.map(category => {
                     const spent = expenses
@@ -44,7 +47,7 @@ export function BudgetProgress({ categories, expenses }: BudgetProgressProps) {
                                 />
                             </div>
                             {isOverBudget && (
-                                <p className="text-xs text-red-500 mt-1">Acima da meta!</p>
+                                <p className="text-xs text-red-500 mt-1">{t('dashboard.over_budget')}</p>
                             )}
                         </div>
                     );

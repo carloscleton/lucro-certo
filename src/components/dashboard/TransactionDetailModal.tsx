@@ -1,8 +1,9 @@
 import { ListFilter, Coffee, Repeat, Trash2, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, pt, enUS, es, fr } from 'date-fns/locale';
 import { Modal } from '../ui/Modal';
+import { useTranslation } from 'react-i18next';
 
 interface Transaction {
     id: string;
@@ -21,10 +22,10 @@ interface Transaction {
     recurring_count?: number;
 }
 
-const getCategoryName = (category: any): string => {
-    if (!category) return 'Sem Categoria';
+const getCategoryName = (category: any, t: any): string => {
+    if (!category) return t('dashboard.no_category_title', 'Sem Categoria');
     if (typeof category === 'string') return category;
-    if (typeof category === 'object' && category !== null) return category.name || 'Sem Categoria';
+    if (typeof category === 'object' && category !== null) return category.name || t('dashboard.no_category_title', 'Sem Categoria');
     return String(category);
 };
 
@@ -49,6 +50,29 @@ export function TransactionDetailModal({
 }: TransactionDetailModalProps) {
     if (!isOpen) return null;
 
+    const { t, i18n } = useTranslation();
+
+    const getLocale = (lang: string) => {
+        switch (lang) {
+            case 'pt-BR':
+                return ptBR;
+            case 'pt-PT':
+            case 'pt':
+                return pt;
+            case 'en':
+            case 'en-US':
+                return enUS;
+            case 'es':
+                return es;
+            case 'fr':
+                return fr;
+            default:
+                return ptBR;
+        }
+    };
+
+    const activeLocale = getLocale(i18n.language);
+
     const variantMap: Record<string, any> = {
         income: 'success',
         expense: 'danger',
@@ -72,21 +96,25 @@ export function TransactionDetailModal({
     const iconColor = colorClasses[type] || colorClasses.balance;
 
     // Group transactions by category
-    const categoryTotals = transactions.reduce((acc, t) => {
-        const cat = getCategoryName(t.category);
-        const amount = t.paid_amount || t.amount;
-        const signedAmount = t.type === 'income' ? Number(amount) : -Number(amount);
+    const categoryTotals = transactions.reduce((acc, item) => {
+        const cat = getCategoryName(item.category, t);
+        const amount = item.paid_amount || item.amount;
+        const signedAmount = item.type === 'income' ? Number(amount) : -Number(amount);
         acc[cat] = (acc[cat] || 0) + signedAmount;
         return acc;
     }, {} as Record<string, number>);
 
     // Calculate net total (income - expense)
-    const total = transactions.reduce((acc, t) => {
-        const amount = Number(t.paid_amount || t.amount);
-        return acc + (t.type === 'income' ? amount : -amount);
+    const total = transactions.reduce((acc, item) => {
+        const amount = Number(item.paid_amount || item.amount);
+        return acc + (item.type === 'income' ? amount : -amount);
     }, 0);
 
-    const subtitle = `${transactions.length} transação(ões) • Total: ${new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(total)}`;
+    const transactionCountText = transactions.length === 1
+        ? t('dashboard.transaction_count', { count: transactions.length })
+        : t('dashboard.transaction_count_plural', { count: transactions.length });
+
+    const subtitle = `${transactionCountText} • Total: ${new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(total)}`;
 
     return (
         <Modal
@@ -104,9 +132,9 @@ export function TransactionDetailModal({
                         <div className={`p-4 rounded-full shadow-sm mb-4 ${iconColor}`}>
                             <Coffee className="w-8 h-8" />
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Nenhum movimento encontrado</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('dashboard.no_movement_found', 'Nenhum movimento encontrado')}</h3>
                         <p className="text-gray-500 dark:text-gray-400 max-w-xs text-center mt-1">
-                            Não há registros de {title.toLowerCase()} para o período selecionado no seu resumo.
+                            {t('dashboard.no_records_for_period', { title: title.toLowerCase() })}
                         </p>
                     </div>
                 ) : (
@@ -114,7 +142,7 @@ export function TransactionDetailModal({
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Transaction List */}
                             <div className="lg:col-span-2 space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Transações</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">{t('dashboard.transactions_header', 'Transações')}</h3>
                                 <div className="space-y-3">
                                     {transactions
                                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -132,12 +160,12 @@ export function TransactionDetailModal({
                                                     
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-slate-700/50 text-[11px] font-bold text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-slate-600/50">
-                                                            {format(new Date(transaction.date + 'T12:00:00'), "dd 'de' MMM", { locale: ptBR })}
+                                                            {format(new Date(transaction.date + 'T12:00:00'), t('dashboard.transaction_date_format', "dd 'de' MMM"), { locale: activeLocale })}
                                                         </span>
                                                         
                                                         {transaction.category && (
                                                             <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-[11px] font-bold text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-800/50">
-                                                                {getCategoryName(transaction.category)}
+                                                                {getCategoryName(transaction.category, t)}
                                                             </span>
                                                         )}
                                                         
@@ -146,14 +174,14 @@ export function TransactionDetailModal({
                                                                 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-800/50'
                                                                 : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100/50 dark:border-amber-800/50'
                                                         }`}>
-                                                            {transaction.status === 'received' ? 'Recebido' :
-                                                                transaction.status === 'paid' ? 'Pago' : 'Pendente'}
+                                                            {transaction.status === 'received' ? t('dashboard.status_received', 'Recebido') :
+                                                                transaction.status === 'paid' ? t('dashboard.status_paid', 'Pago') : t('dashboard.status_pending', 'Pendente')}
                                                         </span>
                                                         
                                                         {(transaction.is_recurring || transaction.recurrence_group_id) && (
                                                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-[11px] font-extrabold text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-800/50 uppercase tracking-tighter">
                                                                 <Repeat className="w-3 h-3" />
-                                                                {transaction.installment_number && transaction.recurring_count ? `${transaction.installment_number}/${transaction.recurring_count}` : 'Recorr'}
+                                                                {transaction.installment_number && transaction.recurring_count ? `${transaction.installment_number}/${transaction.recurring_count}` : t('dashboard.recurring_abbr', 'Recorr')}
                                                             </span>
                                                         )}
                                                     </div>
@@ -170,7 +198,7 @@ export function TransactionDetailModal({
                                                         </p>
                                                         {((transaction.interest || 0) > 0 || (transaction.penalty || 0) > 0) && (
                                                             <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest mt-0.5">
-                                                                Base: {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.amount)}
+                                                                {t('dashboard.base_amount', 'Base:')} {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(transaction.amount)}
                                                             </p>
                                                         )}
                                                     </div>
@@ -186,7 +214,7 @@ export function TransactionDetailModal({
                                                                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition-all active:scale-95 shadow-lg shadow-emerald-500/20 group/btn"
                                                             >
                                                                 <CheckCircle size={14} className="group-hover/btn:scale-110 transition-transform" />
-                                                                {transaction.type === 'expense' ? 'PAGAR' : 'RECEBER'}
+                                                                {transaction.type === 'expense' ? t('dashboard.pay_action', 'PAGAR') : t('dashboard.receive_action', 'RECEBER')}
                                                             </button>
                                                         )}
                                                         
@@ -198,7 +226,7 @@ export function TransactionDetailModal({
                                                                     onDelete(transaction.id);
                                                                 }}
                                                                 className="p-2.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all active:scale-90 border border-transparent hover:border-rose-100 dark:hover:border-rose-900/50"
-                                                                title="Excluir"
+                                                                title={t('dashboard.delete_title', 'Excluir')}
                                                             >
                                                                 <Trash2 size={18} />
                                                             </button>
@@ -212,7 +240,7 @@ export function TransactionDetailModal({
 
                             {/* Category Breakdown */}
                             <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">Por Categoria</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">{t('dashboard.by_category', 'Por Categoria')}</h3>
                                 <div className="space-y-5 bg-gray-50/50 dark:bg-slate-900/40 p-5 rounded-3xl border border-gray-100 dark:border-slate-800/60 backdrop-blur-sm">
                                     {Object.entries(categoryTotals)
                                         .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
@@ -242,7 +270,7 @@ export function TransactionDetailModal({
                                                     </div>
                                                     <div className="flex justify-end">
                                                         <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">
-                                                            {percentage.toFixed(1)}% do total
+                                                            {t('dashboard.percentage_of_total', { percentage: percentage.toFixed(1) })}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -257,7 +285,7 @@ export function TransactionDetailModal({
                 {/* Footer */}
                 <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
                     <Button variant="outline" onClick={onClose} className="px-8 border-gray-200 dark:border-slate-600">
-                        Fechar
+                        {t('dashboard.close_btn', 'Fechar')}
                     </Button>
                 </div>
             </div>

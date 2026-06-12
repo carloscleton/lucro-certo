@@ -2,11 +2,13 @@ import { Award, TrendingUp, Users, AlertTriangle, ArrowRight, Wallet, Clock, XCi
 import { useLoyalty } from '../../hooks/useLoyalty';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export function LoyaltyStatsWidget() {
     const { stats, settings, loading } = useLoyalty();
     const { formatCurrency } = useCurrency();
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     if (loading) return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 animate-pulse h-[340px]">
@@ -35,9 +37,9 @@ export function LoyaltyStatsWidget() {
             <div className="flex items-center justify-between mb-6 relative z-10">
                 <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        Clube VIP
+                        {t('dashboard.vip_club')}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Recorrência e Fidelização</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.recurrence_loyalty')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-bold border border-amber-100 dark:border-amber-800">
@@ -45,12 +47,12 @@ export function LoyaltyStatsWidget() {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                         </span>
-                        Plataforma
+                        {t('dashboard.platform_tag')}
                     </div>
                     <button 
                         onClick={() => navigate('/dashboard/loyalty')}
                         className="p-2 bg-gray-50 dark:bg-slate-700/50 rounded-lg text-gray-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
-                        title="Ir para o Clube VIP"
+                        title={t('dashboard.go_to_vip')}
                     >
                         <ArrowRight size={18} />
                     </button>
@@ -64,7 +66,7 @@ export function LoyaltyStatsWidget() {
                         <div>
                             <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-700 dark:text-amber-500 uppercase tracking-widest">
                                 <TrendingUp size={12} />
-                                Receita Recorrente (MRR)
+                                {t('dashboard.mrr_title')}
                             </span>
                             <div className="text-3xl font-black text-gray-900 dark:text-white mt-1 uppercase tracking-tight">
                                 {formatCurrency(stats.mrr)}
@@ -74,7 +76,7 @@ export function LoyaltyStatsWidget() {
                     {platformFee > 0 && (
                         <div className="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/30 flex items-center justify-between">
                             <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1.5">
-                                <Wallet size={12} className="text-emerald-500" /> Receita Líquida Estimada
+                                <Wallet size={12} className="text-emerald-500" /> {t('dashboard.estimated_net_revenue')}
                             </span>
                             <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
                                 {formatCurrency(netMrr)}
@@ -90,7 +92,7 @@ export function LoyaltyStatsWidget() {
                         <p className="text-xl font-black text-gray-900 dark:text-white leading-none">
                             {String(stats.activeSubscribers).padStart(2, '0')}
                         </p>
-                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase mt-1">Ativos</span>
+                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase mt-1">{t('dashboard.active_subscribers')}</span>
                     </div>
 
                     <div className="col-span-2 sm:col-span-1 p-3 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/30 flex flex-col justify-center items-center text-center group/stat transition-colors hover:bg-gray-100 dark:hover:bg-slate-800">
@@ -98,7 +100,7 @@ export function LoyaltyStatsWidget() {
                         <p className="text-xl font-black text-gray-900 dark:text-white leading-none">
                             {String(trialingCount).padStart(2, '0')}
                         </p>
-                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase mt-1">Trial</span>
+                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase mt-1">{t('dashboard.trial_subscribers')}</span>
                     </div>
 
                     <div className="col-span-2 sm:col-span-1 p-3 rounded-xl border border-red-500/20 bg-red-50/30 dark:bg-red-900/10 flex flex-col justify-center items-center text-center group/stat transition-colors hover:bg-red-50 dark:hover:bg-red-900/20">
@@ -106,7 +108,7 @@ export function LoyaltyStatsWidget() {
                         <p className="text-xl font-black text-gray-900 dark:text-white leading-none">
                             {String(stats.overdueCount).padStart(2, '0')}
                         </p>
-                        <span className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase mt-1">Inadimp.</span>
+                        <span className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase mt-1">{t('dashboard.overdue_subscribers')}</span>
                     </div>
 
                     <div className="col-span-2 sm:col-span-1 p-3 rounded-xl border border-gray-200/50 dark:border-slate-700 bg-gray-50/20 dark:bg-slate-900/20 flex flex-col justify-center items-center text-center group/stat transition-colors hover:bg-gray-100 dark:hover:bg-slate-800">
@@ -114,13 +116,13 @@ export function LoyaltyStatsWidget() {
                         <p className="text-xl font-black text-gray-600 dark:text-gray-400 leading-none">
                             {String(canceledCount).padStart(2, '0')}
                         </p>
-                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase mt-1 line-through opacity-70">Canc.</span>
+                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase mt-1 line-through opacity-70">{t('dashboard.canceled_subscribers')}</span>
                     </div>
                 </div>
 
                 <div className="pt-2 border-t border-dashed border-gray-200 dark:border-slate-700">
                     <p className="text-[10px] text-gray-400 dark:text-slate-500 text-center italic">
-                        "Fidelizar clientes custa até 7x menos do que adquirir novos."
+                        {t('dashboard.loyalty_quote')}
                     </p>
                 </div>
             </div>

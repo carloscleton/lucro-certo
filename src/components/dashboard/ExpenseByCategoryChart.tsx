@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Category } from '../../hooks/useCategories';
 import { SafeChartContainer } from './SafeChartContainer';
+import { useTranslation } from 'react-i18next';
 
 interface ExpenseByCategoryChartProps {
     expenses: { category_id: string; amount: number }[];
@@ -14,6 +15,7 @@ const COLORS = [
 ];
 
 export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCategoryChartProps) {
+    const { t } = useTranslation();
 
     if (expenses.length === 0) return null;
 
@@ -25,7 +27,7 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
     const data = expenses.slice(0, 10).map((e, i) => {
         const cat = categories.find(c => c.id === e.category_id);
         return {
-            name: cat?.name || 'Sem categoria',
+            name: cat?.name || t('dashboard.no_category'),
             value: e.amount,
             percentage: ((e.amount / total) * 100).toFixed(1),
             color: COLORS[i % COLORS.length],
@@ -51,9 +53,9 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
                 <div>
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-                        Distribuição de Despedas
+                        {t('dashboard.expense_distribution')}
                     </h3>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Visão proporcional por categoria no período</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{t('dashboard.proportional_view')}</p>
                 </div>
             </div>
 
@@ -87,7 +89,7 @@ export function ExpenseByCategoryChart({ expenses, categories }: ExpenseByCatego
                     </SafeChartContainer>
                     {/* Central Total */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">Total</span>
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">{t('dashboard.chart_total')}</span>
                         <span className="text-lg font-black text-gray-900 dark:text-white">{formatCurrency(total)}</span>
                     </div>
                 </div>
