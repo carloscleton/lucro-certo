@@ -37,7 +37,7 @@ export function ExchangeRatesWidget() {
         const isUp = change >= 0;
 
         return (
-            <Tooltip content={`Variação Diária ${currency}/BRL: ${change > 0 ? '+' : ''}${change}%`}>
+            <Tooltip content={`Variação Diária ${currency}/BRL: ${change > 0 ? '+' : ''}${change}%`} position="bottom">
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-800 rounded-full border border-gray-200 dark:border-slate-700/60 shadow-sm text-xs font-semibold hover:shadow transition-shadow cursor-default group">
                     {currency === 'USD' ? <span title="Dólar" className="opacity-90 group-hover:opacity-100 transition-opacity">🇺🇸</span> : <span title="Euro" className="opacity-90 group-hover:opacity-100 transition-opacity">🇪🇺</span>}
                     <span className="text-gray-700 dark:text-gray-300 tracking-tight">{currency}</span>

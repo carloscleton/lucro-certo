@@ -448,3 +448,25 @@
         padding: var(--spacing-md);
     }
 }
+
+.desktopHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.mobileHeaderActions {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .desktopHeader {
+        display: none !important;
+    }
+    .mobileHeaderActions {
+        display: flex !important;
+    }
+}

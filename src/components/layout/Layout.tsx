@@ -532,7 +532,7 @@ export function Layout() {
                     </div>
 
                     {/* Desktop Header Content */}
-                    <div className="hidden md:flex items-center justify-between w-full">
+                    <div className={styles.desktopHeader}>
                         {/* Pending Invite Banner */}
                         {pendingInvites.length > 0 && (
                             <div className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm shadow-md animate-pulse">
@@ -623,7 +623,7 @@ export function Layout() {
                         <ExchangeRatesWidget />
                         
                         <LanguageSelector />
-                        <Tooltip content={t('layout.toggle_theme')}>
+                        <Tooltip content={t('layout.toggle_theme')} position="bottom">
                             <button
                                 onClick={toggleTheme}
                                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
@@ -634,7 +634,7 @@ export function Layout() {
                     </div>
 
                     {/* Mobile Header Actions */}
-                    <div className="flex md:hidden items-center gap-2">
+                    <div className={styles.mobileHeaderActions}>
                         <button
                             onClick={toggleTheme}
                             className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-gray-300 transition-colors"

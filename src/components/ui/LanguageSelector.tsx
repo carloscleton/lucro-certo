@@ -31,7 +31,7 @@ export function LanguageSelector() {
 
     return (
         <div className="relative" ref={dropdownRef}>
-            <Tooltip content={t('layout.change_language')}>
+            <Tooltip content={t('layout.change_language')} position="bottom">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className="flex items-center gap-1.5 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
