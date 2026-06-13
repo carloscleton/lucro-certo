@@ -949,7 +949,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // O endpoint /nfse/nacional tem schema estrito e rejeita
                 // campos inválidos ou fora do intervalo aceito.
                 // ===================================================
-                if (isNacional && !useTestData) {
+                if (isNacional) {
                     // 1. tipoTributacao deve ser 1-6 para Nacional (7 = Isento é só municipal)
                     if (item.servico) {
                         const services = Array.isArray(item.servico) ? item.servico : [item.servico];
@@ -993,9 +993,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             });
         }
 
-        // Em sandbox/teste, o PlugNotas não suporta /nfse/nacional com o CNPJ de teste padrão.
-        // Só usamos o endpoint Nacional em PRODUÇÃO com dados reais.
-        const targetEndpoint = (endpoint === 'nfse' && isNacional && !useTestData && !isSandbox) ? 'nfse/nacional' : endpoint;
+        // Se a nota for NFS-e e nacional, usamos o endpoint de emissão nacional da PlugNotas (suportado em sandbox e produção)
+        const targetEndpoint = (endpoint === 'nfse' && isNacional) ? 'nfse/nacional' : endpoint;
         console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.35) → ${targetEndpoint} | Nacional: ${isNacional} | Sandbox: ${isSandbox} | TestData: ${useTestData}:`, JSON.stringify(finalPayload, null, 2));
 
         const response = await axios.post(`${baseUrl}/${targetEndpoint}`, finalPayload, {
