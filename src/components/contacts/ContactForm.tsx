@@ -48,7 +48,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
-    const [taxId, setTaxId] = useState('');
+    const [cpf, setCpf] = useState('');
+    const [cnpj, setCnpj] = useState('');
     const [birthday, setBirthday] = useState('');
 
     // Address fields
@@ -81,11 +82,20 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         if (initialData) {
             setName(initialData.name);
             setType(initialData.type);
-            setEntityType(initialData.entity_type || 'PF');
+            const entType = initialData.entity_type || 'PF';
+            setEntityType(entType);
             setEmail(initialData.email || '');
             setPhone(formatPhoneFromDB(initialData.phone));
             setWhatsapp(formatPhoneFromDB(initialData.whatsapp));
-            setTaxId(initialData.tax_id || '');
+            
+            if (entType === 'PJ') {
+                setCnpj(formatCNPJ(initialData.tax_id || ''));
+                setCpf('');
+            } else {
+                setCpf(formatCPF(initialData.tax_id || ''));
+                setCnpj('');
+            }
+
             setBirthday(initialData.birthday || '');
             setZipCode(initialData.zip_code || '');
             setStreet(initialData.street || '');
@@ -123,7 +133,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setEmail('');
             setPhone('');
             setWhatsapp('');
-            setTaxId('');
+            setCpf('');
+            setCnpj('');
             setBirthday('');
             setZipCode('');
             setStreet('');
@@ -139,24 +150,12 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         }
     }, [initialData, isOpen, currentEntity.id]);
 
-    useEffect(() => {
-        // Re-format taxId when entityType changes
-        if (taxId) {
-            const clean = taxId.replace(/\D/g, '');
-            if (entityType === 'PF') {
-                setTaxId(formatCPF(clean));
-            } else {
-                setTaxId(formatCNPJ(clean));
-            }
-        }
-    }, [entityType]);
-
     const { clearCache } = useAutoSave(
         'contact_form',
-        { name, type, entityType, email, phone, whatsapp, taxId, birthday, zipCode, street, number, complement, neighborhood, city, state },
+        { name, type, entityType, email, phone, whatsapp, cpf, cnpj, birthday, zipCode, street, number, complement, neighborhood, city, state },
         {
             name: setName, type: setType as any, entityType: setEntityType as any, email: setEmail, phone: setPhone, whatsapp: setWhatsapp,
-            taxId: setTaxId, birthday: setBirthday, zipCode: setZipCode, street: setStreet,
+            cpf: setCpf, cnpj: setCnpj, birthday: setBirthday, zipCode: setZipCode, street: setStreet,
             number: setNumber, complement: setComplement, neighborhood: setNeighborhood,
             city: setCity, state: setState
         },
@@ -249,6 +248,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             // Format phone numbers before saving
             const finalPhone = cleanPhoneNumber(phone);
             const finalWhatsapp = cleanPhoneNumber(whatsapp);
+            const finalTaxId = entityType === 'PF' ? cpf : cnpj;
 
             const savedContact = await onSubmit({
                 name,
@@ -257,7 +257,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 email: email || null,
                 phone: finalPhone || null,
                 whatsapp: finalWhatsapp || null,
-                tax_id: taxId || null,
+                tax_id: finalTaxId || null,
                 zip_code: zipCode || null,
                 street: street || null,
                 number: number || null,
@@ -278,7 +278,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             notify('warning', 'É necessário um telefone ou WhatsApp para gerar a cobrança no gateway.', 'Dados Faltando');
                             return;
                         }
-                        if (!taxId) {
+                        if (!finalTaxId) {
                             setLoading(false);
                             notify('warning', 'É necessário informar o CPF ou CNPJ para gerar a cobrança no gateway.', 'Dados Faltando');
                             return;
@@ -443,13 +443,13 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
 
                     <Input
                         label={entityType === 'PF' ? "CPF" : "CNPJ"}
-                        value={taxId}
+                        value={entityType === 'PF' ? cpf : cnpj}
                         onChange={e => {
                             const val = e.target.value;
                             if (entityType === 'PF') {
-                                setTaxId(formatCPF(val));
+                                setCpf(formatCPF(val));
                             } else {
-                                setTaxId(formatCNPJ(val));
+                                setCnpj(formatCNPJ(val));
                             }
                         }}
                         placeholder={entityType === 'PF' ? "000.000.000-00" : "00.000.000/0000-00"}
