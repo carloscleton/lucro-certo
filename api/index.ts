@@ -993,8 +993,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             });
         }
 
-        // Se a nota for NFS-e e nacional, usamos o endpoint de emissão nacional da PlugNotas (suportado em sandbox e produção)
-        const targetEndpoint = (endpoint === 'nfse' && isNacional) ? 'nfse/nacional' : endpoint;
+        // O PlugNotas utiliza o endpoint unificado /nfse para a emissão de notas (tanto municipais quanto nacionais).
+        // A distinção nacional é feita no próprio payload pelo campo "versao: 1.00".
+        const targetEndpoint = endpoint;
         console.log(`🧾 [FISCAL-EMITIR] Payload Final (Proxy v1.0.35) → ${targetEndpoint} | Nacional: ${isNacional} | Sandbox: ${isSandbox} | TestData: ${useTestData}:`, JSON.stringify(finalPayload, null, 2));
 
         const response = await axios.post(`${baseUrl}/${targetEndpoint}`, finalPayload, {
