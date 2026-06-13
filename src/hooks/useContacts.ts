@@ -8,6 +8,7 @@ export interface Contact {
     id: string;
     name: string;
     type: 'client' | 'supplier' | 'both';
+    entity_type: 'PF' | 'PJ';
     email?: string;
     phone?: string;
     whatsapp?: string;

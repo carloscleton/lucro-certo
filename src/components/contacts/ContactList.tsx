@@ -52,6 +52,13 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-bold text-gray-900 dark:text-white">{contact.name}</span>
+                                                <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
+                                                    contact.entity_type === 'PJ'
+                                                    ? 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-900/30 dark:text-indigo-400'
+                                                    : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:border-slate-800 dark:text-slate-400'
+                                                }`}>
+                                                    {contact.entity_type || 'PF'}
+                                                </span>
                                                 {isLoyaltyEnabled && contact.loyalty_subscriptions?.[0] && (
                                                     <Tooltip content={
                                                         contact.loyalty_subscriptions[0].status === 'pending'

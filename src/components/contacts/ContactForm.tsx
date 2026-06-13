@@ -19,12 +19,32 @@ interface ContactFormProps {
     initialData?: Contact | null;
 }
 
+const formatCPF = (value: string) => {
+    const clean = value.replace(/\D/g, '');
+    return clean
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+        .substring(0, 14);
+};
+
+const formatCNPJ = (value: string) => {
+    const clean = value.replace(/\D/g, '');
+    return clean
+        .replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4')
+        .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+        .substring(0, 18);
+};
+
 export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactFormProps) {
     const { notify } = useNotification();
     const { currentEntity } = useEntity();
     const { plans } = useLoyalty();
     const [name, setName] = useState('');
     const [type, setType] = useState<'client' | 'supplier' | 'both'>('client');
+    const [entityType, setEntityType] = useState<'PF' | 'PJ'>('PF');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
@@ -61,6 +81,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         if (initialData) {
             setName(initialData.name);
             setType(initialData.type);
+            setEntityType(initialData.entity_type || 'PF');
             setEmail(initialData.email || '');
             setPhone(formatPhoneFromDB(initialData.phone));
             setWhatsapp(formatPhoneFromDB(initialData.whatsapp));
@@ -98,6 +119,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         } else {
             setName('');
             setType('client');
+            setEntityType('PF');
             setEmail('');
             setPhone('');
             setWhatsapp('');
@@ -117,11 +139,23 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         }
     }, [initialData, isOpen, currentEntity.id]);
 
+    useEffect(() => {
+        // Re-format taxId when entityType changes
+        if (taxId) {
+            const clean = taxId.replace(/\D/g, '');
+            if (entityType === 'PF') {
+                setTaxId(formatCPF(clean));
+            } else {
+                setTaxId(formatCNPJ(clean));
+            }
+        }
+    }, [entityType]);
+
     const { clearCache } = useAutoSave(
         'contact_form',
-        { name, type, email, phone, whatsapp, taxId, birthday, zipCode, street, number, complement, neighborhood, city, state },
+        { name, type, entityType, email, phone, whatsapp, taxId, birthday, zipCode, street, number, complement, neighborhood, city, state },
         {
-            name: setName, type: setType as any, email: setEmail, phone: setPhone, whatsapp: setWhatsapp,
+            name: setName, type: setType as any, entityType: setEntityType as any, email: setEmail, phone: setPhone, whatsapp: setWhatsapp,
             taxId: setTaxId, birthday: setBirthday, zipCode: setZipCode, street: setStreet,
             number: setNumber, complement: setComplement, neighborhood: setNeighborhood,
             city: setCity, state: setState
@@ -219,6 +253,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             const savedContact = await onSubmit({
                 name,
                 type,
+                entity_type: entityType,
                 email: email || null,
                 phone: finalPhone || null,
                 whatsapp: finalWhatsapp || null,
@@ -337,13 +372,37 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             maxWidth="max-w-2xl"
         >
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {/* Entity Type Selector */}
+                <div className="flex p-1 bg-gray-100 dark:bg-slate-800 rounded-xl w-fit mb-2">
+                    <button
+                        type="button"
+                        onClick={() => setEntityType('PF')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${entityType === 'PF'
+                            ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        🧑 Pessoa Física (PF)
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setEntityType('PJ')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${entityType === 'PJ'
+                            ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        🏢 Pessoa Jurídica (PJ)
+                    </button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
-                        label="Nome Completo *"
+                        label={entityType === 'PF' ? "Nome Completo *" : "Razão Social *"}
                         value={name}
                         onChange={e => setName(e.target.value)}
                         required
-                        placeholder="Nome do cliente ou fornecedor"
+                        placeholder={entityType === 'PF' ? "Nome do cliente ou fornecedor" : "Nome da empresa"}
                     />
 
                     <div className="flex flex-col gap-1.5">
@@ -383,10 +442,17 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     />
 
                     <Input
-                        label="CPF / CNPJ"
+                        label={entityType === 'PF' ? "CPF" : "CNPJ"}
                         value={taxId}
-                        onChange={e => setTaxId(e.target.value)}
-                        placeholder="000.000.000-00"
+                        onChange={e => {
+                            const val = e.target.value;
+                            if (entityType === 'PF') {
+                                setTaxId(formatCPF(val));
+                            } else {
+                                setTaxId(formatCNPJ(val));
+                            }
+                        }}
+                        placeholder={entityType === 'PF' ? "000.000.000-00" : "00.000.000/0000-00"}
                     />
 
                     <Input
