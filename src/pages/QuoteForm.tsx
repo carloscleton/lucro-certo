@@ -637,7 +637,10 @@ A garantia cobre defeitos decorrentes da execução do serviço e falhas técnic
 
     const handleAddClientData = async (data: any) => {
         try {
-            const newClient = await addContact(data);
+            const newClient = await addContact({
+                ...data,
+                company_id: currentEntity.id || null
+            });
             if (newClient) {
                 setContactId(newClient.id);
                 setShowClientModal(false);

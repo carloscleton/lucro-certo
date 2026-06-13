@@ -721,7 +721,10 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
         setShowCategoryModal(false);
     };
     const handleContactCreated = async (data: any) => {
-        const newContact = await addContact(data);
+        const newContact = await addContact({
+            ...data,
+            company_id: companyId || null
+        });
         if (newContact) setContactId(newContact.id);
         setShowContactModal(false);
     };
@@ -790,7 +793,9 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             </div>
                             <select className="h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm" value={contactId} onChange={e => setContactId(e.target.value)}>
                                 <option value="">Selecione...</option>
-                                {contacts.filter(c => c.type === (isExpense ? 'supplier' : 'client')).map(contact => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
+                                {contacts
+                                    .filter(c => c.type === (isExpense ? 'supplier' : 'client') && (companyId ? c.company_id === companyId : !c.company_id))
+                                    .map(contact => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
                             </select>
                         </div>
 
