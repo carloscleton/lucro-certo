@@ -1285,7 +1285,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                         headers: { 'x-api-key': apiKey }
                     });
                     // Se existe, vamos atualizar as configurações para que fiquem sincronizadas (como o nfseNacional)
-                    response = await axios.put(`${baseUrl}/empresa/${effectiveCnpjUrl}`, issuerPayload, {
+                    response = await axios.patch(`${baseUrl}/empresa/${effectiveCnpjUrl}`, issuerPayload, {
                         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
                     });
                 } catch (getErr: any) {
@@ -1304,7 +1304,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                     });
                 } catch (error: any) {
                     if (error.response?.status === 409) {
-                        response = await axios.put(`${baseUrl}/empresa/${effectiveCnpjUrl}`, issuerPayload, {
+                        response = await axios.patch(`${baseUrl}/empresa/${effectiveCnpjUrl}`, issuerPayload, {
                             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
                         });
                     } else {
