@@ -7,7 +7,7 @@ import { webhookService } from '../services/webhookService';
 export interface Contact {
     id: string;
     name: string;
-    type: 'client' | 'supplier';
+    type: 'client' | 'supplier' | 'both';
     email?: string;
     phone?: string;
     whatsapp?: string;

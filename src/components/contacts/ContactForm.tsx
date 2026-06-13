@@ -24,7 +24,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const { currentEntity } = useEntity();
     const { plans } = useLoyalty();
     const [name, setName] = useState('');
-    const [type, setType] = useState<'client' | 'supplier'>('client');
+    const [type, setType] = useState<'client' | 'supplier' | 'both'>('client');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
@@ -351,10 +351,11 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         <select
                             className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-600"
                             value={type}
-                            onChange={e => setType(e.target.value as 'client' | 'supplier')}
+                            onChange={e => setType(e.target.value as 'client' | 'supplier' | 'both')}
                         >
                             <option value="client">Cliente</option>
                             <option value="supplier">Fornecedor</option>
+                            <option value="both">Ambos (Cliente e Fornecedor)</option>
                         </select>
                     </div>
 

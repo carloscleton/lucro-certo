@@ -73,7 +73,9 @@ export function Contacts() {
     };
 
     const filteredContacts = contacts.filter(contact => {
-        const matchesFilter = filterType === 'all' || contact.type === filterType;
+        const matchesFilter = filterType === 'all' || 
+            (filterType === 'client' && (contact.type === 'client' || contact.type === 'both')) ||
+            (filterType === 'supplier' && (contact.type === 'supplier' || contact.type === 'both'));
         const matchesSearch = !searchTerm || 
             contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||

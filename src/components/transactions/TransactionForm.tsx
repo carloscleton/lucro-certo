@@ -794,7 +794,13 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
                             <select className="h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm" value={contactId} onChange={e => setContactId(e.target.value)}>
                                 <option value="">Selecione...</option>
                                 {contacts
-                                    .filter(c => c.type === (isExpense ? 'supplier' : 'client') && (companyId ? c.company_id === companyId : !c.company_id))
+                                    .filter(c => {
+                                        const matchesType = isExpense
+                                            ? (c.type === 'supplier' || c.type === 'both')
+                                            : (c.type === 'client' || c.type === 'both');
+                                        const matchesCompany = companyId ? c.company_id === companyId : !c.company_id;
+                                        return matchesType && matchesCompany;
+                                    })
                                     .map(contact => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
                             </select>
                         </div>

@@ -43,9 +43,11 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2.5 rounded-2xl shadow-sm ${contact.type === 'client'
                                             ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                                            : 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                                            : contact.type === 'supplier'
+                                            ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                                            : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
                                             }`}>
-                                            {contact.type === 'client' ? <User size={18} /> : <Truck size={18} />}
+                                            {contact.type === 'client' || contact.type === 'both' ? <User size={18} /> : <Truck size={18} />}
                                         </div>
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
@@ -79,9 +81,11 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                                 <td className="px-6 py-4">
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${contact.type === 'client'
                                         ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30'
-                                        : 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/30'
+                                        : contact.type === 'supplier'
+                                        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/30'
+                                        : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30'
                                         }`}>
-                                        {contact.type === 'client' ? 'Cliente' : 'Fornecedor'}
+                                        {contact.type === 'client' ? 'Cliente' : contact.type === 'supplier' ? 'Fornecedor' : 'Ambos'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 hidden md:table-cell text-gray-500 dark:text-gray-400">

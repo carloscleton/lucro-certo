@@ -773,7 +773,7 @@ A garantia cobre defeitos decorrentes da execução do serviço e falhas técnic
                             >
                                 <option value="">Selecione um cliente...</option>
                                 {contacts
-                                    .filter(c => c.type === 'client')
+                                    .filter(c => c.type === 'client' || c.type === 'both')
                                     .map(contact => (
                                         <option key={contact.id} value={contact.id}>
                                             {contact.name}
