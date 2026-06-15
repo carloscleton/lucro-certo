@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search, MessageCircle, Mail, BarChart3 } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, ExternalLink, Search, MessageCircle, Mail, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -44,7 +44,6 @@ export function Invoices() {
     const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({ isOpen: false, invoice: null });
     const [cancelReason, setCancelReason] = useState('');
     const [isProtectedModalOpen, setIsProtectedModalOpen] = useState(false);
-    const [isCancelling, setIsCancelling] = useState(false);
     const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, invoiceId: string | null}>({
         isOpen: false, invoiceId: null
     });
@@ -153,7 +152,6 @@ export function Invoices() {
 
     const executeCancelInvoice = async () => {
         if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
-        setIsCancelling(true);
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
@@ -185,8 +183,6 @@ export function Invoices() {
                     : (error.message || 'Falha ao cancelar nota.'),
                 type: 'error'
             });
-        } finally {
-            setIsCancelling(false);
         }
     };
 
