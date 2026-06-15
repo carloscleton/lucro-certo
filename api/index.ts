@@ -1680,9 +1680,10 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
             const is404 = primaryErr.response?.status === 404;
 
             // Fallback para NFe.io caso o download na Tecnospeed falhe (pode ser nota antiga da NFe.io gravada com tipo incorreto)
+            // Flexibilizado para tentar em qualquer status de erro (como 500 da TecnoSpeed por ID incompatível) se a empresa possuir config NFe.io
             const nfeioConfig = settings?.nfeio_config;
-            if (is404 && nfeioConfig?.apiKey && nfeioConfig?.companyId) {
-                console.log(`⚠️ [FISCAL-DOWNLOAD] Não encontrado na TecnoSpeed. Tentando obter da NFe.io para ID: ${id}`);
+            if (nfeioConfig?.apiKey && nfeioConfig?.companyId) {
+                console.log(`⚠️ [FISCAL-DOWNLOAD] Falha na TecnoSpeed (Status: ${primaryErr.response?.status || 'desconhecido'}). Tentando obter da NFe.io para ID: ${id}`);
                 try {
                     const apiKeyNfe = nfeioConfig.apiKey.trim();
                     const companyIdNfe = nfeioConfig.companyId.trim();
@@ -1943,9 +1944,10 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             const is404 = primaryErr.response?.status === 404;
             const nfeioConfig = settings?.nfeio_config;
 
-            // Fallback para NFe.io caso a nota não exista na TecnoSpeed (pode ser nota antiga NFe.io gravada com tipo incorreto)
-            if (is404 && nfeioConfig?.apiKey && nfeioConfig?.companyId) {
-                console.log(`⚠️ [FISCAL-STATUS] Nota não encontrada na TecnoSpeed. Tentando buscar na NFe.io para ID: ${id}`);
+            // Fallback para NFe.io caso a nota não exista ou ocorra erro na TecnoSpeed (pode ser nota antiga NFe.io gravada com tipo incorreto)
+            // Flexibilizado para tentar em qualquer status de erro se a empresa possuir config NFe.io
+            if (nfeioConfig?.apiKey && nfeioConfig?.companyId) {
+                console.log(`⚠️ [FISCAL-STATUS] Erro na TecnoSpeed (Status: ${primaryErr.response?.status || 'desconhecido'}). Tentando buscar na NFe.io para ID: ${id}`);
                 try {
                     const apiKeyNfe = nfeioConfig.apiKey.trim();
                     const companyIdNfe = nfeioConfig.companyId.trim();
