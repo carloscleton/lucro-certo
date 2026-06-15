@@ -686,7 +686,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 return res.status(400).json({ error: 'Valor do serviço inválido ou ausente. Verifique o campo valor.servico ou valorUnitario no payload.' });
             }
 
-            const nfeioPayload = {
+            // Dados fiscais do prestador (empresa) vindos da config NFe.io
+            const issRate = nfeioConfig.aliquotaIss
+                ? Number(String(nfeioConfig.aliquotaIss).replace(',', '.'))
+                : undefined;
+
+            const nfeioPayload: any = {
                 cityServiceCode: String(nfeioConfig.cityServiceCode || serviceItem?.codigo || nfeioConfig.cnae || '1.01').trim(),
                 description: String(serviceItem?.discriminacao || serviceItem?.descricao || 'Prestação de serviço').trim(),
                 servicesAmount,
@@ -710,6 +715,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
                 }
             };
+
+            // Adiciona campos opcionais do prestador apenas se existirem na config
+            if (issRate && issRate > 0) nfeioPayload.issRate = issRate;
+            if (nfeioConfig.inscricaoMunicipal) nfeioPayload.municipalTaxNumber = String(nfeioConfig.inscricaoMunicipal).trim();
+            if (nfeioConfig.simplesNacional !== undefined) nfeioPayload.simpleSocialScheme = Boolean(nfeioConfig.simplesNacional);
+            if (nfeioConfig.cnae) nfeioPayload.cnaeCode = String(nfeioConfig.cnae).trim();
 
             console.log(`🧾 [NFEIO-EMITIR] Enviando Payload para NFe.io (Sandbox: ${isSandbox}):`, JSON.stringify(nfeioPayload, null, 2));
 
