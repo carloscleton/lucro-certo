@@ -190,20 +190,7 @@ export function Invoices() {
         }
     };
 
-    const handleCancelInvoice = async () => {
-        if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
 
-        const isAuthorized = ['concluido', 'autorizado'].includes(cancelModal.invoice.status?.toLowerCase());
-
-        // Se a nota estiver concluída/autorizada, exige validação do administrador via DeleteProtectionModal
-        if (isAuthorized) {
-            setCancelModal(prev => ({ ...prev, isOpen: false }));
-            setIsProtectedModalOpen(true);
-            return;
-        }
-
-        await executeCancelInvoice();
-    };
 
     const handleDeleteInvoice = async () => {
         if (!deleteModal.invoiceId) return;
@@ -961,7 +948,11 @@ export function Invoices() {
                                                 {invoice.external_id && ['concluido', 'autorizado'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Cancelar na Prefeitura">
                                                         <button
-                                                            onClick={() => setCancelModal({ isOpen: true, invoice })}
+                                                            onClick={() => {
+                                                                setCancelModal({ isOpen: false, invoice });
+                                                                setCancelReason('Cancelamento solicitado pelo usuario');
+                                                                setIsProtectedModalOpen(true);
+                                                            }}
                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all shadow-sm"
                                                         >
                                                             <XCircle size={18} />
@@ -1070,57 +1061,7 @@ export function Invoices() {
                 />
             )}
 
-            {/* Modal de Cancelamento */}
-            {cancelModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
-                                <AlertTriangle size={32} />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cancelar Nota Fiscal</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Esta ação não pode ser desfeita.</p>
-                            </div>
-                        </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">Justificativa (Mínimo 15 caracteres)</label>
-                                <textarea
-                                    value={cancelReason}
-                                    onChange={(e) => setCancelReason(e.target.value)}
-                                    placeholder="Ex: Nota emitida com valor incorreto ou serviço cancelado pelo cliente..."
-                                    className="w-full h-32 p-4 rounded-2xl border-2 border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 text-sm focus:border-blue-500 outline-none transition-all resize-none"
-                                    required
-                                />
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => {
-                                        setCancelModal({ isOpen: false, invoice: null });
-                                        setCancelReason('');
-                                    }}
-                                    className="flex-1 h-12 rounded-xl font-bold text-gray-500"
-                                >
-                                    Voltar
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    onClick={handleCancelInvoice}
-                                    disabled={cancelReason.length < 15 || isCancelling}
-                                    isLoading={isCancelling}
-                                    className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-500/20 rounded-xl font-bold"
-                                >
-                                    Confirmar Cancelamento
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Modal de Exclusão */}
             {deleteModal.isOpen && (
@@ -1232,7 +1173,8 @@ export function Invoices() {
                     isOpen={isProtectedModalOpen}
                     onClose={() => {
                         setIsProtectedModalOpen(false);
-                        setCancelModal(prev => ({ ...prev, isOpen: true }));
+                        setCancelModal({ isOpen: false, invoice: null });
+                        setCancelReason('');
                     }}
                     onConfirm={executeCancelInvoice}
                     transaction={(() => {
