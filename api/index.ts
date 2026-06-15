@@ -199,7 +199,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
             console.log(`🚫 [NFEIO-CANCELAR] Cancelando nota NFe.io ID: ${id}`);
             
-            const response = await axios.delete(`https://api.nfe.io/v2/companies/${companyIdNfe}/serviceinvoices/${id}`, {
+            const response = await axios.delete(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`, {
                 headers: {
                     'Authorization': apiKeyNfe
                 }
@@ -740,7 +740,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             console.log(`🧾 [NFEIO-EMITIR] Enviando Payload para NFe.io (Sandbox: ${isSandbox}):`, JSON.stringify(nfeioPayload, null, 2));
 
-            const response = await axios.post(`https://api.nfe.io/v2/companies/${companyIdNfe}/serviceinvoices`, nfeioPayload, {
+            const response = await axios.post(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices`, nfeioPayload, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': apiKey
@@ -1501,7 +1501,7 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
 
             console.log(`🔍 [NFEIO-CONSULTAR] Listando notas NFe.io para empresa: ${companyIdNfe}`);
             
-            const response = await axios.get(`https://api.nfe.io/v2/companies/${companyIdNfe}/serviceinvoices`, {
+            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices`, {
                 params: {
                     environment: isSandbox ? 'test' : 'production'
                 },
@@ -1628,7 +1628,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
             console.log(`📄 [NFEIO-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para nota NFe.io ID: ${id}`);
             
-            const response = await axios.get(`https://api.nfe.io/v2/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`, {
+            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`, {
                 headers: {
                     'Authorization': apiKeyNfe
                 },
@@ -1836,7 +1836,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
 
             console.log(`🔍 [NFEIO-STATUS] Consultando status da nota NFe.io ID: ${id}`);
             
-            const response = await axios.get(`https://api.nfe.io/v2/companies/${companyIdNfe}/serviceinvoices/${id}`, {
+            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`, {
                 headers: {
                     'Authorization': apiKeyNfe
                 }
@@ -2023,7 +2023,7 @@ app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'
             const companyIdNfe = nfeioConfig.companyId.trim();
 
             console.log(`✉️ [NFEIO-EMAIL] Solicitando reenvio de e-mail para nota NFe.io ID: ${id}`);
-            const response = await axios.put(`https://api.nfe.io/v2/companies/${companyIdNfe}/serviceinvoices/${id}/sendemail`, {}, {
+            const response = await axios.put(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/sendemail`, {}, {
                 headers: {
                     'Authorization': apiKeyNfe
                 }
