@@ -26,6 +26,29 @@ axios.interceptors.response.use(
     }
 );
 
+// Helper axios para NFe.io com desabilitação de Keep-Alive e retry automático em ECONNRESET/ETIMEDOUT
+async function axiosNfeioRequest(config: any, retries = 2, delay = 1000): Promise<any> {
+    try {
+        if (!config.headers) config.headers = {};
+        // Desabilitar keep-alive especificamente para evitar ECONNRESET em conexões serverless reusadas
+        config.headers['Connection'] = 'close';
+        return await axios(config);
+    } catch (err: any) {
+        const isNetworkError = !err.response || 
+                               err.code === 'ECONNRESET' || 
+                               err.code === 'ETIMEDOUT' || 
+                               err.code === 'ECONNABORTED' ||
+                               err.message?.includes('ECONNRESET') ||
+                               err.message?.includes('Network Error');
+        if (isNetworkError && retries > 0) {
+            console.warn(`⚠️ [NFEIO-RETRY] Falha de conexão (${err.code || err.message}). Retentando em ${delay}ms... (${retries} tentativas restantes)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return axiosNfeioRequest(config, retries - 1, delay * 1.5);
+        }
+        throw err;
+    }
+}
+
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -210,7 +233,9 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
             console.log(`🚫 [NFEIO-CANCELAR] Cancelando nota NFe.io ID: ${id}`);
             
-            const response = await axios.delete(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`, {
+            const response = await axiosNfeioRequest({
+                method: 'DELETE',
+                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`,
                 headers: {
                     'Authorization': apiKeyNfe
                 }
@@ -365,7 +390,10 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
             });
             form.append('Password', String(senha));
 
-            const response = await axios.post(baseUrl, form, {
+            const response = await axiosNfeioRequest({
+                method: 'POST',
+                url: baseUrl,
+                data: form,
                 headers: {
                     ...form.getHeaders(),
                     'Authorization': apiKey
@@ -801,7 +829,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             console.log(`🧾 [NFEIO-EMITIR] Enviando Payload para NFe.io (Sandbox: ${isSandbox}):`, JSON.stringify(nfeioPayload, null, 2));
 
-            const response = await axios.post(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices`, nfeioPayload, {
+            const response = await axiosNfeioRequest({
+                method: 'POST',
+                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices`,
+                data: nfeioPayload,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': apiKey
@@ -1165,7 +1196,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
         res.json({ ...response.data, proxy_version: '1.0.32' });
     } catch (error: any) {
-        res.status(error.response?.status || 500).json({ error: error.message, detail: error.response?.data });
+        console.error('❌ [FISCAL-EMITIR-ERROR] Falha na emissão:', error.message, error.response?.data || '');
+        
+        const isConnectionReset = error.code === 'ECONNRESET' || error.message?.includes('ECONNRESET');
+        const isTimeout = error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+        const is503 = error.response?.status === 503;
+        
+        let customMessage = error.message;
+        if (isConnectionReset) {
+            customMessage = 'Conexão interrompida (ECONNRESET) com o provedor fiscal. A API do provedor (NFe.io/Tecnospeed) fechou a conexão inesperadamente. Por favor, tente novamente em alguns instantes.';
+        } else if (isTimeout) {
+            customMessage = 'Tempo limite de resposta excedido (timeout) ao se comunicar com o provedor fiscal. O servidor deles está demorando muito para responder.';
+        } else if (is503) {
+            customMessage = 'Serviço Indisponível (Erro 503) no provedor fiscal. A API deles (NFe.io/Tecnospeed) pode estar em manutenção ou sobrecarregada. Tente novamente mais tarde.';
+        }
+        
+        res.status(error.response?.status || 500).json({ 
+            error: customMessage, 
+            detail: error.response?.data || { code: error.code }
+        });
     }
 });
 
@@ -1562,7 +1611,9 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
 
             console.log(`🔍 [NFEIO-CONSULTAR] Listando notas NFe.io para empresa: ${companyIdNfe}`);
             
-            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices`, {
+            const response = await axiosNfeioRequest({
+                method: 'GET',
+                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices`,
                 params: {
                     environment: isSandbox ? 'test' : 'production'
                 },
@@ -1713,7 +1764,9 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
             console.log(`📄 [NFEIO-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para nota NFe.io ID: ${id}`);
             
-            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`, {
+            const response = await axiosNfeioRequest({
+                method: 'GET',
+                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`,
                 headers: {
                     'Authorization': apiKeyNfe
                 },
@@ -1765,7 +1818,9 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     const apiKeyNfe = nfeioConfig.apiKey.trim();
                     const companyIdNfe = nfeioConfig.companyId.trim();
                     
-                    const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`, {
+                    const response = await axiosNfeioRequest({
+                        method: 'GET',
+                        url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`,
                         headers: { 'Authorization': apiKeyNfe },
                         responseType: 'arraybuffer'
                     });
@@ -1943,7 +1998,9 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
 
             console.log(`🔍 [NFEIO-STATUS] Consultando status da nota NFe.io ID: ${id}`);
             
-            const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`, {
+            const response = await axiosNfeioRequest({
+                method: 'GET',
+                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`,
                 headers: {
                     'Authorization': apiKeyNfe
                 }
@@ -2028,7 +2085,9 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 try {
                     const apiKeyNfe = nfeioConfig.apiKey.trim();
                     const companyIdNfe = nfeioConfig.companyId.trim();
-                    const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`, {
+                    const response = await axiosNfeioRequest({
+                        method: 'GET',
+                        url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`,
                         headers: { 'Authorization': apiKeyNfe }
                     });
                     
@@ -2185,7 +2244,10 @@ app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'
             const companyIdNfe = nfeioConfig.companyId.trim();
 
             console.log(`✉️ [NFEIO-EMAIL] Solicitando reenvio de e-mail para nota NFe.io ID: ${id}`);
-            const response = await axios.put(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/sendemail`, {}, {
+            const response = await axiosNfeioRequest({
+                method: 'PUT',
+                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/sendemail`,
+                data: {},
                 headers: {
                     'Authorization': apiKeyNfe
                 }
