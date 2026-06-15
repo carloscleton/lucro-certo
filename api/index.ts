@@ -171,24 +171,35 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         // --- SANITIZAÇÃO DA URL BASE ---
         let cleanBaseUrl = baseUrl.replace(/\/$/, '').replace(/\/(nfse|nfe)$/i, '');
         
-        // --- PROTEÇÃO DE ID ---
-        if (id && !isNaN(Number(id))) {
+        // --- RESOLVER DADOS E TIPO DA NOTA NO BANCO DE DADOS ---
+        let resolvedType = type;
+        if (id) {
             try {
+                const queryParam = !isNaN(Number(id)) ? { id: `eq.${id}` } : { external_id: `eq.${id}` };
                 const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                    params: { id: `eq.${id}`, select: 'external_id,type' },
+                    params: { ...queryParam, select: 'external_id,type' },
                     headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
                 });
-                if (invData?.[0]?.external_id) {
-                    id = invData[0].external_id;
-                    if (!type) type = invData[0].type;
+                if (invData?.[0]) {
+                    if (invData[0].external_id) {
+                        id = invData[0].external_id;
+                    }
+                    if (invData[0].type) {
+                        resolvedType = invData[0].type;
+                    }
                 }
-            } catch (dbErr) {
-                console.warn('⚠️ Falha ao buscar external_id:', id);
+            } catch (dbErr: any) {
+                console.warn('⚠️ Falha ao buscar dados da nota para cancelamento:', dbErr.message);
             }
         }
 
+        // Se mesmo assim não temos o tipo, decide com base no activeProvider da empresa
+        const finalType = resolvedType || (activeProvider === 'nfeio' ? 'nfeio' : 'nfse');
+        type = finalType; // Sincroniza a variável 'type' para o fluxo subsequente
+
         // --- ROTEAMENTO NFE.IO ---
-        if (type === 'nfeio' || activeProvider === 'nfeio') {
+        // O cancelamento deve ser feito no provedor onde a nota foi realmente emitida (independente de rotina)
+        if (finalType === 'nfeio') {
             const nfeioConfig = settings?.nfeio_config;
             if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
                 return res.status(400).json({ error: 'Configuração da NFe.io incompleta para cancelamento.' });
@@ -225,17 +236,6 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
             }
 
             return res.json({ success: true, ...response.data });
-        }
-        
-        if (!type || (type !== 'nfe' && type !== 'nfse')) {
-            try {
-                const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                    params: { external_id: `eq.${id}`, select: 'type' },
-                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
-                });
-                if (invData?.[0]?.type) type = invData[0].type;
-                else type = 'nfse';
-            } catch (dbErr) { type = 'nfse'; }
         }
 
         const typeLower = type.toLowerCase();
@@ -1622,10 +1622,31 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
     }
 
     try {
-        // Tentar obter a configuração usando a função com cache
-        const { config, settings } = await getCompanyFiscalConfig(authHeader, companyId as string);
+        // Obter o tipo real da nota no banco de dados para garantir o roteamento correto (NFe.io vs TecnoSpeed)
+        let resolvedType = type;
+        if (id && SUPABASE_URL) {
+            try {
+                const queryParam = !isNaN(Number(id)) ? { id: `eq.${id}` } : { external_id: `eq.${id}` };
+                const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    params: { ...queryParam, select: 'type' },
+                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+                });
+                if (invData?.[0]?.type) {
+                    resolvedType = invData[0].type;
+                    console.log(`🔍 [FISCAL-DOWNLOAD] Tipo real resolvido no banco: ${resolvedType} para ID: ${id}`);
+                }
+            } catch (dbErr: any) {
+                console.warn('⚠️ [FISCAL-DOWNLOAD] Não foi possível verificar o tipo da nota no banco:', dbErr.message);
+            }
+        }
 
-        if (type === 'nfeio' || settings?.fiscal_provider === 'nfeio') {
+        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+        
+        // Se o tipo real for 'nfeio', ou se o tipo solicitado no path for 'nfeio' (e não achou no banco),
+        // ou se o provedor ativo for nfeio e não temos registro no banco para contradizer.
+        const isNfeio = resolvedType === 'nfeio' || (type === 'nfeio' && !resolvedType) || (activeProvider === 'nfeio' && !resolvedType);
+
+        if (isNfeio) {
             const nfeioConfig = settings?.nfeio_config;
             if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
                 return res.status(404).json({ error: 'Configuração da NFe.io não encontrada.' });
