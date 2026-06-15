@@ -14,7 +14,6 @@ import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
 import { ResultModal } from '../components/ui/ResultModal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
-import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
 import { BillingReportModal } from '../components/fiscal/BillingReportModal';
 
@@ -43,7 +42,6 @@ export function Invoices() {
     });
     const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({ isOpen: false, invoice: null });
     const [cancelReason, setCancelReason] = useState('');
-    const [isProtectedModalOpen, setIsProtectedModalOpen] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, invoiceId: string | null}>({
         isOpen: false, invoiceId: null
