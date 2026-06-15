@@ -716,8 +716,39 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
-            if (!cityName) {
-                cityName = 'Cidade Não Informada';
+            // --- RESOLUÇÃO DE FALLBACKS DE ENDEREÇO PARA NFE.IO ---
+            // Garante que se o cliente (tomador) não tiver endereço completo cadastrado, a nota não seja rejeitada.
+            const companyEnd = config?.endereco || {};
+            const fallbackCep = String(companyEnd.cep || '59000000').replace(/\D/g, '');
+            const fallbackStreet = String(companyEnd.logradouro || 'Rua Principal').trim();
+            const fallbackNumber = String(companyEnd.numero || 'S/N').trim();
+            const fallbackDistrict = String(companyEnd.bairro || 'Centro').trim();
+            const fallbackState = String(companyEnd.uf || 'RN').trim().toUpperCase();
+            const fallbackCityCode = String(companyEnd.codigoCidade || '2408102').trim();
+
+            const finalCep = String(tomadorEnd.cep || '').replace(/\D/g, '') || fallbackCep;
+            const finalStreet = String(tomadorEnd.logradouro || '').trim() || fallbackStreet;
+            const finalNumber = String(tomadorEnd.numero || '').trim() || fallbackNumber;
+            const finalDistrict = String(tomadorEnd.bairro || '').trim() || fallbackDistrict;
+            const finalState = stateValue || fallbackState;
+            const finalCityCode = cityCode && cityCode !== '0' ? cityCode : fallbackCityCode;
+
+            if (!cityName || cityName === 'Cidade Não Informada') {
+                if (finalCityCode) {
+                    try {
+                        const cleanIbge = finalCityCode.replace(/\D/g, '').trim();
+                        const ibgeResponse = await axios.get(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${cleanIbge}`, {
+                            timeout: 2500
+                        });
+                        if (ibgeResponse.data?.nome) {
+                            cityName = ibgeResponse.data.nome;
+                        }
+                    } catch (e) {
+                        cityName = 'Natal'; // Fallback final
+                    }
+                } else {
+                    cityName = 'Natal';
+                }
             }
 
             // --- ISS Rate: prioridade ao valor do payload (iss.aliquota), fallback para config da empresa ---
@@ -748,14 +779,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     email: firstItem?.tomador?.email || null,
                     address: {
                         country: 'BRA',
-                        postalCode: String(tomadorEnd.cep || '').replace(/\D/g, ''),
-                        street: String(tomadorEnd.logradouro || '').trim(),
-                        number: String(tomadorEnd.numero || '').trim(),
+                        postalCode: finalCep,
+                        street: finalStreet,
+                        number: finalNumber,
                         additionalInformation: String(tomadorEnd.complemento || '').trim() || undefined,
-                        district: String(tomadorEnd.bairro || '').trim(),
-                        state: stateValue,
+                        district: finalDistrict,
+                        state: finalState,
                         city: {
-                            code: cityCode,
+                            code: finalCityCode,
                             name: cityName
                         }
                     }
