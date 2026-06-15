@@ -97,7 +97,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 default_cnae: nfe.cnae || '',
                 default_taxation_code: nfe.cityServiceCode || '',
                 endereco: {
-                    codigoCidade: nfe.codigoCidade || currentCompany?.city_ibge || ''
+                    codigoCidade: nfe.codigoCidade || currentCompany?.tecnospeed_config?.endereco?.codigoCidade || ''
                 },
                 ambiente: nfe.ambiente || 'homologacao',
                 send_email_automatically: false,
