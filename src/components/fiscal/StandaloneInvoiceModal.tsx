@@ -884,8 +884,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 return;
             }
 
-            const detail = error.response?.data || error.message;
-            setError(error.message);
+            const rawErrorMsg = typeof error.response?.data?.error === 'string'
+                ? error.response.data.error
+                : (error.response?.data?.error?.message || error.response?.data?.message || error.message);
+            setError(rawErrorMsg);
+            
+            const detail = error.response?.data?.detail || error.response?.data || error.message;
             setErrorDetail(typeof detail === 'object' ? JSON.stringify(detail, null, 2) : detail);
         } finally {
             setLoading(false);

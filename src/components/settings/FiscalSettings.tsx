@@ -1168,7 +1168,12 @@ export function FiscalSettings() {
             const isAlreadyEmitted = error.response?.status === 409;
             const conflictId = error.response?.data?.id || error.response?.data?.data?.id || error.response?.data?.detail?.id;
             
-            const rawMessage = error.response?.data?.error?.message || error.response?.data?.message || error.response?.data?.detail || error.message;
+            const rawMessage = 
+                (typeof error.response?.data?.error === 'string' ? error.response.data.error : undefined) ||
+                error.response?.data?.error?.message || 
+                error.response?.data?.message || 
+                error.response?.data?.detail || 
+                error.message;
             const safeMessage = typeof rawMessage === 'object' ? JSON.stringify(rawMessage) : String(rawMessage || '');
             const isInactiveDocError = safeMessage.includes('Documento não está ativo para este emissor');
             
