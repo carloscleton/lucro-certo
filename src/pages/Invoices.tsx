@@ -1296,9 +1296,11 @@ export function Invoices() {
             {cancelModal.invoice && isProtectedModalOpen && (
                 <DeleteProtectionModal
                     isOpen={isProtectedModalOpen}
-                    onClose={() => {
+                    onClose={(isSuccess) => {
                         setIsProtectedModalOpen(false);
-                        setCancelModal(prev => ({ ...prev, isOpen: true }));
+                        if (!isSuccess) {
+                            setCancelModal(prev => ({ ...prev, isOpen: true }));
+                        }
                     }}
                     onConfirm={executeCancelInvoice}
                     transaction={(() => {

@@ -740,9 +740,11 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: Invo
             {/* Modal de Autenticação do Administrador via WhatsApp */}
             <DeleteProtectionModal
                 isOpen={isProtectedModalOpen}
-                onClose={() => {
+                onClose={(isSuccess) => {
                     setIsProtectedModalOpen(false);
-                    setShowCancelModal(true);
+                    if (!isSuccess) {
+                        setShowCancelModal(true);
+                    }
                 }}
                 onConfirm={executeCancelInvoice}
                 transaction={{

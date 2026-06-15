@@ -9,7 +9,7 @@ import { whatsappService } from '../../services/whatsappService';
 
 interface DeleteProtectionModalProps {
     isOpen: boolean;
-    onClose: () => void;
+    onClose: (isSuccess?: boolean) => void;
     onConfirm: () => Promise<void>;
     transaction: any;
     invoiceNumber: string;
@@ -379,7 +379,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                 }
             }
 
-            onClose();
+            onClose(true);
         } catch (err: any) {
             console.error('Erro ao excluir transação:', err);
             setStatusMessage(err.message || 'Falha ao realizar a exclusão.');
@@ -392,7 +392,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={() => onClose(false)}
             title="Transação Protegida - Autorização Requerida"
             icon={ShieldAlert}
             variant="warning"
