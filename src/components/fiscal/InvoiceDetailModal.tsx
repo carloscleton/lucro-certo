@@ -227,6 +227,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: Invo
         } catch (error: any) {
             console.error('Erro ao cancelar nota:', error);
             alert('Erro no cancelamento: ' + (error.response?.data?.error?.message || error.message));
+            throw error;
         } finally {
             setIsCancelling(false);
         }

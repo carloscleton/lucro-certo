@@ -316,7 +316,10 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
         setLoadingConfirm(true);
         try {
-            // Dispara notificação silenciosa de auditoria para o administrador
+            // 1. Executa primeiro a ação de exclusão/cancelamento (pode falhar)
+            await onConfirm();
+
+            // 2. Dispara notificação silenciosa de auditoria para o administrador somente se a exclusão/cancelamento deu certo
             const targetPhone = adminPhone || phoneInput;
             if (hasWaInstance && waInstanceName) {
                 const auditMsg = `⚠️ *[Lucro Certo - Auditoria Financeira]*\n\n` +
@@ -376,7 +379,6 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                 }
             }
 
-            await onConfirm();
             onClose();
         } catch (err: any) {
             console.error('Erro ao excluir transação:', err);

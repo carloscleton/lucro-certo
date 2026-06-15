@@ -623,6 +623,7 @@ function TransactionPage({ type, title }: TransactionPageProps) {
                             notify('success', 'Transação protegida excluída com sucesso sob autorização do administrador.', 'Sucesso');
                         } catch (err: any) {
                             alert(err.message || 'Falha ao realizar a exclusão.');
+                            throw err;
                         }
                     }}
                     transaction={protectedTransaction.transaction}

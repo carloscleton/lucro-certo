@@ -186,6 +186,7 @@ export function Invoices() {
                     : (error.message || 'Falha ao cancelar nota.'),
                 type: 'error'
             });
+            throw error;
         } finally {
             setIsCancelling(false);
         }
