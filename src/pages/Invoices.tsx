@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, ExternalLink, Search, MessageCircle, Mail, BarChart3 } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search, MessageCircle, Mail, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -44,6 +44,7 @@ export function Invoices() {
     const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({ isOpen: false, invoice: null });
     const [cancelReason, setCancelReason] = useState('');
     const [isProtectedModalOpen, setIsProtectedModalOpen] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
     const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, invoiceId: string | null}>({
         isOpen: false, invoiceId: null
     });
@@ -152,6 +153,7 @@ export function Invoices() {
 
     const executeCancelInvoice = async () => {
         if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
+        setIsCancelling(true);
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
@@ -183,6 +185,8 @@ export function Invoices() {
                     : (error.message || 'Falha ao cancelar nota.'),
                 type: 'error'
             });
+        } finally {
+            setIsCancelling(false);
         }
     };
 
@@ -945,9 +949,8 @@ export function Invoices() {
                                                     <Tooltip content="Cancelar na Prefeitura">
                                                         <button
                                                             onClick={() => {
-                                                                setCancelModal({ isOpen: false, invoice });
-                                                                setCancelReason('Cancelamento solicitado pelo usuario');
-                                                                setIsProtectedModalOpen(true);
+                                                                setCancelModal({ isOpen: true, invoice });
+                                                                setCancelReason('');
                                                             }}
                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all shadow-sm"
                                                         >
@@ -1164,33 +1167,56 @@ export function Invoices() {
                 </Modal>
             )}
 
-            {cancelModal.invoice && isProtectedModalOpen && (
-                <DeleteProtectionModal
-                    isOpen={isProtectedModalOpen}
-                    onClose={() => {
-                        setIsProtectedModalOpen(false);
-                        setCancelModal({ isOpen: false, invoice: null });
-                        setCancelReason('');
-                    }}
-                    onConfirm={executeCancelInvoice}
-                    transaction={(() => {
-                        const inv = cancelModal.invoice;
-                        const p = inv.payload;
-                        const servicos = p ? (Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : [])) : [];
-                        const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || 0;
-                        return {
-                            description: `Cancelamento de Nota Fiscal ${inv.external_id ? `(${inv.external_id.slice(-6)})` : ''}`,
-                            amount: val,
-                            company_id: inv.company_id,
-                            date: inv.created_at?.split('T')[0]
-                        };
-                    })()}
-                    invoiceNumber={(() => {
-                        const inv = cancelModal.invoice;
-                        const p = inv.payload;
-                        return inv.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero || 'Emitida';
-                    })()}
-                />
+            {/* Modal de Cancelamento */}
+            {cancelModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
+                                <AlertTriangle size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cancelar Nota Fiscal</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Esta ação não pode ser desfeita.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">Justificativa (Mínimo 15 caracteres)</label>
+                                <textarea
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    placeholder="Ex: Nota emitida com valor incorreto ou serviço cancelado pelo cliente..."
+                                    className="w-full h-32 p-4 rounded-2xl border-2 border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 text-sm focus:border-blue-500 outline-none transition-all resize-none"
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setCancelModal({ isOpen: false, invoice: null });
+                                        setCancelReason('');
+                                    }}
+                                    className="flex-1 h-12 rounded-xl font-bold text-gray-500"
+                                >
+                                    Voltar
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    onClick={executeCancelInvoice}
+                                    disabled={cancelReason.length < 15 || isCancelling}
+                                    isLoading={isCancelling}
+                                    className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-500/20 rounded-xl font-bold"
+                                >
+                                    Confirmar Cancelamento
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {selectedInvoiceDetail && (
