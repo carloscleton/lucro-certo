@@ -1622,6 +1622,9 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
     }
 
     try {
+        // Tentar obter a configuração usando a função com cache
+        const { config, settings } = await getCompanyFiscalConfig(authHeader, companyId as string);
+
         // Obter o tipo real da nota no banco de dados para garantir o roteamento correto (NFe.io vs TecnoSpeed)
         let resolvedType = type;
         if (id && SUPABASE_URL) {
