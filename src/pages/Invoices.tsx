@@ -19,6 +19,65 @@ import { BillingReportModal } from '../components/fiscal/BillingReportModal';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 
 
+export function parseFiscalError(error: any): string {
+    const errData = error.response?.data;
+    if (errData && typeof errData === 'object') {
+        const detail = errData.detail;
+        
+        // Se houver detalhe estruturado do erro
+        if (detail && typeof detail === 'object') {
+            // Caso 1: NFe.io indisponível (503)
+            if (detail.status === 503 || detail.title === 'Service Unavailable') {
+                return 'O provedor fiscal NFe.io está temporariamente indisponível (Erro 503 Service Unavailable). Por favor, aguarde alguns minutos e tente novamente.';
+            }
+            
+            // Caso 2: Mensagem direta do NFe.io ou erro interno
+            if (detail.message) {
+                return `Erro no provedor fiscal (NFe.io): ${detail.message}`;
+            }
+
+            // Caso 3: Erro detalhado da PlugNotas/Prefeitura
+            if (detail.error && typeof detail.error === 'object') {
+                if (detail.error.message) {
+                    return `Erro do provedor fiscal: ${detail.error.message}`;
+                }
+                if (detail.error.errors && Array.isArray(detail.error.errors) && detail.error.errors[0]?.message) {
+                    return `Erro da prefeitura: ${detail.error.errors[0].message}`;
+                }
+            }
+
+            // Caso 4: Erro dentro do detail.error.message (Ex: prefeitura rejeitou)
+            if (typeof detail.error === 'string') {
+                return `Erro do provedor: ${detail.error}`;
+            }
+        }
+
+        if (typeof detail === 'string') {
+            return detail;
+        }
+
+        // Se houver erro direto (PlugNotas/Backend)
+        const errorField = errData.error;
+        if (errorField && typeof errorField === 'object' && errorField.message) {
+            return errorField.message;
+        }
+
+        if (typeof errorField === 'string' && errorField !== 'Erro ao cancelar nota') {
+            return errorField;
+        }
+
+        if (errData.message) {
+            return errData.message;
+        }
+    }
+
+    if (error.message === 'Network Error') {
+        return 'Falha de conexão com o servidor. Verifique sua conexão de rede.';
+    }
+
+    return error.message || 'Ocorreu um erro desconhecido no cancelamento.';
+}
+
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
     const { currentEntity } = useEntity();
@@ -181,9 +240,7 @@ export function Invoices() {
             setResultModal({
                 isOpen: true,
                 title: 'Erro no Cancelamento',
-                message: error.response?.data 
-                    ? JSON.stringify(error.response.data) 
-                    : (error.message || 'Falha ao cancelar nota.'),
+                message: parseFiscalError(error),
                 type: 'error'
             });
             throw error;

@@ -10,6 +10,7 @@ import { whatsappService } from '../../services/whatsappService';
 import { Button } from '../ui/Button';
 import { DeleteProtectionModal } from '../transactions/DeleteProtectionModal';
 import { API_BASE_URL } from '../../lib/constants';
+import { parseFiscalError } from '../../pages/Invoices';
 
 interface InvoiceDetailModalProps {
     isOpen: boolean;
@@ -226,7 +227,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: Invo
             alert('Cancelamento solicitado com sucesso!');
         } catch (error: any) {
             console.error('Erro ao cancelar nota:', error);
-            alert('Erro no cancelamento: ' + (error.response?.data?.error?.message || error.message));
+            alert('Erro no cancelamento: ' + parseFiscalError(error));
             throw error;
         } finally {
             setIsCancelling(false);
