@@ -16,6 +16,8 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
 import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
 import { BillingReportModal } from '../components/fiscal/BillingReportModal';
+import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
+
 
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
@@ -42,6 +44,7 @@ export function Invoices() {
     });
     const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({ isOpen: false, invoice: null });
     const [cancelReason, setCancelReason] = useState('');
+    const [isProtectedModalOpen, setIsProtectedModalOpen] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, invoiceId: string | null}>({
         isOpen: false, invoiceId: null
@@ -186,6 +189,21 @@ export function Invoices() {
         } finally {
             setIsCancelling(false);
         }
+    };
+
+    const handleCancelInvoice = async () => {
+        if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
+
+        const isAuthorized = ['concluido', 'autorizado'].includes(cancelModal.invoice.status?.toLowerCase());
+
+        // Se a nota estiver concluída/autorizada, exige validação do administrador via DeleteProtectionModal
+        if (isAuthorized) {
+            setCancelModal(prev => ({ ...prev, isOpen: false }));
+            setIsProtectedModalOpen(true);
+            return;
+        }
+
+        await executeCancelInvoice();
     };
 
 
@@ -1204,7 +1222,7 @@ export function Invoices() {
                                 </Button>
                                 <Button
                                     variant="primary"
-                                    onClick={executeCancelInvoice}
+                                    onClick={handleCancelInvoice}
                                     disabled={cancelReason.length < 15 || isCancelling}
                                     isLoading={isCancelling}
                                     className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-500/20 rounded-xl font-bold"
@@ -1215,6 +1233,34 @@ export function Invoices() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {cancelModal.invoice && isProtectedModalOpen && (
+                <DeleteProtectionModal
+                    isOpen={isProtectedModalOpen}
+                    onClose={() => {
+                        setIsProtectedModalOpen(false);
+                        setCancelModal(prev => ({ ...prev, isOpen: true }));
+                    }}
+                    onConfirm={executeCancelInvoice}
+                    transaction={(() => {
+                        const inv = cancelModal.invoice;
+                        const p = inv.payload;
+                        const servicos = p ? (Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : [])) : [];
+                        const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || 0;
+                        return {
+                            description: `Cancelamento de Nota Fiscal ${inv.external_id ? `(${inv.external_id.slice(-6)})` : ''}`,
+                            amount: val,
+                            company_id: inv.company_id,
+                            date: inv.created_at?.split('T')[0]
+                        };
+                    })()}
+                    invoiceNumber={(() => {
+                        const inv = cancelModal.invoice;
+                        const p = inv.payload;
+                        return inv.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero || 'Emitida';
+                    })()}
+                />
             )}
 
             {selectedInvoiceDetail && (
