@@ -1246,7 +1246,7 @@ export function FiscalSettings() {
                             : (config.inscricao_municipal || "123456"))
                 },
                 tomador: {
-                    cpfCnpj: "99999999999999",
+                    cpfCnpj: isNfeio ? "00000000000191" : "99999999999999",
                     razaoSocial: "Empresa de Teste LTDA",
                     inscricaoMunicipal: "8214100099",
                     email: "teste@nfe.io",
@@ -3155,7 +3155,7 @@ export function FiscalSettings() {
                             onChange={(e) => setTestJson(e.target.value)}
                             className="w-full h-48 p-3 text-xs font-mono bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                             placeholder={activeSubTab === 'nfeio' 
-                                ? '[\n  {\n    "tomador": {\n      "cpfCnpj": "99999999999999",\n      "razaoSocial": "Empresa de Teste LTDA",\n      "endereco": {\n        "logradouro": "Rua Teste",\n        "numero": "1001",\n        "bairro": "Centro",\n        "cep": "01001000",\n        "uf": "SP",\n        "cidade": "Sao Paulo"\n      }\n    },\n    "servico": [\n      {\n        "codigo": "1.01",\n        "discriminacao": "Prestação de serviço via NFe.io",\n        "valorUnitario": 100.00\n      }\n    ]\n  }\n]'
+                                ? '[\n  {\n    "tomador": {\n      "cpfCnpj": "00000000000191",\n      "razaoSocial": "Empresa de Teste LTDA",\n      "endereco": {\n        "logradouro": "Rua Teste",\n        "numero": "1001",\n        "bairro": "Centro",\n        "cep": "01001000",\n        "uf": "SP",\n        "cidade": "Sao Paulo"\n      }\n    },\n    "servico": [\n      {\n        "codigo": "1.01",\n        "discriminacao": "Prestação de serviço via NFe.io",\n        "valorUnitario": 100.00\n      }\n    ]\n  }\n]'
                                 : '{ "prestador": { ... }, "tomador": { ... }, "servico": { ... } }'
                             }
                         />

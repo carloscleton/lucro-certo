@@ -644,7 +644,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     }
 
     try {
-        const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId);
+        const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId, Boolean(isLabTest));
         if (!config) {
             return res.status(400).json({ error: 'Configuração fiscal não encontrada.' });
         }
@@ -662,7 +662,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const companyIdNfe = nfeioConfig.companyId.trim();
 
             const firstItem = Array.isArray(payload) ? payload[0] : payload;
-            const taxNumber = String(firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
+            let taxNumber = String(firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
+            
+            // Corrige CNPJ fictício inválido comumente vindo do frontend ou de localStorage antigo
+            if (taxNumber === '99999999999999') {
+                taxNumber = '00000000000191';
+            }
+            
             const borrowerType = taxNumber.length === 11 ? 'NaturalPerson' : (taxNumber.length === 14 ? 'LegalEntity' : 'Undefined');
 
             // Mapeamento de endereço do tomador
@@ -2068,12 +2074,12 @@ app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'
 export const fiscalConfigCache = new Map<string, { config: any; realCompanyId: string; settings?: any; expiresAt: number }>();
 
 // Helper para buscar configuração fiscal da empresa no Supabase
-async function getCompanyFiscalConfig(authHeader: string | null, companyId: string) {
+async function getCompanyFiscalConfig(authHeader: string | null, companyId: string, bypassCache = false) {
     if (!companyId) throw new Error('companyId é obrigatório para obter configuração fiscal.');
 
     // 🔍 1. Tenta buscar no cache em memória primeiro (bypassa o RLS e Supabase API inteiramente)
     const cached = fiscalConfigCache.get(companyId);
-    if (cached && cached.expiresAt > Date.now()) {
+    if (!bypassCache && cached && cached.expiresAt > Date.now()) {
         console.log(`⚡ [FISCAL-CACHE] Configuração fiscal recuperada do cache para: ${companyId}`);
         return {
             config: cached.config,
@@ -2154,12 +2160,12 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
             settings: company.settings || {}
         };
 
-        // Salvar no cache com 1 dia de expiração (para dar máxima resiliência a cliques de clientes finais no WhatsApp)
+        // Salvar no cache com 5 minutos de expiração (para dar resiliência a cliques rápidos de clientes no WhatsApp, sem reter config desatualizada)
         fiscalConfigCache.set(companyId, {
             config: company.tecnospeed_config || {},
             realCompanyId: company.id,
             settings: company.settings || {},
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24 horas
+            expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutos
         });
 
         // Também indexa pelo ID resolvido para garantir que ambos funcionem no cache (UUID e CNPJ)
@@ -2168,7 +2174,7 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
                 config: company.tecnospeed_config || {},
                 realCompanyId: company.id,
                 settings: company.settings || {},
-                expiresAt: Date.now() + 24 * 60 * 60 * 1000
+                expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutos
             });
         }
 
