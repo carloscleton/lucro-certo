@@ -693,9 +693,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cityCode   = String(tomadorEnd.codigoCidade || firstItem?.emitente?.codigoCidade || '').trim();
 
             // --- ISS Rate: prioridade ao valor do payload (iss.aliquota), fallback para config da empresa ---
-            const issRateFromPayload = serviceItem?.iss?.aliquota ? Number(serviceItem.iss.aliquota) : undefined;
+            // NFe.io espera decimal: 0.05 = 5%. Se vier como inteiro (5), divide por 100.
+            const toDecimalRate = (v: number) => v > 1 ? v / 100 : v;
+            const issRateFromPayload = serviceItem?.iss?.aliquota ? toDecimalRate(Number(serviceItem.iss.aliquota)) : undefined;
             const issRateFromConfig  = nfeioConfig.aliquotaIss
-                ? Number(String(nfeioConfig.aliquotaIss).replace(',', '.'))
+                ? toDecimalRate(Number(String(nfeioConfig.aliquotaIss).replace(',', '.')))
                 : undefined;
             const issRate = issRateFromPayload || issRateFromConfig;
 
