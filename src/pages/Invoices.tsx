@@ -190,6 +190,7 @@ export function Invoices() {
 
         // Se a nota estiver concluída/autorizada, exige validação do administrador via DeleteProtectionModal
         if (isAuthorized) {
+            setCancelModal(prev => ({ ...prev, isOpen: false }));
             setIsProtectedModalOpen(true);
             return;
         }
@@ -1220,7 +1221,10 @@ export function Invoices() {
             {cancelModal.invoice && isProtectedModalOpen && (
                 <DeleteProtectionModal
                     isOpen={isProtectedModalOpen}
-                    onClose={() => setIsProtectedModalOpen(false)}
+                    onClose={() => {
+                        setIsProtectedModalOpen(false);
+                        setCancelModal(prev => ({ ...prev, isOpen: true }));
+                    }}
                     onConfirm={executeCancelInvoice}
                     transaction={(() => {
                         const inv = cancelModal.invoice;

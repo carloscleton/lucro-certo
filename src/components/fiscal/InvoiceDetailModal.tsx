@@ -236,6 +236,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: Invo
 
         // Se a nota estiver concluída/autorizada, exige validação do administrador via WhatsApp
         if (isAuthorized) {
+            setShowCancelModal(false);
             setIsProtectedModalOpen(true);
             return;
         }
@@ -734,7 +735,10 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: Invo
             {/* Modal de Autenticação do Administrador via WhatsApp */}
             <DeleteProtectionModal
                 isOpen={isProtectedModalOpen}
-                onClose={() => setIsProtectedModalOpen(false)}
+                onClose={() => {
+                    setIsProtectedModalOpen(false);
+                    setShowCancelModal(true);
+                }}
                 onConfirm={executeCancelInvoice}
                 transaction={{
                     description: `Cancelamento de Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id}`,
