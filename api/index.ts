@@ -686,10 +686,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 return res.status(400).json({ error: 'Valor do serviço inválido ou ausente. Verifique o campo valor.servico ou valorUnitario no payload.' });
             }
 
-            // Dados fiscais do prestador (empresa) vindos da config NFe.io
-            const issRate = nfeioConfig.aliquotaIss
+            // --- Mapeamento de campos do estado/cidade ---
+            // TecnoSpeed usa 'estado' e 'descricaoCidade', NFe.io usa 'uf' e 'cidade'
+            const stateValue = String(tomadorEnd.uf || tomadorEnd.estado || '').trim().toUpperCase();
+            const cityName   = String(tomadorEnd.cidade || tomadorEnd.descricaoCidade || '').trim();
+            const cityCode   = String(tomadorEnd.codigoCidade || firstItem?.emitente?.codigoCidade || '').trim();
+
+            // --- ISS Rate: prioridade ao valor do payload (iss.aliquota), fallback para config da empresa ---
+            const issRateFromPayload = serviceItem?.iss?.aliquota ? Number(serviceItem.iss.aliquota) : undefined;
+            const issRateFromConfig  = nfeioConfig.aliquotaIss
                 ? Number(String(nfeioConfig.aliquotaIss).replace(',', '.'))
                 : undefined;
+            const issRate = issRateFromPayload || issRateFromConfig;
+
+            // --- Inscrição Municipal: prioridade ao prestador do payload, fallback para config ---
+            const inscricaoMunicipal = String(
+                firstItem?.prestador?.inscricaoMunicipal ||
+                nfeioConfig.inscricaoMunicipal ||
+                ''
+            ).trim();
 
             const nfeioPayload: any = {
                 cityServiceCode: String(nfeioConfig.cityServiceCode || serviceItem?.codigo || nfeioConfig.cnae || '1.01').trim(),
@@ -706,19 +721,20 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         postalCode: String(tomadorEnd.cep || '').replace(/\D/g, ''),
                         street: String(tomadorEnd.logradouro || '').trim(),
                         number: String(tomadorEnd.numero || '').trim(),
+                        additionalInformation: String(tomadorEnd.complemento || '').trim() || undefined,
                         district: String(tomadorEnd.bairro || '').trim(),
-                        state: String(tomadorEnd.uf || '').trim().toUpperCase(),
+                        state: stateValue,
                         city: {
-                            code: String(tomadorEnd.codigoCidade || '').trim(),
-                            name: String(tomadorEnd.cidade || '').trim()
+                            code: cityCode,
+                            name: cityName
                         }
                     }
                 }
             };
 
-            // Adiciona campos opcionais do prestador apenas se existirem na config
+            // Adiciona campos opcionais do prestador apenas se existirem
             if (issRate && issRate > 0) nfeioPayload.issRate = issRate;
-            if (nfeioConfig.inscricaoMunicipal) nfeioPayload.municipalTaxNumber = String(nfeioConfig.inscricaoMunicipal).trim();
+            if (inscricaoMunicipal) nfeioPayload.municipalTaxNumber = inscricaoMunicipal;
             if (nfeioConfig.simplesNacional !== undefined) nfeioPayload.simpleSocialScheme = Boolean(nfeioConfig.simplesNacional);
             if (nfeioConfig.cnae) nfeioPayload.cnaeCode = String(nfeioConfig.cnae).trim();
 
