@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -82,8 +82,32 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const [notes, setNotes] = useState(initialNotes || '');
     const [showAdvanced, setShowAdvanced] = useState(false);
 
-    const config = currentCompany?.tecnospeed_config as any;
-    const isNacional = config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false;
+    const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
+
+    const config = useMemo(() => {
+        if (activeProvider === 'nfeio') {
+            const nfe = currentCompany?.settings?.nfeio_config || {};
+            return {
+                ...nfe,
+                cnpj: currentCompany?.cnpj || '',
+                inscricao_municipal: nfe.inscricaoMunicipal || '',
+                regime_tributario: nfe.simplesNacional ? '1' : '3',
+                simples_nacional_aliquota: nfe.aliquotaIss || '0',
+                default_iss_aliquota: nfe.aliquotaIss || '0',
+                default_cnae: nfe.cnae || '',
+                default_taxation_code: nfe.cityServiceCode || '',
+                endereco: {
+                    codigoCidade: nfe.codigoCidade || currentCompany?.city_ibge || ''
+                },
+                ambiente: nfe.ambiente || 'homologacao',
+                send_email_automatically: false,
+                send_whatsapp_automatically: false
+            } as any;
+        }
+        return currentCompany?.tecnospeed_config as any;
+    }, [currentCompany, activeProvider]);
+
+    const isNacional = activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false);
 
     // Auto-fill from Config
     useEffect(() => {
@@ -130,7 +154,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             }
             return item;
         }));
-    }, [currentCompany, type, currentEntity.id]);
+    }, [config, type, currentEntity.id]);
+
+    useEffect(() => {
+        if (activeProvider === 'nfeio' && type !== 'nfse') {
+            setType('nfse');
+        }
+    }, [activeProvider, type]);
 
     useEffect(() => {
         const fetchWA = async () => {
@@ -302,12 +332,30 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             return;
         }
 
-        if (!currentCompany || !currentCompany.tecnospeed_config) {
-            setError('Configurações fiscais da empresa não encontradas.');
+        if (!currentCompany) {
+            setError('Empresa não encontrada.');
             return;
         }
 
-        const isNacional = currentCompany.tecnospeed_config.nfse_nacional || currentCompany.tecnospeed_config.nfse?.config?.nfseNacional || false;
+        if (activeProvider === 'nfeio') {
+            const nfeioConfig = currentCompany?.settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                setError('Configurações da NFe.io não encontradas ou incompletas.');
+                return;
+            }
+        } else {
+            if (!currentCompany.tecnospeed_config) {
+                setError('Configurações fiscais da empresa (TecnoSpeed) não encontradas.');
+                return;
+            }
+        }
+
+        if (activeProvider === 'nfeio' && type === 'nfe') {
+            setError('O emissor NFe.io está configurado apenas para NFS-e (Serviço). Para emitir NF-e (Produto), use a TecnoSpeed.');
+            return;
+        }
+
+        const isNacional = activeProvider === 'nfeio' ? false : (currentCompany.tecnospeed_config.nfse_nacional || currentCompany.tecnospeed_config.nfse?.config?.nfseNacional || false);
 
         if (type === 'nfse' && isNacional) {
             if (items.length > 1) {
@@ -327,10 +375,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         setLoading(true);
         try {
             let payload: any;
-            const totalAmount = items.reduce((acc, i) => acc + (parseFloat(i.amount.replace(/\./g, '').replace(',', '.')) * i.quantity), 0);
+            const totalAmount = items.reduce((acc, i) => {
+                const clean = (i.amount || '').replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+                const parsed = parseFloat(clean);
+                const val = isNaN(parsed) ? 0 : parsed;
+                return acc + (val * i.quantity);
+            }, 0);
 
             if (type === 'nfse') {
-                const config = currentCompany.tecnospeed_config;
                 const companyCityCode = config?.endereco?.codigoCidade || config?.codigo_municipio || '3106200';
                 
                 payload = {
@@ -434,7 +486,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         }
 
                         // Aplicação automática das configurações de Simples Nacional se disponíveis
-                        const configFiscal = currentCompany?.tecnospeed_config;
+                        const configFiscal = config;
                         if (configFiscal) {
                             if (configFiscal.simples_nacional_aliquota) {
                                 if (!item.valor) item.valor = {};
@@ -469,7 +521,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     };
                 }
                 console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
-                const result = await fiscalService.emitirNFSe(currentEntity.id!, payload, token);
+                const result = await fiscalService.emitirNFSe(
+                    currentEntity.id!,
+                    payload,
+                    token,
+                    undefined,
+                    false,
+                    activeProvider
+                );
                 
                 // Extrair ID com suporte a múltiplos formatos (documents[0] ou raiz)
                 const externalId = result.data?.id || result.id || result.documents?.[0]?.id;
@@ -537,7 +596,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 const { error: dbError } = await supabase.from('fiscal_invoices').insert({
                                     company_id: realCompanyId,
                                     external_id: externalId,
-                                    type: isNacional ? 'nfsenac' : 'nfse',
+                                    type: activeProvider === 'nfeio' ? 'nfeio' : (isNacional ? 'nfsenac' : 'nfse'),
                                     status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
                                     payload: {
                                         ...payload,
@@ -646,7 +705,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 }
 
                 console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
-                const result = await fiscalService.emitirNFe(currentEntity.id!, payload, token);
+                const result = await fiscalService.emitirNFe(
+                    currentEntity.id!,
+                    payload,
+                    token,
+                    undefined,
+                    false,
+                    activeProvider
+                );
 
                 const externalId = result.data?.id || result.id || result.documents?.[0]?.id;
                 let finalPayloadToSave = result.data || result;
@@ -846,7 +912,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     </div>
                 )}
 
-                {currentCompany?.tecnospeed_config?.ambiente === 'producao' && !currentCompany?.tecnospeed_config?.certificado_enviado && (
+                {activeProvider === 'tecnospeed' && config?.ambiente === 'producao' && !config?.certificado_enviado && (
                     <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-[2rem] border border-amber-100 dark:border-amber-900/20">
                         <div className="flex items-start gap-4">
                             <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
@@ -862,7 +928,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     </div>
                 )}
 
-                {currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional && type === 'nfse' && (
+                {activeProvider === 'tecnospeed' && config?.nfse?.config?.nfseNacional && type === 'nfse' && (
                     <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
                             <Globe size={18} className="text-blue-600 dark:text-blue-400" />
@@ -882,6 +948,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Configuração Fiscal Ativa:</span>
                         </div>
                         <div className="flex flex-wrap gap-3">
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="Emissor Ativo">
+                                <span className="text-[9px] font-medium text-gray-400">Emissor:</span>
+                                <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                                    {activeProvider === 'nfeio' ? 'NFe.io' : activeProvider === 'other' ? 'Webhook' : 'TecnoSpeed'}
+                                </span>
+                            </div>
+
                             <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="CNAE Padrão">
                                 <span className="text-[9px] font-medium text-gray-400">CNAE:</span>
                                 <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300">
@@ -927,9 +1000,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             onChange={(e) => setType(e.target.value as any)}
                             className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
                             required
+                            disabled={activeProvider === 'nfeio'}
                         >
                             <option value="nfse">NFS-e (Serviço)</option>
-                            <option value="nfe">NF-e (Produto)</option>
+                            {activeProvider !== 'nfeio' && <option value="nfe">NF-e (Produto)</option>}
                         </select>
                     </div>
 

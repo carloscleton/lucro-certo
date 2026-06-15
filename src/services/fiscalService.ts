@@ -12,12 +12,14 @@ export interface FiscalPayload {
 }
 
 export const fiscalService = {
-    async emitirNFe(companyId: string, payload: any, token: string, quoteId?: string) {
+    async emitirNFe(companyId: string, payload: any, token: string, quoteId?: string, isLabTest?: boolean, provider?: string) {
         const response = await axios.post(getFiscalUrl('emitir'), {
             companyId,
             payload,
             type: 'nfe',
-            quoteId
+            quoteId,
+            isLabTest,
+            provider
         }, {
             headers: {
                 'Authorization': `Bearer ${token}`

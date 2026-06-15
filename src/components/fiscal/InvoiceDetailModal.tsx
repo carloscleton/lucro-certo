@@ -135,6 +135,9 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: Invo
 
     // Extrair valores
     const totalAmount = invoice.amount || 
+                        payload.servicesAmount || 
+                        payload.retorno?.servicesAmount || 
+                        payload.retorno?.valorTotal || 
                         payload.servico?.[0]?.valor?.servico || 
                         payload.itens?.[0]?.valorUnitario?.comercial || 
                         0;

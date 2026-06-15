@@ -1679,6 +1679,27 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
             const isNfseEndpoint = primaryType === 'nfse' || primaryType === 'nfse/nacional';
             const is404 = primaryErr.response?.status === 404;
 
+            // Fallback para NFe.io caso o download na Tecnospeed falhe (pode ser nota antiga da NFe.io gravada com tipo incorreto)
+            const nfeioConfig = settings?.nfeio_config;
+            if (is404 && nfeioConfig?.apiKey && nfeioConfig?.companyId) {
+                console.log(`⚠️ [FISCAL-DOWNLOAD] Não encontrado na TecnoSpeed. Tentando obter da NFe.io para ID: ${id}`);
+                try {
+                    const apiKeyNfe = nfeioConfig.apiKey.trim();
+                    const companyIdNfe = nfeioConfig.companyId.trim();
+                    
+                    const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`, {
+                        headers: { 'Authorization': apiKeyNfe },
+                        responseType: 'arraybuffer'
+                    });
+                    
+                    res.setHeader('Content-Type', isXml ? 'application/xml' : 'application/pdf');
+                    res.setHeader('Content-Disposition', `${isXml ? 'attachment' : 'inline'}; filename="nfeio-${id}.${isXml ? 'xml' : 'pdf'}"`);
+                    return res.send(Buffer.from(response.data));
+                } catch (nfeioErr: any) {
+                    console.error('❌ [FISCAL-DOWNLOAD] Falha no fallback NFe.io:', nfeioErr.response?.data || nfeioErr.message);
+                }
+            }
+
             if (isNfseEndpoint && is404) {
                 const fallbackType = primaryType === 'nfse' ? 'nfse/nacional' : 'nfse';
                 console.log(`⚠️ [FISCAL-DOWNLOAD] Não encontrado em ${primaryType}. Tentando fallback em ${fallbackType}...`);
@@ -1919,6 +1940,60 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             });
             statusData = response.data;
         } catch (primaryErr: any) {
+            const is404 = primaryErr.response?.status === 404;
+            const nfeioConfig = settings?.nfeio_config;
+
+            // Fallback para NFe.io caso a nota não exista na TecnoSpeed (pode ser nota antiga NFe.io gravada com tipo incorreto)
+            if (is404 && nfeioConfig?.apiKey && nfeioConfig?.companyId) {
+                console.log(`⚠️ [FISCAL-STATUS] Nota não encontrada na TecnoSpeed. Tentando buscar na NFe.io para ID: ${id}`);
+                try {
+                    const apiKeyNfe = nfeioConfig.apiKey.trim();
+                    const companyIdNfe = nfeioConfig.companyId.trim();
+                    const response = await axios.get(`https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`, {
+                        headers: { 'Authorization': apiKeyNfe }
+                    });
+                    
+                    const statusData = response.data;
+                    const currentStatus = statusData.status || statusData.flowStatus || 'Created';
+                    
+                    console.log(`🎯 [FISCAL-STATUS] Nota encontrada na NFe.io. Corrigindo tipo e URLs no banco para 'nfeio'.`);
+                    
+                    const getValidDocUrl = (docType: 'pdf' | 'xml') => {
+                        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                        const host = req.get('host');
+                        const baseApiUrl = `${protocol}://${host}`;
+                        return `${baseApiUrl}/api/fiscal-module/nfeio/${id}/${docType}?companyId=${companyId}`;
+                    };
+                    
+                    const pdfUrl = getValidDocUrl('pdf');
+                    const xmlUrl = getValidDocUrl('xml');
+                    const mappedStatus = String(currentStatus).toLowerCase() === 'issued' ? 'concluido' : (String(currentStatus).toLowerCase() === 'cancelled' ? 'cancelado' : (String(currentStatus).toLowerCase() === 'error' ? 'erro' : 'processando'));
+                    
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                        type: 'nfeio',
+                        status: mappedStatus,
+                        pdf_url: pdfUrl,
+                        xml_url: xmlUrl,
+                        invoice_number: statusData.number ? String(statusData.number) : null,
+                        access_key: statusData.verificationCode ? String(statusData.verificationCode) : null,
+                        dps_number: statusData.rpsNumber ? String(statusData.rpsNumber) : null,
+                        dps_serie: statusData.rpsSerialNumber ? String(statusData.rpsSerialNumber) : null,
+                        protocol: statusData.protocol ? String(statusData.protocol) : null,
+                        payload: {
+                            ...existingPayload,
+                            retorno: statusData
+                        },
+                        updated_at: new Date().toISOString()
+                    }, {
+                        headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
+                    });
+                    
+                    return res.json(statusData);
+                } catch (nfeioErr: any) {
+                    console.error('❌ [FISCAL-STATUS] Falha no fallback NFe.io:', nfeioErr.response?.data || nfeioErr.message);
+                }
+            }
+
             // Fallback: se nfse/nacional retornou 404, tenta em nfse (nota pode ter sido emitida municipalmente)
             if (primaryErr.response?.status === 404 && targetType === 'nfse/nacional') {
                 console.warn(`⚠️ [FISCAL-STATUS] Nota não encontrada em /nfse/nacional. Tentando fallback em /nfse...`);

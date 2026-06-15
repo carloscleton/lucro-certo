@@ -24,7 +24,14 @@ export function Invoices() {
     const { companies } = useCompanies();
     
     const currentCompany = companies.find(c => c.id === currentEntity.id);
-    const config = currentCompany?.tecnospeed_config;
+    const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
+    const config = activeProvider === 'nfeio'
+        ? {
+            ...currentCompany?.settings?.nfeio_config,
+            send_whatsapp_automatically: currentCompany?.tecnospeed_config?.send_whatsapp_automatically,
+            send_email_automatically: currentCompany?.tecnospeed_config?.send_email_automatically
+          }
+        : currentCompany?.tecnospeed_config;
     
     const [showNewModal, setShowNewModal] = useState(false);
     const [showConsultaModal, setShowConsultaModal] = useState(false);
@@ -858,10 +865,12 @@ export function Invoices() {
                                                         const servico = servicos[0];
                                                         
                                                         // Tenta várias fontes de valor
-                                                        const val = servico?.valor?.servico || 
+                                                        const val = p?.servicesAmount || 
+                                                                   p?.retorno?.servicesAmount || 
+                                                                   p?.retorno?.valorTotal || 
+                                                                   servico?.valor?.servico || 
                                                                    p?.valorTotal || 
                                                                    p?.valorTotalBruto || 
-                                                                   p?.retorno?.valorTotal || 
                                                                    0;
                                                         
                                                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
