@@ -695,8 +695,30 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // --- Mapeamento de campos do estado/cidade ---
             // TecnoSpeed usa 'estado' e 'descricaoCidade', NFe.io usa 'uf' e 'cidade'
             const stateValue = String(tomadorEnd.uf || tomadorEnd.estado || '').trim().toUpperCase();
-            const cityName   = String(tomadorEnd.cidade || tomadorEnd.descricaoCidade || '').trim();
             const cityCode   = String(tomadorEnd.codigoCidade || firstItem?.emitente?.codigoCidade || '').trim();
+            
+            let cityName = String(tomadorEnd.cidade || tomadorEnd.descricaoCidade || '').trim();
+            if (!cityName && cityCode) {
+                try {
+                    const cleanIbge = cityCode.replace(/\D/g, '').trim();
+                    if (cleanIbge.length === 7) {
+                        console.log(`🔍 [IBGE-RESOLVER] Resolvendo nome da cidade no IBGE para o código: ${cleanIbge}...`);
+                        const ibgeResponse = await axios.get(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${cleanIbge}`, {
+                            timeout: 2500
+                        });
+                        if (ibgeResponse.data?.nome) {
+                            cityName = ibgeResponse.data.nome;
+                            console.log(`🎯 [IBGE-RESOLVER] Sucesso: IBGE ${cleanIbge} -> "${cityName}"`);
+                        }
+                    }
+                } catch (ibgeErr: any) {
+                    console.warn('⚠️ [IBGE-RESOLVER] Falha ao obter nome da cidade via API pública do IBGE:', ibgeErr.message);
+                }
+            }
+
+            if (!cityName) {
+                cityName = 'Cidade Não Informada';
+            }
 
             // --- ISS Rate: prioridade ao valor do payload (iss.aliquota), fallback para config da empresa ---
             // NFe.io espera decimal: 0.05 = 5%. Se vier como inteiro (5), divide por 100.

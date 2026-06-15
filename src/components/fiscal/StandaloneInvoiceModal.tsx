@@ -407,6 +407,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             bairro: contact.neighborhood || '',
                             cep: contact.zip_code?.replace(/\D/g, ''),
                             codigoCidade: cityCode,
+                            cidade: contact.city || '',
+                            descricaoCidade: contact.city || '',
                             uf: contact.state || ''
                         }
                     },
@@ -661,6 +663,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             bairro: contact.neighborhood || '',
                             cep: contact.zip_code?.replace(/\D/g, ''),
                             codigoCidade: cityCode,
+                            cidade: contact.city || '',
+                            descricaoCidade: contact.city || '',
                             uf: contact.state || ''
                         }
                     },
