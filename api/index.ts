@@ -622,6 +622,142 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
     }
 });
 
+app.post(['/fiscal-module/nfeio/companies/:companyId/certificates', '/api/fiscal-module/nfeio/companies/:companyId/certificates'], authenticate, upload.single('arquivo'), async (req: any, res) => {
+    let { companyId } = req.params;
+    const { senha } = req.body;
+    const authHeader = req.headers.authorization;
+    const file = req.file;
+
+    if (!companyId || !file || !senha) {
+        return res.status(400).json({ error: 'companyId, arquivo e senha são obrigatórios' });
+    }
+
+    let baseUrl = '';
+    let apiKey = '';
+    let form: any = null;
+
+    try {
+        let dbConfig: any = null;
+        let resolvedId = companyId;
+        let settings: any = null;
+
+        try {
+            const fiscalInfo = await getCompanyFiscalConfig(authHeader!, companyId);
+            dbConfig = fiscalInfo.config;
+            resolvedId = fiscalInfo.realCompanyId;
+            settings = fiscalInfo.settings;
+        } catch (err) {
+            console.warn(`⚠️ Não foi possível resolver config fiscal com companyId direto: ${companyId}. Tentando busca por nfeio_config.companyId...`);
+        }
+
+        if (!settings || !settings.nfeio_config || settings.nfeio_config.companyId !== companyId) {
+            console.log(`🔍 [NFEIO-CERT-ROUTE] Buscando empresa por nfeio_config.companyId: ${companyId}`);
+            if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+                const response = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
+                    params: {
+                        'settings->nfeio_config->>companyId': `eq.${companyId}`,
+                        select: 'id,tecnospeed_config,fiscal_module_enabled,settings'
+                    },
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                    }
+                });
+                
+                const foundCompany = response.data?.[0];
+                if (foundCompany) {
+                    resolvedId = foundCompany.id;
+                    dbConfig = foundCompany.tecnospeed_config || {};
+                    settings = foundCompany.settings || {};
+                    console.log(`✅ [NFEIO-CERT-ROUTE] Empresa encontrada por nfeio_config.companyId: ${resolvedId}`);
+                }
+            }
+        }
+
+        const activeProvider = settings?.fiscal_provider || 'nfeio';
+        const nfeioConfig = settings?.nfeio_config;
+
+        if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+            return res.status(400).json({ error: 'Configuração da NFe.io incompleta para upload de certificado.' });
+        }
+
+        apiKey = nfeioConfig.apiKey.trim();
+        const companyIdNfe = nfeioConfig.companyId.trim();
+        
+        baseUrl = `https://api.nfe.io/v2/companies/${companyIdNfe}/certificate`;
+
+        console.log(`🔐 [NFEIO-CERT-ROUTE] Enviando certificado para NFe.io Empresa: ${companyIdNfe}`);
+
+        form = new FormData();
+        form.append('File', file.buffer, {
+            filename: file.originalname || 'certificado.pfx',
+            contentType: file.mimetype
+        });
+        form.append('Password', String(senha));
+
+        const response = await axiosNfeioRequest({
+            method: 'POST',
+            url: baseUrl,
+            data: form,
+            headers: {
+                ...form.getHeaders(),
+                'Authorization': apiKey
+            },
+            timeout: 30000
+        });
+
+        const certData = response.data;
+        const certId = certData?.id || certData?.certificateId || 'nfeio_cert';
+        const vencimento = certData?.validUntil || certData?.vencimento || certData?.expirationDate || certData?.endDate || new Date(Date.now() + 365*24*60*60*1000).toISOString();
+        const sujeito = certData?.subject || certData?.sujeito || certData?.commonName || certData?.nome || 'Certificado NFe.io';
+
+        if (SUPABASE_URL) {
+            try {
+                const currentConfig = dbConfig || {};
+                const updatedConfig = {
+                    ...currentConfig,
+                    certificado_id: certId,
+                    certificado_vencimento: vencimento,
+                    certificado_sujeito: sujeito,
+                    certificado_status: 'ativo',
+                    ultima_atualizacao: new Date().toISOString()
+                };
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
+                    tecnospeed_config: updatedConfig
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                fiscalConfigCache.delete(resolvedId);
+                console.log(`✅ [NFEIO-CERT-ROUTE] Certificado NFe.io (${certId}) e metadados salvos localmente.`);
+            } catch (dbErr: any) {
+                console.warn('⚠️ [NFEIO-CERT-ROUTE] Não foi possível salvar metadados do certificado NFe.io localmente:', dbErr.message);
+            }
+        }
+
+        return res.json({
+            message: 'Certificado processado com sucesso na NFe.io',
+            id: certId,
+            vencimento: vencimento,
+            sujeito: sujeito,
+            status: 'ativo'
+        });
+
+    } catch (error: any) {
+        const detail = error.response?.data || error.message;
+        console.error('❌ [NFEIO-CERT-ROUTE] Erro ao subir certificado:', JSON.stringify(detail));
+        res.status(error.response?.status || 500).json({
+            error: 'Erro ao subir certificado na NFe.io',
+            detail: detail
+        });
+    }
+});
+
 app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-status/:cpfCnpj'], authenticate, async (req, res) => {
     const { cpfCnpj } = req.params;
     const { companyId } = req.query;
