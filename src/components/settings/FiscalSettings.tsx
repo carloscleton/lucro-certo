@@ -1643,6 +1643,7 @@ export function FiscalSettings() {
 
     const [checkingStatus, setCheckingStatus] = useState(false);
     const [checkingCityNationalStatus, setCheckingCityNationalStatus] = useState(false);
+    const [checkingNfeioStatus, setCheckingNfeioStatus] = useState(false);
 
     const handleCheckIssuerStatus = async () => {
         if (!currentEntity.id || !config.cnpj) {
@@ -1730,6 +1731,74 @@ export function FiscalSettings() {
             });
         } finally {
             setCheckingStatus(false);
+        }
+    };
+
+    const handleCheckNfeioIssuerStatus = async () => {
+        if (!currentEntity.id || !nfeioConfig.companyId || !nfeioConfig.apiKey) {
+            setResultModal({
+                isOpen: true,
+                title: 'Configurações Requeridas',
+                message: 'Preencha a API Key e o ID da Empresa da NFe.io para verificar o status.',
+                type: 'info'
+            });
+            return;
+        }
+
+        setCheckingNfeioStatus(true);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.checkNfeioCompanyStatus(currentEntity.id, token);
+            const companyData = result.companies || result.company || result;
+            
+            const certificate = companyData.certificate;
+            
+            // Format certificate expiration date
+            let vencimento = 'Não informado';
+            if (certificate?.expiresOn) {
+                const date = new Date(certificate.expiresOn);
+                if (!isNaN(date.getTime())) {
+                    vencimento = date.toLocaleDateString('pt-BR');
+                }
+            }
+
+            const status = companyData.status || companyData.fiscalStatus || 'Ativo';
+            const statusLabel = status === 'Active' ? 'Ativo ✅' : (status === 'Inactive' ? 'Inativo ❌' : status);
+            const certStatusLabel = certificate?.status === 'Active' ? 'Ativo ✅' : (certificate?.status === 'Pending' ? 'Pendente ⚠️' : (certificate?.status === 'None' ? 'Nenhum Certificado ❌' : certificate?.status || 'Não informado'));
+
+            setResultModal({
+                isOpen: true,
+                title: 'Status da Empresa na NFe.io',
+                message: `Empresa encontrada com sucesso. Status de emissão: ${status === 'Active' ? 'Habilitada (Ativo)' : 'Desabilitada (Inativo)'}.`,
+                type: status === 'Active' ? 'success' : 'warning',
+                data: {
+                    'Razão Social': companyData.name || 'Não informada',
+                    'Nome Fantasia': companyData.tradeName || 'Não informado',
+                    'CNPJ': companyData.federalTaxNumber ? String(companyData.federalTaxNumber).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : 'Não informado',
+                    'Regime Tributário': companyData.taxRegime || 'Não informado',
+                    'Status Cadastral': statusLabel,
+                    'Status Certificado': certStatusLabel,
+                    'Vencimento Certificado': vencimento
+                }
+            });
+        } catch (error: any) {
+            console.error('Check NFe.io status error:', error);
+            const nestedError = extractNfeioError(error);
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Consultar Status NFe.io',
+                message: nestedError.message || 'Não foi possível obter o status da empresa na NFe.io.',
+                type: 'error',
+                data: nestedError.data ? {
+                    'Dados Retornados': nestedError.data
+                } : undefined
+            });
+        } finally {
+            setCheckingNfeioStatus(false);
         }
     };
 
@@ -3357,16 +3426,36 @@ export function FiscalSettings() {
                     />
                 </div>
 
-                <div className="flex justify-end pt-4">
-                    <Button
-                        type="button"
-                        onClick={handleSaveNfeio}
-                        isLoading={savingNfeio}
-                        variant="primary"
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200 dark:border-slate-700">
+                    <a
+                        href="https://nfe.io"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm flex items-center gap-1.5 font-medium active:scale-95 transition-all"
                     >
-                        <Save size={18} className="mr-2" />
-                        Salvar Configurações NFe.io
-                    </Button>
+                        Acessar Painel NFe.io <ExternalLink size={14} />
+                    </a>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleCheckNfeioIssuerStatus}
+                            isLoading={checkingNfeioStatus}
+                            className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700/50"
+                        >
+                            <RefreshCw size={18} className={`mr-2 ${checkingNfeioStatus ? 'animate-spin' : ''}`} />
+                            Verificar Status da Empresa
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleSaveNfeio}
+                            isLoading={savingNfeio}
+                            variant="primary"
+                        >
+                            <Save size={18} className="mr-2" />
+                            Salvar Configurações NFe.io
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Ferramenta de Homologação de Cidades NFe.io */}

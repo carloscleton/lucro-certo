@@ -1972,6 +1972,41 @@ app.get(['/fiscal-module/nfeio/prefectures/:codigoIbge', '/api/fiscal-module/nfe
 });
 
 
+app.get(['/fiscal-module/nfeio/company/status', '/api/fiscal-module/nfeio/company/status'], authenticate, async (req, res) => {
+    const { companyId } = req.query;
+    const authHeader = req.headers.authorization;
+
+    try {
+        const { settings } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const nfeioConfig = settings?.nfeio_config;
+        if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+            return res.status(400).json({ error: 'Configuração da NFe.io incompleta (API Key ou ID da Empresa ausente).' });
+        }
+
+        const apiKey = nfeioConfig.apiKey.trim();
+        const companyIdNfe = nfeioConfig.companyId.trim();
+
+        console.log(`🔍 [NFEIO-COMPANY] Consultando status da empresa NFe.io: ${companyIdNfe}...`);
+
+        const response = await axiosNfeioRequest({
+            method: 'GET',
+            url: `https://api.nfe.io/v1/companies/${companyIdNfe}`,
+            headers: {
+                'Authorization': apiKey,
+                'Accept': 'application/json'
+            }
+        });
+
+        res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        const statusCode = error.response?.status || 500;
+        console.error(`❌ Erro ao consultar status da empresa NFe.io (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
+        res.status(statusCode).json({ error: 'Erro ao consultar status da empresa na NFe.io', detail: errorDetail });
+    }
+});
+
+
 app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;

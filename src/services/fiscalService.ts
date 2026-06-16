@@ -181,5 +181,15 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async checkNfeioCompanyStatus(companyId: string, token: string) {
+        const response = await axios.get(getFiscalUrl(`nfeio/company/status`), {
+            params: { companyId },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };
