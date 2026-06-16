@@ -1935,7 +1935,7 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
 
 app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml'], authenticate, async (req, res) => {
     const { type, id } = req.params;
-    const { companyId, token } = req.query;
+    const { companyId, token, provider } = req.query;
     const authHeader = req.headers.authorization || (token ? `Bearer ${token}` : null);
     const isXml = req.path.endsWith('/xml') || req.path.includes('/xml');
 
@@ -1965,7 +1965,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
             }
         }
 
-        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+        const activeProvider = provider || settings?.fiscal_provider || 'tecnospeed';
         
         // Se o tipo real for 'nfeio', ou se o tipo solicitado no path for 'nfeio' (e não achou no banco),
         // ou se o provedor ativo for nfeio e não temos registro no banco para contradizer.
@@ -2227,32 +2227,35 @@ app.get(['/fiscal-module/nfeio/company/status', '/api/fiscal-module/nfeio/compan
 
 app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenticate, async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.query;
+    const { companyId, provider } = req.query;
     const authHeader = req.headers.authorization;
-
-    // Proteção Anti-Crash: Se o ID não for um ObjectID de 24 caracteres hexadecimais do PlugNotas,
-    // significa que é um ID de integração temporário (como UUID_lote).
-    // Retornamos status "processando" amigável para evitar erro 500 na TecnoSpeed e popups chatos no frontend.
-    const isObjectId = /^[0-9a-fA-F]{24}$/.test((id as string) || '');
-    if (!isObjectId) {
-        console.log(`⚠️ [FISCAL-STATUS-BYPASS] ID informado (${id}) é um ID de integração. Retornando status processando.`);
-        return res.json({
-            status: 'processando',
-            message: 'Nota em processamento ou aguardando autorização da prefeitura.',
-            data: {
-                status: 'processando'
-            }
-        });
-    }
 
     try {
         const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId as any);
+
+        const targetProvider = provider || settings?.fiscal_provider || 'tecnospeed';
+
+        // Proteção Anti-Crash: Se o ID não for um ObjectID de 24 caracteres hexadecimais do PlugNotas,
+        // significa que é um ID de integração temporário (como UUID_lote) ou um ID da NFe.io.
+        // Só fazemos o bypass se for PlugNotas (TecnoSpeed).
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test((id as string) || '');
+        if (!isObjectId && targetProvider === 'tecnospeed') {
+            console.log(`⚠️ [FISCAL-STATUS-BYPASS] ID informado (${id}) é um ID de integração. Retornando status processando.`);
+            return res.json({
+                status: 'processando',
+                message: 'Nota em processamento ou aguardando autorização da prefeitura.',
+                data: {
+                    status: 'processando'
+                }
+            });
+        }
+
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || 'https://api.sandbox.plugnotas.com.br') : (config.endpoint_producao || 'https://api.plugnotas.com.br')).toLowerCase().replace(/\/$/, '');
 
         // 1. Tentar descobrir o tipo da nota no nosso banco (NFS-e ou NF-e)
-        let type = 'nfse'; // Default para NFSe que é o mais comum no projeto
+        let type = 'nfse';
         let isRecordFound = false;
         let existingPayload: any = {};
         try {
@@ -2276,7 +2279,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             console.warn(`⚠️ [FISCAL-STATUS] Não foi possível detectar o tipo da nota ${id} no banco. Tentando ${type} por padrão.`);
         }
 
-        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+        const activeProvider = provider || settings?.fiscal_provider || 'tecnospeed';
 
         if (type === 'nfeio' || (activeProvider === 'nfeio' && !isRecordFound)) {
             const nfeioConfig = settings?.nfeio_config;

@@ -1298,10 +1298,12 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const result = await fiscalService.checkStatus(id, currentEntity.id, token);
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : 'tecnospeed';
+            const result = await fiscalService.checkStatus(id, currentEntity.id, token, targetProvider);
             const wrappedResult = wrapFiscalLinks(result, currentEntity.id, token);
             
-            const isDone = ['concluido', 'autorizado', 'erro', 'rejeitado'].includes(result.status?.toLowerCase() || result.data?.status?.toLowerCase());
+            const rawStatus = (result.status || result.data?.status || result.flowStatus || '').toLowerCase();
+            const isDone = ['concluido', 'autorizado', 'erro', 'rejeitado', 'issued', 'cancelled'].includes(rawStatus);
             const noteType = result.type || result.data?.type || 'nfse';
 
             let finalPdfUrl = null;
@@ -1310,14 +1312,14 @@ export function FiscalSettings() {
             // Injeção manual de links se concluído via download de blobs
             if (isDone && id) {
                 try {
-                    const pdfBlob = await fiscalService.downloadPDF(id, noteType, currentEntity.id, token);
+                    const pdfBlob = await fiscalService.downloadPDF(id, noteType, currentEntity.id, token, targetProvider);
                     finalPdfUrl = window.URL.createObjectURL(pdfBlob);
                 } catch (pdfErr) {
                     console.error('[LabTest-Status] Erro ao buscar PDF:', pdfErr);
                 }
                 
                 try {
-                    const xmlBlob = await fiscalService.downloadXML(id, noteType, currentEntity.id, token);
+                    const xmlBlob = await fiscalService.downloadXML(id, noteType, currentEntity.id, token, targetProvider);
                     finalXmlUrl = window.URL.createObjectURL(xmlBlob);
                 } catch (xmlErr) {
                     console.error('[LabTest-Status] Erro ao buscar XML:', xmlErr);
@@ -1331,10 +1333,14 @@ export function FiscalSettings() {
                 wrappedResult.xml = { url: finalXmlUrl };
             }
 
+            const providerName = targetProvider === 'nfeio' ? 'NFe.io' : 'TecnoSpeed';
+
             setResultModal({
                 isOpen: true,
                 title: isDone ? 'Processamento Concluído' : 'Ainda em Processamento',
-                message: isDone ? 'O status da nota foi atualizado.' : 'A nota ainda está sendo processada pela TecnoSpeed. Tente novamente em instantes.',
+                message: isDone 
+                    ? 'O status da nota foi atualizado.' 
+                    : `A nota ainda está sendo processada pela ${providerName}. Tente novamente em instantes.`,
                 type: isDone ? 'success' : 'info',
                 data: wrappedResult,
                 action: !isDone ? {
@@ -1396,17 +1402,21 @@ export function FiscalSettings() {
             const externalId = doc?.id || doc?.protocolo || response.id || response.protocolo || response.data?.id;
             
             const fullResponseString = JSON.stringify(response).toLowerCase();
-            // Melhor detecção de processamento: só é processando se explicitamente dito ou se não houver confirmação de autorização/erro
+            // Melhor detecção de processamento: só é processado se explicitamente dito ou se não houver confirmação de autorização/erro
             const isDone = fullResponseString.includes('autorizada') || 
-                          fullResponseString.includes('concluido') || 
-                          fullResponseString.includes('erro') || 
-                          fullResponseString.includes('rejeitado');
+                           fullResponseString.includes('concluido') || 
+                           fullResponseString.includes('erro') || 
+                           fullResponseString.includes('rejeitado') ||
+                           fullResponseString.includes('issued') ||
+                           fullResponseString.includes('cancelled');
             
             const isProcessing = !isDone && (
-                               fullResponseString.includes('processamento') || 
-                               fullResponseString.includes('processing') || 
-                               doc?.status === 'processando' ||
-                               response.status === 'processando');
+                                fullResponseString.includes('processamento') || 
+                                fullResponseString.includes('processing') || 
+                                doc?.status === 'processando' ||
+                                response.status === 'processando' ||
+                                fullResponseString.includes('waitingcalculatetaxes') ||
+                                fullResponseString.includes('waitingsend'));
 
             console.log('🧪 [LAB-DEBUG] Resposta Emissão:', { externalId, isProcessing, response });
 
@@ -1416,14 +1426,14 @@ export function FiscalSettings() {
             // Injeção manual de links se concluído via download de blobs
             if (isDone && externalId) {
                 try {
-                    const pdfBlob = await fiscalService.downloadPDF(externalId, 'nfse', currentEntity.id!, token);
+                    const pdfBlob = await fiscalService.downloadPDF(externalId, 'nfse', currentEntity.id!, token, targetProvider);
                     finalPdfUrl = window.URL.createObjectURL(pdfBlob);
                 } catch (pdfErr) {
                     console.error('[LabTest-Emit] Erro ao buscar PDF:', pdfErr);
                 }
                 
                 try {
-                    const xmlBlob = await fiscalService.downloadXML(externalId, 'nfse', currentEntity.id!, token);
+                    const xmlBlob = await fiscalService.downloadXML(externalId, 'nfse', currentEntity.id!, token, targetProvider);
                     finalXmlUrl = window.URL.createObjectURL(xmlBlob);
                 } catch (xmlErr) {
                     console.error('[LabTest-Emit] Erro ao buscar XML:', xmlErr);
