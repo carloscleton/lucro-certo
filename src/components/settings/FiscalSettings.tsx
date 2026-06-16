@@ -231,7 +231,11 @@ export function FiscalSettings() {
         inscricaoMunicipal: '',
         aliquotaIss: '',
         simplesNacional: true,
-        cityServiceCode: ''
+        cityServiceCode: '',
+        certificado_id: '',
+        certificado_vencimento: '',
+        certificado_sujeito: '',
+        certificado_status: ''
     });
 
     const isDirty = useMemo(() => {
@@ -300,9 +304,31 @@ export function FiscalSettings() {
             inscricaoMunicipal: nfe.inscricaoMunicipal || '',
             aliquotaIss: nfe.aliquotaIss || '',
             simplesNacional: nfe.simplesNacional !== undefined ? nfe.simplesNacional : true,
-            cityServiceCode: nfe.cityServiceCode || ''
+            cityServiceCode: nfe.cityServiceCode || '',
+            certificado_id: nfe.certificado_id || '',
+            certificado_vencimento: nfe.certificado_vencimento || '',
+            certificado_sujeito: nfe.certificado_sujeito || '',
+            certificado_status: nfe.certificado_status || ''
         });
     }, [currentCompany?.id]); // Depender apenas do ID
+
+    const currentCertInfo = useMemo(() => {
+        if (activeSubTab === 'nfeio') {
+            return {
+                id: nfeioConfig.certificado_id || '',
+                status: nfeioConfig.certificado_status || '',
+                vencimento: nfeioConfig.certificado_vencimento || '',
+                sujeito: nfeioConfig.certificado_sujeito || '',
+            };
+        } else {
+            return {
+                id: config.certificado_id || '',
+                status: config.certificado_status || '',
+                vencimento: config.certificado_vencimento || '',
+                sujeito: config.certificado_sujeito || '',
+            };
+        }
+    }, [activeSubTab, nfeioConfig, config]);
 
     // Persistência do JSON do Laboratório
     const [testJson, setTestJson] = useState(() => {
@@ -1092,7 +1118,7 @@ export function FiscalSettings() {
         }
 
         setUploadingCert(true);
-        const isNfeio = activeProvider === 'nfeio';
+        const isNfeio = activeSubTab === 'nfeio';
         const isExternal = !!config.use_external_webhook;
         const targetProviderName = isNfeio ? 'NFe.io' : (isExternal ? 'Webhook Externo' : 'TecnoSpeed');
 
@@ -1147,18 +1173,18 @@ export function FiscalSettings() {
                 logs: [...prev.logs, 'Sessão autenticada']
             }));
 
-            const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token, config);
+            const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token, config, activeSubTab);
             
             if (isNfeio) {
                 // Para NFe.io, o upload já realiza o vínculo. Finalizamos com sucesso direto!
-                const updatedConfig = {
-                    ...config,
+                const updatedNfeConfig = {
+                    ...nfeioConfig,
                     certificado_id: response.id,
                     certificado_vencimento: response.vencimento,
                     certificado_sujeito: response.sujeito,
                     certificado_status: 'ativo'
                 };
-                setConfig(updatedConfig);
+                setNfeioConfig(updatedNfeConfig);
 
                 setDiagnostic(prev => ({
                     ...prev,
@@ -3904,7 +3930,7 @@ export function FiscalSettings() {
                     <div className="flex-1">
                         <h4 className="font-medium text-gray-900 dark:text-white">Certificado Digital (A1)</h4>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {config.certificado_id 
+                            {currentCertInfo.id 
                                 ? 'Certificado configurado e pronto para uso.'
                                 : 'O envio do certificado digital A1 (.pfx ou .p12) é obrigatório para a emissão de notas em produção.'
                             }
@@ -3912,41 +3938,41 @@ export function FiscalSettings() {
                     </div>
                 </div>
 
-                {config.certificado_id && (
+                {currentCertInfo.id && (
                     <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 rounded-xl">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
                                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Status</p>
                                 <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    {config.certificado_status === 'ativo' ? 'Ativo' : 'Pendente'}
+                                    {currentCertInfo.status === 'ativo' ? 'Ativo' : 'Pendente'}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Vencimento</p>
                                 <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
-                                    {config.certificado_vencimento ? new Date(config.certificado_vencimento).toLocaleDateString('pt-BR') : 'Não informado'}
+                                    {currentCertInfo.vencimento ? new Date(currentCertInfo.vencimento).toLocaleDateString('pt-BR') : 'Não informado'}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Sujeito</p>
-                                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 truncate" title={config.certificado_sujeito}>
-                                    {config.certificado_sujeito || 'Certificado A1'}
+                                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 truncate" title={currentCertInfo.sujeito}>
+                                    {currentCertInfo.sujeito || 'Certificado A1'}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                    {activeProvider === 'nfeio' ? 'ID NFe.io' : 'ID PlugNotas'}
+                                    {activeSubTab === 'nfeio' ? 'ID NFe.io' : 'ID PlugNotas'}
                                 </p>
                                 <p className="text-sm font-mono text-emerald-700 dark:text-emerald-300">
-                                    {config.certificado_id.substring(0, 8)}...
+                                    {currentCertInfo.id.substring(0, 8)}...
                                 </p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {!config.certificado_id && (
+                {!currentCertInfo.id && (
                     <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-xl">
                         <p className="text-sm text-blue-700 dark:text-blue-300">
                             Sua senha é transmitida de forma segura e não fica armazenada em nossos servidores.
@@ -3998,7 +4024,7 @@ export function FiscalSettings() {
                 isOpen={diagnostic.isOpen}
                 onClose={() => setDiagnostic(prev => ({ ...prev, isOpen: false }))}
                 title="Diagnóstico de Envio"
-                description={activeProvider === 'nfeio' ? "Status da integração com NFe.io" : "Status da integração com PlugNotas"}
+                description={activeSubTab === 'nfeio' ? "Status da integração com NFe.io" : "Status da integração com PlugNotas"}
                 steps={diagnostic.steps}
                 logs={diagnostic.logs}
                 action={{

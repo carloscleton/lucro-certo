@@ -88,11 +88,14 @@ export const fiscalService = {
         return response.data;
     },
 
-    async uploadCertificate(companyId: string, certificateFile: File, password: string, token: string, config?: any) {
+    async uploadCertificate(companyId: string, certificateFile: File, password: string, token: string, config?: any, provider?: string) {
         const formData = new FormData();
         formData.append('companyId', companyId);
         formData.append('arquivo', certificateFile);
         formData.append('senha', password);
+        if (provider) {
+            formData.append('provider', provider);
+        }
         if (config) {
             formData.append('config', JSON.stringify(config));
         }

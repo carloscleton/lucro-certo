@@ -377,7 +377,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 });
 
 app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certificate'], authenticate, upload.single('arquivo'), async (req: any, res) => {
-    const { companyId, senha } = req.body;
+    const { companyId, senha, provider } = req.body;
     const authHeader = req.headers.authorization;
     const file = req.file;
     if (!companyId || !file || !senha) {
@@ -393,7 +393,7 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
         const bodyConfig = req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config) : req.body.config) : null;
         const { config: dbConfig, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId);
         const config = bodyConfig || dbConfig;
-        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
+        const activeProvider = provider || settings?.fiscal_provider || 'tecnospeed';
 
         // --- ROTEAMENTO NFE.IO ---
         if (activeProvider === 'nfeio') {
@@ -435,18 +435,22 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
 
                 if (SUPABASE_URL) {
                     try {
-                        const currentConfig = dbConfig || {};
-                        const updatedConfig = {
-                            ...currentConfig,
+                        const updatedNfeioConfig = {
+                            ...(settings?.nfeio_config || {}),
                             certificado_id: certId,
                             certificado_vencimento: vencimento,
                             certificado_sujeito: sujeito,
                             certificado_status: 'ativo',
-                            ultima_atualizacao: new Date().toISOString()
+                            certificado_ultima_atualizacao: new Date().toISOString()
                         };
 
-                        await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
-                            tecnospeed_config: updatedConfig
+                        const updatedSettings = {
+                            ...(settings || {}),
+                            nfeio_config: updatedNfeioConfig
+                        };
+
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
+                            settings: updatedSettings
                         }, {
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY!,
@@ -455,8 +459,8 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
                             }
                         });
 
-                        fiscalConfigCache.delete(companyId);
-                        console.log(`✅ Certificado NFe.io (${certId}) e metadados salvos localmente.`);
+                        fiscalConfigCache.delete(resolvedId);
+                        console.log(`✅ Certificado NFe.io (${certId}) e metadados salvos localmente em settings.nfeio_config.`);
                     } catch (dbErr: any) {
                         console.warn('⚠️ Não foi possível salvar metadados do certificado NFe.io localmente:', dbErr.message);
                     }
@@ -764,18 +768,22 @@ app.post(['/fiscal-module/nfeio/companies/:companyId/certificates', '/api/fiscal
 
             if (SUPABASE_URL) {
                 try {
-                    const currentConfig = dbConfig || {};
-                    const updatedConfig = {
-                        ...currentConfig,
+                    const updatedNfeioConfig = {
+                        ...(settings?.nfeio_config || {}),
                         certificado_id: certId,
                         certificado_vencimento: vencimento,
                         certificado_sujeito: sujeito,
                         certificado_status: 'ativo',
-                        ultima_atualizacao: new Date().toISOString()
+                        certificado_ultima_atualizacao: new Date().toISOString()
+                    };
+
+                    const updatedSettings = {
+                        ...(settings || {}),
+                        nfeio_config: updatedNfeioConfig
                     };
 
                     await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
-                        tecnospeed_config: updatedConfig
+                        settings: updatedSettings
                     }, {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY!,
@@ -785,7 +793,7 @@ app.post(['/fiscal-module/nfeio/companies/:companyId/certificates', '/api/fiscal
                     });
 
                     fiscalConfigCache.delete(resolvedId);
-                    console.log(`✅ [NFEIO-CERT-ROUTE] Certificado NFe.io (${certId}) e metadados salvos localmente.`);
+                    console.log(`✅ [NFEIO-CERT-ROUTE] Certificado NFe.io (${certId}) e metadados salvos localmente em settings.nfeio_config.`);
                 } catch (dbErr: any) {
                     console.warn('⚠️ [NFEIO-CERT-ROUTE] Não foi possível salvar metadados do certificado NFe.io localmente:', dbErr.message);
                 }
