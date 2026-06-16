@@ -1934,6 +1934,44 @@ app.get(['/fiscal-module/cidades/:codigoIbge', '/api/fiscal-module/cidades/:codi
     }
 });
 
+app.get(['/fiscal-module/nfeio/prefectures/:codigoIbge', '/api/fiscal-module/nfeio/prefectures/:codigoIbge'], authenticate, async (req, res) => {
+    const { codigoIbge } = req.params;
+    const { companyId } = req.query;
+    const authHeader = req.headers.authorization;
+
+    try {
+        const { settings } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const nfeioConfig = settings?.nfeio_config;
+        if (!nfeioConfig || !nfeioConfig.apiKey) {
+            return res.status(400).json({ error: 'Configuração da NFe.io incompleta (API Key ausente).' });
+        }
+
+        const apiKey = nfeioConfig.apiKey.trim();
+        const isSandbox = nfeioConfig.ambiente === 'homologacao';
+        const baseUrl = isSandbox ? 'https://prefectures-dev.api.nfe.io' : 'https://prefectures.api.nfe.io';
+
+        const cleanIbge = String(codigoIbge).replace(/\D/g, '');
+        console.log(`🔍 [NFEIO-CIDADES] Consultando prefeitura NFe.io IBGE: ${cleanIbge} em ${isSandbox ? 'SANDBOX' : 'PROD'}...`);
+
+        const response = await axiosNfeioRequest({
+            method: 'GET',
+            url: `${baseUrl}/v1/prefectures/${cleanIbge}`,
+            headers: {
+                'Authorization': apiKey,
+                'Accept': 'application/json'
+            }
+        });
+
+        res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        const statusCode = error.response?.status || 500;
+        console.error(`❌ Erro ao consultar prefeitura NFe.io ${codigoIbge} (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
+        res.status(statusCode).json({ error: 'Erro ao consultar prefeitura na NFe.io', detail: errorDetail });
+    }
+});
+
+
 app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenticate, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.query;

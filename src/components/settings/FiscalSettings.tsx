@@ -29,6 +29,26 @@ const extractTecnoSpeedError = (err: any) => {
     return { message: responseData?.message || err.message || 'Erro desconhecido' };
 };
 
+const extractNfeioError = (err: any) => {
+    const responseStatus = err.response?.status;
+    const responseData = err.response?.data;
+    
+    if (responseStatus === 404) {
+        return {
+            message: 'Município não homologado ou sem cobertura cadastrada na NFe.io.',
+            data: responseData || { notFound: true }
+        };
+    }
+    
+    const detail = responseData?.detail || responseData;
+    const message = responseData?.error || detail?.message || detail?.error || err.message;
+    return {
+        message: typeof message === 'string' ? message : 'Cidade não homologada ou sem cobertura na NFe.io.',
+        data: responseData
+    };
+};
+
+
 const formatDadosObrigatorios = (dados: any) => {
     if (!dados) return "Consulta não disponível";
     
@@ -375,6 +395,57 @@ export function FiscalSettings() {
     const [verificationProgress, setVerificationProgress] = useState({ current: 0, total: 0 });
     const [stateModalFilterQuery, setStateModalFilterQuery] = useState('');
 
+    // Cidades e Homologação NFe.io
+    const [searchUfNfeio, setSearchUfNfeio] = useState(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_searchUfNfeio_${currentEntity.id}`) : null;
+        return saved || 'PE';
+    });
+    const [searchCityQueryNfeio, setSearchCityQueryNfeio] = useState(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_searchCityQueryNfeio_${currentEntity.id}`) : null;
+        return saved || '';
+    });
+    const [citiesListNfeio, setCitiesListNfeio] = useState<{ id: string; nome: string }[]>([]);
+    const [loadingCitiesListNfeio, setLoadingCitiesListNfeio] = useState(false);
+    const [selectedSearchCityNfeio, setSelectedSearchCityNfeio] = useState<{ id: string; nome: string } | null>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_selectedSearchCityNfeio_${currentEntity.id}`) : null;
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    });
+    const [nfeioCityInfo, setNfeioCityInfo] = useState<any>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_nfeioCityInfo_${currentEntity.id}`) : null;
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    });
+    const [nfeioCityNotCoveredMessage, setNfeioCityNotCoveredMessage] = useState<string | null>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_nfeioCityNotCoveredMessage_${currentEntity.id}`) : null;
+        return saved || null;
+    });
+    const [searchingCityNfeio, setSearchingCityNfeio] = useState(false);
+    const [isCityDropdownOpenNfeio, setIsCityDropdownOpenNfeio] = useState(false);
+    const cityDropdownRefNfeio = useRef<HTMLDivElement>(null);
+    const prevUfRefNfeio = useRef<string>(searchUfNfeio);
+
+    const [searchModeNfeio, setSearchModeNfeio] = useState<'name' | 'ibge' | 'uf'>(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_searchModeNfeio_${currentEntity.id}`) : null;
+        return (saved as 'name' | 'ibge' | 'uf') || 'name';
+    });
+    const [searchIbgeQueryNfeio, setSearchIbgeQueryNfeio] = useState(() => {
+        const saved = typeof window !== 'undefined' && currentEntity.id ? sessionStorage.getItem(`fiscal_searchIbgeQueryNfeio_${currentEntity.id}`) : null;
+        return saved || '';
+    });
+
     useEffect(() => {
         if (!currentEntity.id) return;
         sessionStorage.setItem(`fiscal_searchMode_${currentEntity.id}`, searchMode);
@@ -384,6 +455,54 @@ export function FiscalSettings() {
         if (!currentEntity.id) return;
         sessionStorage.setItem(`fiscal_searchIbgeQuery_${currentEntity.id}`, searchIbgeQuery);
     }, [searchIbgeQuery, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        sessionStorage.setItem(`fiscal_searchModeNfeio_${currentEntity.id}`, searchModeNfeio);
+    }, [searchModeNfeio, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        sessionStorage.setItem(`fiscal_searchIbgeQueryNfeio_${currentEntity.id}`, searchIbgeQueryNfeio);
+    }, [searchIbgeQueryNfeio, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        sessionStorage.setItem(`fiscal_searchUfNfeio_${currentEntity.id}`, searchUfNfeio);
+    }, [searchUfNfeio, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        sessionStorage.setItem(`fiscal_searchCityQueryNfeio_${currentEntity.id}`, searchCityQueryNfeio);
+    }, [searchCityQueryNfeio, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        if (selectedSearchCityNfeio) {
+            sessionStorage.setItem(`fiscal_selectedSearchCityNfeio_${currentEntity.id}`, JSON.stringify(selectedSearchCityNfeio));
+        } else {
+            sessionStorage.removeItem(`fiscal_selectedSearchCityNfeio_${currentEntity.id}`);
+        }
+    }, [selectedSearchCityNfeio, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        if (nfeioCityInfo) {
+            sessionStorage.setItem(`fiscal_nfeioCityInfo_${currentEntity.id}`, JSON.stringify(nfeioCityInfo));
+        } else {
+            sessionStorage.removeItem(`fiscal_nfeioCityInfo_${currentEntity.id}`);
+        }
+    }, [nfeioCityInfo, currentEntity.id]);
+
+    useEffect(() => {
+        if (!currentEntity.id) return;
+        if (nfeioCityNotCoveredMessage) {
+            sessionStorage.setItem(`fiscal_nfeioCityNotCoveredMessage_${currentEntity.id}`, nfeioCityNotCoveredMessage);
+        } else {
+            sessionStorage.removeItem(`fiscal_nfeioCityNotCoveredMessage_${currentEntity.id}`);
+        }
+    }, [nfeioCityNotCoveredMessage, currentEntity.id]);
+
 
     // Filtrar municípios no modal estadual
     const filteredStateCities = useMemo(() => {
@@ -448,7 +567,9 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const result = await fiscalService.consultarCidadeNotaNacional(cityId, currentEntity.id!, token);
+            const result = activeSubTab === 'nfeio'
+                ? await fiscalService.consultarCidadeNfeio(cityId, currentEntity.id!, token)
+                : await fiscalService.consultarCidadeNotaNacional(cityId, currentEntity.id!, token);
             const data = result.data || result;
             setStateCitiesStatus(prev => ({
                 ...prev,
@@ -457,11 +578,11 @@ export function FiscalSettings() {
         } catch (err: any) {
             const isExpectedApiError = err.response?.status === 400 || err.response?.status === 404;
             if (isExpectedApiError) {
-                console.warn(`[PlugNotas] Cidade ${cityName} (${cityId}) não homologada no estado (HTTP ${err.response.status}).`);
+                console.warn(`[${activeSubTab === 'nfeio' ? 'NFe.io' : 'PlugNotas'}] Cidade ${cityName} (${cityId}) indisponível (HTTP ${err.response.status}).`);
             } else {
                 console.error(`Erro ao consultar ${cityName} no estado:`, err);
             }
-            const nestedError = extractTecnoSpeedError(err);
+            const nestedError = activeSubTab === 'nfeio' ? extractNfeioError(err) : extractTecnoSpeedError(err);
             if (nestedError && nestedError.data) {
                 setStateCitiesStatus(prev => ({
                     ...prev,
@@ -469,7 +590,7 @@ export function FiscalSettings() {
                         loading: false, 
                         data: nestedError.data, 
                         isNotHomologated: true,
-                        error: nestedError.message || 'Município não homologado'
+                        error: nestedError.message || 'Município sem cobertura/homologação'
                     }
                 }));
             } else {
@@ -537,7 +658,9 @@ export function FiscalSettings() {
             }));
 
             try {
-                const result = await fiscalService.consultarCidadeNotaNacional(city.id, currentEntity.id!, token);
+                const result = activeSubTab === 'nfeio'
+                    ? await fiscalService.consultarCidadeNfeio(city.id, currentEntity.id!, token)
+                    : await fiscalService.consultarCidadeNotaNacional(city.id, currentEntity.id!, token);
                 const data = result.data || result;
                 setStateCitiesStatus(prev => ({
                     ...prev,
@@ -546,11 +669,11 @@ export function FiscalSettings() {
             } catch (err: any) {
                 const isExpectedApiError = err.response?.status === 400 || err.response?.status === 404;
                 if (isExpectedApiError) {
-                    console.warn(`[PlugNotas] Cidade ${city.nome} (${city.id}) não homologada no lote (HTTP ${err.response.status}).`);
+                    console.warn(`[${activeSubTab === 'nfeio' ? 'NFe.io' : 'PlugNotas'}] Cidade ${city.nome} (${city.id}) indisponível no lote (HTTP ${err.response.status}).`);
                 } else {
                     console.error(`Erro ao consultar ${city.nome} no lote:`, err);
                 }
-                const nestedError = extractTecnoSpeedError(err);
+                const nestedError = activeSubTab === 'nfeio' ? extractNfeioError(err) : extractTecnoSpeedError(err);
                 if (nestedError && nestedError.data) {
                     setStateCitiesStatus(prev => ({
                         ...prev,
@@ -558,7 +681,7 @@ export function FiscalSettings() {
                             loading: false, 
                             data: nestedError.data, 
                             isNotHomologated: true,
-                            error: nestedError.message || 'Município não homologado'
+                            error: nestedError.message || 'Município sem cobertura/homologação'
                         }
                     }));
                 } else {
@@ -578,6 +701,89 @@ export function FiscalSettings() {
 
         setVerifyingAllStateCities(false);
     };
+
+    // Consultar cidade na NFe.io usando o ID/código IBGE
+    const handleSearchCityNfeio = async () => {
+        if (!selectedSearchCityNfeio) return;
+        setSearchingCityNfeio(true);
+        setNfeioCityInfo(null);
+        setNfeioCityNotCoveredMessage(null);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.consultarCidadeNfeio(selectedSearchCityNfeio.id, currentEntity.id!, token);
+            setNfeioCityInfo(result.data || result);
+        } catch (err: any) {
+            const isExpectedApiError = err.response?.status === 400 || err.response?.status === 404;
+            if (isExpectedApiError) {
+                console.warn(`[NFe.io] Cidade ${selectedSearchCityNfeio.nome} (${selectedSearchCityNfeio.id}) sem cobertura (HTTP ${err.response.status}).`);
+            } else {
+                console.error('Erro ao consultar cidade na NFe.io:', err);
+            }
+            const nestedError = extractNfeioError(err);
+            
+            if (nestedError && nestedError.data) {
+                setNfeioCityInfo(nestedError.data);
+                setNfeioCityNotCoveredMessage(nestedError.message || 'Município sem cobertura na NFe.io no momento.');
+            } else {
+                setResultModal({
+                    isOpen: true,
+                    title: 'Erro na Consulta NFe.io',
+                    message: nestedError.message || 'Não foi possível obter os dados da cidade consultada.',
+                    type: 'error',
+                    data: nestedError.data ? {
+                        'Dados Técnicos': nestedError.data
+                    } : undefined
+                });
+            }
+        } finally {
+            setSearchingCityNfeio(false);
+        }
+    };
+
+    // Consultar cidade na NFe.io usando o código IBGE diretamente
+    const handleSearchCityByIbgeNfeio = async (ibgeCode: string) => {
+        if (!ibgeCode || ibgeCode.length !== 7) return;
+        setSearchingCityNfeio(true);
+        setNfeioCityInfo(null);
+        setNfeioCityNotCoveredMessage(null);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const result = await fiscalService.consultarCidadeNfeio(ibgeCode, currentEntity.id!, token);
+            setNfeioCityInfo(result.data || result);
+        } catch (err: any) {
+            const isExpectedApiError = err.response?.status === 400 || err.response?.status === 404;
+            if (isExpectedApiError) {
+                console.warn(`[NFe.io] Cidade por IBGE ${ibgeCode} sem cobertura (HTTP ${err.response.status}).`);
+            } else {
+                console.error('Erro ao consultar cidade por IBGE na NFe.io:', err);
+            }
+            const nestedError = extractNfeioError(err);
+            
+            if (nestedError && nestedError.data) {
+                setNfeioCityInfo(nestedError.data);
+                setNfeioCityNotCoveredMessage(nestedError.message || 'Município sem cobertura na NFe.io no momento.');
+            } else {
+                setResultModal({
+                    isOpen: true,
+                    title: 'Erro na Consulta por IBGE NFe.io',
+                    message: nestedError.message || 'Não foi possível obter os dados da cidade consultada.',
+                    type: 'error',
+                    data: nestedError.data ? {
+                        'Dados Técnicos': nestedError.data
+                    } : undefined
+                });
+            }
+        } finally {
+            setSearchingCityNfeio(false);
+        }
+    };
+
 
     // Detect click outside city dropdown to close it
     useEffect(() => {
@@ -671,6 +877,62 @@ export function FiscalSettings() {
         const target = cleanString(searchCityQuery);
         return citiesList.filter(c => cleanString(c.nome).includes(target));
     }, [citiesList, searchCityQuery]);
+
+    // Carregar a lista de cidades do estado (UF) selecionado para NFe.io
+    useEffect(() => {
+        const fetchCitiesForUfNfeio = async () => {
+            if (!searchUfNfeio) return;
+            setLoadingCitiesListNfeio(true);
+            
+            if (prevUfRefNfeio.current !== searchUfNfeio) {
+                const savedUf = sessionStorage.getItem(`fiscal_searchUfNfeio_${currentEntity.id}`);
+                if (searchUfNfeio !== savedUf) {
+                    setSelectedSearchCityNfeio(null);
+                    setSearchCityQueryNfeio('');
+                    setNfeioCityInfo(null);
+                    setNfeioCityNotCoveredMessage(null);
+                }
+            }
+            prevUfRefNfeio.current = searchUfNfeio;
+            
+            try {
+                const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${searchUfNfeio.trim().toUpperCase()}/municipios`);
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    const sorted = data.map((c: any) => ({
+                        id: String(c.id),
+                        nome: c.nome
+                    })).sort((a, b) => a.nome.localeCompare(b.nome));
+                    setCitiesListNfeio(sorted);
+                }
+            } catch (err) {
+                console.error('Erro ao buscar cidades do IBGE para NFe.io:', err);
+            } finally {
+                setLoadingCitiesListNfeio(false);
+            }
+        };
+        fetchCitiesForUfNfeio();
+    }, [searchUfNfeio, currentEntity.id]);
+
+    // Filtrar cidades com base na query de digitação do usuário para NFe.io
+    const filteredCitiesNfeio = useMemo(() => {
+        if (!searchCityQueryNfeio.trim()) return citiesListNfeio;
+        const cleanString = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const target = cleanString(searchCityQueryNfeio);
+        return citiesListNfeio.filter(c => cleanString(c.nome).includes(target));
+    }, [citiesListNfeio, searchCityQueryNfeio]);
+
+    // Detect click outside city dropdown for NFe.io to close it
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (cityDropdownRefNfeio.current && !cityDropdownRefNfeio.current.contains(event.target as Node)) {
+                setIsCityDropdownOpenNfeio(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
 
     const handleSearchCityTecnoSpeed = async () => {
         if (!selectedSearchCity) return;
@@ -3106,6 +3368,322 @@ export function FiscalSettings() {
                         Salvar Configurações NFe.io
                     </Button>
                 </div>
+
+                {/* Ferramenta de Homologação de Cidades NFe.io */}
+                <div className="mt-8 p-6 bg-gradient-to-br from-indigo-50/40 via-white to-purple-50/20 dark:from-slate-900/50 dark:via-slate-900/40 dark:to-purple-955/5 rounded-2xl border border-gray-200/85 dark:border-slate-800 shadow-sm space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-500/20">
+                                <Search size={18} />
+                            </div>
+                            <div>
+                                <h4 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">Ferramenta de Cobertura (NFe.io)</h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Verifique a cobertura e informações de suporte de qualquer cidade do Brasil na NFe.io.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Dropdown de Seleção de Tipo de Busca */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tipo de Pesquisa</label>
+                            <select
+                                value={searchModeNfeio}
+                                onChange={(e) => {
+                                    setSearchModeNfeio(e.target.value as 'name' | 'ibge' | 'uf');
+                                    setNfeioCityInfo(null);
+                                    setNfeioCityNotCoveredMessage(null);
+                                }}
+                                className="h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300 shadow-sm cursor-pointer"
+                            >
+                                <option value="name">Buscar cidades por nome</option>
+                                <option value="ibge">Buscar cidades por código IBGE</option>
+                                <option value="uf">Buscar cidades por UF</option>
+                            </select>
+                        </div>
+
+                        {/* Inputs contextuais baseados na escolha do usuário */}
+                        {searchModeNfeio === 'name' && (
+                            <>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado (UF)</label>
+                                    <select
+                                        value={searchUfNfeio}
+                                        onChange={(e) => setSearchUfNfeio(e.target.value)}
+                                        className="h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300 shadow-sm cursor-pointer"
+                                    >
+                                        {['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'].map(uf => (
+                                            <option key={uf} value={uf}>{uf}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 relative" ref={cityDropdownRefNfeio}>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cidade</label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder={loadingCitiesListNfeio ? 'Carregando cidades...' : 'Digite para buscar a cidade...'}
+                                            value={searchCityQueryNfeio}
+                                            onChange={(e) => {
+                                                setSearchCityQueryNfeio(e.target.value);
+                                                setIsCityDropdownOpenNfeio(true);
+                                                const exactMatch = citiesListNfeio.find(c => c.nome.toLowerCase() === e.target.value.toLowerCase());
+                                                if (exactMatch) {
+                                                    setSelectedSearchCityNfeio(exactMatch);
+                                                } else {
+                                                    setSelectedSearchCityNfeio(null);
+                                                }
+                                                setNfeioCityInfo(null);
+                                            }}
+                                            onFocus={() => setIsCityDropdownOpenNfeio(true)}
+                                            disabled={loadingCitiesListNfeio}
+                                            className="w-full h-11 pl-4 pr-10 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-all shadow-sm"
+                                            autoComplete="off"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                            {searchCityQueryNfeio && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSearchCityQueryNfeio('');
+                                                        setSelectedSearchCityNfeio(null);
+                                                        setNfeioCityInfo(null);
+                                                    }}
+                                                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCityDropdownOpenNfeio(!isCityDropdownOpenNfeio)}
+                                                disabled={loadingCitiesListNfeio}
+                                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                            >
+                                                <ChevronRight size={16} className={`transform transition-transform duration-200 ${isCityDropdownOpenNfeio ? '-rotate-90' : 'rotate-90'}`} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {isCityDropdownOpenNfeio && filteredCitiesNfeio.length > 0 && (
+                                        <div className="absolute left-0 right-0 top-[102%] z-50 max-h-60 overflow-y-auto rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-150">
+                                            {filteredCitiesNfeio.map((c) => (
+                                                <button
+                                                    key={c.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedSearchCityNfeio(c);
+                                                        setSearchCityQueryNfeio(c.nome);
+                                                        setNfeioCityInfo(null);
+                                                        setIsCityDropdownOpenNfeio(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between ${selectedSearchCityNfeio?.id === c.id ? 'bg-indigo-50/50 dark:bg-slate-700/30 text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                                >
+                                                    <span>{c.nome}</span>
+                                                    {selectedSearchCityNfeio?.id === c.id && <Check size={12} className="text-indigo-600 dark:text-indigo-400" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {searchModeNfeio === 'ibge' && (
+                            <div className="flex flex-col gap-1.5 md:col-span-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono">Código IBGE (7 dígitos)</label>
+                                <input
+                                    type="text"
+                                    maxLength={7}
+                                    placeholder="Digite o código IBGE de 7 dígitos... Ex: 2400208"
+                                    value={searchIbgeQueryNfeio}
+                                    onChange={(e) => setSearchIbgeQueryNfeio(e.target.value.replace(/\D/g, ''))}
+                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 tracking-wider shadow-sm text-gray-700 dark:text-gray-300"
+                                />
+                            </div>
+                        )}
+
+                        {searchModeNfeio === 'uf' && (
+                            <>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado (UF)</label>
+                                    <select
+                                        value={searchUfNfeio}
+                                        onChange={(e) => setSearchUfNfeio(e.target.value)}
+                                        className="h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300 shadow-sm cursor-pointer"
+                                    >
+                                        {['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'].map(uf => (
+                                            <option key={uf} value={uf}>{uf}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex items-center h-11">
+                                    <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 font-medium">
+                                        Total no Estado: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{citiesListNfeio.length} cidades</strong>
+                                    </span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Botão de Busca Contextual */}
+                    <div className="flex justify-end pt-1">
+                        {searchModeNfeio === 'name' && (
+                            <Button
+                                type="button"
+                                onClick={handleSearchCityNfeio}
+                                disabled={!selectedSearchCityNfeio || searchingCityNfeio}
+                                className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/10 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2"
+                            >
+                                {searchingCityNfeio ? (
+                                    <RefreshCw size={14} className="animate-spin text-white" />
+                                ) : (
+                                    <Search size={14} className="text-white" />
+                                )}
+                                Buscar Cidade
+                            </Button>
+                        )}
+
+                        {searchModeNfeio === 'ibge' && (
+                            <Button
+                                type="button"
+                                onClick={() => handleSearchCityByIbgeNfeio(searchIbgeQueryNfeio)}
+                                disabled={searchIbgeQueryNfeio.length !== 7 || searchingCityNfeio}
+                                className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/10 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2"
+                            >
+                                {searchingCityNfeio ? (
+                                    <RefreshCw size={14} className="animate-spin text-white" />
+                                ) : (
+                                    <Search size={14} className="text-white" />
+                                )}
+                                Buscar por IBGE
+                            </Button>
+                        )}
+
+                        {searchModeNfeio === 'uf' && (
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    setSearchUf(searchUfNfeio);
+                                    setIsStateModalOpen(true);
+                                }}
+                                className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md shadow-indigo-500/10 transition-all active:scale-95"
+                            >
+                                <Globe size={16} />
+                                Visualizar Cobertura Estadual ({searchUfNfeio})
+                            </Button>
+                        )}
+                    </div>
+
+                    {/* Card de Resultado para Nome ou IBGE */}
+                    {nfeioCityInfo && (searchModeNfeio === 'name' || searchModeNfeio === 'ibge') && (
+                        <div className="mt-4 p-6 bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-md animate-in fade-in slide-in-from-top-3 duration-300">
+                            {nfeioCityNotCoveredMessage && (
+                                <div className="p-4 bg-rose-50 dark:bg-rose-955/20 rounded-2xl border border-rose-100 dark:border-rose-900/30 flex items-start gap-3 text-rose-800 dark:text-rose-455 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <AlertCircle className="shrink-0 text-rose-500 mt-0.5" size={18} />
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-wider">Atenção: Município Sem Cobertura</p>
+                                        <p className="text-[11px] font-semibold opacity-90 mt-1 leading-relaxed">{nfeioCityNotCoveredMessage}</p>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                {/* Detalhes do Município */}
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="flex justify-between items-start w-full gap-4">
+                                            {/* Cidade */}
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-[9px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-wider select-none">
+                                                    Cidade <Info size={10} className="text-gray-455 dark:text-slate-500 shrink-0" />
+                                                </span>
+                                                <span className="text-sm font-black text-gray-900 dark:text-white mt-0.5 truncate">
+                                                    {nfeioCityInfo.name || nfeioCityInfo.nome || selectedSearchCityNfeio?.nome || ('Código ' + (nfeioCityInfo.id || nfeioCityInfo.codigoIbge))}
+                                                </span>
+                                            </div>
+                                            {/* UF */}
+                                            <div className="flex flex-col items-end shrink-0">
+                                                <span className="text-[9px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider select-none">
+                                                    UF
+                                                </span>
+                                                <span className="text-sm font-black text-gray-900 dark:text-white mt-0.5">
+                                                    {nfeioCityInfo.state || nfeioCityInfo.uf || searchUfNfeio}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Duas colunas técnicas */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Código IBGE</span>
+                                            <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 font-mono truncate font-semibold">
+                                                {nfeioCityInfo.id || nfeioCityInfo.codigoIbge || selectedSearchCityNfeio?.id}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Provedor</span>
+                                            <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 truncate">
+                                                {nfeioCityInfo.providerId || 'Não Informado'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Informações Extras de Integração */}
+                                    <div className="flex flex-col pt-1">
+                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-widest select-none">
+                                            Layout de integração
+                                        </span>
+                                        <span className="text-[10px] font-semibold mt-0.5 leading-relaxed text-gray-800 dark:text-slate-350">
+                                            API NFe.io (WebService integrado)
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Dados de Suporte da Prefeitura */}
+                                <div className="p-5 bg-gray-50/50 dark:bg-slate-900/60 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-4">
+                                    <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-normal select-none">Canais de Contato & Suporte</h5>
+                                    <hr className="border-gray-100 dark:border-slate-800/80 my-1" />
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-[11px]">
+                                            <span className="text-gray-450 dark:text-slate-500 font-bold select-none w-16 uppercase text-[9px] tracking-wider">E-mail:</span>
+                                            <span className="text-gray-800 dark:text-slate-300 font-semibold truncate">
+                                                {nfeioCityInfo.email || 'Não informado'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-[11px]">
+                                            <span className="text-gray-450 dark:text-slate-500 font-bold select-none w-16 uppercase text-[9px] tracking-wider">Telefone:</span>
+                                            <span className="text-gray-800 dark:text-slate-300 font-semibold">
+                                                {nfeioCityInfo.phoneNumber || 'Não informado'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-[11px]">
+                                            <span className="text-gray-450 dark:text-slate-500 font-bold select-none w-16 uppercase text-[9px] tracking-wider">Site:</span>
+                                            {nfeioCityInfo.webSite ? (
+                                                <a
+                                                    href={nfeioCityInfo.webSite}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sky-500 hover:text-sky-650 dark:text-sky-400 dark:hover:text-sky-300 font-extrabold flex items-center gap-1 transition-colors truncate"
+                                                >
+                                                    <ExternalLink size={11} className="shrink-0" />
+                                                    Portal Prefeitura
+                                                </a>
+                                            ) : (
+                                                <span className="text-gray-800 dark:text-slate-300 font-semibold">Não informado</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         )}
 
@@ -3549,141 +4127,199 @@ export function FiscalSettings() {
 
                                                     {/* Conteúdo Técnico */}
                                                     {isVerified ? (
-                                                        <div className="mt-4 space-y-3.5 animate-in fade-in duration-200">
-                                                            {/* Três colunas técnicas: Layout, Padrão, Código IBGE */}
-                                                            <div className="grid grid-cols-3 gap-2">
-                                                                <div className="flex flex-col min-w-0">
-                                                                    <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Layout de integração</span>
-                                                                    <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 truncate">
-                                                                        {cityInfo?.padrao?.toLowerCase() === 'nacional' ? 'NFS-e Nacional' : 'WebService'}
-                                                                    </span>
+                                                        activeSubTab === 'nfeio' ? (
+                                                            <div className="mt-4 space-y-3.5 animate-in fade-in duration-200">
+                                                                {/* Duas colunas técnicas: Provedor e Código IBGE */}
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Código IBGE</span>
+                                                                        <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 font-mono truncate">
+                                                                            {city.id}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Provedor</span>
+                                                                        <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 truncate">
+                                                                            {cityInfo?.providerId || 'Não Informado'}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="flex flex-col min-w-0">
-                                                                    <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Padrão</span>
-                                                                    {cityInfo?.padrao ? (
-                                                                        <a 
-                                                                            href={`https://docs.plugnotas.com.br/docs/padrao-${cityInfo.padrao.toLowerCase()}`}
-                                                                            target="_blank" 
-                                                                            rel="noopener noreferrer" 
-                                                                            className="text-[10px] font-extrabold text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300 mt-0.5 flex items-center gap-0.5 transition-colors truncate"
-                                                                        >
-                                                                            <ExternalLink size={9} className="shrink-0" />
-                                                                            {cityInfo.padrao}
-                                                                        </a>
-                                                                    ) : (
-                                                                        <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-0.5">Não informado</span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex flex-col min-w-0">
-                                                                    <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Código IBGE</span>
-                                                                    <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 font-mono truncate">
-                                                                        {city.id}
-                                                                    </span>
+
+                                                                <hr className="border-gray-100 dark:border-slate-800/80 my-1" />
+
+                                                                {/* Canais de Contato / Suporte */}
+                                                                <div className="space-y-2.5">
+                                                                    <div className="flex items-center gap-2 text-[10px]">
+                                                                        <span className="text-gray-400 dark:text-slate-500 font-bold select-none w-14 uppercase text-[8px] tracking-wider">E-mail:</span>
+                                                                        <span className="text-gray-800 dark:text-slate-300 font-semibold truncate" title={cityInfo?.email}>
+                                                                            {cityInfo?.email || 'Não informado'}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2 text-[10px]">
+                                                                        <span className="text-gray-400 dark:text-slate-500 font-bold select-none w-14 uppercase text-[8px] tracking-wider">Telefone:</span>
+                                                                        <span className="text-gray-800 dark:text-slate-300 font-semibold truncate">
+                                                                            {cityInfo?.phoneNumber || 'Não informado'}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2 text-[10px]">
+                                                                        <span className="text-gray-400 dark:text-slate-500 font-bold select-none w-14 uppercase text-[8px] tracking-wider">Site:</span>
+                                                                        {cityInfo?.webSite ? (
+                                                                            <a
+                                                                                href={cityInfo.webSite}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300 font-extrabold flex items-center gap-0.5 transition-colors truncate"
+                                                                            >
+                                                                                <ExternalLink size={9} className="shrink-0" />
+                                                                                Portal Prefeitura
+                                                                            </a>
+                                                                        ) : (
+                                                                            <span className="text-gray-800 dark:text-slate-300 font-semibold truncate">Não informado</span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
+                                                        ) : (
+                                                            <div className="mt-4 space-y-3.5 animate-in fade-in duration-200">
+                                                                {/* Três colunas técnicas: Layout, Padrão, Código IBGE */}
+                                                                <div className="grid grid-cols-3 gap-2">
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Layout de integração</span>
+                                                                        <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 truncate">
+                                                                            {cityInfo?.padrao?.toLowerCase() === 'nacional' ? 'NFS-e Nacional' : 'WebService'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Padrão</span>
+                                                                        {cityInfo?.padrao ? (
+                                                                            <a 
+                                                                                href={`https://docs.plugnotas.com.br/docs/padrao-${cityInfo.padrao.toLowerCase()}`}
+                                                                                target="_blank" 
+                                                                                rel="noopener noreferrer" 
+                                                                                className="text-[10px] font-extrabold text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300 mt-0.5 flex items-center gap-0.5 transition-colors truncate"
+                                                                            >
+                                                                                <ExternalLink size={9} className="shrink-0" />
+                                                                                {cityInfo.padrao}
+                                                                            </a>
+                                                                        ) : (
+                                                                            <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-0.5">Não informado</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Código IBGE</span>
+                                                                        <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 font-mono truncate">
+                                                                            {city.id}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
 
-                                                            {/* Dados obrigatórios */}
-                                                            <div className="flex flex-col pt-0.5">
-                                                                <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-widest select-none">
-                                                                    Dados obrigatórios das notas tomadas <Info size={9} className="text-gray-400 dark:text-slate-500 shrink-0" />
-                                                                </span>
-                                                                <span className={`text-[10px] font-extrabold mt-0.5 leading-relaxed truncate ${
-                                                                    formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas) === "Consulta não disponível"
-                                                                        ? 'text-gray-400 dark:text-slate-500 font-medium'
-                                                                        : 'text-gray-800 dark:text-slate-350'
-                                                                }`}>
-                                                                    {formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas)}
-                                                                </span>
+                                                                {/* Dados obrigatórios */}
+                                                                <div className="flex flex-col pt-0.5">
+                                                                    <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-widest select-none">
+                                                                        Dados obrigatórios das notas tomadas <Info size={9} className="text-gray-400 dark:text-slate-500 shrink-0" />
+                                                                    </span>
+                                                                    <span className={`text-[10px] font-extrabold mt-0.5 leading-relaxed truncate ${
+                                                                        formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas) === "Consulta não disponível"
+                                                                            ? 'text-gray-400 dark:text-slate-500 font-medium'
+                                                                            : 'text-gray-800 dark:text-slate-350'
+                                                                    }`}>
+                                                                        {formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas)}
+                                                                    </span>
+                                                                </div>
+
+                                                                <hr className="border-gray-100 dark:border-slate-800/80 my-1" />
+
+                                                                {/* Checklist de requisitos (Grid de 3 Colunas) */}
+                                                                <div className="grid grid-cols-3 gap-x-2 gap-y-3 pt-1">
+                                                                    {/* Item 1: Notas tomadas */}
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        {!!cityInfo?.dadosObrigatoriosNotasTomadas && formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas) !== "Consulta não disponível" ? (
+                                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                                <Check size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                                <X size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                            Notas tomadas <Info size={9} className="text-gray-400 shrink-0" />
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {/* Item 2: Login */}
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        {cityInfo?.login ? (
+                                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                                <Check size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                                <X size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                            Login <Info size={9} className="text-gray-400 shrink-0" />
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {/* Item 3: Senha */}
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        {cityInfo?.senha ? (
+                                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                                <Check size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                                <X size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                            Senha <Info size={9} className="text-gray-400 shrink-0" />
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {/* Item 4: Múltiplos serviços */}
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        {cityInfo?.multiservicos ? (
+                                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                                <Check size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                                <X size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                            Múltiplos serviços <Info size={9} className="text-gray-400 shrink-0" />
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {/* Item 5: Certificado */}
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        {cityInfo?.certificado ? (
+                                                                            <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
+                                                                                <Check size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
+                                                                                <X size={9} strokeWidth={4} />
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
+                                                                            Certificado <Info size={9} className="text-gray-400 shrink-0" />
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-
-                                                            <hr className="border-gray-100 dark:border-slate-800/80 my-1" />
-
-                                                            {/* Checklist de requisitos (Grid de 3 Colunas) */}
-                                                            <div className="grid grid-cols-3 gap-x-2 gap-y-3 pt-1">
-                                                                {/* Item 1: Notas tomadas */}
-                                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                                    {!!cityInfo?.dadosObrigatoriosNotasTomadas && formatDadosObrigatorios(cityInfo?.dadosObrigatoriosNotasTomadas) !== "Consulta não disponível" ? (
-                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
-                                                                            <Check size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
-                                                                            <X size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
-                                                                        Notas tomadas <Info size={9} className="text-gray-400 shrink-0" />
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* Item 2: Login */}
-                                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                                    {cityInfo?.login ? (
-                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
-                                                                            <Check size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
-                                                                            <X size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
-                                                                        Login <Info size={9} className="text-gray-400 shrink-0" />
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* Item 3: Senha */}
-                                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                                    {cityInfo?.senha ? (
-                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
-                                                                            <Check size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
-                                                                            <X size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
-                                                                        Senha <Info size={9} className="text-gray-400 shrink-0" />
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* Item 4: Múltiplos serviços */}
-                                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                                    {cityInfo?.multiservicos ? (
-                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
-                                                                            <Check size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
-                                                                            <X size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
-                                                                        Múltiplos serviços <Info size={9} className="text-gray-400 shrink-0" />
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* Item 5: Certificado */}
-                                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                                    {cityInfo?.certificado ? (
-                                                                        <span className="p-0.5 bg-emerald-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-emerald-500/20">
-                                                                            <Check size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="p-0.5 bg-rose-500 text-white rounded-full shrink-0 flex items-center justify-center w-4 h-4 shadow-sm shadow-rose-500/20">
-                                                                            <X size={9} strokeWidth={4} />
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 flex items-center gap-0.5 truncate select-none">
-                                                                        Certificado <Info size={9} className="text-gray-400 shrink-0" />
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                        )
                                                     ) : (
                                                         <div className="py-2.5 flex items-center justify-center text-center bg-gray-50 dark:bg-slate-855/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-800 mt-3 flex-1 min-h-[140px]">
-                                                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500">Aguardando consulta de requisitos</span>
+                                                            <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500">
+                                                                {activeSubTab === 'nfeio' ? 'Aguardando consulta de cobertura' : 'Aguardando consulta de requisitos'}
+                                                            </span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -3698,11 +4334,11 @@ export function FiscalSettings() {
                                                         className="text-[10px] font-bold text-indigo-650 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-50 flex items-center gap-1"
                                                     >
                                                         <RefreshCw size={10} className={status?.loading ? 'animate-spin' : ''} />
-                                                        {isVerified ? 'Atualizar Dados' : 'Verificar Requisitos'}
+                                                        {isVerified ? 'Atualizar Dados' : (activeSubTab === 'nfeio' ? 'Verificar Cobertura' : 'Verificar Requisitos')}
                                                     </button>
 
-                                                    {/* Selecionar como ativa se homologado */}
-                                                    {isVerified && !notHomologated && (
+                                                    {/* Selecionar como ativa se homologado (Apenas para TecnoSpeed) */}
+                                                    {isVerified && !notHomologated && activeSubTab !== 'nfeio' && (
                                                         <button
                                                             type="button"
                                                             onClick={() => {
@@ -3741,7 +4377,7 @@ export function FiscalSettings() {
                         {/* Footer do Modal */}
                         <div className="p-4 border-t border-gray-150 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                             <span>Diretório de Cobertura Fiscal Antigravity</span>
-                            <span>TecnoSpeed PlugNotas</span>
+                            <span>{activeSubTab === 'nfeio' ? 'NFe.io Prefeituras' : 'TecnoSpeed PlugNotas'}</span>
                         </div>
                     </div>
                 </div>

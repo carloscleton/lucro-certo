@@ -171,5 +171,15 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async consultarCidadeNfeio(codigoIbge: string, companyId: string, token: string) {
+        const response = await axios.get(getFiscalUrl(`nfeio/prefectures/${codigoIbge}`), {
+            params: { companyId },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };
