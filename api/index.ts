@@ -404,8 +404,8 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
 
             apiKey = nfeioConfig.apiKey.trim();
             const companyIdNfe = nfeioConfig.companyId.trim();
-            // NFe.io: certificado usa api.nfe.io (não nfse) e endpoint sem 's' (certificate)
-            baseUrl = `https://api.nfe.io/v2/companies/${companyIdNfe}/certificate`;
+            // NFe.io: certificado usa api.nfse.io (v2) e endpoint com 's' (certificates)
+            baseUrl = `https://api.nfse.io/v2/companies/${companyIdNfe}/certificates`;
 
             console.log(`🔐 [NFEIO-CERTIFICADO] Enviando certificado para NFe.io Empresa: ${companyIdNfe}`);
 
@@ -734,7 +734,7 @@ app.post(['/fiscal-module/nfeio/companies/:companyId/certificates', '/api/fiscal
         apiKey = nfeioConfig.apiKey.trim();
         const companyIdNfe = nfeioConfig.companyId.trim();
         
-        baseUrl = `https://api.nfe.io/v2/companies/${companyIdNfe}/certificate`;
+        baseUrl = `https://api.nfse.io/v2/companies/${companyIdNfe}/certificates`;
 
         console.log(`🔐 [NFEIO-CERT-ROUTE] Enviando certificado para NFe.io Empresa: ${companyIdNfe}`);
 
