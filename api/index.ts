@@ -49,6 +49,32 @@ async function axiosNfeioRequest(config: any, retries = 2, delay = 1000): Promis
     }
 }
 
+function extractCnpjCpfFromPfx(buffer: Buffer): { cnpjs: string[], cpfs: string[] } {
+    try {
+        const content = buffer.toString('binary');
+        const allDigitSequences = content.match(/\d+/g) || [];
+        
+        const cnpjs = allDigitSequences.filter(s => s.length === 14);
+        const cpfs = allDigitSequences.filter(s => s.length === 11);
+        
+        return {
+            cnpjs: Array.from(new Set(cnpjs)),
+            cpfs: Array.from(new Set(cpfs))
+        };
+    } catch (err) {
+        console.error('Erro ao ler dados binários do PFX:', err);
+        return { cnpjs: [], cpfs: [] };
+    }
+}
+
+function formatCnpj(cnpj: string): string {
+    return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+}
+
+function formatCpf(cpf: string): string {
+    return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+}
+
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -378,8 +404,8 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
 
             apiKey = nfeioConfig.apiKey.trim();
             const companyIdNfe = nfeioConfig.companyId.trim();
-            // NFe.io: certificado usa api.nfse.io (v2) e endpoint com 's' (certificates)
-            baseUrl = `https://api.nfse.io/v2/companies/${companyIdNfe}/certificates`;
+            // NFe.io: certificado usa api.nfe.io (não nfse) e endpoint sem 's' (certificate)
+            baseUrl = `https://api.nfe.io/v2/companies/${companyIdNfe}/certificate`;
 
             console.log(`🔐 [NFEIO-CERTIFICADO] Enviando certificado para NFe.io Empresa: ${companyIdNfe}`);
 
@@ -390,58 +416,82 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
             });
             form.append('Password', String(senha));
 
-            const response = await axiosNfeioRequest({
-                method: 'POST',
-                url: baseUrl,
-                data: form,
-                headers: {
-                    ...form.getHeaders(),
-                    'Authorization': apiKey
-                },
-                timeout: 30000
-            });
+            try {
+                const response = await axiosNfeioRequest({
+                    method: 'POST',
+                    url: baseUrl,
+                    data: form,
+                    headers: {
+                        ...form.getHeaders(),
+                        'Authorization': apiKey
+                    },
+                    timeout: 30000
+                });
 
-            const certData = response.data;
-            const certId = certData?.id || certData?.certificateId || 'nfeio_cert';
-            const vencimento = certData?.validUntil || certData?.vencimento || certData?.expirationDate || certData?.endDate || new Date(Date.now() + 365*24*60*60*1000).toISOString();
-            const sujeito = certData?.subject || certData?.sujeito || certData?.commonName || certData?.nome || 'Certificado NFe.io';
+                const certData = response.data;
+                const certId = certData?.id || certData?.certificateId || 'nfeio_cert';
+                const vencimento = certData?.validUntil || certData?.vencimento || certData?.expirationDate || certData?.endDate || new Date(Date.now() + 365*24*60*60*1000).toISOString();
+                const sujeito = certData?.subject || certData?.sujeito || certData?.commonName || certData?.nome || 'Certificado NFe.io';
 
-            if (SUPABASE_URL) {
-                try {
-                    const currentConfig = dbConfig || {};
-                    const updatedConfig = {
-                        ...currentConfig,
-                        certificado_id: certId,
-                        certificado_vencimento: vencimento,
-                        certificado_sujeito: sujeito,
-                        certificado_status: 'ativo',
-                        ultima_atualizacao: new Date().toISOString()
-                    };
+                if (SUPABASE_URL) {
+                    try {
+                        const currentConfig = dbConfig || {};
+                        const updatedConfig = {
+                            ...currentConfig,
+                            certificado_id: certId,
+                            certificado_vencimento: vencimento,
+                            certificado_sujeito: sujeito,
+                            certificado_status: 'ativo',
+                            ultima_atualizacao: new Date().toISOString()
+                        };
 
-                    await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
-                        tecnospeed_config: updatedConfig
-                    }, {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY!,
-                            'Authorization': authHeader!,
-                            'Content-Type': 'application/json'
-                        }
-                    });
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                            tecnospeed_config: updatedConfig
+                        }, {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY!,
+                                'Authorization': authHeader!,
+                                'Content-Type': 'application/json'
+                            }
+                        });
 
-                    fiscalConfigCache.delete(companyId);
-                    console.log(`✅ Certificado NFe.io (${certId}) e metadados salvos localmente.`);
-                } catch (dbErr: any) {
-                    console.warn('⚠️ Não foi possível salvar metadados do certificado NFe.io localmente:', dbErr.message);
+                        fiscalConfigCache.delete(companyId);
+                        console.log(`✅ Certificado NFe.io (${certId}) e metadados salvos localmente.`);
+                    } catch (dbErr: any) {
+                        console.warn('⚠️ Não foi possível salvar metadados do certificado NFe.io localmente:', dbErr.message);
+                    }
                 }
-            }
 
-            return res.json({
-                message: 'Certificado processado com sucesso na NFe.io',
-                id: certId,
-                vencimento: vencimento,
-                sujeito: sujeito,
-                status: 'ativo'
-            });
+                return res.json({
+                    message: 'Certificado processado com sucesso na NFe.io',
+                    id: certId,
+                    vencimento: vencimento,
+                    sujeito: sujeito,
+                    status: 'ativo'
+                });
+            } catch (error: any) {
+                const errorDetail = error.response?.data || error.message;
+                const errorMsgStr = typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : String(errorDetail);
+
+                if (errorMsgStr.toLowerCase().includes('tax number is invalid') || errorMsgStr.toLowerCase().includes('cnpj') || errorMsgStr.toLowerCase().includes('invalid')) {
+                    const certInfo = extractCnpjCpfFromPfx(file.buffer);
+                    const formattedCnpjs = certInfo.cnpjs.map(formatCnpj);
+                    const formattedCpfs = certInfo.cpfs.map(formatCpf);
+                    
+                    const companyCnpjRaw = settings?.cnpj || dbConfig?.cnpj || companyId || '';
+                    const companyCnpjFormatted = companyCnpjRaw ? formatCnpj(companyCnpjRaw) : 'Não informado';
+
+                    const customMsg = `O CNPJ do certificado enviado não coincide com o CNPJ da empresa na NFe.io. CNPJ da empresa: ${companyCnpjFormatted}. Documento(s) detectado(s) no certificado: ${[...formattedCnpjs, ...formattedCpfs].join(', ') || 'Nenhum detectado'}.`;
+                    
+                    console.error('❌ [NFEIO-CNPJ-MISMATCH] Erro customizado:', customMsg);
+                    return res.status(400).json({
+                        error: 'Erro de validação do CNPJ do certificado',
+                        detail: customMsg
+                    });
+                }
+
+                throw error;
+            }
         }
 
         // --- INTERCEPTOR DE WEBHOOK EXTERNO PARA CERTIFICADO ---
@@ -684,7 +734,7 @@ app.post(['/fiscal-module/nfeio/companies/:companyId/certificates', '/api/fiscal
         apiKey = nfeioConfig.apiKey.trim();
         const companyIdNfe = nfeioConfig.companyId.trim();
         
-        baseUrl = `https://api.nfse.io/v2/companies/${companyIdNfe}/certificates`;
+        baseUrl = `https://api.nfe.io/v2/companies/${companyIdNfe}/certificate`;
 
         console.log(`🔐 [NFEIO-CERT-ROUTE] Enviando certificado para NFe.io Empresa: ${companyIdNfe}`);
 
@@ -695,58 +745,82 @@ app.post(['/fiscal-module/nfeio/companies/:companyId/certificates', '/api/fiscal
         });
         form.append('Password', String(senha));
 
-        const response = await axiosNfeioRequest({
-            method: 'POST',
-            url: baseUrl,
-            data: form,
-            headers: {
-                ...form.getHeaders(),
-                'Authorization': apiKey
-            },
-            timeout: 30000
-        });
+        try {
+            const response = await axiosNfeioRequest({
+                method: 'POST',
+                url: baseUrl,
+                data: form,
+                headers: {
+                    ...form.getHeaders(),
+                    'Authorization': apiKey
+                },
+                timeout: 30000
+            });
 
-        const certData = response.data;
-        const certId = certData?.id || certData?.certificateId || 'nfeio_cert';
-        const vencimento = certData?.validUntil || certData?.vencimento || certData?.expirationDate || certData?.endDate || new Date(Date.now() + 365*24*60*60*1000).toISOString();
-        const sujeito = certData?.subject || certData?.sujeito || certData?.commonName || certData?.nome || 'Certificado NFe.io';
+            const certData = response.data;
+            const certId = certData?.id || certData?.certificateId || 'nfeio_cert';
+            const vencimento = certData?.validUntil || certData?.vencimento || certData?.expirationDate || certData?.endDate || new Date(Date.now() + 365*24*60*60*1000).toISOString();
+            const sujeito = certData?.subject || certData?.sujeito || certData?.commonName || certData?.nome || 'Certificado NFe.io';
 
-        if (SUPABASE_URL) {
-            try {
-                const currentConfig = dbConfig || {};
-                const updatedConfig = {
-                    ...currentConfig,
-                    certificado_id: certId,
-                    certificado_vencimento: vencimento,
-                    certificado_sujeito: sujeito,
-                    certificado_status: 'ativo',
-                    ultima_atualizacao: new Date().toISOString()
-                };
+            if (SUPABASE_URL) {
+                try {
+                    const currentConfig = dbConfig || {};
+                    const updatedConfig = {
+                        ...currentConfig,
+                        certificado_id: certId,
+                        certificado_vencimento: vencimento,
+                        certificado_sujeito: sujeito,
+                        certificado_status: 'ativo',
+                        ultima_atualizacao: new Date().toISOString()
+                    };
 
-                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
-                    tecnospeed_config: updatedConfig
-                }, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY!,
-                        'Authorization': authHeader!,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
+                        tecnospeed_config: updatedConfig
+                    }, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader!,
+                            'Content-Type': 'application/json'
+                        }
+                    });
 
-                fiscalConfigCache.delete(resolvedId);
-                console.log(`✅ [NFEIO-CERT-ROUTE] Certificado NFe.io (${certId}) e metadados salvos localmente.`);
-            } catch (dbErr: any) {
-                console.warn('⚠️ [NFEIO-CERT-ROUTE] Não foi possível salvar metadados do certificado NFe.io localmente:', dbErr.message);
+                    fiscalConfigCache.delete(resolvedId);
+                    console.log(`✅ [NFEIO-CERT-ROUTE] Certificado NFe.io (${certId}) e metadados salvos localmente.`);
+                } catch (dbErr: any) {
+                    console.warn('⚠️ [NFEIO-CERT-ROUTE] Não foi possível salvar metadados do certificado NFe.io localmente:', dbErr.message);
+                }
             }
-        }
 
-        return res.json({
-            message: 'Certificado processado com sucesso na NFe.io',
-            id: certId,
-            vencimento: vencimento,
-            sujeito: sujeito,
-            status: 'ativo'
-        });
+            return res.json({
+                message: 'Certificado processado com sucesso na NFe.io',
+                id: certId,
+                vencimento: vencimento,
+                sujeito: sujeito,
+                status: 'ativo'
+            });
+        } catch (error: any) {
+            const errorDetail = error.response?.data || error.message;
+            const errorMsgStr = typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : String(errorDetail);
+
+            if (errorMsgStr.toLowerCase().includes('tax number is invalid') || errorMsgStr.toLowerCase().includes('cnpj') || errorMsgStr.toLowerCase().includes('invalid')) {
+                const certInfo = extractCnpjCpfFromPfx(file.buffer);
+                const formattedCnpjs = certInfo.cnpjs.map(formatCnpj);
+                const formattedCpfs = certInfo.cpfs.map(formatCpf);
+                
+                const companyCnpjRaw = settings?.cnpj || dbConfig?.cnpj || companyId || '';
+                const companyCnpjFormatted = companyCnpjRaw ? formatCnpj(companyCnpjRaw) : 'Não informado';
+
+                const customMsg = `O CNPJ do certificado enviado não coincide com o CNPJ da empresa na NFe.io. CNPJ da empresa: ${companyCnpjFormatted}. Documento(s) detectado(s) no certificado: ${[...formattedCnpjs, ...formattedCpfs].join(', ') || 'Nenhum detectado'}.`;
+                
+                console.error('❌ [NFEIO-CERT-ROUTE-CNPJ-MISMATCH] Erro customizado:', customMsg);
+                return res.status(400).json({
+                    error: 'Erro de validação do CNPJ do certificado',
+                    detail: customMsg
+                });
+            }
+
+            throw error;
+        }
 
     } catch (error: any) {
         const detail = error.response?.data || error.message;
