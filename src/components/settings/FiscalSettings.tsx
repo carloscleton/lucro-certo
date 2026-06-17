@@ -235,7 +235,9 @@ export function FiscalSettings() {
         certificado_id: '',
         certificado_vencimento: '',
         certificado_sujeito: '',
-        certificado_status: ''
+        certificado_status: '',
+        send_email_automatically: false,
+        send_whatsapp_automatically: false
     });
 
     const isDirty = useMemo(() => {
@@ -308,7 +310,9 @@ export function FiscalSettings() {
             certificado_id: nfe.certificado_id || '',
             certificado_vencimento: nfe.certificado_vencimento || '',
             certificado_sujeito: nfe.certificado_sujeito || '',
-            certificado_status: nfe.certificado_status || ''
+            certificado_status: nfe.certificado_status || '',
+            send_email_automatically: nfe.send_email_automatically || false,
+            send_whatsapp_automatically: nfe.send_whatsapp_automatically || false
         });
     }, [currentCompany?.id]); // Depender apenas do ID
 
@@ -3460,6 +3464,50 @@ export function FiscalSettings() {
                         onChange={(e) => setNfeioConfig({ ...nfeioConfig, aliquotaIss: e.target.value })}
                         placeholder="Ex: 2.0"
                     />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+                                <Mail size={18} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">Enviar E-mail Automaticamente</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400">A NFe.io enviará o PDF e link da nota diretamente para o e-mail do cliente.</p>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={nfeioConfig.send_email_automatically || false}
+                                onChange={(e) => setNfeioConfig({ ...nfeioConfig, send_email_automatically: e.target.checked })}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl">
+                                <MessageCircle size={18} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">Enviar WhatsApp Automaticamente</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400">O sistema enviará o link da nota pelo WhatsApp (Evolution API).</p>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={nfeioConfig.send_whatsapp_automatically || false}
+                                onChange={(e) => setNfeioConfig({ ...nfeioConfig, send_whatsapp_automatically: e.target.checked })}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                        </label>
+                    </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200 dark:border-slate-700">

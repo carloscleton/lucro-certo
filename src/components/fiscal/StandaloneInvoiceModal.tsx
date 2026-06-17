@@ -107,8 +107,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     codigoCidade: nfe.codigoCidade || currentCompany?.tecnospeed_config?.endereco?.codigoCidade || ''
                 },
                 ambiente: nfe.ambiente || 'homologacao',
-                send_email_automatically: false,
-                send_whatsapp_automatically: false
+                send_email_automatically: nfe.send_email_automatically || false,
+                send_whatsapp_automatically: nfe.send_whatsapp_automatically || false
             } as any;
         }
         return currentCompany?.tecnospeed_config as any;
