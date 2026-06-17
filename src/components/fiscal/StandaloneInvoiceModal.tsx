@@ -42,12 +42,14 @@ interface InvoiceItem {
 }
 
 export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initialType, initialNotes }: StandaloneInvoiceModalProps) {
-    const { currentEntity } = useEntity();
+    const { currentEntity, availableEntities, switchEntity } = useEntity();
     const { contacts } = useContacts();
     const { companies } = useCompanies();
     const { services } = useServices();
     const { products } = useProducts();
     const currentCompany = companies.find(c => c.id === currentEntity.id);
+
+    const companyEntities = availableEntities.filter(e => e.type === 'company');
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -81,6 +83,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const [waInstances, setWaInstances] = useState<any[]>([]);
     const [notes, setNotes] = useState(initialNotes || '');
     const [showAdvanced, setShowAdvanced] = useState(false);
+
+    // Reset contact selection when switching companies
+    useEffect(() => {
+        setContactId('');
+    }, [currentEntity.id]);
 
     const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
 
@@ -1001,6 +1008,27 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 dark:bg-slate-800/30 p-6 rounded-3xl border border-gray-100 dark:border-slate-800">
+                    {companyEntities.length > 1 && (
+                        <div className="space-y-1.5 md:col-span-2">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Empresa Emissora</label>
+                            <select
+                                value={currentEntity.id || ''}
+                                onChange={(e) => {
+                                    const targetEntity = availableEntities.find(x => x.id === e.target.value);
+                                    if (targetEntity) {
+                                        switchEntity(targetEntity);
+                                    }
+                                }}
+                                className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                                required
+                            >
+                                {companyEntities.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name} {c.cnpj ? `(CNPJ: ${c.cnpj})` : ''}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Tipo de Nota</label>
                         <select

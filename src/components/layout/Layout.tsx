@@ -46,6 +46,9 @@ export function Layout() {
     const { currentEntity, availableEntities, switchEntity, isLoading } = useEntity();
     const { t } = useTranslation();
 
+    const companyEntities = availableEntities.filter(e => e.type === 'company');
+    const canSwitch = companyEntities.length > 1;
+
     const isIncomplete = profile && (!profile.full_name || !profile.phone);
 
     // Browser push notifications for due bills
@@ -325,12 +328,14 @@ export function Layout() {
                             <button
                                 type="button"
                                 className={`${styles.contextTrigger} ${isEntityMenuOpen ? styles.contextTriggerOpen : ''}`}
-                                onClick={() => setIsEntityMenuOpen(!isEntityMenuOpen)}
-                                disabled={isLoading}
+                                onClick={() => canSwitch && setIsEntityMenuOpen(!isEntityMenuOpen)}
+                                disabled={isLoading || !canSwitch}
                                 style={{ 
                                     '--active-color': currentEntityColor,
                                     backgroundColor: currentEntity.type === 'personal' ? '#f0fdf4' : '#eff6ff',
-                                    borderColor: currentEntity.type === 'personal' ? '#bbf7d0' : '#bfdbfe'
+                                    borderColor: currentEntity.type === 'personal' ? '#bbf7d0' : '#bfdbfe',
+                                    cursor: canSwitch ? 'pointer' : 'default',
+                                    pointerEvents: canSwitch ? 'auto' : 'none'
                                 } as React.CSSProperties}
                             >
                                 <div className={styles.triggerContent}>
@@ -349,14 +354,16 @@ export function Layout() {
                                     </div>
                                     <span className={styles.triggerName}>{currentEntity.name}</span>
                                 </div>
-                                <ChevronDown 
-                                    size={16} 
-                                    className={`text-gray-400 transition-transform duration-200 ${isEntityMenuOpen ? 'rotate-180' : ''}`} 
-                                    style={isEntityMenuOpen ? { color: currentEntityColor } : {}}
-                                />
+                                {canSwitch && (
+                                    <ChevronDown 
+                                        size={16} 
+                                        className={`text-gray-400 transition-transform duration-200 ${isEntityMenuOpen ? 'rotate-180' : ''}`} 
+                                        style={isEntityMenuOpen ? { color: currentEntityColor } : {}}
+                                    />
+                                )}
                             </button>
 
-                            {isEntityMenuOpen && (
+                            {canSwitch && isEntityMenuOpen && (
                                 <div className={styles.dropdownMenu}>
                                     {availableEntities.map((entity) => {
                                         const isActive = entity.type === 'personal' 
