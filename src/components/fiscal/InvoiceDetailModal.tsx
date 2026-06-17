@@ -116,22 +116,28 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                        payload.tomador?.razaoSocial || 
                        payload.destinatario?.razaoSocial || 
                        payload.destinatario?.nome || 
+                       payload.borrower?.name || 
                        retorno.tomador?.razaoSocial ||
+                       retorno.borrower?.name ||
                        'Cliente Desconhecido';
                        
     const clientTaxId = invoice.quote?.contact?.tax_id || 
                         payload.tomador?.cpfCnpj || 
                         payload.destinatario?.cpfCnpj || 
                         payload.destinatario?.cnpj || 
+                        payload.borrower?.federalTaxNumber || 
+                        retorno.borrower?.federalTaxNumber || 
                         '';
 
     const clientEmail = invoice.quote?.contact?.email || 
                          payload.tomador?.email || 
                          payload.destinatario?.email || 
+                         payload.borrower?.email || 
+                         retorno.borrower?.email || 
                          '';
 
     // Extrair dados do endereço
-    const addr = payload.tomador?.endereco || payload.destinatario?.endereco || {};
+    const addr = payload.tomador?.endereco || payload.destinatario?.endereco || payload.borrower?.address || retorno.borrower?.address || {};
     const clientAddress = addr.logradouro 
         ? `${addr.logradouro}, ${addr.numero || 'S/N'}${addr.complemento ? ' - ' + addr.complemento : ''} - ${addr.bairro || ''}, ${addr.descricaoCidade || addr.cidade || ''}/${addr.estado || addr.uf || ''} (CEP: ${addr.cep || ''})`
         : '';
@@ -270,7 +276,37 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
 
     // Compartilhar Documento (WhatsApp / E-mail)
     const handleOpenSend = (mediaType: 'whatsapp' | 'email') => {
-        const phone = invoice.quote?.contact?.whatsapp || invoice.quote?.contact?.phone || payload.tomador?.telefone || '';
+        let phone = invoice.quote?.contact?.whatsapp || invoice.quote?.contact?.phone || '';
+        if (!phone && payload) {
+            const targets = [
+                payload.tomador?.telefone,
+                payload.tomador?.contato?.telefone,
+                payload.destinatario?.telefone,
+                payload.destinatario?.contato?.telefone,
+                payload.borrower?.phone,
+                payload.borrower?.telefone,
+                payload.borrower?.phone_number,
+                retorno.tomador?.telefone,
+                retorno.borrower?.phone
+            ];
+            for (const t of targets) {
+                if (!t) continue;
+                if (typeof t === 'string') {
+                    const clean = t.replace(/\D/g, '');
+                    if (clean) {
+                        phone = clean;
+                        break;
+                    }
+                } else if (typeof t === 'object') {
+                    const ddd = String(t.ddd || '').replace(/\D/g, '');
+                    const num = String(t.numero || '').replace(/\D/g, '');
+                    if (num) {
+                        phone = `${ddd}${num}`;
+                        break;
+                    }
+                }
+            }
+        }
         const cleanPhone = String(phone).replace(/\D/g, '');
         
         setSendModal({

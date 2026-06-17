@@ -21,6 +21,20 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
         return new Date().toISOString().split('T')[0];
     };
 
+    // Helper para extrair o valor correto da nota fiscal (independente de NFe.io, TecnoSpeed, etc.)
+    const getInvoiceAmount = (p: any): number => {
+        if (!p) return 0;
+        const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
+        const val = p.servicesAmount || 
+                    p.retorno?.servicesAmount || 
+                    p.retorno?.valorTotal || 
+                    servicos[0]?.valor?.servico || 
+                    p.valorTotal || 
+                    p.valorTotalBruto || 
+                    0;
+        return Number(val);
+    };
+
     const [startDate, setStartDate] = useState(getFirstDayOfMonth());
     const [endDate, setEndDate] = useState(getToday());
     const [statusFilter, setStatusFilter] = useState('all');
@@ -48,6 +62,7 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
             }
         }
 
+
         // 3. Filtro de Busca (Número da nota, Cliente ou Emissor)
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
@@ -56,7 +71,8 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
             const clientQuote = invoice.quote?.contact?.name || '';
             const clientNfe = p?.destinatario?.nome || '';
             const clientNfse = p?.tomador?.razaoSocial || p?.tomador?.nome || '';
-            const clientName = (clientQuote || clientNfe || clientNfse || 'Cliente Desconhecido').toLowerCase();
+            const clientBorrower = p?.borrower?.name || p?.retorno?.borrower?.name || '';
+            const clientName = (clientQuote || clientNfe || clientNfse || clientBorrower || 'Cliente Desconhecido').toLowerCase();
 
             const invoiceNum = (invoice.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || invoice.external_id || '').toLowerCase();
             const creatorName = (invoice.created_by_profile?.full_name || '').toLowerCase();
@@ -79,35 +95,17 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
         // Valores das ativas/autorizadas
         authorizedAmount: filteredInvoices
             .filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase()))
-            .reduce((acc, curr) => {
-                const p = curr.payload;
-                if (!p) return acc;
-                const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
-                const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
-                return acc + Number(val);
-            }, 0),
+            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload), 0),
 
         // Valores das canceladas
         cancelledAmount: filteredInvoices
             .filter(i => i.status?.toLowerCase() === 'cancelado')
-            .reduce((acc, curr) => {
-                const p = curr.payload;
-                if (!p) return acc;
-                const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
-                const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
-                return acc + Number(val);
-            }, 0),
+            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload), 0),
 
         // Valores das em processamento
         processingAmount: filteredInvoices
             .filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase()))
-            .reduce((acc, curr) => {
-                const p = curr.payload;
-                if (!p) return acc;
-                const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
-                const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
-                return acc + Number(val);
-            }, 0),
+            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload), 0),
 
         // Cobráveis: Notas autorizadas ou canceladas (ambas foram geradas com sucesso)
         billableCount: filteredInvoices.filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase())).length,
@@ -115,13 +113,7 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
         // Soma dos valores das notas cobráveis
         billableAmount: filteredInvoices
             .filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase()))
-            .reduce((acc, curr) => {
-                const p = curr.payload;
-                if (!p) return acc;
-                const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
-                const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
-                return acc + Number(val);
-            }, 0)
+            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload), 0)
     };
 
     // Exportação em formato CSV com suporte UTF-8 BOM
@@ -150,10 +142,11 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
             const clientName = inv.quote?.contact?.name || 
                                p?.tomador?.razaoSocial || 
                                p?.destinatario?.nome || 
+                               p?.borrower?.name || 
+                               p?.retorno?.borrower?.name || 
                                'Cliente';
                                
-            const servicos = p ? (Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : [])) : [];
-            const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
+            const val = getInvoiceAmount(p);
             
             const emissor = inv.created_by_profile?.full_name || inv.created_by_profile?.email || 'N/A';
             const status = inv.status;
@@ -383,8 +376,7 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                                         const p = invoice.payload;
                                         
                                         // Valor
-                                        const servicos = p ? (Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : [])) : [];
-                                        const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || p?.retorno?.valorTotal || 0;
+                                        const val = getInvoiceAmount(p);
                                         
                                         // Número/Chave
                                         const num = invoice.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero;
@@ -395,6 +387,8 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                                                            p?.tomador?.razaoSocial || 
                                                            p?.tomador?.nome || 
                                                            p?.destinatario?.nome || 
+                                                           p?.borrower?.name || 
+                                                           p?.retorno?.borrower?.name || 
                                                            'Cliente';
 
                                         // Cancelamento info

@@ -137,7 +137,8 @@ export function Invoices() {
         const clientNameQuote = invoice.quote?.contact?.name || '';
         const clientNamePayloadNfe = invoice.payload?.destinatario?.nome || '';
         const clientNamePayloadNfse = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
-        const clientName = clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || 'Cliente Desconhecido';
+        const clientNamePayloadBorrower = invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || '';
+        const clientName = clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || clientNamePayloadBorrower || 'Cliente Desconhecido';
         
         const invoiceNumber = invoice.payload?.numero || invoice.external_id || '';
         const status = invoice.status || '';
@@ -329,7 +330,12 @@ export function Invoices() {
             p?.destinatario?.telefone,
             p?.destinatario?.contato?.telefone,
             p?.retorno?.tomador?.telefone,
-            p?.retorno?.destinatario?.telefone
+            p?.retorno?.destinatario?.telefone,
+            p?.borrower?.phone,
+            p?.borrower?.telefone,
+            p?.borrower?.phone_number,
+            p?.retorno?.borrower?.phone,
+            p?.retorno?.borrower?.telefone
         ];
 
         for (const t of targets) {
@@ -361,7 +367,9 @@ export function Invoices() {
             p?.destinatario?.email,
             p?.destinatario?.contato?.email,
             p?.retorno?.tomador?.email,
-            p?.retorno?.destinatario?.email
+            p?.retorno?.destinatario?.email,
+            p?.borrower?.email,
+            p?.retorno?.borrower?.email
         ];
 
         for (const t of targets) {
@@ -423,7 +431,7 @@ export function Invoices() {
 
         // Se for emissão direta (sem orçamento) e tiver CPF/CNPJ do tomador, tenta buscar o contato no banco de dados para puxar o WhatsApp/Telefone atualizado
         if (!invoice.quote && p) {
-            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj;
+            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj || p?.borrower?.federalTaxNumber || p?.retorno?.borrower?.federalTaxNumber;
             if (rawCpfCnpj) {
                 const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
                 const formattedCpfCnpj = cleanCpfCnpj.length === 11 
@@ -473,7 +481,7 @@ export function Invoices() {
         // Se for emissão direta (sem orçamento) e tiver CPF/CNPJ do tomador, tenta buscar o contato no banco de dados para puxar o E-mail atualizado
         const p = invoice.payload;
         if (!invoice.quote && p) {
-            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj;
+            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj || p?.borrower?.federalTaxNumber || p?.retorno?.borrower?.federalTaxNumber;
             if (rawCpfCnpj) {
                 const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
                 const formattedCpfCnpj = cleanCpfCnpj.length === 11 
@@ -847,7 +855,7 @@ export function Invoices() {
                                             ) : (
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
-                                                        {invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || 'Avulsa'}
+                                                        {invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || 'Avulsa'}
                                                     </span>
                                                     <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider">
                                                         Emissão Direta
@@ -1310,7 +1318,13 @@ export function Invoices() {
                         const inv = cancelModal.invoice;
                         const p = inv.payload;
                         const servicos = p ? (Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : [])) : [];
-                        const val = servicos[0]?.valor?.servico || p?.valorTotal || p?.valorTotalBruto || 0;
+                        const val = p?.servicesAmount || 
+                                                                    p?.retorno?.servicesAmount || 
+                                                                    p?.retorno?.valorTotal || 
+                                                                    servicos[0]?.valor?.servico || 
+                                                                    p?.valorTotal || 
+                                                                    p?.valorTotalBruto || 
+                                                                    0;
                         return {
                             description: `Cancelamento de Nota Fiscal ${inv.external_id ? `(${inv.external_id.slice(-6)})` : ''}`,
                             amount: val,
