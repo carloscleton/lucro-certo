@@ -1,6 +1,6 @@
 /**
  * Helper to build a sanitized and structured filename for invoice downloads (PDF/XML).
- * Pattern: [Company CNPJ] - [Company Name] - [Date DD-MM-YYYY] - NF-[Invoice Number].[format]
+ * Pattern: [Company CNPJ] - [Company Name] - [Client Name] - [Date DD-MM-YYYY] - NF-[Invoice Number].[format]
  */
 export function getInvoiceFilename(invoice: any, format: 'pdf' | 'xml', company?: any): string {
     if (!invoice) return `nota.${format}`;
@@ -25,7 +25,36 @@ export function getInvoiceFilename(invoice: any, format: 'pdf' | 'xml', company?
                            '';
     const companyName = rawCompanyName.replace(/[\\/:*?"<>|]/g, '').trim();
 
-    // 3. Issue Date (formatted as DD-MM-YYYY)
+    // 3. Get name of the client (tomador/destinatario)
+    const rawClientName = 
+        invoice.quote?.contact?.name || 
+        // Direct payload (from creation request)
+        p.tomador?.razaoSocial || 
+        p.tomador?.nome ||
+        p.destinatario?.razaoSocial || 
+        p.destinatario?.nome || 
+        p.borrower?.name ||
+        // From retorno (directly nested)
+        p.retorno?.tomador?.razaoSocial ||
+        p.retorno?.tomador?.nome ||
+        p.retorno?.destinatario?.razaoSocial ||
+        p.retorno?.destinatario?.nome ||
+        p.retorno?.borrower?.name ||
+        // From retorno.data (nested inside data object from PlugNotas API queries)
+        p.retorno?.data?.tomador?.razaoSocial ||
+        p.retorno?.data?.tomador?.nome ||
+        p.retorno?.data?.destinatario?.razaoSocial ||
+        p.retorno?.data?.destinatario?.nome ||
+        p.retorno?.data?.borrower?.name ||
+        // Nacional format fallback
+        p.nacional?.tomador?.razaoSocial ||
+        p.nacional?.tomador?.nome ||
+        p.nacional?.destinatario?.razaoSocial ||
+        p.nacional?.destinatario?.nome ||
+        '';
+    const clientName = rawClientName.replace(/[\\/:*?"<>|]/g, '').trim();
+
+    // 4. Issue Date (formatted as DD-MM-YYYY)
     let dateStr = '';
     if (invoice.created_at) {
         try {
@@ -40,7 +69,7 @@ export function getInvoiceFilename(invoice: any, format: 'pdf' | 'xml', company?
         }
     }
 
-    // 4. Invoice Number
+    // 5. Invoice Number
     const num = invoice.invoice_number || 
                 p.retorno?.numeroNfse || 
                 p.numeroNfse || 
@@ -55,6 +84,7 @@ export function getInvoiceFilename(invoice: any, format: 'pdf' | 'xml', company?
     const parts: string[] = [];
     if (taxId) parts.push(taxId);
     if (companyName) parts.push(companyName);
+    if (clientName) parts.push(clientName);
     if (dateStr) parts.push(dateStr);
     if (num) parts.push(`NF-${num}`);
 
