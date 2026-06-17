@@ -17,6 +17,7 @@ import { Modal } from '../components/ui/Modal';
 import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
 import { BillingReportModal } from '../components/fiscal/BillingReportModal';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
+import { getInvoiceFilename } from '../utils/invoiceUtils';
 
 
 export function parseFiscalError(error: any): string {
@@ -148,15 +149,15 @@ export function Invoices() {
 
 
 
-    const handleDownloadPDF = async (externalId: string, type: 'nfse' | 'nfe', companyId: string) => {
+    const handleDownloadPDF = async (invoice: any) => {
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
-            const blob = await fiscalService.downloadPDF(externalId, type, companyId, token);
+            const blob = await fiscalService.downloadPDF(invoice.external_id, invoice.type, invoice.company_id, token);
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `nota_${externalId}.pdf`;
+            a.download = getInvoiceFilename(invoice, 'pdf');
             a.click();
         } catch (error) {
             console.error('Erro ao baixar PDF:', error);
@@ -169,15 +170,15 @@ export function Invoices() {
         }
     };
 
-    const handleDownloadXML = async (externalId: string, type: 'nfse' | 'nfe', companyId: string) => {
+    const handleDownloadXML = async (invoice: any) => {
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
-            const blob = await fiscalService.downloadXML(externalId, type, companyId, token);
+            const blob = await fiscalService.downloadXML(invoice.external_id, invoice.type, invoice.company_id, token);
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `nota_${externalId}.xml`;
+            a.download = getInvoiceFilename(invoice, 'xml');
             a.click();
         } catch (error) {
             console.error('Erro ao baixar XML:', error);
@@ -1036,7 +1037,7 @@ export function Invoices() {
                                                 {invoice.external_id && ['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Baixar PDF">
                                                         <button
-                                                            onClick={() => handleDownloadPDF(invoice.external_id!, invoice.type, invoice.company_id)}
+                                                            onClick={() => handleDownloadPDF(invoice)}
                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
                                                         >
                                                             <Download size={18} />
@@ -1047,7 +1048,7 @@ export function Invoices() {
                                                 {invoice.external_id && ['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Baixar XML">
                                                         <button
-                                                            onClick={() => handleDownloadXML(invoice.external_id!, invoice.type, invoice.company_id)}
+                                                            onClick={() => handleDownloadXML(invoice)}
                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-orange-600 dark:text-orange-400 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-all shadow-sm"
                                                         >
                                                             <FileCode size={18} />

@@ -11,6 +11,7 @@ import { Button } from '../ui/Button';
 import { DeleteProtectionModal } from '../transactions/DeleteProtectionModal';
 import { API_BASE_URL } from '../../lib/constants';
 import { parseFiscalError } from '../../pages/Invoices';
+import { getInvoiceFilename } from '../../utils/invoiceUtils';
 
 interface InvoiceDetailModalProps {
     isOpen: boolean;
@@ -180,7 +181,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: Invo
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `nota_${invoice.invoice_number || invoice.external_id}.${format}`;
+            a.download = getInvoiceFilename(invoice, format);
             a.click();
         } catch (error) {
             console.error(`Erro ao baixar ${format.toUpperCase()}:`, error);
