@@ -18,9 +18,10 @@ interface InvoiceDetailModalProps {
     onClose: () => void;
     invoice: any;
     onRefresh: () => void;
+    company?: any;
 }
 
-export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: InvoiceDetailModalProps) {
+export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, company }: InvoiceDetailModalProps) {
     const [events, setEvents] = useState<any[]>([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -181,7 +182,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh }: Invo
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = getInvoiceFilename(invoice, format);
+            a.download = getInvoiceFilename(invoice, format, company);
             a.click();
         } catch (error) {
             console.error(`Erro ao baixar ${format.toUpperCase()}:`, error);

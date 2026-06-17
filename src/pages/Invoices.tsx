@@ -157,7 +157,8 @@ export function Invoices() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = getInvoiceFilename(invoice, 'pdf');
+            const company = companies.find(c => c.id === invoice.company_id) || currentCompany;
+            a.download = getInvoiceFilename(invoice, 'pdf', company);
             a.click();
         } catch (error) {
             console.error('Erro ao baixar PDF:', error);
@@ -178,7 +179,8 @@ export function Invoices() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = getInvoiceFilename(invoice, 'xml');
+            const company = companies.find(c => c.id === invoice.company_id) || currentCompany;
+            a.download = getInvoiceFilename(invoice, 'xml', company);
             a.click();
         } catch (error) {
             console.error('Erro ao baixar XML:', error);
@@ -1330,6 +1332,7 @@ export function Invoices() {
                     onClose={() => setSelectedInvoiceDetail(null)}
                     invoice={selectedInvoiceDetail}
                     onRefresh={refresh}
+                    company={companies.find(c => c.id === selectedInvoiceDetail.company_id) || currentCompany}
                 />
             )}
 
