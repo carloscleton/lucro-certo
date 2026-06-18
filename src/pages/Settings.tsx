@@ -274,8 +274,8 @@ export function Settings() {
             });
             if (response.data?.success) {
                 setBillingSimulation(response.data.simulation || []);
-                // Select only non-exempt companies by default
-                setSelectedBillingCompanyIds((response.data.simulation || []).filter((c: any) => !c.isExempt).map((c: any) => c.companyId));
+                // Select all companies with a non-zero balance by default
+                setSelectedBillingCompanyIds((response.data.simulation || []).filter((c: any) => c.totalSuggested > 0).map((c: any) => c.companyId));
             } else {
                 alert('Erro na simulação: ' + (response.data?.error || 'Erro desconhecido.'));
             }
@@ -301,7 +301,8 @@ export function Settings() {
             const selectedData = billingSimulation
                 .filter(s => selectedBillingCompanyIds.includes(s.companyId))
                 .map(s => {
-                    const desc = `Mensalidade Fiscal (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.fixedFee)}) + ${s.notesCount} Notas Emitidas no periodo (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost)})` + (s.commissions > 0 ? ` + Comissões (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.commissions)})` : '');
+                    const totalNotes = s.notesCount + (s.canceledCount || 0);
+                    const desc = `Mensalidade Fiscal (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.fixedFee)}) + ${totalNotes} Notas (${s.notesCount} Ativas / ${s.canceledCount || 0} Canceladas) (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost)})` + (s.commissions > 0 ? ` + Comissões (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.commissions)})` : '');
                     return {
                         companyId: s.companyId,
                         amount: s.totalSuggested.toFixed(2),
@@ -3307,10 +3308,10 @@ export function Settings() {
                                                             <input
                                                                 type="checkbox"
                                                                 className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                                                checked={selectedBillingCompanyIds.length === billingSimulation.length}
+                                                                checked={selectedBillingCompanyIds.length > 0 && selectedBillingCompanyIds.length === billingSimulation.filter(c => c.totalSuggested > 0).length}
                                                                 onChange={(e) => {
                                                                     if (e.target.checked) {
-                                                                        setSelectedBillingCompanyIds(billingSimulation.map(c => c.companyId));
+                                                                        setSelectedBillingCompanyIds(billingSimulation.filter(c => c.totalSuggested > 0).map(c => c.companyId));
                                                                     } else {
                                                                         setSelectedBillingCompanyIds([]);
                                                                     }
@@ -3320,6 +3321,7 @@ export function Settings() {
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px]">Empresa / CNPJ</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-center">Emissor / Saúde</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-center">Notas Emitidas</th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-center">Canceladas</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Taxa Fixa</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Taxa/Nota</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Comissões</th>
@@ -3339,7 +3341,7 @@ export function Settings() {
                                                                         type="checkbox"
                                                                         className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                                                         checked={isSelected}
-                                                                        disabled={sim.isExempt}
+                                                                        disabled={sim.totalSuggested <= 0}
                                                                         onChange={() => {
                                                                             if (isSelected) {
                                                                                 setSelectedBillingCompanyIds(prev => prev.filter(id => id !== sim.companyId));
@@ -3353,7 +3355,7 @@ export function Settings() {
                                                                     <div className="flex items-center gap-2">
                                                                         <div className="font-bold text-gray-900 dark:text-white">{sim.tradeName}</div>
                                                                         {sim.isExempt && (
-                                                                            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                                                                            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
                                                                                 Isento
                                                                             </span>
                                                                         )}
@@ -3371,8 +3373,15 @@ export function Settings() {
                                                                 <td className="px-6 py-4 text-center font-bold text-gray-900 dark:text-white">
                                                                     {sim.notesCount}
                                                                 </td>
+                                                                <td className="px-6 py-4 text-center font-bold text-red-600">
+                                                                    {sim.canceledCount || 0}
+                                                                </td>
                                                                 <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
-                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee)}
+                                                                    {sim.fixedFee > 0 ? (
+                                                                        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee)
+                                                                    ) : (
+                                                                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/35 px-2 py-0.5 rounded">Isento</span>
+                                                                    )}
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
                                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee)}
@@ -3380,16 +3389,8 @@ export function Settings() {
                                                                 <td className="px-6 py-4 text-right font-medium text-emerald-600">
                                                                     +{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.commissions)}
                                                                 </td>
-                                                                <td className="px-6 py-4 text-right">
-                                                                    {sim.isExempt ? (
-                                                                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/35 px-2 py-1 rounded-lg">
-                                                                            Cortesia
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="font-bold text-indigo-650 dark:text-indigo-400">
-                                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested)}
-                                                                        </span>
-                                                                    )}
+                                                                <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested)}
                                                                 </td>
                                                             </tr>
                                                         );
@@ -3405,7 +3406,7 @@ export function Settings() {
                                                 <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
                                                     <span>Empresas selecionadas: <strong className="text-gray-900 dark:text-white">{selectedBillingCompanyIds.length}</strong></span>
                                                     <span>•</span>
-                                                    <span>Total de notas: <strong className="text-gray-900 dark:text-white">{billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + cur.notesCount, 0)}</strong></span>
+                                                    <span>Total de notas: <strong className="text-gray-900 dark:text-white">{billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + cur.notesCount + (cur.canceledCount || 0), 0)}</strong></span>
                                                     <span>•</span>
                                                     <span>Valor total estimado: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + cur.totalSuggested, 0))}</strong></span>
                                                 </div>

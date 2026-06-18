@@ -3318,24 +3318,44 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
             const fixedFee = typeof billingConfig.fixed_fee === 'number' ? billingConfig.fixed_fee : (settings.monthly_fee ?? 30.00);
             const perNoteFee = typeof billingConfig.per_note_fee === 'number' ? billingConfig.per_note_fee : 0.50;
 
-            const invoicesCountResponse = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                params: {
-                    company_id: `eq.${company.id}`,
-                    status: 'in.(concluido,autorizada,concluído)',
-                    and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
-                    select: 'id',
-                    limit: 1
-                },
-                headers: {
-                    'apikey': SUPABASE_SERVICE_ROLE_KEY!,
-                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                    'Prefer': 'count=exact'
-                }
-            });
+            const [invoicesCountResponse, canceledCountResponse] = await Promise.all([
+                axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    params: {
+                        company_id: `eq.${company.id}`,
+                        status: 'in.(concluido,autorizada,concluído)',
+                        and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
+                        select: 'id',
+                        limit: 1
+                    },
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                        'Prefer': 'count=exact'
+                    }
+                }),
+                axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                    params: {
+                        company_id: `eq.${company.id}`,
+                        status: 'in.(cancelado,cancelada)',
+                        and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
+                        select: 'id',
+                        limit: 1
+                    },
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                        'Prefer': 'count=exact'
+                    }
+                })
+            ]);
 
             const contentRange = invoicesCountResponse.headers['content-range'] || '';
             const countMatch = contentRange.match(/\/(\d+)$/);
             const notesCount = countMatch ? parseInt(countMatch[1]) : 0;
+
+            const contentRangeCanceled = canceledCountResponse.headers['content-range'] || '';
+            const countMatchCanceled = contentRangeCanceled.match(/\/(\d+)$/);
+            const canceledCount = countMatchCanceled ? parseInt(countMatchCanceled[1]) : 0;
 
             let issuerStatus = 'Sem Configuração ❌';
             if (activeProvider === 'nfeio') {
@@ -3351,8 +3371,10 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
             }
 
             const commissionEarned = company.commission_earned || 0; 
-            const notesCost = notesCount * perNoteFee;
-            const totalSuggested = fixedFee + notesCost + commissionEarned;
+            const notesCost = (notesCount + canceledCount) * perNoteFee;
+            const isExempt = !!settings.billing_exempt;
+            const fixedFeeToApply = isExempt ? 0.00 : fixedFee;
+            const totalSuggested = fixedFeeToApply + notesCost + commissionEarned;
 
             simulationResults.push({
                 companyId: company.id,
@@ -3360,13 +3382,14 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                 cnpj: company.cnpj,
                 activeProvider,
                 issuerStatus,
-                fixedFee,
+                fixedFee: fixedFeeToApply,
                 perNoteFee,
                 notesCount,
+                canceledCount,
                 notesCost,
                 commissions: commissionEarned,
                 totalSuggested,
-                isExempt: !!settings.billing_exempt
+                isExempt
             });
         }
 
@@ -3433,8 +3456,8 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
             }
 
             const settings = company.settings || {};
-            if (settings.billing_exempt) {
-                results.push({ companyId, success: false, error: 'Empresa isenta de faturamento.' });
+            if (settings.billing_exempt && parseFloat(amount) <= 0) {
+                results.push({ companyId, success: false, error: 'Empresa isenta e sem saldo a pagar.' });
                 continue;
             }
 
