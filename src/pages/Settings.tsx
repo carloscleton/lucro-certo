@@ -2309,6 +2309,7 @@ export function Settings() {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
 
 
@@ -3418,7 +3419,6 @@ export function Settings() {
                                 )}
                             </div>
                         )}
-                    </div>
                     </div>
                 )}
 
