@@ -3311,7 +3311,6 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
             if (company.status === 'blocked') continue;
 
             const settings = company.settings || {};
-            if (settings.billing_exempt) continue;
 
             const activeProvider = settings.fiscal_provider || 'tecnospeed';
             
@@ -3366,7 +3365,8 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                 notesCount,
                 notesCost,
                 commissions: commissionEarned,
-                totalSuggested
+                totalSuggested,
+                isExempt: !!settings.billing_exempt
             });
         }
 
@@ -3429,6 +3429,12 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
             const company = compRes.data?.[0];
             if (!company) {
                 results.push({ companyId, success: false, error: 'Empresa não encontrada.' });
+                continue;
+            }
+
+            const settings = company.settings || {};
+            if (settings.billing_exempt) {
+                results.push({ companyId, success: false, error: 'Empresa isenta de faturamento.' });
                 continue;
             }
 

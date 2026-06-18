@@ -274,8 +274,8 @@ export function Settings() {
             });
             if (response.data?.success) {
                 setBillingSimulation(response.data.simulation || []);
-                // Select all companies by default
-                setSelectedBillingCompanyIds((response.data.simulation || []).map((c: any) => c.companyId));
+                // Select only non-exempt companies by default
+                setSelectedBillingCompanyIds((response.data.simulation || []).filter((c: any) => !c.isExempt).map((c: any) => c.companyId));
             } else {
                 alert('Erro na simulação: ' + (response.data?.error || 'Erro desconhecido.'));
             }
@@ -3337,8 +3337,9 @@ export function Settings() {
                                                                 <td className="px-6 py-4 text-center">
                                                                     <input
                                                                         type="checkbox"
-                                                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                                                         checked={isSelected}
+                                                                        disabled={sim.isExempt}
                                                                         onChange={() => {
                                                                             if (isSelected) {
                                                                                 setSelectedBillingCompanyIds(prev => prev.filter(id => id !== sim.companyId));
@@ -3349,7 +3350,14 @@ export function Settings() {
                                                                     />
                                                                 </td>
                                                                 <td className="px-6 py-4">
-                                                                    <div className="font-bold text-gray-900 dark:text-white">{sim.tradeName}</div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="font-bold text-gray-900 dark:text-white">{sim.tradeName}</div>
+                                                                        {sim.isExempt && (
+                                                                            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                                                                                Isento
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                     <div className="text-xs text-gray-500 mt-0.5">{sim.cnpj}</div>
                                                                 </td>
                                                                 <td className="px-6 py-4 text-center">
@@ -3372,8 +3380,16 @@ export function Settings() {
                                                                 <td className="px-6 py-4 text-right font-medium text-emerald-600">
                                                                     +{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.commissions)}
                                                                 </td>
-                                                                <td className="px-6 py-4 text-right font-bold text-indigo-650 dark:text-indigo-400">
-                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested)}
+                                                                <td className="px-6 py-4 text-right">
+                                                                    {sim.isExempt ? (
+                                                                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/35 px-2 py-1 rounded-lg">
+                                                                            Cortesia
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="font-bold text-indigo-650 dark:text-indigo-400">
+                                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested)}
+                                                                        </span>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         );
