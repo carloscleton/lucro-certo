@@ -1795,6 +1795,25 @@ export function Settings() {
                                                                         ));
                                                                     })()}
                                                                 </div>
+                                                                <div className="border-t border-indigo-100/50 dark:border-indigo-800/30 pt-3 mt-3">
+                                                                    <label className="flex items-center gap-2 cursor-pointer group text-xs">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                                            checked={!!tempCompanyConfig.settings?.billing_exempt}
+                                                                            onChange={(e) => setTempCompanyConfig({
+                                                                                ...tempCompanyConfig,
+                                                                                settings: {
+                                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                                    billing_exempt: e.target.checked
+                                                                                }
+                                                                            })}
+                                                                        />
+                                                                        <span className="font-bold text-gray-700 dark:text-gray-300 group-hover:text-indigo-600">
+                                                                            Isento de Mensalidade Fiscal (Cortesia)
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </td>
@@ -3324,7 +3343,6 @@ export function Settings() {
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-center">Canceladas</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Taxa Fixa</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Taxa/Nota</th>
-                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Comissões</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Total Sugerido</th>
                                                     </tr>
                                                 </thead>
@@ -3385,9 +3403,6 @@ export function Settings() {
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
                                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee)}
-                                                                </td>
-                                                                <td className="px-6 py-4 text-right font-medium text-emerald-600">
-                                                                    +{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.commissions)}
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
                                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested)}

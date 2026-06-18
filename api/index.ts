@@ -3292,7 +3292,7 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
     try {
         const compResponse = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
             params: {
-                select: 'id,trade_name,cnpj,settings,status'
+                select: 'id,trade_name,cnpj,settings,status,fiscal_module_enabled'
             },
             headers: {
                 'apikey': SUPABASE_SERVICE_ROLE_KEY!,
@@ -3308,7 +3308,7 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
         const isoEndDate = String(endDate).includes('T') ? String(endDate) : `${endDate}T23:59:59.999Z`;
 
         for (const company of companies) {
-            if (company.status === 'blocked') continue;
+            if (company.status === 'blocked' || !company.fiscal_module_enabled) continue;
 
             const settings = company.settings || {};
 
@@ -3370,11 +3370,11 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                     : 'Sem Configuração ❌';
             }
 
-            const commissionEarned = company.commission_earned || 0; 
+            const commissionEarned = 0; // Removido por solicitação do usuário
             const notesCost = (notesCount + canceledCount) * perNoteFee;
             const isExempt = !!settings.billing_exempt;
             const fixedFeeToApply = isExempt ? 0.00 : fixedFee;
-            const totalSuggested = fixedFeeToApply + notesCost + commissionEarned;
+            const totalSuggested = fixedFeeToApply + notesCost;
 
             simulationResults.push({
                 companyId: company.id,
@@ -3387,7 +3387,7 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                 notesCount,
                 canceledCount,
                 notesCost,
-                commissions: commissionEarned,
+                commissions: 0,
                 totalSuggested,
                 isExempt
             });
