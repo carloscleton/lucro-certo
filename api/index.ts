@@ -737,14 +737,13 @@ app.delete(['/fiscal-module/delete-certificate', '/api/fiscal-module/delete-cert
                     });
                 } catch (apiErr: any) {
                     // Se o certificado já não existir na NFe.io (404), ignoramos e prosseguimos com a remoção local.
-                    if (apiErr.response?.status !== 404) {
-                        console.error('❌ Erro ao deletar certificado na NFe.io:', apiErr.response?.data || apiErr.message);
-                        return res.status(apiErr.response?.status || 500).json({
-                            error: 'Erro ao deletar certificado na NFe.io',
-                            detail: apiErr.response?.data || apiErr.message
-                        });
+                    if (apiErr.response?.status === 404) {
+                        console.log('⚠️ Certificado já não existia na NFe.io. Procedendo com exclusão local.');
+                    } else {
+                        // Para qualquer outro erro (como 503), logamos o aviso mas permitimos a exclusão local
+                        // para evitar que o usuário fique travado por instabilidades na API da NFe.io.
+                        console.warn(`⚠️ Erro ao deletar certificado na NFe.io (${apiErr.response?.status || apiErr.message}), mas prosseguindo com exclusão local.`);
                     }
-                    console.log('⚠️ Certificado já não existia na NFe.io. Procedendo com exclusão local.');
                 }
             }
 

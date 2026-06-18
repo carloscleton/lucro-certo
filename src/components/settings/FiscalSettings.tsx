@@ -1867,9 +1867,12 @@ export function FiscalSettings() {
 
             const status = companyData.status || companyData.fiscalStatus || 'Ativo';
             const statusLabel = status === 'Active' ? 'Ativo ✅' : (status === 'Inactive' ? 'Inativo ❌' : status);
+            const localId = nfeioConfig.certificado_id;
             const certStatusLabel = !certificate || certificate.status === 'None' || !certificate.status
                 ? 'Nenhum Certificado ❌'
-                : (certificate.status === 'Active' ? 'Ativo ✅' : (certificate.status === 'Pending' ? 'Pendente ⚠️' : certificate.status));
+                : (certificate.status === 'Active' 
+                    ? (localId ? 'Ativo ✅' : 'Excluído no Painel (Ativo na NFe.io) ⚠️') 
+                    : (certificate.status === 'Pending' ? 'Pendente ⚠️' : certificate.status));
 
             setResultModal({
                 isOpen: true,
@@ -1883,7 +1886,8 @@ export function FiscalSettings() {
                     'Regime Tributário': companyData.taxRegime || 'Não informado',
                     'Status Cadastral': statusLabel,
                     'Status Certificado': certStatusLabel,
-                    'Vencimento Certificado': vencimento
+                    'Vencimento Certificado': vencimento,
+                    'Certificado Local': localId ? 'Configurado ✅' : 'Removido ❌'
                 }
             });
         } catch (error: any) {
