@@ -1855,17 +1855,21 @@ export function FiscalSettings() {
             const certificate = companyData.certificate;
             
             // Format certificate expiration date
-            let vencimento = 'Não informado';
-            if (certificate?.expiresOn) {
+            let vencimento = 'Nenhum certificado ativo';
+            if (certificate && certificate.expiresOn) {
                 const date = new Date(certificate.expiresOn);
                 if (!isNaN(date.getTime())) {
                     vencimento = date.toLocaleDateString('pt-BR');
                 }
+            } else if (certificate && !certificate.expiresOn) {
+                vencimento = 'Não informado';
             }
 
             const status = companyData.status || companyData.fiscalStatus || 'Ativo';
             const statusLabel = status === 'Active' ? 'Ativo ✅' : (status === 'Inactive' ? 'Inativo ❌' : status);
-            const certStatusLabel = certificate?.status === 'Active' ? 'Ativo ✅' : (certificate?.status === 'Pending' ? 'Pendente ⚠️' : (certificate?.status === 'None' ? 'Nenhum Certificado ❌' : certificate?.status || 'Não informado'));
+            const certStatusLabel = !certificate || certificate.status === 'None' || !certificate.status
+                ? 'Nenhum Certificado ❌'
+                : (certificate.status === 'Active' ? 'Ativo ✅' : (certificate.status === 'Pending' ? 'Pendente ⚠️' : certificate.status));
 
             setResultModal({
                 isOpen: true,

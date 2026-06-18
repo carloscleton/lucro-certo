@@ -691,12 +691,35 @@ app.delete(['/fiscal-module/delete-certificate', '/api/fiscal-module/delete-cert
 
         if (activeProvider === 'nfeio') {
             const nfeioConfig = settings?.nfeio_config;
-            const certId = nfeioConfig?.certificado_id;
+            let certId = nfeioConfig?.certificado_id;
             const apiKey = nfeioConfig?.apiKey?.trim();
             const companyIdNfe = nfeioConfig?.companyId?.trim();
 
             if (!nfeioConfig || !apiKey || !companyIdNfe) {
                 return res.status(400).json({ error: 'Configuração da NFe.io incompleta.' });
+            }
+
+            // Se não temos o certId local ou para garantir que estamos deletando o certificado correto,
+            // podemos consultar a empresa no NFe.io para buscar o thumbprint ativo.
+            if (!certId) {
+                try {
+                    console.log(`🔍 [NFEIO-CERTIFICADO] Buscando thumbprint ativo no NFe.io para a empresa ${companyIdNfe}...`);
+                    const compRes = await axiosNfeioRequest({
+                        method: 'GET',
+                        url: `https://api.nfe.io/v1/companies/${companyIdNfe}`,
+                        headers: {
+                            'Authorization': apiKey,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const activeCert = compRes.data?.companies?.certificate || compRes.data?.company?.certificate || compRes.data?.certificate;
+                    if (activeCert?.thumbprint) {
+                        certId = activeCert.thumbprint;
+                        console.log(`🎯 [NFEIO-CERTIFICADO] Thumbprint ativo encontrado no NFe.io: ${certId}`);
+                    }
+                } catch (fetchErr: any) {
+                    console.warn('⚠️ Não foi possível buscar o certificado ativo no NFe.io:', fetchErr.message);
+                }
             }
 
             if (certId) {
@@ -878,7 +901,7 @@ app.post(['/fiscal-module/nfeio/companies/:companyId/certificates', '/api/fiscal
             });
 
             const certData = response.data;
-            const certId = certData?.id || certData?.certificateId || 'nfeio_cert';
+            const certId = certData?.thumbprint || certData?.id || certData?.certificateId || 'nfeio_cert';
             const vencimento = certData?.validUntil || certData?.vencimento || certData?.expirationDate || certData?.endDate || new Date(Date.now() + 365*24*60*60*1000).toISOString();
             const sujeito = certData?.subject || certData?.sujeito || certData?.commonName || certData?.nome || 'Certificado NFe.io';
 
