@@ -676,6 +676,122 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
     }
 });
 
+app.delete(['/fiscal-module/delete-certificate', '/api/fiscal-module/delete-certificate'], authenticate, async (req: any, res) => {
+    const companyId = req.body.companyId || req.query.companyId;
+    const provider = req.body.provider || req.query.provider;
+    const authHeader = req.headers.authorization;
+
+    if (!companyId) {
+        return res.status(400).json({ error: 'companyId é obrigatório' });
+    }
+
+    try {
+        const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId);
+        const activeProvider = provider || settings?.fiscal_provider || 'tecnospeed';
+
+        if (activeProvider === 'nfeio') {
+            const nfeioConfig = settings?.nfeio_config;
+            const certId = nfeioConfig?.certificado_id;
+            const apiKey = nfeioConfig?.apiKey?.trim();
+            const companyIdNfe = nfeioConfig?.companyId?.trim();
+
+            if (!nfeioConfig || !apiKey || !companyIdNfe) {
+                return res.status(400).json({ error: 'Configuração da NFe.io incompleta.' });
+            }
+
+            if (certId) {
+                const baseUrl = `https://api.nfse.io/v2/companies/${companyIdNfe}/certificates/${certId}`;
+                console.log(`🗑️ [NFEIO-CERTIFICADO] Deletando certificado na NFe.io: ${certId}`);
+
+                try {
+                    await axiosNfeioRequest({
+                        method: 'DELETE',
+                        url: baseUrl,
+                        headers: {
+                            'Authorization': apiKey
+                        },
+                        timeout: 30000
+                    });
+                } catch (apiErr: any) {
+                    // Se o certificado já não existir na NFe.io (404), ignoramos e prosseguimos com a remoção local.
+                    if (apiErr.response?.status !== 404) {
+                        console.error('❌ Erro ao deletar certificado na NFe.io:', apiErr.response?.data || apiErr.message);
+                        return res.status(apiErr.response?.status || 500).json({
+                            error: 'Erro ao deletar certificado na NFe.io',
+                            detail: apiErr.response?.data || apiErr.message
+                        });
+                    }
+                    console.log('⚠️ Certificado já não existia na NFe.io. Procedendo com exclusão local.');
+                }
+            }
+
+            // Atualizar banco local (Supabase) - remover campos do certificado
+            if (SUPABASE_URL) {
+                const updatedNfeioConfig = {
+                    ...nfeioConfig,
+                    certificado_id: null,
+                    certificado_vencimento: null,
+                    certificado_sujeito: null,
+                    certificado_status: null,
+                    certificado_ultima_atualizacao: new Date().toISOString()
+                };
+
+                const updatedSettings = {
+                    ...(settings || {}),
+                    nfeio_config: updatedNfeioConfig
+                };
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
+                    settings: updatedSettings
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                fiscalConfigCache.delete(resolvedId);
+                console.log(`✅ Certificado NFe.io excluído e metadados zerados localmente.`);
+            }
+        } else {
+            // TecnoSpeed ou Outro
+            if (SUPABASE_URL) {
+                const currentConfig = config || {};
+                const updatedConfig = {
+                    ...currentConfig,
+                    certificado_id: null,
+                    certificado_vencimento: null,
+                    certificado_sujeito: null,
+                    certificado_status: null,
+                    ultima_atualizacao: new Date().toISOString()
+                };
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
+                    tecnospeed_config: updatedConfig
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY!,
+                        'Authorization': authHeader!,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                fiscalConfigCache.delete(resolvedId);
+                console.log(`✅ Certificado local excluído e metadados zerados.`);
+            }
+        }
+
+        return res.json({ message: 'Certificado excluído com sucesso' });
+    } catch (error: any) {
+        console.error('❌ Erro ao excluir certificado:', error.response?.data || error.message);
+        return res.status(error.response?.status || 500).json({
+            error: 'Erro ao excluir certificado',
+            detail: error.response?.data || error.message
+        });
+    }
+});
+
 app.post(['/fiscal-module/nfeio/companies/:companyId/certificates', '/api/fiscal-module/nfeio/companies/:companyId/certificates'], authenticate, upload.single('arquivo'), async (req: any, res) => {
     let { companyId } = req.params;
     const { senha } = req.body;

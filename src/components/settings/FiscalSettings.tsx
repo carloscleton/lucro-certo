@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, Info, Scale } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, Info, Scale, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -223,6 +223,7 @@ export function FiscalSettings() {
     };
 
     const [savingNfeio, setSavingNfeio] = useState(false);
+    const [deletingCert, setDeletingCert] = useState(false);
     const [nfeioConfig, setNfeioConfig] = useState({
         apiKey: '',
         companyId: '',
@@ -1266,6 +1267,63 @@ export function FiscalSettings() {
             }));
         } finally {
             setUploadingCert(false);
+        }
+    };
+
+    const handleDeleteCertificate = async () => {
+        if (!currentEntity.id || currentEntity.type === 'personal') return;
+
+        if (!window.confirm('Tem certeza de que deseja remover o certificado digital? A empresa ficará impossibilitada de emitir notas até que um novo certificado seja enviado.')) {
+            return;
+        }
+
+        setDeletingCert(true);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : 'tecnospeed';
+
+            await fiscalService.deleteCertificate(currentEntity.id, token, targetProvider);
+
+            if (targetProvider === 'nfeio') {
+                setNfeioConfig(prev => ({
+                    ...prev,
+                    certificado_id: '',
+                    certificado_vencimento: '',
+                    certificado_sujeito: '',
+                    certificado_status: ''
+                }));
+            } else {
+                setConfig(prev => ({
+                    ...prev,
+                    certificado_id: '',
+                    certificado_vencimento: '',
+                    certificado_sujeito: '',
+                    certificado_status: ''
+                }));
+            }
+
+            await refreshEntity();
+
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: 'O certificado digital foi removido com sucesso.',
+                type: 'success'
+            });
+        } catch (error: any) {
+            console.error('Erro ao excluir certificado:', error);
+            const errorMsg = error.response?.data?.error || error.message || 'Erro desconhecido';
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Remover',
+                message: `Não foi possível remover o certificado: ${errorMsg}`,
+                type: 'error'
+            });
+        } finally {
+            setDeletingCert(false);
         }
     };
 
@@ -3983,17 +4041,30 @@ export function FiscalSettings() {
         {/* Bloco Compartilhado: Certificado Digital (A1) */}
         {(activeSubTab === 'tecnospeed' || activeSubTab === 'nfeio') && (
             <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                    <ShieldCheck className="text-blue-600" size={20} />
-                    <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 dark:text-white">Certificado Digital (A1)</h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {currentCertInfo.id 
-                                ? 'Certificado configurado e pronto para uso.'
-                                : 'O envio do certificado digital A1 (.pfx ou .p12) é obrigatório para a emissão de notas em produção.'
-                            }
-                        </p>
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <ShieldCheck className="text-blue-600" size={20} />
+                        <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white">Certificado Digital (A1)</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {currentCertInfo.id 
+                                    ? 'Certificado configurado e pronto para uso.'
+                                    : 'O envio do certificado digital A1 (.pfx ou .p12) é obrigatório para a emissão de notas em produção.'
+                                }
+                            </p>
+                        </div>
                     </div>
+                    {currentCertInfo.id && (
+                        <Button
+                            type="button"
+                            onClick={handleDeleteCertificate}
+                            isLoading={deletingCert}
+                            className="bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 border border-rose-100 text-xs px-3 py-1.5 h-auto rounded-xl flex items-center gap-1.5 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30"
+                        >
+                            <Trash2 size={14} />
+                            Excluir Certificado
+                        </Button>
+                    )}
                 </div>
 
                 {currentCertInfo.id && (

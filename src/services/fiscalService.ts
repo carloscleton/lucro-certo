@@ -194,5 +194,15 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async deleteCertificate(companyId: string, token: string, provider?: string) {
+        const response = await axios.delete(getFiscalUrl('delete-certificate'), {
+            data: { companyId, provider },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };
