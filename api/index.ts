@@ -3256,6 +3256,272 @@ app.post('/payments/create', authenticate, async (req, res) => {
     }
 });
 
+
+// Helper to verify if the user is the admin (carloscleton.nat@gmail.com)
+async function verifyIsAdmin(authHeader: string | null): Promise<boolean> {
+    if (!authHeader) return false;
+    try {
+        const response = await axios.get(`${SUPABASE_URL}/auth/v1/user`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY!,
+                'Authorization': authHeader
+            }
+        });
+        const email = response.data?.email;
+        return email?.toLowerCase() === 'carloscleton.nat@gmail.com';
+    } catch (err: any) {
+        console.error('Error verifying admin status:', err.message);
+        return false;
+    }
+}
+
+// Endpoint for simulating batch billing and health checks
+app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/billing-simulation'], authenticate, async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+        return res.status(400).json({ error: 'startDate e endDate são obrigatórios.' });
+    }
+
+    const isAdmin = await verifyIsAdmin(authHeader);
+    if (!isAdmin) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas o administrador da plataforma tem acesso.' });
+    }
+
+    try {
+        const compResponse = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
+            params: {
+                select: 'id,trade_name,cnpj,settings,status'
+            },
+            headers: {
+                'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            }
+        });
+        const companies = compResponse.data || [];
+
+        const simulationResults = [];
+
+        // Format ISO dates to fully cover the day
+        const isoStartDate = String(startDate).includes('T') ? String(startDate) : `${startDate}T00:00:00.000Z`;
+        const isoEndDate = String(endDate).includes('T') ? String(endDate) : `${endDate}T23:59:59.999Z`;
+
+        for (const company of companies) {
+            if (company.status === 'blocked') continue;
+
+            const settings = company.settings || {};
+            if (settings.billing_exempt) continue;
+
+            const activeProvider = settings.fiscal_provider || 'tecnospeed';
+            
+            const billingConfig = settings.admin_fiscal_billing?.[activeProvider] || {};
+            const fixedFee = typeof billingConfig.fixed_fee === 'number' ? billingConfig.fixed_fee : (settings.monthly_fee ?? 30.00);
+            const perNoteFee = typeof billingConfig.per_note_fee === 'number' ? billingConfig.per_note_fee : 0.50;
+
+            const invoicesCountResponse = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                params: {
+                    company_id: `eq.${company.id}`,
+                    status: 'in.(concluido,autorizada,concluído)',
+                    created_at: `gte.${isoStartDate}&created_at.lte.${isoEndDate}`,
+                    select: 'id',
+                    limit: 1
+                },
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    'Prefer': 'count=exact'
+                }
+            });
+
+            const contentRange = invoicesCountResponse.headers['content-range'] || '';
+            const countMatch = contentRange.match(/\/(\d+)$/);
+            const notesCount = countMatch ? parseInt(countMatch[1]) : 0;
+
+            let issuerStatus = 'Sem Configuração ❌';
+            if (activeProvider === 'nfeio') {
+                const nfeio = settings.nfeio_config || {};
+                issuerStatus = nfeio.apiKey && nfeio.companyId 
+                    ? (nfeio.certificado_id || nfeio.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
+                    : 'Sem Configuração ❌';
+            } else if (activeProvider === 'tecnospeed') {
+                const ts = settings.tecnospeed_config || {};
+                issuerStatus = ts.cnpjSh && ts.tokenSh 
+                    ? (ts.certificado_id || ts.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
+                    : 'Sem Configuração ❌';
+            }
+
+            const commissionEarned = company.commission_earned || 0; 
+            const notesCost = notesCount * perNoteFee;
+            const totalSuggested = fixedFee + notesCost + commissionEarned;
+
+            simulationResults.push({
+                companyId: company.id,
+                tradeName: company.trade_name,
+                cnpj: company.cnpj,
+                activeProvider,
+                issuerStatus,
+                fixedFee,
+                perNoteFee,
+                notesCount,
+                notesCost,
+                commissions: commissionEarned,
+                totalSuggested
+            });
+        }
+
+        res.json({ success: true, simulation: simulationResults });
+    } catch (err: any) {
+        console.error('❌ Erro na simulação de faturamento:', err.message);
+        res.status(500).json({ error: 'Erro ao gerar simulação de faturamento', detail: err.message });
+    }
+});
+
+// Endpoint for processing batch billing and sending notifications
+app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/billing-process'], authenticate, async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const { startDate, endDate, billingData } = req.body; 
+
+    if (!startDate || !endDate || !Array.isArray(billingData)) {
+        return res.status(400).json({ error: 'startDate, endDate e billingData (array) são obrigatórios.' });
+    }
+
+    const isAdmin = await verifyIsAdmin(authHeader);
+    if (!isAdmin) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas o administrador da plataforma tem acesso.' });
+    }
+
+    let platformProvider: string | null = null;
+    let platformConfig: any = null;
+    let isSandbox = false;
+
+    try {
+        const { data: appSettings } = await axios.get(`${SUPABASE_URL}/rest/v1/app_settings?id=eq.1&select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY! }
+        });
+        const settings = appSettings?.[0];
+        if (settings) {
+            platformProvider = settings.platform_billing_provider;
+            isSandbox = settings.platform_billing_sandbox || false;
+            const env = isSandbox ? 'sandbox' : 'production';
+            platformConfig = settings.platform_billing_config?.[platformProvider!]?.[env];
+        }
+    } catch (err: any) {
+        console.error('⚠️ Falha ao ler configurações da plataforma:', err.message);
+    }
+
+    if (!platformProvider || !platformConfig) {
+        return res.status(400).json({ error: 'Configuração de faturamento da plataforma (Asaas/Stripe) não encontrada ou incompleta.' });
+    }
+
+    const results = [];
+
+    for (const item of billingData) {
+        const { companyId, amount, description } = item;
+
+        try {
+            const compRes = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=id,trade_name,cnpj,owner_email,phone,owner_phone,settings`, {
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                }
+            });
+            const company = compRes.data?.[0];
+            if (!company) {
+                results.push({ companyId, success: false, error: 'Empresa não encontrada.' });
+                continue;
+            }
+
+            const external_reference = `LC-FISCAL-${companyId.substring(0, 4)}-${new Date().getTime()}`;
+
+            const adapter = PaymentFactory.getAdapter(platformProvider, platformConfig, isSandbox);
+            const chargeResult = await adapter.createCharge({
+                amount: parseFloat(amount),
+                description: description,
+                payment_method: 'pix',
+                external_reference,
+                customer: {
+                    name: company.trade_name,
+                    email: company.owner_email || 'financeiro@lucrocerto.com',
+                    tax_id: company.cnpj
+                }
+            });
+
+            if (chargeResult.success) {
+                await axios.post(`${SUPABASE_URL}/rest/v1/company_charges`, {
+                    company_id: company.id,
+                    provider: platformProvider,
+                    amount: parseFloat(amount),
+                    description: description,
+                    external_reference,
+                    payment_method: 'pix',
+                    status: chargeResult.status || 'pending',
+                    gateway_id: chargeResult.payment_id,
+                    payment_link: chargeResult.payment_link,
+                    qr_code: chargeResult.qr_code,
+                    qr_code_base64: chargeResult.qr_code_base64,
+                    is_sandbox: isSandbox
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    }
+                });
+
+                const whatsappInstance = (req.body.whatsappInstance || '').trim();
+                const phone = (company.owner_phone || company.phone || '').replace(/\D/g, '');
+
+                let notificationSent = false;
+                if (whatsappInstance && phone) {
+                    const message = `Olá, *${company.trade_name}*! 😊\n\nA fatura de utilização do módulo fiscal para o período de ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')} foi gerada.\n\n*Detalhes da Fatura:*\n📝 ${description}\n💰 *Valor:* R$ ${parseFloat(amount).toFixed(2).replace('.', ',')}\n\nCopie o link abaixo para efetuar o pagamento via Pix:\n🔗 ${chargeResult.payment_link || 'Link indisponível'}\n\nObrigado por utilizar nossa plataforma! 💼`;
+
+                    try {
+                        const encodedInstance = encodeURIComponent(whatsappInstance);
+                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedInstance}`, {
+                            number: phone,
+                            text: message
+                        }, {
+                            headers: { 'apikey': EVOLUTION_API_KEY }
+                        });
+                        notificationSent = true;
+                        console.log(`✅ [BATCH-BILL] Notificação enviada para ${company.trade_name}`);
+                    } catch (waErr: any) {
+                        console.error(`❌ Erro ao enviar WA para ${company.trade_name}:`, waErr.message);
+                    }
+                }
+
+                results.push({
+                    companyId,
+                    tradeName: company.trade_name,
+                    success: true,
+                    amount,
+                    paymentLink: chargeResult.payment_link,
+                    notificationSent
+                });
+            } else {
+                results.push({
+                    companyId,
+                    tradeName: company.trade_name,
+                    success: false,
+                    error: chargeResult.error || 'Erro na API de pagamento.'
+                });
+            }
+        } catch (err: any) {
+            console.error(`❌ Erro ao processar faturamento para ${companyId}:`, err.message);
+            results.push({
+                companyId,
+                success: false,
+                error: err.message
+            });
+        }
+    }
+
+    res.json({ success: true, results });
+});
+
+
 app.post('/payments/process-checkout', async (req, res) => {
     const { chargeId, provider, method } = req.body;
 

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark, Receipt } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -27,6 +27,8 @@ import { useCharges } from '../hooks/useCharges';
 import { useAuth } from '../context/AuthContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/phoneUtils';
 import { LandingPlansEditor } from '../components/admin/LandingPlansEditor';
+import axios from 'axios';
+import { API_BASE_URL } from '../lib/constants';
 
 export function Settings() {
     const { t } = useTranslation();
@@ -216,7 +218,7 @@ export function Settings() {
         }
     }, [searchParams, activeTab]);
 
-    const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system'>('companies');
+    const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system' | 'billing'>('companies');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
     const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
     const [savingConfig, setSavingConfig] = useState(false);
@@ -228,6 +230,27 @@ export function Settings() {
     const [togglingLoyalty, setTogglingLoyalty] = useState(false);
     const [optimisticLoyalty, setOptimisticLoyalty] = useState<boolean | null>(null);
 
+    // Faturamento Automático Fiscal Admin States
+    const [billingStartDate, setBillingStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(1); // Default to first day of current month
+        return d.toISOString().split('T')[0];
+    });
+    const [billingEndDate, setBillingEndDate] = useState(() => {
+        return new Date().toISOString().split('T')[0];
+    });
+    const [billingSimulation, setBillingSimulation] = useState<any[]>([]);
+    const [billingLoading, setBillingLoading] = useState(false);
+    const [billingProcessing, setBillingProcessing] = useState(false);
+    const [selectedBillingCompanyIds, setSelectedBillingCompanyIds] = useState<string[]>([]);
+    const [whatsappBillingInstance, setWhatsappBillingInstance] = useState('');
+
+    useEffect(() => {
+        if (appSettings?.platform_whatsapp_instance && !whatsappBillingInstance) {
+            setWhatsappBillingInstance(appSettings.platform_whatsapp_instance);
+        }
+    }, [appSettings]);
+
     // Update local state when company settings load
     useEffect(() => {
         // Company settings effect removed as it's now handled in the Super Admin modal for central management
@@ -235,6 +258,80 @@ export function Settings() {
 
     // Listen for online users only if admin
     usePresence(isAdmin);
+
+    const handleSimulateBilling = async () => {
+        setBillingLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await axios.get(`${API_BASE_URL}/fiscal-module/admin/billing-simulation`, {
+                params: {
+                    startDate: billingStartDate,
+                    endDate: billingEndDate
+                },
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            if (response.data?.success) {
+                setBillingSimulation(response.data.simulation || []);
+                // Select all companies by default
+                setSelectedBillingCompanyIds((response.data.simulation || []).map((c: any) => c.companyId));
+            } else {
+                alert('Erro na simulação: ' + (response.data?.error || 'Erro desconhecido.'));
+            }
+        } catch (error: any) {
+            console.error('Error running billing simulation:', error);
+            alert('Erro ao rodar simulação: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setBillingLoading(false);
+        }
+    };
+
+    const handleProcessBilling = async () => {
+        if (selectedBillingCompanyIds.length === 0) return;
+        
+        const confirmMsg = `Deseja realmente gerar cobranças para as ${selectedBillingCompanyIds.length} empresas selecionadas?\n\nAs cobranças de pix/boleto serão criadas no gateway e mensagens automáticas de notificação serão enviadas por WhatsApp.`;
+        if (!window.confirm(confirmMsg)) return;
+
+        setBillingProcessing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            // Map the selected companies to the expected payload
+            const selectedData = billingSimulation
+                .filter(s => selectedBillingCompanyIds.includes(s.companyId))
+                .map(s => {
+                    const desc = `Mensalidade Fiscal (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.fixedFee)}) + ${s.notesCount} Notas Emitidas no periodo (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost)})` + (s.commissions > 0 ? ` + Comissões (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.commissions)})` : '');
+                    return {
+                        companyId: s.companyId,
+                        amount: s.totalSuggested.toFixed(2),
+                        description: desc
+                    };
+                });
+
+            const response = await axios.post(`${API_BASE_URL}/fiscal-module/admin/billing-process`, {
+                startDate: billingStartDate,
+                endDate: billingEndDate,
+                whatsappInstance: whatsappBillingInstance,
+                billingData: selectedData
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+
+            if (response.data) {
+                alert('Faturamento em lote finalizado!\n\nCobranças criadas e notificações agendadas/enviadas.');
+                setBillingSimulation([]);
+                setSelectedBillingCompanyIds([]);
+            }
+        } catch (error: any) {
+            console.error('Error processing billing:', error);
+            alert('Erro ao processar faturamento: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setBillingProcessing(false);
+        }
+    };
 
     useEffect(() => {
         if (currentEntity?.id && currentEntity.type === 'company') {
@@ -2085,6 +2182,134 @@ export function Settings() {
                                     </div>
                                 </div>
 
+                                {/* Taxas por Emissão de Notas Fiscais */}
+                                <div className="p-6 rounded-xl border-2 border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/20 dark:bg-indigo-900/10">
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
+                                            <Receipt size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">Taxas por Emissão de Notas Fiscais</h4>
+                                            <p className="text-sm text-gray-500">Defina o custo fixo mensal e o valor cobrado por nota emitida para cada emissor fiscal ativo.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* TecnoSpeed */}
+                                        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
+                                            <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">TecnoSpeed</h5>
+                                            <div className="space-y-4">
+                                                <CurrencyInput
+                                                    label="Valor Fixo Mensal"
+                                                    value={tempCompanyConfig.settings?.admin_fiscal_billing?.tecnospeed?.fixed_fee ?? 30.00}
+                                                    onChange={(num) => {
+                                                        const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                        setTempCompanyConfig({
+                                                            ...tempCompanyConfig,
+                                                            settings: {
+                                                                ...(tempCompanyConfig.settings || {}),
+                                                                admin_fiscal_billing: {
+                                                                    ...currentBilling,
+                                                                    tecnospeed: {
+                                                                        ...(currentBilling.tecnospeed || {}),
+                                                                        fixed_fee: num
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
+                                                    }}
+                                                    placeholder="Ex: 30,00"
+                                                />
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                        Valor Adicional por Nota (R$)
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.tecnospeed?.per_note_fee ?? 0.50}
+                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                            const val = parseFloat(e.target.value) || 0;
+                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                            setTempCompanyConfig({
+                                                                ...tempCompanyConfig,
+                                                                settings: {
+                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                    admin_fiscal_billing: {
+                                                                        ...currentBilling,
+                                                                        tecnospeed: {
+                                                                            ...(currentBilling.tecnospeed || {}),
+                                                                            per_note_fee: val
+                                                                        }
+                                                                    }
+                                                                }
+                                                            });
+                                                        }}
+                                                        placeholder="Ex: 0.50"
+                                                        step="0.01"
+                                                        min="0"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* NFe.io */}
+                                        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
+                                            <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">NFe.io</h5>
+                                            <div className="space-y-4">
+                                                <CurrencyInput
+                                                    label="Valor Fixo Mensal"
+                                                    value={tempCompanyConfig.settings?.admin_fiscal_billing?.nfeio?.fixed_fee ?? 30.00}
+                                                    onChange={(num) => {
+                                                        const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                        setTempCompanyConfig({
+                                                            ...tempCompanyConfig,
+                                                            settings: {
+                                                                ...(tempCompanyConfig.settings || {}),
+                                                                admin_fiscal_billing: {
+                                                                    ...currentBilling,
+                                                                    nfeio: {
+                                                                        ...(currentBilling.nfeio || {}),
+                                                                        fixed_fee: num
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
+                                                    }}
+                                                    placeholder="Ex: 30,00"
+                                                />
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                        Valor Adicional por Nota (R$)
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.nfeio?.per_note_fee ?? 0.50}
+                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                            const val = parseFloat(e.target.value) || 0;
+                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                            setTempCompanyConfig({
+                                                                ...tempCompanyConfig,
+                                                                settings: {
+                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                    admin_fiscal_billing: {
+                                                                        ...currentBilling,
+                                                                        nfeio: {
+                                                                            ...(currentBilling.nfeio || {}),
+                                                                            per_note_fee: val
+                                                                        }
+                                                                    }
+                                                                }
+                                                            });
+                                                        }}
+                                                        placeholder="Ex: 0.50"
+                                                        step="0.01"
+                                                        min="0"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
 
 
                                 {/* Permissions Matrix */}
@@ -2583,6 +2808,7 @@ export function Settings() {
                                 { id: 'companies', label: 'Empresas', icon: Building },
                                 { id: 'users', label: 'Usuários', icon: Users },
                                 { id: 'invoices', label: 'Faturas de Cobrança', icon: CreditCard },
+                                { id: 'billing', label: 'Faturamento Fiscal', icon: Receipt },
                                 { id: 'system', label: 'Sistema', icon: SettingsIcon },
                             ].map((tab) => (
                                 <button
@@ -3000,6 +3226,199 @@ export function Settings() {
                                 </div>
                             </div>
                         )}
+
+                        {adminSubTab === 'billing' && (
+                            <div className="space-y-6 animate-in fade-in duration-200">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-5">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <Receipt className="text-indigo-600 dark:text-indigo-400" />
+                                            Faturamento Automático de Emissão Fiscal
+                                        </h3>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Gerencie cobranças dinâmicas e verifique a integridade dos certificados de todas as empresas integradas.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Filtros e Configurações */}
+                                <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 shadow-sm space-y-6">
+                                    <h4 className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-wider">Configuração da Apuração</h4>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                Data Inicial
+                                            </label>
+                                            <Input
+                                                type="date"
+                                                value={billingStartDate}
+                                                onChange={(e) => setBillingStartDate(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                Data Final
+                                            </label>
+                                            <Input
+                                                type="date"
+                                                value={billingEndDate}
+                                                onChange={(e) => setBillingEndDate(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                Instância WhatsApp p/ Envio
+                                            </label>
+                                            <Input
+                                                type="text"
+                                                value={whatsappBillingInstance}
+                                                onChange={(e) => setWhatsappBillingInstance(e.target.value)}
+                                                placeholder="Ex: MinhaInstancia"
+                                            />
+                                            <p className="text-[10px] text-gray-400">Default: Instância global configurada nas configurações de plataforma.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end border-t border-gray-100 dark:border-slate-800 pt-4">
+                                        <Button
+                                            onClick={handleSimulateBilling}
+                                            isLoading={billingLoading}
+                                            variant="primary"
+                                            className="h-11 px-6 font-bold"
+                                        >
+                                            <RefreshCw size={18} className="mr-2" />
+                                            Simular Apuração & Verificar Saúde
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Resultados da Simulação */}
+                                {billingSimulation.length > 0 ? (
+                                    <div className="space-y-6">
+                                        <div className="overflow-x-auto border border-gray-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
+                                                    <tr>
+                                                        <th className="px-6 py-4 w-12 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                                checked={selectedBillingCompanyIds.length === billingSimulation.length}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedBillingCompanyIds(billingSimulation.map(c => c.companyId));
+                                                                    } else {
+                                                                        setSelectedBillingCompanyIds([]);
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px]">Empresa / CNPJ</th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-center">Emissor / Saúde</th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-center">Notas Emitidas</th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Taxa Fixa</th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Taxa/Nota</th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Comissões</th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Total Sugerido</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
+                                                    {billingSimulation.map((sim) => {
+                                                        const isSelected = selectedBillingCompanyIds.includes(sim.companyId);
+                                                        const isHealthOk = sim.issuerStatus.includes('✅');
+                                                        const isNoConfig = sim.issuerStatus.includes('❌');
+                                                        
+                                                        return (
+                                                            <tr key={sim.companyId} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/10 transition-colors">
+                                                                <td className="px-6 py-4 text-center">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                                        checked={isSelected}
+                                                                        onChange={() => {
+                                                                            if (isSelected) {
+                                                                                setSelectedBillingCompanyIds(prev => prev.filter(id => id !== sim.companyId));
+                                                                            } else {
+                                                                                setSelectedBillingCompanyIds(prev => [...prev, sim.companyId]);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <div className="font-bold text-gray-900 dark:text-white">{sim.tradeName}</div>
+                                                                    <div className="text-xs text-gray-500 mt-0.5">{sim.cnpj}</div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-center">
+                                                                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider inline-block">
+                                                                        {sim.activeProvider.toUpperCase()}
+                                                                    </span>
+                                                                    <div className={`text-xs mt-1 font-medium ${isHealthOk ? 'text-emerald-600' : isNoConfig ? 'text-red-600' : 'text-amber-600'}`}>
+                                                                        {sim.issuerStatus}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-center font-bold text-gray-900 dark:text-white">
+                                                                    {sim.notesCount}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee)}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee)}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right font-medium text-emerald-600">
+                                                                    +{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.commissions)}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right font-bold text-indigo-650 dark:text-indigo-400">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested)}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* Painel de Confirmação de Cobrança em Lote */}
+                                        <div className="p-6 rounded-2xl border-2 border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/10 dark:bg-indigo-900/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white">Resumo do Lote Selecionado</h4>
+                                                <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                                                    <span>Empresas selecionadas: <strong className="text-gray-900 dark:text-white">{selectedBillingCompanyIds.length}</strong></span>
+                                                    <span>•</span>
+                                                    <span>Total de notas: <strong className="text-gray-900 dark:text-white">{billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + cur.notesCount, 0)}</strong></span>
+                                                    <span>•</span>
+                                                    <span>Valor total estimado: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + cur.totalSuggested, 0))}</strong></span>
+                                                </div>
+                                            </div>
+
+                                            <Button
+                                                onClick={handleProcessBilling}
+                                                disabled={selectedBillingCompanyIds.length === 0}
+                                                isLoading={billingProcessing}
+                                                variant="primary"
+                                                className="h-12 px-8 font-black text-md shadow-lg shadow-indigo-200 dark:shadow-none"
+                                            >
+                                                Confirmar & Processar Lote
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    !billingLoading && (
+                                        <div className="p-10 text-center rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/10">
+                                            <Receipt size={40} className="mx-auto text-gray-400 mb-3" />
+                                            <h4 className="font-bold text-gray-900 dark:text-white">Nenhuma apuração rodada</h4>
+                                            <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                                                Defina as datas e clique no botão acima para simular a apuração e visualizar a lista de empresas.
+                                            </p>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        )}
+                    </div>
                     </div>
                 )}
 
