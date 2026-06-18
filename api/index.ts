@@ -3323,7 +3323,7 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                 params: {
                     company_id: `eq.${company.id}`,
                     status: 'in.(concluido,autorizada,concluído)',
-                    created_at: `gte.${isoStartDate}&created_at.lte.${isoEndDate}`,
+                    and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
                     select: 'id',
                     limit: 1
                 },
