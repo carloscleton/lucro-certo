@@ -1800,12 +1800,12 @@ export function Settings() {
                                                                         <input
                                                                             type="checkbox"
                                                                             className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                                                            checked={!!tempCompanyConfig.settings?.billing_exempt}
+                                                                            checked={!!tempCompanyConfig.settings?.fiscal_billing_exempt}
                                                                             onChange={(e) => setTempCompanyConfig({
                                                                                 ...tempCompanyConfig,
                                                                                 settings: {
                                                                                     ...(tempCompanyConfig.settings || {}),
-                                                                                    billing_exempt: e.target.checked
+                                                                                    fiscal_billing_exempt: e.target.checked
                                                                                 }
                                                                             })}
                                                                         />

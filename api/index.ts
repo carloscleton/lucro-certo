@@ -3372,7 +3372,7 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
 
             const commissionEarned = 0; // Removido por solicitação do usuário
             const notesCost = (notesCount + canceledCount) * perNoteFee;
-            const isExempt = !!settings.billing_exempt;
+            const isExempt = !!settings.fiscal_billing_exempt;
             const fixedFeeToApply = isExempt ? 0.00 : fixedFee;
             const totalSuggested = fixedFeeToApply + notesCost;
 
@@ -3456,7 +3456,7 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
             }
 
             const settings = company.settings || {};
-            if (settings.billing_exempt && parseFloat(amount) <= 0) {
+            if (settings.fiscal_billing_exempt && parseFloat(amount) <= 0) {
                 results.push({ companyId, success: false, error: 'Empresa isenta e sem saldo a pagar.' });
                 continue;
             }
