@@ -3475,7 +3475,22 @@ app.get(['/fiscal-module/admin/billing-invoices', '/api/fiscal-module/admin/bill
                 clientName = tomador.razaoSocial || tomador.nome || payload.retorno?.tomador?.razaoSocial || payload.retorno?.tomador?.nome || 'Cliente não identificado';
                 const invNo = payload.numero || payload.retorno?.numero || payload.retorno?.rps?.numero;
                 ident = invNo ? `Nº ${invNo}` : `RPS: ${payload.rps?.numero || payload.retorno?.rps?.numero || ''} / ID: ${inv.external_id}`;
-                valor = payload.servico?.valorServicos || payload.valorTotal || payload.retorno?.servico?.valorServicos || payload.retorno?.valorTotal || 0;
+                
+                // Get TecnoSpeed service value
+                const tsServico = Array.isArray(payload.servico) ? payload.servico[0] : payload.servico;
+                const tsRetornoServico = Array.isArray(payload.retorno?.servico) ? payload.retorno.servico[0] : payload.retorno?.servico;
+                
+                valor = payload.valorTotal 
+                    || tsServico?.valor?.servico 
+                    || tsServico?.valorUnitario 
+                    || tsServico?.valorTotal 
+                    || tsServico?.valorServico
+                    || payload.retorno?.valorTotal 
+                    || tsRetornoServico?.valor?.servico 
+                    || tsRetornoServico?.valorUnitario 
+                    || tsRetornoServico?.valorTotal 
+                    || tsRetornoServico?.valorServico 
+                    || 0;
             }
 
             return {
