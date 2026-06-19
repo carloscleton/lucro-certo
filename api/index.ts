@@ -1610,6 +1610,47 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                     taxRegime = 'simplesNacional';
                 }
 
+                // Resolve o código IBGE da cidade
+                let ibgeCode = '';
+                
+                // 1. Tenta buscar das configurações da Tecnospeed já salvas
+                if (companyDetails.tecnospeed_config?.endereco?.codigoCidade) {
+                    ibgeCode = String(companyDetails.tecnospeed_config.endereco.codigoCidade).trim();
+                } else if (companyDetails.tecnospeed_config?.codigo_municipio) {
+                    ibgeCode = String(companyDetails.tecnospeed_config.codigo_municipio).trim();
+                }
+
+                // 2. Se não encontrou, busca na API de localidades do IBGE
+                if (!ibgeCode && companyDetails.city && companyDetails.state) {
+                    try {
+                        const uf = String(companyDetails.state).trim().toUpperCase();
+                        const cityName = String(companyDetails.city).trim();
+                        console.log(`🔍 [NFEIO-IBGE] Buscando código IBGE para a cidade: ${cityName} - ${uf}`);
+                        
+                        const ibgeRes = await axios.get(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`, {
+                            timeout: 5000
+                        });
+                        
+                        const cities = ibgeRes.data || [];
+                        const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '');
+                        
+                        const normalizedCityName = normalize(cityName);
+                        const matchedCity = cities.find((c: any) => normalize(c.nome) === normalizedCityName);
+                        
+                        if (matchedCity && matchedCity.id) {
+                            ibgeCode = String(matchedCity.id);
+                            console.log(`🎯 [NFEIO-IBGE] Código IBGE encontrado: ${ibgeCode} para ${cityName}`);
+                        }
+                    } catch (ibgeErr: any) {
+                        console.warn('⚠️ Falha ao consultar o IBGE para código do município:', ibgeErr.message);
+                    }
+                }
+
+                // Fallback final
+                if (!ibgeCode) {
+                    ibgeCode = '4115200'; // Maringá como fallback
+                }
+
                 const nfeioPayload = {
                     name: companyDetails.legal_name || companyDetails.trade_name || 'Razão Social não informada',
                     tradeName: companyDetails.trade_name || companyDetails.legal_name || 'Nome Fantasia não informado',
@@ -1625,7 +1666,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                         country: 'BRA',
                         state: (companyDetails.state || 'PR').trim().toUpperCase(),
                         city: {
-                            code: (config.cityServiceCode || '4115200').trim(),
+                            code: ibgeCode,
                             name: companyDetails.city || 'Maringá'
                         },
                         additionalInformation: companyDetails.complement || ''
