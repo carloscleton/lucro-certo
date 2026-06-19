@@ -34,6 +34,7 @@ export interface FiscalInvoice {
     };
     cancelled_at?: string;
     cancellation_reason?: string;
+    deleted?: boolean;
     created_at: string;
     updated_at: string;
 }

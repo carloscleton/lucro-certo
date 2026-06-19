@@ -99,6 +99,7 @@ export function Invoices() {
     const [showBillingModal, setShowBillingModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
+    const [showDeleted, setShowDeleted] = useState(false);
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info', data?: any}>({
         isOpen: false, title: '', message: '', type: 'success'
     });
@@ -131,6 +132,7 @@ export function Invoices() {
 
 
     const filteredInvoices = invoices.filter(invoice => {
+        if (invoice.deleted && !showDeleted) return false;
         if (!searchQuery) return true;
         const searchLower = searchQuery.toLowerCase();
         
@@ -274,13 +276,13 @@ export function Invoices() {
         if (!deleteModal.invoiceId) return;
         setIsDeleting(true);
         try {
-            const { error } = await supabase.from('fiscal_invoices').delete().eq('id', deleteModal.invoiceId);
+            const { error } = await supabase.from('fiscal_invoices').update({ deleted: true }).eq('id', deleteModal.invoiceId);
             if (error) throw error;
             
             setDeleteModal({ isOpen: false, invoiceId: null });
             refresh();
         } catch (error: any) {
-            alert('Erro ao excluir: ' + error.message);
+            alert('Erro ao ocultar nota do histórico: ' + error.message);
         } finally {
             setIsDeleting(false);
         }
@@ -709,77 +711,91 @@ export function Invoices() {
             </div>
 
             {/* Stats */}
-            {!isLoading && invoices.length > 0 && (
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                        <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl">
-                            <CheckCircle2 size={24} />
+            {!isLoading && invoices.length > 0 && (() => {
+                const invoicesForStats = invoices.filter(i => !i.deleted || showDeleted);
+                return (
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+                                <CheckCircle2 size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Autorizadas</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                    {invoicesForStats.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Autorizadas</p>
-                            <p className="text-2xl font-black text-gray-900 dark:text-white">
-                                {invoices.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length}
-                            </p>
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
+                                <Clock3 size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Processando</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                    {invoicesForStats.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-slate-100 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 rounded-2xl">
+                                <XCircle size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Canceladas</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                    {invoicesForStats.filter(i => i.status?.toLowerCase() === 'cancelado').length}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-950 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
+                                <XCircle size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Rejeitadas</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                    {invoicesForStats.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase())).length}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                                <Receipt size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Geral</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white">{invoicesForStats.length}</p>
+                            </div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
-                            <Clock3 size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Processando</p>
-                            <p className="text-2xl font-black text-gray-900 dark:text-white">
-                                {invoices.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                        <div className="p-3 bg-slate-100 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 rounded-2xl">
-                            <XCircle size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Canceladas</p>
-                            <p className="text-2xl font-black text-gray-900 dark:text-white">
-                                {invoices.filter(i => i.status?.toLowerCase() === 'cancelado').length}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                        <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
-                            <XCircle size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Rejeitadas</p>
-                            <p className="text-2xl font-black text-gray-900 dark:text-white">
-                                {invoices.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase())).length}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                        <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
-                            <Receipt size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Geral</p>
-                            <p className="text-2xl font-black text-gray-900 dark:text-white">{invoices.length}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Search and List Header */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Buscar nota por cliente, número ou status..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
-                    />
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto flex-1">
+                    <div className="relative w-full md:w-96">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input 
+                            type="text" 
+                            placeholder="Buscar nota por cliente, número ou status..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
+                        />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 transition-colors px-2">
+                        <input
+                            type="checkbox"
+                            checked={showDeleted}
+                            onChange={(e) => setShowDeleted(e.target.checked)}
+                            className="rounded border-gray-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 h-4 w-4 bg-gray-50 dark:bg-slate-800"
+                        />
+                        Mostrar Excluídas do Histórico
+                    </label>
                 </div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4 shrink-0">
                     {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Nota' : 'Notas'} {searchQuery ? 'Encontradas' : 'Recentes'}
                 </div>
             </div>
@@ -827,7 +843,10 @@ export function Invoices() {
                                 </tr>
                             ) : (
                                 filteredInvoices.map((invoice) => (
-                                    <tr key={invoice.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300">
+                                    <tr key={invoice.id} className={clsx(
+                                        "group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300",
+                                        invoice.deleted && "opacity-60 bg-rose-50/10 dark:bg-rose-950/5"
+                                    )}>
                                         <td className="py-4 px-6">
                                             <div className="font-bold text-gray-900 dark:text-white">
                                                 {new Date(invoice.created_at).toLocaleDateString()}
@@ -964,6 +983,11 @@ export function Invoices() {
                                         <td className="py-3 px-6">
                                             <div className="flex flex-col gap-1.5 items-start">
                                                 {getStatusBadge(invoice.status)}
+                                                {invoice.deleted && (
+                                                    <div className="px-2.5 py-1 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-500/20">
+                                                        Excluída do Histórico
+                                                    </div>
+                                                )}
                                                 {invoice.status?.toLowerCase() === 'cancelado' && (
                                                     <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-bold rounded-lg border border-slate-200 dark:border-slate-700">
                                                         <AlertCircle size={10} />
@@ -1092,8 +1116,8 @@ export function Invoices() {
                                                     </>
                                                 )}
 
-                                                {/* Excluir do Histórico apenas se estiver cancelada ou com erro */}
-                                                {(['cancelado', 'erro', 'rejeitado'].includes(invoice.status?.toLowerCase())) && (
+                                                {/* Excluir do Histórico apenas se estiver cancelada ou com erro e ainda não excluída */}
+                                                {(['cancelado', 'erro', 'rejeitado'].includes(invoice.status?.toLowerCase())) && !invoice.deleted && (
                                                     <Tooltip content="Excluir do Histórico">
                                                         <button
                                                             onClick={() => setDeleteModal({ isOpen: true, invoiceId: invoice.id })}
@@ -1156,14 +1180,14 @@ export function Invoices() {
                                 <Trash2 size={32} />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Remover do Histórico</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Esta ação apagará apenas o registro local.</p>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Ocultar do Histórico</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">A nota será arquivada no histórico.</p>
                             </div>
                         </div>
 
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                            Tem certeza que deseja remover esta nota fiscal do seu histórico? 
-                            A nota continuará existindo na prefeitura, mas não aparecerá mais neste painel.
+                            Tem certeza que deseja ocultar esta nota fiscal do seu painel principal?
+                            Por motivos fiscais, de faturamento e auditoria, o registro não será deletado do banco de dados, mas ficará oculto. Você poderá consultá-lo ativando a opção "Mostrar Excluídas do Histórico".
                         </p>
 
                         <div className="flex gap-3 pt-2">

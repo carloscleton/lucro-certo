@@ -257,18 +257,18 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         await executeCancelInvoice();
     };
 
-    // Excluir registro do histórico local
+    // Excluir registro do histórico local (Soft Delete)
     const handleDeleteInvoice = async () => {
         setIsDeleting(true);
         try {
-            const { error } = await supabase.from('fiscal_invoices').delete().eq('id', invoice.id);
+            const { error } = await supabase.from('fiscal_invoices').update({ deleted: true }).eq('id', invoice.id);
             if (error) throw error;
             
             setShowDeleteConfirm(false);
             onClose();
             onRefresh();
         } catch (error: any) {
-            alert('Erro ao excluir do banco de dados: ' + error.message);
+            alert('Erro ao ocultar do histórico: ' + error.message);
         } finally {
             setIsDeleting(false);
         }
@@ -618,7 +618,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                     </Button>
                                 )}
 
-                                {!['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
+                                {!['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && !invoice.deleted && (
                                     <Button 
                                         onClick={() => setShowDeleteConfirm(true)}
                                         variant="ghost"
@@ -749,10 +749,11 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-6 border border-gray-100 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-300">
                         <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                            <AlertTriangle className="text-rose-500" size={20} /> Excluir Registro Local
+                            <AlertTriangle className="text-rose-500" size={20} /> Ocultar do Histórico
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 font-semibold leading-relaxed">
-                            Tem certeza que deseja excluir esta nota fiscal do banco de dados local? Esta ação <strong>NÃO</strong> cancela a nota fiscal física na prefeitura, apenas limpa o histórico da plataforma.
+                            Tem certeza que deseja ocultar esta nota fiscal do seu painel principal?
+                            Por motivos fiscais, de faturamento e auditoria, o registro não será deletado do banco de dados, mas ficará oculto. Você poderá consultá-lo ativando a opção "Mostrar Excluídas do Histórico" na listagem.
                         </p>
                         
                         <div className="flex gap-3">

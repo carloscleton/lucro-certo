@@ -3440,7 +3440,7 @@ app.get(['/fiscal-module/admin/billing-invoices', '/api/fiscal-module/admin/bill
             params: {
                 company_id: `eq.${companyId}`,
                 and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
-                select: 'id,created_at,type,status,external_id,payload,invoice_number,dps_number,dps_serie',
+                select: 'id,created_at,type,status,external_id,payload,invoice_number,dps_number,dps_serie,deleted',
                 limit: 10000,
                 order: 'created_at.desc'
             },
@@ -3518,7 +3518,8 @@ app.get(['/fiscal-module/admin/billing-invoices', '/api/fiscal-module/admin/bill
                 external_id: inv.external_id,
                 clientName,
                 ident,
-                valor
+                valor,
+                deleted: !!inv.deleted
             };
         });
 
