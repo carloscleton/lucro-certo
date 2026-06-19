@@ -1739,6 +1739,136 @@ export function FiscalSettings() {
         }
     };
 
+    const [syncingNfeio, setSyncingNfeioIssuer] = useState(false);
+    const [deactivating, setDeactivating] = useState(false);
+
+    const handleSyncNfeioIssuer = async () => {
+        if (!currentEntity.id || currentEntity.type === 'personal') {
+            setResultModal({
+                isOpen: true,
+                title: 'Aviso',
+                message: 'A sincronização de emitente é exclusiva para empresas.',
+                type: 'info'
+            });
+            return;
+        }
+
+        if (!nfeioConfig.apiKey) {
+            setResultModal({
+                isOpen: true,
+                title: 'Dados Incompletos',
+                message: 'A API Key da NFe.io é obrigatória para sincronizar.',
+                type: 'info'
+            });
+            return;
+        }
+
+        setSyncingNfeioIssuer(true);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const syncResult = await fiscalService.syncIssuer(currentEntity.id, nfeioConfig, token);
+            
+            // Atualiza o companyId local se a API retornou um novo
+            if (syncResult.companyId) {
+                setNfeioConfig(prev => ({
+                    ...prev,
+                    companyId: syncResult.companyId
+                }));
+            }
+
+            await refreshEntity();
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Sincronização Concluída',
+                message: 'Os dados do emitente foram sincronizados/cadastrados com sucesso na NFe.io.',
+                type: 'success'
+            });
+        } catch (error: any) {
+            console.error('NFe.io Sync error:', error);
+            const data = error.response?.data;
+            const detail = data?.detail || data?.error || error.message;
+            const msg = typeof detail === 'object' ? JSON.stringify(detail) : detail;
+            
+            setResultModal({
+                isOpen: true,
+                title: 'Erro na Sincronização',
+                message: 'Ocorreu um erro ao vincular os dados com a NFe.io.',
+                type: 'error',
+                data: {
+                    'Detalhe Técnico': msg
+                }
+            });
+        } finally {
+            setSyncingNfeioIssuer(false);
+        }
+    };
+
+    const handleDeactivateIssuer = async () => {
+        if (!currentEntity.id || currentEntity.type === 'personal') {
+            setResultModal({
+                isOpen: true,
+                title: 'Aviso',
+                message: 'A desativação de emitente é exclusiva para empresas.',
+                type: 'info'
+            });
+            return;
+        }
+
+        const companyId = currentEntity.id;
+        const providerName = activeProvider === 'nfeio' ? 'NFe.io' : 'TecnoSpeed';
+
+        setResultModal({
+            isOpen: true,
+            title: 'Confirmar Inativação',
+            message: `Tem certeza que deseja inativar este emitente no provedor ${providerName}? Esta ação excluirá a empresa na API do provedor e desabilitará o módulo fiscal localmente.`,
+            type: 'warning',
+            action: {
+                label: 'Confirmar Inativação',
+                onClick: async () => {
+                    setResultModal(prev => ({ ...prev, isOpen: false }));
+                    setDeactivating(true);
+                    try {
+                        const session = await supabase.auth.getSession();
+                        const token = session.data.session?.access_token;
+                        if (!token) throw new Error('Sessão expirada.');
+
+                        const response = await fiscalService.deactivateIssuer(companyId, token);
+                        
+                        await refreshEntity();
+
+                        setResultModal({
+                            isOpen: true,
+                            title: 'Emitente Inativado',
+                            message: response.message || `O emitente foi desativado com sucesso no provedor ${providerName}.`,
+                            type: 'success'
+                        });
+                    } catch (error: any) {
+                        console.error('Deactivate error:', error);
+                        const data = error.response?.data;
+                        const detail = data?.detail || data?.error || error.message;
+                        const msg = typeof detail === 'object' ? JSON.stringify(detail) : detail;
+                        
+                        setResultModal({
+                            isOpen: true,
+                            title: 'Erro ao Inativar',
+                            message: `Ocorreu um erro ao inativar o emitente no provedor ${providerName}.`,
+                            type: 'error',
+                            data: {
+                                'Detalhe Técnico': msg
+                            }
+                        });
+                    } finally {
+                        setDeactivating(false);
+                    }
+                }
+            }
+        });
+    };
+
     const [checkingStatus, setCheckingStatus] = useState(false);
     const [checkingCityNationalStatus, setCheckingCityNationalStatus] = useState(false);
     const [checkingNfeioStatus, setCheckingNfeioStatus] = useState(false);
@@ -3416,6 +3546,16 @@ export function FiscalSettings() {
                                 <RefreshCw size={18} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
                                 Sincronizar Emitente
                             </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleDeactivateIssuer}
+                                isLoading={deactivating}
+                                className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
+                            >
+                                <Trash2 size={18} className="mr-2" />
+                                Inativar Emitente
+                            </Button>
                             <Button 
                                 type="submit" 
                                 isLoading={saving} 
@@ -3595,6 +3735,26 @@ export function FiscalSettings() {
                         >
                             <RefreshCw size={18} className={`mr-2 ${checkingNfeioStatus ? 'animate-spin' : ''}`} />
                             Verificar Status da Empresa
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleSyncNfeioIssuer}
+                            isLoading={syncingNfeio}
+                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/55 dark:text-indigo-400 dark:hover:bg-indigo-950/20"
+                        >
+                            <RefreshCw size={18} className={`mr-2 ${syncingNfeio ? 'animate-spin' : ''}`} />
+                            Sincronizar Emitente
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleDeactivateIssuer}
+                            isLoading={deactivating}
+                            className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-900/55 dark:text-red-400 dark:hover:bg-red-950/20"
+                        >
+                            <Trash2 size={18} className="mr-2" />
+                            Inativar Emitente
                         </Button>
                         <Button
                             type="button"

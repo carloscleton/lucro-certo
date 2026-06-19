@@ -204,5 +204,16 @@ export const fiscalService = {
             }
         });
         return response.data;
+    },
+
+    async deactivateIssuer(companyId: string, token: string) {
+        const response = await axios.post(getFiscalUrl('deactivate-issuer'), {
+            companyId
+        }, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
     }
 };

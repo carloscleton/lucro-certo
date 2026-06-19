@@ -1579,6 +1579,162 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
     const authHeader = req.headers.authorization;
 
     try {
+        // --- INTERCEPTOR DE NFE.IO PARA EMITENTE ---
+        if (config.apiKey && !config.tecnospeed_api_key) {
+            console.log(`🚀 [NFEIO-SYNC] Sincronizando emitente com a NFe.io para a empresa: ${companyId}`);
+            
+            const apiKey = config.apiKey.trim();
+            
+            try {
+                // Busca os dados cadastrais da empresa no banco
+                const companyRes = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`
+                    }
+                });
+                const companyDetails = companyRes.data?.[0];
+                if (!companyDetails) {
+                    return res.status(404).json({ error: 'Empresa não encontrada no banco de dados local.' });
+                }
+
+                const cleanCnpj = (companyDetails.cnpj || '').replace(/\D/g, '');
+                if (!cleanCnpj) {
+                    return res.status(400).json({ error: 'CNPJ da empresa é obrigatório no cadastro local para sincronizar com a NFe.io.' });
+                }
+
+                let taxRegime = 'simplesNacional';
+                if (config.simplesNacional === false) {
+                    taxRegime = 'lucroPresumido';
+                } else if (config.simplesNacional === true) {
+                    taxRegime = 'simplesNacional';
+                }
+
+                const nfeioPayload = {
+                    name: companyDetails.legal_name || companyDetails.trade_name || 'Razão Social não informada',
+                    tradeName: companyDetails.trade_name || companyDetails.legal_name || 'Nome Fantasia não informado',
+                    federalTaxNumber: cleanCnpj,
+                    taxRegime: taxRegime,
+                    email: companyDetails.email || 'suporte@lucrocerto.com.br',
+                    phone: (companyDetails.phone || '').replace(/\D/g, '') || '4430379500',
+                    address: {
+                        street: companyDetails.street || 'Avenida Duque de Caxias',
+                        number: companyDetails.number || '882',
+                        district: companyDetails.neighborhood || 'Centro',
+                        postalCode: (companyDetails.zip_code || '').replace(/\D/g, '') || '87020025',
+                        country: 'BRA',
+                        state: (companyDetails.state || 'PR').trim().toUpperCase(),
+                        city: {
+                            code: (config.cityServiceCode || '4115200').trim(),
+                            name: companyDetails.city || 'Maringá'
+                        },
+                        additionalInformation: companyDetails.complement || ''
+                    }
+                };
+
+                let nfeioCompanyId = config.companyId ? config.companyId.trim() : '';
+                let responseData;
+
+                if (nfeioCompanyId) {
+                    console.log(`🔄 [NFEIO-SYNC] Atualizando empresa existente na NFe.io ID: ${nfeioCompanyId}`);
+                    const updateRes = await axiosNfeioRequest({
+                        method: 'PUT',
+                        url: `https://api.nfe.io/v2/companies/${nfeioCompanyId}`,
+                        data: nfeioPayload,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': apiKey
+                        }
+                    });
+                    responseData = updateRes.data;
+                } else {
+                    console.log(`🆕 [NFEIO-SYNC] Cadastrando nova empresa na NFe.io para CNPJ: ${cleanCnpj}`);
+                    try {
+                        const createRes = await axiosNfeioRequest({
+                            method: 'POST',
+                            url: 'https://api.nfe.io/v2/companies',
+                            data: nfeioPayload,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': apiKey
+                            }
+                        });
+                        responseData = createRes.data;
+                        nfeioCompanyId = responseData.id;
+                    } catch (createErr: any) {
+                        if (createErr.response?.status === 409 || createErr.response?.data?.error?.includes('already exists') || createErr.response?.data?.message?.includes('already exists')) {
+                            console.log(`⚠️ [NFEIO-SYNC] Conflito detected. Empresa já cadastrada na NFe.io. Buscando ID via CNPJ...`);
+                            const listRes = await axiosNfeioRequest({
+                                method: 'GET',
+                                url: 'https://api.nfe.io/v2/companies',
+                                headers: {
+                                    'Authorization': apiKey
+                                }
+                            });
+                            const remoteCompanies = listRes.data?.companies || listRes.data || [];
+                            const matched = remoteCompanies.find((c: any) => String(c.federalTaxNumber).replace(/\D/g, '') === cleanCnpj);
+                            if (matched && matched.id) {
+                                nfeioCompanyId = matched.id;
+                                console.log(`🎯 [NFEIO-SYNC] Encontrado ID remoto correspondente: ${nfeioCompanyId}. Atualizando dados...`);
+                                const updateRes = await axiosNfeioRequest({
+                                    method: 'PUT',
+                                    url: `https://api.nfe.io/v2/companies/${nfeioCompanyId}`,
+                                    data: nfeioPayload,
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': apiKey
+                                    }
+                                });
+                                responseData = updateRes.data;
+                            } else {
+                                throw createErr;
+                            }
+                        } else {
+                            throw createErr;
+                        }
+                    }
+                }
+
+                const updatedNfeioConfig = {
+                    ...config,
+                    companyId: nfeioCompanyId
+                };
+
+                const currentSettings = companyDetails.settings || {};
+                const updatedSettings = {
+                    ...currentSettings,
+                    nfeio_config: updatedNfeioConfig
+                };
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                    settings: updatedSettings
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                fiscalConfigCache.delete(companyId);
+
+                return res.json({
+                    success: true,
+                    message: 'Emitente sincronizado com sucesso na NFe.io.',
+                    companyId: nfeioCompanyId,
+                    data: responseData
+                });
+
+            } catch (nfeErr: any) {
+                const errDetail = nfeErr.response?.data || nfeErr.message;
+                console.error('❌ [NFEIO-SYNC] Erro na API da NFe.io:', JSON.stringify(errDetail, null, 2));
+                return res.status(nfeErr.response?.status || 500).json({
+                    error: 'Erro ao sincronizar emitente na NFe.io',
+                    detail: errDetail
+                });
+            }
+        }
+
         // --- INTERCEPTOR DE WEBHOOK EXTERNO PARA EMITENTE ---
         if (config.use_external_webhook && config.external_webhook_url) {
             console.log(`🚀 [EXTERNAL-MODE] Sincronizando emitente com o webhook externo: ${config.external_webhook_url}`);
@@ -1899,6 +2055,200 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         res.status(500).json({ error: outerError.message });
     }
 });
+
+app.post(['/fiscal-module/deactivate-issuer', '/api/fiscal-module/deactivate-issuer'], authenticate, async (req, res) => {
+    const { companyId } = req.body;
+    const authHeader = req.headers.authorization;
+
+    if (!companyId) {
+        return res.status(400).json({ error: 'companyId é obrigatório para inativar emitente.' });
+    }
+
+    try {
+        console.log(`🔌 [DEACTIVATE-ISSUER] Iniciando desativação do emitente para a empresa: ${companyId}`);
+
+        // 1. Busca os dados da empresa no Supabase
+        const companyRes = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+            headers: {
+                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`
+            }
+        });
+        const companyDetails = companyRes.data?.[0];
+        if (!companyDetails) {
+            return res.status(404).json({ error: 'Empresa não encontrada no banco de dados local.' });
+        }
+
+        const activeProvider = companyDetails.settings?.fiscal_provider || 'tecnospeed';
+        let providerResponse = null;
+
+        if (activeProvider === 'nfeio') {
+            const nfeConfig = companyDetails.settings?.nfeio_config || {};
+            const apiKey = nfeConfig.apiKey ? nfeConfig.apiKey.trim() : '';
+            const nfeCompanyId = nfeConfig.companyId ? nfeConfig.companyId.trim() : '';
+
+            if (nfeCompanyId && apiKey) {
+                console.log(`🗑️ [NFEIO-DEACTIVATE] Deletando empresa ID: ${nfeCompanyId} na NFe.io`);
+                const deleteRes = await axiosNfeioRequest({
+                    method: 'DELETE',
+                    url: `https://api.nfe.io/v1/companies/${nfeCompanyId}`,
+                    headers: {
+                        'Authorization': apiKey,
+                        'Accept': 'application/json'
+                    }
+                });
+                providerResponse = deleteRes.data;
+            } else {
+                console.log(`⚠️ [NFEIO-DEACTIVATE] ID da empresa ou API Key não cadastrados para NFe.io. Pulando chamada de exclusão na API.`);
+            }
+
+            // Atualiza o config para remover o companyId do nfeio_config e desabilitar o modulo fiscal
+            const updatedSettings = {
+                ...(companyDetails.settings || {}),
+                nfeio_config: {
+                    ...nfeConfig,
+                    companyId: '' // Limpa o ID da empresa para forçar nova criação se ativado no futuro
+                }
+            };
+
+            await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                settings: updatedSettings,
+                fiscal_module_enabled: false
+            }, {
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+        } else {
+            // TecnoSpeed / PlugNotas
+            const tsConfig = companyDetails.tecnospeed_config || {};
+            const cnpj = (tsConfig.cnpj || '').replace(/\D/g, '');
+            const apiKey = tsConfig.tecnospeed_api_key ? tsConfig.tecnospeed_api_key.trim() : '';
+
+            if (cnpj && apiKey) {
+                const isSandbox = tsConfig.ambiente === 'homologacao';
+                const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
+                const rawBase = isSandbox ? (tsConfig.endpoint_homologacao || defaultBase) : (tsConfig.endpoint_producao || defaultBase);
+                const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
+
+                console.log(`🗑️ [TECNOSPEED-DEACTIVATE] Deletando empresa CNPJ: ${cnpj} no PlugNotas`);
+                const deleteRes = await axios({
+                    method: 'DELETE',
+                    url: `${baseUrl}/empresa/${cnpj}`,
+                    headers: {
+                        'x-api-key': apiKey
+                    }
+                });
+                providerResponse = deleteRes.data;
+            } else {
+                console.log(`⚠️ [TECNOSPEED-DEACTIVATE] CNPJ ou API Key não cadastrados para TecnoSpeed. Pulando chamada de exclusão na API.`);
+            }
+
+            // Desabilita o módulo fiscal
+            await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                fiscal_module_enabled: false
+            }, {
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+
+        // Invalida cache local
+        for (const [key, cached] of fiscalConfigCache.entries()) {
+            if (
+                key === companyId || 
+                cached.realCompanyId === companyId
+            ) {
+                fiscalConfigCache.delete(key);
+            }
+        }
+        fiscalConfigCache.delete(companyId);
+
+        console.log(`✅ [DEACTIVATE-ISSUER] Emitente desativado e módulo desabilitado com sucesso para ${companyId}`);
+
+        return res.json({
+            success: true,
+            message: `Emitente inativado com sucesso no provedor ${activeProvider === 'nfeio' ? 'NFe.io' : 'TecnoSpeed'}.`,
+            detail: providerResponse
+        });
+
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        console.error('❌ [DEACTIVATE-ISSUER] Erro ao inativar emitente:', JSON.stringify(errorDetail, null, 2));
+        
+        // Se a API externa retornou 404 (empresa já não existe no provedor), procedemos com a desativação local mesmo assim
+        if (error.response?.status === 404 || errorDetail?.message?.includes('não encontrada') || errorDetail?.error?.includes('not found')) {
+            console.log('⚠️ [DEACTIVATE-ISSUER] Empresa não encontrada no provedor remoto. Procedendo com a desativação local.');
+            
+            try {
+                // Desativa localmente mesmo se não achar na API remota
+                const companyRes = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`
+                    }
+                });
+                const companyDetails = companyRes.data?.[0];
+                const activeProvider = companyDetails?.settings?.fiscal_provider || 'tecnospeed';
+
+                if (activeProvider === 'nfeio') {
+                    const nfeConfig = companyDetails?.settings?.nfeio_config || {};
+                    const updatedSettings = {
+                        ...(companyDetails?.settings || {}),
+                        nfeio_config: {
+                            ...nfeConfig,
+                            companyId: ''
+                        }
+                    };
+
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                        settings: updatedSettings,
+                        fiscal_module_enabled: false
+                    }, {
+                        headers: {
+                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } else {
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+                        fiscal_module_enabled: false
+                    }, {
+                        headers: {
+                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+
+                fiscalConfigCache.delete(companyId);
+
+                return res.json({
+                    success: true,
+                    message: `Emitente não encontrado no provedor ${activeProvider === 'nfeio' ? 'NFe.io' : 'TecnoSpeed'}, mas foi desativado localmente.`,
+                    detail: errorDetail
+                });
+            } catch (dbErr: any) {
+                console.error('❌ [DEACTIVATE-ISSUER] Erro ao salvar status de desativação local após 404 remoto:', dbErr.message);
+            }
+        }
+
+        return res.status(error.response?.status || 500).json({
+            error: 'Erro ao inativar emitente no provedor fiscal',
+            detail: errorDetail
+        });
+    }
+});
+
+
 
 app.post(['/fiscal-module/save-config', '/api/fiscal-module/save-config'], authenticate, async (req, res) => {
     const { companyId, config } = req.body;
