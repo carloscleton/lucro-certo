@@ -407,7 +407,7 @@ export function Settings() {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 20;
+        const margin = 15;
 
         // Slate/Indigo Theme colors
         const primaryColor = [30, 41, 59]; // Slate 800
@@ -474,11 +474,11 @@ export function Settings() {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(255, 255, 255);
-        doc.text('DATA E HORA', margin + 4, yPos + 5.5);
-        doc.text('IDENTIFICAÇÃO', margin + 40, yPos + 5.5);
-        doc.text('CLIENTE / BENEFICIÁRIO', margin + 85, yPos + 5.5);
-        doc.text('STATUS', margin + 145, yPos + 5.5);
-        doc.text('VALOR', pageWidth - margin - 4, yPos + 5.5, { align: 'right' });
+        doc.text('DATA E HORA', margin + 3, yPos + 5.5);
+        doc.text('IDENTIFICAÇÃO', margin + 36, yPos + 5.5);
+        doc.text('CLIENTE / BENEFICIÁRIO', margin + 74, yPos + 5.5);
+        doc.text('STATUS', margin + 125, yPos + 5.5);
+        doc.text('VALOR', pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
 
         yPos += 8;
 
@@ -499,11 +499,11 @@ export function Settings() {
                 doc.rect(margin, yPos, pageWidth - (margin * 2), 8, 'F');
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(255, 255, 255);
-                doc.text('DATA E HORA', margin + 4, yPos + 5.5);
-                doc.text('IDENTIFICAÇÃO', margin + 40, yPos + 5.5);
-                doc.text('CLIENTE / BENEFICIÁRIO', margin + 85, yPos + 5.5);
-                doc.text('STATUS', margin + 145, yPos + 5.5);
-                doc.text('VALOR', pageWidth - margin - 4, yPos + 5.5, { align: 'right' });
+                doc.text('DATA E HORA', margin + 3, yPos + 5.5);
+                doc.text('IDENTIFICAÇÃO', margin + 36, yPos + 5.5);
+                doc.text('CLIENTE / BENEFICIÁRIO', margin + 74, yPos + 5.5);
+                doc.text('STATUS', margin + 125, yPos + 5.5);
+                doc.text('VALOR', pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
                 yPos += 8;
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(textColor[0], textColor[1], textColor[2]);
@@ -522,23 +522,29 @@ export function Settings() {
             // Format date
             const dateStr = new Date(inv.created_at).toLocaleString('pt-BR', { timeZone: 'UTC' });
             
-            doc.text(dateStr, margin + 4, yPos + 5);
-            doc.text(inv.ident, margin + 40, yPos + 5);
+            doc.text(dateStr, margin + 3, yPos + 5);
+            
+            // Limit identification length to avoid overflow
+            let identText = inv.ident || '';
+            if (identText.length > 22) {
+                identText = identText.substring(0, 19) + '...';
+            }
+            doc.text(identText, margin + 36, yPos + 5);
             
             // Limit client name length to avoid overflow
             let clientText = inv.clientName || 'Cliente não identificado';
-            if (clientText.length > 30) {
-                clientText = clientText.substring(0, 27) + '...';
+            if (clientText.length > 22) {
+                clientText = clientText.substring(0, 19) + '...';
             }
-            doc.text(clientText, margin + 85, yPos + 5);
+            doc.text(clientText, margin + 74, yPos + 5);
 
             // Format status uppercase
             const statusLabel = String(inv.status).toUpperCase();
-            doc.text(statusLabel, margin + 145, yPos + 5);
+            doc.text(statusLabel, margin + 125, yPos + 5);
 
             // Format value
             const valFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor || 0);
-            doc.text(valFormatted, pageWidth - margin - 4, yPos + 5, { align: 'right' });
+            doc.text(valFormatted, pageWidth - margin - 3, yPos + 5, { align: 'right' });
 
             yPos += 7;
         });
