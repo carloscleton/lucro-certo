@@ -3465,14 +3465,17 @@ app.get(['/fiscal-module/admin/billing-invoices', '/api/fiscal-module/admin/bill
             let valor = 0;
 
             if (inv.type === 'nfeio') {
-                clientName = payload.borrower?.name || payload.cliente?.nome || 'Cliente não identificado';
-                ident = payload.numero ? `Nº ${payload.numero}` : `Série: ${payload.series || ''} / ID: ${inv.external_id}`;
-                valor = payload.amount || payload.valorTotal || 0;
+                clientName = payload.borrower?.name || payload.cliente?.nome || payload.retorno?.borrower?.name || 'Cliente não identificado';
+                const invNo = payload.retorno?.number || payload.numero || payload.retorno?.numero;
+                const series = payload.retorno?.series || payload.series || '';
+                ident = invNo ? `Nº ${invNo}` : `Série: ${series} / ID: ${inv.external_id}`;
+                valor = payload.servicesAmount || payload.amount || payload.valorTotal || payload.retorno?.servicesAmount || payload.retorno?.amount || 0;
             } else {
                 const tomador = payload.tomador || {};
-                clientName = tomador.razaoSocial || tomador.nome || 'Cliente não identificado';
-                ident = payload.numero ? `Nº ${payload.numero}` : `RPS: ${payload.rps?.numero || ''} / ID: ${inv.external_id}`;
-                valor = payload.valorTotal || payload.servico?.valorServicos || 0;
+                clientName = tomador.razaoSocial || tomador.nome || payload.retorno?.tomador?.razaoSocial || payload.retorno?.tomador?.nome || 'Cliente não identificado';
+                const invNo = payload.numero || payload.retorno?.numero || payload.retorno?.rps?.numero;
+                ident = invNo ? `Nº ${invNo}` : `RPS: ${payload.rps?.numero || payload.retorno?.rps?.numero || ''} / ID: ${inv.external_id}`;
+                valor = payload.servico?.valorServicos || payload.valorTotal || payload.retorno?.servico?.valorServicos || payload.retorno?.valorTotal || 0;
             }
 
             return {
