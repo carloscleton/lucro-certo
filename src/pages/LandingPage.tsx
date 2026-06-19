@@ -136,7 +136,14 @@ export function LandingPage() {
 
     const plan = currentEntity?.subscription_plan || '';
     const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();
-    const isUnpaid = ['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '') || isTrialExpired;
+    
+    // Bypass constraints for Admin, Exempt (Cortesia) or Bypassed (Bypass temporário) accounts
+    const isAdmin = session?.user?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
+    const isExempt = currentEntity?.settings?.billing_exempt === true;
+    const bypassUntil = currentEntity?.settings?.bypass_until;
+    const isBypassed = bypassUntil && new Date(bypassUntil) > new Date();
+    
+    const isUnpaid = !isAdmin && !isExempt && !isBypassed && (['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '') || isTrialExpired);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [landingPlans, setLandingPlans] = useState<any[]>([]);
     const [landingCampaigns, setLandingCampaigns] = useState<any[]>([]);
