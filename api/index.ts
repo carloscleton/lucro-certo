@@ -1640,7 +1640,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                     const updateRes = await axiosNfeioRequest({
                         method: 'PUT',
                         url: `https://api.nfe.io/v2/companies/${nfeioCompanyId}`,
-                        data: nfeioPayload,
+                        data: { company: nfeioPayload },
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': apiKey
@@ -1653,7 +1653,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                         const createRes = await axiosNfeioRequest({
                             method: 'POST',
                             url: 'https://api.nfe.io/v2/companies',
-                            data: nfeioPayload,
+                            data: { company: nfeioPayload },
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Authorization': apiKey
@@ -1662,8 +1662,17 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                         responseData = createRes.data;
                         nfeioCompanyId = responseData.id;
                     } catch (createErr: any) {
-                        if (createErr.response?.status === 409 || createErr.response?.data?.error?.includes('already exists') || createErr.response?.data?.message?.includes('already exists')) {
-                            console.log(`⚠️ [NFEIO-SYNC] Conflito detected. Empresa já cadastrada na NFe.io. Buscando ID via CNPJ...`);
+                        const errMsg = JSON.stringify(createErr.response?.data || '').toLowerCase();
+                        const isDuplicate = createErr.response?.status === 409 || 
+                                            createErr.response?.status === 422 ||
+                                            errMsg.includes('already exists') || 
+                                            errMsg.includes('already_exists') || 
+                                            errMsg.includes('já cadastrada') ||
+                                            errMsg.includes('duplicated') ||
+                                            errMsg.includes('duplicado');
+
+                        if (isDuplicate) {
+                            console.log(`⚠️ [NFEIO-SYNC] Conflito detectado. Empresa já cadastrada na NFe.io. Buscando ID via CNPJ...`);
                             const listRes = await axiosNfeioRequest({
                                 method: 'GET',
                                 url: 'https://api.nfe.io/v2/companies',
@@ -1679,7 +1688,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                                 const updateRes = await axiosNfeioRequest({
                                     method: 'PUT',
                                     url: `https://api.nfe.io/v2/companies/${nfeioCompanyId}`,
-                                    data: nfeioPayload,
+                                    data: { company: nfeioPayload },
                                     headers: {
                                         'Content-Type': 'application/json',
                                         'Authorization': apiKey
@@ -1687,7 +1696,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                                 });
                                 responseData = updateRes.data;
                             } else {
-                                throw createErr;
+                                throw new Error('Esta empresa já está cadastrada na NFe.io sob outra conta ou chave de API. Por favor, verifique suas credenciais na NFe.io.');
                             }
                         } else {
                             throw createErr;
@@ -1729,7 +1738,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 const errDetail = nfeErr.response?.data || nfeErr.message;
                 console.error('❌ [NFEIO-SYNC] Erro na API da NFe.io:', JSON.stringify(errDetail, null, 2));
                 return res.status(nfeErr.response?.status || 500).json({
-                    error: 'Erro ao sincronizar emitente na NFe.io',
+                    error: nfeErr.message || 'Erro ao sincronizar emitente na NFe.io',
                     detail: errDetail
                 });
             }
