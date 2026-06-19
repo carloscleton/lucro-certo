@@ -3440,7 +3440,7 @@ app.get(['/fiscal-module/admin/billing-invoices', '/api/fiscal-module/admin/bill
             params: {
                 company_id: `eq.${companyId}`,
                 and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
-                select: 'id,created_at,type,status,external_id,payload',
+                select: 'id,created_at,type,status,external_id,payload,invoice_number,dps_number,dps_serie',
                 limit: 10000,
                 order: 'created_at.desc'
             },
@@ -3466,15 +3466,32 @@ app.get(['/fiscal-module/admin/billing-invoices', '/api/fiscal-module/admin/bill
 
             if (inv.type === 'nfeio') {
                 clientName = payload.borrower?.name || payload.cliente?.nome || payload.retorno?.borrower?.name || 'Cliente não identificado';
-                const invNo = payload.retorno?.number || payload.numero || payload.retorno?.numero;
+                const invNo = inv.invoice_number || payload.retorno?.number || payload.numero || payload.retorno?.numero;
                 const series = payload.retorno?.series || payload.series || '';
                 ident = invNo ? `Nº ${invNo}` : `Série: ${series} / ID: ${inv.external_id}`;
                 valor = payload.servicesAmount || payload.amount || payload.valorTotal || payload.retorno?.servicesAmount || payload.retorno?.amount || 0;
             } else {
                 const tomador = payload.tomador || {};
                 clientName = tomador.razaoSocial || tomador.nome || payload.retorno?.tomador?.razaoSocial || payload.retorno?.tomador?.nome || 'Cliente não identificado';
-                const invNo = payload.numero || payload.retorno?.numero || payload.retorno?.rps?.numero;
-                ident = invNo ? `Nº ${invNo}` : `RPS: ${payload.rps?.numero || payload.retorno?.rps?.numero || ''} / ID: ${inv.external_id}`;
+                
+                const invNo = inv.invoice_number 
+                    || payload.retorno?.numeroNfse 
+                    || payload.numeroNfse 
+                    || payload.numeroNfe 
+                    || payload.retorno?.numero 
+                    || payload.numero 
+                    || payload.retorno?.dps?.numero;
+                    
+                const dpsNo = inv.dps_number 
+                    || payload.retorno?.dps?.numero 
+                    || payload.dps?.numero 
+                    || payload.nacional?.dps?.numero 
+                    || payload.DPS?.infDPS?.nDPS 
+                    || payload.nDPS 
+                    || payload.retorno?.rps?.numero 
+                    || payload.rps?.numero;
+
+                ident = invNo ? `Nº ${invNo}` : (dpsNo ? `RPS: ${dpsNo} / ID: ${inv.external_id}` : `ID: ${inv.external_id}`);
                 
                 // Get TecnoSpeed service value
                 const tsServico = Array.isArray(payload.servico) ? payload.servico[0] : payload.servico;
