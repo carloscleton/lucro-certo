@@ -245,6 +245,8 @@ export function Settings() {
     const [selectedBillingCompanyIds, setSelectedBillingCompanyIds] = useState<string[]>([]);
     const [whatsappBillingInstance, setWhatsappBillingInstance] = useState('');
 
+    const uniqueCompaniesWithSuggested = Array.from(new Set(billingSimulation.filter(c => c.totalSuggested > 0).map(c => c.companyId))) as string[];
+
     useEffect(() => {
         if (appSettings?.platform_whatsapp_instance && !whatsappBillingInstance) {
             setWhatsappBillingInstance(appSettings.platform_whatsapp_instance);
@@ -274,8 +276,9 @@ export function Settings() {
             });
             if (response.data?.success) {
                 setBillingSimulation(response.data.simulation || []);
-                // Select all companies with a non-zero balance by default
-                setSelectedBillingCompanyIds((response.data.simulation || []).filter((c: any) => c.totalSuggested > 0).map((c: any) => c.companyId));
+                // Select all unique companies with a non-zero balance by default
+                const uniqueIds = Array.from(new Set((response.data.simulation || []).filter((c: any) => c.totalSuggested > 0).map((c: any) => c.companyId))) as string[];
+                setSelectedBillingCompanyIds(uniqueIds);
             } else {
                 alert('Erro na simulação: ' + (response.data?.error || 'Erro desconhecido.'));
             }
@@ -297,18 +300,44 @@ export function Settings() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             
-            // Map the selected companies to the expected payload
-            const selectedData = billingSimulation
-                .filter(s => selectedBillingCompanyIds.includes(s.companyId))
-                .map(s => {
+            // Map the selected companies to the expected payload, consolidating rows by companyId
+            const consolidatedMap = new Map<string, { amount: number, descriptions: string[] }>();
+            
+            for (const s of billingSimulation) {
+                if (selectedBillingCompanyIds.includes(s.companyId)) {
+                    let record = consolidatedMap.get(s.companyId);
+                    if (!record) {
+                        record = { amount: 0, descriptions: [] };
+                        consolidatedMap.set(s.companyId, record);
+                    }
+                    
+                    record.amount += s.totalSuggested;
+                    
                     const totalNotes = s.notesCount + (s.canceledCount || 0);
-                    const desc = `Mensalidade Fiscal (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.fixedFee)}) + ${totalNotes} Notas (${s.notesCount} Ativas / ${s.canceledCount || 0} Canceladas) (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost)})` + (s.commissions > 0 ? ` + Comissões (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.commissions)})` : '');
-                    return {
-                        companyId: s.companyId,
-                        amount: s.totalSuggested.toFixed(2),
-                        description: desc
-                    };
-                });
+                    const providerLabel = String(s.provider).toUpperCase();
+                    
+                    if (s.isActiveProvider) {
+                        const feeFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.fixedFee);
+                        const costFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost);
+                        record.descriptions.push(
+                            `Mensalidade Fiscal (${feeFormatted}) + ${totalNotes} Notas ${providerLabel} (${s.notesCount} Ativas / ${s.canceledCount || 0} Canceladas) (${costFormatted})`
+                        );
+                    } else {
+                        const costFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost);
+                        record.descriptions.push(
+                            `${totalNotes} Notas ${providerLabel} (${s.notesCount} Ativas / ${s.canceledCount || 0} Canceladas) (${costFormatted})`
+                        );
+                    }
+                }
+            }
+            
+            const selectedData = Array.from(consolidatedMap.entries()).map(([companyId, data]) => {
+                return {
+                    companyId,
+                    amount: data.amount.toFixed(2),
+                    description: data.descriptions.join(' + ')
+                };
+            });
 
             const response = await axios.post(`${API_BASE_URL}/fiscal-module/admin/billing-process`, {
                 startDate: billingStartDate,
@@ -3327,10 +3356,10 @@ export function Settings() {
                                                             <input
                                                                 type="checkbox"
                                                                 className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                                                checked={selectedBillingCompanyIds.length > 0 && selectedBillingCompanyIds.length === billingSimulation.filter(c => c.totalSuggested > 0).length}
+                                                                checked={selectedBillingCompanyIds.length > 0 && selectedBillingCompanyIds.length === uniqueCompaniesWithSuggested.length}
                                                                 onChange={(e) => {
                                                                     if (e.target.checked) {
-                                                                        setSelectedBillingCompanyIds(billingSimulation.filter(c => c.totalSuggested > 0).map(c => c.companyId));
+                                                                        setSelectedBillingCompanyIds(uniqueCompaniesWithSuggested);
                                                                     } else {
                                                                         setSelectedBillingCompanyIds([]);
                                                                     }
@@ -3353,7 +3382,7 @@ export function Settings() {
                                                         const isNoConfig = sim.issuerStatus.includes('❌');
                                                         
                                                         return (
-                                                            <tr key={sim.companyId} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/10 transition-colors">
+                                                            <tr key={`${sim.companyId}_${sim.provider}`} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/10 transition-colors">
                                                                 <td className="px-6 py-4 text-center">
                                                                     <input
                                                                         type="checkbox"
@@ -3381,8 +3410,9 @@ export function Settings() {
                                                                     <div className="text-xs text-gray-500 mt-0.5">{sim.cnpj}</div>
                                                                 </td>
                                                                 <td className="px-6 py-4 text-center">
-                                                                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider inline-block">
-                                                                        {sim.activeProvider.toUpperCase()}
+                                                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full inline-block ${sim.isActiveProvider ? 'bg-indigo-50 dark:bg-indigo-950/35 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-slate-800 text-gray-550 dark:text-gray-400'}`}>
+                                                                        {sim.provider.toUpperCase()}
+                                                                        {!sim.isActiveProvider && ' (INATIVO)'}
                                                                     </span>
                                                                     <div className={`text-xs mt-1 font-medium ${isHealthOk ? 'text-emerald-600' : isNoConfig ? 'text-red-600' : 'text-amber-600'}`}>
                                                                         {sim.issuerStatus}

@@ -3311,86 +3311,103 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
             if (company.status === 'blocked' || !company.fiscal_module_enabled) continue;
 
             const settings = company.settings || {};
-
             const activeProvider = settings.fiscal_provider || 'tecnospeed';
-            
-            const billingConfig = settings.admin_fiscal_billing?.[activeProvider] || {};
-            const fixedFee = typeof billingConfig.fixed_fee === 'number' ? billingConfig.fixed_fee : (settings.monthly_fee ?? 30.00);
-            const perNoteFee = typeof billingConfig.per_note_fee === 'number' ? billingConfig.per_note_fee : 0.50;
+            const isExempt = !!settings.fiscal_billing_exempt;
 
-            const [invoicesCountResponse, canceledCountResponse] = await Promise.all([
-                axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                    params: {
-                        company_id: `eq.${company.id}`,
-                        status: 'in.(concluido,autorizada,concluído)',
-                        and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
-                        select: 'id',
-                        limit: 1
-                    },
-                    headers: {
-                        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
-                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                        'Prefer': 'count=exact'
-                    }
-                }),
-                axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                    params: {
-                        company_id: `eq.${company.id}`,
-                        status: 'in.(cancelado,cancelada)',
-                        and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
-                        select: 'id',
-                        limit: 1
-                    },
-                    headers: {
-                        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
-                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                        'Prefer': 'count=exact'
-                    }
-                })
-            ]);
+            // Fetch all invoices in date range for this company
+            const invoicesResponse = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                params: {
+                    company_id: `eq.${company.id}`,
+                    and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
+                    select: 'type,status',
+                    limit: 10000
+                },
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                }
+            });
+            const invoices = invoicesResponse.data || [];
 
-            const contentRange = invoicesCountResponse.headers['content-range'] || '';
-            const countMatch = contentRange.match(/\/(\d+)$/);
-            const notesCount = countMatch ? parseInt(countMatch[1]) : 0;
-
-            const contentRangeCanceled = canceledCountResponse.headers['content-range'] || '';
-            const countMatchCanceled = contentRangeCanceled.match(/\/(\d+)$/);
-            const canceledCount = countMatchCanceled ? parseInt(countMatchCanceled[1]) : 0;
-
-            let issuerStatus = 'Sem Configuração ❌';
-            if (activeProvider === 'nfeio') {
-                const nfeio = settings.nfeio_config || {};
-                issuerStatus = nfeio.apiKey && nfeio.companyId 
-                    ? (nfeio.certificado_id || nfeio.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
-                    : 'Sem Configuração ❌';
-            } else if (activeProvider === 'tecnospeed') {
-                const ts = settings.tecnospeed_config || {};
-                issuerStatus = ts.cnpjSh && ts.tokenSh 
-                    ? (ts.certificado_id || ts.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
-                    : 'Sem Configuração ❌';
+            // Group invoices by provider
+            const providers = new Set<string>();
+            providers.add(activeProvider);
+            for (const inv of invoices) {
+                const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
+                providers.add(p);
             }
 
-            const commissionEarned = 0; // Removido por solicitação do usuário
-            const notesCost = (notesCount + canceledCount) * perNoteFee;
-            const isExempt = !!settings.fiscal_billing_exempt;
-            const fixedFeeToApply = isExempt ? 0.00 : fixedFee;
-            const totalSuggested = fixedFeeToApply + notesCost;
+            for (const provider of providers) {
+                const isActive = provider === activeProvider;
+                const billingConfig = settings.admin_fiscal_billing?.[provider] || {};
 
-            simulationResults.push({
-                companyId: company.id,
-                tradeName: company.trade_name,
-                cnpj: company.cnpj,
-                activeProvider,
-                issuerStatus,
-                fixedFee: fixedFeeToApply,
-                perNoteFee,
-                notesCount,
-                canceledCount,
-                notesCost,
-                commissions: 0,
-                totalSuggested,
-                isExempt
-            });
+                let fixedFeeToApply = 0.00;
+                if (isActive) {
+                    const fixedFee = typeof billingConfig.fixed_fee === 'number' 
+                        ? billingConfig.fixed_fee 
+                        : (settings.monthly_fee ?? 30.00);
+                    fixedFeeToApply = isExempt ? 0.00 : fixedFee;
+                }
+
+                const perNoteFee = typeof billingConfig.per_note_fee === 'number' 
+                    ? billingConfig.per_note_fee 
+                    : 0.50;
+
+                const providerInvoices = invoices.filter(inv => {
+                    const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
+                    return p === provider;
+                });
+
+                const notesCount = providerInvoices.filter(inv => 
+                    ['concluido', 'autorizada', 'concluído'].includes(String(inv.status).toLowerCase())
+                ).length;
+
+                const canceledCount = providerInvoices.filter(inv => 
+                    ['cancelado', 'cancelada'].includes(String(inv.status).toLowerCase())
+                ).length;
+
+                // Skip row if not active provider and has no activity
+                if (!isActive && notesCount === 0 && canceledCount === 0) {
+                    continue;
+                }
+
+                let issuerStatus = 'Sem Configuração ❌';
+                if (isActive) {
+                    if (provider === 'nfeio') {
+                        const nfeio = settings.nfeio_config || {};
+                        issuerStatus = nfeio.apiKey && nfeio.companyId 
+                            ? (nfeio.certificado_id || nfeio.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
+                            : 'Sem Configuração ❌';
+                    } else if (provider === 'tecnospeed') {
+                        const ts = settings.tecnospeed_config || {};
+                        issuerStatus = ts.cnpjSh && ts.tokenSh 
+                            ? (ts.certificado_id || ts.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
+                            : 'Sem Configuração ❌';
+                    }
+                } else {
+                    issuerStatus = 'Histórico (Inativo) ⚠️';
+                }
+
+                const notesCost = (notesCount + canceledCount) * perNoteFee;
+                const totalSuggested = fixedFeeToApply + notesCost;
+
+                simulationResults.push({
+                    companyId: company.id,
+                    tradeName: company.trade_name,
+                    cnpj: company.cnpj,
+                    provider,
+                    isActiveProvider: isActive,
+                    issuerStatus,
+                    fixedFee: fixedFeeToApply,
+                    perNoteFee,
+                    notesCount,
+                    canceledCount,
+                    notesCost,
+                    commissions: 0,
+                    totalSuggested,
+                    isExempt
+                });
+            }
         }
 
         res.json({ success: true, simulation: simulationResults });
