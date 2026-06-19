@@ -3292,7 +3292,7 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
     try {
         const compResponse = await axios.get(`${SUPABASE_URL}/rest/v1/companies`, {
             params: {
-                select: 'id,trade_name,cnpj,settings,status,fiscal_module_enabled'
+                select: 'id,trade_name,cnpj,settings,status,fiscal_module_enabled,tecnospeed_config'
             },
             headers: {
                 'apikey': SUPABASE_SERVICE_ROLE_KEY!,
@@ -3379,8 +3379,8 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                             ? (nfeio.certificado_id || nfeio.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
                             : 'Sem Configuração ❌';
                     } else if (provider === 'tecnospeed') {
-                        const ts = settings.tecnospeed_config || {};
-                        issuerStatus = ts.cnpjSh && ts.tokenSh 
+                        const ts = company.tecnospeed_config || {};
+                        issuerStatus = ts.cnpj && ts.tecnospeed_api_key 
                             ? (ts.certificado_id || ts.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
                             : 'Sem Configuração ❌';
                     }
@@ -3414,6 +3414,83 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
     } catch (err: any) {
         console.error('❌ Erro na simulação de faturamento:', err.message);
         res.status(500).json({ error: 'Erro ao gerar simulação de faturamento', detail: err.message });
+    }
+});
+
+// Endpoint for retrieving detailed invoices for a company/provider in a period
+app.get(['/fiscal-module/admin/billing-invoices', '/api/fiscal-module/admin/billing-invoices'], authenticate, async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const { companyId, provider, startDate, endDate } = req.query;
+
+    if (!companyId || !provider || !startDate || !endDate) {
+        return res.status(400).json({ error: 'companyId, provider, startDate e endDate são obrigatórios.' });
+    }
+
+    const isAdmin = await verifyIsAdmin(authHeader);
+    if (!isAdmin) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas o administrador da plataforma tem acesso.' });
+    }
+
+    try {
+        const isoStartDate = String(startDate).includes('T') ? String(startDate) : `${startDate}T00:00:00.000Z`;
+        const isoEndDate = String(endDate).includes('T') ? String(endDate) : `${endDate}T23:59:59.999Z`;
+
+        // Fetch all invoices for company in range
+        const invoicesResponse = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+            params: {
+                company_id: `eq.${companyId}`,
+                and: `(created_at.gte.${isoStartDate},created_at.lte.${isoEndDate})`,
+                select: 'id,created_at,type,status,external_id,payload',
+                limit: 10000,
+                order: 'created_at.desc'
+            },
+            headers: {
+                'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            }
+        });
+        const invoices = invoicesResponse.data || [];
+
+        // Filter by the requested provider
+        const filteredInvoices = invoices.filter((inv: any) => {
+            const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
+            return p === provider;
+        });
+
+        // Map key info to make it simple for frontend
+        const mappedInvoices = filteredInvoices.map((inv: any) => {
+            const payload = inv.payload || {};
+            let clientName = 'Cliente não identificado';
+            let ident = `ID: ${inv.external_id || inv.id}`;
+            let valor = 0;
+
+            if (inv.type === 'nfeio') {
+                clientName = payload.borrower?.name || payload.cliente?.nome || 'Cliente não identificado';
+                ident = payload.numero ? `Nº ${payload.numero}` : `Série: ${payload.series || ''} / ID: ${inv.external_id}`;
+                valor = payload.amount || payload.valorTotal || 0;
+            } else {
+                const tomador = payload.tomador || {};
+                clientName = tomador.razaoSocial || tomador.nome || 'Cliente não identificado';
+                ident = payload.numero ? `Nº ${payload.numero}` : `RPS: ${payload.rps?.numero || ''} / ID: ${inv.external_id}`;
+                valor = payload.valorTotal || payload.servico?.valorServicos || 0;
+            }
+
+            return {
+                id: inv.id,
+                created_at: inv.created_at,
+                type: inv.type,
+                status: inv.status,
+                external_id: inv.external_id,
+                clientName,
+                ident,
+                valor
+            };
+        });
+
+        res.json({ success: true, invoices: mappedInvoices });
+    } catch (err: any) {
+        console.error('❌ Erro ao buscar notas detalhadas:', err.message);
+        res.status(550).json({ error: 'Erro ao carregar detalhes das notas', detail: err.message });
     }
 });
 

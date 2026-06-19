@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark, Receipt } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark, Receipt, Download } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -28,6 +28,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/phoneUtils';
 import { LandingPlansEditor } from '../components/admin/LandingPlansEditor';
 import axios from 'axios';
+import jsPDF from 'jspdf';
 import { API_BASE_URL } from '../lib/constants';
 
 export function Settings() {
@@ -247,6 +248,11 @@ export function Settings() {
 
     const uniqueCompaniesWithSuggested = Array.from(new Set(billingSimulation.filter(c => c.totalSuggested > 0).map(c => c.companyId))) as string[];
 
+    const [selectedCompanyNotes, setSelectedCompanyNotes] = useState<any[]>([]);
+    const [selectedCompanyNotesMetadata, setSelectedCompanyNotesMetadata] = useState<any | null>(null);
+    const [companyNotesLoading, setCompanyNotesLoading] = useState(false);
+    const [showNotesModal, setShowNotesModal] = useState(false);
+
     useEffect(() => {
         if (appSettings?.platform_whatsapp_instance && !whatsappBillingInstance) {
             setWhatsappBillingInstance(appSettings.platform_whatsapp_instance);
@@ -361,6 +367,228 @@ export function Settings() {
         } finally {
             setBillingProcessing(false);
         }
+    };
+
+    const handleFetchNotesDetails = async (sim: any) => {
+        setCompanyNotesLoading(true);
+        setSelectedCompanyNotesMetadata(sim);
+        setShowNotesModal(true);
+        setSelectedCompanyNotes([]); // Clear previous notes while loading
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await axios.get(`${API_BASE_URL}/fiscal-module/admin/billing-invoices`, {
+                params: {
+                    companyId: sim.companyId,
+                    provider: sim.provider,
+                    startDate: billingStartDate,
+                    endDate: billingEndDate
+                },
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            if (response.data?.success) {
+                setSelectedCompanyNotes(response.data.invoices || []);
+            } else {
+                alert('Erro ao carregar notas: ' + (response.data?.error || 'Erro desconhecido.'));
+            }
+        } catch (error: any) {
+            console.error('Error fetching notes details:', error);
+            alert('Erro ao buscar notas detalhadas: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setCompanyNotesLoading(false);
+        }
+    };
+
+    const handleGeneratePDF = () => {
+        if (!selectedCompanyNotesMetadata) return;
+        const sim = selectedCompanyNotesMetadata;
+
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 20;
+
+        // Slate/Indigo Theme colors
+        const primaryColor = [30, 41, 59]; // Slate 800
+        const accentColor = [79, 70, 229]; // Indigo 600
+        const textColor = [55, 65, 81]; // Gray 700
+        const lightBg = [249, 250, 251]; // Gray 50
+        const borderColor = [226, 232, 240]; // Slate 200
+
+        let yPos = 20;
+
+        // Decorative top bar
+        doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.rect(0, 0, pageWidth, 5, 'F');
+
+        // Document Title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('Relatório de Apuração Fiscal', margin, yPos + 10);
+        
+        // Issuer name / status
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.text(String(sim.provider).toUpperCase(), pageWidth - margin, yPos + 10, { align: 'right' });
+        
+        yPos += 20;
+
+        // Meta Info Block
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 30, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('EMPRESA:', margin + 5, yPos + 8);
+        doc.text('CNPJ:', margin + 5, yPos + 15);
+        doc.text('PERÍODO:', margin + 5, yPos + 22);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.text(sim.tradeName, margin + 30, yPos + 8);
+        doc.text(sim.cnpj || 'Não cadastrado', margin + 30, yPos + 15);
+        
+        // Dates formatting
+        const startFormatted = billingStartDate.split('-').reverse().join('/');
+        const endFormatted = billingEndDate.split('-').reverse().join('/');
+        doc.text(`${startFormatted} a ${endFormatted}`, margin + 30, yPos + 22);
+
+        yPos += 38;
+
+        // Section Title: Detalhamento das Notas
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('Detalhamento de Movimentações', margin, yPos);
+        yPos += 6;
+
+        // Draw Table Header
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 8, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.text('DATA E HORA', margin + 4, yPos + 5.5);
+        doc.text('IDENTIFICAÇÃO', margin + 40, yPos + 5.5);
+        doc.text('CLIENTE / BENEFICIÁRIO', margin + 85, yPos + 5.5);
+        doc.text('STATUS', margin + 145, yPos + 5.5);
+        doc.text('VALOR', pageWidth - margin - 4, yPos + 5.5, { align: 'right' });
+
+        yPos += 8;
+
+        // Draw Table Rows
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+
+        selectedCompanyNotes.forEach((inv, index) => {
+            // Check if page overflow
+            if (yPos > pageHeight - 50) {
+                doc.addPage();
+                yPos = 20;
+                // Redraw top bar
+                doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+                doc.rect(0, 0, pageWidth, 5, 'F');
+                // Redraw header
+                doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.rect(margin, yPos, pageWidth - (margin * 2), 8, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(255, 255, 255);
+                doc.text('DATA E HORA', margin + 4, yPos + 5.5);
+                doc.text('IDENTIFICAÇÃO', margin + 40, yPos + 5.5);
+                doc.text('CLIENTE / BENEFICIÁRIO', margin + 85, yPos + 5.5);
+                doc.text('STATUS', margin + 145, yPos + 5.5);
+                doc.text('VALOR', pageWidth - margin - 4, yPos + 5.5, { align: 'right' });
+                yPos += 8;
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            }
+
+            // Alternating row background
+            if (index % 2 === 1) {
+                doc.setFillColor(245, 247, 250);
+                doc.rect(margin, yPos, pageWidth - (margin * 2), 7, 'F');
+            }
+
+            // Bottom border row line
+            doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+            doc.line(margin, yPos + 7, pageWidth - margin, yPos + 7);
+
+            // Format date
+            const dateStr = new Date(inv.created_at).toLocaleString('pt-BR', { timeZone: 'UTC' });
+            
+            doc.text(dateStr, margin + 4, yPos + 5);
+            doc.text(inv.ident, margin + 40, yPos + 5);
+            
+            // Limit client name length to avoid overflow
+            let clientText = inv.clientName || 'Cliente não identificado';
+            if (clientText.length > 30) {
+                clientText = clientText.substring(0, 27) + '...';
+            }
+            doc.text(clientText, margin + 85, yPos + 5);
+
+            // Format status uppercase
+            const statusLabel = String(inv.status).toUpperCase();
+            doc.text(statusLabel, margin + 145, yPos + 5);
+
+            // Format value
+            const valFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor || 0);
+            doc.text(valFormatted, pageWidth - margin - 4, yPos + 5, { align: 'right' });
+
+            yPos += 7;
+        });
+
+        yPos += 15;
+
+        // Check overflow for summary block
+        if (yPos > pageHeight - 65) {
+            doc.addPage();
+            yPos = 20;
+            doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+            doc.rect(0, 0, pageWidth, 5, 'F');
+        }
+
+        // Summary financial card
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 40, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('RESUMO DO CUSTO DE APURAÇÃO', margin + 5, yPos + 8);
+        doc.line(margin + 5, yPos + 11, pageWidth - margin - 5, yPos + 11);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        
+        const fixedFeeStr = sim.fixedFee > 0 
+            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee)
+            : 'Isento';
+        doc.text(`Taxa de Mensalidade Fixa:`, margin + 5, yPos + 18);
+        doc.text(fixedFeeStr, pageWidth - margin - 5, yPos + 18, { align: 'right' });
+
+        const totalNotesCount = sim.notesCount + (sim.canceledCount || 0);
+        const perNoteStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee);
+        const notesCostStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.notesCost);
+        doc.text(`Taxa por Notas (${totalNotesCount} notas x ${perNoteStr}/nota):`, margin + 5, yPos + 25);
+        doc.text(notesCostStr, pageWidth - margin - 5, yPos + 25, { align: 'right' });
+
+        // Total suggested row
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.text(`TOTAL A PAGAR DESTA APURAÇÃO:`, margin + 5, yPos + 33);
+        const totalSuggestedStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested);
+        doc.text(totalSuggestedStr, pageWidth - margin - 5, yPos + 33, { align: 'right' });
+
+        // Save file
+        const fileName = `Apuracao_Fiscal_${sim.tradeName.replace(/\s+/g, '_')}_${sim.provider}.pdf`;
+        doc.save(fileName);
     };
 
     useEffect(() => {
@@ -3418,11 +3646,23 @@ export function Settings() {
                                                                         {sim.issuerStatus}
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-6 py-4 text-center font-bold text-gray-900 dark:text-white">
-                                                                    {sim.notesCount}
+                                                                <td className="px-6 py-4 text-center">
+                                                                    <button
+                                                                        onClick={() => handleFetchNotesDetails(sim)}
+                                                                        className={`font-bold hover:underline transition-all ${sim.notesCount > 0 ? 'text-indigo-600 dark:text-indigo-400 cursor-pointer' : 'text-gray-450 dark:text-slate-650 cursor-default'}`}
+                                                                        disabled={sim.notesCount === 0}
+                                                                    >
+                                                                        {sim.notesCount}
+                                                                    </button>
                                                                 </td>
-                                                                <td className="px-6 py-4 text-center font-bold text-red-600">
-                                                                    {sim.canceledCount || 0}
+                                                                <td className="px-6 py-4 text-center">
+                                                                    <button
+                                                                        onClick={() => handleFetchNotesDetails(sim)}
+                                                                        className={`font-bold hover:underline transition-all ${sim.canceledCount > 0 ? 'text-red-600 cursor-pointer' : 'text-gray-450 dark:text-slate-650 cursor-default'}`}
+                                                                        disabled={!sim.canceledCount || sim.canceledCount === 0}
+                                                                    >
+                                                                        {sim.canceledCount || 0}
+                                                                    </button>
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
                                                                     {sim.fixedFee > 0 ? (
@@ -3663,6 +3903,155 @@ export function Settings() {
                     </div>
                 )
             }
+
+            {/* Modal de Detalhamento de Notas */}
+            {showNotesModal && selectedCompanyNotesMetadata && (
+                <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl shadow-2xl border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+                        
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <FileText className="text-indigo-600 dark:text-indigo-400" size={20} />
+                                    Detalhamento de Notas
+                                </h2>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Empresa: <strong className="text-gray-700 dark:text-gray-300">{selectedCompanyNotesMetadata.tradeName}</strong> | 
+                                    CNPJ: <span className="font-mono text-gray-700 dark:text-gray-300">{selectedCompanyNotesMetadata.cnpj}</span> | 
+                                    Emissor: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{selectedCompanyNotesMetadata.provider.toUpperCase()}</span>
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                {!companyNotesLoading && selectedCompanyNotes.length > 0 && (
+                                    <Button
+                                        onClick={handleGeneratePDF}
+                                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm transition-all"
+                                    >
+                                        <Download size={16} />
+                                        Gerar PDF
+                                    </Button>
+                                )}
+                                <button onClick={() => setShowNotesModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 overflow-y-auto flex-1 min-h-0">
+                            {companyNotesLoading ? (
+                                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                    <RefreshCw className="animate-spin text-indigo-600 dark:text-indigo-400" size={36} />
+                                    <span className="text-sm text-gray-500 font-medium">Carregando movimentações...</span>
+                                </div>
+                            ) : selectedCompanyNotes.length === 0 ? (
+                                <div className="text-center py-12 space-y-3">
+                                    <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-400">
+                                        <FileText size={24} />
+                                    </div>
+                                    <h3 className="text-md font-bold text-gray-900 dark:text-white">Nenhuma nota encontrada</h3>
+                                    <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                                        Não foram encontradas notas fiscais emitidas ou canceladas por este emissor no período selecionado.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto border border-gray-150 dark:border-slate-700 rounded-xl">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-gray-200">
+                                            <tr>
+                                                <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">Data e Hora</th>
+                                                <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">Identificação</th>
+                                                <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">Cliente</th>
+                                                <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">Status</th>
+                                                <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider text-right">Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                                            {selectedCompanyNotes.map((inv) => {
+                                                const statusLower = String(inv.status).toLowerCase();
+                                                const isCanceled = ['cancelada', 'cancelado', 'canceled', 'rejeitada', 'rejeitado', 'error', 'failed', 'falha'].includes(statusLower);
+                                                const isSuccess = ['autorizada', 'concluida', 'concluido', 'processando', 'emissao_sucesso', 'sucesso', 'emitida', 'sent', 'approved', 'done'].includes(statusLower);
+                                                
+                                                return (
+                                                    <tr key={inv.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                                        <td className="px-4 py-3 whitespace-nowrap text-gray-650 dark:text-gray-300">
+                                                            {new Date(inv.created_at).toLocaleString('pt-BR', { timeZone: 'UTC' })}
+                                                        </td>
+                                                        <td className="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">
+                                                            {inv.ident}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-[220px] truncate" title={inv.clientName}>
+                                                            {inv.clientName}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-block ${
+                                                                isCanceled 
+                                                                    ? 'bg-red-50 dark:bg-red-950/20 text-red-600' 
+                                                                    : isSuccess 
+                                                                        ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600' 
+                                                                        : 'bg-amber-50 dark:bg-amber-950/20 text-amber-600'
+                                                            }`}>
+                                                                {inv.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
+                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor || 0)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer (Financial Breakdown) */}
+                        <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Mensalidade Fixa</div>
+                                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {selectedCompanyNotesMetadata.fixedFee > 0 ? (
+                                            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyNotesMetadata.fixedFee)
+                                        ) : (
+                                            <span className="text-emerald-600 dark:text-emerald-400">Isento</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="space-y-1 border-y sm:border-y-0 sm:border-x border-gray-100 dark:border-slate-700 py-2 sm:py-0 sm:px-4">
+                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                        Custo por Notas ({selectedCompanyNotesMetadata.notesCount + (selectedCompanyNotesMetadata.canceledCount || 0)})
+                                    </div>
+                                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyNotesMetadata.notesCost)}
+                                        <span className="text-[10px] text-gray-400 font-normal ml-1">
+                                            ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyNotesMetadata.perNoteFee)}/un)
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1 sm:pl-2">
+                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Custo Total Sugerido</div>
+                                    <div className="text-sm font-extrabold text-indigo-650 dark:text-indigo-400">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyNotesMetadata.totalSuggested)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 justify-end">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowNotesModal(false)}
+                                    className="px-6 py-2.5 rounded-xl text-sm"
+                                >
+                                    Fechar
+                                </Button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
         </div >
     );
 }
