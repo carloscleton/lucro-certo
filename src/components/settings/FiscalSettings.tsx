@@ -3464,56 +3464,6 @@ export function FiscalSettings() {
                                 </div>
                             ) : null}
                         </div>
-
-                        <div className="mt-6 border-t border-gray-100 dark:border-slate-800 pt-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Send className="text-orange-600" size={20} />
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Integração Externa (JSON Relay)</h3>
-                            </div>
-                            
-                            <label className="flex items-center gap-2 cursor-pointer mb-4 w-fit">
-                                <input
-                                    type="checkbox"
-                                    checked={!!config.use_external_webhook}
-                                    onChange={(e) => setConfig({ ...config, use_external_webhook: e.target.checked })}
-                                    className="rounded text-orange-600 focus:ring-orange-500"
-                                />
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Enviar JSON para Endpoint Externo (Webhook)</span>
-                            </label>
-
-                            {config.use_external_webhook && (
-                                <div className="bg-orange-50 dark:bg-orange-900/10 p-4 rounded-lg border border-orange-100 dark:border-orange-900/20">
-                                    <Input
-                                        label="URL do Webhook Externo"
-                                        value={config.external_webhook_url || ''}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_url: e.target.value })}
-                                        placeholder="Ex: https://seu-sistema.com/webhook-fiscal"
-                                        preserveCase={true}
-                                        autoComplete="off"
-                                        helpText="ATENÇÃO: Ao ativar esta opção, o sistema enviará o JSON APENAS para este endpoint e IGNORARÁ a TecnoSpeed. Útil para integrar com emissores próprios."
-                                    />
-                                    <div className="mt-4 relative">
-                                        <Input
-                                            label="Token de Autorização (Opcional)"
-                                            type={showWebhookToken ? 'text' : 'password'}
-                                            value={config.external_webhook_token || ''}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_token: e.target.value })}
-                                            placeholder="Ex: seu-token-secreto"
-                                            preserveCase={true}
-                                            autoComplete="off"
-                                            helpText="Se preenchido, será enviado no header 'Authorization: Bearer [token]'."
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowWebhookToken(!showWebhookToken)}
-                                            className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                        >
-                                            {showWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
                     </div>
 
 
