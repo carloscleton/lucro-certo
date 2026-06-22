@@ -575,9 +575,9 @@ export function Settings() {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(textColor[0], textColor[1], textColor[2]);
         
-        const fixedFeeStr = sim.fixedFee > 0 
-            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee)
-            : 'Isento';
+        const fixedFeeStr = sim.isExempt
+            ? 'Isento'
+            : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee || 0);
         doc.text(`Taxa de Mensalidade Fixa:`, margin + 5, yPos + 18);
         doc.text(fixedFeeStr, pageWidth - margin - 5, yPos + 18, { align: 'right' });
 
@@ -3673,10 +3673,10 @@ export function Settings() {
                                                                     </button>
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
-                                                                    {sim.fixedFee > 0 ? (
-                                                                        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee)
-                                                                    ) : (
+                                                                    {sim.isExempt ? (
                                                                         <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/35 px-2 py-0.5 rounded">Isento</span>
+                                                                    ) : (
+                                                                        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee || 0)
                                                                     )}
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
@@ -4021,10 +4021,10 @@ export function Settings() {
                                 <div className="space-y-1">
                                     <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Mensalidade Fixa</div>
                                     <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                        {selectedCompanyNotesMetadata.fixedFee > 0 ? (
-                                            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyNotesMetadata.fixedFee)
-                                        ) : (
+                                        {selectedCompanyNotesMetadata.isExempt ? (
                                             <span className="text-emerald-600 dark:text-emerald-400">Isento</span>
+                                        ) : (
+                                            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCompanyNotesMetadata.fixedFee || 0)
                                         )}
                                     </div>
                                 </div>
