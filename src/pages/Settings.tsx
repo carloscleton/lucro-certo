@@ -665,12 +665,12 @@ export function Settings() {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(255, 255, 255);
-        doc.text('EMPRESA', margin + 3, yPos + 5.5);
-        doc.text('CNPJ', margin + 65, yPos + 5.5);
-        doc.text('PROVEDOR', margin + 105, yPos + 5.5);
-        doc.text('NOTAS (A/C)', margin + 128, yPos + 5.5);
-        doc.text('TAXA FIXA', margin + 155, yPos + 5.5);
-        doc.text('TOTAL', pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
+        doc.text('EMPRESA', margin + 2, yPos + 5.5);
+        doc.text('CNPJ', margin + 60, yPos + 5.5);
+        doc.text('PROVEDOR', margin + 100, yPos + 5.5);
+        doc.text('NOTAS (A/C)', margin + 140, yPos + 5.5, { align: 'right' });
+        doc.text('TAXA FIXA', margin + 168, yPos + 5.5, { align: 'right' });
+        doc.text('TOTAL', pageWidth - margin - 2, yPos + 5.5, { align: 'right' });
 
         yPos += 8;
 
@@ -690,12 +690,12 @@ export function Settings() {
                 doc.rect(margin, yPos, pageWidth - (margin * 2), 8, 'F');
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(255, 255, 255);
-                doc.text('EMPRESA', margin + 3, yPos + 5.5);
-                doc.text('CNPJ', margin + 65, yPos + 5.5);
-                doc.text('PROVEDOR', margin + 105, yPos + 5.5);
-                doc.text('NOTAS (A/C)', margin + 128, yPos + 5.5);
-                doc.text('TAXA FIXA', margin + 155, yPos + 5.5);
-                doc.text('TOTAL', pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
+                doc.text('EMPRESA', margin + 2, yPos + 5.5);
+                doc.text('CNPJ', margin + 60, yPos + 5.5);
+                doc.text('PROVEDOR', margin + 100, yPos + 5.5);
+                doc.text('NOTAS (A/C)', margin + 140, yPos + 5.5, { align: 'right' });
+                doc.text('TAXA FIXA', margin + 168, yPos + 5.5, { align: 'right' });
+                doc.text('TOTAL', pageWidth - margin - 2, yPos + 5.5, { align: 'right' });
                 yPos += 8;
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(textColor[0], textColor[1], textColor[2]);
@@ -716,25 +716,25 @@ export function Settings() {
             if (tradeName.length > 28) {
                 tradeName = tradeName.substring(0, 25) + '...';
             }
-            doc.text(tradeName, margin + 3, yPos + 5);
-            doc.text(sim.cnpj || '', margin + 65, yPos + 5);
+            doc.text(tradeName, margin + 2, yPos + 5);
+            doc.text(sim.cnpj || '', margin + 60, yPos + 5);
 
             // Provider
             const providerStr = `${sim.provider.toUpperCase()}${!sim.isActiveProvider ? ' (INAT)' : ''}`;
-            doc.text(providerStr, margin + 105, yPos + 5);
+            doc.text(providerStr, margin + 100, yPos + 5);
 
             // Notes count (Active / Canceled)
-            doc.text(`${sim.notesCount} / ${sim.canceledCount || 0}`, margin + 128, yPos + 5);
+            doc.text(`${sim.notesCount} / ${sim.canceledCount || 0}`, margin + 140, yPos + 5, { align: 'right' });
 
             // Fixed fee or Exempt
             const fixedFeeStr = sim.isExempt
                 ? 'Isento'
                 : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee || 0);
-            doc.text(fixedFeeStr, margin + 155, yPos + 5);
+            doc.text(fixedFeeStr, margin + 168, yPos + 5, { align: 'right' });
 
             // Total suggested
             const totalStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested);
-            doc.text(totalStr, pageWidth - margin - 3, yPos + 5, { align: 'right' });
+            doc.text(totalStr, pageWidth - margin - 2, yPos + 5, { align: 'right' });
 
             yPos += 7;
         });
