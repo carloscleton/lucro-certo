@@ -599,6 +599,191 @@ export function Settings() {
         doc.save(fileName);
     };
 
+    const handleGenerateBatchPDF = () => {
+        if (selectedBillingCompanyIds.length === 0) return;
+
+        const selectedRows = billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId));
+        if (selectedRows.length === 0) return;
+
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+
+        // Theme colors
+        const primaryColor = [30, 41, 59]; // Slate 800
+        const accentColor = [79, 70, 229]; // Indigo 600
+        const textColor = [55, 65, 81]; // Gray 700
+        const lightBg = [249, 250, 251]; // Gray 50
+        const borderColor = [226, 232, 240]; // Slate 200
+
+        let yPos = 20;
+
+        // Decorative top bar
+        doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.rect(0, 0, pageWidth, 5, 'F');
+
+        // Document Title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('Relatório Consolidado de Apuração Fiscal', margin, yPos + 10);
+        
+        yPos += 20;
+
+        // Meta Info Block
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 20, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('PERÍODO:', margin + 5, yPos + 8);
+        doc.text('EMPRESAS SELECIONADAS:', margin + 5, yPos + 14);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        const startFormatted = billingStartDate.split('-').reverse().join('/');
+        const endFormatted = billingEndDate.split('-').reverse().join('/');
+        doc.text(`${startFormatted} a ${endFormatted}`, margin + 60, yPos + 8);
+        doc.text(`${selectedBillingCompanyIds.length} empresa(s)`, margin + 60, yPos + 14);
+
+        yPos += 28;
+
+        // Section Title: Detalhamento
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('Resumo por Empresa e Provedor', margin, yPos);
+        yPos += 6;
+
+        // Draw Table Header
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 8, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.text('EMPRESA', margin + 3, yPos + 5.5);
+        doc.text('CNPJ', margin + 65, yPos + 5.5);
+        doc.text('PROVEDOR', margin + 105, yPos + 5.5);
+        doc.text('NOTAS (A/C)', margin + 128, yPos + 5.5);
+        doc.text('TAXA FIXA', margin + 155, yPos + 5.5);
+        doc.text('TOTAL', pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
+
+        yPos += 8;
+
+        // Draw Table Rows
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+
+        selectedRows.forEach((sim, index) => {
+            if (yPos > pageHeight - 50) {
+                doc.addPage();
+                yPos = 20;
+                // Redraw top bar
+                doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+                doc.rect(0, 0, pageWidth, 5, 'F');
+                // Redraw header
+                doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.rect(margin, yPos, pageWidth - (margin * 2), 8, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(255, 255, 255);
+                doc.text('EMPRESA', margin + 3, yPos + 5.5);
+                doc.text('CNPJ', margin + 65, yPos + 5.5);
+                doc.text('PROVEDOR', margin + 105, yPos + 5.5);
+                doc.text('NOTAS (A/C)', margin + 128, yPos + 5.5);
+                doc.text('TAXA FIXA', margin + 155, yPos + 5.5);
+                doc.text('TOTAL', pageWidth - margin - 3, yPos + 5.5, { align: 'right' });
+                yPos += 8;
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            }
+
+            // Alternating row background
+            if (index % 2 === 1) {
+                doc.setFillColor(245, 247, 250);
+                doc.rect(margin, yPos, pageWidth - (margin * 2), 7, 'F');
+            }
+
+            // Bottom border row line
+            doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+            doc.line(margin, yPos + 7, pageWidth - margin, yPos + 7);
+
+            // Limit trade name length to avoid overflow
+            let tradeName = sim.tradeName || '';
+            if (tradeName.length > 28) {
+                tradeName = tradeName.substring(0, 25) + '...';
+            }
+            doc.text(tradeName, margin + 3, yPos + 5);
+            doc.text(sim.cnpj || '', margin + 65, yPos + 5);
+
+            // Provider
+            const providerStr = `${sim.provider.toUpperCase()}${!sim.isActiveProvider ? ' (INAT)' : ''}`;
+            doc.text(providerStr, margin + 105, yPos + 5);
+
+            // Notes count (Active / Canceled)
+            doc.text(`${sim.notesCount} / ${sim.canceledCount || 0}`, margin + 128, yPos + 5);
+
+            // Fixed fee or Exempt
+            const fixedFeeStr = sim.isExempt
+                ? 'Isento'
+                : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee || 0);
+            doc.text(fixedFeeStr, margin + 155, yPos + 5);
+
+            // Total suggested
+            const totalStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested);
+            doc.text(totalStr, pageWidth - margin - 3, yPos + 5, { align: 'right' });
+
+            yPos += 7;
+        });
+
+        yPos += 15;
+
+        // Check overflow for summary block
+        if (yPos > pageHeight - 65) {
+            doc.addPage();
+            yPos = 20;
+            doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+            doc.rect(0, 0, pageWidth, 5, 'F');
+        }
+
+        // Summary financial card
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 40, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('RESUMO CONSOLIDADO DO LOTE', margin + 5, yPos + 8);
+        doc.line(margin + 5, yPos + 11, pageWidth - margin - 5, yPos + 11);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+
+        const totalNotes = selectedRows.reduce((acc, cur) => acc + cur.notesCount + (cur.canceledCount || 0), 0);
+        const totalFixedFees = selectedRows.reduce((acc, cur) => acc + cur.fixedFee, 0);
+        const totalSuggested = selectedRows.reduce((acc, cur) => acc + cur.totalSuggested, 0);
+
+        doc.text(`Total de Notas (Ativas + Canceladas):`, margin + 5, yPos + 18);
+        doc.text(String(totalNotes), pageWidth - margin - 5, yPos + 18, { align: 'right' });
+
+        doc.text(`Total de Taxas Fixas Aplicadas:`, margin + 5, yPos + 25);
+        doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFixedFees), pageWidth - margin - 5, yPos + 25, { align: 'right' });
+
+        // Total suggested row
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.text(`VALOR TOTAL ESTIMADO DO LOTE:`, margin + 5, yPos + 33);
+        doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalSuggested), pageWidth - margin - 5, yPos + 33, { align: 'right' });
+
+        // Save file
+        const fileName = `Consolidado_Apuracao_Fiscal_${startFormatted.replace(/\//g, '-')}_a_${endFormatted.replace(/\//g, '-')}.pdf`;
+        doc.save(fileName);
+    };
+
     useEffect(() => {
         if (currentEntity?.id && currentEntity.type === 'company') {
             checkWAConnection();
@@ -3705,15 +3890,27 @@ export function Settings() {
                                                 </div>
                                             </div>
 
-                                            <Button
-                                                onClick={handleProcessBilling}
-                                                disabled={selectedBillingCompanyIds.length === 0}
-                                                isLoading={billingProcessing}
-                                                variant="primary"
-                                                className="h-12 px-8 font-black text-md shadow-lg shadow-indigo-200 dark:shadow-none"
-                                            >
-                                                Confirmar & Processar Lote
-                                            </Button>
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                <Button
+                                                    onClick={handleGenerateBatchPDF}
+                                                    disabled={selectedBillingCompanyIds.length === 0}
+                                                    variant="outline"
+                                                    className="h-12 px-6 font-bold text-md border-indigo-200 text-indigo-600 dark:border-indigo-900/50 dark:text-indigo-400"
+                                                >
+                                                    <FileText size={18} className="mr-2" />
+                                                    Gerar PDF do Lote
+                                                </Button>
+
+                                                <Button
+                                                    onClick={handleProcessBilling}
+                                                    disabled={selectedBillingCompanyIds.length === 0}
+                                                    isLoading={billingProcessing}
+                                                    variant="primary"
+                                                    className="h-12 px-8 font-black text-md shadow-lg shadow-indigo-200 dark:shadow-none"
+                                                >
+                                                    Confirmar & Processar Lote
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (

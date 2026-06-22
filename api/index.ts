@@ -3741,13 +3741,10 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                 const isActive = provider === activeProvider;
                 const billingConfig = settings.admin_fiscal_billing?.[provider] || {};
 
-                let fixedFeeToApply = 0.00;
-                if (isActive) {
-                    const fixedFee = typeof billingConfig.fixed_fee === 'number' 
-                        ? billingConfig.fixed_fee 
-                        : (settings.monthly_fee ?? 30.00);
-                    fixedFeeToApply = isExempt ? 0.00 : fixedFee;
-                }
+                const fixedFee = typeof billingConfig.fixed_fee === 'number' 
+                    ? billingConfig.fixed_fee 
+                    : (isActive ? (settings.monthly_fee ?? 30.00) : 0.00);
+                const fixedFeeToApply = isExempt ? 0.00 : fixedFee;
 
                 const perNoteFee = typeof billingConfig.per_note_fee === 'number' 
                     ? billingConfig.per_note_fee 
