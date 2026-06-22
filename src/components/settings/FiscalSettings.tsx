@@ -169,7 +169,7 @@ export function FiscalSettings() {
         default_cofins_aliquota: '',
         default_csll_aliquota: '',
         default_irrf_aliquota: '',
-        use_external_webhook: false,
+        use_external_webhook: true,
         external_webhook_url: '',
         external_webhook_token: '',
         // Novos campos Simples Nacional
@@ -294,6 +294,7 @@ export function FiscalSettings() {
 
             if (newConfig.reforma_tributaria_ibs_aliquota === undefined) newConfig.reforma_tributaria_ibs_aliquota = '0.10';
             if (newConfig.reforma_tributaria_cbs_aliquota === undefined) newConfig.reforma_tributaria_cbs_aliquota = '0.90';
+            if (newConfig.use_external_webhook === undefined) newConfig.use_external_webhook = true;
 
             return newConfig;
         });
@@ -4088,24 +4089,86 @@ export function FiscalSettings() {
 
         {/* Sub-tab 3: Outros */}
         {activeSubTab === 'other' && (
-            <div className="space-y-6 bg-white dark:bg-slate-800 p-12 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm text-center">
-                <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Globe size={32} />
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                <div className="space-y-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-start gap-4 p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-100 dark:border-orange-900/30">
+                        <Globe className="text-orange-600 mt-1" size={24} />
+                        <div>
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Outras Tecnologias Fiscais (Integração Customizada)</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Configure e envie payloads JSON diretamente para o seu endpoint externo (Webhook/Relay).
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 border-t border-gray-100 dark:border-slate-800 pt-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Send className="text-orange-600" size={20} />
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Integração Externa (JSON Relay)</h3>
+                        </div>
+                        
+                        <label className="flex items-center gap-2 cursor-pointer mb-4 w-fit">
+                            <input
+                                type="checkbox"
+                                checked={!!config.use_external_webhook}
+                                onChange={(e) => setConfig({ ...config, use_external_webhook: e.target.checked })}
+                                className="rounded text-orange-600 focus:ring-orange-500"
+                            />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Enviar JSON para Endpoint Externo (Webhook)</span>
+                        </label>
+
+                        {config.use_external_webhook && (
+                            <div className="bg-orange-50 dark:bg-orange-900/10 p-4 rounded-lg border border-orange-100 dark:border-orange-900/20 animate-in fade-in duration-200">
+                                <Input
+                                    label="URL do Webhook Externo"
+                                    value={config.external_webhook_url || ''}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_url: e.target.value })}
+                                    placeholder="Ex: https://seu-sistema.com/webhook-fiscal"
+                                    preserveCase={true}
+                                    autoComplete="off"
+                                    helpText="ATENÇÃO: Ao ativar esta opção, o sistema enviará o JSON APENAS para este endpoint e IGNORARÁ a TecnoSpeed. Útil para integrar com emissores próprios."
+                                />
+                                <div className="mt-4 relative">
+                                    <Input
+                                        label="Token de Autorização (Opcional)"
+                                        type={showWebhookToken ? 'text' : 'password'}
+                                        value={config.external_webhook_token || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_token: e.target.value })}
+                                        placeholder="Ex: seu-token-secreto"
+                                        preserveCase={true}
+                                        autoComplete="off"
+                                        helpText="Se preenchido, será enviado no header 'Authorization: Bearer [token]'."
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowWebhookToken(!showWebhookToken)}
+                                        className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    >
+                                        {showWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-6 border-t border-gray-200 dark:border-slate-700">
+                        <Button 
+                            type="submit" 
+                            isLoading={saving} 
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                            <Save size={18} className="mr-2" />
+                            Salvar Configurações Outros
+                        </Button>
+                    </div>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Outras Tecnologias Fiscais</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                    Integrações personalizadas ou com outros provedores de serviços fiscais (ex: Focus NFe, e-Notas, etc.).
-                </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 text-xs rounded-full border border-amber-200 dark:border-amber-900/30">
-                    <Info size={14} />
-                    Disponível sob consulta comercial
-                </div>
-            </div>
+            </form>
         )}
 
         {/* Bloco Compartilhado: Laboratório de Testes (JSON Manual) */}
         {((activeSubTab === 'tecnospeed' && config.ambiente === 'homologacao') || 
-          (activeSubTab === 'nfeio' && nfeioConfig.ambiente === 'homologacao')) && (
+          (activeSubTab === 'nfeio' && nfeioConfig.ambiente === 'homologacao') ||
+          activeSubTab === 'other') && (
             <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                     <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
