@@ -282,7 +282,7 @@ export function Settings() {
             });
             if (response.data?.success) {
                 const rawSimulation = response.data.simulation || [];
-                const filteredSimulation = rawSimulation.filter((c: any) => c.notesCount > 0 || (c.canceledCount && c.canceledCount > 0));
+                const filteredSimulation = rawSimulation.filter((c: any) => c.fixedFee > 0 || c.notesCount > 0 || (c.canceledCount && c.canceledCount > 0));
                 setBillingSimulation(filteredSimulation);
                 // Select all unique companies with a non-zero balance by default
                 const uniqueIds = Array.from(new Set(filteredSimulation.filter((c: any) => c.totalSuggested > 0).map((c: any) => c.companyId))) as string[];
