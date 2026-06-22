@@ -666,11 +666,11 @@ export function Settings() {
         doc.setFontSize(9);
         doc.setTextColor(255, 255, 255);
         doc.text('EMPRESA', margin + 2, yPos + 5.5);
-        doc.text('CNPJ', margin + 55, yPos + 5.5);
-        doc.text('PROVEDOR', margin + 90, yPos + 5.5);
-        doc.text('NOTAS (A/C)', margin + 125, yPos + 5.5, { align: 'right' });
-        doc.text('TAXA FIXA', margin + 148, yPos + 5.5, { align: 'right' });
-        doc.text('TAXA/NOTA', margin + 168, yPos + 5.5, { align: 'right' });
+        doc.text('CNPJ', margin + 52, yPos + 5.5);
+        doc.text('PROVEDOR', margin + 83, yPos + 5.5);
+        doc.text('NOTAS (A/C)', margin + 121, yPos + 5.5, { align: 'right' });
+        doc.text('TAXA FIXA', margin + 143, yPos + 5.5, { align: 'right' });
+        doc.text('TAXA/NOTA', margin + 161, yPos + 5.5, { align: 'right' });
         doc.text('TOTAL', pageWidth - margin - 2, yPos + 5.5, { align: 'right' });
 
         yPos += 8;
@@ -692,11 +692,11 @@ export function Settings() {
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(255, 255, 255);
                 doc.text('EMPRESA', margin + 2, yPos + 5.5);
-                doc.text('CNPJ', margin + 55, yPos + 5.5);
-                doc.text('PROVEDOR', margin + 90, yPos + 5.5);
-                doc.text('NOTAS (A/C)', margin + 125, yPos + 5.5, { align: 'right' });
-                doc.text('TAXA FIXA', margin + 148, yPos + 5.5, { align: 'right' });
-                doc.text('TAXA/NOTA', margin + 168, yPos + 5.5, { align: 'right' });
+                doc.text('CNPJ', margin + 52, yPos + 5.5);
+                doc.text('PROVEDOR', margin + 83, yPos + 5.5);
+                doc.text('NOTAS (A/C)', margin + 121, yPos + 5.5, { align: 'right' });
+                doc.text('TAXA FIXA', margin + 143, yPos + 5.5, { align: 'right' });
+                doc.text('TAXA/NOTA', margin + 161, yPos + 5.5, { align: 'right' });
                 doc.text('TOTAL', pageWidth - margin - 2, yPos + 5.5, { align: 'right' });
                 yPos += 8;
                 doc.setFont('helvetica', 'normal');
@@ -719,24 +719,24 @@ export function Settings() {
                 tradeName = tradeName.substring(0, 25) + '...';
             }
             doc.text(tradeName, margin + 2, yPos + 5);
-            doc.text(sim.cnpj || '', margin + 55, yPos + 5);
+            doc.text(sim.cnpj || '', margin + 52, yPos + 5);
 
             // Provider
             const providerStr = `${sim.provider.toUpperCase()}${!sim.isActiveProvider ? ' (INAT)' : ''}`;
-            doc.text(providerStr, margin + 90, yPos + 5);
+            doc.text(providerStr, margin + 83, yPos + 5);
 
             // Notes count (Active / Canceled)
-            doc.text(`${sim.notesCount} / ${sim.canceledCount || 0}`, margin + 125, yPos + 5, { align: 'right' });
+            doc.text(`${sim.notesCount} / ${sim.canceledCount || 0}`, margin + 121, yPos + 5, { align: 'right' });
 
             // Fixed fee or Exempt
             const fixedFeeStr = sim.isExempt
                 ? 'Isento'
                 : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee || 0);
-            doc.text(fixedFeeStr, margin + 148, yPos + 5, { align: 'right' });
+            doc.text(fixedFeeStr, margin + 143, yPos + 5, { align: 'right' });
 
             // Fee per note
             const perNoteFeeStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee || 0);
-            doc.text(perNoteFeeStr, margin + 168, yPos + 5, { align: 'right' });
+            doc.text(perNoteFeeStr, margin + 161, yPos + 5, { align: 'right' });
 
             // Total suggested
             const totalStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested);
@@ -748,7 +748,7 @@ export function Settings() {
         yPos += 15;
 
         // Check overflow for summary block
-        if (yPos > pageHeight - 65) {
+        if (yPos > pageHeight - 70) {
             doc.addPage();
             yPos = 20;
             doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
@@ -758,7 +758,7 @@ export function Settings() {
         // Summary financial card
         doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
         doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 40, 'FD');
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 44, 'FD');
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
@@ -769,21 +769,25 @@ export function Settings() {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(textColor[0], textColor[1], textColor[2]);
 
-        const totalNotes = selectedRows.reduce((acc, cur) => acc + cur.notesCount + (cur.canceledCount || 0), 0);
+        const totalIssued = selectedRows.reduce((acc, cur) => acc + cur.notesCount, 0);
+        const totalCanceled = selectedRows.reduce((acc, cur) => acc + (cur.canceledCount || 0), 0);
         const totalFixedFees = selectedRows.reduce((acc, cur) => acc + cur.fixedFee, 0);
         const totalSuggested = selectedRows.reduce((acc, cur) => acc + cur.totalSuggested, 0);
 
-        doc.text(`Total de Notas (Ativas + Canceladas):`, margin + 5, yPos + 18);
-        doc.text(String(totalNotes), pageWidth - margin - 5, yPos + 18, { align: 'right' });
+        doc.text(`Total de Notas Emitidas (Ativas):`, margin + 5, yPos + 18);
+        doc.text(String(totalIssued), pageWidth - margin - 5, yPos + 18, { align: 'right' });
 
-        doc.text(`Total de Taxas Fixas Aplicadas:`, margin + 5, yPos + 25);
-        doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFixedFees), pageWidth - margin - 5, yPos + 25, { align: 'right' });
+        doc.text(`Total de Notas Canceladas:`, margin + 5, yPos + 24);
+        doc.text(String(totalCanceled), pageWidth - margin - 5, yPos + 24, { align: 'right' });
+
+        doc.text(`Total de Taxas Fixas Aplicadas:`, margin + 5, yPos + 30);
+        doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFixedFees), pageWidth - margin - 5, yPos + 30, { align: 'right' });
 
         // Total suggested row
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.text(`VALOR TOTAL ESTIMADO DO LOTE:`, margin + 5, yPos + 33);
-        doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalSuggested), pageWidth - margin - 5, yPos + 33, { align: 'right' });
+        doc.text(`VALOR TOTAL ESTIMADO DO LOTE:`, margin + 5, yPos + 38);
+        doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalSuggested), pageWidth - margin - 5, yPos + 38, { align: 'right' });
 
         // Save file
         const fileName = `Consolidado_Apuracao_Fiscal_${startFormatted.replace(/\//g, '-')}_a_${endFormatted.replace(/\//g, '-')}.pdf`;
