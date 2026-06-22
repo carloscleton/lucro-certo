@@ -3766,8 +3766,8 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                     ['cancelado', 'cancelada'].includes(String(inv.status).toLowerCase())
                 ).length;
 
-                // Skip row if not active provider and has no activity
-                if (!isActive && notesCount === 0 && canceledCount === 0) {
+                // Skip row if there is no activity (both issued and canceled are 0)
+                if (notesCount === 0 && canceledCount === 0) {
                     continue;
                 }
 
