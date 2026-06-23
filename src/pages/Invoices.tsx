@@ -134,20 +134,29 @@ export function Invoices() {
     const filteredInvoices = invoices.filter(invoice => {
         if (invoice.deleted && !showDeleted) return false;
         if (!searchQuery) return true;
-        const searchLower = searchQuery.toLowerCase();
+        const searchLower = searchQuery.toLowerCase().trim();
         
         const clientNameQuote = invoice.quote?.contact?.name || '';
         const clientNamePayloadNfe = invoice.payload?.destinatario?.nome || '';
         const clientNamePayloadNfse = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
         const clientNamePayloadBorrower = invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || '';
-        const clientName = clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || clientNamePayloadBorrower || 'Cliente Desconhecido';
+        const clientName = (clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || clientNamePayloadBorrower || 'Cliente Desconhecido').toLowerCase();
         
-        const invoiceNumber = invoice.payload?.numero || invoice.external_id || '';
-        const status = invoice.status || '';
+        const invoiceNumber = String(invoice.invoice_number || '').toLowerCase();
+        const payloadNumber = String(invoice.payload?.numero || invoice.payload?.retorno?.numeroNfse || invoice.payload?.numeroNfse || invoice.payload?.numeroNfe || invoice.payload?.retorno?.numero || invoice.payload?.retorno?.dps?.numero || '').toLowerCase();
+        const dpsNumber = String(invoice.dps_number || '').toLowerCase();
+        const externalId = String(invoice.external_id || '').toLowerCase();
         
-        return clientName.toLowerCase().includes(searchLower) || 
-               invoiceNumber.toLowerCase().includes(searchLower) ||
-               status.toLowerCase().includes(searchLower);
+        const status = String(invoice.status || '').toLowerCase();
+        const type = String(invoice.type || '').toLowerCase();
+        
+        return clientName.includes(searchLower) ||
+               invoiceNumber.includes(searchLower) ||
+               payloadNumber.includes(searchLower) ||
+               dpsNumber.includes(searchLower) ||
+               externalId.includes(searchLower) ||
+               status.includes(searchLower) ||
+               type.includes(searchLower);
     });
 
 
@@ -653,7 +662,7 @@ export function Invoices() {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 max-w-full overflow-x-hidden">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
                 <div>
@@ -715,8 +724,9 @@ export function Invoices() {
                 const invoicesForStats = invoices.filter(i => !i.deleted || showDeleted);
                 return (
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+                        {/* Autorizadas */}
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-emerald-100/70 dark:border-emerald-950/30 shadow-sm hover:shadow-emerald-500/5 hover:border-emerald-200 dark:hover:border-emerald-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
+                            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-2xl ring-4 ring-emerald-50/50 dark:ring-emerald-950/10">
                                 <CheckCircle2 size={24} />
                             </div>
                             <div>
@@ -726,8 +736,9 @@ export function Invoices() {
                                 </p>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
+                        {/* Processando */}
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-blue-100/70 dark:border-blue-950/30 shadow-sm hover:shadow-blue-500/5 hover:border-blue-200 dark:hover:border-blue-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-2xl ring-4 ring-blue-50/50 dark:ring-blue-950/10">
                                 <Clock3 size={24} />
                             </div>
                             <div>
@@ -737,8 +748,9 @@ export function Invoices() {
                                 </p>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                            <div className="p-3 bg-slate-100 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 rounded-2xl">
+                        {/* Canceladas */}
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100/70 dark:border-slate-950/30 shadow-sm hover:shadow-slate-500/5 hover:border-slate-200 dark:hover:border-slate-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-950/30 text-slate-500 dark:text-slate-400 rounded-2xl ring-4 ring-slate-50/50 dark:ring-slate-950/10">
                                 <XCircle size={24} />
                             </div>
                             <div>
@@ -748,8 +760,9 @@ export function Invoices() {
                                 </p>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-slate-950 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                            <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
+                        {/* Rejeitadas */}
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-rose-100/70 dark:border-rose-950/30 shadow-sm hover:shadow-rose-500/5 hover:border-rose-200 dark:hover:border-rose-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
+                            <div className="p-3 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-2xl ring-4 ring-rose-50/50 dark:ring-rose-950/10">
                                 <XCircle size={24} />
                             </div>
                             <div>
@@ -759,8 +772,9 @@ export function Invoices() {
                                 </p>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                        {/* Total Geral */}
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-indigo-100/70 dark:border-indigo-950/30 shadow-sm hover:shadow-indigo-500/5 hover:border-indigo-200 dark:hover:border-indigo-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
+                            <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl ring-4 ring-indigo-50/50 dark:ring-indigo-950/10">
                                 <Receipt size={24} />
                             </div>
                             <div>
@@ -773,37 +787,51 @@ export function Invoices() {
             })()}
 
             {/* Search and List Header */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
-                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto flex-1">
-                    <div className="relative w-full md:w-96">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full flex-1">
+                    <div className="relative w-full lg:w-96">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={18} />
                         <input 
                             type="text" 
                             placeholder="Buscar nota por cliente, número ou status..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
+                            className="w-full pl-11 pr-4 py-3 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-2xl text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
                         />
                     </div>
-                    <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 transition-colors px-2">
-                        <input
-                            type="checkbox"
-                            checked={showDeleted}
-                            onChange={(e) => setShowDeleted(e.target.checked)}
-                            className="rounded border-gray-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 h-4 w-4 bg-gray-50 dark:bg-slate-800"
-                        />
-                        Mostrar Excluídas do Histórico
-                    </label>
+                    <button
+                        type="button"
+                        onClick={() => setShowDeleted(!showDeleted)}
+                        className={clsx(
+                            "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer select-none self-start md:self-auto",
+                            showDeleted 
+                                ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400 shadow-sm" 
+                                : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400 dark:hover:bg-slate-800"
+                        )}
+                    >
+                        <Trash2 size={14} className={clsx(showDeleted ? "animate-pulse text-rose-500" : "text-gray-400")} />
+                        <span>{showDeleted ? "Exibindo Excluídas" : "Ocultando Excluídas"}</span>
+                    </button>
                 </div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4 shrink-0">
-                    {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Nota' : 'Notas'} {searchQuery ? 'Encontradas' : 'Recentes'}
+                <div className="flex items-center justify-between lg:justify-end gap-3 shrink-0 px-2 lg:px-0">
+                    <div className={clsx(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors",
+                        searchQuery 
+                            ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400"
+                            : "bg-gray-50 border-gray-100 text-gray-500 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400"
+                    )}>
+                        <Receipt size={14} />
+                        <span className="uppercase tracking-wider">
+                            {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Nota' : 'Notas'} {searchQuery ? 'Encontradas' : 'Recentes'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
             {/* List */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+                <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full min-w-[1100px] text-left text-sm text-gray-600 dark:text-gray-300">
                         <thead>
                             <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
                                 <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Data e Hora</th>
@@ -818,7 +846,7 @@ export function Invoices() {
                         <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={5} className="py-20 text-center">
+                                    <td colSpan={7} className="py-20 text-center">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="relative mb-4">
                                                 <div className="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-20 animate-pulse"></div>
@@ -831,7 +859,7 @@ export function Invoices() {
                                 </tr>
                             ) : filteredInvoices.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="py-20 text-center">
+                                    <td colSpan={7} className="py-20 text-center">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-[2rem] mb-4">
                                                 <Receipt size={40} className="text-gray-300 dark:text-slate-600" />
