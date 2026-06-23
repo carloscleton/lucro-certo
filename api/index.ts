@@ -1183,6 +1183,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             if (nfeioConfig.simplesNacional !== undefined) nfeioPayload.simpleSocialScheme = Boolean(nfeioConfig.simplesNacional);
             if (nfeioConfig.cnae) nfeioPayload.cnaeCode = String(nfeioConfig.cnae).trim();
 
+            // Reforma Tributária 2026 (IBS/CBS) para NFe.io
+            if (nfeioConfig.reforma_tributaria_calculadora_ativa) {
+                nfeioPayload.tax = {
+                    IBSCBS: {
+                        calculationMode: 'OfficialService',
+                        ibsRate: Number(nfeioConfig.reforma_tributaria_ibs_aliquota || '0.10') / 100,
+                        cbsRate: Number(nfeioConfig.reforma_tributaria_cbs_aliquota || '0.90') / 100
+                    }
+                };
+            }
+
             console.log(`🧾 [NFEIO-EMITIR] Enviando Payload para NFe.io (Sandbox: ${isSandbox}):`, JSON.stringify(nfeioPayload, null, 2));
 
             const response = await axiosNfeioRequest({

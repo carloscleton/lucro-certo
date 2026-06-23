@@ -238,7 +238,10 @@ export function FiscalSettings() {
         certificado_sujeito: '',
         certificado_status: '',
         send_email_automatically: false,
-        send_whatsapp_automatically: false
+        send_whatsapp_automatically: false,
+        reforma_tributaria_calculadora_ativa: false,
+        reforma_tributaria_ibs_aliquota: '0.10',
+        reforma_tributaria_cbs_aliquota: '0.90'
     });
 
     const isDirty = useMemo(() => {
@@ -314,7 +317,10 @@ export function FiscalSettings() {
             certificado_sujeito: nfe.certificado_sujeito || '',
             certificado_status: nfe.certificado_status || '',
             send_email_automatically: nfe.send_email_automatically || false,
-            send_whatsapp_automatically: nfe.send_whatsapp_automatically || false
+            send_whatsapp_automatically: nfe.send_whatsapp_automatically || false,
+            reforma_tributaria_calculadora_ativa: nfe.reforma_tributaria_calculadora_ativa || false,
+            reforma_tributaria_ibs_aliquota: nfe.reforma_tributaria_ibs_aliquota || '0.10',
+            reforma_tributaria_cbs_aliquota: nfe.reforma_tributaria_cbs_aliquota || '0.90'
         });
     }, [currentCompany?.id]); // Depender apenas do ID
 
@@ -3667,6 +3673,93 @@ export function FiscalSettings() {
                     </div>
                 </div>
 
+                {/* Reforma Tributária (IBS/CBS) Section */}
+                <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                    <div className="p-5 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent dark:from-emerald-500/20 dark:via-teal-500/10 dark:to-transparent rounded-2xl border border-emerald-500/20 dark:border-emerald-500/30 shadow-md backdrop-blur-md">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+                                <Scale size={24} />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                                <div className="flex items-center justify-between gap-4 flex-wrap">
+                                    <div>
+                                        <span className="text-[9px] font-extrabold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                            Reforma Tributária 2026
+                                        </span>
+                                        <h4 className="text-base font-bold text-gray-900 dark:text-white mt-1">
+                                            Destaque Automático de IBS e CBS
+                                        </h4>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={!!nfeioConfig.reforma_tributaria_calculadora_ativa}
+                                            onChange={(e) => setNfeioConfig({ ...nfeioConfig, reforma_tributaria_calculadora_ativa: e.target.checked })}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+                                    </label>
+                                </div>
+                                <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mt-2">
+                                    Ative para habilitar o destaque preventivo automático de <strong>IBS (Imposto sobre Bens e Serviços)</strong> e <strong>CBS (Contribuição sobre Bens e Serviços)</strong> nas Notas Fiscais Eletrônicas (NF-e/NFS-e), alinhando a sua empresa ao prazo final obrigatório de <strong>31 de julho de 2026</strong>.
+                                </p>
+                                {nfeioConfig.simplesNacional && (
+                                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1 flex items-center gap-1">
+                                        ⚠️ Sua empresa está configurada no Simples Nacional. O destaque de IBS/CBS é recomendado preventivamente para simular a transição tributária, mas as regras definitivas de cobrança entram em vigor a partir de agosto de 2026 principalmente para o Regime Geral.
+                                    </p>
+                                )}
+                                {nfeioConfig.reforma_tributaria_calculadora_ativa && (
+                                    <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-white/50 dark:bg-slate-900/40 rounded-xl border border-emerald-500/10 backdrop-blur-sm animate-fadeIn">
+                                        <div className="space-y-1">
+                                            <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                                                Alíquota de Teste CBS (%)
+                                            </label>
+                                            <div className="relative rounded-lg shadow-sm">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="100"
+                                                    value={nfeioConfig.reforma_tributaria_cbs_aliquota || '0.90'}
+                                                    onChange={(e) => setNfeioConfig({ ...nfeioConfig, reforma_tributaria_cbs_aliquota: e.target.value })}
+                                                    className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 pl-3 pr-16 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
+                                                    placeholder="0.90"
+                                                />
+                                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[9px] font-extrabold text-emerald-600/70">
+                                                    FED (0,9%)
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                                                Alíquota de Teste IBS (%)
+                                            </label>
+                                            <div className="relative rounded-lg shadow-sm">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="100"
+                                                    value={nfeioConfig.reforma_tributaria_ibs_aliquota || '0.10'}
+                                                    onChange={(e) => setNfeioConfig({ ...nfeioConfig, reforma_tributaria_ibs_aliquota: e.target.value })}
+                                                    className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 pl-3 pr-24 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
+                                                    placeholder="0.10"
+                                                />
+                                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[9px] font-extrabold text-emerald-600/70">
+                                                    EST/MUN (0,1%)
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-span-2 text-[10px] text-emerald-700/90 dark:text-emerald-300/90 leading-normal bg-emerald-500/5 dark:bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/10 mt-1">
+                                            💡 <strong>Período de Teste e Transição:</strong> O governo instituiu a alíquota simbólica total de <strong>1%</strong> (<strong>0,9% CBS</strong> e <strong>0,1% IBS</strong>) em caráter meramente informativo para homologação técnica dos ERPs, sem gerar cobranças adicionais imediatas.
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200 dark:border-slate-700">
                     <a
                         href="https://nfe.io"
@@ -4099,6 +4192,93 @@ export function FiscalSettings() {
                                 </div>
                             </div>
                         )}
+                    </div>
+
+                    {/* Reforma Tributária (IBS/CBS) Section */}
+                    <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                        <div className="p-5 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent dark:from-emerald-500/20 dark:via-teal-500/10 dark:to-transparent rounded-2xl border border-emerald-500/20 dark:border-emerald-500/30 shadow-md backdrop-blur-md">
+                            <div className="flex items-start gap-4">
+                                <div className="p-3 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+                                    <Scale size={24} />
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                                        <div>
+                                            <span className="text-[9px] font-extrabold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                Reforma Tributária 2026
+                                            </span>
+                                            <h4 className="text-base font-bold text-gray-900 dark:text-white mt-1">
+                                                Destaque Automático de IBS e CBS
+                                            </h4>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={!!config.reforma_tributaria_calculadora_ativa}
+                                                onChange={(e) => setConfig({ ...config, reforma_tributaria_calculadora_ativa: e.target.checked })}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mt-2">
+                                        Ative para habilitar o destaque preventivo automático de <strong>IBS (Imposto sobre Bens e Serviços)</strong> e <strong>CBS (Contribuição sobre Bens e Serviços)</strong> nas Notas Fiscais Eletrônicas (NF-e/NFS-e), alinhando a sua empresa ao prazo final obrigatório de <strong>31 de julho de 2026</strong>.
+                                    </p>
+                                    {config.regime_tributario === '1' && (
+                                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1 flex items-center gap-1">
+                                            ⚠️ Sua empresa está configurada no Simples Nacional. O destaque de IBS/CBS é recomendado preventivamente para simular a transição tributária, mas as regras definitivas de cobrança entram em vigor a partir de agosto de 2026 principalmente para o Regime Geral.
+                                        </p>
+                                    )}
+                                    {config.reforma_tributaria_calculadora_ativa && (
+                                        <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-white/50 dark:bg-slate-900/40 rounded-xl border border-emerald-500/10 backdrop-blur-sm animate-fadeIn">
+                                            <div className="space-y-1">
+                                                <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                                                    Alíquota de Teste CBS (%)
+                                                </label>
+                                                <div className="relative rounded-lg shadow-sm">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        max="100"
+                                                        value={config.reforma_tributaria_cbs_aliquota || '0.90'}
+                                                        onChange={(e) => setConfig({ ...config, reforma_tributaria_cbs_aliquota: e.target.value })}
+                                                        className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 pl-3 pr-16 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
+                                                        placeholder="0.90"
+                                                    />
+                                                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[9px] font-extrabold text-emerald-600/70">
+                                                        FED (0,9%)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                                                    Alíquota de Teste IBS (%)
+                                                </label>
+                                                <div className="relative rounded-lg shadow-sm">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        max="100"
+                                                        value={config.reforma_tributaria_ibs_aliquota || '0.10'}
+                                                        onChange={(e) => setConfig({ ...config, reforma_tributaria_ibs_aliquota: e.target.value })}
+                                                        className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 pl-3 pr-24 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-emerald-950 dark:text-emerald-100"
+                                                        placeholder="0.10"
+                                                    />
+                                                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[9px] font-extrabold text-emerald-600/70">
+                                                        EST/MUN (0,1%)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2 text-[10px] text-emerald-700/90 dark:text-emerald-300/90 leading-normal bg-emerald-500/5 dark:bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/10 mt-1">
+                                                💡 <strong>Período de Teste e Transição:</strong> O governo instituiu a alíquota simbólica total de <strong>1%</strong> (<strong>0,9% CBS</strong> e <strong>0,1% IBS</strong>) em caráter meramente informativo para homologação técnica dos ERPs, sem gerar cobranças adicionais imediatas.
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-6 border-t border-gray-200 dark:border-slate-700">
