@@ -787,44 +787,43 @@ export function Invoices() {
             })()}
 
             {/* Search and List Header */}
-            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm">
-                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full flex-1">
-                    <div className="relative w-full lg:w-96">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Buscar nota por cliente, número ou status..." 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-11 pr-4 py-3 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-2xl text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
-                        />
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setShowDeleted(!showDeleted)}
-                        className={clsx(
-                            "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer select-none self-start md:self-auto",
-                            showDeleted 
-                                ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400 shadow-sm" 
-                                : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400 dark:hover:bg-slate-800"
-                        )}
-                    >
-                        <Trash2 size={14} className={clsx(showDeleted ? "animate-pulse text-rose-500" : "text-gray-400")} />
-                        <span>{showDeleted ? "Exibindo Excluídas" : "Ocultando Excluídas"}</span>
-                    </button>
+            <div className="flex flex-row items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm w-full">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={18} />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar nota por cliente, número ou status..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-11 pr-4 py-2.5 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                    />
                 </div>
-                <div className="flex items-center justify-between lg:justify-end gap-3 shrink-0 px-2 lg:px-0">
-                    <div className={clsx(
-                        "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors",
-                        searchQuery 
-                            ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400"
-                            : "bg-gray-50 border-gray-100 text-gray-500 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400"
-                    )}>
-                        <Receipt size={14} />
-                        <span className="uppercase tracking-wider">
-                            {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Nota' : 'Notas'} {searchQuery ? 'Encontradas' : 'Recentes'}
-                        </span>
-                    </div>
+                <button
+                    type="button"
+                    onClick={() => setShowDeleted(!showDeleted)}
+                    className={clsx(
+                        "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer select-none shrink-0",
+                        showDeleted 
+                            ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400 shadow-sm" 
+                            : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400 dark:hover:bg-slate-800"
+                    )}
+                >
+                    <Trash2 size={14} className={clsx(showDeleted ? "animate-pulse text-rose-500" : "text-gray-400")} />
+                    <span className="hidden sm:inline">{showDeleted ? "Exibindo Excluídas" : "Ocultando Excluídas"}</span>
+                </button>
+                <div className={clsx(
+                    "flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors shrink-0",
+                    searchQuery 
+                        ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400"
+                        : "bg-gray-50 border-gray-100 text-gray-500 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400"
+                )}>
+                    <Receipt size={14} />
+                    <span className="hidden md:inline uppercase tracking-wider">
+                        {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Nota' : 'Notas'}
+                    </span>
+                    <span className="md:hidden">
+                        {filteredInvoices.length}
+                    </span>
                 </div>
             </div>
 
