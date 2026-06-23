@@ -829,8 +829,8 @@ export function Invoices() {
             </div>
 
             {/* List */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden">
-                <div className="overflow-x-auto custom-scrollbar">
+            <div className="w-full max-w-full bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden">
+                <div className="w-full overflow-x-auto custom-scrollbar">
                     <table className="w-full min-w-[1100px] text-left text-sm text-gray-600 dark:text-gray-300">
                         <thead>
                             <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
