@@ -3939,6 +3939,11 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                         issuerStatus = ts.cnpj && ts.tecnospeed_api_key 
                             ? (ts.certificado_id || ts.certificado_status === 'ativo' ? 'Certificado OK ✅' : 'Sem Certificado ❌')
                             : 'Sem Configuração ❌';
+                    } else if (provider === 'other') {
+                        const ts = company.tecnospeed_config || {};
+                        issuerStatus = ts.use_external_webhook && ts.external_webhook_url
+                            ? 'Webhook Ativo ✅'
+                            : 'Sem Configuração ❌';
                     }
                 } else {
                     issuerStatus = 'Histórico (Inativo) ⚠️';
