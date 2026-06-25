@@ -499,7 +499,7 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
         }
 
         // --- INTERCEPTOR DE WEBHOOK EXTERNO PARA CERTIFICADO ---
-        if (config.use_external_webhook && config.external_webhook_url) {
+        if (activeProvider === 'other' && config.use_external_webhook && config.external_webhook_url) {
             console.log(`🚀 [EXTERNAL-MODE] Enviando certificado para o webhook externo: ${config.external_webhook_url}`);
             
             baseUrl = config.external_webhook_url;
@@ -1263,7 +1263,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         }
 
         // --- MODO EXCLUSIVO: WEBHOOK EXTERNO (JSON RELAY) ---
-        if (config.use_external_webhook && config.external_webhook_url) {
+        if (activeProvider === 'other' && config.use_external_webhook && config.external_webhook_url) {
             console.log(`🚀 [EXTERNAL-MODE] Enviando payload RAW APENAS para: ${config.external_webhook_url}`);
             
             const headers: any = { 
@@ -1600,6 +1600,8 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
     const authHeader = req.headers.authorization;
 
     try {
+        const { settings } = await getCompanyFiscalConfig(authHeader!, companyId);
+        const activeProvider = settings?.fiscal_provider || 'tecnospeed';
         // --- INTERCEPTOR DE NFE.IO PARA EMITENTE ---
         if (config.apiKey && !config.tecnospeed_api_key) {
             console.log(`🚀 [NFEIO-SYNC] Sincronizando emitente com a NFe.io para a empresa: ${companyId}`);
@@ -1807,7 +1809,7 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
         }
 
         // --- INTERCEPTOR DE WEBHOOK EXTERNO PARA EMITENTE ---
-        if (config.use_external_webhook && config.external_webhook_url) {
+        if (activeProvider === 'other' && config.use_external_webhook && config.external_webhook_url) {
             console.log(`🚀 [EXTERNAL-MODE] Sincronizando emitente com o webhook externo: ${config.external_webhook_url}`);
             
             const headers: any = { 
