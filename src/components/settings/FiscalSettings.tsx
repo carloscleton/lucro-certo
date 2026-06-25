@@ -1290,7 +1290,7 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : 'tecnospeed';
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'other' ? 'other' : 'tecnospeed');
 
             await fiscalService.deleteCertificate(currentEntity.id, token, targetProvider);
 
@@ -4400,7 +4400,7 @@ export function FiscalSettings() {
         )}
 
         {/* Bloco Compartilhado: Certificado Digital (A1) */}
-        {(activeSubTab === 'tecnospeed' || activeSubTab === 'nfeio') && (
+        {(activeSubTab === 'tecnospeed' || activeSubTab === 'nfeio' || activeSubTab === 'other') && (
             <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -4452,7 +4452,7 @@ export function FiscalSettings() {
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                    {activeSubTab === 'nfeio' ? 'ID NFe.io' : 'ID PlugNotas'}
+                                    {activeSubTab === 'nfeio' ? 'ID NFe.io' : (activeSubTab === 'other' ? 'ID Certificado' : 'ID PlugNotas')}
                                 </p>
                                 <p className="text-sm font-mono text-emerald-700 dark:text-emerald-300">
                                     {currentCertInfo.id.substring(0, 8)}...
@@ -4514,7 +4514,7 @@ export function FiscalSettings() {
                 isOpen={diagnostic.isOpen}
                 onClose={() => setDiagnostic(prev => ({ ...prev, isOpen: false }))}
                 title="Diagnóstico de Envio"
-                description={activeSubTab === 'nfeio' ? "Status da integração com NFe.io" : "Status da integração com PlugNotas"}
+                description={activeSubTab === 'nfeio' ? "Status da integração com NFe.io" : (activeSubTab === 'other' ? "Status da integração com Webhook" : "Status da integração com PlugNotas")}
                 steps={diagnostic.steps}
                 logs={diagnostic.logs}
                 action={{
