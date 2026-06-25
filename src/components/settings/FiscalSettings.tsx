@@ -1257,13 +1257,13 @@ export function FiscalSettings() {
                 } catch (syncErr: any) {
                     console.warn('Falha no auto-sync, mas o certificado foi enviado:', syncErr);
                     
-                    setConfig(prev => ({
+                    setConfig({
                         ...uploadConfig,
                         certificado_id: response.id,
                         certificado_vencimento: response.vencimento,
                         certificado_sujeito: response.sujeito,
                         certificado_status: 'ativo'
-                    }));
+                    });
 
                     setDiagnostic(prev => ({
                         ...prev,
