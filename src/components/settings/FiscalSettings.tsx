@@ -244,6 +244,15 @@ export function FiscalSettings() {
         reforma_tributaria_cbs_aliquota: '0.90'
     });
 
+    const [certWebhookUrl, setCertWebhookUrl] = useState('');
+    const [certWebhookToken, setCertWebhookToken] = useState('');
+    const [showCertWebhookToken, setShowCertWebhookToken] = useState(false);
+
+    useEffect(() => {
+        setCertWebhookUrl(config.external_webhook_url || '');
+        setCertWebhookToken(config.external_webhook_token || '');
+    }, [config.external_webhook_url, config.external_webhook_token]);
+
     const isDirty = useMemo(() => {
         if (!currentCompany) return false;
         if (!!currentCompany.fiscal_module_enabled !== moduleEnabled) return true;
@@ -1134,6 +1143,9 @@ export function FiscalSettings() {
         const isExternal = !!config.use_external_webhook;
         const targetProviderName = isNfeio ? 'NFe.io' : (isExternal ? 'Webhook Externo' : 'TecnoSpeed');
 
+        const targetWebhookUrl = activeSubTab === 'other' ? certWebhookUrl : config.external_webhook_url;
+        const targetWebhookToken = activeSubTab === 'other' ? certWebhookToken : config.external_webhook_token;
+
         setDiagnostic({
             isOpen: true,
             steps: [
@@ -1159,7 +1171,7 @@ export function FiscalSettings() {
             } else {
                 isSandbox = config.ambiente === 'homologacao';
                 const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
-                baseUrl = isExternal ? config.external_webhook_url : (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
+                baseUrl = isExternal ? targetWebhookUrl : (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase();
                 maskedKey = isExternal ? 'AUTORIZAÇÃO WEBHOOK' : (config.tecnospeed_api_key ? `${config.tecnospeed_api_key.substring(0, 4)}...${config.tecnospeed_api_key.substring(config.tecnospeed_api_key.length - 4)}` : 'NÃO INFORMADA');
             }
 
@@ -1185,7 +1197,13 @@ export function FiscalSettings() {
                 logs: [...prev.logs, 'Sessão autenticada']
             }));
 
-            const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token, config, activeSubTab);
+            const uploadConfig = {
+                ...config,
+                external_webhook_url: targetWebhookUrl,
+                external_webhook_token: targetWebhookToken
+            };
+
+            const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token, uploadConfig, activeSubTab);
             
             if (isNfeio) {
                 // Para NFe.io, o upload já realiza o vínculo. Finalizamos com sucesso direto!
@@ -1217,13 +1235,13 @@ export function FiscalSettings() {
                 // Vincular automaticamente o certificado ao emitente
                 try {
                     const syncResult = await fiscalService.syncIssuer(currentEntity.id, {
-                        ...config,
+                        ...uploadConfig,
                         certificado_id: response.id
                     }, token);
 
                     // ATUALIZAR ESTADO LOCAL IMEDIATAMENTE
                     const updatedConfig = {
-                        ...config,
+                        ...uploadConfig,
                         certificado_id: response.id,
                         certificado_vencimento: response.vencimento,
                         certificado_sujeito: response.sujeito,
@@ -1240,7 +1258,7 @@ export function FiscalSettings() {
                     console.warn('Falha no auto-sync, mas o certificado foi enviado:', syncErr);
                     
                     setConfig(prev => ({
-                        ...prev,
+                        ...uploadConfig,
                         certificado_id: response.id,
                         certificado_vencimento: response.vencimento,
                         certificado_sujeito: response.sujeito,
@@ -4467,6 +4485,37 @@ export function FiscalSettings() {
                         <p className="text-sm text-blue-700 dark:text-blue-300">
                             Sua senha é transmitida de forma segura e não fica armazenada em nossos servidores.
                         </p>
+                    </div>
+                )}
+
+                {activeSubTab === 'other' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <Input
+                            label="URL do Webhook do Certificado"
+                            value={certWebhookUrl}
+                            onChange={(e: any) => setCertWebhookUrl(e.target.value)}
+                            placeholder="Ex: https://seu-n8n.com/webhook-certificado"
+                            preserveCase={true}
+                            helpText="URL do webhook externo que receberá este certificado digital."
+                        />
+                        <div className="relative">
+                            <Input
+                                label="Token do Webhook (Opcional)"
+                                type={showCertWebhookToken ? 'text' : 'password'}
+                                value={certWebhookToken}
+                                onChange={(e: any) => setCertWebhookToken(e.target.value)}
+                                placeholder="Ex: seu-token-secreto"
+                                preserveCase={true}
+                                helpText="Token enviado no cabeçalho 'Authorization: Bearer [token]'."
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowCertWebhookToken(!showCertWebhookToken)}
+                                className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                                {showCertWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
                     </div>
                 )}
 
