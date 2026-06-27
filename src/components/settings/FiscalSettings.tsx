@@ -3868,56 +3868,54 @@ export function FiscalSettings() {
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-gray-200 dark:border-slate-700">
                     <a
                         href="https://nfe.io"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm flex items-center gap-1.5 font-medium active:scale-95 transition-all"
+                        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm flex items-center gap-1.5 font-medium active:scale-95 transition-all mr-auto"
                     >
                         Acessar Painel NFe.io <ExternalLink size={14} />
                     </a>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={handleCheckNfeioIssuerStatus}
-                            isLoading={checkingNfeioStatus}
-                            className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700/50"
-                        >
-                            <RefreshCw size={18} className={`mr-2 ${checkingNfeioStatus ? 'animate-spin' : ''}`} />
-                            Verificar Status da Empresa
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleSyncNfeioIssuer}
-                            isLoading={syncingNfeio}
-                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/55 dark:text-indigo-400 dark:hover:bg-indigo-950/20"
-                        >
-                            <RefreshCw size={18} className={`mr-2 ${syncingNfeio ? 'animate-spin' : ''}`} />
-                            Sincronizar Emitente
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleDeactivateIssuer}
-                            isLoading={deactivating}
-                            className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-900/55 dark:text-red-400 dark:hover:bg-red-950/20"
-                        >
-                            <Trash2 size={18} className="mr-2" />
-                            Inativar Emitente
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={handleSaveNfeio}
-                            isLoading={savingNfeio}
-                            variant="primary"
-                        >
-                            <Save size={18} className="mr-2" />
-                            Salvar Configurações NFe.io
-                        </Button>
-                    </div>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={handleCheckNfeioIssuerStatus}
+                        isLoading={checkingNfeioStatus}
+                        className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700/50"
+                    >
+                        <RefreshCw size={18} className={`mr-2 ${checkingNfeioStatus ? 'animate-spin' : ''}`} />
+                        Verificar Status da Empresa
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleSyncNfeioIssuer}
+                        isLoading={syncingNfeio}
+                        className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/55 dark:text-indigo-400 dark:hover:bg-indigo-950/20"
+                    >
+                        <RefreshCw size={18} className={`mr-2 ${syncingNfeio ? 'animate-spin' : ''}`} />
+                        Sincronizar Emitente
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleDeactivateIssuer}
+                        isLoading={deactivating}
+                        className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-900/55 dark:text-red-400 dark:hover:bg-red-950/20"
+                    >
+                        <Trash2 size={18} className="mr-2" />
+                        Inativar Emitente
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={handleSaveNfeio}
+                        isLoading={savingNfeio}
+                        variant="primary"
+                    >
+                        <Save size={18} className="mr-2" />
+                        Salvar Configurações NFe.io
+                    </Button>
                 </div>
 
                 {/* Ferramenta de Homologação de Cidades NFe.io */}
