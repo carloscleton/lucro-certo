@@ -1265,29 +1265,106 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
         // --- MODO EXCLUSIVO: WEBHOOK EXTERNO (JSON RELAY) ---
         if (activeProvider === 'other' && config.use_external_webhook && config.external_webhook_url) {
-            console.log(`🚀 [EXTERNAL-MODE] Enviando payload RAW APENAS para: ${config.external_webhook_url}`);
+            const externalId = `webhook_${Math.random().toString(36).substring(2, 10)}${Date.now()}`;
+            console.log(`🚀 [EXTERNAL-MODE] Gerado ID de integração: ${externalId}`);
+            console.log(`🚀 [EXTERNAL-MODE] Enviando payload RAW para: ${config.external_webhook_url}`);
             
+            // Envia o payload exatamente como veio do frontend (RAW), mas garantindo formato array e injetando idIntegracao
+            const rawPayload = Array.isArray(payload) ? payload : [payload];
+            const finalPayload = rawPayload.map((item: any) => {
+                if (typeof item === 'object' && item !== null) {
+                    return {
+                        ...item,
+                        idIntegracao: item.idIntegracao || externalId
+                    };
+                }
+                return item;
+            });
+
             const headers: any = { 
                 'Content-Type': 'application/json', 
                 'X-Source': 'LucroCerto-Fiscal-Proxy',
-                'X-Company-ID': companyId
+                'X-Company-ID': companyId,
+                'X-Invoice-ID': externalId
             };
 
             if (config.external_webhook_token) {
                 headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
             }
 
-            // Envia o payload exatamente como veio do frontend (RAW), sem injeções da TecnoSpeed
-            const rawPayload = Array.isArray(payload) ? payload : [payload];
+            // Salvar a nota no banco como 'processando' antes de fazer a requisição ao webhook
+            if (SUPABASE_URL) {
+                console.log(`💾 [DB-SAVE] Criando nota inicial via Webhook ${externalId} com status 'processando'`);
+                try {
+                    const dbHeaders: any = {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    };
+                    if (SUPABASE_SERVICE_ROLE_KEY) {
+                        dbHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+                    } else if (authHeader) {
+                        dbHeaders['Authorization'] = authHeader;
+                    } else {
+                        dbHeaders['Authorization'] = `Bearer ${SUPABASE_ANON_KEY!}`;
+                    }
+
+                    await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                        company_id: resolvedId,
+                        quote_id: quoteId || null,
+                        external_id: externalId,
+                        type: 'webhook',
+                        status: 'processando',
+                        payload: {
+                            ...finalPayload[0],
+                            idIntegracao: externalId
+                        }
+                    }, {
+                        headers: dbHeaders
+                    });
+                } catch (dbErr: any) {
+                    console.error('❌ [DB-SAVE] Erro ao salvar nota Webhook inicial no banco:', dbErr.message);
+                }
+            }
+
             try {
-                const response = await axios.post(config.external_webhook_url, rawPayload, {
+                const response = await axios.post(config.external_webhook_url, finalPayload, {
                     headers,
                     timeout: 10000
                 });
                 console.log(`✅ [EXTERNAL-MODE] Resposta recebida do webhook externo.`);
-                return res.json({ ...response.data, proxy_version: '1.0.34', mode: 'external_relay' });
+                const resData = response.data || {};
+                
+                return res.json({ 
+                    id: externalId,
+                    status: 'processando',
+                    ...resData, 
+                    proxy_version: '1.0.35', 
+                    mode: 'external_relay' 
+                });
             } catch (webhookErr: any) {
                 console.error(`❌ [EXTERNAL-MODE] Webhook externo retornou erro:`, webhookErr.message);
+                
+                // Se o webhook falhar imediatamente, atualizamos o status no banco para 'erro'
+                if (SUPABASE_URL) {
+                    try {
+                        const errorMsg = webhookErr.response?.data?.error || webhookErr.response?.data?.message || webhookErr.message;
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${externalId}`, {
+                            status: 'erro',
+                            error_message: `Webhook externo falhou: ${JSON.stringify(errorMsg)}`,
+                            updated_at: new Date().toISOString()
+                        }, {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY!,
+                                'Authorization': authHeader!,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    } catch (dbPatchErr: any) {
+                        console.error('❌ [DB-PATCH] Erro ao atualizar status de erro no banco:', dbPatchErr.message);
+                    }
+                }
+                
                 return res.status(webhookErr.response?.status || 500).json({ 
                     error: '[ERRO DO SEU WEBHOOK N8N] O N8N tentou processar a nota, mas retornou este erro para nós.', 
                     detail: webhookErr.response?.data || webhookErr.message 
@@ -2900,11 +2977,12 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         let type = 'nfse';
         let isRecordFound = false;
         let existingPayload: any = {};
+        let dbRecord: any = null;
         try {
             const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                 params: {
                     external_id: `eq.${id}`,
-                    select: 'type,payload'
+                    select: 'type,payload,status,invoice_number,access_key,pdf_url,xml_url,error_message'
                 },
                 headers: {
                     'apikey': SUPABASE_ANON_KEY!,
@@ -2912,8 +2990,9 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 }
             });
             if (invData?.[0]) {
-                type = invData[0].type || 'nfse';
-                existingPayload = invData[0].payload || {};
+                dbRecord = invData[0];
+                type = dbRecord.type || 'nfse';
+                existingPayload = dbRecord.payload || {};
                 isRecordFound = true;
                 console.log(`🔍 [FISCAL-STATUS] Tipo detectado no banco para ${id}: ${type}`);
             }
@@ -2922,6 +3001,26 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         }
 
         const activeProvider = provider || settings?.fiscal_provider || 'tecnospeed';
+
+        // Bypass para notas integradas via Webhook Externo
+        if (type === 'webhook' || activeProvider === 'other') {
+            console.log(`📡 [FISCAL-STATUS] Nota via Webhook detectada. Retornando dados salvos no banco para ID: ${id}`);
+            const statusVal = dbRecord?.status || 'processando';
+            return res.json({
+                id,
+                status: statusVal,
+                flowStatus: statusVal,
+                number: dbRecord?.invoice_number || null,
+                verificationCode: dbRecord?.access_key || null,
+                pdf: dbRecord?.pdf_url || null,
+                xml: dbRecord?.xml_url || null,
+                error_message: dbRecord?.error_message || null,
+                message: statusVal === 'processando' 
+                    ? 'Aguardando o retorno do emissor externo via webhook.' 
+                    : `Nota processada com status: ${statusVal}`,
+                data: dbRecord
+            });
+        }
 
         if (type === 'nfeio' || (activeProvider === 'nfeio' && !isRecordFound)) {
             const nfeioConfig = settings?.nfeio_config;
@@ -3193,6 +3292,138 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         const statusCode = error.response?.status || 500;
         console.error('❌ [FISCAL-STATUS] Erro:', JSON.stringify(detail));
         res.status(statusCode).json({ error: 'Erro ao consultar status', detail: detail });
+    }
+});
+
+app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'], async (req, res) => {
+    const { 
+        id, 
+        external_id, 
+        idIntegracao, 
+        status, 
+        pdf_url, 
+        xml_url, 
+        invoice_number, 
+        access_key, 
+        dps_number, 
+        dps_serie, 
+        protocol, 
+        error_message,
+        payload 
+    } = req.body;
+
+    const targetId = external_id || id || idIntegracao;
+
+    if (!targetId) {
+        return res.status(400).json({ error: 'Identificador da nota (id, external_id ou idIntegracao) é obrigatório.' });
+    }
+
+    try {
+        console.log(`📡 [WEBHOOK-UPDATE] Recebida atualização para a nota: ${targetId}`);
+        
+        // 1. Buscar a nota pelo external_id no banco usando a melhor autenticação disponível
+        const authHeader = req.headers.authorization;
+        const dbHeaders: any = {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+            'Content-Type': 'application/json'
+        };
+
+        if (SUPABASE_SERVICE_ROLE_KEY) {
+            dbHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+        } else if (authHeader) {
+            dbHeaders['Authorization'] = authHeader;
+        } else {
+            dbHeaders['Authorization'] = `Bearer ${SUPABASE_ANON_KEY!}`;
+        }
+
+        const selectUrl = `${SUPABASE_URL}/rest/v1/fiscal_invoices`;
+        const { data: invoices } = await axios.get(selectUrl, {
+            params: {
+                external_id: `eq.${targetId}`,
+                select: 'id,payload,quote_id'
+            },
+            headers: dbHeaders
+        });
+
+        if (!invoices || invoices.length === 0) {
+            return res.status(404).json({ error: `Nota fiscal com external_id '${targetId}' não encontrada.` });
+        }
+
+        const invoice = invoices[0];
+        
+        // Normalizar status
+        const rawStatus = String(status || 'processando').toLowerCase();
+        let mappedStatus = 'processando';
+        if (['concluido', 'autorizado', 'issued', 'success', 'concluído', 'concluida', 'concluída'].includes(rawStatus)) {
+            mappedStatus = 'concluido';
+        } else if (['erro', 'rejeitado', 'error', 'failed', 'rejected', 'rejeitada'].includes(rawStatus)) {
+            mappedStatus = 'erro';
+        } else if (['cancelado', 'cancelled', 'canceled', 'cancelada'].includes(rawStatus)) {
+            mappedStatus = 'cancelado';
+        }
+
+        // Construir payload atualizado
+        const existingPayload = invoice.payload || {};
+        const updatedPayload = {
+            ...existingPayload,
+            retorno: {
+                ...(existingPayload.retorno || {}),
+                ...(payload || {}),
+                status: status || mappedStatus,
+                pdf_url,
+                xml_url,
+                invoice_number,
+                access_key,
+                dps_number,
+                dps_serie,
+                protocol,
+                error_message
+            }
+        };
+
+        // 2. Atualizar a nota no Supabase usando a mesma autenticação
+        const updateUrl = `${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${invoice.id}`;
+        await axios.patch(updateUrl, {
+            status: mappedStatus,
+            pdf_url: pdf_url || null,
+            xml_url: xml_url || null,
+            invoice_number: invoice_number ? String(invoice_number) : null,
+            access_key: access_key ? String(access_key) : null,
+            dps_number: dps_number ? String(dps_number) : null,
+            dps_serie: dps_serie ? String(dps_serie) : null,
+            protocol: protocol ? String(protocol) : null,
+            error_message: error_message || null,
+            payload: updatedPayload,
+            updated_at: new Date().toISOString()
+        }, {
+            headers: dbHeaders
+        });
+
+        // 3. Se a nota estiver vinculada a um orçamento (quote), atualizar o status do orçamento também
+        if (invoice.quote_id) {
+            try {
+                console.log(`💾 [WEBHOOK-UPDATE] Atualizando orçamento vinculado: ${invoice.quote_id}`);
+                const quoteUpdateUrl = `${SUPABASE_URL}/rest/v1/quotes?id=eq.${invoice.quote_id}`;
+                await axios.patch(quoteUpdateUrl, {
+                    nfe_status: mappedStatus,
+                    nfe_pdf_url: pdf_url || null,
+                    nfe_xml_url: xml_url || null,
+                    nfe_error: error_message || null
+                }, {
+                    headers: dbHeaders
+                });
+                console.log(`✅ [WEBHOOK-UPDATE] Orçamento ${invoice.quote_id} atualizado com status '${mappedStatus}'`);
+            } catch (quoteErr: any) {
+                console.error(`⚠️ [WEBHOOK-UPDATE] Falha ao atualizar orçamento vinculado ${invoice.quote_id}:`, quoteErr.message);
+            }
+        }
+
+        console.log(`   [WEBHOOK-UPDATE] Nota ${targetId} atualizada com sucesso para '${mappedStatus}'`);
+        return res.json({ success: true, message: `Nota ${targetId} atualizada para '${mappedStatus}'.` });
+
+    } catch (err: any) {
+        console.error(`❌ [WEBHOOK-UPDATE] Erro ao processar atualização:`, err.message);
+        return res.status(500).json({ error: 'Erro interno ao atualizar nota fiscal via webhook', detail: err.message });
     }
 });
 
