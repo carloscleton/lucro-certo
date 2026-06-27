@@ -118,6 +118,7 @@ export function FiscalSettings() {
     });
 
     const [testingJson, setTestingJson] = useState(false);
+    const [testingWebhook, setTestingWebhook] = useState(false);
 
     useEffect(() => {
         if (!currentEntity.id) return;
@@ -1378,6 +1379,60 @@ export function FiscalSettings() {
         }
         
         return newData;
+    };
+
+    const handleTestExternalWebhook = async () => {
+        if (!config.external_webhook_url) {
+            setResultModal({
+                isOpen: true,
+                title: 'URL Inválida',
+                message: 'Por favor, informe a URL do Webhook Externo.',
+                type: 'error'
+            });
+            return;
+        }
+
+        setTestingWebhook(true);
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Sessão expirada.');
+
+            const base = API_BASE_URL.replace(/\/$/, '');
+            const response = await fetch(`${base}/fiscal-module/test-webhook`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    url: config.external_webhook_url,
+                    token: config.external_webhook_token
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || result.detail || 'Erro ao testar webhook');
+            }
+
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: result.message || 'Teste enviado com sucesso. Verifique seu sistema!',
+                type: 'success'
+            });
+        } catch (error: any) {
+            setResultModal({
+                isOpen: true,
+                title: 'Erro no Teste',
+                message: error.message || 'Falha ao conectar no webhook externo.',
+                type: 'error'
+            });
+        } finally {
+            setTestingWebhook(false);
+        }
     };
 
     const handleCheckTestStatus = async (id: string) => {
@@ -4219,6 +4274,17 @@ export function FiscalSettings() {
                                         preserveCase={true}
                                         helpText="Esta é a URL onde o seu sistema externo deve fazer o POST avisando o status da nota. Você pode editá-la caso use um proxy."
                                     />
+                                </div>
+                                <div className="mt-4 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleTestExternalWebhook}
+                                        disabled={testingWebhook || !config.external_webhook_url}
+                                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        <Activity size={16} className={testingWebhook ? "animate-spin" : ""} />
+                                        {testingWebhook ? 'Testando...' : 'Testar Conexão com Webhook Externo'}
+                                    </button>
                                 </div>
                             </div>
                         )}

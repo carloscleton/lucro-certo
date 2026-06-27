@@ -3479,6 +3479,39 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
     }
 });
 
+app.post(['/fiscal-module/test-webhook', '/api/fiscal-module/test-webhook'], authenticate, async (req, res) => {
+    const { url, token } = req.body;
+    
+    if (!url) {
+        return res.status(400).json({ error: 'URL do Webhook obrigatória' });
+    }
+    
+    try {
+        console.log(`🧪 [TEST-WEBHOOK] Testando conexão com: ${url}`);
+        const headers: any = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const testPayload = {
+            event: "TEST_CONNECTION",
+            message: "Teste de conexão do Lucro Certo",
+            timestamp: new Date().toISOString(),
+            test: true
+        };
+        
+        const response = await axios.post(url, testPayload, { headers, timeout: 5000 });
+        console.log(`✅ [TEST-WEBHOOK] Sucesso. Status: ${response.status}`);
+        return res.json({ success: true, message: 'Teste enviado com sucesso. Seu sistema recebeu o payload!' });
+    } catch (err: any) {
+        console.error(`❌ [TEST-WEBHOOK] Falha ao testar:`, err.message);
+        return res.status(400).json({ error: 'Falha na conexão com o Webhook', detail: err.message });
+    }
+});
+
 app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'], authenticate, async (req, res) => {
     let { type, id } = req.params;
     const { companyId } = req.query;
