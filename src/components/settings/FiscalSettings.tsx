@@ -175,10 +175,13 @@ export function FiscalSettings() {
         default_irrf_aliquota: '',
         use_external_webhook: true,
         external_webhook_url: '',
+        external_webhook_user: undefined as string | undefined,
         external_webhook_token: '',
         external_webhook_return_url: undefined as string | undefined,
+        external_webhook_return_user: undefined as string | undefined,
         external_webhook_return_token: undefined as string | undefined,
         certificate_webhook_url: undefined as string | undefined,
+        certificate_webhook_user: undefined as string | undefined,
         certificate_webhook_token: undefined as string | undefined,
         // Novos campos Simples Nacional
         simples_nacional_aliquota: '0.00',
@@ -254,12 +257,14 @@ export function FiscalSettings() {
 
     const [certWebhookUrl, setCertWebhookUrl] = useState('');
     const [certWebhookToken, setCertWebhookToken] = useState('');
+    const [certWebhookUser, setCertWebhookUser] = useState('');
     const [showCertWebhookToken, setShowCertWebhookToken] = useState(false);
 
     useEffect(() => {
         setCertWebhookUrl(config.certificate_webhook_url !== undefined ? config.certificate_webhook_url : (config.external_webhook_url || ''));
         setCertWebhookToken(config.certificate_webhook_token !== undefined ? config.certificate_webhook_token : (config.external_webhook_token || ''));
-    }, [config.certificate_webhook_url, config.certificate_webhook_token, config.external_webhook_url, config.external_webhook_token]);
+        setCertWebhookUser(config.certificate_webhook_user !== undefined ? config.certificate_webhook_user : (config.external_webhook_user || ''));
+    }, [config.certificate_webhook_url, config.certificate_webhook_token, config.certificate_webhook_user, config.external_webhook_url, config.external_webhook_token, config.external_webhook_user]);
 
     const isDirty = useMemo(() => {
         if (!currentCompany) return false;
@@ -1388,20 +1393,23 @@ export function FiscalSettings() {
     const handleTestExternalWebhook = async (type: 'external' | 'certificate' | 'callback') => {
         let urlToTest = '';
         let tokenToTest = '';
+        let userToTest = '';
         let setTesting = setTestingWebhookExterno;
 
         if (type === 'external') {
             urlToTest = config.external_webhook_url;
             tokenToTest = config.external_webhook_token;
+            userToTest = config.external_webhook_user || '';
             setTesting = setTestingWebhookExterno;
         } else if (type === 'certificate') {
             urlToTest = certWebhookUrl;
             tokenToTest = certWebhookToken;
+            userToTest = certWebhookUser;
             setTesting = setTestingWebhookCertificado;
         } else if (type === 'callback') {
-            // For callback, there's no explicitly defined token input, so we just test the URL
             urlToTest = config.external_webhook_return_url ?? `${(API_BASE_URL.startsWith('/') ? window.location.origin + API_BASE_URL : API_BASE_URL).replace(/\/$/, '')}/fiscal-module/webhook/update`;
             tokenToTest = config.external_webhook_return_token || '';
+            userToTest = config.external_webhook_return_user || '';
             setTesting = setTestingWebhookCallback;
         }
 
@@ -1430,7 +1438,8 @@ export function FiscalSettings() {
                 },
                 body: JSON.stringify({
                     url: urlToTest,
-                    token: tokenToTest
+                    token: tokenToTest,
+                    user: userToTest
                 })
             });
 
@@ -4281,24 +4290,35 @@ export function FiscalSettings() {
                                         </button>
                                     }
                                 />
-                                <div className="mt-4 relative">
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Input
-                                        label="Token de Autorização (Opcional)"
-                                        type={showWebhookToken ? 'text' : 'password'}
-                                        value={config.external_webhook_token || ''}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_token: e.target.value })}
-                                        placeholder="Ex: seu-token-secreto"
+                                        label="Usuário / Client ID (Opcional)"
+                                        value={config.external_webhook_user || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_user: e.target.value })}
+                                        placeholder="Ex: seu-usuario"
                                         preserveCase={true}
                                         autoComplete="off"
-                                        helpText="Se preenchido, será enviado no header 'Authorization: Bearer [token]'."
+                                        helpText="Se preenchido junto com a senha, usará Basic Auth."
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowWebhookToken(!showWebhookToken)}
-                                        className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                    >
-                                        {showWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
-                                    </button>
+                                    <div className="relative">
+                                        <Input
+                                            label="Senha / Token (Opcional)"
+                                            type={showWebhookToken ? 'text' : 'password'}
+                                            value={config.external_webhook_token || ''}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_token: e.target.value })}
+                                            placeholder="Ex: seu-token-secreto"
+                                            preserveCase={true}
+                                            autoComplete="off"
+                                            helpText="Sem usuário: Bearer. Com usuário: Basic."
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowWebhookToken(!showWebhookToken)}
+                                            className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        >
+                                            {showWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="mt-4">
                                     <Input
@@ -4320,24 +4340,35 @@ export function FiscalSettings() {
                                         }
                                     />
                                 </div>
-                                <div className="mt-4 relative">
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Input
-                                        label="Token de Autorização do Retorno (Opcional)"
-                                        type={showWebhookCallbackToken ? 'text' : 'password'}
-                                        value={config.external_webhook_return_token || ''}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_return_token: e.target.value })}
-                                        placeholder="Ex: seu-token-secreto"
+                                        label="Usuário / Client ID do Retorno (Opcional)"
+                                        value={config.external_webhook_return_user || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_return_user: e.target.value })}
+                                        placeholder="Ex: seu-usuario"
                                         preserveCase={true}
                                         autoComplete="off"
-                                        helpText="Se preenchido, será enviado no header 'Authorization: Bearer [token]' na requisição de teste para o seu callback."
+                                        helpText="Se preenchido junto com a senha, usará Basic Auth."
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowWebhookCallbackToken(!showWebhookCallbackToken)}
-                                        className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                    >
-                                        {showWebhookCallbackToken ? <EyeOff size={20} /> : <Eye size={20} />}
-                                    </button>
+                                    <div className="relative">
+                                        <Input
+                                            label="Senha / Token do Retorno (Opcional)"
+                                            type={showWebhookCallbackToken ? 'text' : 'password'}
+                                            value={config.external_webhook_return_token || ''}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_return_token: e.target.value })}
+                                            placeholder="Ex: seu-token-secreto"
+                                            preserveCase={true}
+                                            autoComplete="off"
+                                            helpText="Sem usuário: Bearer. Com usuário: Basic."
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowWebhookCallbackToken(!showWebhookCallbackToken)}
+                                            className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        >
+                                            {showWebhookCallbackToken ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -4620,7 +4651,7 @@ export function FiscalSettings() {
                 )}
 
                 {activeSubTab === 'other' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="mb-6">
                         <Input
                             label="URL do Webhook do Certificado"
                             value={certWebhookUrl}
@@ -4644,27 +4675,41 @@ export function FiscalSettings() {
                                 </button>
                             }
                         />
-                        <div className="relative">
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
-                                label="Token do Webhook (Opcional)"
-                                type={showCertWebhookToken ? 'text' : 'password'}
-                                value={certWebhookToken}
+                                label="Usuário / Client ID do Webhook (Opcional)"
+                                value={certWebhookUser}
                                 onChange={(e: any) => {
                                     const val = e.target.value;
-                                    setCertWebhookToken(val);
-                                    setConfig((prev: any) => ({ ...prev, certificate_webhook_token: val }));
+                                    setCertWebhookUser(val);
+                                    setConfig((prev: any) => ({ ...prev, certificate_webhook_user: val }));
                                 }}
-                                placeholder="Ex: seu-token-secreto"
+                                placeholder="Ex: seu-usuario"
                                 preserveCase={true}
-                                helpText="Token enviado no cabeçalho 'Authorization: Bearer [token]'."
+                                helpText="Se preenchido junto com a senha, usará Basic Auth."
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowCertWebhookToken(!showCertWebhookToken)}
-                                className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                            >
-                                {showCertWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
-                            </button>
+                            <div className="relative">
+                                <Input
+                                    label="Senha / Token do Webhook (Opcional)"
+                                    type={showCertWebhookToken ? 'text' : 'password'}
+                                    value={certWebhookToken}
+                                    onChange={(e: any) => {
+                                        const val = e.target.value;
+                                        setCertWebhookToken(val);
+                                        setConfig((prev: any) => ({ ...prev, certificate_webhook_token: val }));
+                                    }}
+                                    placeholder="Ex: seu-token-secreto"
+                                    preserveCase={true}
+                                    helpText="Sem usuário: Bearer. Com usuário: Basic."
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCertWebhookToken(!showCertWebhookToken)}
+                                    className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                >
+                                    {showCertWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

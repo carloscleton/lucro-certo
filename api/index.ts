@@ -511,7 +511,10 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
                 'X-Company-ID': companyId
             };
 
-            if (apiKey) {
+            const certWebhookUser = config.certificate_webhook_user || config.external_webhook_user || '';
+            if (certWebhookUser) {
+                headers['Authorization'] = 'Basic ' + Buffer.from(certWebhookUser + ':' + apiKey).toString('base64');
+            } else if (apiKey) {
                 headers['Authorization'] = `Bearer ${apiKey}`;
             }
 
@@ -1288,7 +1291,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 'X-Invoice-ID': externalId
             };
 
-            if (config.external_webhook_token) {
+            if (config.external_webhook_user) {
+                headers['Authorization'] = 'Basic ' + Buffer.from(config.external_webhook_user + ':' + (config.external_webhook_token || '')).toString('base64');
+            } else if (config.external_webhook_token) {
                 headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
             }
 
@@ -1896,7 +1901,9 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                 'X-Company-ID': companyId
             };
 
-            if (config.external_webhook_token) {
+            if (config.external_webhook_user) {
+                headers['Authorization'] = 'Basic ' + Buffer.from(config.external_webhook_user + ':' + (config.external_webhook_token || '')).toString('base64');
+            } else if (config.external_webhook_token) {
                 headers['Authorization'] = `Bearer ${config.external_webhook_token}`;
             }
 
@@ -3480,7 +3487,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
 });
 
 app.post(['/fiscal-module/test-webhook', '/api/fiscal-module/test-webhook'], authenticate, async (req, res) => {
-    const { url, token } = req.body;
+    const { url, token, user } = req.body;
     
     if (!url) {
         return res.status(400).json({ error: 'URL do Webhook obrigatória' });
@@ -3492,7 +3499,9 @@ app.post(['/fiscal-module/test-webhook', '/api/fiscal-module/test-webhook'], aut
             'Content-Type': 'application/json'
         };
         
-        if (token) {
+        if (user) {
+            headers['Authorization'] = 'Basic ' + Buffer.from(user + ':' + (token || '')).toString('base64');
+        } else if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
         
