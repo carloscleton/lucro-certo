@@ -172,6 +172,7 @@ export function FiscalSettings() {
         use_external_webhook: true,
         external_webhook_url: '',
         external_webhook_token: '',
+        external_webhook_return_url: undefined as string | undefined,
         certificate_webhook_url: undefined as string | undefined,
         certificate_webhook_token: undefined as string | undefined,
         // Novos campos Simples Nacional
