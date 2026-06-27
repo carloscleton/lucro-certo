@@ -101,6 +101,7 @@ export function FiscalSettings() {
     const [showApiKey, setShowApiKey] = useState(false);
     const [showNfeioApiKey, setShowNfeioApiKey] = useState(false);
     const [showWebhookToken, setShowWebhookToken] = useState(false);
+    const [showWebhookCallbackToken, setShowWebhookCallbackToken] = useState(false);
     const [diagnostic, setDiagnostic] = useState<{
         isOpen: boolean;
         steps: { title: string; status: 'pending' | 'loading' | 'success' | 'error'; msg?: string }[];
@@ -176,6 +177,7 @@ export function FiscalSettings() {
         external_webhook_url: '',
         external_webhook_token: '',
         external_webhook_return_url: undefined as string | undefined,
+        external_webhook_return_token: undefined as string | undefined,
         certificate_webhook_url: undefined as string | undefined,
         certificate_webhook_token: undefined as string | undefined,
         // Novos campos Simples Nacional
@@ -1399,7 +1401,7 @@ export function FiscalSettings() {
         } else if (type === 'callback') {
             // For callback, there's no explicitly defined token input, so we just test the URL
             urlToTest = config.external_webhook_return_url ?? `${(API_BASE_URL.startsWith('/') ? window.location.origin + API_BASE_URL : API_BASE_URL).replace(/\/$/, '')}/fiscal-module/webhook/update`;
-            tokenToTest = '';
+            tokenToTest = config.external_webhook_return_token || '';
             setTesting = setTestingWebhookCallback;
         }
 
@@ -4317,6 +4319,25 @@ export function FiscalSettings() {
                                             </button>
                                         }
                                     />
+                                </div>
+                                <div className="mt-4 relative">
+                                    <Input
+                                        label="Token de Autorização do Retorno (Opcional)"
+                                        type={showWebhookCallbackToken ? 'text' : 'password'}
+                                        value={config.external_webhook_return_token || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_return_token: e.target.value })}
+                                        placeholder="Ex: seu-token-secreto"
+                                        preserveCase={true}
+                                        autoComplete="off"
+                                        helpText="Se preenchido, será enviado no header 'Authorization: Bearer [token]' na requisição de teste para o seu callback."
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowWebhookCallbackToken(!showWebhookCallbackToken)}
+                                        className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    >
+                                        {showWebhookCallbackToken ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
                                 </div>
                             </div>
                         )}
