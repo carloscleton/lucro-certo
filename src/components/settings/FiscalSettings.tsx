@@ -4210,6 +4210,15 @@ export function FiscalSettings() {
                                         {showWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
                                     </button>
                                 </div>
+                                <div className="mt-4">
+                                    <Input
+                                        label="Webhook de Retorno (Callback URL)"
+                                        value={`${(API_BASE_URL.startsWith('/') ? window.location.origin + API_BASE_URL : API_BASE_URL).replace(/\/$/, '')}/fiscal-module/webhook/update`}
+                                        readOnly
+                                        className="bg-gray-50 dark:bg-slate-800 text-gray-500 cursor-not-allowed"
+                                        helpText="Configure seu sistema externo (ex: n8n) para fazer um POST nesta URL enviando o status da nota."
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>
