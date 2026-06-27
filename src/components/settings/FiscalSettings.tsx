@@ -118,7 +118,8 @@ export function FiscalSettings() {
     });
 
     const [testingJson, setTestingJson] = useState(false);
-    const [testingWebhook, setTestingWebhook] = useState(false);
+    const [testingWebhookExterno, setTestingWebhookExterno] = useState(false);
+    const [testingWebhookCertificado, setTestingWebhookCertificado] = useState(false);
 
     useEffect(() => {
         if (!currentEntity.id) return;
@@ -1381,18 +1382,22 @@ export function FiscalSettings() {
         return newData;
     };
 
-    const handleTestExternalWebhook = async () => {
-        if (!config.external_webhook_url) {
+    const handleTestExternalWebhook = async (type: 'external' | 'certificate') => {
+        const urlToTest = type === 'external' ? config.external_webhook_url : certWebhookUrl;
+        const tokenToTest = type === 'external' ? config.external_webhook_token : certWebhookToken;
+        const setTesting = type === 'external' ? setTestingWebhookExterno : setTestingWebhookCertificado;
+
+        if (!urlToTest) {
             setResultModal({
                 isOpen: true,
                 title: 'URL Inválida',
-                message: 'Por favor, informe a URL do Webhook Externo.',
+                message: 'Por favor, informe a URL do Webhook.',
                 type: 'error'
             });
             return;
         }
 
-        setTestingWebhook(true);
+        setTesting(true);
         try {
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
@@ -1406,8 +1411,8 @@ export function FiscalSettings() {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    url: config.external_webhook_url,
-                    token: config.external_webhook_token
+                    url: urlToTest,
+                    token: tokenToTest
                 })
             });
 
@@ -1427,11 +1432,11 @@ export function FiscalSettings() {
             setResultModal({
                 isOpen: true,
                 title: 'Erro no Teste',
-                message: error.message || 'Falha ao conectar no webhook externo.',
+                message: error.message || 'Falha ao conectar no webhook.',
                 type: 'error'
             });
         } finally {
-            setTestingWebhook(false);
+            setTesting(false);
         }
     };
 
@@ -4246,6 +4251,17 @@ export function FiscalSettings() {
                                     preserveCase={true}
                                     autoComplete="off"
                                     helpText="ATENÇÃO: Ao ativar esta opção, o sistema enviará o JSON APENAS para este endpoint e IGNORARÁ a TecnoSpeed. Útil para integrar com emissores próprios."
+                                    rightElement={
+                                        <button
+                                            type="button"
+                                            onClick={() => handleTestExternalWebhook('external')}
+                                            disabled={testingWebhookExterno || !config.external_webhook_url}
+                                            className="text-orange-500 hover:text-orange-600 disabled:opacity-50 transition-colors cursor-pointer mr-1"
+                                            title="Testar Conexão"
+                                        >
+                                            <Activity size={18} className={testingWebhookExterno ? "animate-spin" : ""} />
+                                        </button>
+                                    }
                                 />
                                 <div className="mt-4 relative">
                                     <Input
@@ -4274,17 +4290,6 @@ export function FiscalSettings() {
                                         preserveCase={true}
                                         helpText="Esta é a URL onde o seu sistema externo deve fazer o POST avisando o status da nota. Você pode editá-la caso use um proxy."
                                     />
-                                </div>
-                                <div className="mt-4 flex justify-end">
-                                    <button
-                                        type="button"
-                                        onClick={handleTestExternalWebhook}
-                                        disabled={testingWebhook || !config.external_webhook_url}
-                                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-                                    >
-                                        <Activity size={16} className={testingWebhook ? "animate-spin" : ""} />
-                                        {testingWebhook ? 'Testando...' : 'Testar Conexão com Webhook Externo'}
-                                    </button>
                                 </div>
                             </div>
                         )}
@@ -4579,6 +4584,17 @@ export function FiscalSettings() {
                             placeholder="Ex: https://seu-n8n.com/webhook-certificado"
                             preserveCase={true}
                             helpText="URL do webhook externo que receberá este certificado digital."
+                            rightElement={
+                                <button
+                                    type="button"
+                                    onClick={() => handleTestExternalWebhook('certificate')}
+                                    disabled={testingWebhookCertificado || !certWebhookUrl}
+                                    className="text-orange-500 hover:text-orange-600 disabled:opacity-50 transition-colors cursor-pointer mr-1"
+                                    title="Testar Conexão"
+                                >
+                                    <Activity size={18} className={testingWebhookCertificado ? "animate-spin" : ""} />
+                                </button>
+                            }
                         />
                         <div className="relative">
                             <Input
