@@ -172,8 +172,8 @@ export function FiscalSettings() {
         use_external_webhook: true,
         external_webhook_url: '',
         external_webhook_token: '',
-        certificate_webhook_url: '',
-        certificate_webhook_token: '',
+        certificate_webhook_url: undefined as string | undefined,
+        certificate_webhook_token: undefined as string | undefined,
         // Novos campos Simples Nacional
         simples_nacional_aliquota: '0.00',
         simples_nacional_regime_apuracao: '1',
@@ -1201,8 +1201,8 @@ export function FiscalSettings() {
 
             const uploadConfig = {
                 ...config,
-                external_webhook_url: targetWebhookUrl,
-                external_webhook_token: targetWebhookToken
+                certificate_webhook_url: targetWebhookUrl,
+                certificate_webhook_token: targetWebhookToken
             };
 
             const response = await fiscalService.uploadCertificate(currentEntity.id, file, certPassword, token, uploadConfig, activeSubTab);
