@@ -63,12 +63,15 @@ export function Login() {
         }
     ];
 
+    const [isPaused, setIsPaused] = useState(false);
+
     useEffect(() => {
+        if (isPaused) return;
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % carouselItems.length);
         }, 6000);
         return () => clearInterval(timer);
-    }, []);
+    }, [isPaused]);
 
     const [isSignUp, setIsSignUp] = useState(mode === 'signup');
     const [loading, setLoading] = useState(false);
@@ -961,7 +964,11 @@ export function Login() {
             </div>
 
             {/* Right Side - Carousel */}
-            <div className="hidden lg:flex flex-1 relative bg-slate-900 overflow-hidden">
+            <div 
+                className="hidden lg:flex flex-1 relative bg-slate-900 overflow-hidden"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+            >
                 {/* Background Images */}
                 {carouselItems.map((item, index) => (
                     <img

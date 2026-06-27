@@ -149,6 +149,7 @@ export function LandingPage() {
     const [landingCampaigns, setLandingCampaigns] = useState<any[]>([]);
     const [activePopupIndex, setActivePopupIndex] = useState(0);
     const [showBanner, setShowBanner] = useState(false);
+    const [isPopupPaused, setIsPopupPaused] = useState(false);
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [currencySymbol, setCurrencySymbol] = useState('R$');
 
@@ -211,7 +212,7 @@ export function LandingPage() {
     }, []);
 
     useEffect(() => {
-        if (showBanner && landingCampaigns.length > 0 && !isLeadFormActive) {
+        if (showBanner && landingCampaigns.length > 0 && !isLeadFormActive && !isPopupPaused) {
             const popupCampaigns = landingCampaigns.filter(c => c.show_in_popup);
             if (popupCampaigns.length <= 1) return;
             const timer = setInterval(() => {
@@ -219,7 +220,7 @@ export function LandingPage() {
             }, 6000); // 6 seconds slide
             return () => clearInterval(timer);
         }
-    }, [showBanner, landingCampaigns, isLeadFormActive]);
+    }, [showBanner, landingCampaigns, isLeadFormActive, isPopupPaused]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -913,6 +914,8 @@ export function LandingPage() {
                     return (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                             <div 
+                                onMouseEnter={() => setIsPopupPaused(true)}
+                                onMouseLeave={() => setIsPopupPaused(false)}
                                 className={`relative bg-white dark:bg-slate-800 rounded-3xl w-full ${
                                     currentCampaign.image_url 
                                         ? 'max-w-4xl md:h-[480px] h-[85vh] grid grid-cols-1 md:grid-cols-2' 

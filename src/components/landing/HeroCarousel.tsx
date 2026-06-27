@@ -105,6 +105,7 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
     const navigate = useNavigate();
     const { t } = useTranslation();
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
 
     const translatedBanners: Banner[] = [
         {
@@ -328,11 +329,12 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
     }
 
     useEffect(() => {
+        if (isPaused) return;
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % activeBanners.length);
         }, 8000);
         return () => clearInterval(timer);
-    }, [activeBanners.length]);
+    }, [activeBanners.length, isPaused]);
 
     const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % activeBanners.length);
     const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
@@ -344,7 +346,11 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                 <div className={`glow-2 accent-${activeBanners[currentSlide]?.accent || 'blue'}`}></div>
             </div>
 
-            <header className="hero-section carousel-mode">
+            <header 
+                className="hero-section carousel-mode"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+            >
                 <div 
                     className="carousel-track" 
                     style={{ 
