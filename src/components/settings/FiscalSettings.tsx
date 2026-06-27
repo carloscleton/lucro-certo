@@ -4213,10 +4213,10 @@ export function FiscalSettings() {
                                 <div className="mt-4">
                                     <Input
                                         label="Webhook de Retorno (Callback URL)"
-                                        value={`${(API_BASE_URL.startsWith('/') ? window.location.origin + API_BASE_URL : API_BASE_URL).replace(/\/$/, '')}/fiscal-module/webhook/update`}
-                                        readOnly
-                                        className="bg-gray-50 dark:bg-slate-800 text-gray-500 cursor-not-allowed"
-                                        helpText="Configure seu sistema externo (ex: n8n) para fazer um POST nesta URL enviando o status da nota."
+                                        value={config.external_webhook_return_url ?? `${(API_BASE_URL.startsWith('/') ? window.location.origin + API_BASE_URL : API_BASE_URL).replace(/\/$/, '')}/fiscal-module/webhook/update`}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_return_url: e.target.value })}
+                                        preserveCase={true}
+                                        helpText="Esta é a URL onde o seu sistema externo deve fazer o POST avisando o status da nota. Você pode editá-la caso use um proxy."
                                     />
                                 </div>
                             </div>
