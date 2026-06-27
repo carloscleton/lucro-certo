@@ -1043,7 +1043,7 @@ export function Invoices() {
                                                     </button>
                                                 </Tooltip>
 
-                                                {invoice.external_id && (['processando', 'em_processamento'].includes(invoice.status?.toLowerCase()) || !(invoice.invoice_number || invoice.payload?.retorno?.numeroNfse || invoice.payload?.numeroNfse || invoice.payload?.numeroNfe || invoice.payload?.retorno?.numero || invoice.payload?.numero || invoice.payload?.retorno?.dps?.numero)) && (
+                                                {invoice.external_id && (
                                                     <Tooltip content="Sincronizar Status">
                                                         <button
                                                             onClick={() => handleRefreshStatus(invoice)}
