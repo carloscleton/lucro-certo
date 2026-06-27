@@ -120,6 +120,7 @@ export function FiscalSettings() {
     const [testingJson, setTestingJson] = useState(false);
     const [testingWebhookExterno, setTestingWebhookExterno] = useState(false);
     const [testingWebhookCertificado, setTestingWebhookCertificado] = useState(false);
+    const [testingWebhookCallback, setTestingWebhookCallback] = useState(false);
 
     useEffect(() => {
         if (!currentEntity.id) return;
@@ -1382,10 +1383,25 @@ export function FiscalSettings() {
         return newData;
     };
 
-    const handleTestExternalWebhook = async (type: 'external' | 'certificate') => {
-        const urlToTest = type === 'external' ? config.external_webhook_url : certWebhookUrl;
-        const tokenToTest = type === 'external' ? config.external_webhook_token : certWebhookToken;
-        const setTesting = type === 'external' ? setTestingWebhookExterno : setTestingWebhookCertificado;
+    const handleTestExternalWebhook = async (type: 'external' | 'certificate' | 'callback') => {
+        let urlToTest = '';
+        let tokenToTest = '';
+        let setTesting = setTestingWebhookExterno;
+
+        if (type === 'external') {
+            urlToTest = config.external_webhook_url;
+            tokenToTest = config.external_webhook_token;
+            setTesting = setTestingWebhookExterno;
+        } else if (type === 'certificate') {
+            urlToTest = certWebhookUrl;
+            tokenToTest = certWebhookToken;
+            setTesting = setTestingWebhookCertificado;
+        } else if (type === 'callback') {
+            // For callback, there's no explicitly defined token input, so we just test the URL
+            urlToTest = config.external_webhook_return_url ?? `${(API_BASE_URL.startsWith('/') ? window.location.origin + API_BASE_URL : API_BASE_URL).replace(/\/$/, '')}/fiscal-module/webhook/update`;
+            tokenToTest = '';
+            setTesting = setTestingWebhookCallback;
+        }
 
         if (!urlToTest) {
             setResultModal({
@@ -4289,6 +4305,17 @@ export function FiscalSettings() {
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, external_webhook_return_url: e.target.value })}
                                         preserveCase={true}
                                         helpText="Esta é a URL onde o seu sistema externo deve fazer o POST avisando o status da nota. Você pode editá-la caso use um proxy."
+                                        rightElement={
+                                            <button
+                                                type="button"
+                                                onClick={() => handleTestExternalWebhook('callback')}
+                                                disabled={testingWebhookCallback}
+                                                className="text-orange-500 hover:text-orange-600 disabled:opacity-50 transition-colors cursor-pointer mr-1"
+                                                title="Testar Conexão"
+                                            >
+                                                <Activity size={18} className={testingWebhookCallback ? "animate-spin" : ""} />
+                                            </button>
+                                        }
                                     />
                                 </div>
                             </div>
