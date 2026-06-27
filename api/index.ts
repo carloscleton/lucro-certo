@@ -499,11 +499,12 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
         }
 
         // --- INTERCEPTOR DE WEBHOOK EXTERNO PARA CERTIFICADO ---
-        if (activeProvider === 'other' && config.use_external_webhook && config.external_webhook_url) {
-            console.log(`🚀 [EXTERNAL-MODE] Enviando certificado para o webhook externo: ${config.external_webhook_url}`);
+        const certWebhookUrl = config.certificate_webhook_url || config.external_webhook_url;
+        if (activeProvider === 'other' && config.use_external_webhook && certWebhookUrl) {
+            console.log(`🚀 [EXTERNAL-MODE] Enviando certificado para o webhook externo: ${certWebhookUrl}`);
             
-            baseUrl = config.external_webhook_url;
-            apiKey = config.external_webhook_token || '';
+            baseUrl = certWebhookUrl;
+            apiKey = config.certificate_webhook_token || config.external_webhook_token || '';
 
             const headers: any = { 
                 'X-Source': 'LucroCerto-Fiscal-Proxy',

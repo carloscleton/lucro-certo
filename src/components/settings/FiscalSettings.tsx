@@ -172,6 +172,8 @@ export function FiscalSettings() {
         use_external_webhook: true,
         external_webhook_url: '',
         external_webhook_token: '',
+        certificate_webhook_url: '',
+        certificate_webhook_token: '',
         // Novos campos Simples Nacional
         simples_nacional_aliquota: '0.00',
         simples_nacional_regime_apuracao: '1',
@@ -249,9 +251,9 @@ export function FiscalSettings() {
     const [showCertWebhookToken, setShowCertWebhookToken] = useState(false);
 
     useEffect(() => {
-        setCertWebhookUrl(config.external_webhook_url || '');
-        setCertWebhookToken(config.external_webhook_token || '');
-    }, [config.external_webhook_url, config.external_webhook_token]);
+        setCertWebhookUrl(config.certificate_webhook_url !== undefined ? config.certificate_webhook_url : (config.external_webhook_url || ''));
+        setCertWebhookToken(config.certificate_webhook_token !== undefined ? config.certificate_webhook_token : (config.external_webhook_token || ''));
+    }, [config.certificate_webhook_url, config.certificate_webhook_token, config.external_webhook_url, config.external_webhook_token]);
 
     const isDirty = useMemo(() => {
         if (!currentCompany) return false;
@@ -4493,7 +4495,11 @@ export function FiscalSettings() {
                         <Input
                             label="URL do Webhook do Certificado"
                             value={certWebhookUrl}
-                            onChange={(e: any) => setCertWebhookUrl(e.target.value)}
+                            onChange={(e: any) => {
+                                const val = e.target.value;
+                                setCertWebhookUrl(val);
+                                setConfig((prev: any) => ({ ...prev, certificate_webhook_url: val }));
+                            }}
                             placeholder="Ex: https://seu-n8n.com/webhook-certificado"
                             preserveCase={true}
                             helpText="URL do webhook externo que receberá este certificado digital."
@@ -4503,7 +4509,11 @@ export function FiscalSettings() {
                                 label="Token do Webhook (Opcional)"
                                 type={showCertWebhookToken ? 'text' : 'password'}
                                 value={certWebhookToken}
-                                onChange={(e: any) => setCertWebhookToken(e.target.value)}
+                                onChange={(e: any) => {
+                                    const val = e.target.value;
+                                    setCertWebhookToken(val);
+                                    setConfig((prev: any) => ({ ...prev, certificate_webhook_token: val }));
+                                }}
                                 placeholder="Ex: seu-token-secreto"
                                 preserveCase={true}
                                 helpText="Token enviado no cabeçalho 'Authorization: Bearer [token]'."
