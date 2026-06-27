@@ -116,8 +116,8 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                 },
                 campaign: {
                     id: editingCampaign.id,
-                    title: (editingCampaign.title || 'CAMPANHA TESTE').toUpperCase(),
-                    subtitle: (editingCampaign.subtitle || 'SUBTÍTULO TESTE').toUpperCase(),
+                    title: editingCampaign.title || 'Campanha Teste',
+                    subtitle: editingCampaign.subtitle || 'Subtítulo Teste',
                     type: editingCampaign.type || 'promo',
                     price: editingCampaign.price || 'R$ 100',
                     whatsapp: editingCampaign.whatsapp || '',
@@ -254,7 +254,7 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
         try {
             const { data, error } = await supabase.functions.invoke('lead-radar-magic', {
                 body: {
-                    input: `Atue como um copywriter profissional. Resuma, formate com emojis adequados e torne o texto persuasivo para o subtítulo de um banner de landing page. Texto: ${textToOrganize}`,
+                    input: `Atue como um copywriter profissional. Resuma, formate com emojis adequados e torne o texto persuasivo para o subtítulo de um banner de landing page. Use caixa alta e caixa baixa (mistura de maiúsculas e minúsculas) de forma natural e gramaticalmente correta, não gere o texto todo em maiúsculas. Texto: ${textToOrganize}`,
                     mode: 'field_only'
                 }
             });
@@ -413,11 +413,10 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Título</label>
                                     <input 
-                                        value={(editingCampaign.title || '').toUpperCase()} 
-                                        onChange={(e) => handleDraftUpdate({ title: e.target.value.toUpperCase() })} 
+                                        value={editingCampaign.title || ''} 
+                                        onChange={(e) => handleDraftUpdate({ title: e.target.value })} 
                                         className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-gray-900 dark:text-white" 
-                                        placeholder="Ex: ADQUIRA SEU CERTIFICADO" 
-                                        style={{ textTransform: 'uppercase' }}
+                                        placeholder="Ex: Adquira seu Certificado" 
                                     />
                                 </div>
                                 <div>
@@ -435,11 +434,10 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Valor do Anúncio (Opcional)</label>
                                     <input 
-                                        value={(editingCampaign.price || '').toUpperCase()} 
-                                        onChange={(e) => handleDraftUpdate({ price: e.target.value.toUpperCase() })} 
+                                        value={editingCampaign.price || ''} 
+                                        onChange={(e) => handleDraftUpdate({ price: e.target.value })} 
                                         className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-gray-900 dark:text-white" 
-                                        placeholder="Ex: DE: R$ 180 POR R$ 120" 
-                                        style={{ textTransform: 'uppercase' }}
+                                        placeholder="Ex: de: R$ 180 por R$ 120" 
                                     />
                                 </div>
                             </div>
@@ -459,11 +457,10 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                     </button>
                                 </div>
                                 <textarea 
-                                    value={(editingCampaign.subtitle || '').toUpperCase()} 
-                                    onChange={(e) => handleDraftUpdate({ subtitle: e.target.value.toUpperCase() })} 
+                                    value={editingCampaign.subtitle || ''} 
+                                    onChange={(e) => handleDraftUpdate({ subtitle: e.target.value })} 
                                     className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 min-h-[80px] text-gray-900 dark:text-white" 
                                     placeholder="Dicas de desconto, vantagens do produto..." 
-                                    style={{ textTransform: 'uppercase' }}
                                 />
                             </div>
 
@@ -471,11 +468,10 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                             <div>
                                 <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Texto do Botão</label>
                                 <input 
-                                    value={(editingCampaign.call_to_action || '').toUpperCase()} 
-                                    onChange={(e) => handleDraftUpdate({ call_to_action: e.target.value.toUpperCase() })} 
+                                    value={editingCampaign.call_to_action || ''} 
+                                    onChange={(e) => handleDraftUpdate({ call_to_action: e.target.value })} 
                                     className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-gray-900 dark:text-white" 
-                                    placeholder="Ex: COMPRE AGORA" 
-                                    style={{ textTransform: 'uppercase' }}
+                                    placeholder="Ex: Compre agora" 
                                 />
                             </div>
 
@@ -501,11 +497,10 @@ export const CampaignsManager = ({ localBanner, setLocalBanner, notify, handleSa
                                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">E-mail de Notificação (Opcional)</label>
                                     <input 
                                         type="email"
-                                        value={(editingCampaign.email || '').toUpperCase()} 
-                                        onChange={(e) => handleDraftUpdate({ email: e.target.value.toUpperCase() })} 
+                                        value={editingCampaign.email || ''} 
+                                        onChange={(e) => handleDraftUpdate({ email: e.target.value })} 
                                         className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-gray-900 dark:text-white" 
-                                        placeholder="Ex: CONTATO@EMPRESA.COM" 
-                                        style={{ textTransform: 'uppercase' }}
+                                        placeholder="Ex: contato@empresa.com" 
                                     />
                                 </div>
                             </div>
