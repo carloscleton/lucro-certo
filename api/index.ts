@@ -3340,7 +3340,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
         const { data: invoices } = await axios.get(selectUrl, {
             params: {
                 external_id: `eq.${targetId}`,
-                select: 'id,payload,quote_id'
+                select: 'id,payload,quote_id,company_id'
             },
             headers: dbHeaders
         });
@@ -3415,6 +3415,58 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                 console.log(`✅ [WEBHOOK-UPDATE] Orçamento ${invoice.quote_id} atualizado com status '${mappedStatus}'`);
             } catch (quoteErr: any) {
                 console.error(`⚠️ [WEBHOOK-UPDATE] Falha ao atualizar orçamento vinculado ${invoice.quote_id}:`, quoteErr.message);
+            }
+        }
+        // 4. Automação de WhatsApp (apenas se foi autorizado/concluído, tiver PDF e a empresa estiver configurada para envio automático)
+        if (mappedStatus === 'concluido' && pdf_url && invoice.company_id) {
+            try {
+                const { data: companies } = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${invoice.company_id}&select=tecnospeed_config`, {
+                    headers: dbHeaders
+                });
+                
+                const companyConfig = companies?.[0]?.tecnospeed_config || {};
+                
+                if (companyConfig.send_whatsapp_automatically) {
+                    const recipientPhoneRaw = invoice.payload?.tomador?.telefone || invoice.payload?.tomador?.celular || invoice.payload?.borrower?.phone || invoice.payload?.contact?.whatsapp || invoice.payload?.contact?.phone;
+                    const recipientName = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || invoice.payload?.borrower?.name || invoice.payload?.contact?.name || 'Cliente';
+                    
+                    if (recipientPhoneRaw) {
+                        const recipientPhone = String(recipientPhoneRaw).replace(/\D/g, '');
+                        
+                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/whatsapp_instances?company_id=eq.${invoice.company_id}&status=eq.open&select=instance_name`, {
+                            headers: dbHeaders
+                        });
+                        
+                        if (waInstances && waInstances.length > 0) {
+                            const instanceName = waInstances[0].instance_name;
+                            const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoice_number || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${pdf_url}`;
+                            
+                            console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
+                            
+                            const targetName = instanceName.includes('-') ? instanceName : `${instanceName}-${invoice.company_id}`;
+                            const encodedName = encodeURIComponent(targetName);
+                            
+                            await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
+                                number: recipientPhone,
+                                mediatype: 'document',
+                                mimetype: 'application/pdf',
+                                caption: waMsg,
+                                media: pdf_url,
+                                fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
+                            }, {
+                                headers: {
+                                    'apikey': EVOLUTION_API_KEY,
+                                    'Content-Type': 'application/json'
+                                },
+                                timeout: 8000
+                            }).catch(e => console.warn(`⚠️ [WHATSAPP] Falha ao enviar notificação:`, e.message));
+                        } else {
+                            console.log(`⚠️ [WEBHOOK-UPDATE] Empresa configurada para envio automático, mas nenhuma instância WhatsApp ativa foi encontrada.`);
+                        }
+                    }
+                }
+            } catch (waErr: any) {
+                console.error(`⚠️ [WEBHOOK-UPDATE] Erro na automação de WhatsApp:`, waErr.message);
             }
         }
 

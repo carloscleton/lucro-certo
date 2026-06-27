@@ -1119,17 +1119,20 @@ export function Quotes() {
 
             // Update quote with NFe ID
             if (externalId) {
+                const rawStatus = (result.data?.status || result.data?.situacao || result.status || 'processando').toLowerCase();
+                const isAuthorized = ['concluido', 'autorizado', 'emitida', 'sucesso'].includes(rawStatus);
+
                 await supabase.from('quotes').update({
                     nfe_id: externalId,
-                    nfe_status: 'processando'
+                    nfe_status: isAuthorized ? 'concluido' : 'processando'
                 }).eq('id', quote.id);
 
                 // Automations
-                if (sendWhatsApp && fullQuote.contact?.phone) {
+                if (sendWhatsApp && fullQuote.contact?.phone && isAuthorized) {
                     try {
                         const waMsg = isSplitEmission
-                            ? `Olá *${fullQuote.contact.name}*, as *${fullQuote.items.length}* notas fiscais referentes ao seu orçamento *${fullQuote.title}* foram emitidas e estão sendo processadas. Em breve você receberá os links para download.`
-                            : `Olá *${fullQuote.contact.name}*, sua nota fiscal referente ao orçamento *${fullQuote.title}* foi emitida e está sendo processada. Em breve você receberá o link para download.`;
+                            ? `Olá *${fullQuote.contact.name}*, as *${fullQuote.items.length}* notas fiscais referentes ao seu orçamento *${fullQuote.title}* foram emitidas com sucesso. Em breve você receberá os links para download ou consulte em nosso sistema.`
+                            : `Olá *${fullQuote.contact.name}*, sua nota fiscal referente ao orçamento *${fullQuote.title}* foi emitida com sucesso.`;
                         const instance = waInstances[0];
                         if (instance) {
                             await whatsappService.sendMessage({
@@ -1141,6 +1144,8 @@ export function Quotes() {
                     } catch (waErr) {
                         console.error('Erro ao enviar WhatsApp:', waErr);
                     }
+                } else if (sendWhatsApp && fullQuote.contact?.phone) {
+                     console.log(`⚠️ [WHATSAPP] Nota em processamento (${rawStatus}). O WhatsApp não será enviado agora.`);
                 }
             }
 
