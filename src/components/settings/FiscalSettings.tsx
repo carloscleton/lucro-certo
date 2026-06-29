@@ -288,6 +288,35 @@ export function FiscalSettings() {
         return false;
     }, [config, moduleEnabled, currentCompany]);
 
+    const isNfeioDirty = useMemo(() => {
+        if (!currentCompany) return false;
+        const saved = currentCompany.settings?.nfeio_config || {};
+        const keys = Object.keys(nfeioConfig) as (keyof typeof nfeioConfig)[];
+        for (const key of keys) {
+            const valA = String(saved[key] ?? '').trim();
+            const valB = String(nfeioConfig[key] ?? '').trim();
+            if (valA !== valB) return true;
+        }
+        return false;
+    }, [nfeioConfig, currentCompany]);
+
+    const isOtherDirty = useMemo(() => {
+        if (!currentCompany) return false;
+        const savedConfig = currentCompany.tecnospeed_config || {};
+        const otherKeys: (keyof typeof config)[] = [
+            'use_external_webhook', 'external_webhook_url', 'external_webhook_user',
+            'external_webhook_token', 'external_webhook_return_url', 'external_webhook_return_user',
+            'external_webhook_return_token', 'certificate_webhook_url', 'certificate_webhook_user',
+            'certificate_webhook_token'
+        ];
+        for (const key of otherKeys) {
+            const valA = String(savedConfig[key] ?? '').trim();
+            const valB = String(config[key] ?? '').trim();
+            if (valA !== valB) return true;
+        }
+        return false;
+    }, [config, currentCompany]);
+
     // Sincronizar configurações apenas quando a empresa MUDAR de fato (evitar loop)
     const lastCompanyId = useRef<string | null>(null);
     useEffect(() => {
@@ -3638,6 +3667,27 @@ export function FiscalSettings() {
         {/* Sub-tab 2: NFe.io */}
         {activeSubTab === 'nfeio' && (
             <div className="space-y-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                {isNfeioDirty && (
+                    <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/30 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400">
+                                <AlertCircle size={20} className="animate-bounce" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider leading-none">Alterações pendentes detectadas!</p>
+                                <p className="text-xs text-amber-700 dark:text-amber-500 font-bold mt-1">Você modificou as configurações. Clique em "Salvar" para aplicar as mudanças.</p>
+                            </div>
+                        </div>
+                        <Button
+                            type="button"
+                            onClick={handleSaveNfeio}
+                            isLoading={savingNfeio}
+                            className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl px-5 py-2.5 font-black uppercase text-[10px] tracking-widest shadow-md transition-all self-stretch sm:self-auto text-center justify-center"
+                        >
+                            Salvar Agora
+                        </Button>
+                    </div>
+                )}
                 <div className="flex items-start gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-900/30">
                     <Building2 className="text-indigo-600 mt-1" size={24} />
                     <div>
@@ -4239,6 +4289,27 @@ export function FiscalSettings() {
         {/* Sub-tab 3: Outros */}
         {activeSubTab === 'other' && (
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                {isOtherDirty && (
+                    <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/30 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400">
+                                <AlertCircle size={20} className="animate-bounce" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider leading-none">Alterações pendentes detectadas!</p>
+                                <p className="text-xs text-amber-700 dark:text-amber-500 font-bold mt-1">Você modificou as configurações. Clique em "Salvar" para aplicar as mudanças.</p>
+                            </div>
+                        </div>
+                        <Button
+                            type="button"
+                            onClick={handleSave}
+                            isLoading={saving}
+                            className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl px-5 py-2.5 font-black uppercase text-[10px] tracking-widest shadow-md transition-all self-stretch sm:self-auto text-center justify-center"
+                        >
+                            Salvar Agora
+                        </Button>
+                    </div>
+                )}
                 <div className="space-y-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                     <div className="flex items-start gap-4 p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-100 dark:border-orange-900/30">
                         <Globe className="text-orange-600 mt-1" size={24} />
