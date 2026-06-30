@@ -223,6 +223,8 @@ export function Settings() {
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
     const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
     const [savingConfig, setSavingConfig] = useState(false);
+    const [waLimitValue, setWaLimitValue] = useState(1);
+    const [savingWaLimit, setSavingWaLimit] = useState(false);
     const [selectedCompanyForInvoice, setSelectedCompanyForInvoice] = useState<any | null>(null);
     const [invoiceData, setInvoiceData] = useState({ amount: '', description: '' });
     const [generatingInvoice, setGeneratingInvoice] = useState(false);
@@ -3673,10 +3675,16 @@ export function Settings() {
                                                                         size="sm"
                                                                         variant="primary"
                                                                         className="h-8 px-2.5 text-[10px] gap-1.5 rounded-lg shadow-lg shadow-blue-500/10 transition-all"
-                                                                        onClick={() => {
+                                                                        onClick={async () => {
                                                                             setSelectedCompanyForConfig(c);
                                                                             setTempCompanyConfig({ ...c });
-                                                                        }}
+                                                                            const { data } = await supabase
+                                                                                .from('companies')
+                                                                                .select('whatsapp_instance_limit')
+                                                                                .eq('id', c.id)
+                                                                                .single();
+                                                                            setWaLimitValue(data?.whatsapp_instance_limit ?? 1);
+                                                                         }}
                                                                     >
                                                                         <Shield size={14} />
                                                                         Configurar

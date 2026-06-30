@@ -582,6 +582,9 @@ export function WhatsApp() {
                         <div className={`w-2 h-2 rounded-full ${proxyOnline ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`} />
                         Proxy: {proxyOnline ? 'Conectado' : 'Offline (Porta 3001)'}
                     </div>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
+                        Limite: {currentEntity.whatsapp_instance_limit || 1} { (currentEntity.whatsapp_instance_limit || 1) === 1 ? 'instância' : 'instâncias' }
+                    </div>
                     <Button 
                         variant="outline" 
                         onClick={() => { fetchInstances(); checkProxyStatus(); }} 
