@@ -98,15 +98,8 @@ export function WhatsApp() {
     ];
 
     const [selectedEvents, setSelectedEvents] = useState<string[]>(['MESSAGES_UPSERT']);
-    const [isUpdatingLimit, setIsUpdatingLimit] = useState(false);
-    const [newLimitValue, setNewLimitValue] = useState(currentEntity.whatsapp_instance_limit || 1);
 
     const isLimitReached = currentEntity.type === 'company' && instances.length >= (currentEntity.whatsapp_instance_limit || 1);
-    const isSuperAdmin = user?.email === 'carloscleton.nat@gmail.com';
-
-    useEffect(() => {
-        setNewLimitValue(currentEntity.whatsapp_instance_limit || 1);
-    }, [currentEntity.whatsapp_instance_limit]);
 
 
     const handleMarkAll = () => {
@@ -370,31 +363,6 @@ export function WhatsApp() {
         }
     };
 
-    const handleUpdateLimit = async () => {
-        if (!currentEntity.id || currentEntity.type !== 'company') return;
-
-        setIsUpdatingLimit(true);
-        try {
-            const { error } = await supabase.rpc('update_company_whatsapp_limit', {
-                target_company_id: currentEntity.id,
-                new_limit: newLimitValue
-            });
-
-            if (error) throw error;
-
-            notify('success', `Limite da empresa atualizado para ${newLimitValue} instâncias.`, 'Limite Atualizado');
-            // We need to refresh the entity to get the new limit
-            await refreshEntity();
-            setTimeout(() => {
-                // No need to reload, the state will update
-            }, 100);
-        } catch (error: any) {
-            console.error('Erro ao atualizar limite:', error);
-            notify('error', error.message || 'Erro ao atualizar limite.', 'Erro');
-        } finally {
-            setIsUpdatingLimit(false);
-        }
-    };
 
     const handleDeleteInstance = async (instance: Instance) => {
         if (!confirm(`Tem certeza que deseja excluir a instância "${instance.instance_name}"?`)) return;
