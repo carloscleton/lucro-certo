@@ -43,7 +43,7 @@ interface Instance {
 
 export function WhatsApp() {
     const { user, session } = useAuth();
-    const { currentEntity, refresh: refreshEntity } = useEntity();
+    const { currentEntity } = useEntity();
     const { notify } = useNotification();
     const [instances, setInstances] = useState<Instance[]>([]);
     const [loading, setLoading] = useState(true);
