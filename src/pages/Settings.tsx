@@ -2527,10 +2527,10 @@ export function Settings() {
                                             <Input
                                                 type="number"
                                                 label="Quantidade máxima de instâncias"
-                                                value={tempCompanyConfig.whatsapp_instance_limit ?? 1}
+                                                value={waLimitValue}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                     const val = Math.max(1, parseInt(e.target.value) || 1);
-                                                    setTempCompanyConfig({ ...tempCompanyConfig, whatsapp_instance_limit: val });
+                                                    setWaLimitValue(val);
                                                 }}
                                                 min="1"
                                                 max="50"
@@ -2541,15 +2541,18 @@ export function Settings() {
                                             size="sm"
                                             variant="primary"
                                             className="mt-5 bg-green-600 hover:bg-green-700 border-green-600"
+                                            isLoading={savingWaLimit}
                                             onClick={async () => {
-                                                const waLimit = Math.max(1, parseInt(tempCompanyConfig.whatsapp_instance_limit) || 1);
+                                                setSavingWaLimit(true);
                                                 const { error: waError } = await supabase.rpc('update_company_whatsapp_limit', {
                                                     target_company_id: tempCompanyConfig.id,
-                                                    new_limit: waLimit
+                                                    new_limit: waLimitValue
                                                 });
+                                                setSavingWaLimit(false);
                                                 if (waError) {
                                                     alert('Erro ao salvar limite: ' + waError.message);
                                                 } else {
+                                                    alert('Limite de instâncias atualizado com sucesso!');
                                                     if (tempCompanyConfig.id === currentEntity?.id) refreshEntity();
                                                 }
                                             }}
