@@ -2509,6 +2509,34 @@ export function Settings() {
                                     </div>
                                 </div>
 
+                                {/* WhatsApp Instance Limit */}
+                                <div className="p-6 rounded-xl border-2 border-green-100 dark:border-green-900/30 bg-green-50/20 dark:bg-green-900/10">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="p-2 rounded-lg bg-green-100 text-green-600">
+                                            <MessageSquare size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900 dark:text-white">Instâncias WhatsApp</h4>
+                                            <p className="text-sm text-gray-500">Limite de contas WhatsApp que esta empresa pode conectar.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <Input
+                                            type="number"
+                                            label="Quantidade máxima de instâncias"
+                                            value={tempCompanyConfig.whatsapp_instance_limit ?? 1}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                const val = Math.max(1, parseInt(e.target.value) || 1);
+                                                setTempCompanyConfig({ ...tempCompanyConfig, whatsapp_instance_limit: val });
+                                            }}
+                                            min="1"
+                                            max="50"
+                                            step="1"
+                                        />
+                                        <p className="text-[11px] text-gray-400 mt-5">Mínimo: 1 &nbsp;•&nbsp; Máximo: 50</p>
+                                    </div>
+                                </div>
+
                                 {/* Tipos de Conta Permitidos (PF / PJ) */}
                                 <div className="p-6 rounded-xl border-2 border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/20 dark:bg-indigo-900/10">
                                     <div className="flex items-center gap-4 mb-4">
@@ -2975,31 +3003,42 @@ export function Settings() {
                                 <Button
                                     onClick={async () => {
                                         setSavingConfig(true);
-                                        const { error } = await updateCompanyConfig(
-                                            tempCompanyConfig.id,
-                                            !!tempCompanyConfig.fiscal_module_enabled,
-                                            !!tempCompanyConfig.payments_module_enabled,
-                                            !!tempCompanyConfig.banking_module_enabled,
-                                            !!tempCompanyConfig.crm_module_enabled,
-                                            !!tempCompanyConfig.has_social_copilot,
-                                            !!tempCompanyConfig.automations_module_enabled,
-                                            !!tempCompanyConfig.has_lead_radar,
-                                            !!tempCompanyConfig.loyalty_module_enabled,
-                                            !!tempCompanyConfig.warranty_module_enabled,
-                                            tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'],
-                                            tempCompanyConfig.settings || {},
-                                            tempCompanyConfig.loyalty_platform_fee || 5,
-                                            !!tempCompanyConfig.loyalty_split_enabled
-                                        );
-                                        setSavingConfig(false);
-                                        if (error) {
-                                            alert('Erro ao salvar: ' + error);
-                                        } else {
+                                        try {
+                                            const { error } = await updateCompanyConfig(
+                                                tempCompanyConfig.id,
+                                                !!tempCompanyConfig.fiscal_module_enabled,
+                                                !!tempCompanyConfig.payments_module_enabled,
+                                                !!tempCompanyConfig.banking_module_enabled,
+                                                !!tempCompanyConfig.crm_module_enabled,
+                                                !!tempCompanyConfig.has_social_copilot,
+                                                !!tempCompanyConfig.automations_module_enabled,
+                                                !!tempCompanyConfig.has_lead_radar,
+                                                !!tempCompanyConfig.loyalty_module_enabled,
+                                                !!tempCompanyConfig.warranty_module_enabled,
+                                                tempCompanyConfig.allowed_entity_types || ['PF', 'PJ'],
+                                                tempCompanyConfig.settings || {},
+                                                tempCompanyConfig.loyalty_platform_fee || 5,
+                                                !!tempCompanyConfig.loyalty_split_enabled
+                                            );
+                                            if (error) throw new Error(error);
+
+                                            // Atualizar limite de instâncias WhatsApp
+                                            const waLimit = Math.max(1, parseInt(tempCompanyConfig.whatsapp_instance_limit) || 1);
+                                            const { error: waError } = await supabase.rpc('update_company_whatsapp_limit', {
+                                                target_company_id: tempCompanyConfig.id,
+                                                new_limit: waLimit
+                                            });
+                                            if (waError) console.warn('[Config] Erro ao salvar limite de instâncias:', waError.message);
+
                                             // Se for a empresa atual, atualiza o contexto
                                             if (tempCompanyConfig.id === currentEntity?.id) {
                                                 refreshEntity();
                                             }
                                             setSelectedCompanyForConfig(null);
+                                        } catch (err: any) {
+                                            alert('Erro ao salvar: ' + err.message);
+                                        } finally {
+                                            setSavingConfig(false);
                                         }
                                     }}
                                     isLoading={savingConfig}
