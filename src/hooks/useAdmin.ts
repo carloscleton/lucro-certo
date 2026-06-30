@@ -63,6 +63,7 @@ export interface AdminCompany {
     trial_ends_at?: string;
     next_billing_value?: number;
     loyalty_platform_fee?: number;
+    whatsapp_instance_limit?: number;
 }
 
 export function useAdmin() {

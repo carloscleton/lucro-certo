@@ -626,38 +626,7 @@ export function WhatsApp() {
                 </div>
             </div>
 
-            {/* Admin Limit Control (Only for Carlos) */}
-            {isSuperAdmin && currentEntity.type === 'company' && (
-                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
-                            <Shield className="text-amber-600 dark:text-amber-400" size={20} />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-amber-900 dark:text-amber-100">Painel de Super Admin</h4>
-                            <p className="text-[11px] text-amber-700 dark:text-amber-400">Ajuste o limite de instâncias para esta empresa.</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-amber-800 dark:text-amber-200">Limite Atual:</span>
-                        <input
-                            type="number"
-                            value={newLimitValue}
-                            onChange={(e) => setNewLimitValue(parseInt(e.target.value) || 1)}
-                            className="w-16 px-2 py-1 rounded border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 text-sm"
-                            min="1"
-                        />
-                        <Button
-                            size="sm"
-                            className="bg-amber-600 hover:bg-amber-700 text-white"
-                            onClick={handleUpdateLimit}
-                            isLoading={isUpdatingLimit}
-                        >
-                            Salvar Limite
-                        </Button>
-                    </div>
-                </div>
-            )}
+
 
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                 <form onSubmit={handleCreateInstance} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
