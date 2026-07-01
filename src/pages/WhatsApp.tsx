@@ -19,7 +19,8 @@ import {
     Pencil,
     Send,
     LogOut,
-    Shield
+    Shield,
+    AlertTriangle
 } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
@@ -81,6 +82,13 @@ export function WhatsApp() {
     const [isUpdating, setIsUpdating] = useState(false);
     const [isTestingWebhook, setIsTestingWebhook] = useState(false);
     const [editingInstance, setEditingInstance] = useState<Instance | null>(null);
+
+    // Duplicate Warning State
+    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const [duplicateInfo, setDuplicateInfo] = useState<{ name: string | null; techId: string | null }>({
+        name: null,
+        techId: null
+    });
 
     // Webhook Settings State
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -241,7 +249,27 @@ export function WhatsApp() {
 
     const handleCreateInstance = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!friendlyName.trim()) return;
+        const trimmedName = friendlyName.trim();
+        if (!trimmedName) return;
+
+        // Check if there is already an instance with the same friendly name
+        const duplicateByName = instances.find(
+            i => i.instance_name.toLowerCase() === trimmedName.toLowerCase()
+        );
+
+        // Check if there is already an instance with the same Technical ID (if specified)
+        const duplicateByTechId = instanceId.trim()
+            ? instances.find(i => i.evolution_instance_id.toLowerCase() === instanceId.trim().toLowerCase())
+            : null;
+
+        if (duplicateByName || duplicateByTechId) {
+            setDuplicateInfo({
+                name: duplicateByName ? duplicateByName.instance_name : null,
+                techId: duplicateByTechId ? duplicateByTechId.evolution_instance_id : null
+            });
+            setShowDuplicateModal(true);
+            return;
+        }
 
         setIsCreating(true);
         try {
@@ -1109,6 +1137,48 @@ export function WhatsApp() {
                         </Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Modal de Instância Duplicada */}
+            <Modal
+                isOpen={showDuplicateModal}
+                onClose={() => setShowDuplicateModal(false)}
+                title="Instância já cadastrada"
+                subtitle="Não é possível criar esta instância pois os dados coincidem com uma existente"
+                icon={AlertTriangle}
+                variant="danger"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Já existe uma instância configurada no sistema com as mesmas informações:
+                    </p>
+                    
+                    <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-xl border border-red-100 dark:border-red-900/50 space-y-2">
+                        {duplicateInfo.name && (
+                            <div className="flex justify-between text-sm">
+                                <span className="font-medium text-gray-500">Nome Amigável:</span>
+                                <span className="font-bold text-red-700 dark:text-red-400">{duplicateInfo.name}</span>
+                            </div>
+                        )}
+                        {duplicateInfo.techId && (
+                            <div className="flex flex-col gap-1 text-sm pt-1">
+                                <span className="font-medium text-gray-500">ID Técnico:</span>
+                                <code className="font-mono font-bold text-xs bg-red-100 dark:bg-red-900/40 p-1.5 rounded break-all text-red-700 dark:text-red-400">
+                                    {duplicateInfo.techId}
+                                </code>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                        <Button
+                            className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 px-6"
+                            onClick={() => setShowDuplicateModal(false)}
+                        >
+                            Entendi
+                        </Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );
