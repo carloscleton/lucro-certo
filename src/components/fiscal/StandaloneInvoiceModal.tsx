@@ -115,6 +115,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     }, [currentCompany, activeProvider]);
 
     const isNacional = activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false);
+    const isRegimeNormal = config?.regime_tributario === '3';
 
     // Auto-fill from Config
     useEffect(() => {
@@ -1191,57 +1192,61 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                         />
                                     </div>
                                 </div>
-                                {showAdvanced && (
-                                    <div className="pt-4 mt-4 border-t border-gray-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
-                                        <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">Retenções de Impostos Federais (%)</h4>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                            <Input
-                                                label="PIS"
-                                                type="number"
-                                                step="0.01"
-                                                value={item.pisAliquota}
-                                                onChange={(e: any) => updateItem(item.id, 'pisAliquota', e.target.value)}
-                                                placeholder="0.65"
-                                                className="bg-white dark:bg-slate-900 h-9 text-xs"
-                                            />
-                                            <Input
-                                                label="COFINS"
-                                                type="number"
-                                                step="0.01"
-                                                value={item.cofinsAliquota}
-                                                onChange={(e: any) => updateItem(item.id, 'cofinsAliquota', e.target.value)}
-                                                placeholder="3.00"
-                                                className="bg-white dark:bg-slate-900 h-9 text-xs"
-                                            />
-                                            <Input
-                                                label="CSLL"
-                                                type="number"
-                                                step="0.01"
-                                                value={item.csllAliquota}
-                                                onChange={(e: any) => updateItem(item.id, 'csllAliquota', e.target.value)}
-                                                placeholder="1.00"
-                                                className="bg-white dark:bg-slate-900 h-9 text-xs"
-                                            />
-                                            <Input
-                                                label="IRRF"
-                                                type="number"
-                                                step="0.01"
-                                                value={item.irrfAliquota}
-                                                onChange={(e: any) => updateItem(item.id, 'irrfAliquota', e.target.value)}
-                                                placeholder="1.50"
-                                                className="bg-white dark:bg-slate-900 h-9 text-xs"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
+                                {isRegimeNormal && (
+                                    <>
+                                        {showAdvanced && (
+                                            <div className="pt-4 mt-4 border-t border-gray-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
+                                                <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">Retenções de Impostos Federais (%)</h4>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                    <Input
+                                                        label="PIS"
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.pisAliquota}
+                                                        onChange={(e: any) => updateItem(item.id, 'pisAliquota', e.target.value)}
+                                                        placeholder="0.65"
+                                                        className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                                    />
+                                                    <Input
+                                                        label="COFINS"
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.cofinsAliquota}
+                                                        onChange={(e: any) => updateItem(item.id, 'cofinsAliquota', e.target.value)}
+                                                        placeholder="3.00"
+                                                        className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                                    />
+                                                    <Input
+                                                        label="CSLL"
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.csllAliquota}
+                                                        onChange={(e: any) => updateItem(item.id, 'csllAliquota', e.target.value)}
+                                                        placeholder="1.00"
+                                                        className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                                    />
+                                                    <Input
+                                                        label="IRRF"
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.irrfAliquota}
+                                                        onChange={(e: any) => updateItem(item.id, 'irrfAliquota', e.target.value)}
+                                                        placeholder="1.50"
+                                                        className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
 
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAdvanced(!showAdvanced)}
-                                    className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-wider flex items-center gap-1 mt-2"
-                                >
-                                    {showAdvanced ? 'Ocultar Opções Avançadas' : 'Mostrar Opções Avançadas (Impostos)'}
-                                </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAdvanced(!showAdvanced)}
+                                            className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-wider flex items-center gap-1 mt-2"
+                                        >
+                                            {showAdvanced ? 'Ocultar Opções Avançadas' : 'Mostrar Opções Avançadas (Impostos)'}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         ))}
                     </div>
