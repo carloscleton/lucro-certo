@@ -1187,6 +1187,23 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             if (nfeioConfig.simplesNacional !== undefined) nfeioPayload.simpleSocialScheme = Boolean(nfeioConfig.simplesNacional);
             if (nfeioConfig.cnae) nfeioPayload.cnaeCode = String(nfeioConfig.cnae).trim();
 
+            // Adiciona alíquotas de retenções federais se existirem (convertendo para decimal)
+            const pisRate = (serviceItem?.pis?.aliquota ? toDecimalRate(Number(serviceItem.pis.aliquota)) : undefined) ||
+                            (config?.default_pis_aliquota ? toDecimalRate(Number(String(config.default_pis_aliquota).replace(',', '.'))) : undefined);
+            const cofinsRate = (serviceItem?.cofins?.aliquota ? toDecimalRate(Number(serviceItem.cofins.aliquota)) : undefined) ||
+                               (config?.default_cofins_aliquota ? toDecimalRate(Number(String(config.default_cofins_aliquota).replace(',', '.'))) : undefined);
+            const csllRate = (serviceItem?.csll?.aliquota ? toDecimalRate(Number(serviceItem.csll.aliquota)) : undefined) ||
+                             (config?.default_csll_aliquota ? toDecimalRate(Number(String(config.default_csll_aliquota).replace(',', '.'))) : undefined);
+            const irRate = (serviceItem?.ir?.aliquota ? toDecimalRate(Number(serviceItem.ir.aliquota)) : undefined) ||
+                           (config?.default_irrf_aliquota ? toDecimalRate(Number(String(config.default_irrf_aliquota).replace(',', '.'))) : undefined);
+            const inssRate = serviceItem?.inss?.aliquota ? toDecimalRate(Number(serviceItem.inss.aliquota)) : undefined;
+
+            if (pisRate && pisRate > 0) nfeioPayload.pisRate = pisRate;
+            if (cofinsRate && cofinsRate > 0) nfeioPayload.cofinsRate = cofinsRate;
+            if (csllRate && csllRate > 0) nfeioPayload.csllRate = csllRate;
+            if (irRate && irRate > 0) nfeioPayload.irRate = irRate;
+            if (inssRate && inssRate > 0) nfeioPayload.inssRate = inssRate;
+
             // Reforma Tributária 2026 (IBS/CBS) para NFe.io
             if (nfeioConfig.reforma_tributaria_calculadora_ativa) {
                 nfeioPayload.tax = {
