@@ -2815,9 +2815,13 @@ async function resolveTargetName(requestedName: string, token?: string): Promise
         });
         const instances = Array.isArray(response.data) ? response.data : [];
 
-        // 1. Tentar encontrar pelo Token (ID Técnico/Evo ID)
+        // 1. Tentar encontrar pelo Token (ID Técnico/Evo ID - Case-Insensitive)
         if (token) {
-            const match = instances.find((i: any) => i.token === token || i.id === token);
+            const cleanToken = token.trim().toLowerCase();
+            const match = instances.find((i: any) =>
+                (i.token && i.token.trim().toLowerCase() === cleanToken) ||
+                (i.id && i.id.trim().toLowerCase() === cleanToken)
+            );
             if (match) {
                 const actualName = match.name || match.instanceName;
                 console.log(`🎯 Resolvido via Token: ${token} -> ${actualName}`);
@@ -4080,8 +4084,19 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
         res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
+        const status = error.response?.status;
         console.warn(`❌ Erro ao deletar "${name}" na Evolution:`, JSON.stringify(errorDetail, null, 2));
-        res.json({ success: true, warning: 'Falha ou não encontrada na Evolution, mas prosseguindo.' });
+
+        // Se a instância já não existir (404) ou se for um erro de não encontrado, prossegue.
+        if (status === 404 || errorDetail?.message?.toLowerCase().includes('not found') || errorDetail?.error?.toLowerCase().includes('not found')) {
+            return res.json({ success: true, warning: 'Instância não encontrada na Evolution, mas removida localmente.' });
+        }
+
+        res.status(status || 500).json({
+            success: false,
+            error: 'Erro ao deletar na Evolution API',
+            detail: errorDetail
+        });
     }
 });
 

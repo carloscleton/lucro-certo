@@ -369,12 +369,17 @@ export function WhatsApp() {
 
         try {
             // 1. Tentar deletar na Evolution via Proxy usando o nome amigável + token
-            await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
                 }
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Falha ao excluir a instância na Evolution API.');
+            }
 
             // 2. Deletar no Supabase
             const { error } = await supabase
@@ -386,9 +391,9 @@ export function WhatsApp() {
 
             setInstances(instances.filter(i => i.id !== instance.id));
             notify('success', 'Instância removida com sucesso.', 'Instância Deletada');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erro ao deletar:', error);
-            notify('error', 'Erro ao deletar instância do banco de dados.', 'Erro de Exclusão');
+            notify('error', error.message || 'Erro ao deletar instância.', 'Erro de Exclusão');
         }
     };
 
