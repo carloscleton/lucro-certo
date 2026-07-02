@@ -181,7 +181,7 @@ export function WhatsApp() {
 
     const syncInstanceWithEvolution = async (instance: Instance) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}`);
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`);
             if (response.ok) {
                 const data = await response.json().catch(() => null);
                 if (!data) return;
@@ -371,7 +371,7 @@ export function WhatsApp() {
 
         try {
             console.log(`🔌 Desconectando instância ${instance.instance_name} (ID Técnico: ${instance.evolution_instance_id})...`);
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/logout?token=${instance.evolution_instance_id}`, {
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/logout?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
@@ -398,7 +398,7 @@ export function WhatsApp() {
 
         try {
             // 1. Tentar deletar na Evolution via Proxy usando o nome amigável + token
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}`, {
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
@@ -429,7 +429,7 @@ export function WhatsApp() {
     const handleTestConnection = async (instance: Instance) => {
         try {
             notify('info', 'Testando conexão com a Evolution API...', 'Aguarde');
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}`);
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`);
 
             if (response.ok) {
                 const data = await response.json().catch(() => ({}));
@@ -470,7 +470,7 @@ export function WhatsApp() {
             // 1. Se o nome mudou, atualizar na Evolution primeiro
             if (friendlyName !== editingInstance.instance_name) {
                 console.log(`🔄 Alterando nome da instância de "${editingInstance.instance_name}" para "${friendlyName}"...`);
-                const renameRes = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(editingInstance.instance_name)}/rename?token=${editingInstance.evolution_instance_id}`, {
+                const renameRes = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(editingInstance.instance_name)}/rename?token=${editingInstance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -488,7 +488,7 @@ export function WhatsApp() {
             // 1.1 Se o nome do perfil mudou, atualizar na Evolution
             if (waProfileName && waProfileName !== editingInstance.whatsapp_name) {
                 console.log(`👤 Alterando nome do perfil de "${editingInstance.whatsapp_name}" para "${waProfileName}"...`);
-                const profileRes = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(editingInstance.instance_name)}/profile-name?token=${editingInstance.evolution_instance_id}`, {
+                const profileRes = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(editingInstance.instance_name)}/profile-name?token=${editingInstance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -518,7 +518,8 @@ export function WhatsApp() {
                     events: selectedEvents,
                     enabled: webhookEnabled,
                     base64: webhookBase64,
-                    token: editingInstance.evolution_instance_id
+                    token: editingInstance.evolution_instance_id,
+                    company_id: currentEntity.type === 'company' ? currentEntity.id : undefined
                 })
             });
 
@@ -569,7 +570,7 @@ export function WhatsApp() {
 
         try {
             // Buscar QR Code via Proxy usando o nome amigável
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/connect`);
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/connect?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`);
 
             const data = await response.json().catch(async () => {
                 // Se falhar o parse do JSON, pode ser um HTML (404/500 do servidor)
