@@ -1518,7 +1518,7 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : 'tecnospeed';
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'other' ? 'other' : 'tecnospeed');
             const result = await fiscalService.checkStatus(id, currentEntity.id, token, targetProvider);
             const wrappedResult = wrapFiscalLinks(result, currentEntity.id, token);
             
@@ -1609,7 +1609,7 @@ export function FiscalSettings() {
             if (!token) throw new Error('Sessão expirada.');
 
             const payload = JSON.parse(testJson);
-            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : 'tecnospeed';
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'other' ? 'other' : 'tecnospeed');
             const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token, undefined, true, targetProvider);
             const wrappedResponse = wrapFiscalLinks(response, currentEntity.id!, token);
             
