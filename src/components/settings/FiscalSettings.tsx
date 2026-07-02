@@ -2540,7 +2540,12 @@ export function FiscalSettings() {
                             </label>
                             <select
                                 value={config.regime_tributario}
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConfig({ ...config, regime_tributario: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                    const val = e.target.value;
+                                    setConfig({ ...config, regime_tributario: val });
+                                    const isSimples = val === '1' || val === '2' || val === '4';
+                                    setNfeioConfig({ ...nfeioConfig, simplesNacional: isSimples });
+                                }}
                                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 autoComplete="off"
                             >
@@ -3760,17 +3765,26 @@ export function FiscalSettings() {
                         </select>
                     </div>
 
-                    <div className="flex items-center mt-6">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={nfeioConfig.simplesNacional}
-                                onChange={(e) => setNfeioConfig({ ...nfeioConfig, simplesNacional: e.target.checked })}
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Optante pelo Simples Nacional</span>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Regime Tributário
                         </label>
+                        <select
+                            value={config.regime_tributario || (nfeioConfig.simplesNacional ? '1' : '3')}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                const val = e.target.value;
+                                setConfig({ ...config, regime_tributario: val });
+                                const isSimples = val === '1' || val === '2' || val === '4';
+                                setNfeioConfig({ ...nfeioConfig, simplesNacional: isSimples });
+                            }}
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        >
+                            <option value="1">Simples Nacional</option>
+                            <option value="2">Simples Nacional (Excesso de Sublimite)</option>
+                            <option value="3">Regime Normal (Lucro Real/Presumido)</option>
+                            <option value="4">Microempreendedor Individual (MEI)</option>
+                            <option value="5">Sociedade de Profissionais (Fixação de ISS)</option>
+                        </select>
                     </div>
                 </div>
 
@@ -4583,6 +4597,74 @@ export function FiscalSettings() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Regime Tributário e Retenções para Outros */}
+                    <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Regime Tributário & Impostos</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Regime Tributário
+                                </label>
+                                <select
+                                    value={config.regime_tributario || '1'}
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                        const val = e.target.value;
+                                        setConfig({ ...config, regime_tributario: val });
+                                        const isSimples = val === '1' || val === '2' || val === '4';
+                                        setNfeioConfig({ ...nfeioConfig, simplesNacional: isSimples });
+                                    }}
+                                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="1">Simples Nacional</option>
+                                    <option value="2">Simples Nacional (Excesso de Sublimite)</option>
+                                    <option value="3">Regime Normal (Lucro Real/Presumido)</option>
+                                    <option value="4">Microempreendedor Individual (MEI)</option>
+                                    <option value="5">Sociedade de Profissionais (Fixação de ISS)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {config.regime_tributario === '3' && (
+                            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700 animate-in fade-in duration-200">
+                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Retenções Federais Padrão (%) (Regime Normal)</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <Input
+                                        label="PIS (%)"
+                                        type="number"
+                                        step="0.01"
+                                        value={config.default_pis_aliquota || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_pis_aliquota: e.target.value })}
+                                        placeholder="0.65"
+                                    />
+                                    <Input
+                                        label="COFINS (%)"
+                                        type="number"
+                                        step="0.01"
+                                        value={config.default_cofins_aliquota || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_cofins_aliquota: e.target.value })}
+                                        placeholder="3.00"
+                                    />
+                                    <Input
+                                        label="CSLL (%)"
+                                        type="number"
+                                        step="0.01"
+                                        value={config.default_csll_aliquota || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_csll_aliquota: e.target.value })}
+                                        placeholder="1.00"
+                                    />
+                                    <Input
+                                        label="IRRF (%)"
+                                        type="number"
+                                        step="0.01"
+                                        value={config.default_irrf_aliquota || ''}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_irrf_aliquota: e.target.value })}
+                                        placeholder="1.50"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex justify-end gap-2 pt-6 border-t border-gray-200 dark:border-slate-700">
