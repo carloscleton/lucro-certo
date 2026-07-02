@@ -9,6 +9,7 @@ export interface FiscalInvoice {
     external_id?: string;
     type: 'nfe' | 'nfse';
     status: string;
+    amount?: number;
     pdf_url?: string;
     xml_url?: string;
     error_message?: string;

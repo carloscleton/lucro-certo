@@ -157,6 +157,73 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                         payload.itens?.[0]?.descricao || 
                         'Prestação de serviço avulsa';
 
+    const serviceItem = payload?.servico?.[0];
+    
+    // ISS
+    let issRate = 0;
+    if (serviceItem?.iss?.aliquota) {
+        issRate = Number(serviceItem.iss.aliquota);
+    } else if (payload?.issRate) {
+        const rawIss = Number(payload.issRate);
+        issRate = rawIss < 1 ? rawIss * 100 : rawIss;
+    }
+    const issVal = totalAmount * (issRate / 100);
+
+    // PIS
+    let pisRate = 0;
+    if (serviceItem?.pis?.aliquota) {
+        pisRate = Number(serviceItem.pis.aliquota);
+    } else if (payload?.pisRate) {
+        const rawPis = Number(payload.pisRate);
+        pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
+    }
+    const pisVal = totalAmount * (pisRate / 100);
+
+    // COFINS
+    let cofinsRate = 0;
+    if (serviceItem?.cofins?.aliquota) {
+        cofinsRate = Number(serviceItem.cofins.aliquota);
+    } else if (payload?.cofinsRate) {
+        const rawCofins = Number(payload.cofinsRate);
+        cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
+    }
+    const cofinsVal = totalAmount * (cofinsRate / 100);
+
+    // CSLL
+    let csllRate = 0;
+    if (serviceItem?.csll?.aliquota) {
+        csllRate = Number(serviceItem.csll.aliquota);
+    } else if (payload?.csllRate) {
+        const rawCsll = Number(payload.csllRate);
+        csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
+    }
+    const csllVal = totalAmount * (csllRate / 100);
+
+    // IRRF
+    let irRate = 0;
+    if (serviceItem?.ir?.aliquota) {
+        irRate = Number(serviceItem.ir.aliquota);
+    } else if (payload?.irRate) {
+        const rawIr = Number(payload.irRate);
+        irRate = rawIr < 1 ? rawIr * 100 : rawIr;
+    }
+    const irVal = totalAmount * (irRate / 100);
+
+    // INSS
+    let inssRate = 0;
+    if (serviceItem?.inss?.aliquota) {
+        inssRate = Number(serviceItem.inss.aliquota);
+    } else if (payload?.inssRate) {
+        const rawInss = Number(payload.inssRate);
+        inssRate = rawInss < 1 ? rawInss * 100 : rawInss;
+    }
+    const inssVal = totalAmount * (inssRate / 100);
+
+    const totalRetenções = pisVal + cofinsVal + csllVal + irVal + inssVal;
+    const totalImpostos = issVal + totalRetenções;
+    const netValue = totalAmount - totalImpostos;
+    const formattedNetValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(netValue);
+
     // Resolver Links de Documentos
     const getDocUrl = (format: 'pdf' | 'xml'): string => {
         if (format === 'pdf' && invoice.pdf_url && invoice.pdf_url.startsWith('http')) {
@@ -520,6 +587,75 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-400 font-semibold">Valor Total Líquido:</span>
                                     <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formattedAmount}</span>
+                                </div>
+                                <div className="pt-3 border-t border-gray-100 dark:border-slate-800 space-y-2 text-xs">
+                                    <span className="text-gray-400 font-semibold uppercase tracking-widest text-[9px]">Detalhamento de Impostos Estimados:</span>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-xl border border-gray-100 dark:border-slate-800 font-medium">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Valor Bruto:</span>
+                                            <span className="font-bold text-gray-900 dark:text-white">{formattedAmount}</span>
+                                        </div>
+                                        {issVal > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">ISS ({issRate}%):</span>
+                                                <span className="font-bold text-blue-600 dark:text-blue-400">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(issVal)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {pisVal > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">PIS ({pisRate}%):</span>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pisVal)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {cofinsVal > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">COFINS ({cofinsRate}%):</span>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cofinsVal)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {csllVal > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">CSLL ({csllRate}%):</span>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(csllVal)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {irVal > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">IRRF ({irRate}%):</span>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(irVal)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {inssVal > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">INSS ({inssRate}%):</span>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inssVal)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between col-span-2 pt-1.5 mt-1.5 border-t border-gray-100 dark:border-slate-800">
+                                            <span className="text-gray-500 font-bold">Total Impostos:</span>
+                                            <span className="font-black text-rose-600 dark:text-rose-400">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalImpostos)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between col-span-2 pt-1 border-t border-gray-100 dark:border-slate-800">
+                                            <span className="text-gray-500 font-bold">Valor Líquido Recebido:</span>
+                                            <span className="font-black text-emerald-600 dark:text-emerald-400">
+                                                {formattedNetValue}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="pt-3 border-t border-gray-100 dark:border-slate-800 flex flex-col gap-1 text-xs">
                                     <span className="text-gray-400 font-semibold uppercase tracking-widest text-[9px]">Discriminação / Itens:</span>
