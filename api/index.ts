@@ -1141,7 +1141,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // --- ISS Rate: prioridade ao valor do payload (iss.aliquota), fallback para config da empresa ---
             // NFe.io espera decimal: 0.05 = 5%. Se vier como inteiro (5), divide por 100.
-            const toDecimalRate = (v: number) => v > 1 ? v / 100 : v;
+            const toDecimalRate = (v: number) => v / 100;
             const issRateFromPayload = serviceItem?.iss?.aliquota ? toDecimalRate(Number(serviceItem.iss.aliquota)) : undefined;
             const issRateFromConfig  = nfeioConfig.aliquotaIss
                 ? toDecimalRate(Number(String(nfeioConfig.aliquotaIss).replace(',', '.')))

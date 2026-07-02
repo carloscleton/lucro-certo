@@ -490,14 +490,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                          }
  
                         if (i.pisAliquota || i.cofinsAliquota || i.csllAliquota || i.irrfAliquota || i.inssAliquota) {
-                            item.valor = {
-                                ...item.valor,
-                                pis: { aliquota: parseFloat(i.pisAliquota || '0') },
-                                cofins: { aliquota: parseFloat(i.cofinsAliquota || '0') },
-                                csll: { aliquota: parseFloat(i.csllAliquota || '0') },
-                                ir: { aliquota: parseFloat(i.irrfAliquota || '0') },
-                                inss: { aliquota: parseFloat(i.inssAliquota || '0') }
-                            };
+                            item.pis = { aliquota: parseFloat(i.pisAliquota || '0') };
+                            item.cofins = { aliquota: parseFloat(i.cofinsAliquota || '0') };
+                            item.csll = { aliquota: parseFloat(i.csllAliquota || '0') };
+                            item.ir = { aliquota: parseFloat(i.irrfAliquota || '0') };
+                            item.inss = { aliquota: parseFloat(i.inssAliquota || '0') };
                         }
 
                         // Aplicação automática das configurações de Simples Nacional se disponíveis
