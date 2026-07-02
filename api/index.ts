@@ -4000,17 +4000,19 @@ app.post('/instances', authenticate, async (req, res) => {
         // Formatar resposta para manter compatibilidade com o frontend
         let finalResponseData = response.data;
         if (config.isGo) {
-            // EvoGo pode retornar o ID gerado em diferentes campos dependendo da versão
-            const evoGoData = response.data?.data || response.data || {};
-            const generatedId = evoGoData.id || evoGoData.instanceId || evoGoData.token || token;
-            const instanceName = evoGoData.name || evoGoData.instanceName || name;
+            // Estrutura real da EvoGo: { data: { id: 'uuid-gerado', name: '...', token: 'enviado', ... }, message: 'success' }
+            // O campo correto para o ID gerado pela EvoGo é response.data.data.id
+            const evoGoData = response.data?.data || {};
+            const generatedId = evoGoData.id || evoGoData.instanceId || token;
+            const instanceName = evoGoData.name || name;
 
-            console.log(`🆔 EvoGo generated ID: ${generatedId} (from response.data.data:`, JSON.stringify(evoGoData), ')');
+            console.log(`🆔 EvoGo ID gerado: ${generatedId}`);
+            console.log(`📦 Resposta raw EvoGo:`, JSON.stringify(response.data, null, 2));
 
             finalResponseData = {
                 instance: {
                     instanceName: instanceName,
-                    token: generatedId,
+                    token: generatedId,  // ID UUID gerado pela EvoGo (ex: 1c04055c-0333-46db-91c2-dfbabf37bbcf)
                     status: 'created'
                 },
                 hash: {
@@ -4028,6 +4030,36 @@ app.post('/instances', authenticate, async (req, res) => {
             error: 'Erro ao criar instância na Evolution API',
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
+    }
+});
+
+
+// Endpoint para buscar todas as instâncias da EvoGo e seus IDs reais
+app.get('/instances/evogo-sync', authenticate, async (req, res) => {
+    const { company_id } = req.query;
+    try {
+        const config = await getEvolutionConfig({ companyId: company_id as string });
+        if (!config.isGo) {
+            return res.json({ instances: [], isGo: false });
+        }
+
+        const allRes = await axios.get(`${config.url}/instance/all`, {
+            headers: { 'apikey': config.apiKey }
+        });
+
+        const instances = (allRes.data?.data || []).map((i: any) => ({
+            id: i.id,           // UUID gerado pela EvoGo (o ID correto)
+            name: i.name,       // Nome da instância
+            token: i.token,     // Token enviado na criação
+            connected: i.connected,
+            profileName: i.client_name,
+            jid: i.jid,
+        }));
+
+        res.json({ instances, isGo: true });
+    } catch (error: any) {
+        console.error('❌ Erro ao buscar instâncias EvoGo:', error.message);
+        res.status(500).json({ error: error.message });
     }
 });
 

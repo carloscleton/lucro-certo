@@ -75,6 +75,7 @@ export function WhatsApp() {
     const [currentInstance, setCurrentInstance] = useState<Instance | null>(null);
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [proxyOnline, setProxyOnline] = useState<boolean | null>(null);
+    const [isSyncingEvoGo, setIsSyncingEvoGo] = useState(false);
 
     // Edit State
     const [showEditModal, setShowEditModal] = useState(false);
@@ -192,6 +193,10 @@ export function WhatsApp() {
                 if (checkProxy && isMounted.current) {
                     data.forEach((inst: Instance) => syncInstanceWithEvolution(inst));
                 }
+                // Auto-sync EvoGo IDs after loading instances
+                if (isEvoGo && isMounted.current) {
+                    setTimeout(() => syncEvoGoIds(), 500);
+                }
             }
 
         } catch (error) {
@@ -201,6 +206,55 @@ export function WhatsApp() {
             }
         } finally {
             if (isMounted.current) setLoading(false);
+        }
+    };
+
+    // Sincronizar IDs reais da EvoGo com o Supabase
+    const syncEvoGoIds = async () => {
+        if (!isEvoGo) return;
+        setIsSyncingEvoGo(true);
+        try {
+            const companyParam = currentEntity.type === 'company' ? `company_id=${currentEntity.id}` : '';
+            const syncRes = await fetch(`${API_BASE_URL}/instances/evogo-sync?${companyParam}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            if (!syncRes.ok) throw new Error('Falha na sincronização');
+            const syncData = await syncRes.json();
+            const evoGoInstances: { id: string; name: string; token: string }[] = syncData.instances || [];
+
+            if (evoGoInstances.length === 0) return;
+
+            // Para cada instância no banco, verificar se o ID bate com o da EvoGo
+            let updatedCount = 0;
+            for (const localInst of instances) {
+                // Buscar na EvoGo pelo nome da instância
+                const evoInst = evoGoInstances.find(
+                    e => e.name.toLowerCase() === localInst.instance_name.toLowerCase()
+                );
+                if (!evoInst) continue;
+
+                // Se o ID local é diferente do ID real da EvoGo, atualizar
+                if (evoInst.id !== localInst.evolution_instance_id) {
+                    console.log(`🔄 Sincronizando ${localInst.instance_name}: ${localInst.evolution_instance_id} → ${evoInst.id}`);
+                    const { error } = await supabase
+                        .from('instances')
+                        .update({ evolution_instance_id: evoInst.id })
+                        .eq('id', localInst.id);
+                    if (!error) updatedCount++;
+                }
+            }
+
+            if (updatedCount > 0) {
+                notify('success', `${updatedCount} instância(s) sincronizada(s) com IDs reais da EvoGo.`, 'Sincronizado!');
+                fetchInstances(); // Recarregar com IDs corretos
+            } else {
+                notify('success', 'IDs já estão sincronizados com a EvoGo.', 'Em dia!');
+            }
+        } catch (err: any) {
+            console.error('Erro ao sincronizar EvoGo:', err);
+            notify('error', err.message || 'Falha ao sincronizar com EvoGo.', 'Erro');
+        } finally {
+            setIsSyncingEvoGo(false);
         }
     };
 
@@ -682,6 +736,17 @@ export function WhatsApp() {
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
                         Limite: {currentEntity.whatsapp_instance_limit || 1} { (currentEntity.whatsapp_instance_limit || 1) === 1 ? 'instância' : 'instâncias' }
                     </div>
+                    {isEvoGo && (
+                        <Button
+                            variant="outline"
+                            onClick={syncEvoGoIds}
+                            isLoading={isSyncingEvoGo}
+                            className="h-12 px-6 rounded-2xl font-bold text-sm transition-all hover:scale-105 active:scale-95 flex items-center border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                        >
+                            <RefreshCw size={18} className="mr-2" />
+                            Sincronizar IDs EvoGo
+                        </Button>
+                    )}
                     <Button 
                         variant="outline" 
                         onClick={() => { fetchInstances(); checkProxyStatus(); }} 
