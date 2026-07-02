@@ -283,7 +283,8 @@ export function WhatsApp() {
                     webhook_url: evoWebhookUrl || undefined,
                     webhook_events: evoWebhookUrl ? selectedEvents : undefined,
                     enabled: webhookEnabled,
-                    base64: webhookBase64
+                    base64: webhookBase64,
+                    company_id: currentEntity.type === 'company' ? currentEntity.id : undefined
                 })
             });
 

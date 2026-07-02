@@ -2360,6 +2360,31 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">WhatsApp: Utilizar Evolution GO</h4>
+                                                        <p className="text-xs text-gray-500 leading-tight">Direciona as mensagens e instâncias do WhatsApp para a nova API de alta performance Evolution GO.</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    className="sr-only peer" 
+                                                                    checked={tempCompanyConfig.settings?.whatsapp_provider === 'evolution_go'} 
+                                                                    onChange={(e) => setTempCompanyConfig({ 
+                                                                        ...tempCompanyConfig, 
+                                                                        settings: { 
+                                                                            ...(tempCompanyConfig.settings || {}), 
+                                                                            whatsapp_provider: e.target.checked ? 'evolution_go' : 'evolution_api' 
+                                                                        } 
+                                                                    })} 
+                                                                />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-6 py-5">
                                                         <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Radar de Leads</h4>
                                                         <p className="text-xs text-gray-500 leading-tight">Mineração e abordagem automática de clientes em massa via IA.</p>
                                                     </td>

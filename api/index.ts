@@ -97,6 +97,69 @@ app.use((req, res, next) => {
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, '');
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
 
+const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\/+$/, '') || EVOLUTION_API_URL;
+const EVOLUTION_GO_API_KEY = process.env.EVOLUTION_GO_API_KEY?.trim() || EVOLUTION_API_KEY;
+
+// Helper to get Evolution Config based on company_id or instance name
+async function getEvolutionConfig(identifier: { companyId?: string; instanceName?: string }) {
+    let companyId = identifier.companyId;
+
+    // If companyId is not provided, look it up via instanceName in public.instances
+    if (!companyId && identifier.instanceName && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        try {
+            const response = await axios.get(
+                `${SUPABASE_URL}/rest/v1/instances?instance_name=eq.${encodeURIComponent(identifier.instanceName)}&select=company_id`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                    }
+                }
+            );
+            if (response.data && response.data.length > 0) {
+                companyId = response.data[0].company_id;
+            }
+        } catch (err: any) {
+            console.error('⚠️ [Evolution Proxy] Error fetching instance company_id:', err.message);
+        }
+    }
+
+    // Fetch company settings if companyId exists
+    if (companyId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        try {
+            const response = await axios.get(
+                `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                    }
+                }
+            );
+            if (response.data && response.data.length > 0) {
+                const settings = response.data[0].settings || {};
+                if (settings.whatsapp_provider === 'evolution_go') {
+                    console.log(`🔌 [Evolution Proxy] Using EVOLUTION GO for company: ${companyId}`);
+                    return {
+                        url: EVOLUTION_GO_API_URL,
+                        apiKey: EVOLUTION_GO_API_KEY,
+                        isGo: true
+                    };
+                }
+            }
+        } catch (err: any) {
+            console.error('⚠️ [Evolution Proxy] Error fetching company settings:', err.message);
+        }
+    }
+
+    // Default fallback
+    return {
+        url: EVOLUTION_API_URL,
+        apiKey: EVOLUTION_API_KEY,
+        isGo: false
+    };
+}
+
 // Supabase Config for Fiscal Proxy
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL)?.trim().replace(/\/+$/, '');
 const SUPABASE_ANON_KEY = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)?.trim();
@@ -2839,8 +2902,37 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 async function resolveTargetName(requestedName: string, token?: string): Promise<string> {
     try {
         console.log(`🔍 Resolvendo instância: "${requestedName}" (Token: ${token || 'N/A'})`);
-        const response = await axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, {
-            headers: { 'apikey': EVOLUTION_API_KEY }
+
+        // 1. Tentar obter o config correto com base no nome ou token
+        let companyId: string | undefined;
+        if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+            try {
+                let query = `${SUPABASE_URL}/rest/v1/instances?`;
+                if (token) {
+                    query += `evolution_instance_id=eq.${encodeURIComponent(token)}`;
+                } else {
+                    query += `instance_name=eq.${encodeURIComponent(requestedName)}`;
+                }
+                query += `&select=company_id`;
+
+                const dbRes = await axios.get(query, {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                    }
+                });
+                if (dbRes.data && dbRes.data.length > 0) {
+                    companyId = dbRes.data[0].company_id;
+                }
+            } catch (dbErr: any) {
+                console.warn('⚠️ [resolveTargetName] Error finding company_id in db:', dbErr.message);
+            }
+        }
+
+        const config = await getEvolutionConfig({ companyId });
+
+        const response = await axios.get(`${config.url}/instance/fetchInstances`, {
+            headers: { 'apikey': config.apiKey }
         });
         const instances = Array.isArray(response.data) ? response.data : [];
 
@@ -2869,7 +2961,7 @@ async function resolveTargetName(requestedName: string, token?: string): Promise
             return actualName;
         }
 
-        console.warn(`⚠️ Instância não encontrada para "${requestedName}". Usando nome original.`);
+        console.warn('⚠️ Instância não encontrada para "' + requestedName + '". Usando nome original.');
         return requestedName;
     } catch (error) {
         console.error('❌ Erro ao resolver nome da instância:', error);
@@ -3484,9 +3576,10 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                             console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
                             
                             const targetName = instanceName.includes('-') ? instanceName : `${instanceName}-${invoice.company_id}`;
+                            const config = await getEvolutionConfig({ companyId: invoice.company_id });
                             const encodedName = encodeURIComponent(targetName);
                             
-                            await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
+                            await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
                                 number: recipientPhone,
                                 mediatype: 'document',
                                 mimetype: 'application/pdf',
@@ -3495,7 +3588,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                 fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
                             }, {
                                 headers: {
-                                    'apikey': EVOLUTION_API_KEY,
+                                    'apikey': config.apiKey,
                                     'Content-Type': 'application/json'
                                 },
                                 timeout: 8000
@@ -3761,14 +3854,15 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
 
 // Endpoints
 app.post('/instances', authenticate, async (req, res) => {
-    const { name, token: customToken, webhook_url, webhook_events, enabled, base64 } = req.body;
+    const { name, token: customToken, webhook_url, webhook_events, enabled, base64, company_id } = req.body;
 
     if (!name) {
         return res.status(400).json({ error: 'Nome da instância é obrigatório' });
     }
 
     try {
-        console.log(`🔌 Creating instance "${name}" on Evolution API...`);
+        const config = await getEvolutionConfig({ companyId: company_id });
+        console.log(`🔌 Creating instance "${name}" on Evolution API (Go: ${config.isGo})...`);
 
         // Função para gerar ID no formato 12-4-4-12 (Total 32 hex)
         const generateEvoID = () => {
@@ -3801,7 +3895,7 @@ app.post('/instances', authenticate, async (req, res) => {
         }, null, 2));
 
         // 1. Chamar Evolution API para criar
-        const response = await axios.post(`${EVOLUTION_API_URL}/instance/create`, {
+        const response = await axios.post(`${config.url}/instance/create`, {
             instanceName: name, // O NOME amigável agora volta a ser o identificador na Evolution
             token: token,      // O ID técnico (UUID) vai como o token da instância
             qrcode: true,
@@ -3809,7 +3903,7 @@ app.post('/instances', authenticate, async (req, res) => {
             webhook: webhookConfig
         }, {
             headers: {
-                'apikey': EVOLUTION_API_KEY
+                'apikey': config.apiKey
             }
         });
 
@@ -3822,45 +3916,17 @@ app.post('/instances', authenticate, async (req, res) => {
         console.error('❌ Erro na Evolution API:', errorDetail);
         res.status(500).json({
             error: 'Erro ao criar instância na Evolution API',
-            detail: errorDetail
-        });
-    }
-});
-
-app.get('/instances/:name/connect', authenticate, async (req, res) => {
-    const { name } = req.params;
-
-    try {
-        const encodedName = encodeURIComponent(name);
-        console.log(`🔍 Fetching QR Code for instance "${name}"...`);
-        const response = await axios.get(`${EVOLUTION_API_URL}/instance/connect/${encodedName}`, {
-            headers: {
-                'apikey': EVOLUTION_API_KEY
-            }
-        });
-
-        console.log('✅ QR Code received');
-        res.json(response.data);
-    } catch (error: any) {
-        const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro ao obter QR Code:', errorDetail);
-        res.status(500).json({
-            error: 'Erro ao buscar QR Code na Evolution API',
-            detail: errorDetail
-        });
-    }
-});
-
-app.post('/instances/:name/webhook', authenticate, async (req, res) => {
+         app.post('/instances/:name/webhook', authenticate, async (req, res) => {
     const { name } = req.params;
     const { url, events, enabled, base64, token } = req.body;
 
     try {
         const targetName = await resolveTargetName(name, token);
+        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
-        console.log(`📡 Updating webhook for instance "${targetName}"...`);
+        console.log(`📡 Updating webhook for instance "${targetName}" (Go: ${config.isGo})...`);
         // O endpoint testado com sucesso é /webhook/set/:instance com payload aninhado
-        const response = await axios.post(`${EVOLUTION_API_URL}/webhook/set/${encodedName}`, {
+        const response = await axios.post(`${config.url}/webhook/set/${encodedName}`, {
             webhook: {
                 enabled: enabled ?? true,
                 url: url,
@@ -3870,7 +3936,7 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
             }
         }, {
             headers: {
-                'apikey': EVOLUTION_API_KEY
+                'apikey': config.apiKey
             }
         });
 
@@ -3892,14 +3958,15 @@ app.post('/instances/:name/rename', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
+        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
-        console.log(`📝 Renaming instance "${targetName}" to "${newName}"...`);
+        console.log(`📝 Renaming instance "${targetName}" to "${newName}" (Go: ${config.isGo})...`);
 
-        const response = await axios.post(`${EVOLUTION_API_URL}/instance/updateInstanceName/${encodedName}`, {
+        const response = await axios.post(`${config.url}/instance/updateInstanceName/${encodedName}`, {
             newInstanceName: newName
         }, {
             headers: {
-                'apikey': EVOLUTION_API_KEY
+                'apikey': config.apiKey
             }
         });
 
@@ -3922,15 +3989,16 @@ app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
+        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
-        console.log(`👤 Updating WhatsApp profile name for "${targetName}" to "${profileName}"...`);
+        console.log(`👤 Updating WhatsApp profile name for "${targetName}" to "${profileName}" (Go: ${config.isGo})...`);
 
-        const response = await axios.post(`${EVOLUTION_API_URL}/chat/updateProfileName/${encodedName}`, {
+        const response = await axios.post(`${config.url}/chat/updateProfileName/${encodedName}`, {
             name: profileName,
             profileName: profileName
         }, {
             headers: {
-                'apikey': EVOLUTION_API_KEY
+                'apikey': config.apiKey
             }
         });
 
@@ -3946,25 +4014,25 @@ app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
     }
 });
 
-
-
 app.get('/instances/:name/details', authenticate, async (req, res) => {
     const { name } = req.params;
     const { token } = req.query;
 
     try {
-        console.log(`🔌 Fetching details for "${name}" (Token: ${token || 'N/A'})...`);
+        const targetName = await resolveTargetName(name, token as string);
+        const config = await getEvolutionConfig({ instanceName: targetName });
+        console.log(`🔌 Fetching details for "${targetName}" (Token: ${token || 'N/A'}, Go: ${config.isGo})...`);
 
         // Use o helper resiliente para encontrar os dados completos da instância
-        const response = await axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, {
-            headers: { 'apikey': EVOLUTION_API_KEY }
+        const response = await axios.get(`${config.url}/instance/fetchInstances`, {
+            headers: { 'apikey': config.apiKey }
         });
         const allInstances = Array.isArray(response.data) ? response.data : [];
 
         // Match por Token ou Nome Case-Insensitive
         const match = allInstances.find((i: any) =>
             (token && (i.token === token || i.id === token)) ||
-            ((i.name || i.instanceName || '').toLowerCase() === name.toLowerCase())
+            ((i.name || i.instanceName || '').toLowerCase() === targetName.toLowerCase())
         );
 
         if (match) {
@@ -4037,7 +4105,8 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
-        console.log(`🔌 Logging out instance "${targetName}"...`);
+        const config = await getEvolutionConfig({ instanceName: targetName });
+        console.log(`🔌 Logging out instance "${targetName}" (Go: ${config.isGo})...`);
 
         // Evolution API is inconsistent: some versions use POST, others DELETE.
         let logoutSuccess = false;
@@ -4046,8 +4115,8 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
         try {
             const encodedName = encodeURIComponent(targetName);
             console.log(`📡 Trying DELETE /instance/logout/${targetName}...`);
-            await axios.delete(`${EVOLUTION_API_URL}/instance/logout/${encodedName}`, {
-                headers: { 'apikey': EVOLUTION_API_KEY }
+            await axios.delete(`${config.url}/instance/logout/${encodedName}`, {
+                headers: { 'apikey': config.apiKey }
             });
             console.log(`✅ Logout (DELETE) bem sucedido para "${targetName}"`);
             logoutSuccess = true;
@@ -4065,8 +4134,8 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
             try {
                 const encodedName = encodeURIComponent(targetName);
                 console.log(`📡 Trying POST /instance/logout/${targetName}...`);
-                await axios.post(`${EVOLUTION_API_URL}/instance/logout/${encodedName}`, {}, {
-                    headers: { 'apikey': EVOLUTION_API_KEY }
+                await axios.post(`${config.url}/instance/logout/${encodedName}`, {}, {
+                    headers: { 'apikey': config.apiKey }
                 });
                 console.log(`✅ Logout (POST) bem sucedido para "${targetName}"`);
                 logoutSuccess = true;
@@ -4100,12 +4169,13 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
+        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
-        console.log(`🗑️ Deleting instance "${targetName}"...`);
+        console.log(`🗑️ Deleting instance "${targetName}" (Go: ${config.isGo})...`);
 
-        const response = await axios.delete(`${EVOLUTION_API_URL}/instance/delete/${encodedName}`, {
+        const response = await axios.delete(`${config.url}/instance/delete/${encodedName}`, {
             headers: {
-                'apikey': EVOLUTION_API_KEY
+                'apikey': config.apiKey
             }
         });
 
@@ -4570,12 +4640,13 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
                     const message = `Olá, *${company.trade_name}*! 😊\n\nA fatura de utilização do módulo fiscal para o período de ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')} foi gerada.\n\n*Detalhes da Fatura:*\n📝 ${description}\n💰 *Valor:* R$ ${parseFloat(amount).toFixed(2).replace('.', ',')}\n\nCopie o link abaixo para efetuar o pagamento via Pix:\n🔗 ${chargeResult.payment_link || 'Link indisponível'}\n\nObrigado por utilizar nossa plataforma! 💼`;
 
                     try {
+                        const config = await getEvolutionConfig({ instanceName: whatsappInstance });
                         const encodedInstance = encodeURIComponent(whatsappInstance);
-                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedInstance}`, {
+                        await axios.post(`${config.url}/message/sendText/${encodedInstance}`, {
                             number: phone,
                             text: message
                         }, {
-                            headers: { 'apikey': EVOLUTION_API_KEY }
+                            headers: { 'apikey': config.apiKey }
                         });
                         notificationSent = true;
                         console.log(`✅ [BATCH-BILL] Notificação enviada para ${company.trade_name}`);
@@ -4886,12 +4957,13 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
                 if (company.owner_phone || company.phone) {
                     const phone = (company.owner_phone || company.phone).replace(/\D/g, '');
                     try {
+                        const config = await getEvolutionConfig({ instanceName: whatsappInstance });
                         const encodedInstance = encodeURIComponent(whatsappInstance);
-                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedInstance}`, {
+                        await axios.post(`${config.url}/message/sendText/${encodedInstance}`, {
                             number: phone,
                             text: message
                         }, {
-                            headers: { 'apikey': EVOLUTION_API_KEY }
+                            headers: { 'apikey': config.apiKey }
                         });
                         notificationsSent++;
                     } catch (err: any) {
@@ -4917,6 +4989,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(instanceName);
+        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
 
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
@@ -4926,7 +4999,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         if (mediaUrl && !isLocalhost) {
             try {
                 console.log(`✉️ [Media] Tentando enviar documento WhatsApp via "${targetName}" para ${number}...`);
-                const response = await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
+                const response = await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
                     number: number,
                     mediatype: mediaType || 'document',
                     mimetype: mimetype || 'application/pdf',
@@ -4935,7 +5008,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                     fileName: fileName || 'NotaFiscal.pdf'
                 }, {
                     headers: {
-                        'apikey': EVOLUTION_API_KEY,
+                        'apikey': config.apiKey,
                         'Content-Type': 'application/json'
                     },
                     timeout: 8000 // 8 segundos de timeout para evitar travamentos
@@ -4957,13 +5030,13 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         }
 
         console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
-        const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
+        const response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
             number: number,
             text: textToSend,
             linkPreview: true
         }, {
             headers: {
-                'apikey': EVOLUTION_API_KEY,
+                'apikey': config.apiKey,
                 'Content-Type': 'application/json'
             }
         });
