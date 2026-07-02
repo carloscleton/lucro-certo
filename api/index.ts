@@ -3895,7 +3895,7 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
 
 // Endpoints
 app.post('/instances', authenticate, async (req, res) => {
-    const { name, token: customToken, webhook_url, webhook_events, enabled, base64, company_id } = req.body;
+    const { name, token: customToken, webhook_url, webhook_events, enabled, base64, company_id, advancedSettings } = req.body;
 
     if (!name) {
         return res.status(400).json({ error: 'Nome da instância é obrigatório' });
@@ -3918,27 +3918,54 @@ app.post('/instances', authenticate, async (req, res) => {
 
         const token = customToken || generateEvoID();
 
-        // Configuração do Webhook
-        const webhookConfig = webhook_url ? {
-            enabled: enabled ?? true,
-            url: webhook_url,
-            webhook_by_events: false,
-            webhookByEvents: false, // Compatibilidade v2
-            base64: base64 ?? true,
-            webhookBase64: base64 ?? true, // Compatibilidade v2
-            events: webhook_events || ['MESSAGES_UPSERT']
-        } : undefined;
+        let payload: any;
 
-        const payload: any = {
-            instanceName: name,
-            name: name, // Compatibilidade com Evolution GO
-            token: token,
-            qrcode: true,
-            integration: 'WHATSAPP-BAILEYS'
-        };
+        if (config.isGo) {
+            // ===== EVOLUTION GO PAYLOAD =====
+            // Apenas name, token e advancedSettings embutido. Webhook é configurado via /instance/connect
+            payload = {
+                name: name,
+                token: token
+            };
 
-        if (!config.isGo && webhookConfig) {
-            payload.webhook = webhookConfig;
+            // Incluir advancedSettings se fornecido pelo frontend
+            if (advancedSettings && typeof advancedSettings === 'object') {
+                // Filtrar apenas campos com valores relevantes
+                const cleanAdvanced: any = {};
+                if (typeof advancedSettings.alwaysOnline === 'boolean') cleanAdvanced.alwaysOnline = advancedSettings.alwaysOnline;
+                if (typeof advancedSettings.rejectCall === 'boolean') cleanAdvanced.rejectCall = advancedSettings.rejectCall;
+                if (advancedSettings.msgRejectCall) cleanAdvanced.msgRejectCall = advancedSettings.msgRejectCall;
+                if (typeof advancedSettings.readMessages === 'boolean') cleanAdvanced.readMessages = advancedSettings.readMessages;
+                if (typeof advancedSettings.ignoreGroups === 'boolean') cleanAdvanced.ignoreGroups = advancedSettings.ignoreGroups;
+                if (typeof advancedSettings.ignoreStatus === 'boolean') cleanAdvanced.ignoreStatus = advancedSettings.ignoreStatus;
+                if (Object.keys(cleanAdvanced).length > 0) {
+                    payload.advancedSettings = cleanAdvanced;
+                }
+            }
+        } else {
+            // ===== EVOLUTION API PAYLOAD =====
+            // Configuração do Webhook
+            const webhookConfig = webhook_url ? {
+                enabled: enabled ?? true,
+                url: webhook_url,
+                webhook_by_events: false,
+                webhookByEvents: false, // Compatibilidade v2
+                base64: base64 ?? true,
+                webhookBase64: base64 ?? true, // Compatibilidade v2
+                events: webhook_events || ['MESSAGES_UPSERT']
+            } : undefined;
+
+            payload = {
+                instanceName: name,
+                name: name,
+                token: token,
+                qrcode: true,
+                integration: 'WHATSAPP-BAILEYS'
+            };
+
+            if (webhookConfig) {
+                payload.webhook = webhookConfig;
+            }
         }
 
         console.log('📤 Sending payload to Evolution:', JSON.stringify(payload, null, 2));
@@ -3978,6 +4005,7 @@ app.post('/instances', authenticate, async (req, res) => {
         });
     }
 });
+
 
 app.get('/instances/:name/connect', authenticate, async (req, res) => {
     const { name } = req.params;

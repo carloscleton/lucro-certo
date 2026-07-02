@@ -96,6 +96,20 @@ export function WhatsApp() {
     const [webhookEnabled, setWebhookEnabled] = useState(true);
     const [webhookBase64, setWebhookBase64] = useState(true);
 
+    // EvoGo Advanced Settings State
+    const [evoGoAlwaysOnline, setEvoGoAlwaysOnline] = useState(false);
+    const [evoGoRejectCall, setEvoGoRejectCall] = useState(false);
+    const [evoGoMsgRejectCall, setEvoGoMsgRejectCall] = useState('');
+    const [evoGoReadMessages, setEvoGoReadMessages] = useState(false);
+    const [evoGoIgnoreGroups, setEvoGoIgnoreGroups] = useState(false);
+    const [evoGoIgnoreStatus, setEvoGoIgnoreStatus] = useState(false);
+
+    // Detect provider
+    const isEvoGo = currentEntity.settings?.whatsapp_provider === 'evolution_go';
+
+    // EvoGo Webhook events (different from EvoAPI)
+    const EVO_GO_EVENTS = ['MESSAGE', 'PRESENCE', 'CHAT_PRESENCE', 'CONNECTION', 'QRCODE'];
+
     const ALL_EVENTS = [
         'APPLICATION_STARTUP', 'CALL', 'CHATS_DELETE', 'CHATS_SET', 'CHATS_UPDATE',
         'CHATS_UPSERT', 'CONNECTION_UPDATE', 'CONTACTS_SET', 'CONTACTS_UPDATE',
@@ -274,18 +288,36 @@ export function WhatsApp() {
         setIsCreating(true);
         try {
             // 1. Criar na Evolution API via Proxy Server
+            const requestBody: any = {
+                name: friendlyName,
+                token: instanceId,
+                company_id: currentEntity.type === 'company' ? currentEntity.id : undefined
+            };
+
+            if (isEvoGo) {
+                // EvoGo payload: advancedSettings embutido + webhook via URL
+                requestBody.webhook_url = evoWebhookUrl || undefined;
+                requestBody.webhook_events = evoWebhookUrl ? selectedEvents : undefined;
+                requestBody.advancedSettings = {
+                    alwaysOnline: evoGoAlwaysOnline,
+                    rejectCall: evoGoRejectCall,
+                    msgRejectCall: evoGoMsgRejectCall || undefined,
+                    readMessages: evoGoReadMessages,
+                    ignoreGroups: evoGoIgnoreGroups,
+                    ignoreStatus: evoGoIgnoreStatus
+                };
+            } else {
+                // EvoAPI payload
+                requestBody.webhook_url = evoWebhookUrl || undefined;
+                requestBody.webhook_events = evoWebhookUrl ? selectedEvents : undefined;
+                requestBody.enabled = webhookEnabled;
+                requestBody.base64 = webhookBase64;
+            }
+
             const response = await fetch(`${API_BASE_URL}/instances`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: friendlyName,
-                    token: instanceId, // Enviar o ID/Token personalizado
-                    webhook_url: evoWebhookUrl || undefined,
-                    webhook_events: evoWebhookUrl ? selectedEvents : undefined,
-                    enabled: webhookEnabled,
-                    base64: webhookBase64,
-                    company_id: currentEntity.type === 'company' ? currentEntity.id : undefined
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
@@ -323,6 +355,13 @@ export function WhatsApp() {
             setInstances([dbData, ...instances]);
             setFriendlyName('');
             setInstanceId('');
+            // Reset EvoGo settings
+            setEvoGoAlwaysOnline(false);
+            setEvoGoRejectCall(false);
+            setEvoGoMsgRejectCall('');
+            setEvoGoReadMessages(false);
+            setEvoGoIgnoreGroups(false);
+            setEvoGoIgnoreStatus(false);
         } catch (error: any) {
             console.error('Erro ao conectar com Evolution:', error);
             notify('error', error.message || 'Não foi possível criar a instância.', 'Erro');
@@ -700,7 +739,7 @@ export function WhatsApp() {
                             className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors"
                         >
                             <Settings2 size={16} />
-                            Configurações Avançadas de Webhook (n8n/Evolution)
+                            {isEvoGo ? 'Configurações Avançadas (EvoGo)' : 'Configurações Avançadas de Webhook (n8n/Evolution)'}
                             {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
                     </div>
@@ -708,81 +747,174 @@ export function WhatsApp() {
                     {/* Advanced Settings Panel */}
                     {showAdvanced && (
                         <div className="md:col-span-12 mt-4 p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-top-2">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        URL do Webhook Evolution
-                                    </label>
-                                    <input
-                                        type="url"
-                                        value={evoWebhookUrl}
-                                        onChange={(e) => setEvoWebhookUrl(e.target.value)}
-                                        placeholder="https://seu-n8n.com/webhook/whatsapp"
-                                        className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 text-sm"
-                                    />
-                                    <p className="mt-2 text-[11px] text-gray-400">
-                                        A URL onde a Evolution API enviará os eventos em tempo real.
-                                    </p>
-                                </div>
-
-                                <div className="space-y-4">
-
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Eventos Monitorados
+                            {isEvoGo ? (
+                                /* ===== EVO GO ADVANCED SETTINGS ===== */
+                                <div className="space-y-5">
+                                    {/* Webhook URL */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            URL do Webhook
                                         </label>
-                                        <button
-                                            type="button"
-                                            onClick={handleMarkAll}
-                                            className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-wider"
-                                        >
-                                            {selectedEvents.length === ALL_EVENTS.length ? 'Desmarcar Todos' : 'Marcar Todos'}
-                                        </button>
+                                        <input
+                                            type="url"
+                                            value={evoWebhookUrl}
+                                            onChange={(e) => setEvoWebhookUrl(e.target.value)}
+                                            placeholder="https://seu-servidor.com/webhook"
+                                            className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 text-sm"
+                                        />
+                                        <p className="mt-1 text-[11px] text-gray-400">URL que receberá os eventos do WhatsApp</p>
                                     </div>
 
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 overflow-y-auto max-h-[150px] p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700">
-                                        {ALL_EVENTS.map(event => (
-                                            <label
-                                                key={event}
-                                                className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${selectedEvents.includes(event) ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                                    {/* EvoGo Events */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Eventos para Webhook</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedEvents(selectedEvents.length === EVO_GO_EVENTS.length ? [] : [...EVO_GO_EVENTS])}
+                                                className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-wider"
                                             >
-                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedEvents.includes(event) ? 'bg-emerald-500 border-emerald-500' : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-500'}`}>
-                                                    {selectedEvents.includes(event) && <Check size={10} className="text-white" strokeWidth={4} />}
-                                                </div>
-                                                <input
-                                                    type="checkbox"
-                                                    className="hidden"
-                                                    checked={selectedEvents.includes(event)}
-                                                    onChange={() => toggleEvent(event)}
-                                                />
-                                                <span className="text-[10px] font-medium truncate text-gray-600 dark:text-gray-400">
-                                                    {event}
-                                                </span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        <div
-                                            className="flex items-center gap-2 cursor-pointer"
-                                            onClick={() => setWebhookEnabled(!webhookEnabled)}
-                                        >
-                                            <div className={`w-8 h-4 rounded-full relative transition-colors ${webhookEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}>
-                                                <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${webhookEnabled ? 'right-0.5' : 'left-0.5'}`} />
-                                            </div>
-                                            <span className="text-[11px] text-gray-500">Enable or disable the webhook</span>
+                                                {selectedEvents.length === EVO_GO_EVENTS.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                                            </button>
                                         </div>
-                                        <div
-                                            className="flex items-center gap-2 cursor-pointer"
-                                            onClick={() => setWebhookBase64(!webhookBase64)}
-                                        >
-                                            <div className={`w-8 h-4 rounded-full relative transition-colors ${webhookBase64 ? 'bg-emerald-500' : 'bg-gray-300'}`}>
-                                                <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${webhookBase64 ? 'right-0.5' : 'left-0.5'}`} />
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700">
+                                            {EVO_GO_EVENTS.map(event => (
+                                                <label
+                                                    key={event}
+                                                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${selectedEvents.includes(event) ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                                                    onClick={() => toggleEvent(event)}
+                                                >
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${selectedEvents.includes(event) ? 'bg-emerald-500 border-emerald-500' : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-500'}`}>
+                                                        {selectedEvents.includes(event) && <Check size={10} className="text-white" strokeWidth={4} />}
+                                                    </div>
+                                                    <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">{event}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* EvoGo Advanced Config */}
+                                    <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
+                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Configurações Avançadas</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {[
+                                                { label: 'Always Online', sub: 'Manter sempre online no WhatsApp', val: evoGoAlwaysOnline, set: setEvoGoAlwaysOnline },
+                                                { label: 'Reject Call', sub: 'Rejeitar chamadas automaticamente', val: evoGoRejectCall, set: setEvoGoRejectCall },
+                                                { label: 'Read Messages', sub: 'Marcar mensagens como lidas', val: evoGoReadMessages, set: setEvoGoReadMessages },
+                                                { label: 'Ignore Groups', sub: 'Ignorar mensagens de grupos', val: evoGoIgnoreGroups, set: setEvoGoIgnoreGroups },
+                                                { label: 'Ignore Status', sub: 'Ignorar atualizações de status', val: evoGoIgnoreStatus, set: setEvoGoIgnoreStatus },
+                                            ].map(({ label, sub, val, set }) => (
+                                                <div
+                                                    key={label}
+                                                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                                                        val
+                                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700'
+                                                            : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                                    }`}
+                                                    onClick={() => set(!val)}
+                                                >
+                                                    <div>
+                                                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">{label}</p>
+                                                        <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                                                    </div>
+                                                    <div className={`w-9 h-5 rounded-full relative flex-shrink-0 transition-colors ${val ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'}`}>
+                                                        <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.75 transition-all shadow-sm ${val ? 'right-0.75' : 'left-0.75'}`} style={{ top: '3px', ...(val ? { right: '3px' } : { left: '3px' }) }} />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {/* Msg Reject Call - só aparece quando rejectCall ativado */}
+                                        {evoGoRejectCall && (
+                                            <div className="mt-3">
+                                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mensagem ao rejeitar chamada</label>
+                                                <input
+                                                    type="text"
+                                                    value={evoGoMsgRejectCall}
+                                                    onChange={(e) => setEvoGoMsgRejectCall(e.target.value)}
+                                                    placeholder="Ex: No momento não posso atender. Envie uma mensagem!"
+                                                    className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-2 px-3 focus:ring-2 focus:ring-emerald-500 text-sm"
+                                                />
                                             </div>
-                                            <span className="text-[11px] text-gray-500">Send media base64 data in webhook</span>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                /* ===== EVO API ADVANCED SETTINGS ===== */
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            URL do Webhook Evolution
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={evoWebhookUrl}
+                                            onChange={(e) => setEvoWebhookUrl(e.target.value)}
+                                            placeholder="https://seu-n8n.com/webhook/whatsapp"
+                                            className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 text-sm"
+                                        />
+                                        <p className="mt-2 text-[11px] text-gray-400">
+                                            A URL onde a Evolution API enviará os eventos em tempo real.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Eventos Monitorados
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={handleMarkAll}
+                                                className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-wider"
+                                            >
+                                                {selectedEvents.length === ALL_EVENTS.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 overflow-y-auto max-h-[150px] p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700">
+                                            {ALL_EVENTS.map(event => (
+                                                <label
+                                                    key={event}
+                                                    className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${selectedEvents.includes(event) ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                                                >
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedEvents.includes(event) ? 'bg-emerald-500 border-emerald-500' : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-500'}`}>
+                                                        {selectedEvents.includes(event) && <Check size={10} className="text-white" strokeWidth={4} />}
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="hidden"
+                                                        checked={selectedEvents.includes(event)}
+                                                        onChange={() => toggleEvent(event)}
+                                                    />
+                                                    <span className="text-[10px] font-medium truncate text-gray-600 dark:text-gray-400">
+                                                        {event}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-4">
+                                            <div
+                                                className="flex items-center gap-2 cursor-pointer"
+                                                onClick={() => setWebhookEnabled(!webhookEnabled)}
+                                            >
+                                                <div className={`w-8 h-4 rounded-full relative transition-colors ${webhookEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${webhookEnabled ? 'right-0.5' : 'left-0.5'}`} />
+                                                </div>
+                                                <span className="text-[11px] text-gray-500">Enable or disable the webhook</span>
+                                            </div>
+                                            <div
+                                                className="flex items-center gap-2 cursor-pointer"
+                                                onClick={() => setWebhookBase64(!webhookBase64)}
+                                            >
+                                                <div className={`w-8 h-4 rounded-full relative transition-colors ${webhookBase64 ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${webhookBase64 ? 'right-0.5' : 'left-0.5'}`} />
+                                                </div>
+                                                <span className="text-[11px] text-gray-500">Send media base64 data in webhook</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                 </form>
