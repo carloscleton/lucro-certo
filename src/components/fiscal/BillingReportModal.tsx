@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Download, XCircle, CheckCircle2, Clock3, BarChart3, User } from 'lucide-react';
+import { Download, XCircle, CheckCircle2, Clock3, BarChart3, User, Building2 } from 'lucide-react';
+import { clsx } from 'clsx';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Tooltip } from '../ui/Tooltip';
@@ -39,6 +40,94 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
     const [endDate, setEndDate] = useState(getToday());
     const [statusFilter, setStatusFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [showTaxes, setShowTaxes] = useState(false);
+
+    const calculateTaxesSummary = () => {
+        let totalFaturado = 0;
+        let totalIss = 0;
+        let totalPis = 0;
+        let totalCofins = 0;
+        let totalCsll = 0;
+        let totalIr = 0;
+
+        const authorizedInvoices = filteredInvoices.filter(i => 
+            ['concluido', 'autorizado'].includes(i.status?.toLowerCase())
+        );
+
+        authorizedInvoices.forEach(i => {
+            const amount = getInvoiceAmount(i.payload);
+            totalFaturado += amount;
+
+            const p = i.payload || {};
+            const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
+            const serviceItem = servicos[0];
+            
+            // ISS
+            let issRate = 0;
+            if (serviceItem?.iss?.aliquota) {
+                issRate = Number(serviceItem.iss.aliquota);
+            } else if (p.issRate) {
+                const rawIss = Number(p.issRate);
+                issRate = rawIss < 1 ? rawIss * 100 : rawIss;
+            }
+            totalIss += amount * (issRate / 100);
+
+            // PIS
+            let pisRate = 0;
+            if (serviceItem?.pis?.aliquota) {
+                pisRate = Number(serviceItem.pis.aliquota);
+            } else if (p.pisRate) {
+                const rawPis = Number(p.pisRate);
+                pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
+            }
+            totalPis += amount * (pisRate / 100);
+
+            // COFINS
+            let cofinsRate = 0;
+            if (serviceItem?.cofins?.aliquota) {
+                cofinsRate = Number(serviceItem.cofins.aliquota);
+            } else if (p.cofinsRate) {
+                const rawCofins = Number(p.cofinsRate);
+                cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
+            }
+            totalCofins += amount * (cofinsRate / 100);
+
+            // CSLL
+            let csllRate = 0;
+            if (serviceItem?.csll?.aliquota) {
+                csllRate = Number(serviceItem.csll.aliquota);
+            } else if (p.csllRate) {
+                const rawCsll = Number(p.csllRate);
+                csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
+            }
+            totalCsll += amount * (csllRate / 100);
+
+            // IRRF
+            let irRate = 0;
+            if (serviceItem?.ir?.aliquota) {
+                irRate = Number(serviceItem.ir.aliquota);
+            } else if (p.irRate) {
+                const rawIr = Number(p.irRate);
+                irRate = rawIr < 1 ? rawIr * 100 : rawIr;
+            }
+            totalIr += amount * (irRate / 100);
+        });
+
+        const totalRetenções = totalPis + totalCofins + totalCsll + totalIr;
+        const totalImpostos = totalIss + totalRetenções;
+
+        return {
+            totalFaturado,
+            totalIss,
+            totalPis,
+            totalCofins,
+            totalCsll,
+            totalIr,
+            totalRetenções,
+            totalImpostos,
+            netAmount: totalFaturado - totalImpostos
+        };
+    };
 
     // Filtragem das notas por período, status e termo de busca
     const filteredInvoices = invoices.filter(invoice => {
@@ -281,12 +370,27 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                         />
                     </div>
 
+                    {/* Botão Painel Tributário */}
+                    <Button
+                        onClick={() => setShowTaxes(prev => !prev)}
+                        variant="outline"
+                        className={clsx(
+                            "h-[32px] px-4 font-bold text-xs rounded-xl whitespace-nowrap transition-all md:ml-auto",
+                            showTaxes 
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-800"
+                                : "border-gray-200 hover:bg-gray-50 text-gray-700 dark:border-slate-700 dark:hover:bg-slate-800"
+                        )}
+                    >
+                        <Building2 size={14} className={clsx("mr-1.5", showTaxes ? "text-indigo-650 dark:text-indigo-400" : "text-indigo-500")} />
+                        {showTaxes ? "Ocultar Impostos" : "Ver Impostos"}
+                    </Button>
+
                     {/* Export Button */}
                     <Button
                         onClick={handleExportCSV}
                         variant="primary"
                         disabled={filteredInvoices.length === 0}
-                        className="h-[32px] px-4 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/10 font-bold text-xs rounded-xl whitespace-nowrap md:ml-auto"
+                        className="h-[32px] px-4 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/10 font-bold text-xs rounded-xl whitespace-nowrap"
                     >
                         <Download size={14} className="mr-1.5" />
                         Exportar CSV
@@ -348,6 +452,79 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                         </p>
                     </div>
                 </div>
+
+                {showTaxes && (() => {
+                    const summary = calculateTaxesSummary();
+                    return (
+                        <div className="bg-gradient-to-br from-indigo-50/20 via-white to-purple-50/15 dark:from-slate-900 dark:to-slate-900/60 p-5 rounded-2xl border border-indigo-150/40 dark:border-slate-800 shadow-sm animate-in slide-in-from-top-4 duration-300">
+                            <div className="flex items-center gap-2 mb-4">
+                                <BarChart3 size={16} className="text-indigo-500" />
+                                <h4 className="font-bold text-gray-900 dark:text-white text-xs">
+                                    Resumo Tributário das Notas Autorizadas no Período
+                                </h4>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                <div className="bg-white/60 dark:bg-slate-950/20 p-3 rounded-xl border border-indigo-50/30 dark:border-slate-800/40">
+                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-0.5">Total Faturado (Autorizadas)</span>
+                                    <span className="text-sm font-black text-gray-900 dark:text-white">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalFaturado)}
+                                    </span>
+                                </div>
+                                <div className="bg-white/60 dark:bg-slate-950/20 p-3 rounded-xl border border-indigo-50/30 dark:border-slate-800/40">
+                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-0.5">ISS Calculado Estimado</span>
+                                    <span className="text-sm font-black text-blue-600 dark:text-blue-400">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalIss)}
+                                    </span>
+                                </div>
+                                <div className="bg-white/60 dark:bg-slate-950/20 p-3 rounded-xl border border-indigo-50/30 dark:border-slate-800/40">
+                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-0.5">Retenções Federais</span>
+                                    <span className="text-sm font-black text-amber-600 dark:text-amber-400">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalRetenções)}
+                                    </span>
+                                </div>
+                                <div className="bg-white/60 dark:bg-slate-950/20 p-3 rounded-xl border border-indigo-50/30 dark:border-slate-800/40">
+                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-0.5">Líquido Recebido Estimado</span>
+                                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.netAmount)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {summary.totalRetenções > 0 && (
+                                <div className="pt-3 border-t border-indigo-50/30 dark:border-slate-800/40">
+                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2">Detalhamento das Retenções Federais</span>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                        <div className="flex justify-between bg-gray-50/40 dark:bg-slate-950/20 px-3 py-1.5 rounded-lg border border-indigo-50/20 dark:border-slate-805">
+                                            <span>PIS:</span>
+                                            <span className="font-bold text-gray-900 dark:text-white">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalPis)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between bg-gray-50/40 dark:bg-slate-950/20 px-3 py-1.5 rounded-lg border border-indigo-50/20 dark:border-slate-805">
+                                            <span>COFINS:</span>
+                                            <span className="font-bold text-gray-900 dark:text-white">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalCofins)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between bg-gray-50/40 dark:bg-slate-950/20 px-3 py-1.5 rounded-lg border border-indigo-50/20 dark:border-slate-805">
+                                            <span>CSLL:</span>
+                                            <span className="font-bold text-gray-900 dark:text-white">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalCsll)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between bg-gray-50/40 dark:bg-slate-950/20 px-3 py-1.5 rounded-lg border border-indigo-50/20 dark:border-slate-805">
+                                            <span>IRRF:</span>
+                                            <span className="font-bold text-gray-900 dark:text-white">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalIr)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* 3. Detailed Table */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden">
