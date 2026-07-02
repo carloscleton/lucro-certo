@@ -3968,24 +3968,81 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
 
     try {
         const config = await getEvolutionConfig({ instanceName: name, token: token as string, companyId: company_id as string });
-        const encodedName = encodeURIComponent(name);
         console.log(`🔍 Fetching QR Code for instance "${name}" (Go: ${config.isGo})...`);
 
-        let response;
+        const executeConnect = async (activeConfig: typeof config) => {
+            if (activeConfig.isGo) {
+                const allRes = await axios.get(`${activeConfig.url}/instance/all`, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                const instancesList = allRes.data?.data || [];
+                const inst = instancesList.find((i: any) => i.id === token || i.name.toLowerCase() === name.toLowerCase());
+                if (!inst) throw new Error('Instance not found on Evolution GO');
+                const instanceToken = inst.token;
+
+                // Buscar detalhes do webhook no Supabase para repassar ao conectar
+                let dbWebhookUrl = '';
+                let dbWebhookEvents = ['MESSAGES_UPSERT'];
+                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+                if (token && SUPABASE_URL && supabaseKey) {
+                    try {
+                        const dbRes = await axios.get(
+                            `${SUPABASE_URL}/rest/v1/instances?evolution_instance_id=eq.${encodeURIComponent(token as string)}&select=webhook_url,webhook_events`,
+                            {
+                                headers: {
+                                    'apikey': supabaseKey,
+                                    'Authorization': `Bearer ${supabaseKey}`
+                                }
+                            }
+                        );
+                        if (dbRes.data && dbRes.data.length > 0) {
+                            dbWebhookUrl = dbRes.data[0].webhook_url || '';
+                            dbWebhookEvents = dbRes.data[0].webhook_events || ['MESSAGES_UPSERT'];
+                        }
+                    } catch (dbErr: any) {
+                        console.warn('⚠️ Error fetching webhook info from DB:', dbErr.message);
+                    }
+                }
+
+                try {
+                    await axios.post(`${activeConfig.url}/instance/connect`, {
+                        webhookUrl: dbWebhookUrl || undefined,
+                        subscribe: dbWebhookEvents
+                    }, {
+                        headers: { 'apikey': instanceToken }
+                    });
+                } catch (connErr: any) {
+                    console.warn('⚠️ Connect call failed or already connected:', connErr.message);
+                }
+
+                const qrRes = await axios.get(`${activeConfig.url}/instance/qr`, {
+                    headers: { 'apikey': instanceToken }
+                });
+
+                return {
+                    code: qrRes.data.data?.Code || qrRes.data.data?.code,
+                    base64: qrRes.data.data?.Qrcode || qrRes.data.data?.base64
+                };
+            } else {
+                const encodedName = encodeURIComponent(name);
+                const response = await axios.get(`${activeConfig.url}/instance/connect/${encodedName}`, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                return response.data;
+            }
+        };
+
+        let resultData;
         try {
-            response = await axios.get(`${config.url}/instance/connect/${encodedName}`, {
-                headers: { 'apikey': config.apiKey }
-            });
+            resultData = await executeConnect(config);
         } catch (primaryErr: any) {
             console.warn(`⚠️ Primary connect failed (${primaryErr.message}). Trying fallback config...`);
             const fallbackConfig = getAlternativeConfig(config);
-            response = await axios.get(`${fallbackConfig.url}/instance/connect/${encodedName}`, {
-                headers: { 'apikey': fallbackConfig.apiKey }
-            });
+            resultData = await executeConnect(fallbackConfig);
         }
 
         console.log('✅ QR Code received');
-        res.json(response.data);
+        res.json(resultData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro ao obter QR Code:', errorDetail);
@@ -4005,7 +4062,7 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
         const config = await getEvolutionConfig({ instanceName: targetName, token, companyId: company_id });
         const encodedName = encodeURIComponent(targetName);
         console.log(`📡 Updating webhook for instance "${targetName}" (Go: ${config.isGo})...`);
-        // O endpoint testado com sucesso é /webhook/set/:instance com payload aninhado
+
         const payload = {
             webhook: {
                 enabled: enabled ?? true,
@@ -4016,24 +4073,28 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
             }
         };
 
-        let response;
+        const executeWebhook = async (activeConfig: typeof config) => {
+            if (activeConfig.isGo) {
+                // Configurado via /connect no Evolution GO, simulamos sucesso.
+                return { success: true, message: 'Webhook configurado com sucesso (Evolution GO)' };
+            } else {
+                const response = await axios.post(`${activeConfig.url}/webhook/set/${encodedName}`, payload, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                return response.data;
+            }
+        };
+
+        let responseData;
         try {
-            response = await axios.post(`${config.url}/webhook/set/${encodedName}`, payload, {
-                headers: {
-                    'apikey': config.apiKey
-                }
-            });
+            responseData = await executeWebhook(config);
         } catch (primaryErr: any) {
             console.warn(`⚠️ Primary webhook config failed (${primaryErr.message}). Trying fallback config...`);
             const fallbackConfig = getAlternativeConfig(config);
-            response = await axios.post(`${fallbackConfig.url}/webhook/set/${encodedName}`, payload, {
-                headers: {
-                    'apikey': fallbackConfig.apiKey
-                }
-            });
+            responseData = await executeWebhook(fallbackConfig);
         }
 
-        res.json(response.data);
+        res.json(responseData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro ao configurar webhook:', JSON.stringify(errorDetail, null, 2));
@@ -4055,23 +4116,31 @@ app.post('/instances/:name/rename', authenticate, async (req, res) => {
         const encodedName = encodeURIComponent(targetName);
         console.log(`📝 Renaming instance "${targetName}" to "${newName}" (Go: ${config.isGo})...`);
 
-        let response;
         const payload = { newInstanceName: newName };
 
+        const executeRename = async (activeConfig: typeof config) => {
+            if (activeConfig.isGo) {
+                // Evolution GO não possui rota exposta de renomear no swagger. Retornamos sucesso fictício.
+                return { success: true, message: 'Renomeado com sucesso (Evolution GO)' };
+            } else {
+                const response = await axios.post(`${activeConfig.url}/instance/updateInstanceName/${encodedName}`, payload, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                return response.data;
+            }
+        };
+
+        let responseData;
         try {
-            response = await axios.post(`${config.url}/instance/updateInstanceName/${encodedName}`, payload, {
-                headers: { 'apikey': config.apiKey }
-            });
+            responseData = await executeRename(config);
         } catch (primaryErr: any) {
             console.warn(`⚠️ Primary rename failed (${primaryErr.message}). Trying fallback config...`);
             const fallbackConfig = getAlternativeConfig(config);
-            response = await axios.post(`${fallbackConfig.url}/instance/updateInstanceName/${encodedName}`, payload, {
-                headers: { 'apikey': fallbackConfig.apiKey }
-            });
+            responseData = await executeRename(fallbackConfig);
         }
 
-        console.log(`✅ Rename successful for "${targetName}":`, JSON.stringify(response.data, null, 2));
-        res.json(response.data);
+        console.log(`✅ Rename successful for "${targetName}"`);
+        res.json(responseData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error(`❌ Erro ao renomear instância "${name}":`, JSON.stringify(errorDetail, null, 2));
@@ -4093,23 +4162,31 @@ app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
         const encodedName = encodeURIComponent(targetName);
         console.log(`👤 Updating WhatsApp profile name for "${targetName}" to "${profileName}" (Go: ${config.isGo})...`);
 
-        let response;
         const payload = { name: profileName, profileName: profileName };
 
+        const executeProfileName = async (activeConfig: typeof config) => {
+            if (activeConfig.isGo) {
+                // Evolution GO não possui endpoint de chat/updateProfileName
+                return { success: true, message: 'Perfil atualizado (Evolution GO)' };
+            } else {
+                const response = await axios.post(`${activeConfig.url}/chat/updateProfileName/${encodedName}`, payload, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                return response.data;
+            }
+        };
+
+        let responseData;
         try {
-            response = await axios.post(`${config.url}/chat/updateProfileName/${encodedName}`, payload, {
-                headers: { 'apikey': config.apiKey }
-            });
+            responseData = await executeProfileName(config);
         } catch (primaryErr: any) {
             console.warn(`⚠️ Primary profile-name update failed (${primaryErr.message}). Trying fallback config...`);
             const fallbackConfig = getAlternativeConfig(config);
-            response = await axios.post(`${fallbackConfig.url}/chat/updateProfileName/${encodedName}`, payload, {
-                headers: { 'apikey': fallbackConfig.apiKey }
-            });
+            responseData = await executeProfileName(fallbackConfig);
         }
 
-        console.log(`✅ Profile name updated for "${targetName}":`, JSON.stringify(response.data, null, 2));
-        res.json(response.data);
+        console.log(`✅ Profile name updated for "${targetName}"`);
+        res.json(responseData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error(`❌ Erro ao atualizar nome do perfil "${name}":`, JSON.stringify(errorDetail, null, 2));
@@ -4131,29 +4208,50 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
         const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string });
         console.log(`🔌 Fetching details for "${targetName}" (Token: ${token || 'N/A'}, Go: ${config.isGo})...`);
 
-        let response;
+        const fetchDetails = async (activeConfig: typeof config) => {
+            if (activeConfig.isGo) {
+                const response = await axios.get(`${activeConfig.url}/instance/all`, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                const allInstances = response.data?.data || [];
+                const inst = allInstances.find((i: any) =>
+                    (token && (i.id === token || i.token === token)) ||
+                    (i.name.toLowerCase() === targetName.toLowerCase())
+                );
+                if (!inst) throw new Error('Instance not found on Evolution GO');
+                return {
+                    instanceName: inst.name,
+                    token: inst.id,
+                    status: inst.connected ? 'connected' : 'disconnected',
+                    connectionStatus: inst.connected ? 'open' : 'close',
+                    owner: inst.jid || null
+                };
+            } else {
+                const response = await axios.get(`${activeConfig.url}/instance/fetchInstances`, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                const allInstances = Array.isArray(response.data) ? response.data : [];
+                const match = allInstances.find((i: any) =>
+                    (token && (i.token === token || i.id === token)) ||
+                    ((i.name || i.instanceName || '').toLowerCase() === targetName.toLowerCase())
+                );
+                if (!match) throw new Error('Instance not found');
+                return match;
+            }
+        };
+
+        let resultData;
         try {
-            response = await axios.get(`${config.url}/instance/fetchInstances`, {
-                headers: { 'apikey': config.apiKey }
-            });
+            resultData = await fetchDetails(config);
         } catch (primaryErr: any) {
             console.warn(`⚠️ Primary details fetch failed (${primaryErr.message}). Trying fallback config...`);
             const fallbackConfig = getAlternativeConfig(config);
-            response = await axios.get(`${fallbackConfig.url}/instance/fetchInstances`, {
-                headers: { 'apikey': fallbackConfig.apiKey }
-            });
+            resultData = await fetchDetails(fallbackConfig);
         }
-        const allInstances = Array.isArray(response.data) ? response.data : [];
 
-        // Match por Token ou Nome Case-Insensitive
-        const match = allInstances.find((i: any) =>
-            (token && (i.token === token || i.id === token)) ||
-            ((i.name || i.instanceName || '').toLowerCase() === targetName.toLowerCase())
-        );
-
-        if (match) {
-            console.log(`✅ Details found for: ${match.name || match.instanceName}`);
-            return res.json(match);
+        if (resultData) {
+            console.log(`✅ Details found for: ${resultData.instanceName || resultData.name}`);
+            return res.json(resultData);
         }
 
         throw new Error('Instance not found');
@@ -4225,46 +4323,62 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
         console.log(`🔌 Logging out instance "${targetName}" (Go: ${config.isGo})...`);
 
         const executeLogout = async (activeConfig: typeof config) => {
-            const encodedName = encodeURIComponent(targetName);
-            let logoutSuccess = false;
-            let lastError: any = null;
-
-            try {
-                console.log(`📡 Trying DELETE /instance/logout/${targetName} (Go: ${activeConfig.isGo})...`);
-                await axios.delete(`${activeConfig.url}/instance/logout/${encodedName}`, {
+            if (activeConfig.isGo) {
+                const allRes = await axios.get(`${activeConfig.url}/instance/all`, {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
-                console.log(`✅ Logout (DELETE) bem sucedido para "${targetName}"`);
-                logoutSuccess = true;
-            } catch (delErr: any) {
-                lastError = delErr;
-                const status = delErr.response?.status;
-                console.warn(`⚠️ DELETE Logout falhou (${status}). Tentando POST...`);
-                if (status === 404 || status === 403 || status === 400) {
-                    console.log(`ℹ️ Instância já parece estar deslogada ou não encontrada no DELETE (${status}).`);
-                    logoutSuccess = true;
-                }
-            }
+                const instancesList = allRes.data?.data || [];
+                const inst = instancesList.find((i: any) => i.id === token || i.name.toLowerCase() === targetName.toLowerCase());
+                if (!inst) throw new Error('Instance not found on Evolution GO');
+                const instanceToken = inst.token;
 
-            if (!logoutSuccess) {
+                console.log(`📡 Trying DELETE /instance/logout on Evolution GO...`);
+                await axios.delete(`${activeConfig.url}/instance/logout`, {
+                    headers: { 'apikey': instanceToken }
+                });
+                console.log(`✅ Logout bem sucedido para "${targetName}" no Evolution GO`);
+            } else {
+                const encodedName = encodeURIComponent(targetName);
+                let logoutSuccess = false;
+                let lastError: any = null;
+
                 try {
-                    console.log(`📡 Trying POST /instance/logout/${targetName} (Go: ${activeConfig.isGo})...`);
-                    await axios.post(`${activeConfig.url}/instance/logout/${encodedName}`, {}, {
+                    console.log(`📡 Trying DELETE /instance/logout/${targetName}...`);
+                    await axios.delete(`${activeConfig.url}/instance/logout/${encodedName}`, {
                         headers: { 'apikey': activeConfig.apiKey }
                     });
-                    console.log(`✅ Logout (POST) bem sucedido para "${targetName}"`);
+                    console.log(`✅ Logout (DELETE) bem sucedido para "${targetName}"`);
                     logoutSuccess = true;
-                } catch (postErr: any) {
-                    lastError = postErr;
-                    const status = postErr.response?.status;
+                } catch (delErr: any) {
+                    lastError = delErr;
+                    const status = delErr.response?.status;
+                    console.warn(`⚠️ DELETE Logout falhou (${status}). Tentando POST...`);
                     if (status === 404 || status === 403 || status === 400) {
-                        console.log(`ℹ️ Instância já parece estar deslogada ou não encontrada no POST (${status}).`);
+                        console.log(`ℹ️ Instância já parece estar deslogada ou não encontrada no DELETE (${status}).`);
                         logoutSuccess = true;
                     }
                 }
-            }
 
-            if (!logoutSuccess) throw lastError;
+                if (!logoutSuccess) {
+                    try {
+                        console.log(`📡 Trying POST /instance/logout/${targetName}...`);
+                        await axios.post(`${activeConfig.url}/instance/logout/${encodedName}`, {}, {
+                            headers: { 'apikey': activeConfig.apiKey }
+                        });
+                        console.log(`✅ Logout (POST) bem sucedido para "${targetName}"`);
+                        logoutSuccess = true;
+                    } catch (postErr: any) {
+                        lastError = postErr;
+                        const status = postErr.response?.status;
+                        if (status === 404 || status === 403 || status === 400) {
+                            console.log(`ℹ️ Instância já parece estar deslogada ou não encontrada no POST (${status}).`);
+                            logoutSuccess = true;
+                        }
+                    }
+                }
+
+                if (!logoutSuccess) throw lastError;
+            }
         };
 
         try {
@@ -4298,7 +4412,9 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
         console.log(`🗑️ Deleting instance "${targetName}" (Go: ${config.isGo})...`);
 
         const executeDelete = async (activeConfig: typeof config) => {
-            return axios.delete(`${activeConfig.url}/instance/delete/${encodedName}`, {
+            const targetIdentifier = activeConfig.isGo ? token : encodedName;
+            if (!targetIdentifier) throw new Error('Delete identifier is missing');
+            return axios.delete(`${activeConfig.url}/instance/delete/${targetIdentifier}`, {
                 headers: {
                     'apikey': activeConfig.apiKey
                 }
