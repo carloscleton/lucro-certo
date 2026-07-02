@@ -1752,6 +1752,46 @@ export function FiscalSettings() {
                 ? (isNacional ? "Belo Horizonte" : "Maringa")
                 : (config.endereco?.cidade || (isNacional ? "Belo Horizonte" : "Maringa")));
 
+        const isRegimeNormal = config.regime_tributario === '3';
+        const serviceItem: any = {
+            codigo: isNfeio 
+                ? (nfeioConfig.cityServiceCode || nfeioConfig.cnae || "1.01")
+                : (isNacional ? "010101" : "01.01"),
+            discriminacao: isNfeio ? "Prestação de serviço de teste via NFe.io" : "Descrição dos serviços prestados via Laboratório JSON",
+            iss: {
+                tipoTributacao: isNfeio ? 1 : (isNacional ? 1 : 6),
+                exigibilidade: 1,
+                retido: false,
+                aliquota: isNfeio ? parseFloat(nfeioConfig.aliquotaIss || '2.00') : (isNacional ? parseFloat(config.simples_nacional_aliquota || '2.00') : 2)
+            },
+            valor: {
+                servico: 100.00
+            },
+            quantidade: 1,
+            valorUnitario: 100.00,
+            tributacaoTotal: {
+                federal: {
+                    valor: 0.90,
+                    valorPercentual: 0.90
+                },
+                estadual: {
+                    valor: 0.00,
+                    valorPercentual: 0.00
+                },
+                municipal: {
+                    valor: 0.10,
+                    valorPercentual: 0.10
+                }
+            }
+        };
+
+        if (isRegimeNormal) {
+            serviceItem.pis = { aliquota: parseFloat(config.default_pis_aliquota || '0.65') };
+            serviceItem.cofins = { aliquota: parseFloat(config.default_cofins_aliquota || '3.00') };
+            serviceItem.csll = { aliquota: parseFloat(config.default_csll_aliquota || '1.00') };
+            serviceItem.ir = { aliquota: parseFloat(config.default_irrf_aliquota || '1.50') };
+        }
+
         const mock: any = [
             {
                 idIntegracao: `TEST_${Date.now()}`,
@@ -1786,39 +1826,7 @@ export function FiscalSettings() {
                         bairro: "Centro"
                     }
                 },
-                servico: [
-                    {
-                        codigo: isNfeio 
-                            ? (nfeioConfig.cityServiceCode || nfeioConfig.cnae || "1.01")
-                            : (isNacional ? "010101" : "01.01"),
-                        discriminacao: isNfeio ? "Prestação de serviço de teste via NFe.io" : "Descrição dos serviços prestados via Laboratório JSON",
-                        iss: {
-                            tipoTributacao: isNfeio ? 1 : (isNacional ? 1 : 6),
-                            exigibilidade: 1,
-                            retido: false,
-                            aliquota: isNfeio ? parseFloat(nfeioConfig.aliquotaIss || '2.00') : (isNacional ? parseFloat(config.simples_nacional_aliquota || '2.00') : 2)
-                        },
-                        valor: {
-                            servico: 100.00
-                        },
-                        quantidade: 1,
-                        valorUnitario: 100.00,
-                        tributacaoTotal: {
-                            federal: {
-                                valor: 0.90,
-                                valorPercentual: 0.90
-                            },
-                            estadual: {
-                                valor: 0.00,
-                                valorPercentual: 0.00
-                            },
-                            municipal: {
-                                valor: 0.10,
-                                valorPercentual: 0.10
-                            }
-                        }
-                    }
-                ]
+                servico: [serviceItem]
             }
         ];
         setTestJson(JSON.stringify(mock, null, 2));
