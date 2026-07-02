@@ -1187,16 +1187,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             if (nfeioConfig.simplesNacional !== undefined) nfeioPayload.simpleSocialScheme = Boolean(nfeioConfig.simplesNacional);
             if (nfeioConfig.cnae) nfeioPayload.cnaeCode = String(nfeioConfig.cnae).trim();
 
-            // Adiciona alíquotas de retenções federais se existirem (convertendo para decimal)
-            const pisRate = (serviceItem?.pis?.aliquota ? toDecimalRate(Number(serviceItem.pis.aliquota)) : undefined) ||
-                            (config?.default_pis_aliquota ? toDecimalRate(Number(String(config.default_pis_aliquota).replace(',', '.'))) : undefined);
-            const cofinsRate = (serviceItem?.cofins?.aliquota ? toDecimalRate(Number(serviceItem.cofins.aliquota)) : undefined) ||
-                               (config?.default_cofins_aliquota ? toDecimalRate(Number(String(config.default_cofins_aliquota).replace(',', '.'))) : undefined);
-            const csllRate = (serviceItem?.csll?.aliquota ? toDecimalRate(Number(serviceItem.csll.aliquota)) : undefined) ||
-                             (config?.default_csll_aliquota ? toDecimalRate(Number(String(config.default_csll_aliquota).replace(',', '.'))) : undefined);
-            const irRate = (serviceItem?.ir?.aliquota ? toDecimalRate(Number(serviceItem.ir.aliquota)) : undefined) ||
-                           (config?.default_irrf_aliquota ? toDecimalRate(Number(String(config.default_irrf_aliquota).replace(',', '.'))) : undefined);
-            const inssRate = serviceItem?.inss?.aliquota ? toDecimalRate(Number(serviceItem.inss.aliquota)) : undefined;
+            // Adiciona alíquotas de retenções federais se existirem e o tomador for Pessoa Jurídica (CNPJ)
+            const isIndividual = borrowerType === 'NaturalPerson';
+            const pisRate = !isIndividual ? ((serviceItem?.pis?.aliquota ? toDecimalRate(Number(serviceItem.pis.aliquota)) : undefined) ||
+                            (config?.default_pis_aliquota ? toDecimalRate(Number(String(config.default_pis_aliquota).replace(',', '.'))) : undefined)) : undefined;
+            const cofinsRate = !isIndividual ? ((serviceItem?.cofins?.aliquota ? toDecimalRate(Number(serviceItem.cofins.aliquota)) : undefined) ||
+                               (config?.default_cofins_aliquota ? toDecimalRate(Number(String(config.default_cofins_aliquota).replace(',', '.'))) : undefined)) : undefined;
+            const csllRate = !isIndividual ? ((serviceItem?.csll?.aliquota ? toDecimalRate(Number(serviceItem.csll.aliquota)) : undefined) ||
+                             (config?.default_csll_aliquota ? toDecimalRate(Number(String(config.default_csll_aliquota).replace(',', '.'))) : undefined)) : undefined;
+            const irRate = !isIndividual ? ((serviceItem?.ir?.aliquota ? toDecimalRate(Number(serviceItem.ir.aliquota)) : undefined) ||
+                           (config?.default_irrf_aliquota ? toDecimalRate(Number(String(config.default_irrf_aliquota).replace(',', '.'))) : undefined)) : undefined;
+            const inssRate = !isIndividual ? (serviceItem?.inss?.aliquota ? toDecimalRate(Number(serviceItem.inss.aliquota)) : undefined) : undefined;
 
             if (pisRate && pisRate > 0) nfeioPayload.pisRate = pisRate;
             if (cofinsRate && cofinsRate > 0) nfeioPayload.cofinsRate = cofinsRate;
@@ -1468,7 +1469,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
 
                 if (item.tomador && item.tomador.cpfCnpj) {
-                    item.tomador.cpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
+                    const cleanCpfCnpj = String(item.tomador.cpfCnpj).replace(/\D/g, '');
+                    item.tomador.cpfCnpj = cleanCpfCnpj;
+                    if (cleanCpfCnpj.length === 11 && item.servico) {
+                        const services = Array.isArray(item.servico) ? item.servico : [item.servico];
+                        services.forEach((s: any) => {
+                            delete s.pis;
+                            delete s.cofins;
+                            delete s.csll;
+                            delete s.ir;
+                            delete s.inss;
+                        });
+                    }
                 }
 
                 const targetIbge = isNacional ? '3106200' : '4115200';
