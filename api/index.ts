@@ -3929,20 +3929,22 @@ app.post('/instances', authenticate, async (req, res) => {
             events: webhook_events || ['MESSAGES_UPSERT']
         } : undefined;
 
-        console.log('📤 Sending payload to Evolution:', JSON.stringify({
+        const payload: any = {
             instanceName: name,
+            name: name, // Compatibilidade com Evolution GO
             token: token,
-            webhook: webhookConfig
-        }, null, 2));
+            qrcode: true,
+            integration: 'WHATSAPP-BAILEYS'
+        };
+
+        if (!config.isGo && webhookConfig) {
+            payload.webhook = webhookConfig;
+        }
+
+        console.log('📤 Sending payload to Evolution:', JSON.stringify(payload, null, 2));
 
         // 1. Chamar Evolution API para criar
-        const response = await axios.post(`${config.url}/instance/create`, {
-            instanceName: name, // O NOME amigável agora volta a ser o identificador na Evolution
-            token: token,      // O ID técnico (UUID) vai como o token da instância
-            qrcode: true,
-            integration: 'WHATSAPP-BAILEYS',
-            webhook: webhookConfig
-        }, {
+        const response = await axios.post(`${config.url}/instance/create`, payload, {
             headers: {
                 'apikey': config.apiKey
             }
@@ -3950,14 +3952,29 @@ app.post('/instances', authenticate, async (req, res) => {
 
         console.log('✅ Instance created on Evolution:', response.data);
 
+        // Formatar resposta para manter compatibilidade com o frontend
+        let finalResponseData = response.data;
+        if (config.isGo) {
+            finalResponseData = {
+                instance: {
+                    instanceName: response.data.data?.name || name,
+                    token: response.data.data?.id || token, // Salva o UUID do ID como o token
+                    status: 'created'
+                },
+                hash: {
+                    apikey: response.data.data?.id || token
+                }
+            };
+        }
+
         // 2. Retornar dados para o frontend salvar
-        res.status(201).json(response.data);
+        res.status(201).json(finalResponseData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro na Evolution API:', errorDetail);
         res.status(500).json({
             error: 'Erro ao criar instância na Evolution API',
-            detail: errorDetail
+            detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
     }
 });
