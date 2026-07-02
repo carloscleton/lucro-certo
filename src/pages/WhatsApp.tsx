@@ -97,18 +97,27 @@ export function WhatsApp() {
     const [webhookBase64, setWebhookBase64] = useState(true);
 
     // EvoGo Advanced Settings State
+    const [evoGoProfileName, setEvoGoProfileName] = useState('');
     const [evoGoAlwaysOnline, setEvoGoAlwaysOnline] = useState(false);
     const [evoGoRejectCall, setEvoGoRejectCall] = useState(false);
     const [evoGoMsgRejectCall, setEvoGoMsgRejectCall] = useState('');
     const [evoGoReadMessages, setEvoGoReadMessages] = useState(false);
     const [evoGoIgnoreGroups, setEvoGoIgnoreGroups] = useState(false);
     const [evoGoIgnoreStatus, setEvoGoIgnoreStatus] = useState(false);
+    // EvoGo Transport
+    const [evoGoRabbitMQ, setEvoGoRabbitMQ] = useState('default');
+    const [evoGoWebSocket, setEvoGoWebSocket] = useState('default');
+    const [evoGoNats, setEvoGoNats] = useState('default');
 
     // Detect provider
     const isEvoGo = currentEntity.settings?.whatsapp_provider === 'evolution_go';
 
-    // EvoGo Webhook events (different from EvoAPI)
-    const EVO_GO_EVENTS = ['MESSAGE', 'PRESENCE', 'CHAT_PRESENCE', 'CONNECTION', 'QRCODE'];
+    // EvoGo Webhook events (lista completa)
+    const EVO_GO_EVENTS = [
+        'ALL', 'MESSAGE', 'READ_RECEIPT', 'PRESENCE', 'HISTORY_SYNC',
+        'CHAT_PRESENCE', 'CALL', 'CONNECTION', 'QRCODE',
+        'LABEL', 'CONTACT', 'GROUP', 'NEWSLETTER'
+    ];
 
     const ALL_EVENTS = [
         'APPLICATION_STARTUP', 'CALL', 'CHATS_DELETE', 'CHATS_SET', 'CHATS_UPDATE',
@@ -119,7 +128,9 @@ export function WhatsApp() {
         'QRCODE_UPDATED', 'REMOVE_INSTANCE', 'SEND_MESSAGE', 'TYPEBOT_CHANGE_STATUS', 'TYPEBOT_START'
     ];
 
-    const [selectedEvents, setSelectedEvents] = useState<string[]>(['MESSAGES_UPSERT']);
+    const [selectedEvents, setSelectedEvents] = useState<string[]>(
+        isEvoGo ? ['MESSAGE'] : ['MESSAGES_UPSERT']
+    );
 
     const isLimitReached = currentEntity.type === 'company' && instances.length >= (currentEntity.whatsapp_instance_limit || 1);
 
@@ -298,6 +309,12 @@ export function WhatsApp() {
                 // EvoGo payload: advancedSettings embutido + webhook via URL
                 requestBody.webhook_url = evoWebhookUrl || undefined;
                 requestBody.webhook_events = evoWebhookUrl ? selectedEvents : undefined;
+                requestBody.profile_name = evoGoProfileName || undefined;
+                requestBody.transport = {
+                    rabbitMQ: evoGoRabbitMQ !== 'default' ? evoGoRabbitMQ : undefined,
+                    webSocket: evoGoWebSocket !== 'default' ? evoGoWebSocket : undefined,
+                    nats: evoGoNats !== 'default' ? evoGoNats : undefined
+                };
                 requestBody.advancedSettings = {
                     alwaysOnline: evoGoAlwaysOnline,
                     rejectCall: evoGoRejectCall,
@@ -356,12 +373,17 @@ export function WhatsApp() {
             setFriendlyName('');
             setInstanceId('');
             // Reset EvoGo settings
+            setEvoGoProfileName('');
             setEvoGoAlwaysOnline(false);
             setEvoGoRejectCall(false);
             setEvoGoMsgRejectCall('');
             setEvoGoReadMessages(false);
             setEvoGoIgnoreGroups(false);
             setEvoGoIgnoreStatus(false);
+            setEvoGoRabbitMQ('default');
+            setEvoGoWebSocket('default');
+            setEvoGoNats('default');
+            setSelectedEvents(isEvoGo ? ['MESSAGE'] : ['MESSAGES_UPSERT']);
         } catch (error: any) {
             console.error('Erro ao conectar com Evolution:', error);
             notify('error', error.message || 'Não foi possível criar a instância.', 'Erro');
@@ -675,7 +697,7 @@ export function WhatsApp() {
 
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                 <form onSubmit={handleCreateInstance} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                    <div className="md:col-span-4">
+                    <div className={isEvoGo ? 'md:col-span-3' : 'md:col-span-4'}>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Nome Amigável
                         </label>
@@ -688,7 +710,21 @@ export function WhatsApp() {
                             required
                         />
                     </div>
-                    <div className="md:col-span-6">
+                    {isEvoGo && (
+                        <div className="md:col-span-3">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Nome do Perfil
+                            </label>
+                            <input
+                                type="text"
+                                value={evoGoProfileName}
+                                onChange={(e) => setEvoGoProfileName(e.target.value)}
+                                placeholder="Ex: Empresa X"
+                                className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500"
+                            />
+                        </div>
+                    )}
+                    <div className={isEvoGo ? 'md:col-span-4' : 'md:col-span-6'}>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             ID da Instância (Técnico)
                         </label>
@@ -771,23 +807,43 @@ export function WhatsApp() {
                                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Eventos para Webhook</label>
                                             <button
                                                 type="button"
-                                                onClick={() => setSelectedEvents(selectedEvents.length === EVO_GO_EVENTS.length ? [] : [...EVO_GO_EVENTS])}
+                                                onClick={() => setSelectedEvents(
+                                                    selectedEvents.length === EVO_GO_EVENTS.length
+                                                        ? []
+                                                        : [...EVO_GO_EVENTS]
+                                                )}
                                                 className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-wider"
                                             >
                                                 {selectedEvents.length === EVO_GO_EVENTS.length ? 'Desmarcar Todos' : 'Marcar Todos'}
                                             </button>
                                         </div>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700">
                                             {EVO_GO_EVENTS.map(event => (
                                                 <label
                                                     key={event}
-                                                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${selectedEvents.includes(event) ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`}
-                                                    onClick={() => toggleEvent(event)}
+                                                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                                                        event === 'ALL'
+                                                            ? (selectedEvents.includes('ALL') ? 'bg-indigo-50 dark:bg-indigo-900/20 col-span-2 sm:col-span-4 border border-indigo-200 dark:border-indigo-700' : 'col-span-2 sm:col-span-4 hover:bg-gray-50 dark:hover:bg-slate-700')
+                                                            : (selectedEvents.includes(event) ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-gray-50 dark:hover:bg-slate-700')
+                                                    }`}
+                                                    onClick={() => {
+                                                        if (event === 'ALL') {
+                                                            setSelectedEvents(selectedEvents.includes('ALL') ? [] : [...EVO_GO_EVENTS]);
+                                                        } else {
+                                                            toggleEvent(event);
+                                                        }
+                                                    }}
                                                 >
-                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${selectedEvents.includes(event) ? 'bg-emerald-500 border-emerald-500' : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-500'}`}>
-                                                        {selectedEvents.includes(event) && <Check size={10} className="text-white" strokeWidth={4} />}
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                        event === 'ALL'
+                                                            ? (selectedEvents.includes('ALL') ? 'bg-indigo-500 border-indigo-500' : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-500')
+                                                            : (selectedEvents.includes(event) ? 'bg-emerald-500 border-emerald-500' : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-500')
+                                                    }`}>
+                                                        {(selectedEvents.includes(event)) && <Check size={10} className="text-white" strokeWidth={4} />}
                                                     </div>
-                                                    <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">{event}</span>
+                                                    <span className={`text-[11px] font-medium ${event === 'ALL' ? 'text-indigo-700 dark:text-indigo-400 font-bold' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                        {event}{event === 'ALL' ? ' (Todos)' : ''}
+                                                    </span>
                                                 </label>
                                             ))}
                                         </div>
@@ -836,6 +892,31 @@ export function WhatsApp() {
                                                 />
                                             </div>
                                         )}
+                                    </div>
+
+                                    {/* RabbitMQ / WebSocket / NATS */}
+                                    <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
+                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Transporte de Eventos</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'RabbitMQ', val: evoGoRabbitMQ, set: setEvoGoRabbitMQ },
+                                                { label: 'WebSocket', val: evoGoWebSocket, set: setEvoGoWebSocket },
+                                                { label: 'NATS', val: evoGoNats, set: setEvoGoNats },
+                                            ].map(({ label, val, set }) => (
+                                                <div key={label}>
+                                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</label>
+                                                    <select
+                                                        value={val}
+                                                        onChange={(e) => set(e.target.value)}
+                                                        className="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-2 px-3 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                                                    >
+                                                        <option value="default">Padrão</option>
+                                                        <option value="enabled">Habilitado</option>
+                                                        <option value="disabled">Desabilitado</option>
+                                                    </select>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             ) : (

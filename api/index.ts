@@ -3922,15 +3922,32 @@ app.post('/instances', authenticate, async (req, res) => {
 
         if (config.isGo) {
             // ===== EVOLUTION GO PAYLOAD =====
-            // Apenas name, token e advancedSettings embutido. Webhook é configurado via /instance/connect
+            const { profile_name, transport, webhook_events: goEvents } = req.body;
+
             payload = {
                 name: name,
                 token: token
             };
 
+            // Nome do Perfil (se fornecido)
+            if (profile_name) payload.profileName = profile_name;
+
+            // Webhook events (lista de eventos EvoGo)
+            if (goEvents && Array.isArray(goEvents) && goEvents.length > 0) {
+                payload.webhookEvents = goEvents;
+            }
+
+            // Transporte personalizado (RabbitMQ, WebSocket, NATS)
+            if (transport && typeof transport === 'object') {
+                const cleanTransport: any = {};
+                if (transport.rabbitMQ && transport.rabbitMQ !== 'default') cleanTransport.rabbitMQ = transport.rabbitMQ;
+                if (transport.webSocket && transport.webSocket !== 'default') cleanTransport.webSocket = transport.webSocket;
+                if (transport.nats && transport.nats !== 'default') cleanTransport.nats = transport.nats;
+                if (Object.keys(cleanTransport).length > 0) payload.transport = cleanTransport;
+            }
+
             // Incluir advancedSettings se fornecido pelo frontend
             if (advancedSettings && typeof advancedSettings === 'object') {
-                // Filtrar apenas campos com valores relevantes
                 const cleanAdvanced: any = {};
                 if (typeof advancedSettings.alwaysOnline === 'boolean') cleanAdvanced.alwaysOnline = advancedSettings.alwaysOnline;
                 if (typeof advancedSettings.rejectCall === 'boolean') cleanAdvanced.rejectCall = advancedSettings.rejectCall;
@@ -3942,6 +3959,7 @@ app.post('/instances', authenticate, async (req, res) => {
                     payload.advancedSettings = cleanAdvanced;
                 }
             }
+
         } else {
             // ===== EVOLUTION API PAYLOAD =====
             // Configuração do Webhook
