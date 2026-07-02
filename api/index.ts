@@ -4000,14 +4000,21 @@ app.post('/instances', authenticate, async (req, res) => {
         // Formatar resposta para manter compatibilidade com o frontend
         let finalResponseData = response.data;
         if (config.isGo) {
+            // EvoGo pode retornar o ID gerado em diferentes campos dependendo da versão
+            const evoGoData = response.data?.data || response.data || {};
+            const generatedId = evoGoData.id || evoGoData.instanceId || evoGoData.token || token;
+            const instanceName = evoGoData.name || evoGoData.instanceName || name;
+
+            console.log(`🆔 EvoGo generated ID: ${generatedId} (from response.data.data:`, JSON.stringify(evoGoData), ')');
+
             finalResponseData = {
                 instance: {
-                    instanceName: response.data.data?.name || name,
-                    token: response.data.data?.id || token, // Salva o UUID do ID como o token
+                    instanceName: instanceName,
+                    token: generatedId,
                     status: 'created'
                 },
                 hash: {
-                    apikey: response.data.data?.id || token
+                    apikey: generatedId
                 }
             };
         }

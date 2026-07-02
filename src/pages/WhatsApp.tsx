@@ -347,9 +347,10 @@ export function WhatsApp() {
             }
 
             const data = await response.json().catch(() => ({}));
-            // A Evolution agora usa o Nome Amigável como identifier, mas o Token é o nosso UUID
-            // Queremos salvar o UUID (token) para usar nos payloads do n8n
-            const technicalId = data.instance?.token || instanceId;
+            // Para EvoGo: a API pode ignorar o token enviado e gerar o seu próprio.
+            // Sempre priorizar o ID retornado pela API.
+            // Para EvoAPI: usa o token retornado, com fallback para o instanceId local.
+            const technicalId = data.instance?.token || data.hash?.apikey || instanceId;
 
             // 2. Salvar metadados no Supabase
             const { data: dbData, error } = await supabase
@@ -697,7 +698,7 @@ export function WhatsApp() {
 
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                 <form onSubmit={handleCreateInstance} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                    <div className={isEvoGo ? 'md:col-span-3' : 'md:col-span-4'}>
+                    <div className={isEvoGo ? 'md:col-span-4' : 'md:col-span-3'}>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Nome Amigável
                         </label>
@@ -724,30 +725,32 @@ export function WhatsApp() {
                             />
                         </div>
                     )}
-                    <div className={isEvoGo ? 'md:col-span-4' : 'md:col-span-6'}>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            ID da Instância (Técnico)
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={instanceId}
-                                onChange={(e) => setInstanceId(e.target.value)}
-                                placeholder="Clique na varinha para gerar ID aleatório"
-                                className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 pr-12 focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
-                                required
-                            />
-                            <Tooltip content="Gerar ID Aleatório">
-                                <button
-                                    type="button"
-                                    onClick={handleRandomizeName}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
-                                >
-                                    <Wand2 size={18} />
-                                </button>
-                            </Tooltip>
+                    {!isEvoGo && (
+                        <div className="md:col-span-7">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                ID da Instância (Técnico)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={instanceId}
+                                    onChange={(e) => setInstanceId(e.target.value)}
+                                    placeholder="Clique na varinha para gerar ID aleatório"
+                                    className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 pr-12 focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
+                                    required
+                                />
+                                <Tooltip content="Gerar ID Aleatório">
+                                    <button
+                                        type="button"
+                                        onClick={handleRandomizeName}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
+                                    >
+                                        <Wand2 size={18} />
+                                    </button>
+                                </Tooltip>
+                            </div>
                         </div>
-                    </div>
+                    )}
                     <div className="md:col-span-2">
                         <Button
                             type="submit"
@@ -849,10 +852,10 @@ export function WhatsApp() {
                                         </div>
                                     </div>
 
-                                    {/* EvoGo Advanced Config */}
+                                    {/* EvoGo Advanced Config - checkbox list style */}
                                     <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
-                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Configurações Avançadas</label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Configurações Avançadas</h3>
+                                        <div className="divide-y divide-gray-100 dark:divide-slate-700 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-800">
                                             {[
                                                 { label: 'Always Online', sub: 'Manter sempre online no WhatsApp', val: evoGoAlwaysOnline, set: setEvoGoAlwaysOnline },
                                                 { label: 'Reject Call', sub: 'Rejeitar chamadas automaticamente', val: evoGoRejectCall, set: setEvoGoRejectCall },
@@ -862,24 +865,25 @@ export function WhatsApp() {
                                             ].map(({ label, sub, val, set }) => (
                                                 <div
                                                     key={label}
-                                                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                                                        val
-                                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700'
-                                                            : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                                                    }`}
+                                                    className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
                                                     onClick={() => set(!val)}
                                                 >
                                                     <div>
-                                                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">{label}</p>
-                                                        <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                                                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{label}</p>
+                                                        <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
                                                     </div>
-                                                    <div className={`w-9 h-5 rounded-full relative flex-shrink-0 transition-colors ${val ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'}`}>
-                                                        <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.75 transition-all shadow-sm ${val ? 'right-0.75' : 'left-0.75'}`} style={{ top: '3px', ...(val ? { right: '3px' } : { left: '3px' }) }} />
+                                                    {/* Checkbox estilo imagem */}
+                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ml-6 ${
+                                                        val
+                                                            ? 'bg-emerald-500 border-emerald-500'
+                                                            : 'border-gray-300 dark:border-slate-500 bg-white dark:bg-slate-700'
+                                                    }`}>
+                                                        {val && <Check size={12} className="text-white" strokeWidth={3} />}
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-                                        {/* Msg Reject Call - só aparece quando rejectCall ativado */}
+                                        {/* Msg Reject Call */}
                                         {evoGoRejectCall && (
                                             <div className="mt-3">
                                                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mensagem ao rejeitar chamada</label>
@@ -892,6 +896,16 @@ export function WhatsApp() {
                                                 />
                                             </div>
                                         )}
+                                        {/* Botão Salvar Avançadas */}
+                                        <div className="flex justify-end mt-4">
+                                            <Button
+                                                type="submit"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-9 text-sm font-semibold flex items-center gap-2"
+                                            >
+                                                <Check size={15} strokeWidth={3} />
+                                                Salvar Avançadas
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     {/* RabbitMQ / WebSocket / NATS */}
