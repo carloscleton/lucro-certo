@@ -3576,10 +3576,9 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                             console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
                             
                             const targetName = instanceName.includes('-') ? instanceName : `${instanceName}-${invoice.company_id}`;
-                            const config = await getEvolutionConfig({ companyId: invoice.company_id });
                             const encodedName = encodeURIComponent(targetName);
                             
-                            await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
+                            await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
                                 number: recipientPhone,
                                 mediatype: 'document',
                                 mimetype: 'application/pdf',
@@ -3588,7 +3587,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                 fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
                             }, {
                                 headers: {
-                                    'apikey': config.apiKey,
+                                    'apikey': EVOLUTION_API_KEY,
                                     'Content-Type': 'application/json'
                                 },
                                 timeout: 8000
@@ -3854,15 +3853,14 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
 
 // Endpoints
 app.post('/instances', authenticate, async (req, res) => {
-    const { name, token: customToken, webhook_url, webhook_events, enabled, base64, company_id } = req.body;
+    const { name, token: customToken, webhook_url, webhook_events, enabled, base64 } = req.body;
 
     if (!name) {
         return res.status(400).json({ error: 'Nome da instância é obrigatório' });
     }
 
     try {
-        const config = await getEvolutionConfig({ companyId: company_id });
-        console.log(`🔌 Creating instance "${name}" on Evolution API (Go: ${config.isGo})...`);
+        console.log(`🔌 Creating instance "${name}" on Evolution API...`);
 
         // Função para gerar ID no formato 12-4-4-12 (Total 32 hex)
         const generateEvoID = () => {
@@ -3895,7 +3893,7 @@ app.post('/instances', authenticate, async (req, res) => {
         }, null, 2));
 
         // 1. Chamar Evolution API para criar
-        const response = await axios.post(`${config.url}/instance/create`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/instance/create`, {
             instanceName: name, // O NOME amigável agora volta a ser o identificador na Evolution
             token: token,      // O ID técnico (UUID) vai como o token da instância
             qrcode: true,
@@ -3903,7 +3901,7 @@ app.post('/instances', authenticate, async (req, res) => {
             webhook: webhookConfig
         }, {
             headers: {
-                'apikey': config.apiKey
+                'apikey': EVOLUTION_API_KEY
             }
         });
 
@@ -3916,17 +3914,45 @@ app.post('/instances', authenticate, async (req, res) => {
         console.error('❌ Erro na Evolution API:', errorDetail);
         res.status(500).json({
             error: 'Erro ao criar instância na Evolution API',
-         app.post('/instances/:name/webhook', authenticate, async (req, res) => {
+            detail: errorDetail
+        });
+    }
+});
+
+app.get('/instances/:name/connect', authenticate, async (req, res) => {
+    const { name } = req.params;
+
+    try {
+        const encodedName = encodeURIComponent(name);
+        console.log(`🔍 Fetching QR Code for instance "${name}"...`);
+        const response = await axios.get(`${EVOLUTION_API_URL}/instance/connect/${encodedName}`, {
+            headers: {
+                'apikey': EVOLUTION_API_KEY
+            }
+        });
+
+        console.log('✅ QR Code received');
+        res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        console.error('❌ Erro ao obter QR Code:', errorDetail);
+        res.status(500).json({
+            error: 'Erro ao buscar QR Code na Evolution API',
+            detail: errorDetail
+        });
+    }
+});
+
+app.post('/instances/:name/webhook', authenticate, async (req, res) => {
     const { name } = req.params;
     const { url, events, enabled, base64, token } = req.body;
 
     try {
         const targetName = await resolveTargetName(name, token);
-        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
-        console.log(`📡 Updating webhook for instance "${targetName}" (Go: ${config.isGo})...`);
+        console.log(`📡 Updating webhook for instance "${targetName}"...`);
         // O endpoint testado com sucesso é /webhook/set/:instance com payload aninhado
-        const response = await axios.post(`${config.url}/webhook/set/${encodedName}`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/webhook/set/${encodedName}`, {
             webhook: {
                 enabled: enabled ?? true,
                 url: url,
@@ -3936,7 +3962,7 @@ app.post('/instances', authenticate, async (req, res) => {
             }
         }, {
             headers: {
-                'apikey': config.apiKey
+                'apikey': EVOLUTION_API_KEY
             }
         });
 
@@ -3958,15 +3984,14 @@ app.post('/instances/:name/rename', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
-        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
-        console.log(`📝 Renaming instance "${targetName}" to "${newName}" (Go: ${config.isGo})...`);
+        console.log(`📝 Renaming instance "${targetName}" to "${newName}"...`);
 
-        const response = await axios.post(`${config.url}/instance/updateInstanceName/${encodedName}`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/instance/updateInstanceName/${encodedName}`, {
             newInstanceName: newName
         }, {
             headers: {
-                'apikey': config.apiKey
+                'apikey': EVOLUTION_API_KEY
             }
         });
 
@@ -3989,16 +4014,15 @@ app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
-        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
-        console.log(`👤 Updating WhatsApp profile name for "${targetName}" to "${profileName}" (Go: ${config.isGo})...`);
+        console.log(`👤 Updating WhatsApp profile name for "${targetName}" to "${profileName}"...`);
 
-        const response = await axios.post(`${config.url}/chat/updateProfileName/${encodedName}`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/chat/updateProfileName/${encodedName}`, {
             name: profileName,
             profileName: profileName
         }, {
             headers: {
-                'apikey': config.apiKey
+                'apikey': EVOLUTION_API_KEY
             }
         });
 
@@ -4014,25 +4038,25 @@ app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
     }
 });
 
+
+
 app.get('/instances/:name/details', authenticate, async (req, res) => {
     const { name } = req.params;
     const { token } = req.query;
 
     try {
-        const targetName = await resolveTargetName(name, token as string);
-        const config = await getEvolutionConfig({ instanceName: targetName });
-        console.log(`🔌 Fetching details for "${targetName}" (Token: ${token || 'N/A'}, Go: ${config.isGo})...`);
+        console.log(`🔌 Fetching details for "${name}" (Token: ${token || 'N/A'})...`);
 
         // Use o helper resiliente para encontrar os dados completos da instância
-        const response = await axios.get(`${config.url}/instance/fetchInstances`, {
-            headers: { 'apikey': config.apiKey }
+        const response = await axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, {
+            headers: { 'apikey': EVOLUTION_API_KEY }
         });
         const allInstances = Array.isArray(response.data) ? response.data : [];
 
         // Match por Token ou Nome Case-Insensitive
         const match = allInstances.find((i: any) =>
             (token && (i.token === token || i.id === token)) ||
-            ((i.name || i.instanceName || '').toLowerCase() === targetName.toLowerCase())
+            ((i.name || i.instanceName || '').toLowerCase() === name.toLowerCase())
         );
 
         if (match) {
@@ -4105,8 +4129,7 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
-        const config = await getEvolutionConfig({ instanceName: targetName });
-        console.log(`🔌 Logging out instance "${targetName}" (Go: ${config.isGo})...`);
+        console.log(`🔌 Logging out instance "${targetName}"...`);
 
         // Evolution API is inconsistent: some versions use POST, others DELETE.
         let logoutSuccess = false;
@@ -4115,8 +4138,8 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
         try {
             const encodedName = encodeURIComponent(targetName);
             console.log(`📡 Trying DELETE /instance/logout/${targetName}...`);
-            await axios.delete(`${config.url}/instance/logout/${encodedName}`, {
-                headers: { 'apikey': config.apiKey }
+            await axios.delete(`${EVOLUTION_API_URL}/instance/logout/${encodedName}`, {
+                headers: { 'apikey': EVOLUTION_API_KEY }
             });
             console.log(`✅ Logout (DELETE) bem sucedido para "${targetName}"`);
             logoutSuccess = true;
@@ -4134,8 +4157,8 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
             try {
                 const encodedName = encodeURIComponent(targetName);
                 console.log(`📡 Trying POST /instance/logout/${targetName}...`);
-                await axios.post(`${config.url}/instance/logout/${encodedName}`, {}, {
-                    headers: { 'apikey': config.apiKey }
+                await axios.post(`${EVOLUTION_API_URL}/instance/logout/${encodedName}`, {}, {
+                    headers: { 'apikey': EVOLUTION_API_KEY }
                 });
                 console.log(`✅ Logout (POST) bem sucedido para "${targetName}"`);
                 logoutSuccess = true;
@@ -4169,13 +4192,12 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(name, token as string);
-        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
-        console.log(`🗑️ Deleting instance "${targetName}" (Go: ${config.isGo})...`);
+        console.log(`🗑️ Deleting instance "${targetName}"...`);
 
-        const response = await axios.delete(`${config.url}/instance/delete/${encodedName}`, {
+        const response = await axios.delete(`${EVOLUTION_API_URL}/instance/delete/${encodedName}`, {
             headers: {
-                'apikey': config.apiKey
+                'apikey': EVOLUTION_API_KEY
             }
         });
 
@@ -4640,13 +4662,12 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
                     const message = `Olá, *${company.trade_name}*! 😊\n\nA fatura de utilização do módulo fiscal para o período de ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')} foi gerada.\n\n*Detalhes da Fatura:*\n📝 ${description}\n💰 *Valor:* R$ ${parseFloat(amount).toFixed(2).replace('.', ',')}\n\nCopie o link abaixo para efetuar o pagamento via Pix:\n🔗 ${chargeResult.payment_link || 'Link indisponível'}\n\nObrigado por utilizar nossa plataforma! 💼`;
 
                     try {
-                        const config = await getEvolutionConfig({ instanceName: whatsappInstance });
                         const encodedInstance = encodeURIComponent(whatsappInstance);
-                        await axios.post(`${config.url}/message/sendText/${encodedInstance}`, {
+                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedInstance}`, {
                             number: phone,
                             text: message
                         }, {
-                            headers: { 'apikey': config.apiKey }
+                            headers: { 'apikey': EVOLUTION_API_KEY }
                         });
                         notificationSent = true;
                         console.log(`✅ [BATCH-BILL] Notificação enviada para ${company.trade_name}`);
@@ -4957,13 +4978,12 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
                 if (company.owner_phone || company.phone) {
                     const phone = (company.owner_phone || company.phone).replace(/\D/g, '');
                     try {
-                        const config = await getEvolutionConfig({ instanceName: whatsappInstance });
                         const encodedInstance = encodeURIComponent(whatsappInstance);
-                        await axios.post(`${config.url}/message/sendText/${encodedInstance}`, {
+                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedInstance}`, {
                             number: phone,
                             text: message
                         }, {
-                            headers: { 'apikey': config.apiKey }
+                            headers: { 'apikey': EVOLUTION_API_KEY }
                         });
                         notificationsSent++;
                     } catch (err: any) {
@@ -4989,7 +5009,6 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
 
     try {
         const targetName = await resolveTargetName(instanceName);
-        const config = await getEvolutionConfig({ instanceName: targetName });
         const encodedName = encodeURIComponent(targetName);
 
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
@@ -4999,7 +5018,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         if (mediaUrl && !isLocalhost) {
             try {
                 console.log(`✉️ [Media] Tentando enviar documento WhatsApp via "${targetName}" para ${number}...`);
-                const response = await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
+                const response = await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
                     number: number,
                     mediatype: mediaType || 'document',
                     mimetype: mimetype || 'application/pdf',
@@ -5008,7 +5027,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                     fileName: fileName || 'NotaFiscal.pdf'
                 }, {
                     headers: {
-                        'apikey': config.apiKey,
+                        'apikey': EVOLUTION_API_KEY,
                         'Content-Type': 'application/json'
                     },
                     timeout: 8000 // 8 segundos de timeout para evitar travamentos
@@ -5030,13 +5049,13 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         }
 
         console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
-        const response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
+        const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
             number: number,
             text: textToSend,
             linkPreview: true
         }, {
             headers: {
-                'apikey': config.apiKey,
+                'apikey': EVOLUTION_API_KEY,
                 'Content-Type': 'application/json'
             }
         });
