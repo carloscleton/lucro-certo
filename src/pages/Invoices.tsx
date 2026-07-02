@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search, MessageCircle, Mail, BarChart3, Calendar } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, AlertTriangle, ExternalLink, Search, MessageCircle, Mail, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -129,26 +129,6 @@ export function Invoices() {
     });
     const [selectedInvoiceDetail, setSelectedInvoiceDetail] = useState<any | null>(null);
     const [showTaxPanel, setShowTaxPanel] = useState(false);
-    const [startDate, setStartDate] = useState(() => {
-        const d = new Date();
-        return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
-    });
-    
-    const [endDate, setEndDate] = useState(() => {
-        const d = new Date();
-        return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
-    });
-    const [showAllDates, setShowAllDates] = useState(true);
-
-    const dateFilteredInvoices = invoices.filter(invoice => {
-        if (invoice.deleted && !showDeleted) return false;
-        if (!showAllDates) {
-            const invoiceDateStr = invoice.created_at.split('T')[0];
-            if (invoiceDateStr < startDate || invoiceDateStr > endDate) return false;
-        }
-        return true;
-    });
-
     const calculateTaxesSummary = () => {
         let totalFaturado = 0;
         let totalIss = 0;
@@ -157,7 +137,7 @@ export function Invoices() {
         let totalCsll = 0;
         let totalIr = 0;
 
-        const authorizedInvoices = dateFilteredInvoices.filter(i => 
+        const authorizedInvoices = invoices.filter(i => 
             !i.deleted && ['concluido', 'autorizado'].includes(i.status?.toLowerCase())
         );
 
@@ -246,7 +226,7 @@ export function Invoices() {
         };
     };
 
-    const filteredInvoices = dateFilteredInvoices.filter(invoice => {
+    const filteredInvoices = invoices.filter(invoice => {
         if (invoice.deleted && !showDeleted) return false;
         if (!searchQuery) return true;
         const searchLower = searchQuery.toLowerCase().trim();
@@ -849,7 +829,7 @@ export function Invoices() {
 
             {/* Stats */}
             {!isLoading && invoices.length > 0 && (() => {
-                const invoicesForStats = dateFilteredInvoices;
+                const invoicesForStats = invoices.filter(i => !i.deleted || showDeleted);
                 return (
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                         {/* Autorizadas */}
@@ -930,7 +910,7 @@ export function Invoices() {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-2xl text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
-                                {dateFilteredInvoices.filter(i => !i.deleted && ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length} Notas Autorizadas
+                                {invoices.filter(i => !i.deleted && ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length} Notas Autorizadas
                             </div>
                         </div>
 
@@ -1004,62 +984,18 @@ export function Invoices() {
                 );
             })()}
 
-            {/* Filtros de Período e Busca */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col gap-4 w-full">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-4 flex-1">
-                        <label className="flex items-center gap-2.5 text-xs font-bold text-gray-500 dark:text-gray-400 cursor-pointer select-none">
-                            <input 
-                                type="checkbox" 
-                                checked={showAllDates}
-                                onChange={(e) => setShowAllDates(e.target.checked)}
-                                className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 dark:border-slate-850 dark:bg-slate-900"
-                            />
-                            Ver Todas as Datas
-                        </label>
-
-                        {!showAllDates && (
-                            <div className="flex items-center gap-4 animate-in fade-in duration-200">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">De</span>
-                                    <div className="relative">
-                                        <Calendar size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        <input 
-                                            type="date"
-                                            value={startDate}
-                                            onChange={(e) => setStartDate(e.target.value)}
-                                            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-750 rounded-xl py-1.5 pl-8 pr-2.5 text-xs font-bold text-gray-900 dark:text-white outline-none"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Até</span>
-                                    <div className="relative">
-                                        <Calendar size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        <input 
-                                            type="date"
-                                            value={endDate}
-                                            onChange={(e) => setEndDate(e.target.value)}
-                                            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-750 rounded-xl py-1.5 pl-8 pr-2.5 text-xs font-bold text-gray-900 dark:text-white outline-none"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+            {/* Search and List Header */}
+            <div className="flex flex-row items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm w-full">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={18} />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar nota por cliente, número ou status..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-11 pr-4 py-2.5 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                    />
                 </div>
-
-                <div className="flex flex-row items-center gap-3 w-full">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Buscar nota por cliente, número ou status..." 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-11 pr-4 py-2.5 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
-                        />
-                    </div>
                 <button
                     type="button"
                     onClick={() => setShowDeleted(!showDeleted)}
@@ -1087,7 +1023,6 @@ export function Invoices() {
                         {filteredInvoices.length}
                     </span>
                 </div>
-            </div>
             </div>
 
             {/* List */}
