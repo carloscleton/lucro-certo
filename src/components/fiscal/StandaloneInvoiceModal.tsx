@@ -94,6 +94,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const config = useMemo(() => {
         if (activeProvider === 'nfeio') {
             const nfe = currentCompany?.settings?.nfeio_config || {};
+            const tecno = currentCompany?.tecnospeed_config || {};
             return {
                 ...nfe,
                 cnpj: currentCompany?.cnpj || '',
@@ -103,8 +104,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 default_iss_aliquota: nfe.aliquotaIss || '0',
                 default_cnae: nfe.cnae || '',
                 default_taxation_code: nfe.cityServiceCode || '',
+                default_pis_aliquota: tecno.default_pis_aliquota || '',
+                default_cofins_aliquota: tecno.default_cofins_aliquota || '',
+                default_csll_aliquota: tecno.default_csll_aliquota || '',
+                default_irrf_aliquota: tecno.default_irrf_aliquota || '',
                 endereco: {
-                    codigoCidade: nfe.codigoCidade || currentCompany?.tecnospeed_config?.endereco?.codigoCidade || ''
+                    codigoCidade: nfe.codigoCidade || tecno?.endereco?.codigoCidade || ''
                 },
                 ambiente: nfe.ambiente || 'homologacao',
                 send_email_automatically: nfe.send_email_automatically || false,

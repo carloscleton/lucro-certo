@@ -1143,8 +1143,22 @@ export function FiscalSettings() {
             };
             await updateCompany(currentEntity.id, {
                 settings: updatedSettings,
+                tecnospeed_config: config,
                 fiscal_module_enabled: moduleEnabled
             });
+
+            // 🔄 Invalida e limpa o cache do backend chamando save-config
+            try {
+                const session = await supabase.auth.getSession();
+                const token = session.data.session?.access_token;
+                if (token) {
+                    await fiscalService.saveConfig(currentEntity.id, config, token);
+                    console.log('⚡ [FISCAL-SETTINGS] Cache do backend limpo para NFe.io com sucesso.');
+                }
+            } catch (cacheErr) {
+                console.warn('⚠️ [FISCAL-SETTINGS] Erro ao notificar backend sobre nova config NFe.io:', cacheErr);
+            }
+
             await refreshEntity();
             setResultModal({
                 isOpen: true,
@@ -3667,7 +3681,7 @@ export function FiscalSettings() {
         {/* Sub-tab 2: NFe.io */}
         {activeSubTab === 'nfeio' && (
             <div className="space-y-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
-                {isNfeioDirty && (
+                {(isDirty || isNfeioDirty) && (
                     <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/30 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400">
@@ -3786,6 +3800,47 @@ export function FiscalSettings() {
                         placeholder="Ex: 2.0"
                     />
                 </div>
+
+                {/* Retenções Federais Padrão (Regime Normal) para NFe.io */}
+                {!nfeioConfig.simplesNacional && (
+                    <div className="pt-6 border-t border-gray-100 dark:border-slate-700">
+                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Retenções Federais Padrão (%) (Regime Normal)</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <Input
+                                label="PIS (%)"
+                                type="number"
+                                step="0.01"
+                                value={config.default_pis_aliquota || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_pis_aliquota: e.target.value })}
+                                placeholder="0.65"
+                            />
+                            <Input
+                                label="COFINS (%)"
+                                type="number"
+                                step="0.01"
+                                value={config.default_cofins_aliquota || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_cofins_aliquota: e.target.value })}
+                                placeholder="3.00"
+                            />
+                            <Input
+                                label="CSLL (%)"
+                                type="number"
+                                step="0.01"
+                                value={config.default_csll_aliquota || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_csll_aliquota: e.target.value })}
+                                placeholder="1.00"
+                            />
+                            <Input
+                                label="IRRF (%)"
+                                type="number"
+                                step="0.01"
+                                value={config.default_irrf_aliquota || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, default_irrf_aliquota: e.target.value })}
+                                placeholder="1.50"
+                            />
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800">
