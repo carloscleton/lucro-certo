@@ -835,35 +835,99 @@ export function LandingPage() {
                     </div>
 
                     <div className="pricing-grid">
-                        {landingPlans.map((plan, idx) => (
-                            <div key={idx} className={`pricing-card ${plan.is_popular ? 'popular' : ''}`}>
-                                {plan.is_popular && <div className="popular-badge">{t('landing.pricing.popular_badge')}</div>}
-                                <h3>{plan.name}</h3>
-                                <div className="price">{currencySymbol} {plan.price}<span>/{t('landing.pricing.period.' + plan.period, { defaultValue: plan.period })}</span></div>
-                                {plan.observation && (
-                                    <div className="text-sm font-medium mb-4 px-2" style={{ color: "var(--primary-color, #2563eb)", marginTop: "-10px" }}>
-                                        {plan.observation}
-                                    </div>
-                                )}
-                                <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                                    {plan.features.map((feat: string, fIdx: number) => (
-                                        <li key={fIdx}>
-                                            <CheckCircle2 size={18} className="check-icon" />
-                                            {feat.startsWith('**') && feat.endsWith('**') ?
-                                                <strong>{feat.replace(/\*\*/g, '')}</strong> :
-                                                feat
-                                            }
-                                        </li>
-                                    ))}
-                                </ul>
-                                <button
-                                    onClick={() => handleDynamicCheckout(plan)}
-                                    className={`btn-pricing ${plan.button_type === 'primary' ? 'btn-primary' : 'btn-secondary'} flex items-center justify-center gap-2`}
+                        {landingPlans.map((plan, idx) => {
+                            const planColor = plan.color || '#2563eb';
+                            const isPopular = plan.is_popular ?? false;
+                            const isPrimaryButton = plan.button_type === 'primary';
+                            
+                            return (
+                                <div 
+                                    key={idx} 
+                                    className={`pricing-card ${isPopular ? 'popular' : ''}`}
+                                    style={{
+                                        borderColor: isPopular ? planColor : undefined,
+                                        boxShadow: isPopular ? `0 30px 70px ${planColor}18` : undefined
+                                    }}
                                 >
-                                    {plan.button_text}
-                                </button>
-                            </div>
-                        ))}
+                                    {/* Top Header Colored Accent Line */}
+                                    <div 
+                                        className="pricing-card-header-bar" 
+                                        style={{ 
+                                            backgroundColor: planColor, 
+                                            height: '6px', 
+                                            position: 'absolute', 
+                                            top: 0, 
+                                            left: 0, 
+                                            right: 0, 
+                                            borderTopLeftRadius: '24px', 
+                                            borderTopRightRadius: '24px' 
+                                        }} 
+                                    />
+
+                                    {isPopular && (
+                                        <div 
+                                            className="popular-badge"
+                                            style={{ 
+                                                backgroundColor: planColor,
+                                                boxShadow: `0 10px 20px ${planColor}30`
+                                            }}
+                                        >
+                                            {plan.badge_text || t('landing.pricing.popular_badge')}
+                                        </div>
+                                    )}
+                                    
+                                    <h3>{plan.name}</h3>
+                                    <div className="price">{currencySymbol} {plan.price}<span>/{t('landing.pricing.period.' + plan.period, { defaultValue: plan.period })}</span></div>
+                                    {plan.observation && (
+                                        <div className="text-sm font-medium mb-4 px-2" style={{ color: planColor, marginTop: "-10px" }}>
+                                            {plan.observation}
+                                        </div>
+                                    )}
+                                    <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
+                                        {plan.features.map((feat: string, fIdx: number) => (
+                                            <li key={fIdx}>
+                                                <CheckCircle2 size={18} className="check-icon" style={{ color: planColor }} />
+                                                {feat.startsWith('**') && feat.endsWith('**') ?
+                                                    <strong>{feat.replace(/\*\*/g, '')}</strong> :
+                                                    feat
+                                                }
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <button
+                                        onClick={() => handleDynamicCheckout(plan)}
+                                        className={`btn-pricing flex items-center justify-center gap-2 transition-all duration-300`}
+                                        style={{
+                                            backgroundColor: isPrimaryButton ? planColor : 'transparent',
+                                            borderColor: planColor,
+                                            border: '2px solid',
+                                            color: isPrimaryButton ? '#fff' : planColor,
+                                            boxShadow: isPrimaryButton ? `0 10px 20px ${planColor}25` : undefined
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isPrimaryButton) {
+                                                e.currentTarget.style.backgroundColor = planColor;
+                                                e.currentTarget.style.color = '#fff';
+                                                e.currentTarget.style.boxShadow = `0 10px 20px ${planColor}25`;
+                                            } else {
+                                                e.currentTarget.style.opacity = '0.9';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isPrimaryButton) {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                e.currentTarget.style.color = planColor;
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            } else {
+                                                e.currentTarget.style.opacity = '1';
+                                            }
+                                        }}
+                                    >
+                                        {plan.button_text}
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </section>
             )}

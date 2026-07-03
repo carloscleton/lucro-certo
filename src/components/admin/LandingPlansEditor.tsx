@@ -158,6 +158,8 @@ export function LandingPlansEditor() {
             button_text: "Assinar Agora",
             button_type: "primary",
             is_popular: false,
+            color: "#2563eb",
+            badge_text: "Mais Popular",
             enabled: true
         };
         setPlans([...plans, newPlan]);
@@ -180,6 +182,8 @@ export function LandingPlansEditor() {
                 button_text: "Escolher Plano",
                 button_type: "secondary",
                 is_popular: false,
+                color: "#2563eb",
+                badge_text: "Mais Popular",
                 enabled: true
             },
             {
@@ -190,6 +194,8 @@ export function LandingPlansEditor() {
                 button_text: "Começar agora",
                 button_type: "primary",
                 is_popular: true,
+                color: "#2563eb",
+                badge_text: "Mais Popular",
                 enabled: true
             },
             {
@@ -200,6 +206,8 @@ export function LandingPlansEditor() {
                 button_text: "Falar com Consultor",
                 button_type: "secondary",
                 is_popular: false,
+                color: "#2563eb",
+                badge_text: "Mais Popular",
                 enabled: true
             }
         ]);
@@ -393,9 +401,62 @@ export function LandingPlansEditor() {
                                     onChange={(e) => updatePlan(pIdx, 'button_type', e.target.value)}
                                     className="w-full px-3 py-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                                 >
-                                    <option value="primary">Principal (Azul)</option>
+                                    <option value="primary">Principal (Preenchido)</option>
                                     <option value="secondary">Secundário (Branco/Neutro)</option>
                                 </select>
+                            </div>
+
+                            {plan.is_popular && (
+                                <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <Input
+                                        label="Texto do Destaque (Badge)"
+                                        value={plan.badge_text || ''}
+                                        onChange={(e) => updatePlan(pIdx, 'badge_text', e.target.value)}
+                                        placeholder="Ex: Mais Popular, Recomendado"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="mt-3">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cor do Destaque / Cabeçalho</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="color"
+                                        value={plan.color || '#2563eb'}
+                                        onChange={(e) => updatePlan(pIdx, 'color', e.target.value)}
+                                        className="w-10 h-10 rounded-lg border border-gray-300 dark:border-slate-700 p-0 cursor-pointer overflow-hidden"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={plan.color || '#2563eb'}
+                                        onChange={(e) => updatePlan(pIdx, 'color', e.target.value)}
+                                        placeholder="#2563eb"
+                                        className="flex-1 px-3 py-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700 dark:text-white text-sm font-mono uppercase"
+                                    />
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {[
+                                        { name: 'Azul', value: '#2563eb' },
+                                        { name: 'Verde', value: '#10b981' },
+                                        { name: 'Laranja', value: '#f59e0b' },
+                                        { name: 'Índigo', value: '#6366f1' },
+                                        { name: 'Roxo', value: '#8b5cf6' },
+                                        { name: 'Rosa', value: '#f43f5e' },
+                                    ].map((preset) => (
+                                        <button
+                                            key={preset.value}
+                                            type="button"
+                                            onClick={() => updatePlan(pIdx, 'color', preset.value)}
+                                            className="w-6 h-6 rounded-full border border-gray-200 dark:border-slate-700 hover:scale-105 transition-all relative flex items-center justify-center cursor-pointer"
+                                            style={{ backgroundColor: preset.value }}
+                                            title={preset.name}
+                                        >
+                                            {(plan.color || '#2563eb') === preset.value && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                             <div className="mt-4">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link de Pagamento (Gateway)</label>
