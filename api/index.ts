@@ -4006,6 +4006,33 @@ app.post('/instances', authenticate, async (req, res) => {
 
         console.log('✅ Instance created on Evolution:', response.data);
 
+        // Configurar webhook imediatamente para a EvoGo após a criação
+        if (config.isGo && webhook_url) {
+            try {
+                const evoGoData = response.data?.data || {};
+                const instanceToken = evoGoData.token;
+                const connectPayload: any = {
+                    webhookUrl: webhook_url,
+                    subscribe: webhook_events && webhook_events.length > 0 ? webhook_events : ['MESSAGE']
+                };
+
+                const { transport } = req.body;
+                if (transport && typeof transport === 'object') {
+                    if (transport.rabbitMQ && transport.rabbitMQ !== 'default') connectPayload.rabbitmqEnable = transport.rabbitMQ === 'enabled' ? 'true' : 'false';
+                    if (transport.webSocket && transport.webSocket !== 'default') connectPayload.websocketEnable = transport.webSocket === 'enabled' ? 'true' : 'false';
+                    if (transport.nats && transport.nats !== 'default') connectPayload.natsEnable = transport.nats === 'enabled' ? 'true' : 'false';
+                }
+
+                console.log('📡 Calling connect immediately on creation to configure webhook...');
+                await axios.post(`${config.url}/instance/connect`, connectPayload, {
+                    headers: { 'apikey': instanceToken }
+                });
+                console.log('✅ Webhook configured on creation for EvoGo!');
+            } catch (connectErr: any) {
+                console.warn('⚠️ Immediate connect configuration failed:', connectErr.response?.data || connectErr.message);
+            }
+        }
+
         // Formatar resposta para manter compatibilidade com o frontend
         let finalResponseData = response.data;
         if (config.isGo) {

@@ -839,46 +839,30 @@ export function WhatsApp() {
                             required
                         />
                     </div>
-                    {isEvoGo && (
-                        <div className="md:col-span-3">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Nome do Perfil
-                            </label>
+                    <div className={isEvoGo ? 'md:col-span-6' : 'md:col-span-7'}>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            ID da Instância (Técnico)
+                        </label>
+                        <div className="relative">
                             <input
                                 type="text"
-                                value={evoGoProfileName}
-                                onChange={(e) => setEvoGoProfileName(e.target.value)}
-                                placeholder="Ex: Empresa X"
-                                className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500"
+                                value={instanceId}
+                                onChange={(e) => setInstanceId(e.target.value)}
+                                placeholder="Clique na varinha para gerar ID aleatório"
+                                className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 pr-12 focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
+                                required
                             />
+                            <Tooltip content="Gerar ID Aleatório">
+                                <button
+                                    type="button"
+                                    onClick={handleRandomizeName}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
+                                >
+                                    <Wand2 size={18} />
+                                </button>
+                            </Tooltip>
                         </div>
-                    )}
-                    {!isEvoGo && (
-                        <div className="md:col-span-7">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                ID da Instância (Técnico)
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={instanceId}
-                                    onChange={(e) => setInstanceId(e.target.value)}
-                                    placeholder="Clique na varinha para gerar ID aleatório"
-                                    className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 pr-12 focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
-                                    required
-                                />
-                                <Tooltip content="Gerar ID Aleatório">
-                                    <button
-                                        type="button"
-                                        onClick={handleRandomizeName}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
-                                    >
-                                        <Wand2 size={18} />
-                                    </button>
-                                </Tooltip>
-                            </div>
-                        </div>
-                    )}
+                    </div>
                     <div className="md:col-span-2">
                         <Button
                             type="submit"
@@ -1372,18 +1356,20 @@ export function WhatsApp() {
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {isEvoGo ? "Nome do Perfil" : "Nome no WhatsApp (O que os outros veem)"}
-                            </label>
-                            <input
-                                type="text"
-                                value={waProfileName}
-                                onChange={(e) => setWaProfileName(e.target.value)}
-                                placeholder={isEvoGo ? "Ex: Empresa X" : "Seu Nome ou Empresa"}
-                                className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500"
-                            />
-                        </div>
+                        {!isEvoGo && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Nome no WhatsApp (O que os outros veem)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={waProfileName}
+                                    onChange={(e) => setWaProfileName(e.target.value)}
+                                    placeholder="Seu Nome ou Empresa"
+                                    className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500"
+                                />
+                            </div>
+                        )}
 
                         {isEvoGo ? (
                             /* ===== EVO GO EDIT SETTINGS ===== */
