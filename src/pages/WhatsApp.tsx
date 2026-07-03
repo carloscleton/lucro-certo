@@ -1008,16 +1008,6 @@ export function WhatsApp() {
                                                 />
                                             </div>
                                         )}
-                                        {/* Botão Salvar Avançadas */}
-                                        <div className="flex justify-end mt-4">
-                                            <Button
-                                                type="submit"
-                                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-9 text-sm font-semibold flex items-center gap-2"
-                                            >
-                                                <Check size={15} strokeWidth={3} />
-                                                Salvar Avançadas
-                                            </Button>
-                                        </div>
                                     </div>
 
                                     {/* RabbitMQ / WebSocket / NATS */}
@@ -1043,6 +1033,19 @@ export function WhatsApp() {
                                                 </div>
                                             ))}
                                         </div>
+                                    </div>
+
+                                    {/* Botão Salvar Avançadas */}
+                                    <div className="flex justify-end mt-6 pt-4 border-t border-gray-150 dark:border-slate-700">
+                                        <Button
+                                            type="submit"
+                                            isLoading={isCreating}
+                                            disabled={isLimitReached}
+                                            className={`${isLimitReached ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-6 h-10 text-sm font-bold flex items-center gap-2 rounded-xl transition-all`}
+                                        >
+                                            <Check size={16} strokeWidth={3} />
+                                            Salvar Avançadas
+                                        </Button>
                                     </div>
                                 </div>
                             ) : (
