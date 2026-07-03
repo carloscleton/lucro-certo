@@ -362,7 +362,7 @@ export function WhatsApp() {
             if (isEvoGo) {
                 // EvoGo payload: advancedSettings embutido + webhook via URL
                 requestBody.webhook_url = evoWebhookUrl || undefined;
-                requestBody.webhook_events = evoWebhookUrl ? selectedEvents : undefined;
+                requestBody.webhook_events = selectedEvents && selectedEvents.length > 0 ? selectedEvents : undefined;
                 requestBody.profile_name = evoGoProfileName || undefined;
                 requestBody.transport = {
                     rabbitMQ: evoGoRabbitMQ !== 'default' ? evoGoRabbitMQ : undefined,
@@ -380,7 +380,7 @@ export function WhatsApp() {
             } else {
                 // EvoAPI payload
                 requestBody.webhook_url = evoWebhookUrl || undefined;
-                requestBody.webhook_events = evoWebhookUrl ? selectedEvents : undefined;
+                requestBody.webhook_events = selectedEvents && selectedEvents.length > 0 ? selectedEvents : undefined;
                 requestBody.enabled = webhookEnabled;
                 requestBody.base64 = webhookBase64;
             }
@@ -415,7 +415,7 @@ export function WhatsApp() {
                     user_id: user?.id,
                     company_id: currentEntity.type === 'company' ? currentEntity.id : null,
                     webhook_url: evoWebhookUrl || null,
-                    webhook_events: evoWebhookUrl ? selectedEvents : null,
+                    webhook_events: selectedEvents && selectedEvents.length > 0 ? selectedEvents : null,
                     status: 'disconnected'
                 }])
                 .select()

@@ -4006,13 +4006,13 @@ app.post('/instances', authenticate, async (req, res) => {
 
         console.log('✅ Instance created on Evolution:', response.data);
 
-        // Configurar webhook imediatamente para a EvoGo após a criação
-        if (config.isGo && webhook_url) {
+        // Configurar webhook imediatamente para a EvoGo após a criação (se houver URL ou eventos marcados)
+        if (config.isGo && (webhook_url || (webhook_events && webhook_events.length > 0))) {
             try {
                 const evoGoData = response.data?.data || {};
                 const instanceToken = evoGoData.token;
                 const connectPayload: any = {
-                    webhookUrl: webhook_url,
+                    webhookUrl: webhook_url || undefined,
                     subscribe: webhook_events && webhook_events.length > 0 ? webhook_events : ['MESSAGE']
                 };
 
