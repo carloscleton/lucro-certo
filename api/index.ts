@@ -4084,7 +4084,7 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
 
                 // Buscar detalhes do webhook no Supabase para repassar ao conectar
                 let dbWebhookUrl = '';
-                let dbWebhookEvents = ['MESSAGES_UPSERT'];
+                let dbWebhookEvents = activeConfig.isGo ? ['MESSAGE'] : ['MESSAGES_UPSERT'];
                 const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
                 if (token && SUPABASE_URL && supabaseKey) {
                     try {
@@ -4099,7 +4099,7 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
                         );
                         if (dbRes.data && dbRes.data.length > 0) {
                             dbWebhookUrl = dbRes.data[0].webhook_url || '';
-                            dbWebhookEvents = dbRes.data[0].webhook_events || ['MESSAGES_UPSERT'];
+                            dbWebhookEvents = dbRes.data[0].webhook_events || (activeConfig.isGo ? ['MESSAGE'] : ['MESSAGES_UPSERT']);
                         }
                     } catch (dbErr: any) {
                         console.warn('⚠️ Error fetching webhook info from DB:', dbErr.message);
@@ -4177,10 +4177,20 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
 
         const executeWebhook = async (activeConfig: typeof config) => {
             if (activeConfig.isGo) {
-                // Para Evolution GO, configuramos chamando /instance/connect com o novo webhook e eventos
-                console.log(`📡 EvoGo: configuring webhook by calling /instance/connect for instance ${token}...`);
+                // Para Evolution GO, precisamos buscar o token secreto específico da instância
+                console.log(`📡 EvoGo: fetching token for instance ${token} to configure webhook...`);
+                const allRes = await axios.get(`${activeConfig.url}/instance/all`, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                const instancesList = allRes.data?.data || [];
+                const inst = instancesList.find((i: any) =>
+                    i.id === token || i.token === token || i.name.toLowerCase() === targetName.toLowerCase()
+                );
+                if (!inst) throw new Error('Instância não encontrada na EvoGo para atualizar o webhook');
+                const instanceToken = inst.token;
+
+                console.log(`📡 EvoGo: configuring webhook by calling /instance/connect using instance token...`);
                 const connectPayload: any = {
-                    instanceId: token,
                     webhookUrl: url || undefined,
                     subscribe: events && events.length > 0 ? events : undefined
                 };
@@ -4196,7 +4206,7 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
                 }
 
                 const connectRes = await axios.post(`${activeConfig.url}/instance/connect`, connectPayload, {
-                    headers: { 'apikey': activeConfig.apiKey }
+                    headers: { 'apikey': instanceToken }
                 });
                 return { success: true, message: 'Webhook configurado com sucesso (Evolution GO)', detail: connectRes.data };
             } else {
