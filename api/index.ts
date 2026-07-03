@@ -4258,9 +4258,21 @@ app.get('/instances/:name/advanced-settings', authenticate, async (req, res) => 
             return res.status(400).json({ error: 'Endpoint exclusivo para Evolution GO' });
         }
 
+        // Buscar o token secreto específico da instância e o UUID correto
+        const allRes = await axios.get(`${config.url}/instance/all`, {
+            headers: { 'apikey': config.apiKey }
+        });
+        const instancesList = allRes.data?.data || [];
+        const inst = instancesList.find((i: any) =>
+            i.id === token || i.token === token || i.name.toLowerCase() === targetName.toLowerCase()
+        );
+        if (!inst) throw new Error('Instância não encontrada na EvoGo para buscar configurações avançadas');
+        const instanceToken = inst.token;
+        const instanceUuid = inst.id;
+
         const executeGetSettings = async (activeConfig: typeof config) => {
-            const response = await axios.get(`${activeConfig.url}/instance/${token}/advanced-settings`, {
-                headers: { 'apikey': activeConfig.apiKey }
+            const response = await axios.get(`${activeConfig.url}/instance/${instanceUuid}/advanced-settings`, {
+                headers: { 'apikey': instanceToken }
             });
             return response.data;
         };
@@ -4298,6 +4310,18 @@ app.post('/instances/:name/advanced-settings', authenticate, async (req, res) =>
             return res.status(400).json({ error: 'Endpoint exclusivo para Evolution GO' });
         }
 
+        // Buscar o token secreto específico da instância e o UUID correto
+        const allRes = await axios.get(`${config.url}/instance/all`, {
+            headers: { 'apikey': config.apiKey }
+        });
+        const instancesList = allRes.data?.data || [];
+        const inst = instancesList.find((i: any) =>
+            i.id === token || i.token === token || i.name.toLowerCase() === targetName.toLowerCase()
+        );
+        if (!inst) throw new Error('Instância não encontrada na EvoGo para atualizar configurações avançadas');
+        const instanceToken = inst.token;
+        const instanceUuid = inst.id;
+
         const payload: any = {};
         if (typeof alwaysOnline === 'boolean') payload.alwaysOnline = alwaysOnline;
         if (typeof rejectCall === 'boolean') payload.rejectCall = rejectCall;
@@ -4307,8 +4331,8 @@ app.post('/instances/:name/advanced-settings', authenticate, async (req, res) =>
         if (typeof ignoreStatus === 'boolean') payload.ignoreStatus = ignoreStatus;
 
         const executeUpdateSettings = async (activeConfig: typeof config) => {
-            const response = await axios.put(`${activeConfig.url}/instance/${token}/advanced-settings`, payload, {
-                headers: { 'apikey': activeConfig.apiKey }
+            const response = await axios.put(`${activeConfig.url}/instance/${instanceUuid}/advanced-settings`, payload, {
+                headers: { 'apikey': instanceToken }
             });
             return response.data;
         };
