@@ -28,6 +28,9 @@ export function PlanForm({ isOpen, onClose, onSubmit, initialData }: PlanFormPro
     const [selectedServices, setSelectedServices] = useState<string[]>([]);
     const [isActive, setIsActive] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [color, setColor] = useState('#3b82f6');
+    const [isPopular, setIsPopular] = useState(false);
+    const [badgeText, setBadgeText] = useState('Mais Popular');
 
     useEffect(() => {
         if (initialData) {
@@ -38,6 +41,9 @@ export function PlanForm({ isOpen, onClose, onSubmit, initialData }: PlanFormPro
             setBillingCycle(initialData.billing_cycle);
             setSelectedServices(initialData.included_services || []);
             setIsActive(initialData.is_active);
+            setColor(initialData.color || '#3b82f6');
+            setIsPopular(initialData.is_popular || false);
+            setBadgeText(initialData.badge_text || 'Mais Popular');
         } else {
             setName('');
             setDescription('');
@@ -46,6 +52,9 @@ export function PlanForm({ isOpen, onClose, onSubmit, initialData }: PlanFormPro
             setBillingCycle('monthly');
             setSelectedServices([]);
             setIsActive(true);
+            setColor('#3b82f6');
+            setIsPopular(false);
+            setBadgeText('Mais Popular');
         }
     }, [initialData, isOpen]);
 
@@ -60,7 +69,10 @@ export function PlanForm({ isOpen, onClose, onSubmit, initialData }: PlanFormPro
                 discount_percent: discountPercent,
                 billing_cycle: billingCycle,
                 included_services: selectedServices,
-                is_active: isActive
+                is_active: isActive,
+                color,
+                is_popular: isPopular,
+                badge_text: badgeText
             });
             onClose();
         } catch (error) {
@@ -127,6 +139,77 @@ export function PlanForm({ isOpen, onClose, onSubmit, initialData }: PlanFormPro
                         onChange={e => setDiscountPercent(Number(e.target.value))}
                         helpText={t('loyalty.discount_help', 'Desconto aplicado automaticamente em orçamentos')}
                     />
+                </div>
+
+                {/* Estilo & Destaque */}
+                <div className="space-y-4 p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-gray-200 dark:border-slate-800">
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider flex items-center gap-2">
+                        <Edit2 size={16} className="text-amber-500" />
+                        Design e Destaque do Card
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                        <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-750 dark:text-gray-200 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={isPopular}
+                                    onChange={e => setIsPopular(e.target.checked)}
+                                    className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                />
+                                Destacar este Plano (Mais Popular)
+                            </label>
+                        </div>
+
+                        {isPopular && (
+                            <Input
+                                label="Texto do Destaque (Badge)"
+                                value={badgeText}
+                                onChange={e => setBadgeText(e.target.value)}
+                                placeholder="Ex: Mais Popular, Recomendado"
+                            />
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">
+                            Cor do Cabeçalho / Destaque
+                        </label>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {[
+                                { name: 'Azul', value: '#3b82f6' },
+                                { name: 'Verde', value: '#10b981' },
+                                { name: 'Laranja', value: '#f59e0b' },
+                                { name: 'Índigo', value: '#6366f1' },
+                                { name: 'Roxo', value: '#8b5cf6' },
+                                { name: 'Rosa', value: '#f43f5e' },
+                            ].map(preset => (
+                                <button
+                                    key={preset.value}
+                                    type="button"
+                                    onClick={() => setColor(preset.value)}
+                                    className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer relative flex items-center justify-center ${color === preset.value ? 'border-gray-900 dark:border-white scale-110 shadow-md' : 'border-transparent hover:scale-105'}`}
+                                    style={{ backgroundColor: preset.value }}
+                                    title={preset.name}
+                                >
+                                    {color === preset.value && (
+                                        <div className="w-2 h-2 rounded-full bg-white shadow-sm" />
+                                    )}
+                                </button>
+                            ))}
+                            <div className="flex items-center gap-2 ml-4">
+                                <input
+                                    type="color"
+                                    value={color}
+                                    onChange={e => setColor(e.target.value)}
+                                    className="w-8 h-8 rounded-full border-none p-0 cursor-pointer overflow-hidden shadow-sm"
+                                />
+                                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 font-mono select-all">
+                                    {color}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="space-y-4">
@@ -207,10 +290,25 @@ export function PlanList({ plans, onEdit, onDelete }: PlanListProps) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {plans.map(plan => (
-                <div key={plan.id} className={`group bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-gray-100 dark:border-slate-800 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-1 ${!plan.is_active && 'grayscale opacity-60'}`}>
+                <div 
+                    key={plan.id} 
+                    className={`relative group bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 ${plan.is_popular ? 'shadow-lg border-2' : 'border-gray-100 dark:border-slate-800'} ${!plan.is_active && 'grayscale opacity-60'}`}
+                    style={{ borderColor: plan.is_popular ? plan.color || '#3b82f6' : undefined }}
+                >
+                    {plan.is_popular && (
+                        <div 
+                            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-[8px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-md z-10"
+                            style={{ backgroundColor: plan.color || '#3b82f6' }}
+                        >
+                            {plan.badge_text || 'Mais Popular'}
+                        </div>
+                    )}
                     <div className="flex justify-between items-start mb-8">
-                        <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl shadow-sm group-hover:scale-110 transition-transform duration-500">
-                            <Package className="text-amber-600 dark:text-amber-400" size={28} />
+                        <div 
+                            className="p-4 rounded-2xl shadow-sm group-hover:scale-110 transition-transform duration-500"
+                            style={{ backgroundColor: `${plan.color || '#3b82f6'}15` }}
+                        >
+                            <Package style={{ color: plan.color || '#3b82f6' }} size={28} />
                         </div>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
                             <button 

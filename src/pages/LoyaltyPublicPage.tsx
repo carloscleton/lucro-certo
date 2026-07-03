@@ -126,75 +126,133 @@ export function LoyaltyPublicPage() {
 
                 {/* Plans Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
-                    {plans.map((plan, idx) => (
-                        <div 
-                            key={plan.id} 
-                            className={`relative group bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl transition-all duration-500 hover:-translate-y-2 border ${idx === 1 ? 'border-amber-400 dark:border-amber-600 ring-4 ring-amber-400/10' : 'border-slate-100 dark:border-slate-800'}`}
-                            style={{ animationDelay: `${idx * 150}ms` }}
-                        >
-                            {idx === 1 && (
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-amber-500 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-amber-500/30">
-                                    Mais Popular
-                                </div>
-                            )}
+                    {plans.map((plan, idx) => {
+                        const planColor = plan.color || '#3b82f6';
+                        const isPlanPopular = plan.is_popular ?? false;
+                        
+                        return (
+                            <div 
+                                key={plan.id} 
+                                className={`relative group bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl transition-all duration-500 hover:-translate-y-2 border ${
+                                    isPlanPopular 
+                                        ? 'border-2' 
+                                        : 'border-slate-100 dark:border-slate-800'
+                                }`}
+                                style={{ 
+                                    animationDelay: `${idx * 150}ms`,
+                                    borderColor: isPlanPopular ? planColor : undefined,
+                                    boxShadow: isPlanPopular ? `0 25px 50px -12px ${planColor}20` : undefined
+                                }}
+                            >
+                                {/* Top Header Colored Accent Line */}
+                                <div 
+                                    className="absolute top-0 left-0 right-0 h-3 rounded-t-[2.5rem]" 
+                                    style={{ backgroundColor: planColor }}
+                                />
 
-                            <div className="mb-8">
-                                <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tighter italic">{plan.name}</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed h-12 line-clamp-2">
-                                    {plan.description || 'Acesso exclusivo aos nossos melhores serviços e condições.'}
-                                </p>
-                            </div>
-
-                            <div className="mb-10">
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-5xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter italic">
-                                        {formatCurrency(plan.price).split(',')[0]}
-                                    </span>
-                                    <span className="text-xl font-black text-slate-400 tabular-nums tracking-tighter italic">
-                                        ,{formatCurrency(plan.price).split(',')[1]}
-                                    </span>
-                                    <span className="text-slate-400 font-bold ml-1">/mês</span>
-                                </div>
-                                {plan.discount_percent > 0 && (
-                                    <div className="mt-4 inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                                        <ArrowRight size={14} className="rotate-[-45deg]" />
-                                        {plan.discount_percent}% de Desconto em Serviços
+                                {isPlanPopular && (
+                                    <div 
+                                        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl z-10"
+                                        style={{ 
+                                            backgroundColor: planColor,
+                                            boxShadow: `0 10px 20px ${planColor}30`
+                                        }}
+                                    >
+                                        {plan.badge_text || 'Mais Popular'}
                                     </div>
                                 )}
+
+                                <div className="mb-8 pt-4">
+                                    <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tighter italic">{plan.name}</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed h-12 line-clamp-2">
+                                        {plan.description || 'Acesso exclusivo aos nossos melhores serviços e condições.'}
+                                    </p>
+                                </div>
+
+                                <div className="mb-10">
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-5xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter italic">
+                                            {formatCurrency(plan.price).split(',')[0]}
+                                        </span>
+                                        <span className="text-xl font-black text-slate-400 tabular-nums tracking-tighter italic">
+                                            ,{formatCurrency(plan.price).split(',')[1]}
+                                        </span>
+                                        <span className="text-slate-400 font-bold ml-1">/mês</span>
+                                    </div>
+                                    {plan.discount_percent > 0 && (
+                                        <div className="mt-4 inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                                            <ArrowRight size={14} className="rotate-[-45deg]" />
+                                            {plan.discount_percent}% de Desconto em Serviços
+                                        </div>
+                                    )}
+                                </div>
+
+                                <ul className="space-y-4 mb-12">
+                                    <li className="flex items-start gap-3">
+                                        <div 
+                                            className="p-1 rounded-full mt-0.5 flex items-center justify-center flex-shrink-0"
+                                            style={{ backgroundColor: `${planColor}15` }}
+                                        >
+                                            <Check size={12} style={{ color: planColor }} strokeWidth={3} />
+                                        </div>
+                                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Status VIP verificado em check-in</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div 
+                                            className="p-1 rounded-full mt-0.5 flex items-center justify-center flex-shrink-0"
+                                            style={{ backgroundColor: `${planColor}15` }}
+                                        >
+                                            <Check size={12} style={{ color: planColor }} strokeWidth={3} />
+                                        </div>
+                                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Prioridade no agendamento</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div 
+                                            className="p-1 rounded-full mt-0.5 flex items-center justify-center flex-shrink-0"
+                                            style={{ backgroundColor: `${planColor}15` }}
+                                        >
+                                            <Check size={12} style={{ color: planColor }} strokeWidth={3} />
+                                        </div>
+                                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Suporte prioritário via WhatsApp</span>
+                                    </li>
+                                </ul>
+
+                                <Button 
+                                    className={`w-full py-6 rounded-2xl font-black text-xl italic uppercase tracking-tighter transition-all duration-300 group overflow-hidden ${
+                                        isPlanPopular 
+                                            ? 'text-white shadow-2xl' 
+                                            : 'bg-transparent border-2 hover:text-white'
+                                    }`}
+                                    style={{ 
+                                        backgroundColor: isPlanPopular ? planColor : 'transparent',
+                                        borderColor: planColor,
+                                        color: isPlanPopular ? '#fff' : planColor,
+                                        boxShadow: isPlanPopular ? `0 10px 25px ${planColor}30` : undefined
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!isPlanPopular) {
+                                            e.currentTarget.style.backgroundColor = planColor;
+                                            e.currentTarget.style.color = '#fff';
+                                            e.currentTarget.style.boxShadow = `0 10px 25px ${planColor}30`;
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!isPlanPopular) {
+                                            e.currentTarget.style.backgroundColor = 'transparent';
+                                            e.currentTarget.style.color = planColor;
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }
+                                    }}
+                                    onClick={() => navigate(`/checkout/loyalty/${plan.id}`)}
+                                >
+                                    <span className="relative z-10 flex items-center justify-center gap-3">
+                                        Assinar Agora
+                                        <Rocket size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                    </span>
+                                </Button>
                             </div>
-
-                            <ul className="space-y-4 mb-12">
-                                <li className="flex items-start gap-3">
-                                    <div className="bg-amber-100 dark:bg-amber-900/30 p-0.5 rounded-full mt-1">
-                                        <Check size={14} className="text-amber-600 dark:text-amber-400" />
-                                    </div>
-                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Status VIP verificado em check-in</span>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <div className="bg-amber-100 dark:bg-amber-900/30 p-0.5 rounded-full mt-1">
-                                        <Check size={14} className="text-amber-600 dark:text-amber-400" />
-                                    </div>
-                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Prioridade no agendamento</span>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <div className="bg-amber-100 dark:bg-amber-900/30 p-0.5 rounded-full mt-1">
-                                        <Check size={14} className="text-amber-600 dark:text-amber-400" />
-                                    </div>
-                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Suporte prioritário via WhatsApp</span>
-                                </li>
-                            </ul>
-
-                            <Button 
-                                className={`w-full py-6 rounded-2xl font-black text-xl italic uppercase tracking-tighter transition-all group overflow-hidden ${idx === 1 ? 'bg-amber-600 hover:bg-amber-700 shadow-2xl shadow-amber-500/30' : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'}`}
-                                onClick={() => navigate(`/checkout/loyalty/${plan.id}`)}
-                            >
-                                <span className="relative z-10 flex items-center justify-center gap-3">
-                                    Assinar Agora
-                                    <Rocket size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                </span>
-                            </Button>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* Social Proof Section */}

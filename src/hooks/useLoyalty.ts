@@ -15,6 +15,9 @@ export interface LoyaltyPlan {
     display_order: number;
     created_at: string;
     updated_at: string;
+    color?: string;
+    is_popular?: boolean;
+    badge_text?: string;
 }
 
 export interface LoyaltySettings {
