@@ -101,7 +101,9 @@ export function SubscriptionSettings() {
             'has_social_copilot',
             'automations_module_enabled',
             'has_lead_radar',
-            'loyalty_module_enabled'
+            'loyalty_module_enabled',
+            'banking_module_enabled',
+            'warranty_module_enabled'
         ];
 
         try {

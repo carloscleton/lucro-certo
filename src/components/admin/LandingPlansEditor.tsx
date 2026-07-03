@@ -16,6 +16,9 @@ const COMPANY_MODULE_OPTIONS = [
     { key: 'has_social_copilot', label: 'Marketing IA' },
     { key: 'automations_module_enabled', label: 'Automações' },
     { key: 'has_lead_radar', label: 'Radar de Leads' },
+    { key: 'loyalty_module_enabled', label: 'Clube de Fidelidade' },
+    { key: 'banking_module_enabled', label: 'Integração Bancária' },
+    { key: 'warranty_module_enabled', label: 'Controle de Garantia' },
 ];
 
 export function LandingPlansEditor() {
