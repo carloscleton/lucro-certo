@@ -2959,24 +2959,33 @@ async function resolveTargetName(requestedName: string, token?: string, passedCo
 
         const config = await getEvolutionConfig({ companyId, token, instanceName: requestedName });
 
-        let response;
+        const fetchInstancesList = async (activeConfig: typeof config) => {
+            if (activeConfig.isGo) {
+                const res = await axios.get(`${activeConfig.url}/instance/all`, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                return res.data?.data || [];
+            } else {
+                const res = await axios.get(`${activeConfig.url}/instance/fetchInstances`, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                return Array.isArray(res.data) ? res.data : [];
+            }
+        };
+
+        let instances: any[] = [];
         try {
-            response = await axios.get(`${config.url}/instance/fetchInstances`, {
-                headers: { 'apikey': config.apiKey }
-            });
+            instances = await fetchInstancesList(config);
         } catch (primaryErr: any) {
             console.warn(`⚠️ resolveTargetName: fetchInstances failed on primary (${primaryErr.message}). Trying fallback config...`);
             const fallbackConfig = getAlternativeConfig(config);
             try {
-                response = await axios.get(`${fallbackConfig.url}/instance/fetchInstances`, {
-                    headers: { 'apikey': fallbackConfig.apiKey }
-                });
+                instances = await fetchInstancesList(fallbackConfig);
             } catch (fallbackErr: any) {
                 console.error(`❌ resolveTargetName: fetchInstances failed on both APIs.`);
                 throw fallbackErr;
             }
         }
-        const instances = Array.isArray(response.data) ? response.data : [];
 
         // 1. Tentar encontrar pelo Token (ID Técnico/Evo ID - Case-Insensitive)
         if (token) {
