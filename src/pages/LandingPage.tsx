@@ -40,8 +40,19 @@ import bannerCertificado from '../assets/landing/landing_hero_certificado_digita
 import { HeroCarousel } from '../components/landing/HeroCarousel';
 
 import '../styles/LandingPage.css';
-
-
+const getContrastColor = (hexColor: string) => {
+    if (!hexColor || hexColor.startsWith('var')) return '#ffffff';
+    let color = hexColor.replace('#', '');
+    if (color.length === 3) {
+        color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+    }
+    if (color.length !== 6) return '#ffffff';
+    const r = parseInt(color.substring(0, 2), 16);
+    const g = parseInt(color.substring(2, 4), 16);
+    const b = parseInt(color.substring(4, 6), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? '#0f172a' : '#ffffff';
+};
 
 const formatTextWithBold = (text: string) => {
     if (!text) return null;
@@ -841,90 +852,122 @@ export function LandingPage() {
                             const isPrimaryButton = plan.button_type === 'primary';
                             
                             return (
-                                <div 
+                                 <div 
                                     key={idx} 
                                     className={`pricing-card ${isPopular ? 'popular' : ''}`}
                                     style={{
                                         borderColor: isPopular ? planColor : undefined,
-                                        boxShadow: isPopular ? `0 30px 70px ${planColor}18` : undefined
+                                        boxShadow: isPopular ? `0 30px 70px ${planColor}18` : undefined,
+                                        padding: 0,
+                                        position: 'relative'
                                     }}
                                 >
-                                    {/* Top Header Colored Accent Line */}
-                                    <div 
-                                        className="pricing-card-header-bar" 
-                                        style={{ 
-                                            backgroundColor: planColor, 
-                                            height: '6px', 
-                                            position: 'absolute', 
-                                            top: 0, 
-                                            left: 0, 
-                                            right: 0, 
-                                            borderTopLeftRadius: '24px', 
-                                            borderTopRightRadius: '24px' 
-                                        }} 
-                                    />
-
                                     {isPopular && (
                                         <div 
                                             className="popular-badge"
                                             style={{ 
                                                 backgroundColor: planColor,
-                                                boxShadow: `0 10px 20px ${planColor}30`
+                                                boxShadow: `0 10px 20px ${planColor}30`,
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                zIndex: 10
                                             }}
                                         >
                                             {plan.badge_text || t('landing.pricing.popular_badge')}
                                         </div>
                                     )}
-                                    
-                                    <h3>{plan.name}</h3>
-                                    <div className="price">{currencySymbol} {plan.price}<span>/{t('landing.pricing.period.' + plan.period, { defaultValue: plan.period })}</span></div>
-                                    {plan.observation && (
-                                        <div className="text-sm font-medium mb-4 px-2" style={{ color: planColor, marginTop: "-10px" }}>
-                                            {plan.observation}
-                                        </div>
-                                    )}
-                                    <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                                        {plan.features.map((feat: string, fIdx: number) => (
-                                            <li key={fIdx}>
-                                                <CheckCircle2 size={18} className="check-icon" style={{ color: planColor }} />
-                                                {feat.startsWith('**') && feat.endsWith('**') ?
-                                                    <strong>{feat.replace(/\*\*/g, '')}</strong> :
-                                                    feat
-                                                }
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    <button
-                                        onClick={() => handleDynamicCheckout(plan)}
-                                        className={`btn-pricing flex items-center justify-center gap-2 transition-all duration-300`}
-                                        style={{
-                                            backgroundColor: isPrimaryButton ? planColor : 'transparent',
-                                            borderColor: planColor,
-                                            border: '2px solid',
-                                            color: isPrimaryButton ? '#fff' : planColor,
-                                            boxShadow: isPrimaryButton ? `0 10px 20px ${planColor}25` : undefined
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!isPrimaryButton) {
-                                                e.currentTarget.style.backgroundColor = planColor;
-                                                e.currentTarget.style.color = '#fff';
-                                                e.currentTarget.style.boxShadow = `0 10px 20px ${planColor}25`;
-                                            } else {
-                                                e.currentTarget.style.opacity = '0.9';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!isPrimaryButton) {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                                e.currentTarget.style.color = planColor;
-                                                e.currentTarget.style.boxShadow = 'none';
-                                            } else {
-                                                e.currentTarget.style.opacity = '1';
-                                            }
+
+                                    {/* Top Full-width Colored Header Block */}
+                                    <div 
+                                        className="pricing-card-header" 
+                                        style={{ 
+                                            backgroundColor: planColor, 
+                                            color: getContrastColor(planColor),
+                                            padding: '1.5rem 1rem',
+                                            textAlign: 'center',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            minHeight: '4.5rem',
+                                            width: '100%',
+                                            borderTopLeftRadius: '22px', 
+                                            borderTopRightRadius: '22px'
                                         }}
                                     >
-                                        {plan.button_text}
-                                    </button>
+                                        <h3 style={{ margin: 0, color: 'inherit', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.025em' }}>
+                                            {plan.name}
+                                        </h3>
+                                    </div>
+                                    
+                                    {/* Card Body */}
+                                    <div className="pricing-card-body" style={{ padding: '2rem 1.5rem', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                        <div className="price" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'baseline', justifyContent: 'center' }}>
+                                            {currencySymbol} {plan.price}
+                                            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b', marginLeft: '0.25rem' }}>
+                                                /{t('landing.pricing.period.' + plan.period, { defaultValue: plan.period })}
+                                            </span>
+                                        </div>
+
+                                        {plan.observation && (
+                                            <div className="text-sm font-medium mb-4 px-2" style={{ color: planColor, marginTop: "-10px", textAlign: 'center' }}>
+                                                {plan.observation}
+                                            </div>
+                                        )}
+
+                                        <ul className="feature-list" style={{ textAlign: 'left', marginBottom: '2.5rem', width: '100%', listStyle: 'none', padding: 0 }}>
+                                            {plan.features.map((feat: string, fIdx: number) => (
+                                                <li key={fIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.9rem', color: '#475569' }}>
+                                                    <CheckCircle2 size={18} className="check-icon flex-shrink-0" style={{ color: planColor, marginTop: '2px' }} />
+                                                    <span style={{ flex: 1 }}>
+                                                        {feat.startsWith('**') && feat.endsWith('**') ?
+                                                            <strong style={{ fontWeight: 700 }}>{feat.replace(/\*\*/g, '')}</strong> :
+                                                            feat
+                                                        }
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+
+                                        <button
+                                            onClick={() => handleDynamicCheckout(plan)}
+                                            className={`btn-pricing flex items-center justify-center gap-2 transition-all duration-300`}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.85rem 1.5rem',
+                                                borderRadius: '12px',
+                                                fontWeight: 700,
+                                                fontSize: '1rem',
+                                                backgroundColor: isPrimaryButton ? planColor : 'transparent',
+                                                borderColor: planColor,
+                                                border: '2px solid',
+                                                color: isPrimaryButton ? '#fff' : planColor,
+                                                boxShadow: isPrimaryButton ? `0 10px 20px ${planColor}25` : undefined,
+                                                marginTop: 'auto'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (!isPrimaryButton) {
+                                                    e.currentTarget.style.backgroundColor = planColor;
+                                                    e.currentTarget.style.color = '#fff';
+                                                    e.currentTarget.style.boxShadow = `0 10px 20px ${planColor}25`;
+                                                } else {
+                                                    e.currentTarget.style.opacity = '0.9';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (!isPrimaryButton) {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                    e.currentTarget.style.color = planColor;
+                                                    e.currentTarget.style.boxShadow = 'none';
+                                                } else {
+                                                    e.currentTarget.style.opacity = '1';
+                                                }
+                                            }}
+                                        >
+                                            {plan.button_text}
+                                        </button>
+                                    </div>
                                 </div>
                             );
                         })}
