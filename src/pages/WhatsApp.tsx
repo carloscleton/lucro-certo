@@ -233,12 +233,12 @@ export function WhatsApp() {
                 );
                 if (!evoInst) continue;
 
-                // Se o ID local é diferente do ID real da EvoGo, atualizar
-                if (evoInst.id !== localInst.evolution_instance_id) {
-                    console.log(`🔄 Sincronizando ${localInst.instance_name}: ${localInst.evolution_instance_id} → ${evoInst.id}`);
+                // Se o ID local é diferente do token real da EvoGo, atualizar
+                if (evoInst.token !== localInst.evolution_instance_id) {
+                    console.log(`🔄 Sincronizando ${localInst.instance_name}: ${localInst.evolution_instance_id} → ${evoInst.token}`);
                     const { error } = await supabase
                         .from('instances')
-                        .update({ evolution_instance_id: evoInst.id })
+                        .update({ evolution_instance_id: evoInst.token })
                         .eq('id', localInst.id);
                     if (!error) updatedCount++;
                 }

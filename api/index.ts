@@ -4037,22 +4037,22 @@ app.post('/instances', authenticate, async (req, res) => {
         let finalResponseData = response.data;
         if (config.isGo) {
             // Estrutura real da EvoGo: { data: { id: 'uuid-gerado', name: '...', token: 'enviado', ... }, message: 'success' }
-            // O campo correto para o ID gerado pela EvoGo é response.data.data.id
             const evoGoData = response.data?.data || {};
-            const generatedId = evoGoData.id || evoGoData.instanceId || token;
+            const generatedId = evoGoData.id || evoGoData.instanceId;
+            const instanceToken = evoGoData.token || token;
             const instanceName = evoGoData.name || name;
 
-            console.log(`🆔 EvoGo ID gerado: ${generatedId}`);
+            console.log(`🆔 EvoGo ID gerado: ${generatedId}, Token: ${instanceToken}`);
             console.log(`📦 Resposta raw EvoGo:`, JSON.stringify(response.data, null, 2));
 
             finalResponseData = {
                 instance: {
                     instanceName: instanceName,
-                    token: generatedId,  // ID UUID gerado pela EvoGo (ex: 1c04055c-0333-46db-91c2-dfbabf37bbcf)
+                    token: instanceToken,  // ID Token da instância (chave de segurança da EvoGo)
                     status: 'created'
                 },
                 hash: {
-                    apikey: generatedId
+                    apikey: instanceToken
                 }
             };
         }
@@ -4114,7 +4114,9 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
                 const instancesList = allRes.data?.data || [];
-                const inst = instancesList.find((i: any) => i.id === token || i.name.toLowerCase() === name.toLowerCase());
+                const inst = instancesList.find((i: any) =>
+                    i.id === token || i.token === token || i.name.toLowerCase() === name.toLowerCase()
+                );
                 if (!inst) throw new Error('Instance not found on Evolution GO');
                 const instanceToken = inst.token;
 
@@ -4607,7 +4609,9 @@ app.post('/instances/:name/logout', authenticate, async (req, res) => {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
                 const instancesList = allRes.data?.data || [];
-                const inst = instancesList.find((i: any) => i.id === token || i.name.toLowerCase() === targetName.toLowerCase());
+                const inst = instancesList.find((i: any) =>
+                    i.id === token || i.token === token || i.name.toLowerCase() === targetName.toLowerCase()
+                );
                 if (!inst) throw new Error('Instance not found on Evolution GO');
                 const instanceToken = inst.token;
 
@@ -4691,13 +4695,33 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
         console.log(`🗑️ Deleting instance "${targetName}" (Go: ${config.isGo})...`);
 
         const executeDelete = async (activeConfig: typeof config) => {
-            const targetIdentifier = activeConfig.isGo ? token : encodedName;
-            if (!targetIdentifier) throw new Error('Delete identifier is missing');
-            return axios.delete(`${activeConfig.url}/instance/delete/${targetIdentifier}`, {
-                headers: {
-                    'apikey': activeConfig.apiKey
+            if (activeConfig.isGo) {
+                // Para EvoGo, precisamos buscar a lista de instâncias para achar o UUID correto
+                const allRes = await axios.get(`${activeConfig.url}/instance/all`, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                const instancesList = allRes.data?.data || [];
+                const inst = instancesList.find((i: any) =>
+                    i.id === token || i.token === token || i.name.toLowerCase() === targetName.toLowerCase()
+                );
+                if (!inst) {
+                    console.log(`ℹ️ Instância já parece não existir na EvoGo: ${targetName}`);
+                    return { data: { success: true, message: 'Instância não encontrada na EvoGo, mas deletada.' } };
                 }
-            });
+                const instanceUuid = inst.id;
+                return axios.delete(`${activeConfig.url}/instance/delete/${instanceUuid}`, {
+                    headers: {
+                        'apikey': activeConfig.apiKey
+                    }
+                });
+            } else {
+                if (!encodedName) throw new Error('Delete identifier is missing');
+                return axios.delete(`${activeConfig.url}/instance/delete/${encodedName}`, {
+                    headers: {
+                        'apikey': activeConfig.apiKey
+                    }
+                });
+            }
         };
 
         let response;
