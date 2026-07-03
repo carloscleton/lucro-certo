@@ -4157,7 +4157,7 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
 
 app.post('/instances/:name/webhook', authenticate, async (req, res) => {
     const { name } = req.params;
-    const { url, events, enabled, base64, token, company_id } = req.body;
+    const { url, events, enabled, base64, token, company_id, transport } = req.body;
 
     try {
         const targetName = await resolveTargetName(name, token, company_id);
@@ -4177,8 +4177,28 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
 
         const executeWebhook = async (activeConfig: typeof config) => {
             if (activeConfig.isGo) {
-                // Configurado via /connect no Evolution GO, simulamos sucesso.
-                return { success: true, message: 'Webhook configurado com sucesso (Evolution GO)' };
+                // Para Evolution GO, configuramos chamando /instance/connect com o novo webhook e eventos
+                console.log(`📡 EvoGo: configuring webhook by calling /instance/connect for instance ${token}...`);
+                const connectPayload: any = {
+                    instanceId: token,
+                    webhookUrl: url || undefined,
+                    subscribe: events && events.length > 0 ? events : undefined
+                };
+
+                if (transport?.rabbitMQ && transport.rabbitMQ !== 'default') {
+                    connectPayload.rabbitmqEnable = transport.rabbitMQ === 'enabled' ? 'true' : 'false';
+                }
+                if (transport?.webSocket && transport.webSocket !== 'default') {
+                    connectPayload.websocketEnable = transport.webSocket === 'enabled' ? 'true' : 'false';
+                }
+                if (transport?.nats && transport.nats !== 'default') {
+                    connectPayload.natsEnable = transport.nats === 'enabled' ? 'true' : 'false';
+                }
+
+                const connectRes = await axios.post(`${activeConfig.url}/instance/connect`, connectPayload, {
+                    headers: { 'apikey': activeConfig.apiKey }
+                });
+                return { success: true, message: 'Webhook configurado com sucesso (Evolution GO)', detail: connectRes.data };
             } else {
                 const response = await axios.post(`${activeConfig.url}/webhook/set/${encodedName}`, payload, {
                     headers: { 'apikey': activeConfig.apiKey }
@@ -4202,6 +4222,93 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
         console.error('❌ Erro ao configurar webhook:', JSON.stringify(errorDetail, null, 2));
         res.status(500).json({
             error: 'Erro ao configurar webhook na Evolution API',
+            detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
+        });
+    }
+});
+
+// GET advanced-settings for Evolution GO
+app.get('/instances/:name/advanced-settings', authenticate, async (req, res) => {
+    const { name } = req.params;
+    const { token, company_id } = req.query;
+
+    try {
+        const targetName = await resolveTargetName(name, token as string, company_id as string);
+        const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string });
+        if (!config.isGo) {
+            return res.status(400).json({ error: 'Endpoint exclusivo para Evolution GO' });
+        }
+
+        const executeGetSettings = async (activeConfig: typeof config) => {
+            const response = await axios.get(`${activeConfig.url}/instance/${token}/advanced-settings`, {
+                headers: { 'apikey': activeConfig.apiKey }
+            });
+            return response.data;
+        };
+
+        let settingsData;
+        try {
+            settingsData = await executeGetSettings(config);
+        } catch (primaryErr: any) {
+            console.warn(`⚠️ Primary settings fetch failed (${primaryErr.message}). Trying fallback config...`);
+            const fallbackConfig = getAlternativeConfig(config);
+            settingsData = await executeGetSettings(fallbackConfig);
+        }
+
+        res.json(settingsData);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        console.error(`❌ Erro ao buscar configurações avançadas de "${name}":`, errorDetail);
+        res.status(500).json({
+            error: 'Erro ao buscar configurações avançadas na Evolution API',
+            detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
+        });
+    }
+});
+
+// POST (updates) advanced-settings for Evolution GO
+app.post('/instances/:name/advanced-settings', authenticate, async (req, res) => {
+    const { name } = req.params;
+    const { token, company_id } = req.query;
+    const { alwaysOnline, rejectCall, msgRejectCall, readMessages, ignoreGroups, ignoreStatus } = req.body;
+
+    try {
+        const targetName = await resolveTargetName(name, token as string, company_id as string);
+        const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string });
+        if (!config.isGo) {
+            return res.status(400).json({ error: 'Endpoint exclusivo para Evolution GO' });
+        }
+
+        const payload: any = {};
+        if (typeof alwaysOnline === 'boolean') payload.alwaysOnline = alwaysOnline;
+        if (typeof rejectCall === 'boolean') payload.rejectCall = rejectCall;
+        if (typeof msgRejectCall === 'string') payload.msgRejectCall = msgRejectCall;
+        if (typeof readMessages === 'boolean') payload.readMessages = readMessages;
+        if (typeof ignoreGroups === 'boolean') payload.ignoreGroups = ignoreGroups;
+        if (typeof ignoreStatus === 'boolean') payload.ignoreStatus = ignoreStatus;
+
+        const executeUpdateSettings = async (activeConfig: typeof config) => {
+            const response = await axios.put(`${activeConfig.url}/instance/${token}/advanced-settings`, payload, {
+                headers: { 'apikey': activeConfig.apiKey }
+            });
+            return response.data;
+        };
+
+        let responseData;
+        try {
+            responseData = await executeUpdateSettings(config);
+        } catch (primaryErr: any) {
+            console.warn(`⚠️ Primary settings update failed (${primaryErr.message}). Trying fallback config...`);
+            const fallbackConfig = getAlternativeConfig(config);
+            responseData = await executeUpdateSettings(fallbackConfig);
+        }
+
+        res.json(responseData);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        console.error(`❌ Erro ao atualizar configurações avançadas de "${name}":`, errorDetail);
+        res.status(500).json({
+            error: 'Erro ao atualizar configurações avançadas na Evolution API',
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
     }
