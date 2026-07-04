@@ -642,10 +642,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 if (apiBase.startsWith('/')) {
                                     apiBase = window.location.origin + apiBase;
                                 }
-                                // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público (sem token longo)
-                                const { data: sessionData } = await supabase.auth.getSession();
-                                const tokenParam = sessionData?.session?.access_token ? `&token=${sessionData.session.access_token}` : '';
-                                const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}${tokenParam}`;
+                                // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
+                                const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
 
                                 const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
                                 await whatsappService.sendMessage({
@@ -815,9 +813,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 apiBase = window.location.origin + apiBase;
                             }
                             // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
-                            const { data: sessionData } = await supabase.auth.getSession();
-                            const tokenParam = sessionData?.session?.access_token ? `&token=${sessionData.session.access_token}` : '';
-                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}${tokenParam}`;
+                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
 
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
                             await whatsappService.sendMessage({

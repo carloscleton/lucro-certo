@@ -453,7 +453,7 @@ ${messageWithPlaceholder}`;
         return '';
     };
 
-    const getPdfUrlFromInvoice = (invoice: any, accessToken?: string): string => {
+    const getPdfUrlFromInvoice = (invoice: any): string => {
         let url = '';
         if (invoice.pdf_url && invoice.pdf_url.startsWith('http')) {
             url = invoice.pdf_url;
@@ -488,18 +488,12 @@ ${messageWithPlaceholder}`;
                 url = `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}`;
             }
         }
-        
-        if (url && accessToken && !url.includes('token=')) {
-            const separator = url.includes('?') ? '&' : '?';
-            url = `${url}${separator}token=${accessToken}`;
-        }
         return url;
     };
 
     const handleOpenSendWhatsApp = async (invoice: any) => {
-        const { data: { session } } = await supabase.auth.getSession();
         const phone = getPhoneFromPayload(invoice);
-        const pdfUrl = getPdfUrlFromInvoice(invoice, session?.access_token);
+        const pdfUrl = getPdfUrlFromInvoice(invoice);
         const p = invoice.payload;
         const clientName = invoice.quote?.contact?.name || 
                            p?.tomador?.razaoSocial || 
@@ -624,7 +618,7 @@ ${messageWithPlaceholder}`;
                 }
 
                 const instance = waData[0];
-                const pdfUrl = getPdfUrlFromInvoice(sendModal.invoice, session.access_token);
+                const pdfUrl = getPdfUrlFromInvoice(sendModal.invoice);
                 const hasPublicPdf = pdfUrl && pdfUrl.startsWith('http');
 
                 await whatsappService.sendMessage({
