@@ -3692,10 +3692,11 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                             
                             console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
                             
-                            const targetName = instanceName.includes('-') ? instanceName : `${instanceName}-${invoice.company_id}`;
+                            const config = await getEvolutionConfig({ companyId: invoice.company_id });
+                            const targetName = await resolveTargetName(instanceName, undefined, invoice.company_id);
                             const encodedName = encodeURIComponent(targetName);
                             
-                            await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
+                            await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
                                 number: recipientPhone,
                                 mediatype: 'document',
                                 mimetype: 'application/pdf',
@@ -3704,7 +3705,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                 fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
                             }, {
                                 headers: {
-                                    'apikey': EVOLUTION_API_KEY,
+                                    'apikey': config.apiKey,
                                     'Content-Type': 'application/json'
                                 },
                                 timeout: 8000
@@ -5608,6 +5609,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
     }
 
     try {
+        const config = await getEvolutionConfig({ instanceName });
         const targetName = await resolveTargetName(instanceName);
         const encodedName = encodeURIComponent(targetName);
 
@@ -5618,7 +5620,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         if (mediaUrl && !isLocalhost) {
             try {
                 console.log(`✉️ [Media] Tentando enviar documento WhatsApp via "${targetName}" para ${number}...`);
-                const response = await axios.post(`${EVOLUTION_API_URL}/message/sendMedia/${encodedName}`, {
+                const response = await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
                     number: number,
                     mediatype: mediaType || 'document',
                     mimetype: mimetype || 'application/pdf',
@@ -5627,7 +5629,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                     fileName: fileName || 'NotaFiscal.pdf'
                 }, {
                     headers: {
-                        'apikey': EVOLUTION_API_KEY,
+                        'apikey': config.apiKey,
                         'Content-Type': 'application/json'
                     },
                     timeout: 8000 // 8 segundos de timeout para evitar travamentos
@@ -5649,13 +5651,13 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         }
 
         console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
-        const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
+        const response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
             number: number,
             text: textToSend,
             linkPreview: true
         }, {
             headers: {
-                'apikey': EVOLUTION_API_KEY,
+                'apikey': config.apiKey,
                 'Content-Type': 'application/json'
             }
         });
