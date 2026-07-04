@@ -2717,9 +2717,11 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
         if (id && SUPABASE_URL) {
             try {
                 const queryParam = !isNaN(Number(id)) ? { id: `eq.${id}` } : { external_id: `eq.${id}` };
+                const dbKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+                const dbAuth = authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`;
                 const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                     params: { ...queryParam, select: 'type' },
-                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+                    headers: { 'apikey': dbKey, 'Authorization': dbAuth }
                 });
                 if (invData?.[0]?.type) {
                     resolvedType = invData[0].type;
@@ -2851,9 +2853,9 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
         const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
-        let primaryType = type;
-        if (type === 'nfse' || type === 'nfsenac') {
-            const isNacional = type === 'nfsenac' || !!config.nfse_nacional;
+        let primaryType = resolvedType || type;
+        if (primaryType === 'nfse' || primaryType === 'nfsenac') {
+            const isNacional = primaryType === 'nfsenac' || !!config.nfse_nacional;
             primaryType = isNacional ? 'nfse/nacional' : 'nfse';
         }
 
