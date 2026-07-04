@@ -1390,37 +1390,25 @@ ${messageWithPlaceholder}`;
                             />
                         </div>
 
-                        {sendModal.type === 'whatsapp' && activeInstances.length > 0 && (
+                        {sendModal.type === 'whatsapp' && activeInstances.length > 1 && (
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                                     Enviar via Instância
                                 </label>
-                                {activeInstances.length > 1 ? (
-                                    <select
-                                        value={selectedInstanceId}
-                                        onChange={(e) => setSelectedInstanceId(e.target.value)}
-                                        className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-sm"
-                                    >
-                                        {activeInstances.map(inst => {
-                                            const isGo = goInstancesList.includes(inst.instance_name.toLowerCase().trim());
-                                            return (
-                                                <option key={inst.id} value={inst.id}>
-                                                    {inst.instance_name} ({inst.phone_number || 'Sem número'}) — {isGo ? 'Evo GO' : 'Evo API'}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                ) : (
-                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/30 text-xs font-bold text-gray-600 dark:text-gray-400">
-                                        <div className="flex items-center gap-2">
-                                            <span>{activeInstances[0].instance_name}</span>
-                                            <span className="text-[9px] font-extrabold bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                                {goInstancesList.includes(activeInstances[0].instance_name.toLowerCase().trim()) ? 'Evo GO' : 'Evo API'}
-                                            </span>
-                                        </div>
-                                        <span className="text-gray-400 dark:text-gray-500 font-semibold">{activeInstances[0].phone_number || 'Sem número'}</span>
-                                    </div>
-                                )}
+                                <select
+                                    value={selectedInstanceId}
+                                    onChange={(e) => setSelectedInstanceId(e.target.value)}
+                                    className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-sm"
+                                >
+                                    {activeInstances.map(inst => {
+                                        const isGo = goInstancesList.includes(inst.instance_name.toLowerCase().trim());
+                                        return (
+                                            <option key={inst.id} value={inst.id}>
+                                                {inst.instance_name} ({inst.phone_number || 'Sem número'}) — {isGo ? 'Evo GO' : 'Evo API'}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
                             </div>
                         )}
 
