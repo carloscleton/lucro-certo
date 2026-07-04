@@ -3752,7 +3752,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                             
                             console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
                             
-                            const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName });
+                            const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName, token: instanceToken });
                             const targetName = await resolveTargetName(instanceName, instanceToken, invoice.company_id);
                             const encodedName = encodeURIComponent(targetName);
                             
@@ -5708,7 +5708,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
             }
         }
 
-        const config = await getEvolutionConfig({ instanceName, companyId, userToken: authHeader });
+        const config = await getEvolutionConfig({ instanceName, companyId, token: instanceToken, userToken: authHeader });
         const targetName = await resolveTargetName(instanceName, instanceToken, companyId, authHeader);
         const encodedName = encodeURIComponent(targetName);
 
