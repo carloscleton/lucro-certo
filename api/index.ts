@@ -107,15 +107,15 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
     const authHeader = identifier.userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${supabaseKey}`);
 
     const nameToMatch = identifier.instanceName?.toLowerCase().trim();
-    const tokenToMatch = identifier.token?.toLowerCase().trim();
+    const tokenToMatch = identifier.token && identifier.token !== 'null' && identifier.token !== 'undefined' ? identifier.token.toLowerCase().trim() : '';
 
     let instanceToken = '';
     // 🔍 1. Buscar o token da instância e company_id (se name ou token fornecidos)
     if (SUPABASE_URL && supabaseKey && (nameToMatch || tokenToMatch)) {
         try {
             let query = `${SUPABASE_URL}/rest/v1/instances?`;
-            if (identifier.token) {
-                query += `evolution_instance_id=eq.${encodeURIComponent(identifier.token)}`;
+            if (tokenToMatch) {
+                query += `evolution_instance_id=eq.${encodeURIComponent(identifier.token!)}`;
             } else {
                 query += `instance_name=eq.${encodeURIComponent(identifier.instanceName!)}`;
             }
