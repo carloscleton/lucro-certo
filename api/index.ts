@@ -3682,7 +3682,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                     if (recipientPhoneRaw) {
                         const recipientPhone = String(recipientPhoneRaw).replace(/\D/g, '');
                         
-                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/whatsapp_instances?company_id=eq.${invoice.company_id}&status=eq.open&select=instance_name`, {
+                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name`, {
                             headers: dbHeaders
                         });
                         
