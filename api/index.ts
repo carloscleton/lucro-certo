@@ -5669,6 +5669,42 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         const targetName = await resolveTargetName(instanceName, undefined, companyId, authHeader);
         const encodedName = encodeURIComponent(targetName);
 
+        // 🔍 Verificar status de conexão da instância em tempo real
+        let isConnected = false;
+        try {
+            if (config.isGo) {
+                const response = await axios.get(`${config.url}/instance/all`, {
+                    headers: { 'apikey': config.apiKey },
+                    timeout: 2000
+                });
+                const allInstances = response.data?.data || [];
+                const inst = allInstances.find((i: any) =>
+                    i.name.toLowerCase() === targetName.toLowerCase()
+                );
+                isConnected = !!inst?.connected;
+            } else {
+                const response = await axios.get(`${config.url}/instance/fetchInstances`, {
+                    headers: { 'apikey': config.apiKey },
+                    timeout: 2000
+                });
+                const allInstances = Array.isArray(response.data) ? response.data : [];
+                const match = allInstances.find((i: any) =>
+                    (i.name || i.instanceName || '').toLowerCase() === targetName.toLowerCase()
+                );
+                isConnected = (match?.connectionStatus === 'open');
+            }
+        } catch (statusErr: any) {
+            console.warn('⚠️ Erro ao validar status da instância na checagem prévia:', statusErr.message);
+            // Se houver timeout ou falha na rede ao verificar o status, permitimos tentar o envio
+            isConnected = true;
+        }
+
+        if (!isConnected) {
+            return res.status(400).json({
+                error: `A sua instância "${targetName}" está desconectada no servidor do WhatsApp. Acesse a aba WhatsApp e reconecte seu aparelho.`
+            });
+        }
+
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
         // Nesse caso, pulamos o envio de mídia e enviamos direto como texto com o link.
         const isLocalhost = mediaUrl && (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1'));
