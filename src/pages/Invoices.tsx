@@ -518,6 +518,7 @@ ${messageWithPlaceholder}`;
                 .from('instances')
                 .select('*')
                 .eq('status', 'connected')
+                .neq('is_active', false)
                 .eq('company_id', invoice.company_id);
             
             const activeInsts = waData || [];
@@ -668,6 +669,7 @@ ${messageWithPlaceholder}`;
                         .from('instances')
                         .select('*')
                         .eq('status', 'connected')
+                        .neq('is_active', false)
                         .eq('company_id', sendModal.invoice.company_id);
 
                     if (!waData || waData.length === 0) {

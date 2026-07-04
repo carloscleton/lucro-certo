@@ -40,6 +40,8 @@ interface Instance {
     phone_number?: string;
     whatsapp_name?: string;
     created_at: string;
+    provider?: string;
+    is_active?: boolean;
 }
 
 export function WhatsApp() {
@@ -110,8 +112,12 @@ export function WhatsApp() {
     const [evoGoWebSocket, setEvoGoWebSocket] = useState('default');
     const [evoGoNats, setEvoGoNats] = useState('default');
 
-    // Detect provider
-    const isEvoGo = currentEntity.settings?.whatsapp_provider === 'evolution_go';
+    const [selectedProvider, setSelectedProvider] = useState<'evolution_api' | 'evolution_go'>(
+        currentEntity.settings?.whatsapp_provider === 'evolution_go' ? 'evolution_go' : 'evolution_api'
+    );
+
+    // Detect provider (check if company defaults to EvoGo or has any EvoGo instance in instances list)
+    const isEvoGo = instances.some((i: any) => i.provider === 'evolution_go') || currentEntity.settings?.whatsapp_provider === 'evolution_go';
 
     // EvoGo Webhook events (lista completa)
     const EVO_GO_EVENTS = [
@@ -130,8 +136,12 @@ export function WhatsApp() {
     ];
 
     const [selectedEvents, setSelectedEvents] = useState<string[]>(
-        isEvoGo ? ['MESSAGE'] : ['MESSAGES_UPSERT']
+        selectedProvider === 'evolution_go' ? ['MESSAGE'] : ['MESSAGES_UPSERT']
     );
+
+    useEffect(() => {
+        setSelectedEvents(selectedProvider === 'evolution_go' ? ['MESSAGE'] : ['MESSAGES_UPSERT']);
+    }, [selectedProvider]);
 
     const isLimitReached = currentEntity.type === 'company' && instances.length >= (currentEntity.whatsapp_instance_limit || 1);
 
@@ -356,10 +366,11 @@ export function WhatsApp() {
             const requestBody: any = {
                 name: friendlyName,
                 token: instanceId,
-                company_id: currentEntity.type === 'company' ? currentEntity.id : undefined
+                company_id: currentEntity.type === 'company' ? currentEntity.id : undefined,
+                provider: selectedProvider
             };
 
-            if (isEvoGo) {
+            if (selectedProvider === 'evolution_go') {
                 // EvoGo payload: advancedSettings embutido + webhook via URL
                 requestBody.webhook_url = evoWebhookUrl || undefined;
                 requestBody.webhook_events = selectedEvents && selectedEvents.length > 0 ? selectedEvents : undefined;
@@ -416,7 +427,9 @@ export function WhatsApp() {
                     company_id: currentEntity.type === 'company' ? currentEntity.id : null,
                     webhook_url: evoWebhookUrl || null,
                     webhook_events: selectedEvents && selectedEvents.length > 0 ? selectedEvents : null,
-                    status: 'disconnected'
+                    status: 'disconnected',
+                    provider: selectedProvider,
+                    is_active: true
                 }])
                 .select()
                 .single();
@@ -826,7 +839,20 @@ export function WhatsApp() {
 
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                 <form onSubmit={handleCreateInstance} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                    <div className={isEvoGo ? 'md:col-span-4' : 'md:col-span-3'}>
+                    <div className="md:col-span-3">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Provedor WhatsApp
+                        </label>
+                        <select
+                            value={selectedProvider}
+                            onChange={(e) => setSelectedProvider(e.target.value as any)}
+                            className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 font-semibold text-sm h-[45px] text-gray-700 dark:text-white"
+                        >
+                            <option value="evolution_api">Evolution API (Padrão)</option>
+                            <option value="evolution_go">Evolution GO (Alta Performance)</option>
+                        </select>
+                    </div>
+                    <div className="md:col-span-3">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Nome Amigável
                         </label>
@@ -839,7 +865,7 @@ export function WhatsApp() {
                             required
                         />
                     </div>
-                    <div className={isEvoGo ? 'md:col-span-6' : 'md:col-span-7'}>
+                    <div className="md:col-span-4">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             ID da Instância (Técnico)
                         </label>
@@ -1143,9 +1169,14 @@ export function WhatsApp() {
                         <div key={instance.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 group">
                             <div className="p-5">
                                 <div className="flex justify-between items-start mb-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                                        {instance.instance_name}
-                                    </h3>
+                                    <div className="flex items-center gap-2 truncate">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                                            {instance.instance_name}
+                                        </h3>
+                                        <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded tracking-wider flex-shrink-0 ${instance.provider === 'evolution_go' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'}`}>
+                                            {instance.provider === 'evolution_go' ? 'Evo GO' : 'Evo API'}
+                                        </span>
+                                    </div>
                                     <div className="flex items-center gap-2">
                                         <Tooltip content="Sincronizar Agora">
                                             <button
@@ -1219,6 +1250,38 @@ export function WhatsApp() {
                                         <LinkIcon size={14} className="text-gray-400" />
                                         <span className="text-xs truncate">Webhooks habilitados</span>
                                     </div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/30 rounded-xl border border-gray-100 dark:border-slate-800 mb-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Disparos Ativos</span>
+                                        <span className="text-[10px] text-gray-400">Permite enviar notas/mensagens</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            const newActive = instance.is_active === false ? true : false;
+                                            // 1. Atualizar localmente
+                                            setInstances(instances.map(i => i.id === instance.id ? { ...i, is_active: newActive } : i));
+                                            // 2. Salvar no banco
+                                            const { error } = await supabase
+                                                .from('instances')
+                                                .update({ is_active: newActive })
+                                                .eq('id', instance.id);
+                                            if (error) {
+                                                notify('error', 'Erro ao atualizar status do disparo.', 'Erro');
+                                                // Reverter
+                                                setInstances(instances.map(i => i.id === instance.id ? { ...i, is_active: !newActive } : i));
+                                            } else {
+                                                notify('success', `Disparos ${newActive ? 'ativados' : 'desativados'} com sucesso.`, 'Atualizado');
+                                            }
+                                        }}
+                                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${instance.is_active !== false ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700'}`}
+                                    >
+                                        <span
+                                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${instance.is_active !== false ? 'translate-x-5' : 'translate-x-0'}`}
+                                        />
+                                    </button>
                                 </div>
 
                                 <div className="flex flex-col gap-2">

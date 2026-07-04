@@ -101,7 +101,7 @@ const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\
 const EVOLUTION_GO_API_KEY = process.env.EVOLUTION_GO_API_KEY?.trim() || EVOLUTION_API_KEY;
 
 // Helper to get Evolution Config based on company_id or instance name or token
-async function getEvolutionConfig(identifier: { companyId?: string; instanceName?: string; token?: string; userToken?: string }) {
+async function getEvolutionConfig(identifier: { companyId?: string; instanceName?: string; token?: string; userToken?: string; provider?: string }) {
     let companyId = identifier.companyId;
     const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
     const authHeader = identifier.userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${supabaseKey}`);
@@ -110,7 +110,8 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
     const tokenToMatch = identifier.token && identifier.token !== 'null' && identifier.token !== 'undefined' ? identifier.token.toLowerCase().trim() : '';
 
     let instanceToken = '';
-    // 🔍 1. Buscar o token da instância e company_id (se name ou token fornecidos)
+    let dbProvider: string | null = identifier.provider || null;
+    // 🔍 1. Buscar o token da instância, company_id e provider (se name ou token fornecidos)
     if (SUPABASE_URL && supabaseKey && (nameToMatch || tokenToMatch)) {
         try {
             let query = `${SUPABASE_URL}/rest/v1/instances?`;
@@ -119,7 +120,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
             } else {
                 query += `instance_name=eq.${encodeURIComponent(identifier.instanceName!)}`;
             }
-            query += `&select=evolution_instance_id,company_id`;
+            query += `&select=evolution_instance_id,company_id,provider`;
             const response = await axios.get(query, {
                 headers: {
                     'apikey': supabaseKey,
@@ -128,6 +129,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
             });
             if (response.data && response.data.length > 0) {
                 instanceToken = response.data[0].evolution_instance_id;
+                dbProvider = response.data[0].provider;
                 if (!companyId) {
                     companyId = response.data[0].company_id;
                 }
@@ -135,6 +137,12 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
         } catch (err: any) {
             console.error('⚠️ [Evolution Proxy] Error fetching instance token:', err.message);
         }
+    }
+
+    if (dbProvider === 'evolution_go') {
+        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+    } else if (dbProvider === 'evolution_api') {
+        return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
     }
 
     let defaultIsGo = false;
@@ -4048,14 +4056,14 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
 
 // Endpoints
 app.post('/instances', authenticate, async (req, res) => {
-    const { name, token: customToken, webhook_url, webhook_events, enabled, base64, company_id, advancedSettings } = req.body;
+    const { name, token: customToken, webhook_url, webhook_events, enabled, base64, company_id, advancedSettings, provider } = req.body;
 
     if (!name) {
         return res.status(400).json({ error: 'Nome da instância é obrigatório' });
     }
 
     try {
-        const config = await getEvolutionConfig({ companyId: company_id });
+        const config = await getEvolutionConfig({ companyId: company_id, provider });
         console.log(`🔌 Creating instance "${name}" on Evolution API (Go: ${config.isGo}, URL: ${config.url})...`);
 
         // Função para gerar ID no formato 12-4-4-12 (Total 32 hex)
@@ -4235,6 +4243,45 @@ app.get('/instances/evogo-sync', authenticate, async (req, res) => {
             profileName: i.client_name,
             jid: i.jid,
         }));
+
+        const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+        if (SUPABASE_URL && supabaseKey && company_id) {
+            try {
+                // Buscar instâncias locais e atualizar o provider das encontradas na EvoGo
+                const dbRes = await axios.get(
+                    `${SUPABASE_URL}/rest/v1/instances?company_id=eq.${company_id}&select=id,instance_name,provider`,
+                    {
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`
+                        }
+                    }
+                );
+                const localInsts = dbRes.data || [];
+                for (const local of localInsts) {
+                    const serverInst = instances.find((i: any) =>
+                        (i.name || '').toLowerCase().trim() === (local.instance_name || '').toLowerCase().trim()
+                    );
+                    if (serverInst && local.provider !== 'evolution_go') {
+                        console.log(`🔄 [evogo-sync] Sincronizando provider para ${local.instance_name} -> evolution_go`);
+                        await axios.patch(
+                            `${SUPABASE_URL}/rest/v1/instances?id=eq.${local.id}`,
+                            { provider: 'evolution_go' },
+                            {
+                                headers: {
+                                    'apikey': supabaseKey,
+                                    'Authorization': `Bearer ${supabaseKey}`,
+                                    'Content-Type': 'application/json',
+                                    'Prefer': 'return=minimal'
+                                }
+                            }
+                        ).catch(e => console.warn('⚠️ evogo-sync patch provider failed:', e.message));
+                    }
+                }
+            } catch (dbErr: any) {
+                console.warn('⚠️ evogo-sync DB update failed:', dbErr.message);
+            }
+        }
 
         res.json({ instances, isGo: true });
     } catch (error: any) {
