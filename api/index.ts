@@ -2919,8 +2919,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
         let primaryType = resolvedType || type;
         if (primaryType === 'nfse' || primaryType === 'nfsenac') {
-            const isNacional = primaryType === 'nfsenac' || !!config.nfse_nacional;
-            primaryType = isNacional ? 'nfse/nacional' : 'nfse';
+            // PlugNotas usa /nfse/pdf e /nfse/xml para download de PDF/XML tanto para notas municipais quanto nacionais.
+            primaryType = 'nfse';
         }
 
         console.log(`📄 [FISCAL-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para ${primaryType} ID: ${id}`);
