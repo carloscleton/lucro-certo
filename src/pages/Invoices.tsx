@@ -131,6 +131,7 @@ export function Invoices() {
     const [isRewriting, setIsRewriting] = useState(false);
     const [activeInstances, setActiveInstances] = useState<any[]>([]);
     const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
+    const [goInstancesList, setGoInstancesList] = useState<string[]>([]);
 
     const handleAiRewrite = async () => {
         if (!sendModal.message) return;
@@ -519,11 +520,44 @@ ${messageWithPlaceholder}`;
                 .eq('status', 'connected')
                 .eq('company_id', invoice.company_id);
             
-            setActiveInstances(waData || []);
-            if (waData && waData.length > 0) {
-                setSelectedInstanceId(waData[0].id);
+            const activeInsts = waData || [];
+            setActiveInstances(activeInsts);
+
+            if (activeInsts.length > 0) {
+                // Obter provedor de WhatsApp padrão nas configurações da empresa
+                const currentCompany = companies.find(c => c.id === invoice.company_id);
+                const isDefaultGo = currentCompany?.settings?.whatsapp_provider === 'evolution_go';
+
+                // Buscar quais instâncias estão na Evolution GO
+                let goNames: string[] = [];
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const syncRes = await fetch(`${API_BASE_URL}/instances/evogo-sync?company_id=${invoice.company_id}`, {
+                        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                    });
+                    if (syncRes.ok) {
+                        const syncData = await syncRes.json();
+                        goNames = (syncData.instances || []).map((i: any) => (i.name || '').toLowerCase().trim());
+                        setGoInstancesList(goNames);
+                    }
+                } catch (err) {
+                    console.warn('Erro ao verificar instâncias no Evolution GO:', err);
+                }
+
+                // Tentar pre-selecionar o provedor preferido das configurações
+                let defaultInst = activeInsts.find(inst => {
+                    const nameLower = inst.instance_name.toLowerCase().trim();
+                    const isGo = goNames.includes(nameLower);
+                    return isDefaultGo ? isGo : !isGo;
+                });
+
+                if (!defaultInst) {
+                    defaultInst = activeInsts[0];
+                }
+                setSelectedInstanceId(defaultInst.id);
             } else {
                 setSelectedInstanceId('');
+                setGoInstancesList([]);
             }
         } catch (err) {
             console.warn('Erro ao carregar instâncias de WhatsApp:', err);
@@ -1367,15 +1401,23 @@ ${messageWithPlaceholder}`;
                                         onChange={(e) => setSelectedInstanceId(e.target.value)}
                                         className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-sm"
                                     >
-                                        {activeInstances.map(inst => (
-                                            <option key={inst.id} value={inst.id}>
-                                                {inst.instance_name} ({inst.phone_number || 'Sem número'})
-                                            </option>
-                                        ))}
+                                        {activeInstances.map(inst => {
+                                            const isGo = goInstancesList.includes(inst.instance_name.toLowerCase().trim());
+                                            return (
+                                                <option key={inst.id} value={inst.id}>
+                                                    {inst.instance_name} ({inst.phone_number || 'Sem número'}) — {isGo ? 'Evo GO' : 'Evo API'}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 ) : (
                                     <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/30 text-xs font-bold text-gray-600 dark:text-gray-400">
-                                        <span>{activeInstances[0].instance_name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span>{activeInstances[0].instance_name}</span>
+                                            <span className="text-[9px] font-extrabold bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                {goInstancesList.includes(activeInstances[0].instance_name.toLowerCase().trim()) ? 'Evo GO' : 'Evo API'}
+                                            </span>
+                                        </div>
                                         <span className="text-gray-400 dark:text-gray-500 font-semibold">{activeInstances[0].phone_number || 'Sem número'}</span>
                                     </div>
                                 )}
