@@ -129,6 +129,8 @@ export function Invoices() {
     });
     const [selectedInvoiceDetail, setSelectedInvoiceDetail] = useState<any | null>(null);
     const [isRewriting, setIsRewriting] = useState(false);
+    const [activeInstances, setActiveInstances] = useState<any[]>([]);
+    const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
 
     const handleAiRewrite = async () => {
         if (!sendModal.message) return;
@@ -509,6 +511,24 @@ ${messageWithPlaceholder}`;
             isLoading: false
         });
 
+        // Buscar as instâncias de WhatsApp conectadas e ativas da empresa
+        try {
+            const { data: waData } = await supabase
+                .from('instances')
+                .select('*')
+                .eq('status', 'connected')
+                .eq('company_id', invoice.company_id);
+            
+            setActiveInstances(waData || []);
+            if (waData && waData.length > 0) {
+                setSelectedInstanceId(waData[0].id);
+            } else {
+                setSelectedInstanceId('');
+            }
+        } catch (err) {
+            console.warn('Erro ao carregar instâncias de WhatsApp:', err);
+        }
+
         // Se for emissão direta (sem orçamento) e tiver CPF/CNPJ do tomador, tenta buscar o contato no banco de dados para puxar o WhatsApp/Telefone atualizado
         if (!invoice.quote && p) {
             const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj || p?.borrower?.federalTaxNumber || p?.retorno?.borrower?.federalTaxNumber;
@@ -607,17 +627,20 @@ ${messageWithPlaceholder}`;
             if (!session) throw new Error('Sessão expirada. Por favor, faça login novamente.');
 
             if (sendModal.type === 'whatsapp') {
-                const { data: waData } = await supabase
-                    .from('instances')
-                    .select('*')
-                    .eq('status', 'connected')
-                    .eq('company_id', sendModal.invoice.company_id);
+                let instance = activeInstances.find(i => i.id === selectedInstanceId);
+                
+                if (!instance) {
+                    const { data: waData } = await supabase
+                        .from('instances')
+                        .select('*')
+                        .eq('status', 'connected')
+                        .eq('company_id', sendModal.invoice.company_id);
 
-                if (!waData || waData.length === 0) {
-                    throw new Error('Nenhuma instância de WhatsApp conectada e ativa encontrada para sua empresa. Conecte uma na aba WhatsApp.');
+                    if (!waData || waData.length === 0) {
+                        throw new Error('Nenhuma instância de WhatsApp conectada e ativa encontrada para sua empresa. Conecte uma na aba WhatsApp.');
+                    }
+                    instance = waData[0];
                 }
-
-                const instance = waData[0];
                 const pdfUrl = getPdfUrlFromInvoice(sendModal.invoice);
                 const hasPublicPdf = pdfUrl && pdfUrl.startsWith('http');
 
@@ -1332,6 +1355,32 @@ ${messageWithPlaceholder}`;
                                 className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
                             />
                         </div>
+
+                        {sendModal.type === 'whatsapp' && activeInstances.length > 0 && (
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                    Enviar via Instância
+                                </label>
+                                {activeInstances.length > 1 ? (
+                                    <select
+                                        value={selectedInstanceId}
+                                        onChange={(e) => setSelectedInstanceId(e.target.value)}
+                                        className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-sm"
+                                    >
+                                        {activeInstances.map(inst => (
+                                            <option key={inst.id} value={inst.id}>
+                                                {inst.instance_name} ({inst.phone_number || 'Sem número'})
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/30 text-xs font-bold text-gray-600 dark:text-gray-400">
+                                        <span>{activeInstances[0].instance_name}</span>
+                                        <span className="text-gray-400 dark:text-gray-500 font-semibold">{activeInstances[0].phone_number || 'Sem número'}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {sendModal.type === 'whatsapp' && (
                             <div>
