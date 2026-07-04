@@ -247,7 +247,17 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 // Health Check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date() });
+    res.json({
+        status: 'ok',
+        timestamp: new Date(),
+        diagnostics: {
+            evolution_api_url: !!process.env.EVOLUTION_API_URL,
+            evolution_api_key: !!process.env.EVOLUTION_API_KEY,
+            evolution_go_api_url: !!process.env.EVOLUTION_GO_API_URL,
+            evolution_go_api_key: !!process.env.EVOLUTION_GO_API_KEY,
+            supabase_service_role_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+        }
+    });
 });
 
 // Proxy para cotações de moedas com fallback robusto contra falhas de CORS/Rede
