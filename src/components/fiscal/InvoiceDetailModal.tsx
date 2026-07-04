@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
     X, Receipt, DollarSign, User, MapPin, Mail, MessageCircle, FileText, 
     FileCode, Trash2, AlertTriangle, Printer, History, 
-    UserCheck, XCircle, CheckCircle2, Clock3, RefreshCw
+    UserCheck, XCircle, CheckCircle2, Clock3, RefreshCw, Sparkles
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { fiscalService } from '../../services/fiscalService';
@@ -47,6 +47,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     });
 
     const [waInstances, setWaInstances] = useState<any[]>([]);
+    const [isRewriting, setIsRewriting] = useState(false);
 
     useEffect(() => {
         if (!isOpen || !invoice?.company_id) return;
@@ -383,6 +384,48 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
             message: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`,
             isLoading: false
         });
+    };
+
+    const handleAiRewrite = async () => {
+        if (!sendModal.message) return;
+        setIsRewriting(true);
+        try {
+            const prompt = `Você é um assistente de vendas e relacionamento inteligente. 
+Sua tarefa é reescrever a mensagem de WhatsApp abaixo para torná-la mais profissional, simpática ou com um tom levemente diferente, mantendo o mesmo objetivo.
+
+REGRAS CRÍTICAS:
+1. MANTENHA todas as URLs/links que começam com http ou https exatamente como estão (não altere nenhum caractere, parâmetro ou pontuação neles).
+2. Preserve a saudação e o nome do cliente.
+3. Não inclua aspas no início ou fim do texto reescrito.
+4. Mantenha formatações básicas de WhatsApp (como *negrito* para destacar pontos importantes e emojis amigáveis).
+5. O texto deve ter no máximo 4 parágrafos curtos.
+
+Mensagem atual a ser reescrita:
+${sendModal.message}`;
+
+            const companyId = invoice?.company_id;
+            if (!companyId) throw new Error('Company ID não encontrado');
+
+            const { data, error } = await supabase.functions.invoke('social-copilot-magic', {
+                body: { 
+                    company_id: companyId, 
+                    mode: 'landing_plan_magic', 
+                    topic: prompt 
+                }
+            });
+
+            if (error) throw error;
+            if (data?.template) {
+                setSendModal(prev => ({ ...prev, message: data.template.trim() }));
+            } else {
+                throw new Error("Nenhum texto gerado");
+            }
+        } catch (err: any) {
+            console.error('Erro ao reescrever mensagem:', err);
+            alert('Não foi possível reescrever a mensagem. Tente novamente.');
+        } finally {
+            setIsRewriting(false);
+        }
     };
 
     const handleSendDocument = async () => {
@@ -959,9 +1002,21 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
 
                             {sendModal.type === 'whatsapp' && (
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                        Mensagem a ser enviada
-                                    </label>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                            Mensagem a ser enviada
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={handleAiRewrite}
+                                            disabled={isRewriting || !sendModal.message}
+                                            className="flex items-center gap-1 text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-50 transition-colors bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded uppercase tracking-wider"
+                                            title="Reescrever mensagem com IA mantendo o contexto"
+                                        >
+                                            <Sparkles className={`h-2.5 w-2.5 ${isRewriting ? 'animate-spin' : ''}`} />
+                                            {isRewriting ? 'Reescrevendo...' : 'IA Mágica'}
+                                        </button>
+                                    </div>
                                     <textarea
                                         value={sendModal.message}
                                         onChange={(e) => setSendModal(prev => ({ ...prev, message: e.target.value }))}
