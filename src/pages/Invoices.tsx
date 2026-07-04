@@ -134,18 +134,28 @@ export function Invoices() {
         if (!sendModal.message) return;
         setIsRewriting(true);
         try {
+            // Extrair o link original da mensagem
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const match = sendModal.message.match(urlRegex);
+            const originalUrl = match ? match[0] : '';
+            
+            // Substituir o link real pelo placeholder
+            const messageWithPlaceholder = originalUrl 
+                ? sendModal.message.replace(originalUrl, '[LINK_NOTAFISCAL]') 
+                : sendModal.message;
+
             const prompt = `Você é um assistente de vendas e relacionamento inteligente. 
 Sua tarefa é reescrever a mensagem de WhatsApp abaixo para torná-la mais profissional, simpática ou com um tom levemente diferente, mantendo o mesmo objetivo.
 
 REGRAS CRÍTICAS:
-1. MANTENHA todas as URLs/links que começam com http ou https exatamente como estão (não altere nenhum caractere, parâmetro ou pontuação neles).
+1. MANTENHA o marcador [LINK_NOTAFISCAL] exatamente como está (não altere os colchetes nem o texto interno). Ele representa o link real da nota fiscal que será reinserido automaticamente depois.
 2. Preserve a saudação e o nome do cliente.
 3. Não inclua aspas no início ou fim do texto reescrito.
 4. Mantenha formatações básicas de WhatsApp (como *negrito* para destacar pontos importantes e emojis amigáveis).
 5. O texto deve ter no máximo 4 parágrafos curtos.
 
 Mensagem atual a ser reescrita:
-${sendModal.message}`;
+${messageWithPlaceholder}`;
 
             const companyId = sendModal.invoice?.company_id || currentEntity?.id;
             if (!companyId) throw new Error('Company ID não encontrado');
@@ -160,7 +170,18 @@ ${sendModal.message}`;
 
             if (error) throw error;
             if (data?.template) {
-                setSendModal(prev => ({ ...prev, message: data.template.trim() }));
+                let rewrittenText = data.template.trim();
+                
+                // Restaurar o link real no lugar do placeholder ou no final
+                if (originalUrl) {
+                    if (rewrittenText.includes('[LINK_NOTAFISCAL]')) {
+                        rewrittenText = rewrittenText.replace('[LINK_NOTAFISCAL]', originalUrl);
+                    } else {
+                        rewrittenText = rewrittenText + '\n' + originalUrl;
+                    }
+                }
+                
+                setSendModal(prev => ({ ...prev, message: rewrittenText }));
             } else {
                 throw new Error("Nenhum texto gerado");
             }
