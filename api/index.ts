@@ -190,7 +190,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 // Toggle diz para usar Evolution GO
                 if (foundInGo) {
                     console.log(`🔌 [Evolution Config] Usando Evolution GO conforme toggle ativo para a instância ${identifier.instanceName || identifier.token}`);
-                    return { url: EVOLUTION_GO_API_URL, apiKey: instanceToken || EVOLUTION_GO_API_KEY, isGo: true };
+                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
                 } else if (foundInStd) {
                     console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution GO, usando Evolution Padrão`);
                     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
@@ -202,7 +202,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
                 } else if (foundInGo) {
                     console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution Padrão, usando Evolution GO`);
-                    return { url: EVOLUTION_GO_API_URL, apiKey: instanceToken || EVOLUTION_GO_API_KEY, isGo: true };
+                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
                 }
             }
         } catch (detectErr: any) {
@@ -212,7 +212,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
 
     // Fallback padrão se não puder auto-detectar
     if (defaultIsGo) {
-        return { url: EVOLUTION_GO_API_URL, apiKey: instanceToken || EVOLUTION_GO_API_KEY, isGo: true };
+        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
     }
     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
 }
@@ -3741,12 +3741,13 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                     if (recipientPhoneRaw) {
                         const recipientPhone = String(recipientPhoneRaw).replace(/\D/g, '');
                         
-                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name`, {
+                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name,evolution_instance_id`, {
                             headers: dbHeaders
                         });
                         
                         if (waInstances && waInstances.length > 0) {
                             const instanceName = waInstances[0].instance_name;
+                            const instanceToken = waInstances[0].evolution_instance_id;
                             const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoice_number || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${pdf_url}`;
                             
                             console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
@@ -3765,7 +3766,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                     caption: waMsg
                                 }, {
                                     headers: {
-                                        'apikey': config.apiKey,
+                                        'apikey': instanceToken || config.apiKey,
                                         'Content-Type': 'application/json'
                                     },
                                     timeout: 8000
@@ -5690,6 +5691,27 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         const targetName = await resolveTargetName(instanceName, undefined, companyId, authHeader);
         const encodedName = encodeURIComponent(targetName);
 
+        let instanceToken = '';
+        if (config.isGo && SUPABASE_URL) {
+            try {
+                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+                const { data: insts } = await axios.get(
+                    `${SUPABASE_URL}/rest/v1/instances?instance_name=eq.${encodeURIComponent(targetName)}&select=evolution_instance_id`,
+                    {
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': authHeader || `Bearer ${supabaseKey}`
+                        }
+                    }
+                );
+                if (insts && insts.length > 0) {
+                    instanceToken = insts[0].evolution_instance_id;
+                }
+            } catch (err: any) {
+                console.error('⚠️ [whatsapp/send] Error fetching instance token:', err.message);
+            }
+        }
+
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
         // Nesse caso, pulamos o envio de mídia e enviamos direto como texto com o link.
         const isLocalhost = mediaUrl && (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1'));
@@ -5708,7 +5730,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                         caption: text || ''
                     }, {
                         headers: {
-                            'apikey': config.apiKey,
+                            'apikey': instanceToken || config.apiKey,
                             'Content-Type': 'application/json'
                         },
                         timeout: 8000
@@ -5754,7 +5776,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                 text: textToSend
             }, {
                 headers: {
-                    'apikey': config.apiKey,
+                    'apikey': instanceToken || config.apiKey,
                     'Content-Type': 'application/json'
                 }
             });
