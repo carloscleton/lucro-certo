@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../lib/constants';
+import { supabase } from '../lib/supabase';
 
 export interface SendWhatsAppParams {
     instanceName: string;
@@ -18,9 +19,15 @@ export const whatsappService = {
         }
         
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+
             const response = await fetch(`${API_BASE_URL}/whatsapp/send`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     instanceName,
                     number: cleanNumber,

@@ -101,9 +101,10 @@ const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\
 const EVOLUTION_GO_API_KEY = process.env.EVOLUTION_GO_API_KEY?.trim() || EVOLUTION_API_KEY;
 
 // Helper to get Evolution Config based on company_id or instance name or token
-async function getEvolutionConfig(identifier: { companyId?: string; instanceName?: string; token?: string }) {
+async function getEvolutionConfig(identifier: { companyId?: string; instanceName?: string; token?: string; userToken?: string }) {
     let companyId = identifier.companyId;
     const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+    const authHeader = identifier.userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${supabaseKey}`);
 
     // If companyId is not provided, look it up via token or instanceName in public.instances
     if (!companyId && SUPABASE_URL && supabaseKey) {
@@ -122,7 +123,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 const response = await axios.get(query, {
                     headers: {
                         'apikey': supabaseKey,
-                        'Authorization': `Bearer ${supabaseKey}`
+                        'Authorization': authHeader
                     }
                 });
                 if (response.data && response.data.length > 0) {
@@ -142,7 +143,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 {
                     headers: {
                         'apikey': supabaseKey,
-                        'Authorization': `Bearer ${supabaseKey}`
+                        'Authorization': authHeader
                     }
                 }
             );
@@ -2992,13 +2993,15 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 });
 
 // Helper para resolver o nome correto da instância na Evolution API (Resiliente a Case-Sensitivity e IDs Órfãos)
-async function resolveTargetName(requestedName: string, token?: string, passedCompanyId?: string): Promise<string> {
+async function resolveTargetName(requestedName: string, token?: string, passedCompanyId?: string, userToken?: string): Promise<string> {
     try {
         console.log(`🔍 Resolvendo instância: "${requestedName}" (Token: ${token || 'N/A'}, PassedCompanyId: ${passedCompanyId || 'N/A'})`);
 
         // 1. Tentar obter o config correto com base no nome ou token
         let companyId: string | undefined = passedCompanyId;
         const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+        const authHeader = userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${supabaseKey}`);
+
         if (!companyId && SUPABASE_URL && supabaseKey) {
             try {
                 let query = `${SUPABASE_URL}/rest/v1/instances?`;
@@ -3012,7 +3015,7 @@ async function resolveTargetName(requestedName: string, token?: string, passedCo
                 const dbRes = await axios.get(query, {
                     headers: {
                         'apikey': supabaseKey,
-                        'Authorization': `Bearer ${supabaseKey}`
+                        'Authorization': authHeader
                     }
                 });
                 if (dbRes.data && dbRes.data.length > 0) {
@@ -3023,7 +3026,7 @@ async function resolveTargetName(requestedName: string, token?: string, passedCo
             }
         }
 
-        const config = await getEvolutionConfig({ companyId, token, instanceName: requestedName });
+        const config = await getEvolutionConfig({ companyId, token, instanceName: requestedName, userToken });
 
         const fetchInstancesList = async (activeConfig: typeof config) => {
             if (activeConfig.isGo) {
@@ -5603,14 +5606,15 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
 
 app.post('/whatsapp/send', authenticate, async (req, res) => {
     const { instanceName, number, text, mediaUrl, mediaType, mimetype, fileName } = req.body;
+    const authHeader = req.headers.authorization;
 
     if (!instanceName || !number) {
         return res.status(400).json({ error: 'instanceName e number são obrigatórios' });
     }
 
     try {
-        const config = await getEvolutionConfig({ instanceName });
-        const targetName = await resolveTargetName(instanceName);
+        const config = await getEvolutionConfig({ instanceName, userToken: authHeader });
+        const targetName = await resolveTargetName(instanceName, undefined, undefined, authHeader);
         const encodedName = encodeURIComponent(targetName);
 
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
