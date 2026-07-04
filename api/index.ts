@@ -4739,7 +4739,7 @@ app.post('/webhook/test', authenticate, async (req, res) => {
     }
 });
 
-app.post('/instances/:name/logout', authenticate, async (req, res) => {
+app.all(['/instances/:name/logout', '/api/instances/:name/logout'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
