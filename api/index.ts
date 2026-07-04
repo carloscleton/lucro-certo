@@ -5605,7 +5605,7 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
 });
 
 app.post('/whatsapp/send', authenticate, async (req, res) => {
-    const { instanceName, number, text, mediaUrl, mediaType, mimetype, fileName } = req.body;
+    const { instanceName, number, text, mediaUrl, mediaType, mimetype, fileName, companyId } = req.body;
     const authHeader = req.headers.authorization;
 
     if (!instanceName || !number) {
@@ -5613,8 +5613,8 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
     }
 
     try {
-        const config = await getEvolutionConfig({ instanceName, userToken: authHeader });
-        const targetName = await resolveTargetName(instanceName, undefined, undefined, authHeader);
+        const config = await getEvolutionConfig({ instanceName, companyId, userToken: authHeader });
+        const targetName = await resolveTargetName(instanceName, undefined, companyId, authHeader);
         const encodedName = encodeURIComponent(targetName);
 
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.

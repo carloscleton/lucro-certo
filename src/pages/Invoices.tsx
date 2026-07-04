@@ -634,7 +634,8 @@ ${messageWithPlaceholder}`;
                     mediaUrl: hasPublicPdf ? pdfUrl : undefined,
                     mediaType: 'document',
                     mimetype: 'application/pdf',
-                    fileName: `NotaFiscal-${sendModal.invoice.external_id || 'avulsa'}.pdf`
+                    fileName: `NotaFiscal-${sendModal.invoice.external_id || 'avulsa'}.pdf`,
+                    companyId: sendModal.invoice.company_id
                 });
 
                 setResultModal({

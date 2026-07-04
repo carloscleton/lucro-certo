@@ -655,7 +655,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
                                     mediaType: 'document',
                                     mimetype: 'application/pdf',
-                                    fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`
+                                    fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`,
+                                    companyId: currentEntity.id
                                 });
                             }
                         } catch (wsError) {
@@ -826,7 +827,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
                                 mediaType: 'document',
                                 mimetype: 'application/pdf',
-                                fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`
+                                fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`,
+                                companyId: currentEntity.id
                             });
                         }
                     } catch (wsError) {

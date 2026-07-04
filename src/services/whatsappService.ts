@@ -9,10 +9,11 @@ export interface SendWhatsAppParams {
     mediaType?: 'document' | 'image' | 'video';
     mimetype?: string;
     fileName?: string;
+    companyId?: string;
 }
 
 export const whatsappService = {
-    async sendMessage({ instanceName, number, text, mediaUrl, mediaType, mimetype, fileName }: SendWhatsAppParams) {
+    async sendMessage({ instanceName, number, text, mediaUrl, mediaType, mimetype, fileName, companyId }: SendWhatsAppParams) {
         let cleanNumber = number.replace(/\D/g, '');
         if (cleanNumber.length === 10 || cleanNumber.length === 11) {
             cleanNumber = '55' + cleanNumber;
@@ -35,7 +36,8 @@ export const whatsappService = {
                     mediaUrl,
                     mediaType,
                     mimetype,
-                    fileName
+                    fileName,
+                    companyId
                 })
             });
 
