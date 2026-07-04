@@ -109,83 +109,31 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
     const nameToMatch = identifier.instanceName?.toLowerCase().trim();
     const tokenToMatch = identifier.token?.toLowerCase().trim();
 
-    // 🔍 1. Tentar auto-detecção consultando ambas as APIs em paralelo
-    if (nameToMatch || tokenToMatch) {
-        try {
-            const [goListRes, stdListRes] = await Promise.allSettled([
-                axios.get(`${EVOLUTION_GO_API_URL}/instance/all`, { headers: { 'apikey': EVOLUTION_GO_API_KEY }, timeout: 1500 }),
-                axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, { headers: { 'apikey': EVOLUTION_API_KEY }, timeout: 1500 })
-            ]);
-
-            // Verificar se está na Evolution GO
-            if (goListRes.status === 'fulfilled') {
-                const goInstances = goListRes.value.data?.data || [];
-                const foundInGo = goInstances.some((i: any) =>
-                    (nameToMatch && (i.name || i.instanceName || '').toLowerCase().trim() === nameToMatch) ||
-                    (tokenToMatch && (i.token || i.id || '').toLowerCase().trim() === tokenToMatch)
-                );
-                if (foundInGo) {
-                    console.log(`🔌 [Evolution Config] Instância ${identifier.instanceName || identifier.token} auto-detectada no EVOLUTION GO`);
-                    return {
-                        url: EVOLUTION_GO_API_URL,
-                        apiKey: EVOLUTION_GO_API_KEY,
-                        isGo: true
-                    };
-                }
-            }
-
-            // Verificar se está na Evolution Padrão
-            if (stdListRes.status === 'fulfilled') {
-                const stdInstances = Array.isArray(stdListRes.value.data) ? stdListRes.value.data : [];
-                const foundInStd = stdInstances.some((i: any) =>
-                    (nameToMatch && (i.name || i.instanceName || '').toLowerCase().trim() === nameToMatch) ||
-                    (tokenToMatch && (i.token || i.id || '').toLowerCase().trim() === tokenToMatch)
-                );
-                if (foundInStd) {
-                    console.log(`🔌 [Evolution Config] Instância ${identifier.instanceName || identifier.token} auto-detectada no EVOLUTION PADRÃO`);
-                    return {
-                        url: EVOLUTION_API_URL,
-                        apiKey: EVOLUTION_API_KEY,
-                        isGo: false
-                    };
-                }
-            }
-        } catch (detectErr: any) {
-            console.warn('⚠️ [Evolution Config] Erro na auto-detecção das instâncias:', detectErr.message);
-        }
-    }
-
-    // 🔍 2. Fallback: se não conseguiu auto-detectar, busca a configuração da empresa no Supabase
-    // If companyId is not provided, look it up via token or instanceName in public.instances
-    if (!companyId && SUPABASE_URL && supabaseKey) {
+    // 🔍 1. Buscar a configuração da empresa no Supabase (se companyId for fornecido ou resolvido)
+    if (!companyId && SUPABASE_URL && supabaseKey && (nameToMatch || tokenToMatch)) {
         try {
             let query = `${SUPABASE_URL}/rest/v1/instances?`;
             if (identifier.token) {
                 query += `evolution_instance_id=eq.${encodeURIComponent(identifier.token)}`;
-            } else if (identifier.instanceName) {
-                query += `instance_name=eq.${encodeURIComponent(identifier.instanceName)}`;
             } else {
-                query = '';
+                query += `instance_name=eq.${encodeURIComponent(identifier.instanceName!)}`;
             }
-
-            if (query) {
-                query += `&select=company_id`;
-                const response = await axios.get(query, {
-                    headers: {
-                        'apikey': supabaseKey,
-                        'Authorization': authHeader
-                    }
-                });
-                if (response.data && response.data.length > 0) {
-                    companyId = response.data[0].company_id;
+            query += `&select=company_id`;
+            const response = await axios.get(query, {
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': authHeader
                 }
+            });
+            if (response.data && response.data.length > 0) {
+                companyId = response.data[0].company_id;
             }
         } catch (err: any) {
             console.error('⚠️ [Evolution Proxy] Error fetching instance company_id:', err.message);
         }
     }
 
-    // Fetch company settings if companyId exists
+    let defaultIsGo = false;
     if (companyId && SUPABASE_URL && supabaseKey) {
         try {
             const response = await axios.get(
@@ -200,12 +148,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
             if (response.data && response.data.length > 0) {
                 const settings = response.data[0].settings || {};
                 if (settings.whatsapp_provider === 'evolution_go') {
-                    console.log(`🔌 [Evolution Proxy] Using EVOLUTION GO for company: ${companyId}`);
-                    return {
-                        url: EVOLUTION_GO_API_URL,
-                        apiKey: EVOLUTION_GO_API_KEY,
-                        isGo: true
-                    };
+                    defaultIsGo = true;
                 }
             }
         } catch (err: any) {
@@ -213,12 +156,61 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
         }
     }
 
-    // Default fallback
-    return {
-        url: EVOLUTION_API_URL,
-        apiKey: EVOLUTION_API_KEY,
-        isGo: false
-    };
+    // 🔍 2. Auto-detecção inteligente (respeitando o toggle como prioridade, e usando o outro como fallback para evitar 404)
+    if (nameToMatch || tokenToMatch) {
+        try {
+            const [goListRes, stdListRes] = await Promise.allSettled([
+                axios.get(`${EVOLUTION_GO_API_URL}/instance/all`, { headers: { 'apikey': EVOLUTION_GO_API_KEY }, timeout: 1500 }),
+                axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, { headers: { 'apikey': EVOLUTION_API_KEY }, timeout: 1500 })
+            ]);
+
+            let foundInGo = false;
+            if (goListRes.status === 'fulfilled') {
+                const goInstances = goListRes.value.data?.data || [];
+                foundInGo = goInstances.some((i: any) =>
+                    (nameToMatch && (i.name || i.instanceName || '').toLowerCase().trim() === nameToMatch) ||
+                    (tokenToMatch && (i.token || i.id || '').toLowerCase().trim() === tokenToMatch)
+                );
+            }
+
+            let foundInStd = false;
+            if (stdListRes.status === 'fulfilled') {
+                const stdInstances = Array.isArray(stdListRes.value.data) ? stdListRes.value.data : [];
+                foundInStd = stdInstances.some((i: any) =>
+                    (nameToMatch && (i.name || i.instanceName || '').toLowerCase().trim() === nameToMatch) ||
+                    (tokenToMatch && (i.token || i.id || '').toLowerCase().trim() === tokenToMatch)
+                );
+            }
+
+            if (defaultIsGo) {
+                // Toggle diz para usar Evolution GO
+                if (foundInGo) {
+                    console.log(`🔌 [Evolution Config] Usando Evolution GO conforme toggle ativo para a instância ${identifier.instanceName || identifier.token}`);
+                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+                } else if (foundInStd) {
+                    console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution GO, usando Evolution Padrão`);
+                    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
+                }
+            } else {
+                // Toggle diz para usar Evolution Padrão
+                if (foundInStd) {
+                    console.log(`🔌 [Evolution Config] Usando Evolution Padrão conforme toggle inativo para a instância ${identifier.instanceName || identifier.token}`);
+                    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
+                } else if (foundInGo) {
+                    console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution Padrão, usando Evolution GO`);
+                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+                }
+            }
+        } catch (detectErr: any) {
+            console.warn('⚠️ [Evolution Config] Erro na auto-detecção das instâncias:', detectErr.message);
+        }
+    }
+
+    // Fallback padrão se não puder auto-detectar
+    if (defaultIsGo) {
+        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+    }
+    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
 }
 
 // Helper to get the alternative/fallback Evolution config (opposite of current)
