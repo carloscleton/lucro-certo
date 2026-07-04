@@ -106,6 +106,56 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
     const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
     const authHeader = identifier.userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${supabaseKey}`);
 
+    const nameToMatch = identifier.instanceName?.toLowerCase().trim();
+    const tokenToMatch = identifier.token?.toLowerCase().trim();
+
+    // 🔍 1. Tentar auto-detecção consultando ambas as APIs em paralelo
+    if (nameToMatch || tokenToMatch) {
+        try {
+            const [goListRes, stdListRes] = await Promise.allSettled([
+                axios.get(`${EVOLUTION_GO_API_URL}/instance/all`, { headers: { 'apikey': EVOLUTION_GO_API_KEY }, timeout: 1500 }),
+                axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, { headers: { 'apikey': EVOLUTION_API_KEY }, timeout: 1500 })
+            ]);
+
+            // Verificar se está na Evolution GO
+            if (goListRes.status === 'fulfilled') {
+                const goInstances = goListRes.value.data?.data || [];
+                const foundInGo = goInstances.some((i: any) =>
+                    (nameToMatch && (i.name || i.instanceName || '').toLowerCase().trim() === nameToMatch) ||
+                    (tokenToMatch && (i.token || i.id || '').toLowerCase().trim() === tokenToMatch)
+                );
+                if (foundInGo) {
+                    console.log(`🔌 [Evolution Config] Instância ${identifier.instanceName || identifier.token} auto-detectada no EVOLUTION GO`);
+                    return {
+                        url: EVOLUTION_GO_API_URL,
+                        apiKey: EVOLUTION_GO_API_KEY,
+                        isGo: true
+                    };
+                }
+            }
+
+            // Verificar se está na Evolution Padrão
+            if (stdListRes.status === 'fulfilled') {
+                const stdInstances = Array.isArray(stdListRes.value.data) ? stdListRes.value.data : [];
+                const foundInStd = stdInstances.some((i: any) =>
+                    (nameToMatch && (i.name || i.instanceName || '').toLowerCase().trim() === nameToMatch) ||
+                    (tokenToMatch && (i.token || i.id || '').toLowerCase().trim() === tokenToMatch)
+                );
+                if (foundInStd) {
+                    console.log(`🔌 [Evolution Config] Instância ${identifier.instanceName || identifier.token} auto-detectada no EVOLUTION PADRÃO`);
+                    return {
+                        url: EVOLUTION_API_URL,
+                        apiKey: EVOLUTION_API_KEY,
+                        isGo: false
+                    };
+                }
+            }
+        } catch (detectErr: any) {
+            console.warn('⚠️ [Evolution Config] Erro na auto-detecção das instâncias:', detectErr.message);
+        }
+    }
+
+    // 🔍 2. Fallback: se não conseguiu auto-detectar, busca a configuração da empresa no Supabase
     // If companyId is not provided, look it up via token or instanceName in public.instances
     if (!companyId && SUPABASE_URL && supabaseKey) {
         try {
