@@ -3753,7 +3753,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                             console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
                             
                             const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName });
-                            const targetName = await resolveTargetName(instanceName, undefined, invoice.company_id);
+                            const targetName = await resolveTargetName(instanceName, instanceToken, invoice.company_id);
                             const encodedName = encodeURIComponent(targetName);
                             
                             if (config.isGo) {
@@ -5687,16 +5687,12 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
     }
 
     try {
-        const config = await getEvolutionConfig({ instanceName, companyId, userToken: authHeader });
-        const targetName = await resolveTargetName(instanceName, undefined, companyId, authHeader);
-        const encodedName = encodeURIComponent(targetName);
-
         let instanceToken = '';
-        if (config.isGo && SUPABASE_URL) {
+        if (SUPABASE_URL) {
             try {
                 const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
                 const { data: insts } = await axios.get(
-                    `${SUPABASE_URL}/rest/v1/instances?instance_name=eq.${encodeURIComponent(targetName)}&select=evolution_instance_id`,
+                    `${SUPABASE_URL}/rest/v1/instances?instance_name=eq.${encodeURIComponent(instanceName)}&select=evolution_instance_id`,
                     {
                         headers: {
                             'apikey': supabaseKey,
@@ -5711,6 +5707,10 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                 console.error('⚠️ [whatsapp/send] Error fetching instance token:', err.message);
             }
         }
+
+        const config = await getEvolutionConfig({ instanceName, companyId, userToken: authHeader });
+        const targetName = await resolveTargetName(instanceName, instanceToken, companyId, authHeader);
+        const encodedName = encodeURIComponent(targetName);
 
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
         // Nesse caso, pulamos o envio de mídia e enviamos direto como texto com o link.
