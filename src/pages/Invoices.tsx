@@ -453,40 +453,53 @@ ${messageWithPlaceholder}`;
         return '';
     };
 
-    const getPdfUrlFromInvoice = (invoice: any): string => {
+    const getPdfUrlFromInvoice = (invoice: any, accessToken?: string): string => {
+        let url = '';
         if (invoice.pdf_url && invoice.pdf_url.startsWith('http')) {
-            return invoice.pdf_url;
-        }
-        
-        const p = invoice.payload;
-        if (p) {
-            const paths = [
-                p?.pdf,
-                p?.pdfUrl,
-                p?.link,
-                p?.linkPdf,
-                p?.retorno?.pdf,
-                p?.retorno?.pdfUrl,
-                p?.retorno?.link,
-                p?.retorno?.linkPdf
-            ];
-            for (const path of paths) {
-                if (typeof path === 'string' && path.startsWith('http')) {
-                    return path;
+            url = invoice.pdf_url;
+        } else {
+            const p = invoice.payload;
+            let foundPath = '';
+            if (p) {
+                const paths = [
+                    p?.pdf,
+                    p?.pdfUrl,
+                    p?.link,
+                    p?.linkPdf,
+                    p?.retorno?.pdf,
+                    p?.retorno?.pdfUrl,
+                    p?.retorno?.link,
+                    p?.retorno?.linkPdf
+                ];
+                for (const path of paths) {
+                    if (typeof path === 'string' && path.startsWith('http')) {
+                        foundPath = path;
+                        break;
+                    }
                 }
             }
+            if (foundPath) {
+                url = foundPath;
+            } else {
+                let apiBase = API_BASE_URL.replace(/\/$/, '');
+                if (apiBase.startsWith('/')) {
+                    apiBase = window.location.origin + apiBase;
+                }
+                url = `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}`;
+            }
         }
-
-        let apiBase = API_BASE_URL.replace(/\/$/, '');
-        if (apiBase.startsWith('/')) {
-            apiBase = window.location.origin + apiBase;
+        
+        if (url && accessToken && !url.includes('token=')) {
+            const separator = url.includes('?') ? '&' : '?';
+            url = `${url}${separator}token=${accessToken}`;
         }
-        return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/pdf?companyId=${invoice.company_id}`;
+        return url;
     };
 
     const handleOpenSendWhatsApp = async (invoice: any) => {
+        const { data: { session } } = await supabase.auth.getSession();
         const phone = getPhoneFromPayload(invoice);
-        const pdfUrl = getPdfUrlFromInvoice(invoice);
+        const pdfUrl = getPdfUrlFromInvoice(invoice, session?.access_token);
         const p = invoice.payload;
         const clientName = invoice.quote?.contact?.name || 
                            p?.tomador?.razaoSocial || 
@@ -611,7 +624,7 @@ ${messageWithPlaceholder}`;
                 }
 
                 const instance = waData[0];
-                const pdfUrl = getPdfUrlFromInvoice(sendModal.invoice);
+                const pdfUrl = getPdfUrlFromInvoice(sendModal.invoice, session.access_token);
                 const hasPublicPdf = pdfUrl && pdfUrl.startsWith('http');
 
                 await whatsappService.sendMessage({
