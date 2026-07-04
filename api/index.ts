@@ -109,8 +109,9 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
     const nameToMatch = identifier.instanceName?.toLowerCase().trim();
     const tokenToMatch = identifier.token?.toLowerCase().trim();
 
-    // 🔍 1. Buscar a configuração da empresa no Supabase (se companyId for fornecido ou resolvido)
-    if (!companyId && SUPABASE_URL && supabaseKey && (nameToMatch || tokenToMatch)) {
+    let instanceToken = '';
+    // 🔍 1. Buscar o token da instância e company_id (se name ou token fornecidos)
+    if (SUPABASE_URL && supabaseKey && (nameToMatch || tokenToMatch)) {
         try {
             let query = `${SUPABASE_URL}/rest/v1/instances?`;
             if (identifier.token) {
@@ -118,7 +119,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
             } else {
                 query += `instance_name=eq.${encodeURIComponent(identifier.instanceName!)}`;
             }
-            query += `&select=company_id`;
+            query += `&select=evolution_instance_id,company_id`;
             const response = await axios.get(query, {
                 headers: {
                     'apikey': supabaseKey,
@@ -126,10 +127,13 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 }
             });
             if (response.data && response.data.length > 0) {
-                companyId = response.data[0].company_id;
+                instanceToken = response.data[0].evolution_instance_id;
+                if (!companyId) {
+                    companyId = response.data[0].company_id;
+                }
             }
         } catch (err: any) {
-            console.error('⚠️ [Evolution Proxy] Error fetching instance company_id:', err.message);
+            console.error('⚠️ [Evolution Proxy] Error fetching instance token:', err.message);
         }
     }
 
@@ -186,7 +190,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 // Toggle diz para usar Evolution GO
                 if (foundInGo) {
                     console.log(`🔌 [Evolution Config] Usando Evolution GO conforme toggle ativo para a instância ${identifier.instanceName || identifier.token}`);
-                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+                    return { url: EVOLUTION_GO_API_URL, apiKey: instanceToken || EVOLUTION_GO_API_KEY, isGo: true };
                 } else if (foundInStd) {
                     console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution GO, usando Evolution Padrão`);
                     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
@@ -198,7 +202,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
                 } else if (foundInGo) {
                     console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution Padrão, usando Evolution GO`);
-                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+                    return { url: EVOLUTION_GO_API_URL, apiKey: instanceToken || EVOLUTION_GO_API_KEY, isGo: true };
                 }
             }
         } catch (detectErr: any) {
@@ -208,7 +212,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
 
     // Fallback padrão se não puder auto-detectar
     if (defaultIsGo) {
-        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+        return { url: EVOLUTION_GO_API_URL, apiKey: instanceToken || EVOLUTION_GO_API_KEY, isGo: true };
     }
     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
 }
@@ -3747,24 +3751,41 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                             
                             console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
                             
-                            const config = await getEvolutionConfig({ companyId: invoice.company_id });
+                            const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName });
                             const targetName = await resolveTargetName(instanceName, undefined, invoice.company_id);
                             const encodedName = encodeURIComponent(targetName);
                             
-                            await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
-                                number: recipientPhone,
-                                mediatype: 'document',
-                                mimetype: 'application/pdf',
-                                caption: waMsg,
-                                media: pdf_url,
-                                fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
-                            }, {
-                                headers: {
-                                    'apikey': config.apiKey,
-                                    'Content-Type': 'application/json'
-                                },
-                                timeout: 8000
-                            }).catch(e => console.warn(`⚠️ [WHATSAPP] Falha ao enviar notificação:`, e.message));
+                            if (config.isGo) {
+                                await axios.post(`${config.url}/send/media`, {
+                                    id: targetName,
+                                    number: recipientPhone,
+                                    url: pdf_url,
+                                    type: 'document',
+                                    filename: `NotaFiscal-${invoice_number || invoice.id}.pdf`,
+                                    caption: waMsg
+                                }, {
+                                    headers: {
+                                        'apikey': config.apiKey,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    timeout: 8000
+                                }).catch(e => console.warn(`⚠️ [WHATSAPP] Falha ao enviar notificação Evolution GO:`, e.message));
+                            } else {
+                                await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
+                                    number: recipientPhone,
+                                    mediatype: 'document',
+                                    mimetype: 'application/pdf',
+                                    caption: waMsg,
+                                    media: pdf_url,
+                                    fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
+                                }, {
+                                    headers: {
+                                        'apikey': config.apiKey,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    timeout: 8000
+                                }).catch(e => console.warn(`⚠️ [WHATSAPP] Falha ao enviar notificação:`, e.message));
+                            }
                         } else {
                             console.log(`⚠️ [WEBHOOK-UPDATE] Empresa configurada para envio automático, mas nenhuma instância WhatsApp ativa foi encontrada.`);
                         }
@@ -5669,42 +5690,6 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         const targetName = await resolveTargetName(instanceName, undefined, companyId, authHeader);
         const encodedName = encodeURIComponent(targetName);
 
-        // 🔍 Verificar status de conexão da instância em tempo real
-        let isConnected = false;
-        try {
-            if (config.isGo) {
-                const response = await axios.get(`${config.url}/instance/all`, {
-                    headers: { 'apikey': config.apiKey },
-                    timeout: 2000
-                });
-                const allInstances = response.data?.data || [];
-                const inst = allInstances.find((i: any) =>
-                    i.name.toLowerCase() === targetName.toLowerCase()
-                );
-                isConnected = !!inst?.connected;
-            } else {
-                const response = await axios.get(`${config.url}/instance/fetchInstances`, {
-                    headers: { 'apikey': config.apiKey },
-                    timeout: 2000
-                });
-                const allInstances = Array.isArray(response.data) ? response.data : [];
-                const match = allInstances.find((i: any) =>
-                    (i.name || i.instanceName || '').toLowerCase() === targetName.toLowerCase()
-                );
-                isConnected = (match?.connectionStatus === 'open');
-            }
-        } catch (statusErr: any) {
-            console.warn('⚠️ Erro ao validar status da instância na checagem prévia:', statusErr.message);
-            // Se houver timeout ou falha na rede ao verificar o status, permitimos tentar o envio
-            isConnected = true;
-        }
-
-        if (!isConnected) {
-            return res.status(400).json({
-                error: `A sua instância "${targetName}" está desconectada no servidor do WhatsApp. Acesse a aba WhatsApp e reconecte seu aparelho.`
-            });
-        }
-
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
         // Nesse caso, pulamos o envio de mídia e enviamos direto como texto com o link.
         const isLocalhost = mediaUrl && (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1'));
@@ -5712,20 +5697,38 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         if (mediaUrl && !isLocalhost) {
             try {
                 console.log(`✉️ [Media] Tentando enviar documento WhatsApp via "${targetName}" para ${number}...`);
-                const response = await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
-                    number: number,
-                    mediatype: mediaType || 'document',
-                    mimetype: mimetype || 'application/pdf',
-                    caption: text || '',
-                    media: mediaUrl,
-                    fileName: fileName || 'NotaFiscal.pdf'
-                }, {
-                    headers: {
-                        'apikey': config.apiKey,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 8000 // 8 segundos de timeout para evitar travamentos
-                });
+                let response;
+                if (config.isGo) {
+                    response = await axios.post(`${config.url}/send/media`, {
+                        id: targetName,
+                        number: number,
+                        url: mediaUrl,
+                        type: mediaType || 'document',
+                        filename: fileName || 'NotaFiscal.pdf',
+                        caption: text || ''
+                    }, {
+                        headers: {
+                            'apikey': config.apiKey,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 8000
+                    });
+                } else {
+                    response = await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
+                        number: number,
+                        mediatype: mediaType || 'document',
+                        mimetype: mimetype || 'application/pdf',
+                        caption: text || '',
+                        media: mediaUrl,
+                        fileName: fileName || 'NotaFiscal.pdf'
+                    }, {
+                        headers: {
+                            'apikey': config.apiKey,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 8000
+                    });
+                }
                 return res.json(response.data);
             } catch (mediaErr: any) {
                 console.warn(`⚠️ Falha ao enviar como mídia (${mediaErr.message || mediaErr}). Fazendo fallback para texto...`);
@@ -5743,16 +5746,30 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         }
 
         console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
-        const response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
-            number: number,
-            text: textToSend,
-            linkPreview: true
-        }, {
-            headers: {
-                'apikey': config.apiKey,
-                'Content-Type': 'application/json'
-            }
-        });
+        let response;
+        if (config.isGo) {
+            response = await axios.post(`${config.url}/send/text`, {
+                id: targetName,
+                number: number,
+                text: textToSend
+            }, {
+                headers: {
+                    'apikey': config.apiKey,
+                    'Content-Type': 'application/json'
+                }
+            });
+        } else {
+            response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
+                number: number,
+                text: textToSend,
+                linkPreview: true
+            }, {
+                headers: {
+                    'apikey': config.apiKey,
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
 
         return res.json(response.data);
     } catch (error: any) {
