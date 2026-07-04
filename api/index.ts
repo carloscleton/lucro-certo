@@ -1685,6 +1685,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     s.iss.aliquota = cfgAliquota > 0 ? cfgAliquota : 2; // Usa config ou 2% como fallback
                                 }
                             }
+                            if (s.codigoTributacao) {
+                                s.codigoTributacao = String(s.codigoTributacao).replace(/\D/g, '').substring(0, 3).padEnd(3, '0');
+                            }
                             // 2. Remove cnae do servico para Nacional (não faz parte do schema)
                             delete s.cnae;
                             // 3. Remove campos municipais que não existem no Nacional
@@ -2239,6 +2242,67 @@ app.post(['/fiscal-module/sync-issuer', '/api/fiscal-module/sync-issuer'], authe
                     } else {
                         throw getErr;
                     }
+                }
+
+                // Sincroniza também a empresa de teste padrão (08187168000160)
+                // para garantir que a emissão de laboratório/teste use a mesma configuração (Nacional ou Municipal)
+                const testCompanyCnpj = '08187168000160';
+                try {
+                    const testIssuerPayload = {
+                        cpfCnpj: testCompanyCnpj,
+                        cnpj: testCompanyCnpj,
+                        razaoSocial: 'TECNOSPEED TECNOLOGIA DA INFORMACAO LTDA',
+                        nomeFantasia: 'TECNOSPEED TECNOLOGIA DA INFORMACAO LTDA',
+                        simplesNacional: true,
+                        regimeTributario: 1,
+                        inscricaoMunicipal: isNacional ? '1234567' : '123456',
+                        endereco: {
+                            logradouro: isNacional ? 'Rua Teste Nacional' : 'Avenida Duque de Caxias',
+                            numero: isNacional ? '123' : '882',
+                            bairro: isNacional ? 'Centro' : 'Zona 07',
+                            cep: isNacional ? '31000000' : '87020025',
+                            codigoCidade: isNacional ? '3106200' : '4115200',
+                            uf: isNacional ? 'MG' : 'PR',
+                            complemento: isNacional ? '' : 'SALA 01'
+                        },
+                        nfse: {
+                            ativo: true,
+                            config: {
+                                producao: false,
+                                rps: {
+                                    numeracaoAutomatica: true,
+                                    numeracao: [
+                                        {
+                                            serie: "1",
+                                            numero: 1
+                                        }
+                                    ]
+                                },
+                                nfseNacional: isNacional
+                            }
+                        }
+                    };
+
+                    console.log(`🔄 [FISCAL-SYNC-TEST-COMPANY] Sincronizando empresa de teste ${testCompanyCnpj} (Nacional: ${isNacional}) na TecnoSpeed...`);
+                    try {
+                        await axios.get(`${baseUrl}/empresa/${testCompanyCnpj}`, {
+                            headers: { 'x-api-key': apiKey }
+                        });
+                        await axios.patch(`${baseUrl}/empresa/${testCompanyCnpj}`, testIssuerPayload, {
+                            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+                        });
+                    } catch (testCompanyGetErr: any) {
+                        if (testCompanyGetErr.response?.status === 404) {
+                            await axios.post(`${baseUrl}/empresa`, testIssuerPayload, {
+                                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+                            });
+                        } else {
+                            console.warn(`⚠️ [FISCAL-SYNC-TEST-COMPANY] Falha ao obter dados da empresa de teste:`, testCompanyGetErr.message);
+                        }
+                    }
+                    console.log(`✅ [FISCAL-SYNC-TEST-COMPANY] Empresa de teste ${testCompanyCnpj} sincronizada com sucesso.`);
+                } catch (testCompanyErr: any) {
+                    console.warn(`⚠️ [FISCAL-SYNC-TEST-COMPANY] Erro ao sincronizar empresa de teste ${testCompanyCnpj}:`, testCompanyErr.response?.data || testCompanyErr.message);
                 }
             } else {
                 try {

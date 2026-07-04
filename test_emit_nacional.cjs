@@ -7,7 +7,7 @@ async function testNacional() {
             "versao": "1.00",
             "prestador": {
                 "cpfCnpj": "08187168000160",
-                "inscricaoMunicipal": "123456"
+                "inscricaoMunicipal": "1234567"
             },
             "tomador": {
                 "cpfCnpj": "00000000000000",

@@ -6,7 +6,16 @@ async function fixNacional() {
             "nfse": {
                 "ativo": true,
                 "config": {
-                    "nfseNacional": true
+                    "nfseNacional": true,
+                    "rps": {
+                        "numeracaoAutomatica": true,
+                        "numeracao": [
+                            {
+                                "serie": "1",
+                                "numero": 1
+                            }
+                        ]
+                    }
                 }
             }
         };
