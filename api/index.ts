@@ -4262,12 +4262,29 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
                     i.id === token || i.token === token || i.name.toLowerCase() === name.toLowerCase()
                 );
                 if (!inst) throw new Error('Instance not found on Evolution GO');
-                const instanceToken = inst.token;
+                const instanceToken = inst.token || token;
+
+                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+
+                if (inst.token && inst.token !== token && SUPABASE_URL && supabaseKey) {
+                    console.log(`🔄 [Connect Auto-Sync] Sincronizando token de ${name}: ${token} → ${inst.token}`);
+                    await axios.patch(
+                        `${SUPABASE_URL}/rest/v1/instances?evolution_instance_id=eq.${encodeURIComponent(token as string)}`,
+                        { evolution_instance_id: inst.token },
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=minimal'
+                            }
+                        }
+                    ).catch(e => console.warn('⚠️ Connect Auto-sync patch failed:', e.message));
+                }
 
                 // Buscar detalhes do webhook no Supabase para repassar ao conectar
                 let dbWebhookUrl = '';
                 let dbWebhookEvents = activeConfig.isGo ? ['MESSAGE'] : ['MESSAGES_UPSERT'];
-                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
                 if (token && SUPABASE_URL && supabaseKey) {
                     try {
                         const dbRes = await axios.get(
@@ -4369,7 +4386,26 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
                     i.id === token || i.token === token || i.name.toLowerCase() === targetName.toLowerCase()
                 );
                 if (!inst) throw new Error('Instância não encontrada na EvoGo para atualizar o webhook');
-                const instanceToken = inst.token;
+                const instanceToken = inst.token || token;
+
+                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+
+                // Se o token mudou no servidor, sincronizar no banco de dados
+                if (inst.token && inst.token !== token && SUPABASE_URL && supabaseKey) {
+                    console.log(`🔄 [Webhook Auto-Sync] Sincronizando token de ${targetName}: ${token} → ${inst.token}`);
+                    await axios.patch(
+                        `${SUPABASE_URL}/rest/v1/instances?evolution_instance_id=eq.${encodeURIComponent(token as string)}`,
+                        { evolution_instance_id: inst.token },
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=minimal'
+                            }
+                        }
+                    ).catch(e => console.warn('⚠️ Webhook Auto-sync patch failed:', e.message));
+                }
 
                 console.log(`📡 EvoGo: configuring webhook by calling /instance/connect using instance token...`);
                 const connectPayload: any = {
@@ -5692,7 +5728,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
             try {
                 const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
                 const { data: insts } = await axios.get(
-                    `${SUPABASE_URL}/rest/v1/instances?instance_name=eq.${encodeURIComponent(instanceName)}&select=evolution_instance_id`,
+                    `${SUPABASE_URL}/rest/v1/instances?instance_name=eq.${encodeURIComponent(instanceName)}&select=id,evolution_instance_id`,
                     {
                         headers: {
                             'apikey': supabaseKey,
@@ -5702,6 +5738,40 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                 );
                 if (insts && insts.length > 0) {
                     instanceToken = insts[0].evolution_instance_id;
+                    const dbRowId = insts[0].id;
+
+                    // Auto-sync token check for Evolution GO
+                    try {
+                        const configTemp = await getEvolutionConfig({ instanceName, companyId, token: instanceToken, userToken: authHeader });
+                        if (configTemp.isGo) {
+                            const allRes = await axios.get(`${configTemp.url}/instance/all`, {
+                                headers: { 'apikey': configTemp.apiKey },
+                                timeout: 2000
+                            });
+                            const goInstances = allRes.data?.data || [];
+                            const serverInst = goInstances.find((i: any) =>
+                                (i.name || '').toLowerCase().trim() === instanceName.toLowerCase().trim()
+                            );
+                            if (serverInst && serverInst.token && serverInst.token !== instanceToken) {
+                                console.log(`🔄 [whatsapp/send Auto-Sync] Mismatched token for ${instanceName}: DB=${instanceToken} vs Server=${serverInst.token}. Updating DB...`);
+                                instanceToken = serverInst.token;
+                                await axios.patch(
+                                    `${SUPABASE_URL}/rest/v1/instances?id=eq.${dbRowId}`,
+                                    { evolution_instance_id: serverInst.token },
+                                    {
+                                        headers: {
+                                            'apikey': supabaseKey,
+                                            'Authorization': authHeader || `Bearer ${supabaseKey}`,
+                                            'Content-Type': 'application/json',
+                                            'Prefer': 'return=minimal'
+                                        }
+                                    }
+                                ).catch(e => console.warn('⚠️ Auto-sync token patch failed:', e.message));
+                            }
+                        }
+                    } catch (allErr: any) {
+                        console.warn('⚠️ Auto-sync token check failed:', allErr.message);
+                    }
                 }
             } catch (err: any) {
                 console.error('⚠️ [whatsapp/send] Error fetching instance token:', err.message);
