@@ -916,7 +916,7 @@ export function WhatsApp() {
                             className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors"
                         >
                             <Settings2 size={16} />
-                            {isEvoGo ? 'Configurações Avançadas (EvoGo)' : 'Configurações Avançadas de Webhook (n8n/Evolution)'}
+                            {selectedProvider === 'evolution_go' ? 'Configurações Avançadas (EvoGo)' : 'Configurações Avançadas de Webhook (n8n/Evolution)'}
                             {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
                     </div>
@@ -924,7 +924,7 @@ export function WhatsApp() {
                     {/* Advanced Settings Panel */}
                     {showAdvanced && (
                         <div className="md:col-span-12 mt-4 p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-top-2">
-                            {isEvoGo ? (
+                            {selectedProvider === 'evolution_go' ? (
                                 /* ===== EVO GO ADVANCED SETTINGS ===== */
                                 <div className="space-y-5">
                                     {/* Webhook URL */}
