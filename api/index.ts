@@ -5771,15 +5771,19 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
 
     try {
         let instanceToken = '';
+        const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+        const dbAuthHeader = SUPABASE_SERVICE_ROLE_KEY 
+            ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` 
+            : (authHeader || `Bearer ${supabaseKey}`);
+
         if (SUPABASE_URL) {
             try {
-                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
                 const { data: insts } = await axios.get(
-                    `${SUPABASE_URL}/rest/v1/instances?instance_name=eq.${encodeURIComponent(instanceName)}&select=id,evolution_instance_id`,
+                    `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(instanceName)}&select=id,evolution_instance_id`,
                     {
                         headers: {
                             'apikey': supabaseKey,
-                            'Authorization': authHeader || `Bearer ${supabaseKey}`
+                            'Authorization': dbAuthHeader
                         }
                     }
                 );
@@ -5789,7 +5793,12 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
 
                     // Auto-sync token check for Evolution GO
                     try {
-                        const configTemp = await getEvolutionConfig({ instanceName, companyId, token: instanceToken, userToken: authHeader });
+                        const configTemp = await getEvolutionConfig({ 
+                            instanceName, 
+                            companyId, 
+                            token: instanceToken, 
+                            userToken: SUPABASE_SERVICE_ROLE_KEY ? undefined : authHeader 
+                        });
                         if (configTemp.isGo) {
                             const allRes = await axios.get(`${configTemp.url}/instance/all`, {
                                 headers: { 'apikey': configTemp.apiKey },
@@ -5808,7 +5817,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                                     {
                                         headers: {
                                             'apikey': supabaseKey,
-                                            'Authorization': authHeader || `Bearer ${supabaseKey}`,
+                                            'Authorization': dbAuthHeader,
                                             'Content-Type': 'application/json',
                                             'Prefer': 'return=minimal'
                                         }
@@ -5825,8 +5834,18 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
             }
         }
 
-        const config = await getEvolutionConfig({ instanceName, companyId, token: instanceToken, userToken: authHeader });
-        const targetName = await resolveTargetName(instanceName, instanceToken, companyId, authHeader);
+        const config = await getEvolutionConfig({ 
+            instanceName, 
+            companyId, 
+            token: instanceToken, 
+            userToken: SUPABASE_SERVICE_ROLE_KEY ? undefined : authHeader 
+        });
+        const targetName = await resolveTargetName(
+            instanceName, 
+            instanceToken, 
+            companyId, 
+            SUPABASE_SERVICE_ROLE_KEY ? undefined : authHeader
+        );
         const encodedName = encodeURIComponent(targetName);
 
         // Se o link do PDF for local (localhost), a Evolution API na nuvem não conseguirá baixá-lo.
