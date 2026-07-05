@@ -75,6 +75,24 @@ function formatCpf(cpf: string): string {
     return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
 }
 
+function formatWhatsappNumber(phone: string | null | undefined): string {
+    if (!phone) return '';
+    let clean = String(phone).replace(/\D/g, '');
+    
+    if (clean.length === 10 || clean.length === 11) {
+        clean = '55' + clean;
+    }
+    
+    if (clean.startsWith('55') && clean.length === 13) {
+        const ddd = parseInt(clean.substring(2, 4), 10);
+        if (ddd > 28) {
+            clean = clean.substring(0, 4) + clean.substring(5);
+        }
+    }
+    
+    return clean;
+}
+
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -187,10 +205,11 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
 
             let foundInStd = false;
             if (stdListRes.status === 'fulfilled') {
-                const stdInstances = Array.isArray(stdListRes.value.data) ? stdListRes.value.data : [];
+                const rawStdInstances = Array.isArray(stdListRes.value.data) ? stdListRes.value.data : [];
+                const stdInstances = rawStdInstances.map((item: any) => item.instance || item);
                 foundInStd = stdInstances.some((i: any) =>
                     (nameToMatch && (i.name || i.instanceName || '').toLowerCase().trim() === nameToMatch) ||
-                    (tokenToMatch && (i.token || i.id || '').toLowerCase().trim() === tokenToMatch)
+                    (tokenToMatch && (i.token || i.id || i.instanceId || '').toLowerCase().trim() === tokenToMatch)
                 );
             }
 
@@ -3102,7 +3121,19 @@ async function resolveTargetName(requestedName: string, token?: string, passedCo
                 const res = await axios.get(`${activeConfig.url}/instance/fetchInstances`, {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
-                return Array.isArray(res.data) ? res.data : [];
+                const list = Array.isArray(res.data) ? res.data : [];
+                return list.map((item: any) => {
+                    if (item.instance) {
+                        return {
+                            name: item.instance.instanceName,
+                            instanceName: item.instance.instanceName,
+                            id: item.instance.instanceId,
+                            token: item.instance.instanceId,
+                            status: item.instance.status
+                        };
+                    }
+                    return item;
+                });
             }
         };
 
@@ -3747,7 +3778,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                     const recipientName = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || invoice.payload?.borrower?.name || invoice.payload?.contact?.name || 'Cliente';
                     
                     if (recipientPhoneRaw) {
-                        const recipientPhone = String(recipientPhoneRaw).replace(/\D/g, '');
+                        const recipientPhone = formatWhatsappNumber(recipientPhoneRaw);
                         
                         const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name,evolution_instance_id`, {
                             headers: dbHeaders
@@ -5416,7 +5447,7 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
                 });
 
                 const whatsappInstance = (req.body.whatsappInstance || '').trim();
-                const phone = (company.owner_phone || company.phone || '').replace(/\D/g, '');
+                const phone = formatWhatsappNumber(company.owner_phone || company.phone || '');
 
                 let notificationSent = false;
                 if (whatsappInstance && phone) {
@@ -5737,7 +5768,7 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
 
                 // Enviar via Evolution API
                 if (company.owner_phone || company.phone) {
-                    const phone = (company.owner_phone || company.phone).replace(/\D/g, '');
+                    const phone = formatWhatsappNumber(company.owner_phone || company.phone);
                     try {
                         const encodedInstance = encodeURIComponent(whatsappInstance);
                         await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedInstance}`, {
@@ -5762,12 +5793,14 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
 });
 
 app.post('/whatsapp/send', authenticate, async (req, res) => {
-    const { instanceName, number, text, mediaUrl, mediaType, mimetype, fileName, companyId, token } = req.body;
+    const { instanceName, number: rawNumber, text, mediaUrl, mediaType, mimetype, fileName, companyId, token } = req.body;
     const authHeader = req.headers.authorization;
 
-    if (!instanceName || !number) {
+    if (!instanceName || !rawNumber) {
         return res.status(400).json({ error: 'instanceName e number são obrigatórios' });
     }
+
+    const number = formatWhatsappNumber(rawNumber);
 
     try {
         let instanceToken = token || '';
@@ -5852,6 +5885,39 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         // Nesse caso, pulamos o envio de mídia e enviamos direto como texto com o link.
         const isLocalhost = mediaUrl && (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1'));
 
+        let finalMediaUrl = mediaUrl;
+        let base64Media = '';
+        let isBase64 = false;
+
+        if (mediaUrl && !isLocalhost) {
+            // Se o link do PDF for da nossa própria API (/fiscal-module/), precisamos anexar o token de autenticação
+            // para que a Evolution API externa consiga baixá-lo sem receber 401.
+            if (mediaUrl.includes('/fiscal-module/') && !mediaUrl.includes('token=')) {
+                const tokenVal = authHeader ? authHeader.replace(/^Bearer\s+/i, '') : '';
+                if (tokenVal) {
+                    const separator = mediaUrl.includes('?') ? '&' : '?';
+                    finalMediaUrl = `${mediaUrl}${separator}token=${encodeURIComponent(tokenVal)}`;
+                }
+            }
+
+            // Tentar baixar o PDF no backend e converter para Base64 para enviar diretamente
+            try {
+                console.log(`📥 Baixando PDF para envio como Base64: ${finalMediaUrl}`);
+                const pdfResponse = await axios.get(finalMediaUrl, {
+                    headers: authHeader ? { 'Authorization': authHeader } : {},
+                    responseType: 'arraybuffer',
+                    timeout: 8000
+                });
+                if (pdfResponse.status === 200) {
+                    base64Media = Buffer.from(pdfResponse.data).toString('base64');
+                    isBase64 = true;
+                    console.log(`✅ PDF convertido com sucesso para Base64 (${pdfResponse.data.length} bytes)`);
+                }
+            } catch (downloadErr: any) {
+                console.warn(`⚠️ Erro ao baixar PDF para Base64 no backend (${downloadErr.message}). Mantendo URL.`);
+            }
+        }
+
         if (mediaUrl && !isLocalhost) {
             try {
                 console.log(`✉️ [Media] Tentando enviar documento WhatsApp via "${targetName}" para ${number}...`);
@@ -5860,7 +5926,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                     response = await axios.post(`${config.url}/send/media`, {
                         id: targetName,
                         number: number,
-                        url: mediaUrl,
+                        url: finalMediaUrl,
                         type: mediaType || 'document',
                         filename: fileName || 'NotaFiscal.pdf',
                         caption: text || ''
@@ -5869,7 +5935,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                             'apikey': instanceToken || config.apiKey,
                             'Content-Type': 'application/json'
                         },
-                        timeout: 8000
+                        timeout: 10000
                     });
                 } else {
                     response = await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
@@ -5877,14 +5943,14 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                         mediatype: mediaType || 'document',
                         mimetype: mimetype || 'application/pdf',
                         caption: text || '',
-                        media: mediaUrl,
+                        media: isBase64 ? base64Media : finalMediaUrl,
                         fileName: fileName || 'NotaFiscal.pdf'
                     }, {
                         headers: {
                             'apikey': config.apiKey,
                             'Content-Type': 'application/json'
                         },
-                        timeout: 8000
+                        timeout: 15000
                     });
                 }
                 return res.json(response.data);
@@ -5895,8 +5961,8 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
 
         // Texto final: se o link for local ou se falhar o envio de mídia, garante que o link vá no texto
         let textToSend = text || '';
-        if (mediaUrl && !textToSend.includes(mediaUrl)) {
-            textToSend = `${textToSend}\n\nLink do PDF: ${mediaUrl}`.trim();
+        if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
+            textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
         }
 
         if (!textToSend) {
