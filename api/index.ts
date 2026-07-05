@@ -3280,8 +3280,8 @@ app.get(['/fiscal-module/nfeio/company/status', '/api/fiscal-module/nfeio/compan
         const errorDetail = error.response?.data || error.message;
         const statusCode = error.response?.status || 500;
         console.error(`❌ Erro ao consultar status da empresa NFe.io (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
-        res.status(statusCode).json({ error: 'Erro ao consultar status da empresa na NFe.io', detail: errorDetail });
     }
+});
 async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: string, invoiceNumber: string, mappedStatus: string, authHeader: string) {
     if (!SUPABASE_URL || !invoiceId) return;
     try {
@@ -3297,8 +3297,8 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
             dbHeaders['Authorization'] = `Bearer ${SUPABASE_ANON_KEY!}`;
         }
 
-        // Buscar a nota atualizada
-        const { data: invoices } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${invoiceId}`, {
+        // Buscar a nota atualizada por id ou external_id
+        const { data: invoices } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices?or=(id.eq.${invoiceId},external_id.eq.${invoiceId})`, {
             headers: dbHeaders
         });
 
@@ -3775,7 +3775,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     });
                     
                     if (mappedStatus === 'concluido') {
-                        triggerWhatsAppNotificationHelper(invoice.id, pdfUrl, statusData.number ? String(statusData.number) : '', mappedStatus, authHeader!);
+                        triggerWhatsAppNotificationHelper(id, pdfUrl, statusData.number ? String(statusData.number) : '', mappedStatus, authHeader!);
                     }
                     
                     return res.json(statusData);
@@ -3849,7 +3849,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 
                 const normalizedStatus = String(currentStatus).toLowerCase();
                 if (['concluido', 'autorizado', 'issued', 'success', 'emitida', 'sucesso'].includes(normalizedStatus)) {
-                    triggerWhatsAppNotificationHelper(invoice.id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', 'concluido', authHeader!);
+                    triggerWhatsAppNotificationHelper(id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', 'concluido', authHeader!);
                 }
             } catch (dbErr) { console.warn('⚠️ Falha ao atualizar status local'); }
         }
