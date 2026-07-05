@@ -256,7 +256,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
     const showSuccessMessage = (result: any, token?: string) => {
         try {
-            console.log('🎉 [showSuccessMessage] Chamado com result:', JSON.stringify(result, null, 2));
+            // console.log('🎉 [showSuccessMessage] Chamado com result:', JSON.stringify(result, null, 2));
             const invoiceId = result.id || result.protocolo || result.data?.id || result.documents?.[0]?.id || 'N/A';
             const links = wrapFiscalLinks(result, currentEntity.id!, token);
 
@@ -273,7 +273,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 }
             }
 
-            console.log('🔗 [showSuccessMessage] Links processados:', JSON.stringify(links, null, 2));
+            // console.log('🔗 [showSuccessMessage] Links processados:', JSON.stringify(links, null, 2));
 
             const isProcessing = result.isProcessing || result.status === 'EM_PROCESSAMENTO' || (result.message && result.message.includes('processamento'));
 
@@ -311,7 +311,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             if (!activeToken) return;
 
             const result = await fiscalService.checkStatus(invoiceId, currentEntity.id!, activeToken);
-            console.log('🔄 [CHECK-STATUS] Resultado da consulta:', result);
+            // console.log('🔄 [CHECK-STATUS] Resultado da consulta:', result);
             
             showSuccessMessage(result, activeToken);
         } catch (err) {
@@ -532,7 +532,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         }
                     };
                 }
-                console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
+                // console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFSe(
                     currentEntity.id!,
                     payload,
@@ -728,7 +728,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     };
                 }
 
-                console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
+                // console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFe(
                     currentEntity.id!,
                     payload,
