@@ -5762,7 +5762,7 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
 });
 
 app.post('/whatsapp/send', authenticate, async (req, res) => {
-    const { instanceName, number, text, mediaUrl, mediaType, mimetype, fileName, companyId } = req.body;
+    const { instanceName, number, text, mediaUrl, mediaType, mimetype, fileName, companyId, token } = req.body;
     const authHeader = req.headers.authorization;
 
     if (!instanceName || !number) {
@@ -5770,7 +5770,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
     }
 
     try {
-        let instanceToken = '';
+        let instanceToken = token || '';
         const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
         const dbAuthHeader = SUPABASE_SERVICE_ROLE_KEY 
             ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` 

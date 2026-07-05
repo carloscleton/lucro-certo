@@ -648,6 +648,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
                                 await whatsappService.sendMessage({
                                     instanceName: instance.instance_name || instance.name,
+                                    token: instance.evolution_instance_id,
                                     number: recipientPhone,
                                     text: message,
                                     mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
@@ -818,6 +819,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
                             await whatsappService.sendMessage({
                                 instanceName: instance.instance_name || instance.name,
+                                token: instance.evolution_instance_id,
                                 number: recipientPhone,
                                 text: message,
                                 mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,

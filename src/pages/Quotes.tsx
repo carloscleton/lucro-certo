@@ -1137,6 +1137,7 @@ export function Quotes() {
                         if (instance) {
                             await whatsappService.sendMessage({
                                 instanceName: instance.instance_name,
+                                token: instance.evolution_instance_id,
                                 number: fullQuote.contact.phone.replace(/\D/g, ''),
                                 text: waMsg
                             });

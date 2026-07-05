@@ -468,6 +468,7 @@ ${messageWithPlaceholder}`;
 
                 await whatsappService.sendMessage({
                     instanceName: instance.instance_name || instance.name,
+                    token: instance.evolution_instance_id,
                     number: sendModal.recipient,
                     text: sendModal.message,
                     mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
