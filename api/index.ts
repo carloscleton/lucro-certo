@@ -114,8 +114,9 @@ const EVOLUTION_GO_API_KEY = process.env.EVOLUTION_GO_API_KEY?.trim() || EVOLUTI
 // Helper to get Evolution Config based on company_id or instance name or token
 async function getEvolutionConfig(identifier: { companyId?: string; instanceName?: string; token?: string; userToken?: string; provider?: string }) {
     let companyId = identifier.companyId;
-    const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-    const authHeader = identifier.userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${supabaseKey}`);
+    const authHeader = identifier.userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${SUPABASE_ANON_KEY!}`);
+    const isServiceRole = !!(authHeader && SUPABASE_SERVICE_ROLE_KEY && authHeader.includes(SUPABASE_SERVICE_ROLE_KEY));
+    const supabaseKey = (isServiceRole || !authHeader) && SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY!;
 
     const nameToMatch = identifier.instanceName?.toLowerCase().trim();
     const tokenToMatch = identifier.token && identifier.token !== 'null' && identifier.token !== 'undefined' ? identifier.token.toLowerCase().trim() : '';
@@ -3076,8 +3077,9 @@ async function resolveTargetName(requestedName: string, token?: string, passedCo
 
         // 1. Tentar obter o config correto com base no nome ou token
         let companyId: string | undefined = passedCompanyId;
-        const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-        const authHeader = userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${supabaseKey}`);
+        const authHeader = userToken || (SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : `Bearer ${SUPABASE_ANON_KEY!}`);
+        const isServiceRole = !!(authHeader && SUPABASE_SERVICE_ROLE_KEY && authHeader.includes(SUPABASE_SERVICE_ROLE_KEY));
+        const supabaseKey = (isServiceRole || !authHeader) && SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY!;
 
         if (!companyId && SUPABASE_URL && supabaseKey) {
             try {
@@ -3318,7 +3320,13 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
         const companyConfig = companies?.[0]?.tecnospeed_config || {};
         const companySettings = companies?.[0]?.settings || {};
 
-        if (companyConfig.send_whatsapp_automatically || invoice.payload?.send_whatsapp === true) {
+        const shouldSend = !!(companyConfig.send_whatsapp_automatically || 
+                             invoice.payload?.send_whatsapp === true || 
+                             invoice.payload?.send_whatsapp === 'true' || 
+                             invoice.payload?.send_whatsapp === 1 || 
+                             invoice.payload?.send_whatsapp === '1');
+
+        if (shouldSend) {
             let recipientPhoneRaw = invoice.payload?.tomador?.telefone || invoice.payload?.tomador?.celular || invoice.payload?.borrower?.phone || invoice.payload?.retorno?.borrower?.phone || invoice.payload?.retorno?.borrower?.telefone || invoice.payload?.retorno?.borrower?.phone_number || invoice.payload?.contact?.whatsapp || invoice.payload?.contact?.phone;
             let recipientName = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || invoice.payload?.contact?.name || 'Cliente';
 
@@ -3397,8 +3405,8 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
 
                     console.log(`📱 [WhatsApp-Helper] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName} (${selectedInst.provider || 'evolution_api'})`);
 
-                    const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName, token: instanceToken });
-                    const targetName = await resolveTargetName(instanceName, instanceToken, invoice.company_id);
+                    const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName, token: instanceToken, userToken: authHeader });
+                    const targetName = await resolveTargetName(instanceName, instanceToken, invoice.company_id, authHeader);
                     const encodedName = encodeURIComponent(targetName);
 
                     let base64Media = '';
@@ -4177,12 +4185,16 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
         const column = isUUID ? 'id' : 'cnpj';
         const cleanId = isUUID ? companyId : companyId.replace(/\D/g, '');
 
-        const useServiceRole = !authHeader && SUPABASE_SERVICE_ROLE_KEY;
+        const isServiceRoleToken = !!(authHeader && SUPABASE_SERVICE_ROLE_KEY && authHeader.includes(SUPABASE_SERVICE_ROLE_KEY));
+        const useServiceRole = (!authHeader || isServiceRoleToken) && !!SUPABASE_SERVICE_ROLE_KEY;
         const headers: any = {
             'apikey': useServiceRole ? SUPABASE_SERVICE_ROLE_KEY : (SUPABASE_ANON_KEY as string)
         };
         if (authHeader) {
             headers['Authorization'] = authHeader;
+            if (isServiceRoleToken) {
+                headers['apikey'] = SUPABASE_SERVICE_ROLE_KEY;
+            }
         } else if (useServiceRole) {
             headers['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
         }
