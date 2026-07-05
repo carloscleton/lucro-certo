@@ -3297,8 +3297,13 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
             dbHeaders['Authorization'] = `Bearer ${SUPABASE_ANON_KEY!}`;
         }
 
-        // Buscar a nota atualizada por id ou external_id
-        const { data: invoices } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices?or=(id.eq.${invoiceId},external_id.eq.${invoiceId})`, {
+        // Buscar a nota atualizada por id ou external_id (validando UUID para evitar erros no banco de dados)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invoiceId);
+        const queryUrl = isUUID 
+            ? `${SUPABASE_URL}/rest/v1/fiscal_invoices?or=(id.eq.${invoiceId},external_id.eq.${invoiceId})`
+            : `${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${invoiceId}`;
+
+        const { data: invoices } = await axios.get(queryUrl, {
             headers: dbHeaders
         });
 
