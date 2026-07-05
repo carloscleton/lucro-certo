@@ -3299,11 +3299,11 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
             dbHeaders['Authorization'] = `Bearer ${SUPABASE_ANON_KEY!}`;
         }
 
-        // Buscar a nota atualizada por id ou external_id (validando UUID para evitar erros no banco de dados)
+        // Buscar a nota atualizada por id ou external_id (validando UUID e pré-carregando relacionamento de orçamento e contato)
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invoiceId);
         const queryUrl = isUUID 
-            ? `${SUPABASE_URL}/rest/v1/fiscal_invoices?or=(id.eq.${invoiceId},external_id.eq.${invoiceId})`
-            : `${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${invoiceId}`;
+            ? `${SUPABASE_URL}/rest/v1/fiscal_invoices?or=(id.eq.${invoiceId},external_id.eq.${invoiceId})&select=*,quote:quotes(*,contact:contacts(*))`
+            : `${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${invoiceId}&select=*,quote:quotes(*,contact:contacts(*))`;
 
         const { data: invoices } = await axios.get(queryUrl, {
             headers: dbHeaders
@@ -3327,8 +3327,24 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                              invoice.payload?.send_whatsapp === '1');
 
         if (shouldSend) {
-            let recipientPhoneRaw = invoice.payload?.tomador?.telefone || invoice.payload?.tomador?.celular || invoice.payload?.borrower?.phone || invoice.payload?.retorno?.borrower?.phone || invoice.payload?.retorno?.borrower?.telefone || invoice.payload?.retorno?.borrower?.phone_number || invoice.payload?.contact?.whatsapp || invoice.payload?.contact?.phone;
-            let recipientName = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || invoice.payload?.contact?.name || 'Cliente';
+            let recipientPhoneRaw = invoice.quote?.contact?.whatsapp || 
+                                    invoice.quote?.contact?.phone || 
+                                    invoice.payload?.tomador?.telefone || 
+                                    invoice.payload?.tomador?.celular || 
+                                    invoice.payload?.borrower?.phone || 
+                                    invoice.payload?.retorno?.borrower?.phone || 
+                                    invoice.payload?.retorno?.borrower?.telefone || 
+                                    invoice.payload?.retorno?.borrower?.phone_number || 
+                                    invoice.payload?.contact?.whatsapp || 
+                                    invoice.payload?.contact?.phone;
+
+            let recipientName = invoice.quote?.contact?.name || 
+                                invoice.payload?.tomador?.razaoSocial || 
+                                invoice.payload?.tomador?.nome || 
+                                invoice.payload?.borrower?.name || 
+                                invoice.payload?.retorno?.borrower?.name || 
+                                invoice.payload?.contact?.name || 
+                                'Cliente';
 
             if (!recipientPhoneRaw) {
                 try {
