@@ -3432,12 +3432,13 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                         console.log(`📥 [WhatsApp-Helper] Baixando PDF para envio Base64: ${finalPdfUrl}`);
                         const downloadHeaders: any = {};
                         if (finalPdfUrl.includes('/fiscal-module/') || finalPdfUrl.includes('/api/')) {
+                            const isServiceRole = !authHeader && !!SUPABASE_SERVICE_ROLE_KEY;
                             if (authHeader) {
                                 downloadHeaders['Authorization'] = authHeader;
                             } else if (SUPABASE_SERVICE_ROLE_KEY) {
                                 downloadHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
                             }
-                            downloadHeaders['apikey'] = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+                            downloadHeaders['apikey'] = isServiceRole ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY!;
                         }
 
                         const pdfResponse = await axios.get(finalPdfUrl, {
