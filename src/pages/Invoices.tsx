@@ -270,14 +270,75 @@ ${messageWithPlaceholder}`;
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
-            await fiscalService.checkStatus(invoice.external_id, currentEntity.id, token);
+
+            // Chama o endpoint de status e captura o retorno
+            const statusResult = await fiscalService.checkStatus(invoice.external_id, currentEntity.id, token);
             await refresh();
+
+            // Se a nota foi autorizada, disparar o WhatsApp automaticamente
+            const authorizedStatuses = ['issued', 'concluido', 'autorizado', 'success', 'emitida'];
+            const resultStatus = String(statusResult?.status || statusResult?.flowStatus || '').toLowerCase();
+            const wasAlreadyAuthorized = ['issued', 'concluido', 'autorizado'].includes(String(invoice.status || '').toLowerCase());
+
+            if (authorizedStatuses.includes(resultStatus) && !wasAlreadyAuthorized) {
+                // Busca a nota atualizada com os dados do contato
+                const { data: updatedInvoices } = await supabase
+                    .from('fiscal_invoices')
+                    .select('*, quote:quotes(*, contact:contacts(*))')
+                    .or(`id.eq.${invoice.id},external_id.eq.${invoice.external_id}`)
+                    .limit(1);
+
+                const updatedInvoice = updatedInvoices?.[0] || invoice;
+
+                // Busca as instâncias de WhatsApp ativas
+                const { data: waInstances } = await supabase
+                    .from('instances')
+                    .select('*')
+                    .eq('status', 'connected')
+                    .neq('is_active', false)
+                    .eq('company_id', invoice.company_id);
+
+                if (waInstances && waInstances.length > 0) {
+                    const instance = waInstances[0];
+                    const phone = getPhoneFromPayload(updatedInvoice);
+                    const pdfUrl = getPdfUrlFromInvoice(updatedInvoice);
+                    const p = updatedInvoice.payload;
+                    const clientName = updatedInvoice.quote?.contact?.name ||
+                        p?.tomador?.razaoSocial || p?.destinatario?.nome ||
+                        p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
+
+                    if (phone) {
+                        try {
+                            await whatsappService.sendMessage({
+                                instanceName: instance.instance_name,
+                                token: instance.evolution_instance_id,
+                                number: phone,
+                                text: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`,
+                                mediaUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
+                                mediaType: 'document',
+                                mimetype: 'application/pdf',
+                                fileName: `NotaFiscal-${updatedInvoice.external_id || 'avulsa'}.pdf`,
+                                companyId: invoice.company_id
+                            });
+                            setResultModal({
+                                isOpen: true,
+                                title: 'Nota Autorizada! ✅',
+                                message: `Status atualizado para AUTORIZADA e notificação enviada via WhatsApp para ${clientName}.`,
+                                type: 'success'
+                            });
+                        } catch (waErr: any) {
+                            console.warn('⚠️ WhatsApp auto-send falhou após sincronização:', waErr.message);
+                            // Não bloqueia o usuário — nota já foi sincronizada com sucesso
+                        }
+                    }
+                }
+            }
         } catch (error: any) {
             console.error('Error checking status:', error);
             setResultModal({
                 isOpen: true,
                 title: 'Erro na Sincronização',
-                message: error.message || 'Falha ao atualizar o status da nota na TecnoSpeed.',
+                message: error.message || 'Falha ao atualizar o status da nota.',
                 type: 'error'
             });
         } finally {
