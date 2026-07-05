@@ -3554,6 +3554,16 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
 
         const targetProvider = provider || settings?.fiscal_provider || 'tecnospeed';
 
+        const dbWriteHeaders: any = {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+            'Content-Type': 'application/json'
+        };
+        if (SUPABASE_SERVICE_ROLE_KEY) {
+            dbWriteHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+        } else {
+            dbWriteHeaders['Authorization'] = authHeader!;
+        }
+
         // Proteção Anti-Crash: Se o ID não for um ObjectID de 24 caracteres hexadecimais do PlugNotas,
         // significa que é um ID de integração temporário (como UUID_lote) ou um ID da NFe.io.
         // Só fazemos o bypass se for PlugNotas (TecnoSpeed).
@@ -3736,7 +3746,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                         },
                         updated_at: new Date().toISOString()
                     }, {
-                        headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
+                        headers: dbWriteHeaders
                     });
 
                     if (mappedStatus === 'concluido') {
@@ -3819,7 +3829,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                         },
                         updated_at: new Date().toISOString()
                     }, {
-                        headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
+                        headers: dbWriteHeaders
                     });
                     
                     if (mappedStatus === 'concluido') {
@@ -3892,7 +3902,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     payload: updatedPayload,
                     updated_at: new Date().toISOString()
                 }, {
-                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
+                    headers: dbWriteHeaders
                 });
                 
                 const normalizedStatus = String(currentStatus).toLowerCase();

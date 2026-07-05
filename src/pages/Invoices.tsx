@@ -765,7 +765,7 @@ ${messageWithPlaceholder}`;
 
     const getStatusBadge = (status: string) => {
         const s = status?.toLowerCase();
-        if (s === 'concluido' || s === 'autorizado') {
+        if (s === 'concluido' || s === 'autorizado' || s === 'issued') {
             return (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
                     <CheckCircle2 size={14} className="animate-in zoom-in duration-500" />
@@ -1234,8 +1234,7 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-
-                                                {invoice.external_id && invoice.pdf_url && ['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && invoice.pdf_url && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Ver Link Externo">
                                                         <button
                                                             onClick={() => window.open(invoice.pdf_url, '_blank')}
@@ -1245,8 +1244,7 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-
-                                                {invoice.external_id && ['concluido', 'autorizado'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'issued'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Cancelar na Prefeitura">
                                                         <button
                                                             onClick={() => {
@@ -1259,8 +1257,7 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-
-                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Baixar PDF">
                                                         <button
                                                             onClick={() => handleDownloadPDF(invoice)}
@@ -1270,8 +1267,7 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-
-                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Baixar XML">
                                                         <button
                                                             onClick={() => handleDownloadXML(invoice)}
@@ -1281,33 +1277,26 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-
-                                                {invoice.external_id && ['concluido', 'autorizado'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'issued'].includes(invoice.status?.toLowerCase()) && (
                                                     <>
-                                                        {config?.send_whatsapp_automatically && (
-                                                            <Tooltip content="Enviar por WhatsApp">
-                                                                <button
-                                                                    onClick={() => handleOpenSendWhatsApp(invoice)}
-                                                                    className="h-10 w-10 flex items-center justify-center glass-morphism text-teal-600 dark:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all shadow-sm"
-                                                                >
-                                                                    <MessageCircle size={18} />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-
-                                                        {config?.send_email_automatically && (
-                                                            <Tooltip content="Enviar por E-mail">
-                                                                <button
-                                                                    onClick={() => handleOpenSendEmail(invoice)}
-                                                                    className="h-10 w-10 flex items-center justify-center glass-morphism text-sky-600 dark:text-sky-400 rounded-xl hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-all shadow-sm"
-                                                                >
-                                                                    <Mail size={18} />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
+                                                        <Tooltip content="Enviar por WhatsApp">
+                                                            <button
+                                                                onClick={() => handleOpenSendWhatsApp(invoice)}
+                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-teal-600 dark:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all shadow-sm"
+                                                            >
+                                                                <MessageCircle size={18} />
+                                                            </button>
+                                                        </Tooltip>
+                                                        <Tooltip content="Enviar por E-mail">
+                                                            <button
+                                                                onClick={() => handleOpenSendEmail(invoice)}
+                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-sky-600 dark:text-sky-400 rounded-xl hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-all shadow-sm"
+                                                            >
+                                                                <Mail size={18} />
+                                                            </button>
+                                                        </Tooltip>
                                                     </>
                                                 )}
-
                                                 {/* Excluir do Histórico apenas se estiver cancelada ou com erro e ainda não excluída */}
                                                 {(['cancelado', 'erro', 'rejeitado'].includes(invoice.status?.toLowerCase())) && !invoice.deleted && (
                                                     <Tooltip content="Excluir do Histórico">
