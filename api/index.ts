@@ -4753,6 +4753,8 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
                 if (!inst) throw new Error('Instance not found on Evolution GO');
                 return {
                     instanceName: inst.name,
+                    name: inst.name,
+                    profileName: inst.name,
                     token: inst.id,
                     status: inst.connected ? 'connected' : 'disconnected',
                     connectionStatus: inst.connected ? 'open' : 'close',
