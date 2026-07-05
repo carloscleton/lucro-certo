@@ -5955,30 +5955,70 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
             }
         }
 
-        // Texto final: se o link for local ou se falhar o envio de mídia, garante que o link vá no texto
-        let textToSend = text || '';
-        if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
-            textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
-        }
-
-        if (!textToSend) {
-            return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
-        }
-
-        console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
         let response;
         if (config.isGo) {
-            response = await axios.post(`${config.url}/send/text`, {
-                id: targetName,
-                number: number,
-                text: textToSend
-            }, {
-                headers: {
-                    'apikey': instanceToken || config.apiKey,
-                    'Content-Type': 'application/json'
+            let buttonSent = false;
+            if (finalMediaUrl) {
+                try {
+                    console.log(`✉️ [Button] Tentando enviar link como botão interativo via Evolution GO...`);
+                    response = await axios.post(`${config.url}/send/button`, {
+                        id: targetName,
+                        number: number,
+                        title: fileName ? fileName.replace(/\.pdf$/i, '') : 'Visualizar Documento',
+                        description: text || 'Sua nota fiscal eletrônica foi gerada com sucesso. Clique no botão abaixo para visualizá-la.',
+                        footer: 'Lucro Certo',
+                        buttons: [
+                            {
+                                type: 'url',
+                                displayText: 'Visualizar PDF',
+                                url: finalMediaUrl
+                            }
+                        ]
+                    }, {
+                        headers: {
+                            'apikey': instanceToken || config.apiKey,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 10000
+                    });
+                    buttonSent = true;
+                    console.log(`✅ Botão interativo enviado com sucesso!`);
+                } catch (btnErr: any) {
+                    console.warn(`⚠️ Falha ao enviar como botão (${btnErr.message}). Fazendo fallback para texto simples...`);
                 }
-            });
+            }
+
+            if (!buttonSent) {
+                let textToSend = text || '';
+                if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
+                    textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
+                }
+                if (!textToSend) {
+                    return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
+                }
+
+                console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
+                response = await axios.post(`${config.url}/send/text`, {
+                    id: targetName,
+                    number: number,
+                    text: textToSend
+                }, {
+                    headers: {
+                        'apikey': instanceToken || config.apiKey,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
         } else {
+            let textToSend = text || '';
+            if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
+                textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
+            }
+            if (!textToSend) {
+                return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
+            }
+
+            console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
             response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
                 number: number,
                 text: textToSend,
