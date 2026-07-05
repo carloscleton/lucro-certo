@@ -1297,8 +1297,9 @@ export function WhatsApp() {
 
                                     {instance.status !== 'connected' && (
                                         <Button
-                                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
+                                            className={`w-full text-white shadow-lg ${instance.is_active !== false ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed shadow-none'}`}
                                             onClick={() => handleConnect(instance)}
+                                            disabled={instance.is_active === false}
                                         >
                                             <QrCode size={16} className="mr-2" />
                                             Conectar WhatsApp
