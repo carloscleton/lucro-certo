@@ -3387,7 +3387,8 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
 
                     const instanceName = selectedInst.instance_name;
                     const instanceToken = selectedInst.evolution_instance_id;
-                    const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoiceNumber || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${pdfUrl}`;
+                    const finalPdfUrl = invoice.pdf_url || pdfUrl;
+                    const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoiceNumber || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${finalPdfUrl}`;
 
                     console.log(`📱 [WhatsApp-Helper] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName} (${selectedInst.provider || 'evolution_api'})`);
 
@@ -3399,8 +3400,19 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                     let isBase64 = false;
 
                     try {
-                        console.log(`📥 [WhatsApp-Helper] Baixando PDF para envio Base64: ${pdfUrl}`);
-                        const pdfResponse = await axios.get(pdfUrl, {
+                        console.log(`📥 [WhatsApp-Helper] Baixando PDF para envio Base64: ${finalPdfUrl}`);
+                        const downloadHeaders: any = {};
+                        if (finalPdfUrl.includes('/fiscal-module/') || finalPdfUrl.includes('/api/')) {
+                            if (authHeader) {
+                                downloadHeaders['Authorization'] = authHeader;
+                            } else if (SUPABASE_SERVICE_ROLE_KEY) {
+                                downloadHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+                            }
+                            downloadHeaders['apikey'] = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+                        }
+
+                        const pdfResponse = await axios.get(finalPdfUrl, {
+                            headers: downloadHeaders,
                             responseType: 'arraybuffer',
                             timeout: 8000
                         });
@@ -3418,7 +3430,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                             await axios.post(`${config.url}/send/media`, {
                                 id: targetName,
                                 number: recipientPhone,
-                                url: isBase64 ? base64Media : pdfUrl,
+                                url: isBase64 ? base64Media : finalPdfUrl,
                                 type: 'document',
                                 filename: `NotaFiscal-${invoiceNumber || invoice.id}.pdf`,
                                 caption: waMsg
@@ -3441,7 +3453,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                                         {
                                             type: 'url',
                                             displayText: 'Visualizar PDF',
-                                            url: pdfUrl
+                                            url: finalPdfUrl
                                         }
                                     ]
                                 }, {
@@ -3455,7 +3467,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                                 await axios.post(`${config.url}/send/text`, {
                                     id: targetName,
                                     number: recipientPhone,
-                                    text: `${waMsg}\n\nLink do PDF: ${pdfUrl}`
+                                    text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`
                                 }, {
                                     headers: {
                                         'apikey': instanceToken || config.apiKey,
@@ -3471,7 +3483,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                                 mediatype: 'document',
                                 mimetype: 'application/pdf',
                                 caption: waMsg,
-                                media: isBase64 ? base64Media : pdfUrl,
+                                media: isBase64 ? base64Media : finalPdfUrl,
                                 fileName: `NotaFiscal-${invoiceNumber || invoice.id}.pdf`
                             }, {
                                 headers: {
@@ -3483,7 +3495,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                         } catch (errStd: any) {
                             await axios.post(`${config.url}/message/sendText/${encodedName}`, {
                                 number: recipientPhone,
-                                text: `${waMsg}\n\nLink do PDF: ${pdfUrl}`,
+                                text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`,
                                 linkPreview: true
                             }, {
                                 headers: {
