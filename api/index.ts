@@ -3998,12 +3998,20 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                  console.error(`⚠️ [WEBHOOK-UPDATE] Falha ao atualizar orçamento vinculado ${invoice.quote_id}:`, quoteErr.message);
              }
          }
-         // 4. Automação de WhatsApp (apenas se foi autorizado/concluído, tiver PDF e a empresa estiver configurada para envio automático)
-         if (mappedStatus === 'concluido' && finalPdfUrl && invoice.company_id) {
-             triggerWhatsAppNotificationHelper(invoice.id, finalPdfUrl, invoice_number ? String(invoice_number) : '', mappedStatus, authHeader);
+         // 4. Automação de WhatsApp (apenas se foi autorizado/concluído e a empresa estiver configurada para envio automático)
+         if (mappedStatus === 'concluido' && invoice.company_id) {
+             let resolvedPdfUrl = finalPdfUrl;
+             if (!resolvedPdfUrl) {
+                 const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                 const host = req.get('host');
+                 const baseApiUrl = `${protocol}://${host}`;
+                 const usedType = invoice.type || 'nfse';
+                 resolvedPdfUrl = `${baseApiUrl}/api/fiscal-module/${usedType}/${invoice.id}/pdf?companyId=${invoice.company_id}`;
+             }
+             triggerWhatsAppNotificationHelper(invoice.id, resolvedPdfUrl, invoice_number ? String(invoice_number) : '', mappedStatus, authHeader);
          }
-
-        console.log(`   [WEBHOOK-UPDATE] Nota ${targetId} atualizada com sucesso para '${mappedStatus}'`);
+         
+         console.log(`   [WEBHOOK-UPDATE] Nota ${targetId} atualizada com sucesso para '${mappedStatus}'`);
         return res.json({ success: true, message: `Nota ${targetId} atualizada para '${mappedStatus}'.` });
 
     } catch (err: any) {
