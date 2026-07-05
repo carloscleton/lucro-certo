@@ -85,14 +85,8 @@ export function Invoices() {
     const { companies } = useCompanies();
     
     const currentCompany = companies.find(c => c.id === currentEntity.id);
-    const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
-    const config = activeProvider === 'nfeio'
-        ? {
-            ...currentCompany?.settings?.nfeio_config,
-            send_whatsapp_automatically: currentCompany?.tecnospeed_config?.send_whatsapp_automatically,
-            send_email_automatically: currentCompany?.tecnospeed_config?.send_email_automatically
-          }
-        : currentCompany?.tecnospeed_config;
+    // activeProvider is no longer used here
+    // config is no longer used because WhatsApp/Email buttons are always shown manually
     
     const [showNewModal, setShowNewModal] = useState(false);
     const [showConsultaModal, setShowConsultaModal] = useState(false);
