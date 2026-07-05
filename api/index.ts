@@ -5919,7 +5919,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                     response = await axios.post(`${config.url}/send/media`, {
                         id: targetName,
                         number: number,
-                        url: isBase64 ? base64Media : finalMediaUrl,
+                        url: finalMediaUrl,
                         type: mediaType || 'document',
                         filename: fileName || 'NotaFiscal.pdf',
                         caption: text || ''
