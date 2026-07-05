@@ -3653,6 +3653,8 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                                 'Prefer': 'return=minimal'
                             }
                         });
+
+                        triggerWhatsAppNotificationHelper(id, pdfUrl, '123', 'concluido', authHeader!);
                     } catch (dbErr: any) {
                         console.error('❌ [DB-PATCH] Erro ao atualizar status da nota mock:', dbErr.message);
                     }
@@ -3711,6 +3713,10 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     }, {
                         headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
                     });
+
+                    if (mappedStatus === 'concluido') {
+                        triggerWhatsAppNotificationHelper(id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', mappedStatus, authHeader!);
+                    }
                 } catch (dbErr: any) {
                     console.warn('⚠️ Falha ao atualizar status local NFe.io:', dbErr.message);
                 }
