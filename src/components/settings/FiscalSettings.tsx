@@ -199,8 +199,8 @@ export function FiscalSettings() {
     const enabledProviders = useMemo(() => {
         const list = currentCompany?.settings?.enabled_fiscal_providers;
         if (Array.isArray(list) && list.length > 0) return list;
-        return ['tecnospeed', 'nfeio', 'other'];
-    }, [currentCompany]);
+        return [activeProvider || 'tecnospeed'];
+    }, [currentCompany, activeProvider]);
 
     const [activeSubTab, setActiveSubTab] = useState<'tecnospeed' | 'nfeio' | 'other'>('tecnospeed');
     const [changingActiveProvider, setChangingActiveProvider] = useState(false);
