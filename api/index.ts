@@ -4760,7 +4760,7 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
                     connectionStatus: inst.connected ? 'open' : 'close',
                     ownerJid: inst.jid || null,
                     owner: inst.jid || null,
-                    number: inst.jid ? inst.jid.split('@')[0] : null
+                    number: inst.jid ? inst.jid.split('@')[0].split(':')[0] : null
                 };
             } else {
                 const response = await axios.get(`${activeConfig.url}/instance/fetchInstances`, {
