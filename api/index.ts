@@ -3773,7 +3773,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                     if (recipientPhoneRaw) {
                         const recipientPhone = formatWhatsappNumber(recipientPhoneRaw);
                         
-                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name,evolution_instance_id`, {
+                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&is_active=neq.false&select=instance_name,evolution_instance_id`, {
                             headers: dbHeaders
                         });
                         
@@ -3782,45 +3782,120 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                             const instanceToken = waInstances[0].evolution_instance_id;
                             const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoice_number || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${pdf_url}`;
                             
-                            console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName}`);
+                            console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName} (Ativa e Conectada)`);
                             
                             const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName, token: instanceToken });
                             const targetName = await resolveTargetName(instanceName, instanceToken, invoice.company_id);
                             const encodedName = encodeURIComponent(targetName);
                             
+                            let base64Media = '';
+                            let isBase64 = false;
+                            
+                            try {
+                                console.log(`📥 [Webhook WhatsApp] Baixando PDF para envio Base64: ${pdf_url}`);
+                                const pdfResponse = await axios.get(pdf_url, {
+                                    responseType: 'arraybuffer',
+                                    timeout: 8000
+                                });
+                                if (pdfResponse.status === 200) {
+                                    base64Media = Buffer.from(pdfResponse.data).toString('base64');
+                                    isBase64 = true;
+                                    console.log(`✅ [Webhook WhatsApp] PDF baixado e codificado (${pdfResponse.data.length} bytes)`);
+                                }
+                            } catch (downloadErr: any) {
+                                console.warn(`⚠️ [Webhook WhatsApp] Erro ao baixar PDF para Base64 (${downloadErr.message}). Tentando envio com URL.`);
+                            }
+
                             if (config.isGo) {
-                                await axios.post(`${config.url}/send/media`, {
-                                    id: targetName,
-                                    number: recipientPhone,
-                                    url: pdf_url,
-                                    type: 'document',
-                                    filename: `NotaFiscal-${invoice_number || invoice.id}.pdf`,
-                                    caption: waMsg
-                                }, {
-                                    headers: {
-                                        'apikey': instanceToken || config.apiKey,
-                                        'Content-Type': 'application/json'
-                                    },
-                                    timeout: 8000
-                                }).catch(e => console.warn(`⚠️ [WHATSAPP] Falha ao enviar notificação Evolution GO:`, e.message));
+                                try {
+                                    console.log(`📡 [Webhook WhatsApp] Enviando mídia via Evo GO...`);
+                                    await axios.post(`${config.url}/send/media`, {
+                                        id: targetName,
+                                        number: recipientPhone,
+                                        url: isBase64 ? base64Media : pdf_url,
+                                        type: 'document',
+                                        filename: `NotaFiscal-${invoice_number || invoice.id}.pdf`,
+                                        caption: waMsg
+                                    }, {
+                                        headers: {
+                                            'apikey': instanceToken || config.apiKey,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        timeout: 10000
+                                    });
+                                    console.log(`✅ [Webhook WhatsApp] Enviado via Evo GO`);
+                                } catch (errGo: any) {
+                                    console.warn(`⚠️ [Webhook WhatsApp] Falha ao enviar mídia Evo GO (${errGo.message}). Tentando botão...`);
+                                    try {
+                                        await axios.post(`${config.url}/send/button`, {
+                                            id: targetName,
+                                            number: recipientPhone,
+                                            title: `Nota Fiscal ${invoice_number || ''}`.trim(),
+                                            description: waMsg,
+                                            footer: 'Lucro Certo',
+                                            buttons: [
+                                                {
+                                                    type: 'url',
+                                                    displayText: 'Visualizar PDF',
+                                                    url: pdf_url
+                                                }
+                                            ]
+                                        }, {
+                                            headers: {
+                                                'apikey': instanceToken || config.apiKey,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            timeout: 10000
+                                        });
+                                        console.log(`✅ [Webhook WhatsApp] Botão interativo enviado via Evo GO`);
+                                    } catch (btnErr: any) {
+                                        console.warn(`⚠️ [Webhook WhatsApp] Falha no botão (${btnErr.message}). Fazendo fallback final para texto...`);
+                                        await axios.post(`${config.url}/send/text`, {
+                                            id: targetName,
+                                            number: recipientPhone,
+                                            text: `${waMsg}\n\nLink do PDF: ${pdf_url}`
+                                        }, {
+                                            headers: {
+                                                'apikey': instanceToken || config.apiKey,
+                                                'Content-Type': 'application/json'
+                                            }
+                                        });
+                                    }
+                                }
                             } else {
-                                await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
-                                    number: recipientPhone,
-                                    mediatype: 'document',
-                                    mimetype: 'application/pdf',
-                                    caption: waMsg,
-                                    media: pdf_url,
-                                    fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
-                                }, {
-                                    headers: {
-                                        'apikey': config.apiKey,
-                                        'Content-Type': 'application/json'
-                                    },
-                                    timeout: 8000
-                                }).catch(e => console.warn(`⚠️ [WHATSAPP] Falha ao enviar notificação:`, e.message));
+                                try {
+                                    console.log(`📡 [Webhook WhatsApp] Enviando mídia via Evo API padrão...`);
+                                    await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
+                                        number: recipientPhone,
+                                        mediatype: 'document',
+                                        mimetype: 'application/pdf',
+                                        caption: waMsg,
+                                        media: isBase64 ? base64Media : pdf_url,
+                                        fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
+                                    }, {
+                                        headers: {
+                                            'apikey': config.apiKey,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        timeout: 15000
+                                    });
+                                    console.log(`✅ [Webhook WhatsApp] Enviado via Evo API padrão`);
+                                } catch (errStd: any) {
+                                    console.warn(`⚠️ [Webhook WhatsApp] Falha ao enviar mídia Evo API (${errStd.message}). Fazendo fallback final para texto...`);
+                                    await axios.post(`${config.url}/message/sendText/${encodedName}`, {
+                                        number: recipientPhone,
+                                        text: `${waMsg}\n\nLink do PDF: ${pdf_url}`,
+                                        linkPreview: true
+                                    }, {
+                                        headers: {
+                                            'apikey': config.apiKey,
+                                            'Content-Type': 'application/json'
+                                        }
+                                    });
+                                }
                             }
                         } else {
-                            console.log(`⚠️ [WEBHOOK-UPDATE] Empresa configurada para envio automático, mas nenhuma instância WhatsApp ativa foi encontrada.`);
+                            console.log(`⚠️ [WEBHOOK-UPDATE] Empresa configurada para envio automático, mas nenhuma instância WhatsApp ATIVA e CONECTADA foi encontrada.`);
                         }
                     }
                 }
