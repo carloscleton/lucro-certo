@@ -4751,6 +4751,7 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
                     (i.name.toLowerCase() === targetName.toLowerCase())
                 );
                 if (!inst) throw new Error('Instance not found on Evolution GO');
+                const cleanJid = inst.jid ? `${inst.jid.split('@')[0].split(':')[0]}@s.whatsapp.net` : null;
                 return {
                     instanceName: inst.name,
                     name: inst.name,
@@ -4758,8 +4759,8 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
                     token: inst.id,
                     status: inst.connected ? 'connected' : 'disconnected',
                     connectionStatus: inst.connected ? 'open' : 'close',
-                    ownerJid: inst.jid || null,
-                    owner: inst.jid || null,
+                    ownerJid: cleanJid,
+                    owner: cleanJid,
                     number: inst.jid ? inst.jid.split('@')[0].split(':')[0] : null
                 };
             } else {
