@@ -3760,11 +3760,12 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
         // 4. Automação de WhatsApp (apenas se foi autorizado/concluído, tiver PDF e a empresa estiver configurada para envio automático)
         if (mappedStatus === 'concluido' && pdf_url && invoice.company_id) {
             try {
-                const { data: companies } = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${invoice.company_id}&select=tecnospeed_config`, {
+                const { data: companies } = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${invoice.company_id}&select=tecnospeed_config,settings`, {
                     headers: dbHeaders
                 });
                 
                 const companyConfig = companies?.[0]?.tecnospeed_config || {};
+                const companySettings = companies?.[0]?.settings || {};
                 
                 if (companyConfig.send_whatsapp_automatically) {
                     const recipientPhoneRaw = invoice.payload?.tomador?.telefone || invoice.payload?.tomador?.celular || invoice.payload?.borrower?.phone || invoice.payload?.contact?.whatsapp || invoice.payload?.contact?.phone;
@@ -3773,16 +3774,27 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                     if (recipientPhoneRaw) {
                         const recipientPhone = formatWhatsappNumber(recipientPhoneRaw);
                         
-                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&is_active=neq.false&select=instance_name,evolution_instance_id`, {
+                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name,evolution_instance_id,provider,is_active`, {
                             headers: dbHeaders
                         });
                         
-                        if (waInstances && waInstances.length > 0) {
-                            const instanceName = waInstances[0].instance_name;
-                            const instanceToken = waInstances[0].evolution_instance_id;
+                        const activeInsts = (waInstances || []).filter((inst: any) => inst.is_active !== false);
+                        
+                        if (activeInsts.length > 0) {
+                            // Encontrar a instância que bate com o provedor preferido nas configurações
+                            const preferredProvider = companySettings.whatsapp_provider || 'evolution_api';
+                            let selectedInst = activeInsts.find((inst: any) => inst.provider === preferredProvider);
+                            
+                            if (!selectedInst) {
+                                // Se não achou do provedor preferido, pega a primeira ativa disponível
+                                selectedInst = activeInsts[0];
+                            }
+
+                            const instanceName = selectedInst.instance_name;
+                            const instanceToken = selectedInst.evolution_instance_id;
                             const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoice_number || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${pdf_url}`;
                             
-                            console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName} (Ativa e Conectada)`);
+                            console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName} (${selectedInst.provider || 'evolution_api'})`);
                             
                             const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName, token: instanceToken });
                             const targetName = await resolveTargetName(instanceName, instanceToken, invoice.company_id);
