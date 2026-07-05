@@ -629,40 +629,33 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                 const recipientPhone = String(contact.whatsapp || contact.phone || '').replace(/\D/g, '');
                 
-                const rawStatus = String(result.data?.status || result.data?.situacao || result.status || 'processando').toLowerCase();
-                const isAuthorized = ['concluido', 'autorizado', 'emitida', 'sucesso'].includes(rawStatus);
-
                 if (sendWhatsApp && recipientPhone) {
-                    if (isAuthorized) {
-                        try {
-                            const instance = waInstances[0];
-                            if (instance) {
-                                // Gerar link do PDF dinamicamente
-                                let apiBase = API_BASE_URL.replace(/\/$/, '');
-                                if (apiBase.startsWith('/')) {
-                                    apiBase = window.location.origin + apiBase;
-                                }
-                                // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
-                                const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
-
-                                const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
-                                await whatsappService.sendMessage({
-                                    instanceName: instance.instance_name || instance.name,
-                                    token: instance.evolution_instance_id,
-                                    number: recipientPhone,
-                                    text: message,
-                                    mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
-                                    mediaType: 'document',
-                                    mimetype: 'application/pdf',
-                                    fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`,
-                                    companyId: currentEntity.id
-                                });
+                    try {
+                        const instance = waInstances[0];
+                        if (instance) {
+                            // Gerar link do PDF dinamicamente
+                            let apiBase = API_BASE_URL.replace(/\/$/, '');
+                            if (apiBase.startsWith('/')) {
+                                apiBase = window.location.origin + apiBase;
                             }
-                        } catch (wsError) {
-                            console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
+                            // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
+                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
+
+                            const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
+                            await whatsappService.sendMessage({
+                                instanceName: instance.instance_name || instance.name,
+                                token: instance.evolution_instance_id,
+                                number: recipientPhone,
+                                text: message,
+                                mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
+                                mediaType: 'document',
+                                mimetype: 'application/pdf',
+                                fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`,
+                                companyId: currentEntity.id
+                            });
                         }
-                    } else {
-                        console.log(`⚠️ [WHATSAPP] Nota em processamento (${rawStatus}). O WhatsApp não será enviado agora.`);
+                    } catch (wsError) {
+                        console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
                     }
                 }
 
