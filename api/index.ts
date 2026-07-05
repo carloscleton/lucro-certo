@@ -1332,6 +1332,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     federalTaxNumber: taxNumber || '0',
                     name: String(firstItem?.tomador?.razaoSocial || firstItem?.tomador?.nomeFantasia || 'CLIENTE NAO IDENTIFICADO').trim(),
                     email: firstItem?.tomador?.email || null,
+                    phone: firstItem?.tomador?.telefone || firstItem?.tomador?.contato?.telefone || null,
                     address: {
                         country: 'BRA',
                         postalCode: finalCep,
@@ -3281,7 +3282,224 @@ app.get(['/fiscal-module/nfeio/company/status', '/api/fiscal-module/nfeio/compan
         console.error(`❌ Erro ao consultar status da empresa NFe.io (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
         res.status(statusCode).json({ error: 'Erro ao consultar status da empresa na NFe.io', detail: errorDetail });
     }
-});
+async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: string, invoiceNumber: string, mappedStatus: string, authHeader: string) {
+    if (!SUPABASE_URL || !invoiceId) return;
+    try {
+        const dbHeaders: any = {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+            'Content-Type': 'application/json'
+        };
+        if (SUPABASE_SERVICE_ROLE_KEY) {
+            dbHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+        } else if (authHeader) {
+            dbHeaders['Authorization'] = authHeader;
+        } else {
+            dbHeaders['Authorization'] = `Bearer ${SUPABASE_ANON_KEY!}`;
+        }
+
+        // Buscar a nota atualizada
+        const { data: invoices } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${invoiceId}`, {
+            headers: dbHeaders
+        });
+
+        const invoice = invoices?.[0];
+        if (!invoice || !invoice.company_id) return;
+
+        // Buscar configs da empresa
+        const { data: companies } = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${invoice.company_id}&select=tecnospeed_config,settings`, {
+            headers: dbHeaders
+        });
+
+        const companyConfig = companies?.[0]?.tecnospeed_config || {};
+        const companySettings = companies?.[0]?.settings || {};
+
+        if (companyConfig.send_whatsapp_automatically || invoice.payload?.send_whatsapp === true) {
+            let recipientPhoneRaw = invoice.payload?.tomador?.telefone || invoice.payload?.tomador?.celular || invoice.payload?.borrower?.phone || invoice.payload?.retorno?.borrower?.phone || invoice.payload?.retorno?.borrower?.telefone || invoice.payload?.retorno?.borrower?.phone_number || invoice.payload?.contact?.whatsapp || invoice.payload?.contact?.phone;
+            let recipientName = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || invoice.payload?.contact?.name || 'Cliente';
+
+            if (!recipientPhoneRaw) {
+                try {
+                    const rawCpfCnpj = invoice.payload?.tomador?.cpfCnpj || invoice.payload?.tomador?.cnpj || invoice.payload?.destinatario?.cpfCnpj || invoice.payload?.destinatario?.cnpj || invoice.payload?.borrower?.federalTaxNumber || invoice.payload?.retorno?.borrower?.federalTaxNumber || invoice.payload?.borrower?.cnpj || invoice.payload?.borrower?.cpf;
+                    let cleanCpfCnpj = rawCpfCnpj ? String(rawCpfCnpj).replace(/\D/g, '') : '';
+                    if (cleanCpfCnpj) {
+                        if (cleanCpfCnpj.length > 11 && cleanCpfCnpj.length < 14) {
+                            cleanCpfCnpj = cleanCpfCnpj.padStart(14, '0');
+                        } else if (cleanCpfCnpj.length > 0 && cleanCpfCnpj.length < 11) {
+                            cleanCpfCnpj = cleanCpfCnpj.padStart(11, '0');
+                        }
+                    }
+                    const formattedCpfCnpj = cleanCpfCnpj.length === 11 
+                        ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                        : cleanCpfCnpj.length === 14 
+                            ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                            : cleanCpfCnpj;
+
+                    const taxSearchTerms = [cleanCpfCnpj, String(rawCpfCnpj), formattedCpfCnpj].filter(Boolean);
+                    let selectQuery = `${SUPABASE_URL}/rest/v1/contacts?company_id=eq.${invoice.company_id}`;
+                    if (taxSearchTerms.length > 0) {
+                        const encodedTerms = taxSearchTerms.map(t => encodeURIComponent(t)).join(',');
+                        selectQuery += `&tax_id=in.(${encodedTerms})`;
+                    } else if (recipientName && recipientName !== 'Cliente') {
+                        selectQuery += `&name=ilike.%${encodeURIComponent(recipientName)}%`;
+                    } else {
+                        selectQuery = '';
+                    }
+
+                    if (selectQuery) {
+                        const contactRes = await axios.get(selectQuery, { headers: dbHeaders });
+                        let contacts = contactRes.data || [];
+                        
+                        if (contacts.length === 0 && cleanCpfCnpj && recipientName && recipientName !== 'Cliente') {
+                            const fallbackQuery = `${SUPABASE_URL}/rest/v1/contacts?company_id=eq.${invoice.company_id}&name=ilike.%${encodeURIComponent(recipientName)}%`;
+                            const fallbackRes = await axios.get(fallbackQuery, { headers: dbHeaders });
+                            contacts = fallbackRes.data || [];
+                        }
+
+                        if (contacts.length > 0) {
+                            const contact = contacts[0];
+                            recipientPhoneRaw = contact.whatsapp || contact.phone;
+                            if (recipientName === 'Cliente' && contact.name) {
+                                recipientName = contact.name;
+                            }
+                        }
+                    }
+                } catch (dbErr: any) {
+                    console.warn(`⚠️ [WhatsApp-Helper] Erro ao buscar contato no banco:`, dbErr.message);
+                }
+            }
+
+            if (recipientPhoneRaw) {
+                const recipientPhone = formatWhatsappNumber(recipientPhoneRaw);
+
+                const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name,evolution_instance_id,provider,is_active`, {
+                    headers: dbHeaders
+                });
+
+                const activeInsts = (waInstances || []).filter((inst: any) => inst.is_active !== false);
+
+                if (activeInsts.length > 0) {
+                    const preferredProvider = companySettings.whatsapp_provider || 'evolution_api';
+                    let selectedInst = activeInsts.find((inst: any) => inst.provider === preferredProvider);
+
+                    if (!selectedInst) {
+                        selectedInst = activeInsts[0];
+                    }
+
+                    const instanceName = selectedInst.instance_name;
+                    const instanceToken = selectedInst.evolution_instance_id;
+                    const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoiceNumber || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${pdfUrl}`;
+
+                    console.log(`📱 [WhatsApp-Helper] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName} (${selectedInst.provider || 'evolution_api'})`);
+
+                    const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName, token: instanceToken });
+                    const targetName = await resolveTargetName(instanceName, instanceToken, invoice.company_id);
+                    const encodedName = encodeURIComponent(targetName);
+
+                    let base64Media = '';
+                    let isBase64 = false;
+
+                    try {
+                        console.log(`📥 [WhatsApp-Helper] Baixando PDF para envio Base64: ${pdfUrl}`);
+                        const pdfResponse = await axios.get(pdfUrl, {
+                            responseType: 'arraybuffer',
+                            timeout: 8000
+                        });
+                        if (pdfResponse.status === 200) {
+                            base64Media = Buffer.from(pdfResponse.data).toString('base64');
+                            isBase64 = true;
+                            console.log(`✅ [WhatsApp-Helper] PDF baixado e codificado (${pdfResponse.data.length} bytes)`);
+                        }
+                    } catch (downloadErr: any) {
+                        console.warn(`⚠️ [WhatsApp-Helper] Erro ao baixar PDF para Base64 (${downloadErr.message}). Tentando envio com URL.`);
+                    }
+
+                    if (config.isGo) {
+                        try {
+                            await axios.post(`${config.url}/send/media`, {
+                                id: targetName,
+                                number: recipientPhone,
+                                url: isBase64 ? base64Media : pdfUrl,
+                                type: 'document',
+                                filename: `NotaFiscal-${invoiceNumber || invoice.id}.pdf`,
+                                caption: waMsg
+                            }, {
+                                headers: {
+                                    'apikey': instanceToken || config.apiKey,
+                                    'Content-Type': 'application/json'
+                                },
+                                timeout: 10000
+                            });
+                        } catch (errGo: any) {
+                            try {
+                                await axios.post(`${config.url}/send/button`, {
+                                    id: targetName,
+                                    number: recipientPhone,
+                                    title: `Nota Fiscal ${invoiceNumber || ''}`.trim(),
+                                    description: waMsg,
+                                    footer: 'Lucro Certo',
+                                    buttons: [
+                                        {
+                                            type: 'url',
+                                            displayText: 'Visualizar PDF',
+                                            url: pdfUrl
+                                        }
+                                    ]
+                                }, {
+                                    headers: {
+                                        'apikey': instanceToken || config.apiKey,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    timeout: 10000
+                                });
+                            } catch (btnErr: any) {
+                                await axios.post(`${config.url}/send/text`, {
+                                    id: targetName,
+                                    number: recipientPhone,
+                                    text: `${waMsg}\n\nLink do PDF: ${pdfUrl}`
+                                }, {
+                                    headers: {
+                                        'apikey': instanceToken || config.apiKey,
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+                            }
+                        }
+                    } else {
+                        try {
+                            await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
+                                number: recipientPhone,
+                                mediatype: 'document',
+                                mimetype: 'application/pdf',
+                                caption: waMsg,
+                                media: isBase64 ? base64Media : pdfUrl,
+                                fileName: `NotaFiscal-${invoiceNumber || invoice.id}.pdf`
+                            }, {
+                                headers: {
+                                    'apikey': config.apiKey,
+                                    'Content-Type': 'application/json'
+                                },
+                                timeout: 15000
+                            });
+                        } catch (errStd: any) {
+                            await axios.post(`${config.url}/message/sendText/${encodedName}`, {
+                                number: recipientPhone,
+                                text: `${waMsg}\n\nLink do PDF: ${pdfUrl}`,
+                                linkPreview: true
+                            }, {
+                                headers: {
+                                    'apikey': config.apiKey,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    } catch (err: any) {
+        console.error('⚠️ [WhatsApp-Helper] Falha ao enviar notificação de WhatsApp:', err.message);
+    }
+}
 
 
 app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenticate, async (req, res) => {
@@ -3556,6 +3774,10 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                         headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
                     });
                     
+                    if (mappedStatus === 'concluido') {
+                        triggerWhatsAppNotificationHelper(invoice.id, pdfUrl, statusData.number ? String(statusData.number) : '', mappedStatus, authHeader!);
+                    }
+                    
                     return res.json(statusData);
                 } catch (nfeioErr: any) {
                     console.error('❌ [FISCAL-STATUS] Falha no fallback NFe.io:', nfeioErr.response?.data || nfeioErr.message);
@@ -3624,6 +3846,11 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 }, {
                     headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader!, 'Content-Type': 'application/json' }
                 });
+                
+                const normalizedStatus = String(currentStatus).toLowerCase();
+                if (['concluido', 'autorizado', 'issued', 'success', 'emitida', 'sucesso'].includes(normalizedStatus)) {
+                    triggerWhatsAppNotificationHelper(invoice.id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', 'concluido', authHeader!);
+                }
             } catch (dbErr) { console.warn('⚠️ Falha ao atualizar status local'); }
         }
         res.json(statusData);
@@ -3761,162 +3988,8 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
          }
          // 4. Automação de WhatsApp (apenas se foi autorizado/concluído, tiver PDF e a empresa estiver configurada para envio automático)
          if (mappedStatus === 'concluido' && finalPdfUrl && invoice.company_id) {
-            try {
-                const { data: companies } = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${invoice.company_id}&select=tecnospeed_config,settings`, {
-                    headers: dbHeaders
-                });
-                
-                const companyConfig = companies?.[0]?.tecnospeed_config || {};
-                const companySettings = companies?.[0]?.settings || {};
-                
-                if (companyConfig.send_whatsapp_automatically || invoice.payload?.send_whatsapp === true) {
-                    const recipientPhoneRaw = invoice.payload?.tomador?.telefone || invoice.payload?.tomador?.celular || invoice.payload?.borrower?.phone || invoice.payload?.contact?.whatsapp || invoice.payload?.contact?.phone;
-                    const recipientName = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || invoice.payload?.borrower?.name || invoice.payload?.contact?.name || 'Cliente';
-                    
-                    if (recipientPhoneRaw) {
-                        const recipientPhone = formatWhatsappNumber(recipientPhoneRaw);
-                        
-                        const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name,evolution_instance_id,provider,is_active`, {
-                            headers: dbHeaders
-                        });
-                        
-                        const activeInsts = (waInstances || []).filter((inst: any) => inst.is_active !== false);
-                        
-                        if (activeInsts.length > 0) {
-                            // Encontrar a instância que bate com o provedor preferido nas configurações
-                            const preferredProvider = companySettings.whatsapp_provider || 'evolution_api';
-                            let selectedInst = activeInsts.find((inst: any) => inst.provider === preferredProvider);
-                            
-                            if (!selectedInst) {
-                                // Se não achou do provedor preferido, pega a primeira ativa disponível
-                                selectedInst = activeInsts[0];
-                            }
-
-                            const instanceName = selectedInst.instance_name;
-                            const instanceToken = selectedInst.evolution_instance_id;
-                            const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoice_number || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${finalPdfUrl}`;
-                            
-                            console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName} (${selectedInst.provider || 'evolution_api'})`);
-                            
-                            const config = await getEvolutionConfig({ companyId: invoice.company_id, instanceName, token: instanceToken });
-                            const targetName = await resolveTargetName(instanceName, instanceToken, invoice.company_id);
-                            const encodedName = encodeURIComponent(targetName);
-                            
-                            let base64Media = '';
-                            let isBase64 = false;
-                            
-                            try {
-                                console.log(`📥 [Webhook WhatsApp] Baixando PDF para envio Base64: ${finalPdfUrl}`);
-                                const pdfResponse = await axios.get(finalPdfUrl, {
-                                    responseType: 'arraybuffer',
-                                    timeout: 8000
-                                });
-                                if (pdfResponse.status === 200) {
-                                    base64Media = Buffer.from(pdfResponse.data).toString('base64');
-                                    isBase64 = true;
-                                    console.log(`✅ [Webhook WhatsApp] PDF baixado e codificado (${pdfResponse.data.length} bytes)`);
-                                }
-                            } catch (downloadErr: any) {
-                                console.warn(`⚠️ [Webhook WhatsApp] Erro ao baixar PDF para Base64 (${downloadErr.message}). Tentando envio com URL.`);
-                            }
-
-                            if (config.isGo) {
-                                try {
-                                    console.log(`📡 [Webhook WhatsApp] Enviando mídia via Evo GO...`);
-                                    await axios.post(`${config.url}/send/media`, {
-                                        id: targetName,
-                                        number: recipientPhone,
-                                        url: isBase64 ? base64Media : finalPdfUrl,
-                                        type: 'document',
-                                        filename: `NotaFiscal-${invoice_number || invoice.id}.pdf`,
-                                        caption: waMsg
-                                    }, {
-                                        headers: {
-                                            'apikey': instanceToken || config.apiKey,
-                                            'Content-Type': 'application/json'
-                                        },
-                                        timeout: 10000
-                                    });
-                                    console.log(`✅ [Webhook WhatsApp] Enviado via Evo GO`);
-                                } catch (errGo: any) {
-                                    console.warn(`⚠️ [Webhook WhatsApp] Falha ao enviar mídia Evo GO (${errGo.message}). Tentando botão...`);
-                                    try {
-                                        await axios.post(`${config.url}/send/button`, {
-                                            id: targetName,
-                                            number: recipientPhone,
-                                            title: `Nota Fiscal ${invoice_number || ''}`.trim(),
-                                            description: waMsg,
-                                            footer: 'Lucro Certo',
-                                            buttons: [
-                                                {
-                                                    type: 'url',
-                                                    displayText: 'Visualizar PDF',
-                                                    url: finalPdfUrl
-                                                }
-                                            ]
-                                        }, {
-                                            headers: {
-                                                'apikey': instanceToken || config.apiKey,
-                                                'Content-Type': 'application/json'
-                                            },
-                                            timeout: 10000
-                                        });
-                                        console.log(`✅ [Webhook WhatsApp] Botão interativo enviado via Evo GO`);
-                                    } catch (btnErr: any) {
-                                        console.warn(`⚠️ [Webhook WhatsApp] Falha no botão (${btnErr.message}). Fazendo fallback final para texto...`);
-                                        await axios.post(`${config.url}/send/text`, {
-                                            id: targetName,
-                                            number: recipientPhone,
-                                            text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`
-                                        }, {
-                                            headers: {
-                                                'apikey': instanceToken || config.apiKey,
-                                                'Content-Type': 'application/json'
-                                            }
-                                        });
-                                    }
-                                }
-                            } else {
-                                try {
-                                    console.log(`📡 [Webhook WhatsApp] Enviando mídia via Evo API padrão...`);
-                                    await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
-                                        number: recipientPhone,
-                                        mediatype: 'document',
-                                        mimetype: 'application/pdf',
-                                        caption: waMsg,
-                                        media: isBase64 ? base64Media : finalPdfUrl,
-                                        fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
-                                    }, {
-                                        headers: {
-                                            'apikey': config.apiKey,
-                                            'Content-Type': 'application/json'
-                                        },
-                                        timeout: 15000
-                                    });
-                                    console.log(`✅ [Webhook WhatsApp] Enviado via Evo API padrão`);
-                                } catch (errStd: any) {
-                                    console.warn(`⚠️ [Webhook WhatsApp] Falha ao enviar mídia Evo API (${errStd.message}). Fazendo fallback final para texto...`);
-                                    await axios.post(`${config.url}/message/sendText/${encodedName}`, {
-                                        number: recipientPhone,
-                                        text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`,
-                                        linkPreview: true
-                                    }, {
-                                        headers: {
-                                            'apikey': config.apiKey,
-                                            'Content-Type': 'application/json'
-                                        }
-                                    });
-                                }
-                            }
-                        } else {
-                            console.log(`⚠️ [WEBHOOK-UPDATE] Empresa configurada para envio automático, mas nenhuma instância WhatsApp ATIVA e CONECTADA foi encontrada.`);
-                        }
-                    }
-                }
-            } catch (waErr: any) {
-                console.error(`⚠️ [WEBHOOK-UPDATE] Erro na automação de WhatsApp:`, waErr.message);
-            }
-        }
+             triggerWhatsAppNotificationHelper(invoice.id, finalPdfUrl, invoice_number ? String(invoice_number) : '', mappedStatus, authHeader);
+         }
 
         console.log(`   [WEBHOOK-UPDATE] Nota ${targetId} atualizada com sucesso para '${mappedStatus}'`);
         return res.json({ success: true, message: `Nota ${targetId} atualizada para '${mappedStatus}'.` });

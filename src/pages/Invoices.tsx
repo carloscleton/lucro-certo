@@ -402,16 +402,22 @@ ${messageWithPlaceholder}`;
 
         const targets = [
             p?.tomador?.telefone,
+            p?.tomador?.whatsapp,
             p?.tomador?.contato?.telefone,
             p?.destinatario?.telefone,
             p?.destinatario?.contato?.telefone,
             p?.retorno?.tomador?.telefone,
             p?.retorno?.destinatario?.telefone,
             p?.borrower?.phone,
+            p?.borrower?.whatsapp,
             p?.borrower?.telefone,
             p?.borrower?.phone_number,
             p?.retorno?.borrower?.phone,
-            p?.retorno?.borrower?.telefone
+            p?.retorno?.borrower?.whatsapp,
+            p?.retorno?.borrower?.telefone,
+            p?.retorno?.borrower?.phone_number,
+            p?.retorno?.tomador?.whatsapp,
+            p?.retorno?.destinatario?.whatsapp
         ];
 
         for (const t of targets) {
@@ -501,6 +507,10 @@ ${messageWithPlaceholder}`;
         const clientName = invoice.quote?.contact?.name || 
                            p?.tomador?.razaoSocial || 
                            p?.destinatario?.nome || 
+                           p?.borrower?.name ||
+                           p?.retorno?.borrower?.name ||
+                           p?.retorno?.destinatario?.nome ||
+                           p?.retorno?.tomador?.razaoSocial ||
                            'Cliente';
 
         setSendModal({
@@ -566,38 +576,63 @@ ${messageWithPlaceholder}`;
 
         // Se for emissão direta (sem orçamento) e tiver CPF/CNPJ do tomador, tenta buscar o contato no banco de dados para puxar o WhatsApp/Telefone atualizado
         if (!invoice.quote && p) {
-            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj || p?.borrower?.federalTaxNumber || p?.retorno?.borrower?.federalTaxNumber;
-            if (rawCpfCnpj) {
-                const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
-                const formattedCpfCnpj = cleanCpfCnpj.length === 11 
-                    ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-                    : cleanCpfCnpj.length === 14 
-                        ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-                        : cleanCpfCnpj;
+            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj || p?.borrower?.federalTaxNumber || p?.retorno?.borrower?.federalTaxNumber || p?.borrower?.cnpj || p?.borrower?.cpf;
+            let cleanCpfCnpj = rawCpfCnpj ? String(rawCpfCnpj).replace(/\D/g, '') : '';
+            if (cleanCpfCnpj) {
+                if (cleanCpfCnpj.length > 11 && cleanCpfCnpj.length < 14) {
+                    cleanCpfCnpj = cleanCpfCnpj.padStart(14, '0');
+                } else if (cleanCpfCnpj.length > 0 && cleanCpfCnpj.length < 11) {
+                    cleanCpfCnpj = cleanCpfCnpj.padStart(11, '0');
+                }
+            }
+            const formattedCpfCnpj = cleanCpfCnpj.length === 11 
+                ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                : cleanCpfCnpj.length === 14 
+                    ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                    : cleanCpfCnpj;
 
-                try {
-                    const { data, error } = await supabase
+            try {
+                const taxSearchTerms = [cleanCpfCnpj, String(rawCpfCnpj), formattedCpfCnpj].filter(Boolean);
+
+                let query = supabase.from('contacts').select('phone, whatsapp').eq('company_id', invoice.company_id);
+                if (taxSearchTerms.length > 0) {
+                    query = query.in('tax_id', taxSearchTerms);
+                } else if (clientName && clientName !== 'Cliente') {
+                    query = query.ilike('name', `%${clientName}%`);
+                } else {
+                    return;
+                }
+
+                let { data, error } = await query.limit(1);
+
+                // Se buscou por CPF/CNPJ e não achou, tenta buscar pelo nome do cliente como fallback
+                if ((!data || data.length === 0) && taxSearchTerms.length > 0 && clientName && clientName !== 'Cliente') {
+                    const fallbackRes = await supabase
                         .from('contacts')
                         .select('phone, whatsapp')
-                        .in('tax_id', [cleanCpfCnpj, rawCpfCnpj, formattedCpfCnpj])
+                        .eq('company_id', invoice.company_id)
+                        .ilike('name', `%${clientName}%`)
                         .limit(1);
-
-                    if (!error && data && data.length > 0) {
-                        const contact = data[0];
-                        const resolvedPhone = contact.whatsapp || contact.phone;
-                        if (resolvedPhone) {
-                            const cleanPhone = String(resolvedPhone).replace(/\D/g, '');
-                            setSendModal(prev => {
-                                if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'whatsapp') {
-                                    return { ...prev, recipient: cleanPhone };
-                                }
-                                return prev;
-                            });
-                        }
+                    if (!fallbackRes.error && fallbackRes.data && fallbackRes.data.length > 0) {
+                        data = fallbackRes.data;
                     }
-                } catch (err) {
-                    console.warn('Erro ao carregar contato do banco:', err);
                 }
+
+                if (!error && data && data.length > 0) {
+                    const contact = data[0];
+                    const resolvedPhone = contact.whatsapp || contact.phone;
+                    if (resolvedPhone) {
+                        const cleanPhone = String(resolvedPhone).replace(/\D/g, '');
+                        setSendModal(prev => {
+                            if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'whatsapp') {
+                                return { ...prev, recipient: cleanPhone };
+                            }
+                            return prev;
+                        });
+                    }
+                }
+            } catch (err) {
+                console.warn('Erro ao carregar contato do banco:', err);
             }
         }
     };
