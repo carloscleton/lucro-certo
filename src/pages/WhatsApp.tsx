@@ -301,6 +301,7 @@ export function WhatsApp() {
                         .from('instances')
                         .select('id, instance_name')
                         .eq('phone_number', rawNumber)
+                        .eq('provider', instance.provider || 'evolution_api')
                         .neq('id', instance.id)
                         .limit(1);
 
