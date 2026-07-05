@@ -3653,6 +3653,8 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
     } = req.body;
 
     const targetId = external_id || id || idIntegracao;
+    const finalPdfUrl = pdf_url || req.body.pdf || req.body.pdfUrl || null;
+    const finalXmlUrl = xml_url || req.body.xml || req.body.xmlUrl || null;
 
     if (!targetId) {
         return res.status(400).json({ error: 'Identificador da nota (id, external_id ou idIntegracao) é obrigatório.' });
@@ -3702,63 +3704,63 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
             mappedStatus = 'cancelado';
         }
 
-        // Construir payload atualizado
-        const existingPayload = invoice.payload || {};
-        const updatedPayload = {
-            ...existingPayload,
-            retorno: {
-                ...(existingPayload.retorno || {}),
-                ...(payload || {}),
-                status: status || mappedStatus,
-                pdf_url,
-                xml_url,
-                invoice_number,
-                access_key,
-                dps_number,
-                dps_serie,
-                protocol,
-                error_message
-            }
-        };
-
-        // 2. Atualizar a nota no Supabase usando a mesma autenticação
-        const updateUrl = `${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${invoice.id}`;
-        await axios.patch(updateUrl, {
-            status: mappedStatus,
-            pdf_url: pdf_url || null,
-            xml_url: xml_url || null,
-            invoice_number: invoice_number ? String(invoice_number) : null,
-            access_key: access_key ? String(access_key) : null,
-            dps_number: dps_number ? String(dps_number) : null,
-            dps_serie: dps_serie ? String(dps_serie) : null,
-            protocol: protocol ? String(protocol) : null,
-            error_message: error_message || null,
-            payload: updatedPayload,
-            updated_at: new Date().toISOString()
-        }, {
-            headers: dbHeaders
-        });
-
-        // 3. Se a nota estiver vinculada a um orçamento (quote), atualizar o status do orçamento também
-        if (invoice.quote_id) {
-            try {
-                console.log(`💾 [WEBHOOK-UPDATE] Atualizando orçamento vinculado: ${invoice.quote_id}`);
-                const quoteUpdateUrl = `${SUPABASE_URL}/rest/v1/quotes?id=eq.${invoice.quote_id}`;
-                await axios.patch(quoteUpdateUrl, {
-                    nfe_status: mappedStatus,
-                    nfe_pdf_url: pdf_url || null,
-                    nfe_xml_url: xml_url || null,
-                    nfe_error: error_message || null
-                }, {
-                    headers: dbHeaders
-                });
-                console.log(`✅ [WEBHOOK-UPDATE] Orçamento ${invoice.quote_id} atualizado com status '${mappedStatus}'`);
-            } catch (quoteErr: any) {
-                console.error(`⚠️ [WEBHOOK-UPDATE] Falha ao atualizar orçamento vinculado ${invoice.quote_id}:`, quoteErr.message);
-            }
-        }
-        // 4. Automação de WhatsApp (apenas se foi autorizado/concluído, tiver PDF e a empresa estiver configurada para envio automático)
-        if (mappedStatus === 'concluido' && pdf_url && invoice.company_id) {
+         // Construir payload atualizado
+         const existingPayload = invoice.payload || {};
+         const updatedPayload = {
+             ...existingPayload,
+             retorno: {
+                 ...(existingPayload.retorno || {}),
+                 ...(payload || {}),
+                 status: status || mappedStatus,
+                 pdf_url: finalPdfUrl,
+                 xml_url: finalXmlUrl,
+                 invoice_number,
+                 access_key,
+                 dps_number,
+                 dps_serie,
+                 protocol,
+                 error_message
+             }
+         };
+ 
+         // 2. Atualizar a nota no Supabase usando a mesma autenticação
+         const updateUrl = `${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${invoice.id}`;
+         await axios.patch(updateUrl, {
+             status: mappedStatus,
+             pdf_url: finalPdfUrl,
+             xml_url: finalXmlUrl,
+             invoice_number: invoice_number ? String(invoice_number) : null,
+             access_key: access_key ? String(access_key) : null,
+             dps_number: dps_number ? String(dps_number) : null,
+             dps_serie: dps_serie ? String(dps_serie) : null,
+             protocol: protocol ? String(protocol) : null,
+             error_message: error_message || null,
+             payload: updatedPayload,
+             updated_at: new Date().toISOString()
+         }, {
+             headers: dbHeaders
+         });
+ 
+         // 3. Se a nota estiver vinculada a um orçamento (quote), atualizar o status do orçamento também
+         if (invoice.quote_id) {
+             try {
+                 console.log(`💾 [WEBHOOK-UPDATE] Atualizando orçamento vinculado: ${invoice.quote_id}`);
+                 const quoteUpdateUrl = `${SUPABASE_URL}/rest/v1/quotes?id=eq.${invoice.quote_id}`;
+                 await axios.patch(quoteUpdateUrl, {
+                     nfe_status: mappedStatus,
+                     nfe_pdf_url: finalPdfUrl,
+                     nfe_xml_url: finalXmlUrl,
+                     nfe_error: error_message || null
+                 }, {
+                     headers: dbHeaders
+                 });
+                 console.log(`✅ [WEBHOOK-UPDATE] Orçamento ${invoice.quote_id} atualizado com status '${mappedStatus}'`);
+             } catch (quoteErr: any) {
+                 console.error(`⚠️ [WEBHOOK-UPDATE] Falha ao atualizar orçamento vinculado ${invoice.quote_id}:`, quoteErr.message);
+             }
+         }
+         // 4. Automação de WhatsApp (apenas se foi autorizado/concluído, tiver PDF e a empresa estiver configurada para envio automático)
+         if (mappedStatus === 'concluido' && finalPdfUrl && invoice.company_id) {
             try {
                 const { data: companies } = await axios.get(`${SUPABASE_URL}/rest/v1/companies?id=eq.${invoice.company_id}&select=tecnospeed_config,settings`, {
                     headers: dbHeaders
@@ -3792,7 +3794,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
 
                             const instanceName = selectedInst.instance_name;
                             const instanceToken = selectedInst.evolution_instance_id;
-                            const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoice_number || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${pdf_url}`;
+                            const waMsg = `Olá, *${recipientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\nNúmero: ${invoice_number || 'N/A'}\n\nClique no link abaixo para visualizar e baixar o documento:\n${finalPdfUrl}`;
                             
                             console.log(`📱 [WEBHOOK-UPDATE] Disparando notificação de WhatsApp para ${recipientPhone} via instância ${instanceName} (${selectedInst.provider || 'evolution_api'})`);
                             
@@ -3804,8 +3806,8 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                             let isBase64 = false;
                             
                             try {
-                                console.log(`📥 [Webhook WhatsApp] Baixando PDF para envio Base64: ${pdf_url}`);
-                                const pdfResponse = await axios.get(pdf_url, {
+                                console.log(`📥 [Webhook WhatsApp] Baixando PDF para envio Base64: ${finalPdfUrl}`);
+                                const pdfResponse = await axios.get(finalPdfUrl, {
                                     responseType: 'arraybuffer',
                                     timeout: 8000
                                 });
@@ -3824,7 +3826,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                     await axios.post(`${config.url}/send/media`, {
                                         id: targetName,
                                         number: recipientPhone,
-                                        url: isBase64 ? base64Media : pdf_url,
+                                        url: isBase64 ? base64Media : finalPdfUrl,
                                         type: 'document',
                                         filename: `NotaFiscal-${invoice_number || invoice.id}.pdf`,
                                         caption: waMsg
@@ -3849,7 +3851,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                                 {
                                                     type: 'url',
                                                     displayText: 'Visualizar PDF',
-                                                    url: pdf_url
+                                                    url: finalPdfUrl
                                                 }
                                             ]
                                         }, {
@@ -3865,7 +3867,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                         await axios.post(`${config.url}/send/text`, {
                                             id: targetName,
                                             number: recipientPhone,
-                                            text: `${waMsg}\n\nLink do PDF: ${pdf_url}`
+                                            text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`
                                         }, {
                                             headers: {
                                                 'apikey': instanceToken || config.apiKey,
@@ -3882,7 +3884,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                         mediatype: 'document',
                                         mimetype: 'application/pdf',
                                         caption: waMsg,
-                                        media: isBase64 ? base64Media : pdf_url,
+                                        media: isBase64 ? base64Media : finalPdfUrl,
                                         fileName: `NotaFiscal-${invoice_number || invoice.id}.pdf`
                                     }, {
                                         headers: {
@@ -3896,7 +3898,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                                     console.warn(`⚠️ [Webhook WhatsApp] Falha ao enviar mídia Evo API (${errStd.message}). Fazendo fallback final para texto...`);
                                     await axios.post(`${config.url}/message/sendText/${encodedName}`, {
                                         number: recipientPhone,
-                                        text: `${waMsg}\n\nLink do PDF: ${pdf_url}`,
+                                        text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`,
                                         linkPreview: true
                                     }, {
                                         headers: {
