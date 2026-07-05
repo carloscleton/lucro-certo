@@ -3767,7 +3767,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                 const companyConfig = companies?.[0]?.tecnospeed_config || {};
                 const companySettings = companies?.[0]?.settings || {};
                 
-                if (companyConfig.send_whatsapp_automatically) {
+                if (companyConfig.send_whatsapp_automatically || invoice.payload?.send_whatsapp === true) {
                     const recipientPhoneRaw = invoice.payload?.tomador?.telefone || invoice.payload?.tomador?.celular || invoice.payload?.borrower?.phone || invoice.payload?.contact?.whatsapp || invoice.payload?.contact?.phone;
                     const recipientName = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || invoice.payload?.borrower?.name || invoice.payload?.contact?.name || 'Cliente';
                     

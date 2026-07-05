@@ -599,7 +599,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 const { error: dbError } = await supabase
                                     .from('fiscal_invoices')
                                     .update({
-                                        status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando'
+                                        status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
+                                        payload: {
+                                            ...finalPayloadToSave,
+                                            send_whatsapp: sendWhatsApp
+                                        }
                                     })
                                     .eq('id', existingInv.id);
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no update:', dbError);
@@ -612,7 +616,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
                                     payload: {
                                         ...payload,
-                                        retorno: finalPayloadToSave
+                                        retorno: finalPayloadToSave,
+                                        send_whatsapp: sendWhatsApp
                                     }
                                 });
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
@@ -628,34 +633,40 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 }
 
                 const recipientPhone = String(contact.whatsapp || contact.phone || '').replace(/\D/g, '');
+                const rawStatus = String(result.data?.status || result.data?.situacao || result.status || 'processando').toLowerCase();
+                const isAuthorized = ['concluido', 'autorizado', 'emitida', 'sucesso'].includes(rawStatus);
                 
                 if (sendWhatsApp && recipientPhone) {
-                    try {
-                        const instance = waInstances[0];
-                        if (instance) {
-                            // Gerar link do PDF dinamicamente
-                            let apiBase = API_BASE_URL.replace(/\/$/, '');
-                            if (apiBase.startsWith('/')) {
-                                apiBase = window.location.origin + apiBase;
-                            }
-                            // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
-                            const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
+                    if (isAuthorized) {
+                        try {
+                            const instance = waInstances[0];
+                            if (instance) {
+                                // Gerar link do PDF dinamicamente
+                                let apiBase = API_BASE_URL.replace(/\/$/, '');
+                                if (apiBase.startsWith('/')) {
+                                    apiBase = window.location.origin + apiBase;
+                                }
+                                // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
+                                const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
 
-                            const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
-                            await whatsappService.sendMessage({
-                                instanceName: instance.instance_name || instance.name,
-                                token: instance.evolution_instance_id,
-                                number: recipientPhone,
-                                text: message,
-                                mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
-                                mediaType: 'document',
-                                mimetype: 'application/pdf',
-                                fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`,
-                                companyId: currentEntity.id
-                            });
+                                const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
+                                await whatsappService.sendMessage({
+                                    instanceName: instance.instance_name || instance.name,
+                                    token: instance.evolution_instance_id,
+                                    number: recipientPhone,
+                                    text: message,
+                                    mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
+                                    mediaType: 'document',
+                                    mimetype: 'application/pdf',
+                                    fileName: `NotaFiscal-${externalId || 'avulsa'}.pdf`,
+                                    companyId: currentEntity.id
+                                });
+                            }
+                        } catch (wsError) {
+                            console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
                         }
-                    } catch (wsError) {
-                        console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
+                    } else {
+                        console.log(`⚠️ [WHATSAPP] Nota em processamento (${rawStatus}). O WhatsApp será enviado automaticamente assim que for autorizada pela prefeitura.`);
                     }
                 }
 
@@ -775,7 +786,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     .from('fiscal_invoices')
                                     .update({
                                         status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
-                                        payload: finalPayloadToSave
+                                        payload: {
+                                            ...finalPayloadToSave,
+                                            send_whatsapp: sendWhatsApp
+                                        }
                                     })
                                     .eq('id', existingInv.id);
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no update da NFe:', dbError);
@@ -786,7 +800,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     external_id: externalId,
                                     type: 'nfe',
                                     status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
-                                    payload: finalPayloadToSave
+                                    payload: {
+                                        ...finalPayloadToSave,
+                                        send_whatsapp: sendWhatsApp
+                                    }
                                 });
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no insert da NFe:', dbError);
                             }
@@ -797,8 +814,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 }
 
                 const recipientPhone = String(contact.whatsapp || contact.phone || '').replace(/\D/g, '');
+                const rawStatus = String(result.data?.status || result.data?.situacao || result.status || 'processando').toLowerCase();
+                const isAuthorized = ['concluido', 'autorizado', 'emitida', 'sucesso'].includes(rawStatus);
+
                 if (sendWhatsApp && recipientPhone) {
-                    try {
+                    if (isAuthorized) {
+                        try {
                         const instance = waInstances[0];
                         if (instance) {
                             // Gerar link do PDF dinamicamente
@@ -822,8 +843,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 companyId: currentEntity.id
                             });
                         }
-                    } catch (wsError) {
-                        console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
+                        } catch (wsError) {
+                            console.error('❌ [WHATSAPP] Erro ao enviar notificação:', wsError);
+                        }
+                    } else {
+                        console.log(`⚠️ [WHATSAPP] Nota em processamento (${rawStatus}). O WhatsApp será enviado automaticamente assim que for autorizada pela prefeitura.`);
                     }
                 }
                 
