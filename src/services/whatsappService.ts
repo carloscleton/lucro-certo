@@ -19,12 +19,6 @@ export const whatsappService = {
         if (cleanNumber.length === 10 || cleanNumber.length === 11) {
             cleanNumber = '55' + cleanNumber;
         }
-        if (cleanNumber.startsWith('55') && cleanNumber.length === 13) {
-            const ddd = parseInt(cleanNumber.substring(2, 4), 10);
-            if (ddd > 28) {
-                cleanNumber = cleanNumber.substring(0, 4) + cleanNumber.substring(5);
-            }
-        }
         
         try {
             const { data: { session } } = await supabase.auth.getSession();

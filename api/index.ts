@@ -83,13 +83,6 @@ function formatWhatsappNumber(phone: string | null | undefined): string {
         clean = '55' + clean;
     }
     
-    if (clean.startsWith('55') && clean.length === 13) {
-        const ddd = parseInt(clean.substring(2, 4), 10);
-        if (ddd > 28) {
-            clean = clean.substring(0, 4) + clean.substring(5);
-        }
-    }
-    
     return clean;
 }
 
