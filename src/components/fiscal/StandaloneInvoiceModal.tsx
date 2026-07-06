@@ -1486,15 +1486,22 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 )}
 
                 <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-gray-100 dark:border-slate-800">
-                    <div className="flex flex-col items-center md:items-start">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                            {type === 'nfse' && !calculatedTaxes.isSimples ? 'Valor Líquido a Receber' : 'Valor Total da Emissão'}
-                        </span>
-                        <span className="font-black text-3xl text-emerald-600 dark:text-emerald-400 tracking-tighter">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                type === 'nfse' ? calculatedTaxes.liquido : calculatedTaxes.totalBruto
-                            )}
-                        </span>
+                    <div className="flex flex-wrap gap-6 items-center">
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-0.5">Valor Real da Nota (Bruto)</span>
+                            <span className="font-black text-2xl text-blue-600 dark:text-blue-400 tracking-tight">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.totalBruto)}
+                            </span>
+                        </div>
+                        
+                        {type === 'nfse' && !calculatedTaxes.isSimples && (
+                            <div className="flex flex-col border-l border-gray-100 dark:border-slate-800 pl-6">
+                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-0.5">Valor Líquido a Receber</span>
+                                <span className="font-black text-2xl text-emerald-600 dark:text-emerald-400 tracking-tight">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.liquido)}
+                                </span>
+                            </div>
+                        )}
                     </div>
                     <div className="flex gap-3 w-full md:w-auto">
                         <Button 
