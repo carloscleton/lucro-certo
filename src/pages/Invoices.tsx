@@ -789,34 +789,59 @@ ${messageWithPlaceholder}`;
                     type: 'success'
                 });
             } else {
-                // Envio de e-mail via Resend (funciona para qualquer destinatário)
                 const inv = sendModal.invoice;
                 const p = inv.payload;
-                const pdfUrl = getPdfUrlFromInvoice(inv);
-                const xmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl || undefined;
-                const clientName = inv.quote?.contact?.name ||
-                    p?.tomador?.razaoSocial || p?.destinatario?.nome ||
-                    p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
-                const invoiceNumber = p?.numero || p?.nfseNumero || p?.retorno?.nfseNumero || inv.external_id || '';
-                const companyName = inv.company?.trade_name || currentEntity?.name || 'Lucro Certo';
 
-                await fiscalService.sendEmailViaResend({
-                    to: sendModal.recipient,
-                    token: session.access_token,
-                    clientName,
-                    invoiceNumber: String(invoiceNumber),
-                    invoiceType: inv.type || 'nfse',
-                    pdfUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
-                    xmlUrl: xmlUrl?.startsWith('http') ? xmlUrl : undefined,
-                    companyName,
-                });
+                // E-mail original do cadastro da nota
+                const registeredEmail = getEmailFromPayload(inv).toLowerCase().trim();
+                const recipientEmail = sendModal.recipient.toLowerCase().trim();
+                const isRegisteredEmail = registeredEmail && registeredEmail === recipientEmail;
 
-                setResultModal({
-                    isOpen: true,
-                    title: 'E-mail Enviado! ✉️',
-                    message: `A Nota Fiscal foi enviada com sucesso para ${sendModal.recipient}.`,
-                    type: 'success'
-                });
+                if (isRegisteredEmail) {
+                    // ✅ E-mail igual ao cadastro → usa o provedor fiscal (PlugNotas/NFe.io)
+                    // Eles enviam diretamente baseado no cadastro da nota na prefeitura
+                    console.log(`✉️ [EMAIL] E-mail igual ao cadastro → usando provedor fiscal`);
+                    await fiscalService.resendEmail(
+                        inv.external_id,
+                        inv.type,
+                        inv.company_id,
+                        [sendModal.recipient],
+                        session.access_token
+                    );
+                    setResultModal({
+                        isOpen: true,
+                        title: 'E-mail Enviado! ✉️',
+                        message: `Nota Fiscal enviada para ${sendModal.recipient} via ${inv.type === 'nfe' ? 'PlugNotas' : 'provedor fiscal'}.`,
+                        type: 'success'
+                    });
+                } else {
+                    // ✅ E-mail diferente do cadastro → usa Resend para entrega garantida
+                    console.log(`✉️ [EMAIL] E-mail diferente do cadastro (${registeredEmail || 'vazio'} → ${recipientEmail}) → usando Resend`);
+                    const pdfUrl = getPdfUrlFromInvoice(inv);
+                    const xmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl || undefined;
+                    const clientName = inv.quote?.contact?.name ||
+                        p?.tomador?.razaoSocial || p?.destinatario?.nome ||
+                        p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
+                    const invoiceNumber = p?.numero || p?.nfseNumero || p?.retorno?.nfseNumero || inv.external_id || '';
+                    const companyName = inv.company?.trade_name || currentEntity?.name || 'Lucro Certo';
+
+                    await fiscalService.sendEmailViaResend({
+                        to: sendModal.recipient,
+                        token: session.access_token,
+                        clientName,
+                        invoiceNumber: String(invoiceNumber),
+                        invoiceType: inv.type || 'nfse',
+                        pdfUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
+                        xmlUrl: xmlUrl?.startsWith('http') ? xmlUrl : undefined,
+                        companyName,
+                    });
+                    setResultModal({
+                        isOpen: true,
+                        title: 'E-mail Enviado! ✉️',
+                        message: `Nota Fiscal enviada para ${sendModal.recipient} (e-mail alternativo via Resend).`,
+                        type: 'success'
+                    });
+                }
             }
             setSendModal(prev => ({ ...prev, isOpen: false }));
         } catch (err: any) {
