@@ -1443,7 +1443,7 @@ ${messageWithPlaceholder}`;
                     isOpen={showBillingModal}
                     onClose={() => setShowBillingModal(false)}
                     invoices={invoices}
-                    fiscalSettings={currentCompany?.settings}
+                    fiscalSettings={currentCompany?.tecnospeed_config}
                 />
             )}
 

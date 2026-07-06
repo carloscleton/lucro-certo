@@ -51,12 +51,13 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         let totalCsll = 0;
         let totalIr = 0;
 
-        // Alíquotas configuradas nas Configurações Fiscais (fallback primário)
-        const cfgPis    = fiscalSettings?.default_pis_aliquota    ? Number(fiscalSettings.default_pis_aliquota)    : 0;
-        const cfgCofins = fiscalSettings?.default_cofins_aliquota ? Number(fiscalSettings.default_cofins_aliquota) : 0;
-        const cfgCsll   = fiscalSettings?.default_csll_aliquota   ? Number(fiscalSettings.default_csll_aliquota)   : 0;
-        const cfgIrrf   = fiscalSettings?.default_irrf_aliquota   ? Number(fiscalSettings.default_irrf_aliquota)   : 0;
-        const cfgIss    = fiscalSettings?.default_iss_aliquota    ? Number(fiscalSettings.default_iss_aliquota)    : 0;
+        // ✅ Alíquotas das Configurações Fiscais — PRIORIDADE MÁXIMA
+        // Quando configuradas, sobrepõem os valores do payload da nota
+        const cfgPis    = fiscalSettings?.default_pis_aliquota    ? Number(fiscalSettings.default_pis_aliquota)    : null;
+        const cfgCofins = fiscalSettings?.default_cofins_aliquota ? Number(fiscalSettings.default_cofins_aliquota) : null;
+        const cfgCsll   = fiscalSettings?.default_csll_aliquota   ? Number(fiscalSettings.default_csll_aliquota)   : null;
+        const cfgIrrf   = fiscalSettings?.default_irrf_aliquota   ? Number(fiscalSettings.default_irrf_aliquota)   : null;
+        const cfgIss    = fiscalSettings?.default_iss_aliquota    ? Number(fiscalSettings.default_iss_aliquota)    : null;
 
         const authorizedInvoices = filteredInvoices.filter(i => 
             ['concluido', 'autorizado'].includes(i.status?.toLowerCase())
@@ -70,63 +71,73 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
             const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
             const serviceItem = servicos[0];
             
-            // ISS — payload da nota > configuração da empresa
-            let issRate = 0;
-            if (serviceItem?.iss?.aliquota) {
+            // ISS — Configuração da empresa > payload da nota
+            let issRate: number;
+            if (cfgIss !== null) {
+                issRate = cfgIss;
+            } else if (serviceItem?.iss?.aliquota) {
                 issRate = Number(serviceItem.iss.aliquota);
             } else if (p.issRate) {
                 const rawIss = Number(p.issRate);
                 issRate = rawIss < 1 ? rawIss * 100 : rawIss;
             } else {
-                issRate = cfgIss; // fallback: alíquota configurada
+                issRate = 0;
             }
             totalIss += amount * (issRate / 100);
 
-            // PIS — payload da nota > configuração da empresa
-            let pisRate = 0;
-            if (serviceItem?.pis?.aliquota) {
+            // PIS — Configuração da empresa > payload da nota
+            let pisRate: number;
+            if (cfgPis !== null) {
+                pisRate = cfgPis;
+            } else if (serviceItem?.pis?.aliquota) {
                 pisRate = Number(serviceItem.pis.aliquota);
             } else if (p.pisRate) {
                 const rawPis = Number(p.pisRate);
                 pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
             } else {
-                pisRate = cfgPis; // fallback: alíquota configurada
+                pisRate = 0;
             }
             totalPis += amount * (pisRate / 100);
 
-            // COFINS — payload da nota > configuração da empresa
-            let cofinsRate = 0;
-            if (serviceItem?.cofins?.aliquota) {
+            // COFINS — Configuração da empresa > payload da nota
+            let cofinsRate: number;
+            if (cfgCofins !== null) {
+                cofinsRate = cfgCofins;
+            } else if (serviceItem?.cofins?.aliquota) {
                 cofinsRate = Number(serviceItem.cofins.aliquota);
             } else if (p.cofinsRate) {
                 const rawCofins = Number(p.cofinsRate);
                 cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
             } else {
-                cofinsRate = cfgCofins; // fallback: alíquota configurada
+                cofinsRate = 0;
             }
             totalCofins += amount * (cofinsRate / 100);
 
-            // CSLL — payload da nota > configuração da empresa
-            let csllRate = 0;
-            if (serviceItem?.csll?.aliquota) {
+            // CSLL — Configuração da empresa > payload da nota
+            let csllRate: number;
+            if (cfgCsll !== null) {
+                csllRate = cfgCsll;
+            } else if (serviceItem?.csll?.aliquota) {
                 csllRate = Number(serviceItem.csll.aliquota);
             } else if (p.csllRate) {
                 const rawCsll = Number(p.csllRate);
                 csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
             } else {
-                csllRate = cfgCsll; // fallback: alíquota configurada
+                csllRate = 0;
             }
             totalCsll += amount * (csllRate / 100);
 
-            // IRRF — payload da nota > configuração da empresa
-            let irRate = 0;
-            if (serviceItem?.ir?.aliquota) {
+            // IRRF — Configuração da empresa > payload da nota
+            let irRate: number;
+            if (cfgIrrf !== null) {
+                irRate = cfgIrrf;
+            } else if (serviceItem?.ir?.aliquota) {
                 irRate = Number(serviceItem.ir.aliquota);
             } else if (p.irRate) {
                 const rawIr = Number(p.irRate);
                 irRate = rawIr < 1 ? rawIr * 100 : rawIr;
             } else {
-                irRate = cfgIrrf; // fallback: alíquota configurada
+                irRate = 0;
             }
             totalIr += amount * (irRate / 100);
         });
