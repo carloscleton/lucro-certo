@@ -482,6 +482,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                             fullLabel: 'PIS',
                             desc: 'Prog. de Integração Social',
                             value: summary.totalPis,
+                            rate: fiscalSettings?.default_pis_aliquota ? Number(fiscalSettings.default_pis_aliquota) : null,
                             color: 'from-violet-500/10 to-violet-500/5',
                             border: 'border-violet-200 dark:border-violet-800/40',
                             textColor: 'text-violet-700 dark:text-violet-400',
@@ -493,6 +494,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                             fullLabel: 'COFINS',
                             desc: 'Contrib. p/ Financ. da Seguridade',
                             value: summary.totalCofins,
+                            rate: fiscalSettings?.default_cofins_aliquota ? Number(fiscalSettings.default_cofins_aliquota) : null,
                             color: 'from-blue-500/10 to-blue-500/5',
                             border: 'border-blue-200 dark:border-blue-800/40',
                             textColor: 'text-blue-700 dark:text-blue-400',
@@ -504,6 +506,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                             fullLabel: 'CSLL',
                             desc: 'Contrib. Social sobre Lucro Líquido',
                             value: summary.totalCsll,
+                            rate: fiscalSettings?.default_csll_aliquota ? Number(fiscalSettings.default_csll_aliquota) : null,
                             color: 'from-orange-500/10 to-orange-500/5',
                             border: 'border-orange-200 dark:border-orange-800/40',
                             textColor: 'text-orange-700 dark:text-orange-400',
@@ -515,6 +518,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                             fullLabel: 'IRRF',
                             desc: 'Imposto de Renda Retido na Fonte',
                             value: summary.totalIr,
+                            rate: fiscalSettings?.default_irrf_aliquota ? Number(fiscalSettings.default_irrf_aliquota) : null,
                             color: 'from-rose-500/10 to-rose-500/5',
                             border: 'border-rose-200 dark:border-rose-800/40',
                             textColor: 'text-rose-700 dark:text-rose-400',
@@ -583,11 +587,9 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                                                         <div className={`w-2 h-2 rounded-full ${tax.dotColor} flex-shrink-0`}></div>
                                                         <span className={`text-[10px] font-black uppercase tracking-widest ${tax.textColor}`}>{tax.label}</span>
                                                     </div>
-                                                    {summary.totalFaturado > 0 && (
-                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tax.badgeColor}`}>
-                                                            {pct(tax.value)}%
-                                                        </span>
-                                                    )}
+                                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tax.badgeColor}`}>
+                                                        {tax.rate !== null ? `${tax.rate}%` : `${pct(tax.value)}%`}
+                                                    </span>
                                                 </div>
                                                 {/* Description */}
                                                 <span className="text-[8px] text-gray-400 dark:text-gray-500 leading-tight font-medium">{tax.desc}</span>
