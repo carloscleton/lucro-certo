@@ -189,6 +189,59 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         fetchWA();
     }, [currentEntity.id]);
 
+    const calculatedTaxes = useMemo(() => {
+        let totalBruto = 0;
+        let totalIss = 0;
+        let totalPis = 0;
+        let totalCofins = 0;
+        let totalCsll = 0;
+        let totalIr = 0;
+
+        const isSimples = ['1', '2', '4'].includes(config?.regime_tributario || '');
+
+        items.forEach(item => {
+            const itemAmount = parseFloat(item.amount.replace(/\./g, '').replace(',', '.') || '0') * item.quantity;
+            totalBruto += itemAmount;
+
+            // ISS
+            const issRate = parseFloat(item.issAliquota || (isSimples ? (config?.simples_nacional_aliquota || '0') : (config?.default_iss_aliquota || '0')));
+            totalIss += itemAmount * (issRate / 100);
+
+            if (!isSimples) {
+                // PIS
+                const pisRate = parseFloat(item.pisAliquota || config?.default_pis_aliquota || '0.65');
+                totalPis += itemAmount * (pisRate / 100);
+
+                // COFINS
+                const cofinsRate = parseFloat(item.cofinsAliquota || config?.default_cofins_aliquota || '3');
+                totalCofins += itemAmount * (cofinsRate / 100);
+
+                // CSLL
+                const csllRate = parseFloat(item.csllAliquota || config?.default_csll_aliquota || '1');
+                totalCsll += itemAmount * (csllRate / 100);
+
+                // IRRF
+                const irrfRate = parseFloat(item.irrfAliquota || config?.default_irrf_aliquota || '1.5');
+                totalIr += itemAmount * (irrfRate / 100);
+            }
+        });
+
+        const totalRetencoes = totalPis + totalCofins + totalCsll + totalIr;
+        const liquido = totalBruto - totalRetencoes;
+
+        return {
+            totalBruto,
+            totalIss,
+            totalPis,
+            totalCofins,
+            totalCsll,
+            totalIr,
+            totalRetencoes,
+            liquido,
+            isSimples
+        };
+    }, [items, config]);
+
     const addItem = () => {
         setItems([...items, { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }]);
     };
@@ -1370,12 +1423,76 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     </div>
                 </div>
 
+                {/* Resumo Financeiro / Tributário para Clareza do Usuário */}
+                {type === 'nfse' && (
+                    <div className="bg-gray-50/50 dark:bg-slate-800/20 p-5 rounded-3xl border border-gray-100 dark:border-slate-800 space-y-3.5">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
+                            Detalhamento Financeiro Estimado
+                        </span>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-gray-600 dark:text-gray-400">
+                            <div className="flex justify-between border-b border-gray-100 dark:border-slate-800/40 pb-1.5">
+                                <span>Total dos Serviços (Bruto):</span>
+                                <span className="font-bold text-gray-900 dark:text-white">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.totalBruto)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between border-b border-gray-100 dark:border-slate-800/40 pb-1.5" title="ISS pago pela empresa ou retido na fonte">
+                                <span>ISS Estimado:</span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.totalIss)}
+                                </span>
+                            </div>
+                        </div>
+
+                        {!calculatedTaxes.isSimples && (
+                            <div className="bg-white dark:bg-slate-900/40 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800/60 space-y-2">
+                                <div className="flex justify-between text-[10px] font-bold text-amber-500 uppercase tracking-wider border-b border-amber-50 dark:border-amber-950/20 pb-1.5">
+                                    <span>Retenções Federais Deduções</span>
+                                    <span>Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.totalRetencoes)}</span>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[11px] text-gray-500">
+                                    <div className="flex justify-between">
+                                        <span>PIS:</span>
+                                        <span className="font-bold text-gray-700 dark:text-gray-300">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.totalPis)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>COFINS:</span>
+                                        <span className="font-bold text-gray-700 dark:text-gray-300">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.totalCofins)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>CSLL:</span>
+                                        <span className="font-bold text-gray-700 dark:text-gray-300">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.totalCsll)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>IRRF:</span>
+                                        <span className="font-bold text-gray-700 dark:text-gray-300">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTaxes.totalIr)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-gray-400 dark:text-gray-500 leading-normal font-medium mt-1">
+                                    * Retenções federais ocorrem quando o cliente é Pessoa Jurídica (PJ). Esses valores são descontados do seu recebimento.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-gray-100 dark:border-slate-800">
                     <div className="flex flex-col items-center md:items-start">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Valor Total da Emissão</span>
-                        <span className="font-black text-3xl text-blue-600 dark:text-blue-400 tracking-tighter">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                            {type === 'nfse' && !calculatedTaxes.isSimples ? 'Valor Líquido a Receber' : 'Valor Total da Emissão'}
+                        </span>
+                        <span className="font-black text-3xl text-emerald-600 dark:text-emerald-400 tracking-tighter">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                items.reduce((acc, i) => acc + (parseFloat(i.amount.replace(/\./g, '').replace(',', '.') || '0') * i.quantity), 0)
+                                type === 'nfse' ? calculatedTaxes.liquido : calculatedTaxes.totalBruto
                             )}
                         </span>
                     </div>
