@@ -455,6 +455,56 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
 
                 {showTaxes && (() => {
                     const summary = calculateTaxesSummary();
+                    const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+                    const pct = (v: number) => summary.totalFaturado > 0 ? ((v / summary.totalFaturado) * 100).toFixed(2) : '0.00';
+
+                    const federalTaxes = [
+                        {
+                            label: 'PIS',
+                            fullLabel: 'PIS',
+                            desc: 'Prog. de Integração Social',
+                            value: summary.totalPis,
+                            color: 'from-violet-500/10 to-violet-500/5',
+                            border: 'border-violet-200 dark:border-violet-800/40',
+                            textColor: 'text-violet-700 dark:text-violet-400',
+                            badgeColor: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400',
+                            dotColor: 'bg-violet-500',
+                        },
+                        {
+                            label: 'COFINS',
+                            fullLabel: 'COFINS',
+                            desc: 'Contrib. p/ Financ. da Seguridade',
+                            value: summary.totalCofins,
+                            color: 'from-blue-500/10 to-blue-500/5',
+                            border: 'border-blue-200 dark:border-blue-800/40',
+                            textColor: 'text-blue-700 dark:text-blue-400',
+                            badgeColor: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+                            dotColor: 'bg-blue-500',
+                        },
+                        {
+                            label: 'CSLL',
+                            fullLabel: 'CSLL',
+                            desc: 'Contrib. Social sobre Lucro Líquido',
+                            value: summary.totalCsll,
+                            color: 'from-orange-500/10 to-orange-500/5',
+                            border: 'border-orange-200 dark:border-orange-800/40',
+                            textColor: 'text-orange-700 dark:text-orange-400',
+                            badgeColor: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+                            dotColor: 'bg-orange-500',
+                        },
+                        {
+                            label: 'IRRF',
+                            fullLabel: 'IRRF',
+                            desc: 'Imposto de Renda Retido na Fonte',
+                            value: summary.totalIr,
+                            color: 'from-rose-500/10 to-rose-500/5',
+                            border: 'border-rose-200 dark:border-rose-800/40',
+                            textColor: 'text-rose-700 dark:text-rose-400',
+                            badgeColor: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400',
+                            dotColor: 'bg-rose-500',
+                        },
+                    ];
+
                     return (
                         <div className="bg-gradient-to-br from-indigo-50/20 via-white to-purple-50/15 dark:from-slate-900 dark:to-slate-900/60 p-5 rounded-2xl border border-indigo-150/40 dark:border-slate-800 shadow-sm animate-in slide-in-from-top-4 duration-300">
                             <div className="flex items-center gap-2 mb-4">
@@ -464,61 +514,78 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
                                 </h4>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            {/* Top row — 4 summary cards */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
                                 <div className="bg-white/60 dark:bg-slate-950/20 p-3 rounded-xl border border-indigo-50/30 dark:border-slate-800/40">
                                     <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-0.5">Total Faturado (Autorizadas)</span>
-                                    <span className="text-sm font-black text-gray-900 dark:text-white">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalFaturado)}
-                                    </span>
+                                    <span className="text-sm font-black text-gray-900 dark:text-white">{fmt(summary.totalFaturado)}</span>
                                 </div>
                                 <div className="bg-white/60 dark:bg-slate-950/20 p-3 rounded-xl border border-indigo-50/30 dark:border-slate-800/40">
                                     <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-0.5">ISS Calculado Estimado</span>
-                                    <span className="text-sm font-black text-blue-600 dark:text-blue-400">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalIss)}
-                                    </span>
+                                    <span className="text-sm font-black text-blue-600 dark:text-blue-400">{fmt(summary.totalIss)}</span>
+                                    {summary.totalFaturado > 0 && (
+                                        <span className="text-[9px] text-blue-400 dark:text-blue-500 font-semibold block mt-0.5">{pct(summary.totalIss)}% do faturado</span>
+                                    )}
                                 </div>
-                                <div className="bg-white/60 dark:bg-slate-950/20 p-3 rounded-xl border border-indigo-50/30 dark:border-slate-800/40">
-                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-0.5">Retenções Federais</span>
-                                    <span className="text-sm font-black text-amber-600 dark:text-amber-400">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalRetenções)}
-                                    </span>
+                                <div className="bg-amber-50/60 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-200/50 dark:border-amber-800/30">
+                                    <span className="text-[9px] font-bold text-amber-500 dark:text-amber-500 uppercase tracking-widest block mb-0.5">Total Retenções Federais</span>
+                                    <span className="text-sm font-black text-amber-600 dark:text-amber-400">{fmt(summary.totalRetenções)}</span>
+                                    {summary.totalFaturado > 0 && (
+                                        <span className="text-[9px] text-amber-400 dark:text-amber-500 font-semibold block mt-0.5">{pct(summary.totalRetenções)}% do faturado</span>
+                                    )}
                                 </div>
-                                <div className="bg-white/60 dark:bg-slate-950/20 p-3 rounded-xl border border-indigo-50/30 dark:border-slate-800/40">
-                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-0.5">Líquido Recebido Estimado</span>
-                                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.netAmount)}
-                                    </span>
+                                <div className="bg-emerald-50/60 dark:bg-emerald-900/10 p-3 rounded-xl border border-emerald-200/50 dark:border-emerald-800/30">
+                                    <span className="text-[9px] font-bold text-emerald-500 dark:text-emerald-500 uppercase tracking-widest block mb-0.5">Líquido Recebido Estimado</span>
+                                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{fmt(summary.netAmount)}</span>
+                                    {summary.totalFaturado > 0 && (
+                                        <span className="text-[9px] text-emerald-400 dark:text-emerald-500 font-semibold block mt-0.5">{pct(summary.netAmount)}% do faturado</span>
+                                    )}
                                 </div>
                             </div>
 
-                            {summary.totalRetenções > 0 && (
-                                <div className="pt-3 border-t border-indigo-50/30 dark:border-slate-800/40">
-                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2">Detalhamento das Retenções Federais</span>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-semibold text-gray-600 dark:text-gray-300">
-                                        <div className="flex justify-between bg-gray-50/40 dark:bg-slate-950/20 px-3 py-1.5 rounded-lg border border-indigo-50/20 dark:border-slate-805">
-                                            <span>PIS:</span>
-                                            <span className="font-bold text-gray-900 dark:text-white">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalPis)}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between bg-gray-50/40 dark:bg-slate-950/20 px-3 py-1.5 rounded-lg border border-indigo-50/20 dark:border-slate-805">
-                                            <span>COFINS:</span>
-                                            <span className="font-bold text-gray-900 dark:text-white">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalCofins)}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between bg-gray-50/40 dark:bg-slate-950/20 px-3 py-1.5 rounded-lg border border-indigo-50/20 dark:border-slate-805">
-                                            <span>CSLL:</span>
-                                            <span className="font-bold text-gray-900 dark:text-white">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalCsll)}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between bg-gray-50/40 dark:bg-slate-950/20 px-3 py-1.5 rounded-lg border border-indigo-50/20 dark:border-slate-805">
-                                            <span>IRRF:</span>
-                                            <span className="font-bold text-gray-900 dark:text-white">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalIr)}
-                                            </span>
-                                        </div>
+                            {/* Federal taxes detail — cada imposto em card próprio */}
+                            {summary.totalRetenções >= 0 && (
+                                <div className="border-t border-indigo-100/40 dark:border-slate-800 pt-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest">Detalhamento das Retenções Federais</span>
+                                        <div className="flex-1 h-px bg-amber-100 dark:bg-amber-900/30"></div>
+                                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full border border-amber-200/50 dark:border-amber-800/30">
+                                            Total: {fmt(summary.totalRetenções)}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {federalTaxes.map((tax) => (
+                                            <div
+                                                key={tax.label}
+                                                className={`bg-gradient-to-br ${tax.color} p-3.5 rounded-xl border ${tax.border} flex flex-col gap-2`}
+                                            >
+                                                {/* Header */}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className={`w-2 h-2 rounded-full ${tax.dotColor} flex-shrink-0`}></div>
+                                                        <span className={`text-[10px] font-black uppercase tracking-widest ${tax.textColor}`}>{tax.label}</span>
+                                                    </div>
+                                                    {summary.totalFaturado > 0 && (
+                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tax.badgeColor}`}>
+                                                            {pct(tax.value)}%
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {/* Description */}
+                                                <span className="text-[8px] text-gray-400 dark:text-gray-500 leading-tight font-medium">{tax.desc}</span>
+                                                {/* Value */}
+                                                <div className="mt-auto pt-1 border-t border-black/5 dark:border-white/5">
+                                                    <span className={`text-base font-black ${tax.value > 0 ? tax.textColor : 'text-gray-300 dark:text-gray-600'}`}>
+                                                        {fmt(tax.value)}
+                                                    </span>
+                                                    {summary.totalRetenções > 0 && tax.value > 0 && (
+                                                        <span className="text-[8px] text-gray-400 dark:text-gray-500 block font-semibold">
+                                                            {((tax.value / summary.totalRetenções) * 100).toFixed(1)}% das retenções
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
