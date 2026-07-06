@@ -1018,12 +1018,38 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 </span>
                             </div>
 
-                            {config.pis_cofins_situacao_tributaria && (
-                                <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="Situação Tributária PIS/COFINS">
-                                    <span className="text-[9px] font-medium text-gray-400">PIS/COF:</span>
-                                    <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300">{config.pis_cofins_situacao_tributaria}</span>
-                                </div>
-                            )}
+                            {/* Retenções Federais — PIS / COFINS / CSLL / IRRF */}
+                            {(() => {
+                                const isSimples = ['1', '2', '4'].includes(config.regime_tributario || '');
+                                return (
+                                    <>
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="PIS">
+                                            <span className="text-[9px] font-medium text-gray-400">PIS:</span>
+                                            <span className={`text-[9px] font-bold ${isSimples ? 'text-amber-500' : 'text-violet-600 dark:text-violet-400'}`}>
+                                                {isSimples ? 'SN' : `${config.default_pis_aliquota || '0.65'}%`}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="COFINS">
+                                            <span className="text-[9px] font-medium text-gray-400">COFINS:</span>
+                                            <span className={`text-[9px] font-bold ${isSimples ? 'text-amber-500' : 'text-blue-600 dark:text-blue-400'}`}>
+                                                {isSimples ? 'SN' : `${config.default_cofins_aliquota || '3'}%`}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="CSLL">
+                                            <span className="text-[9px] font-medium text-gray-400">CSLL:</span>
+                                            <span className={`text-[9px] font-bold ${isSimples ? 'text-amber-500' : 'text-orange-600 dark:text-orange-400'}`}>
+                                                {isSimples ? 'SN' : `${config.default_csll_aliquota || '1'}%`}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="IRRF">
+                                            <span className="text-[9px] font-medium text-gray-400">IRRF:</span>
+                                            <span className={`text-[9px] font-bold ${isSimples ? 'text-amber-500' : 'text-rose-600 dark:text-rose-400'}`}>
+                                                {isSimples ? 'SN' : `${config.default_irrf_aliquota || '1.5'}%`}
+                                            </span>
+                                        </div>
+                                    </>
+                                );
+                            })()}
 
                             <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800">
                                 <span className="text-[9px] font-medium text-gray-400">Regime:</span>
