@@ -10,9 +10,10 @@ interface BillingReportModalProps {
     isOpen: boolean;
     onClose: () => void;
     invoices: FiscalInvoice[];
+    fiscalSettings?: Record<string, any>;
 }
 
-export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportModalProps) {
+export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }: BillingReportModalProps) {
     const getFirstDayOfMonth = () => {
         const now = new Date();
         return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -50,6 +51,13 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
         let totalCsll = 0;
         let totalIr = 0;
 
+        // Alíquotas configuradas nas Configurações Fiscais (fallback primário)
+        const cfgPis    = fiscalSettings?.default_pis_aliquota    ? Number(fiscalSettings.default_pis_aliquota)    : 0;
+        const cfgCofins = fiscalSettings?.default_cofins_aliquota ? Number(fiscalSettings.default_cofins_aliquota) : 0;
+        const cfgCsll   = fiscalSettings?.default_csll_aliquota   ? Number(fiscalSettings.default_csll_aliquota)   : 0;
+        const cfgIrrf   = fiscalSettings?.default_irrf_aliquota   ? Number(fiscalSettings.default_irrf_aliquota)   : 0;
+        const cfgIss    = fiscalSettings?.default_iss_aliquota    ? Number(fiscalSettings.default_iss_aliquota)    : 0;
+
         const authorizedInvoices = filteredInvoices.filter(i => 
             ['concluido', 'autorizado'].includes(i.status?.toLowerCase())
         );
@@ -62,53 +70,63 @@ export function BillingReportModal({ isOpen, onClose, invoices }: BillingReportM
             const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
             const serviceItem = servicos[0];
             
-            // ISS
+            // ISS — payload da nota > configuração da empresa
             let issRate = 0;
             if (serviceItem?.iss?.aliquota) {
                 issRate = Number(serviceItem.iss.aliquota);
             } else if (p.issRate) {
                 const rawIss = Number(p.issRate);
                 issRate = rawIss < 1 ? rawIss * 100 : rawIss;
+            } else {
+                issRate = cfgIss; // fallback: alíquota configurada
             }
             totalIss += amount * (issRate / 100);
 
-            // PIS
+            // PIS — payload da nota > configuração da empresa
             let pisRate = 0;
             if (serviceItem?.pis?.aliquota) {
                 pisRate = Number(serviceItem.pis.aliquota);
             } else if (p.pisRate) {
                 const rawPis = Number(p.pisRate);
                 pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
+            } else {
+                pisRate = cfgPis; // fallback: alíquota configurada
             }
             totalPis += amount * (pisRate / 100);
 
-            // COFINS
+            // COFINS — payload da nota > configuração da empresa
             let cofinsRate = 0;
             if (serviceItem?.cofins?.aliquota) {
                 cofinsRate = Number(serviceItem.cofins.aliquota);
             } else if (p.cofinsRate) {
                 const rawCofins = Number(p.cofinsRate);
                 cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
+            } else {
+                cofinsRate = cfgCofins; // fallback: alíquota configurada
             }
             totalCofins += amount * (cofinsRate / 100);
 
-            // CSLL
+            // CSLL — payload da nota > configuração da empresa
             let csllRate = 0;
             if (serviceItem?.csll?.aliquota) {
                 csllRate = Number(serviceItem.csll.aliquota);
             } else if (p.csllRate) {
                 const rawCsll = Number(p.csllRate);
                 csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
+            } else {
+                csllRate = cfgCsll; // fallback: alíquota configurada
             }
             totalCsll += amount * (csllRate / 100);
 
-            // IRRF
+            // IRRF — payload da nota > configuração da empresa
             let irRate = 0;
             if (serviceItem?.ir?.aliquota) {
                 irRate = Number(serviceItem.ir.aliquota);
             } else if (p.irRate) {
                 const rawIr = Number(p.irRate);
                 irRate = rawIr < 1 ? rawIr * 100 : rawIr;
+            } else {
+                irRate = cfgIrrf; // fallback: alíquota configurada
             }
             totalIr += amount * (irRate / 100);
         });

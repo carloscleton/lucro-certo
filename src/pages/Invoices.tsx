@@ -1443,6 +1443,7 @@ ${messageWithPlaceholder}`;
                     isOpen={showBillingModal}
                     onClose={() => setShowBillingModal(false)}
                     invoices={invoices}
+                    fiscalSettings={currentCompany?.settings}
                 />
             )}
 
