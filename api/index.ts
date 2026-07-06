@@ -259,6 +259,7 @@ function getAlternativeConfig(currentConfig: { url: string; apiKey: string; isGo
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL)?.trim().replace(/\/+$/, '');
 const SUPABASE_ANON_KEY = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)?.trim();
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const RESEND_API_KEY = process.env.RESEND_API_KEY?.trim();
 
 if (!EVOLUTION_API_URL || EVOLUTION_API_URL.includes('sua-instancia')) {
     console.warn('⚠️ [WhatsApp Proxy] AVISO: EVOLUTION_API_URL não configurada corretamente ou usando valor padrão no .env');
@@ -4098,6 +4099,131 @@ app.post(['/fiscal-module/test-webhook', '/api/fiscal-module/test-webhook'], aut
     } catch (err: any) {
         console.error(`❌ [TEST-WEBHOOK] Falha ao testar:`, err.message);
         return res.status(400).json({ error: 'Falha na conexão com o Webhook', detail: err.message });
+    }
+});
+
+// ✉️ Envio de e-mail via Resend (funciona para qualquer destinatário)
+app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
+    const { to, subject, clientName, invoiceNumber, invoiceType, pdfUrl, xmlUrl, companyName, companyLogo } = req.body;
+
+    if (!to) {
+        return res.status(400).json({ error: 'E-mail do destinatário é obrigatório.' });
+    }
+
+    if (!RESEND_API_KEY) {
+        return res.status(500).json({ error: 'Serviço de e-mail não configurado no servidor. Adicione RESEND_API_KEY.' });
+    }
+
+    const invoiceLabel = invoiceType === 'nfe' ? 'NF-e' : 'NFS-e';
+    const safeClientName = clientName || 'Cliente';
+    const safeInvoiceNumber = invoiceNumber || 'N/A';
+    const safeCompanyName = companyName || 'Lucro Certo';
+
+    const htmlBody = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nota Fiscal Eletrônica</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:40px 40px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:-0.5px;">${safeCompanyName}</h1>
+              <p style="margin:8px 0 0;color:#a8b4c8;font-size:14px;letter-spacing:1px;text-transform:uppercase;">${invoiceLabel} Eletrônica</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px;">
+              <p style="margin:0 0 8px;color:#64748b;font-size:14px;">Olá,</p>
+              <h2 style="margin:0 0 24px;color:#1e293b;font-size:22px;font-weight:700;">${safeClientName} 👋</h2>
+              <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
+                Sua <strong>${invoiceLabel} Nº ${safeInvoiceNumber}</strong> foi emitida com sucesso e está disponível para acesso.
+              </p>
+              <!-- Destaque -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;margin-bottom:32px;">
+                <tr>
+                  <td style="padding:24px;">
+                    <p style="margin:0 0 4px;color:#0369a1;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Documento Emitido</p>
+                    <p style="margin:0;color:#0c4a6e;font-size:18px;font-weight:700;">${invoiceLabel} Nº ${safeInvoiceNumber}</p>
+                  </td>
+                </tr>
+              </table>
+              <!-- Botão PDF -->
+              ${pdfUrl ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+                <tr>
+                  <td align="center">
+                    <a href="${pdfUrl}" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#0f3460,#1a1a2e);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
+                      📄 Visualizar PDF da Nota
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+              <!-- Botão XML -->
+              ${xmlUrl ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+                <tr>
+                  <td align="center">
+                    <a href="${xmlUrl}" target="_blank" style="display:inline-block;background:#f1f5f9;color:#475569;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid #e2e8f0;">
+                      📁 Baixar XML
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0;" />
+              <p style="margin:0;color:#94a3b8;font-size:13px;text-align:center;line-height:1.6;">
+                Este e-mail foi enviado automaticamente por <strong>${safeCompanyName}</strong>.<br/>
+                Em caso de dúvidas, entre em contato conosco.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;color:#cbd5e1;font-size:12px;">Powered by <strong>Lucro Certo</strong> &bull; Sistema de Gestão Fiscal</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    try {
+        console.log(`✉️ [RESEND] Enviando e-mail para: ${to} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);
+
+        const response = await axios.post('https://api.resend.com/emails', {
+            from: `${safeCompanyName} <onboarding@resend.dev>`,
+            to: [to],
+            subject: subject || `${invoiceLabel} Nº ${safeInvoiceNumber} - ${safeCompanyName}`,
+            html: htmlBody
+        }, {
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 15000
+        });
+
+        console.log(`✅ [RESEND] E-mail enviado com sucesso para ${to}. ID: ${response.data?.id}`);
+        res.json({ success: true, id: response.data?.id, message: `E-mail enviado para ${to}` });
+    } catch (error: any) {
+        const detail = error.response?.data || error.message;
+        console.error('❌ [RESEND] Erro ao enviar e-mail:', detail);
+        res.status(error.response?.status || 500).json({
+            error: 'Erro ao enviar e-mail',
+            detail
+        });
     }
 });
 

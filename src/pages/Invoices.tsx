@@ -789,18 +789,32 @@ ${messageWithPlaceholder}`;
                     type: 'success'
                 });
             } else {
-                await fiscalService.resendEmail(
-                    sendModal.invoice.external_id,
-                    sendModal.invoice.type,
-                    sendModal.invoice.company_id,
-                    [sendModal.recipient],
-                    session.access_token
-                );
+                // Envio de e-mail via Resend (funciona para qualquer destinatário)
+                const inv = sendModal.invoice;
+                const p = inv.payload;
+                const pdfUrl = getPdfUrlFromInvoice(inv);
+                const xmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl || undefined;
+                const clientName = inv.quote?.contact?.name ||
+                    p?.tomador?.razaoSocial || p?.destinatario?.nome ||
+                    p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
+                const invoiceNumber = p?.numero || p?.nfseNumero || p?.retorno?.nfseNumero || inv.external_id || '';
+                const companyName = inv.company?.trade_name || currentEntity?.name || 'Lucro Certo';
+
+                await fiscalService.sendEmailViaResend({
+                    to: sendModal.recipient,
+                    token: session.access_token,
+                    clientName,
+                    invoiceNumber: String(invoiceNumber),
+                    invoiceType: inv.type || 'nfse',
+                    pdfUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
+                    xmlUrl: xmlUrl?.startsWith('http') ? xmlUrl : undefined,
+                    companyName,
+                });
 
                 setResultModal({
                     isOpen: true,
-                    title: 'Disparo Concluído',
-                    message: 'O e-mail contendo o PDF e XML foi enviado com sucesso via PlugNotas!',
+                    title: 'E-mail Enviado! ✉️',
+                    message: `A Nota Fiscal foi enviada com sucesso para ${sendModal.recipient}.`,
                     type: 'success'
                 });
             }

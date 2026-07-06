@@ -166,6 +166,36 @@ export const fiscalService = {
         return response.data;
     },
 
+    async sendEmailViaResend(params: {
+        to: string;
+        token: string;
+        clientName?: string;
+        invoiceNumber?: string;
+        invoiceType?: string;
+        pdfUrl?: string;
+        xmlUrl?: string;
+        companyName?: string;
+        subject?: string;
+    }) {
+        const base = API_BASE_URL.replace(/\/$/, '');
+        const response = await axios.post(`${base}/send-email`, {
+            to: params.to,
+            subject: params.subject,
+            clientName: params.clientName,
+            invoiceNumber: params.invoiceNumber,
+            invoiceType: params.invoiceType,
+            pdfUrl: params.pdfUrl,
+            xmlUrl: params.xmlUrl,
+            companyName: params.companyName,
+        }, {
+            headers: {
+                'Authorization': `Bearer ${params.token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    },
+
     async consultarCidadeNotaNacional(codigoIbge: string, companyId: string, token: string) {
         const response = await axios.get(getFiscalUrl(`cidades/${codigoIbge}`), {
             params: { companyId },
