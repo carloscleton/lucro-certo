@@ -799,7 +799,6 @@ ${messageWithPlaceholder}`;
 
                 if (isRegisteredEmail) {
                     // ✅ E-mail igual ao cadastro → usa o provedor fiscal (PlugNotas/NFe.io)
-                    // Eles enviam diretamente baseado no cadastro da nota na prefeitura
                     console.log(`✉️ [EMAIL] E-mail igual ao cadastro → usando provedor fiscal`);
                     await fiscalService.resendEmail(
                         inv.external_id,
@@ -818,7 +817,9 @@ ${messageWithPlaceholder}`;
                     // ✅ E-mail diferente do cadastro → usa Resend para entrega garantida
                     console.log(`✉️ [EMAIL] E-mail diferente do cadastro (${registeredEmail || 'vazio'} → ${recipientEmail}) → usando Resend`);
                     const pdfUrl = getPdfUrlFromInvoice(inv);
-                    const xmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl || undefined;
+                    // Garante que xmlUrl é string (payload TecnoSpeed pode retornar objeto)
+                    const rawXmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl;
+                    const xmlUrl = typeof rawXmlUrl === 'string' ? rawXmlUrl : undefined;
                     const clientName = inv.quote?.contact?.name ||
                         p?.tomador?.razaoSocial || p?.destinatario?.nome ||
                         p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
@@ -831,8 +832,9 @@ ${messageWithPlaceholder}`;
                         clientName,
                         invoiceNumber: String(invoiceNumber),
                         invoiceType: inv.type || 'nfse',
-                        pdfUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
-                        xmlUrl: xmlUrl?.startsWith('http') ? xmlUrl : undefined,
+                        // Verifica se é string antes de chamar .startsWith
+                        pdfUrl: typeof pdfUrl === 'string' && pdfUrl.startsWith('http') ? pdfUrl : undefined,
+                        xmlUrl: typeof xmlUrl === 'string' && xmlUrl.startsWith('http') ? xmlUrl : undefined,
                         companyName,
                     });
                     setResultModal({
