@@ -1438,14 +1438,29 @@ ${messageWithPlaceholder}`;
                 />
             )}
 
-            {showBillingModal && (
-                <BillingReportModal 
-                    isOpen={showBillingModal}
-                    onClose={() => setShowBillingModal(false)}
-                    invoices={invoices}
-                    fiscalSettings={currentCompany?.tecnospeed_config}
-                />
-            )}
+            {showBillingModal && (() => {
+                const activeProv = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
+                const resolvedSettings = (() => {
+                    const tecno = currentCompany?.tecnospeed_config || {};
+                    if (activeProv === 'nfeio') {
+                        const nfe = currentCompany?.settings?.nfeio_config || {};
+                        return {
+                            ...tecno,
+                            regime_tributario: nfe.simplesNacional ? '1' : '3',
+                            default_iss_aliquota: nfe.aliquotaIss || '0',
+                        };
+                    }
+                    return tecno;
+                })();
+                return (
+                    <BillingReportModal 
+                        isOpen={showBillingModal}
+                        onClose={() => setShowBillingModal(false)}
+                        invoices={invoices}
+                        fiscalSettings={resolvedSettings}
+                    />
+                );
+            })()}
 
 
 

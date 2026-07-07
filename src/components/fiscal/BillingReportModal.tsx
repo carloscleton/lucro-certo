@@ -51,12 +51,13 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         let totalCsll = 0;
         let totalIr = 0;
 
-        // ✅ Alíquotas das Configurações Fiscais — PRIORIDADE MÁXIMA
-        // Quando configuradas, sobrepõem os valores do payload da nota
-        const cfgPis    = fiscalSettings?.default_pis_aliquota    ? Number(fiscalSettings.default_pis_aliquota)    : null;
-        const cfgCofins = fiscalSettings?.default_cofins_aliquota ? Number(fiscalSettings.default_cofins_aliquota) : null;
-        const cfgCsll   = fiscalSettings?.default_csll_aliquota   ? Number(fiscalSettings.default_csll_aliquota)   : null;
-        const cfgIrrf   = fiscalSettings?.default_irrf_aliquota   ? Number(fiscalSettings.default_irrf_aliquota)   : null;
+        // Alíquotas configuradas nas Configurações Fiscais (Prioridade Máxima)
+        const isSimples = ['1', '2', '4'].includes(fiscalSettings?.regime_tributario || '');
+        
+        const cfgPis    = isSimples ? null : (fiscalSettings?.default_pis_aliquota    ? Number(fiscalSettings.default_pis_aliquota)    : null);
+        const cfgCofins = isSimples ? null : (fiscalSettings?.default_cofins_aliquota ? Number(fiscalSettings.default_cofins_aliquota) : null);
+        const cfgCsll   = isSimples ? null : (fiscalSettings?.default_csll_aliquota   ? Number(fiscalSettings.default_csll_aliquota)   : null);
+        const cfgIrrf   = isSimples ? null : (fiscalSettings?.default_irrf_aliquota   ? Number(fiscalSettings.default_irrf_aliquota)   : null);
         const cfgIss    = fiscalSettings?.default_iss_aliquota    ? Number(fiscalSettings.default_iss_aliquota)    : null;
 
         const authorizedInvoices = filteredInvoices.filter(i => 
@@ -87,7 +88,9 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
 
             // PIS — Configuração da empresa > payload da nota
             let pisRate: number;
-            if (cfgPis !== null) {
+            if (isSimples) {
+                pisRate = 0;
+            } else if (cfgPis !== null) {
                 pisRate = cfgPis;
             } else if (serviceItem?.pis?.aliquota) {
                 pisRate = Number(serviceItem.pis.aliquota);
@@ -101,7 +104,9 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
 
             // COFINS — Configuração da empresa > payload da nota
             let cofinsRate: number;
-            if (cfgCofins !== null) {
+            if (isSimples) {
+                cofinsRate = 0;
+            } else if (cfgCofins !== null) {
                 cofinsRate = cfgCofins;
             } else if (serviceItem?.cofins?.aliquota) {
                 cofinsRate = Number(serviceItem.cofins.aliquota);
@@ -115,7 +120,9 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
 
             // CSLL — Configuração da empresa > payload da nota
             let csllRate: number;
-            if (cfgCsll !== null) {
+            if (isSimples) {
+                csllRate = 0;
+            } else if (cfgCsll !== null) {
                 csllRate = cfgCsll;
             } else if (serviceItem?.csll?.aliquota) {
                 csllRate = Number(serviceItem.csll.aliquota);
@@ -129,7 +136,9 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
 
             // IRRF — Configuração da empresa > payload da nota
             let irRate: number;
-            if (cfgIrrf !== null) {
+            if (isSimples) {
+                irRate = 0;
+            } else if (cfgIrrf !== null) {
                 irRate = cfgIrrf;
             } else if (serviceItem?.ir?.aliquota) {
                 irRate = Number(serviceItem.ir.aliquota);
