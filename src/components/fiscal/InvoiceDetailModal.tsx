@@ -170,77 +170,77 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     const cfgIrrf   = cfg.default_irrf_aliquota   ? Number(cfg.default_irrf_aliquota)   : null;
     const cfgIss    = cfg.default_iss_aliquota    ? Number(cfg.default_iss_aliquota)    : null;
 
-    // ISS
+    // ISS — Payload da Nota > Configuração da Empresa
     let issRate = 0;
-    if (cfgIss !== null) {
-        issRate = cfgIss;
-    } else if (serviceItem?.iss?.aliquota) {
+    if (serviceItem?.iss?.aliquota !== undefined && serviceItem?.iss?.aliquota !== null && serviceItem?.iss?.aliquota !== '') {
         issRate = Number(serviceItem.iss.aliquota);
-    } else if (payload?.issRate) {
+    } else if (payload?.issRate !== undefined && payload?.issRate !== null && payload?.issRate !== '') {
         const rawIss = Number(payload.issRate);
         issRate = rawIss < 1 ? rawIss * 100 : rawIss;
+    } else if (cfgIss !== null) {
+        issRate = cfgIss;
     }
     const issVal = totalAmount * (issRate / 100);
 
-    // PIS
+    // PIS — Payload da Nota > Configuração da Empresa
     let pisRate = 0;
     if (isSimples) {
         pisRate = 0;
-    } else if (cfgPis !== null) {
-        pisRate = cfgPis;
-    } else if (serviceItem?.pis?.aliquota) {
+    } else if (serviceItem?.pis?.aliquota !== undefined && serviceItem?.pis?.aliquota !== null && serviceItem?.pis?.aliquota !== '') {
         pisRate = Number(serviceItem.pis.aliquota);
-    } else if (payload?.pisRate) {
+    } else if (payload?.pisRate !== undefined && payload?.pisRate !== null && payload?.pisRate !== '') {
         const rawPis = Number(payload.pisRate);
         pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
+    } else if (cfgPis !== null) {
+        pisRate = cfgPis;
     } else {
         pisRate = 0.65;
     }
     const pisVal = totalAmount * (pisRate / 100);
 
-    // COFINS
+    // COFINS — Payload da Nota > Configuração da Empresa
     let cofinsRate = 0;
     if (isSimples) {
         cofinsRate = 0;
-    } else if (cfgCofins !== null) {
-        cofinsRate = cfgCofins;
-    } else if (serviceItem?.cofins?.aliquota) {
+    } else if (serviceItem?.cofins?.aliquota !== undefined && serviceItem?.cofins?.aliquota !== null && serviceItem?.cofins?.aliquota !== '') {
         cofinsRate = Number(serviceItem.cofins.aliquota);
-    } else if (payload?.cofinsRate) {
+    } else if (payload?.cofinsRate !== undefined && payload?.cofinsRate !== null && payload?.cofinsRate !== '') {
         const rawCofins = Number(payload.cofinsRate);
         cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
+    } else if (cfgCofins !== null) {
+        cofinsRate = cfgCofins;
     } else {
         cofinsRate = 3;
     }
     const cofinsVal = totalAmount * (cofinsRate / 100);
 
-    // CSLL
+    // CSLL — Payload da Nota > Configuração da Empresa
     let csllRate = 0;
     if (isSimples) {
         csllRate = 0;
-    } else if (cfgCsll !== null) {
-        csllRate = cfgCsll;
-    } else if (serviceItem?.csll?.aliquota) {
+    } else if (serviceItem?.csll?.aliquota !== undefined && serviceItem?.csll?.aliquota !== null && serviceItem?.csll?.aliquota !== '') {
         csllRate = Number(serviceItem.csll.aliquota);
-    } else if (payload?.csllRate) {
+    } else if (payload?.csllRate !== undefined && payload?.csllRate !== null && payload?.csllRate !== '') {
         const rawCsll = Number(payload.csllRate);
         csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
+    } else if (cfgCsll !== null) {
+        csllRate = cfgCsll;
     } else {
         csllRate = 1;
     }
     const csllVal = totalAmount * (csllRate / 100);
 
-    // IRRF
+    // IRRF — Payload da Nota > Configuração da Empresa
     let irRate = 0;
     if (isSimples) {
         irRate = 0;
-    } else if (cfgIrrf !== null) {
-        irRate = cfgIrrf;
-    } else if (serviceItem?.ir?.aliquota) {
+    } else if (serviceItem?.ir?.aliquota !== undefined && serviceItem?.ir?.aliquota !== null && serviceItem?.ir?.aliquota !== '') {
         irRate = Number(serviceItem.ir.aliquota);
-    } else if (payload?.irRate) {
+    } else if (payload?.irRate !== undefined && payload?.irRate !== null && payload?.irRate !== '') {
         const rawIr = Number(payload.irRate);
         irRate = rawIr < 1 ? rawIr * 100 : rawIr;
+    } else if (cfgIrrf !== null) {
+        irRate = cfgIrrf;
     } else {
         irRate = 1.5;
     }
