@@ -249,101 +249,106 @@ export function Login() {
                                 cpf_input: cleanCpf || null,
                                 entity_type_input: registrationType === 'BOTH' ? 'PJ' : registrationType,
                                 phone_input: finalPhone,
-                                email_input: email,
-                                currency_input: selectedCurrency
+                                email_input: email
                             });
 
-                            if (!createError && createData?.success) {
-                                const newCompanyId = createData.company_id;
-                                const isTrial = checkoutPlan === 'trial';
-                                 
-                                const trialEndsAt = isTrial 
-                                    ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-                                    : null;
-
-                                // Dynamic Plan Lookup
-                                let planModules: any = null;
-                                let planProfileModules: any = null;
-                                try {
-                                    const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
-                                    if (settingsData?.landing_plans) {
-                                        const foundPlan = settingsData.landing_plans.find((p: any) => 
-                                            p.name?.toLowerCase() === checkoutPlan?.toLowerCase()
-                                        );
-                                        if (foundPlan) {
-                                            planModules = foundPlan.modules;
-                                            planProfileModules = foundPlan.profile_modules;
-                                        }
-                                    }
-                                } catch (err) {
-                                    console.error('Error fetching plan modules:', err);
-                                }
-
-                                // Default Sidebar (User)
-                                const defaultProfileModules = {
-                                    dashboard: { admin: true, member: true },
-                                    receivables: { admin: true, member: true },
-                                    payables: { admin: true, member: true },
-                                    categories: { admin: true, member: true },
-                                    reports: { admin: true, member: true },
-                                    whatsapp: { admin: true, member: true },
-                                    settings: { admin: true, member: false }
-                                };
-
-                                // Default Functional (Company)
-                                const defaultCompanyModules = {
-                                    fiscal_module_enabled: true,
-                                    payments_module_enabled: false,
-                                    crm_module_enabled: false,
-                                    has_social_copilot: false,
-                                    automations_module_enabled: true, 
-                                    has_lead_radar: false
-                                };
-
-                                const finalProfileSettings = {
-                                    subscription_plan: checkoutPlan,
-                                    modules: planProfileModules || defaultProfileModules
-                                };
-
-                                const finalCompanyModules = planModules || defaultCompanyModules;
-
-                                const finalCompanySettings = {
-                                    subscription_plan: checkoutPlan,
-                                    trial_ends_at: trialEndsAt,
-                                    modules: finalCompanyModules // Keep as plan.modules for compatibility in Settings.tsx if needed
-                                };
-
-                                await supabase.from('companies').update({
-                                    subscription_plan: checkoutPlan,
-                                    next_billing_value: parseFloat(checkoutPrice || '0'),
-                                    subscription_status: isTrial ? 'active' : 'unpaid',
-                                    trial_ends_at: trialEndsAt,
-                                    phone: finalPhone,
-                                    settings: finalCompanySettings,
-                                    fiscal_module_enabled: !!finalCompanyModules.fiscal_module_enabled,
-                                    payments_module_enabled: !!finalCompanyModules.payments_module_enabled,
-                                    crm_module_enabled: !!finalCompanyModules.crm_module_enabled,
-                                    has_social_copilot: !!finalCompanyModules.has_social_copilot,
-                                    automations_module_enabled: !!finalCompanyModules.automations_module_enabled, 
-                                    has_lead_radar: !!finalCompanyModules.has_lead_radar
-                                }).eq('id', newCompanyId);
-
-                                if (authData.user?.id) {
-                                    await supabase.from('profiles').update({ settings: finalProfileSettings }).eq('id', authData.user.id);
-                                }
-
-                                if (isTrial) {
-                                    navigate('/dashboard');
-                                    setLoading(false);
-                                    return;
-                                }
-
-                                setPendingCompanyId(newCompanyId);
-                                setMessage('Conta criada com sucesso! Falta pouco.');
-                                setError(null);
+                            if (createError || !createData?.success) {
+                                const errorMsg = createError?.message || createData?.message || 'Erro ao criar empresa no banco de dados.';
+                                setError(errorMsg);
                                 setLoading(false);
-                                return; // STAY HERE
+                                return;
                             }
+
+                            const newCompanyId = createData.company_id;
+                            const isTrial = checkoutPlan === 'trial';
+                                 
+                            const trialEndsAt = isTrial 
+                                ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                                : null;
+
+                            // Dynamic Plan Lookup
+                            let planModules: any = null;
+                            let planProfileModules: any = null;
+                            try {
+                                const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+                                if (settingsData?.landing_plans) {
+                                    const foundPlan = settingsData.landing_plans.find((p: any) => 
+                                        p.name?.toLowerCase() === checkoutPlan?.toLowerCase()
+                                    );
+                                    if (foundPlan) {
+                                        planModules = foundPlan.modules;
+                                        planProfileModules = foundPlan.profile_modules;
+                                    }
+                                }
+                            } catch (err) {
+                                console.error('Error fetching plan modules:', err);
+                            }
+
+                            // Default Sidebar (User)
+                            const defaultProfileModules = {
+                                dashboard: { admin: true, member: true },
+                                receivables: { admin: true, member: true },
+                                payables: { admin: true, member: true },
+                                categories: { admin: true, member: true },
+                                reports: { admin: true, member: true },
+                                whatsapp: { admin: true, member: true },
+                                settings: { admin: true, member: false }
+                            };
+
+                            // Default Functional (Company)
+                            const defaultCompanyModules = {
+                                fiscal_module_enabled: true,
+                                payments_module_enabled: false,
+                                crm_module_enabled: false,
+                                has_social_copilot: false,
+                                automations_module_enabled: true, 
+                                has_lead_radar: false
+                            };
+
+                            const finalProfileSettings = {
+                                subscription_plan: checkoutPlan,
+                                modules: planProfileModules || defaultProfileModules
+                            };
+
+                            const finalCompanyModules = planModules || defaultCompanyModules;
+
+                            const finalCompanySettings = {
+                                subscription_plan: checkoutPlan,
+                                trial_ends_at: trialEndsAt,
+                                modules: finalCompanyModules // Keep as plan.modules for compatibility in Settings.tsx if needed
+                            };
+
+                            await supabase.from('companies').update({
+                                subscription_plan: checkoutPlan,
+                                next_billing_value: parseFloat(checkoutPrice || '0'),
+                                subscription_status: isTrial ? 'active' : 'unpaid',
+                                trial_ends_at: trialEndsAt,
+                                phone: finalPhone,
+                                currency: selectedCurrency,
+                                settings: finalCompanySettings,
+                                fiscal_module_enabled: !!finalCompanyModules.fiscal_module_enabled,
+                                payments_module_enabled: !!finalCompanyModules.payments_module_enabled,
+                                crm_module_enabled: !!finalCompanyModules.crm_module_enabled,
+                                has_social_copilot: !!finalCompanyModules.has_social_copilot,
+                                automations_module_enabled: !!finalCompanyModules.automations_module_enabled, 
+                                has_lead_radar: !!finalCompanyModules.has_lead_radar
+                            }).eq('id', newCompanyId);
+
+                            if (authData.user?.id) {
+                                await supabase.from('profiles').update({ settings: finalProfileSettings }).eq('id', authData.user.id);
+                            }
+
+                            if (isTrial) {
+                                navigate('/dashboard');
+                                setLoading(false);
+                                return;
+                            }
+
+                            setPendingCompanyId(newCompanyId);
+                            setMessage('Conta criada com sucesso! Falta pouco.');
+                            setError(null);
+                            setLoading(false);
+                            return; // STAY HERE
                         } catch (e) {
                             console.error("Erro no fluxo manual:", e);
                         }
