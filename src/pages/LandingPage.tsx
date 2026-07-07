@@ -145,8 +145,9 @@ export function LandingPage() {
         localStorage.removeItem('loggingOut');
     }, []);
 
-    const plan = currentEntity?.subscription_plan || '';
-    const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();
+    const isTrialExpired = (currentEntity as any)?.trial_ends_at && 
+                           new Date((currentEntity as any).trial_ends_at) < new Date() &&
+                           !((currentEntity as any)?.current_period_end && new Date((currentEntity as any).current_period_end) > new Date());
     
     // Bypass constraints for Admin, Exempt (Cortesia) or Bypassed (Bypass temporário) accounts
     const isAdmin = session?.user?.email?.toLowerCase() === 'carloscleton.nat@gmail.com';

@@ -254,7 +254,7 @@ export function Login() {
                             }
 
                             const newCompanyId = createData.company_id;
-                            const isTrial = checkoutPlan === 'trial';
+                            const isTrial = !!checkoutPlan; // Every signup gets a 7-day trial of the chosen plan!
                                  
                             const trialEndsAt = isTrial 
                                 ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -313,7 +313,10 @@ export function Login() {
                                 crm_module_enabled: false,
                                 has_social_copilot: false,
                                 automations_module_enabled: true, 
-                                has_lead_radar: false
+                                has_lead_radar: false,
+                                loyalty_module_enabled: false,
+                                banking_module_enabled: false,
+                                warranty_module_enabled: false
                             };
 
                             const finalProfileSettings = {
@@ -344,7 +347,10 @@ export function Login() {
                                 crm_module_enabled: !!finalCompanyModules.crm_module_enabled,
                                 has_social_copilot: !!finalCompanyModules.has_social_copilot,
                                 automations_module_enabled: !!finalCompanyModules.automations_module_enabled, 
-                                has_lead_radar: !!finalCompanyModules.has_lead_radar
+                                has_lead_radar: !!finalCompanyModules.has_lead_radar,
+                                loyalty_module_enabled: !!finalCompanyModules.loyalty_module_enabled,
+                                banking_module_enabled: !!finalCompanyModules.banking_module_enabled,
+                                warranty_module_enabled: !!finalCompanyModules.warranty_module_enabled
                             }).eq('id', newCompanyId);
 
                              if (signUpData?.user?.id) {

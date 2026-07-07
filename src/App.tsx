@@ -140,8 +140,9 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
   // Verifica as condições de pagamento
   const status = currentEntity?.subscription_status || '';
-  const plan = currentEntity?.subscription_plan || '';
-  const isTrialExpired = plan === 'trial' && (currentEntity as any)?.trial_ends_at && new Date((currentEntity as any).trial_ends_at) < new Date();
+  const isTrialExpired = (currentEntity as any)?.trial_ends_at && 
+                         new Date((currentEntity as any).trial_ends_at) < new Date() &&
+                         !((currentEntity as any)?.current_period_end && new Date((currentEntity as any).current_period_end) > new Date());
 
   // Se o ambiente atual estiver com pendência, teste expirado ou bloqueio manual
   const isBlocked = (currentEntity as any)?.status === 'blocked';
