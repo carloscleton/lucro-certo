@@ -160,9 +160,21 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
 
     const serviceItem = payload?.servico?.[0];
     
+    // Alíquotas configuradas na Empresa (Prioridade Máxima)
+    const cfg = company?.tecnospeed_config || {};
+    const isSimples = ['1', '2', '4'].includes(cfg.regime_tributario || '');
+    
+    const cfgPis    = cfg.default_pis_aliquota    ? Number(cfg.default_pis_aliquota)    : null;
+    const cfgCofins = cfg.default_cofins_aliquota ? Number(cfg.default_cofins_aliquota) : null;
+    const cfgCsll   = cfg.default_csll_aliquota   ? Number(cfg.default_csll_aliquota)   : null;
+    const cfgIrrf   = cfg.default_irrf_aliquota   ? Number(cfg.default_irrf_aliquota)   : null;
+    const cfgIss    = cfg.default_iss_aliquota    ? Number(cfg.default_iss_aliquota)    : null;
+
     // ISS
     let issRate = 0;
-    if (serviceItem?.iss?.aliquota) {
+    if (cfgIss !== null) {
+        issRate = cfgIss;
+    } else if (serviceItem?.iss?.aliquota) {
         issRate = Number(serviceItem.iss.aliquota);
     } else if (payload?.issRate) {
         const rawIss = Number(payload.issRate);
@@ -172,41 +184,65 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
 
     // PIS
     let pisRate = 0;
-    if (serviceItem?.pis?.aliquota) {
+    if (isSimples) {
+        pisRate = 0;
+    } else if (cfgPis !== null) {
+        pisRate = cfgPis;
+    } else if (serviceItem?.pis?.aliquota) {
         pisRate = Number(serviceItem.pis.aliquota);
     } else if (payload?.pisRate) {
         const rawPis = Number(payload.pisRate);
         pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
+    } else {
+        pisRate = 0.65;
     }
     const pisVal = totalAmount * (pisRate / 100);
 
     // COFINS
     let cofinsRate = 0;
-    if (serviceItem?.cofins?.aliquota) {
+    if (isSimples) {
+        cofinsRate = 0;
+    } else if (cfgCofins !== null) {
+        cofinsRate = cfgCofins;
+    } else if (serviceItem?.cofins?.aliquota) {
         cofinsRate = Number(serviceItem.cofins.aliquota);
     } else if (payload?.cofinsRate) {
         const rawCofins = Number(payload.cofinsRate);
         cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
+    } else {
+        cofinsRate = 3;
     }
     const cofinsVal = totalAmount * (cofinsRate / 100);
 
     // CSLL
     let csllRate = 0;
-    if (serviceItem?.csll?.aliquota) {
+    if (isSimples) {
+        csllRate = 0;
+    } else if (cfgCsll !== null) {
+        csllRate = cfgCsll;
+    } else if (serviceItem?.csll?.aliquota) {
         csllRate = Number(serviceItem.csll.aliquota);
     } else if (payload?.csllRate) {
         const rawCsll = Number(payload.csllRate);
         csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
+    } else {
+        csllRate = 1;
     }
     const csllVal = totalAmount * (csllRate / 100);
 
     // IRRF
     let irRate = 0;
-    if (serviceItem?.ir?.aliquota) {
+    if (isSimples) {
+        irRate = 0;
+    } else if (cfgIrrf !== null) {
+        irRate = cfgIrrf;
+    } else if (serviceItem?.ir?.aliquota) {
         irRate = Number(serviceItem.ir.aliquota);
     } else if (payload?.irRate) {
         const rawIr = Number(payload.irRate);
         irRate = rawIr < 1 ? rawIr * 100 : rawIr;
+    } else {
+        irRate = 1.5;
     }
     const irVal = totalAmount * (irRate / 100);
 
@@ -221,8 +257,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     const inssVal = totalAmount * (inssRate / 100);
 
     const totalRetenções = pisVal + cofinsVal + csllVal + irVal + inssVal;
-    const totalImpostos = issVal + totalRetenções;
-    const netValue = totalAmount - totalImpostos;
+    const netValue = totalAmount - totalRetenções; // Retenções Federais reduzem o recebido
     const formattedNetValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(netValue);
 
     // Resolver Links de Documentos
@@ -649,11 +684,19 @@ ${messageWithPlaceholder}`;
                                 <DollarSign size={12} /> Descrição dos Serviços & Valores
                             </h4>
                             <div className="bg-gray-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-gray-100/70 dark:border-slate-800 space-y-3">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-400 font-semibold">Valor Total Líquido:</span>
-                                    <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formattedAmount}</span>
+                                <div className="flex flex-wrap gap-x-6 gap-y-2 items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Valor da Nota (Bruto):</span>
+                                        <span className="text-lg font-black text-blue-600 dark:text-blue-400">{formattedAmount}</span>
+                                    </div>
+                                    {!isSimples && (
+                                        <div className="flex flex-col text-right">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Valor Líquido Recebido:</span>
+                                            <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formattedNetValue}</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="pt-3 border-t border-gray-100 dark:border-slate-800 space-y-2 text-xs">
+                                <div className="pt-3 space-y-2 text-xs">
                                     <span className="text-gray-400 font-semibold uppercase tracking-widest text-[9px]">Detalhamento de Impostos Estimados:</span>
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-xl border border-gray-100 dark:border-slate-800 font-medium">
                                         <div className="flex justify-between">
@@ -709,9 +752,9 @@ ${messageWithPlaceholder}`;
                                             </div>
                                         )}
                                         <div className="flex justify-between col-span-2 pt-1.5 mt-1.5 border-t border-gray-100 dark:border-slate-800">
-                                            <span className="text-gray-500 font-bold">Total Impostos:</span>
+                                            <span className="text-gray-500 font-bold">Total Retenções Federais:</span>
                                             <span className="font-black text-rose-600 dark:text-rose-400">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalImpostos)}
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalRetenções)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between col-span-2 pt-1 border-t border-gray-100 dark:border-slate-800">
