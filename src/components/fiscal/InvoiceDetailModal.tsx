@@ -162,7 +162,15 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     
     // Alíquotas configuradas na Empresa (Prioridade Máxima)
     const cfg = company?.tecnospeed_config || {};
-    const isSimples = ['1', '2', '4'].includes(cfg.regime_tributario || '');
+    
+    // Resolve o regime tributário da nota quando ela foi emitida
+    const invoiceRegime = payload.prestador?.regimeTributario !== undefined 
+        ? String(payload.prestador.regimeTributario)
+        : (payload.retorno?.prestador?.regimeTributario !== undefined 
+            ? String(payload.retorno.prestador.regimeTributario)
+            : String(cfg.regime_tributario || '1'));
+
+    const isSimples = ['1', '2', '4'].includes(invoiceRegime);
     
     const cfgPis    = cfg.default_pis_aliquota    ? Number(cfg.default_pis_aliquota)    : null;
     const cfgCofins = cfg.default_cofins_aliquota ? Number(cfg.default_cofins_aliquota) : null;
