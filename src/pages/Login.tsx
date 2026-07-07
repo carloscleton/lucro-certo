@@ -213,7 +213,7 @@ export function Login() {
                     console.error('Erro ao verificar duplicidade (RPC):', checkErr);
                 }
 
-                const { error } = await supabase.auth.signUp({
+                const { data: signUpData, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
@@ -233,15 +233,8 @@ export function Login() {
                 const checkoutPlan = searchParams.get('checkout-plan');
                 const checkoutPrice = searchParams.get('checkout-price');
 
-                if (checkoutPlan && checkoutPrice) {
-                    // Sign in to get session, but DO NOT navigate
-                    const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-                        email,
-                        password,
-                    });
-
-                    if (!signInError && authData?.user) {
-                        try {
+                if (checkoutPlan && checkoutPrice && signUpData?.user) {
+                    try {
                             const { data: createData, error: createError } = await supabase.rpc('create_company', {
                                 name_input: companyName || fullName,
                                 trade_name_input: companyName || fullName,
@@ -334,9 +327,9 @@ export function Login() {
                                 has_lead_radar: !!finalCompanyModules.has_lead_radar
                             }).eq('id', newCompanyId);
 
-                            if (authData.user?.id) {
-                                await supabase.from('profiles').update({ settings: finalProfileSettings }).eq('id', authData.user.id);
-                            }
+                             if (signUpData?.user?.id) {
+                                 await supabase.from('profiles').update({ settings: finalProfileSettings }).eq('id', signUpData.user.id);
+                             }
 
                             if (isTrial) {
                                 navigate('/dashboard');
@@ -353,7 +346,6 @@ export function Login() {
                             console.error("Erro no fluxo manual:", e);
                         }
                     }
-                }
 
                 setMessage(t('login.signup_success'));
                 setIsSignUp(false);
