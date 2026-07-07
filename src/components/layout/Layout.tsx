@@ -123,6 +123,7 @@ export function Layout() {
                 cpf_input: cleanCpf,
                 email_input: profile?.email || '',
                 phone_input: profile?.phone || '',
+                slug_input: null
             });
 
             if (createError || !createData?.success) {

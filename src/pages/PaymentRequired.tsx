@@ -356,6 +356,7 @@ export function PaymentRequired() {
                     cpf_input: null,
                     email_input: profile?.email || '',
                     phone_input: profile?.phone || '',
+                    slug_input: null
                 });
                 
                 if (createError || !createData?.success) {

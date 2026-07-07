@@ -101,10 +101,10 @@ export function Login() {
 
     // Redirect if already logged in (but not while we are processing a login/signup form or stay-on-checkout)
     useEffect(() => {
-        if (session && !loading && !pendingCompanyId) {
+        if (session && !loading && !pendingCompanyId && !error) {
             navigate('/dashboard');
         }
-    }, [session, navigate, loading, pendingCompanyId]);
+    }, [session, navigate, loading, pendingCompanyId, error]);
 
     const [allowedRegistrationType, setAllowedRegistrationType] = useState<'PF' | 'PJ' | 'BOTH' | null>(null);
 
@@ -242,7 +242,8 @@ export function Login() {
                                 cpf_input: cleanCpf || null,
                                 entity_type_input: registrationType === 'BOTH' ? 'PJ' : registrationType,
                                 phone_input: finalPhone,
-                                email_input: email
+                                email_input: email,
+                                slug_input: null
                             });
 
                             if (createError || !createData?.success) {
