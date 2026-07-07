@@ -223,6 +223,7 @@ export function Settings() {
     const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system' | 'billing'>('companies');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
     const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
+    const isLockedByPlan = tempCompanyConfig?.entity_type === 'PJ';
     const [savingConfig, setSavingConfig] = useState(false);
     const [waLimitValue, setWaLimitValue] = useState(1);
     const [savingWaLimit, setSavingWaLimit] = useState(false);
@@ -2282,8 +2283,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.fiscal_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, fiscal_module_enabled: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.fiscal_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, fiscal_module_enabled: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
                                                             </label>
                                                         </div>
@@ -2296,8 +2297,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.payments_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, payments_module_enabled: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.payments_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, payments_module_enabled: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
                                                             </label>
                                                         </div>
@@ -2310,8 +2311,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.banking_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, banking_module_enabled: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.banking_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, banking_module_enabled: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
                                                             </label>
                                                         </div>
@@ -2324,8 +2325,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.crm_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, crm_module_enabled: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.crm_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, crm_module_enabled: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
                                                             </label>
                                                         </div>
@@ -2338,8 +2339,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.has_social_copilot} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_social_copilot: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.has_social_copilot} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_social_copilot: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-pink-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
                                                             </label>
                                                         </div>
@@ -2352,8 +2353,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.automations_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, automations_module_enabled: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.automations_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, automations_module_enabled: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                                                             </label>
                                                         </div>
@@ -2391,8 +2392,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.has_lead_radar} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_lead_radar: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.has_lead_radar} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_lead_radar: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-violet-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-violet-600"></div>
                                                             </label>
                                                         </div>
@@ -2430,8 +2431,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5 text-center">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.loyalty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_module_enabled: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.loyalty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_module_enabled: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-600"></div>
                                                             </label>
                                                         </div>
@@ -2444,8 +2445,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.warranty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, warranty_module_enabled: e.target.checked })} />
+                                                            <label className={`relative inline-flex items-center ${isLockedByPlan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.warranty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, warranty_module_enabled: e.target.checked })} disabled={isLockedByPlan} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
                                                             </label>
                                                         </div>
@@ -2974,12 +2975,12 @@ export function Settings() {
                                                             <td className="px-6 py-5 text-gray-800 dark:text-gray-300 font-medium leading-none">{module.label}</td>
                                                             <td className="px-6 py-5">
                                                                 <div className="flex justify-center">
-                                                                    <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleMod('admin', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                                    <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleMod('admin', e.target.checked)} disabled={isLockedByPlan} className={`w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 ${isLockedByPlan ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} />
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-5">
                                                                 <div className="flex justify-center">
-                                                                    <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleMod('member', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                                    <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleMod('member', e.target.checked)} disabled={isLockedByPlan} className={`w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 ${isLockedByPlan ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} />
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -3033,12 +3034,12 @@ export function Settings() {
                                                             <td className="px-6 py-5 text-gray-800 dark:text-gray-300 font-medium leading-none">{tab.label}</td>
                                                             <td className="px-6 py-5">
                                                                 <div className="flex justify-center">
-                                                                    <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleTb('admin', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                                    <input type="checkbox" checked={adminEnabled} onChange={(e) => toggleTb('admin', e.target.checked)} disabled={isLockedByPlan} className={`w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 ${isLockedByPlan ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} />
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-5">
                                                                 <div className="flex justify-center">
-                                                                    <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleTb('member', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                                    <input type="checkbox" checked={memberEnabled} onChange={(e) => toggleTb('member', e.target.checked)} disabled={isLockedByPlan} className={`w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 ${isLockedByPlan ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} />
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -3238,19 +3239,21 @@ export function Settings() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).map(module => {
                                             const isEnabled = selectedUserForConfig.settings?.modules?.[module.key]?.admin !== false;
+                                            const isAllowedByCompany = !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.modules?.[module.key]?.admin === true || currentEntity?.settings?.modules?.[module.key]?.member === true);
                                             return (
-                                                <div key={module.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                <div key={module.key} className={`flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 transition-colors ${isAllowedByCompany ? 'hover:bg-gray-50 dark:hover:bg-slate-700/50' : 'opacity-40'}`}>
                                                     <div className="flex items-center gap-3">
                                                         <div className="p-2 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
                                                             <module.icon size={16} />
                                                         </div>
                                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{module.label}</span>
                                                     </div>
-                                                    <label className="relative inline-flex items-center cursor-pointer scale-90">
+                                                    <label className={`relative inline-flex items-center scale-90 ${isAllowedByCompany ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                                                         <input
                                                             type="checkbox"
                                                             className="sr-only peer"
-                                                            checked={isEnabled}
+                                                            checked={isAllowedByCompany && isEnabled}
+                                                            disabled={!isAllowedByCompany}
                                                             onChange={async (e) => {
                                                                 const newVal = e.target.checked;
                                                                 const currentSettings = selectedUserForConfig.settings || {};
@@ -3289,7 +3292,8 @@ export function Settings() {
                                                     const currentSettings = selectedUserForConfig.settings || {};
                                                     const newTabs = { ...(currentSettings.settings_tabs || {}) };
                                                     SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).forEach(t => {
-                                                        newTabs[t.key] = { admin: true, member: true };
+                                                        const allowed = !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.settings_tabs?.[t.key]?.admin === true || currentEntity?.settings?.settings_tabs?.[t.key]?.member === true);
+                                                        newTabs[t.key] = { admin: allowed, member: allowed };
                                                     });
                                                     const newSettings = { ...currentSettings, settings_tabs: newTabs };
                                                     const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
@@ -3320,19 +3324,21 @@ export function Settings() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map(tab => {
                                             const isEnabled = selectedUserForConfig.settings?.settings_tabs?.[tab.key]?.admin !== false;
+                                            const isAllowedByCompany = !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.settings_tabs?.[tab.key]?.admin === true || currentEntity?.settings?.settings_tabs?.[tab.key]?.member === true);
                                             return (
-                                                <div key={tab.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                <div key={tab.key} className={`flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 transition-colors ${isAllowedByCompany ? 'hover:bg-gray-50 dark:hover:bg-slate-700/50' : 'opacity-40'}`}>
                                                     <div className="flex items-center gap-3">
                                                         <div className="p-2 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
                                                             <tab.icon size={16} />
                                                         </div>
                                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{tab.label}</span>
                                                     </div>
-                                                    <label className="relative inline-flex items-center cursor-pointer scale-90">
+                                                    <label className={`relative inline-flex items-center scale-90 ${isAllowedByCompany ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                                                         <input
                                                             type="checkbox"
                                                             className="sr-only peer"
-                                                            checked={isEnabled}
+                                                            checked={isAllowedByCompany && isEnabled}
+                                                            disabled={!isAllowedByCompany}
                                                             onChange={async (e) => {
                                                                 const newVal = e.target.checked;
                                                                 const currentSettings = selectedUserForConfig.settings || {};

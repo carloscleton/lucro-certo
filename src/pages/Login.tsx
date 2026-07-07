@@ -263,6 +263,7 @@ export function Login() {
                             // Dynamic Plan Lookup
                             let planModules: any = null;
                             let planProfileModules: any = null;
+                            let planSettingsTabs: any = null;
                             try {
                                 const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                                 if (settingsData?.landing_plans) {
@@ -272,6 +273,7 @@ export function Login() {
                                     if (foundPlan) {
                                         planModules = foundPlan.modules;
                                         planProfileModules = foundPlan.profile_modules;
+                                        planSettingsTabs = foundPlan.settings_tabs;
                                     }
                                 }
                             } catch (err) {
@@ -289,6 +291,21 @@ export function Login() {
                                 settings: { admin: true, member: false }
                             };
 
+                            // Default Settings Tabs (Configuration)
+                            const defaultSettingsTabs = {
+                                quotes: { admin: true, member: false },
+                                financial: { admin: true, member: false },
+                                team: { admin: true, member: false },
+                                webhooks: { admin: true, member: false },
+                                whatsapp: { admin: true, member: false },
+                                payments: { admin: true, member: false },
+                                banking: { admin: true, member: false },
+                                automations: { admin: true, member: false },
+                                fiscal: { admin: true, member: false },
+                                subscription: { admin: true, member: false },
+                                platform: { admin: true, member: false }
+                            };
+
                             // Default Functional (Company)
                             const defaultCompanyModules = {
                                 fiscal_module_enabled: true,
@@ -301,7 +318,8 @@ export function Login() {
 
                             const finalProfileSettings = {
                                 subscription_plan: checkoutPlan,
-                                modules: planProfileModules || defaultProfileModules
+                                modules: planProfileModules || defaultProfileModules,
+                                settings_tabs: planSettingsTabs || defaultSettingsTabs
                             };
 
                             const finalCompanyModules = planModules || defaultCompanyModules;
@@ -309,7 +327,8 @@ export function Login() {
                             const finalCompanySettings = {
                                 subscription_plan: checkoutPlan,
                                 trial_ends_at: trialEndsAt,
-                                modules: planProfileModules || defaultProfileModules
+                                modules: planProfileModules || defaultProfileModules,
+                                settings_tabs: planSettingsTabs || defaultSettingsTabs
                             };
 
                             await supabase.from('companies').update({

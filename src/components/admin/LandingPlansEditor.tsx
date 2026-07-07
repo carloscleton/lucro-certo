@@ -6,7 +6,7 @@ import { CurrencyInput } from '../ui/CurrencyInput';
 import { useAdmin } from '../../hooks/useAdmin';
 import { useEntity } from '../../context/EntityContext';
 import { supabase } from '../../lib/supabase';
-import { APP_MODULES } from '../../config/permissions';
+import { APP_MODULES, SETTINGS_TABS } from '../../config/permissions';
 import { Check } from 'lucide-react';
 
 const COMPANY_MODULE_OPTIONS = [
@@ -101,6 +101,22 @@ export function LandingPlansEditor() {
         };
         
         plan.profile_modules = modules;
+        newPlans[planIndex] = plan;
+        setPlans(newPlans);
+    };
+
+    const togglePlanTab = (planIndex: number, tabKey: string) => {
+        const newPlans = [...plans];
+        const plan = { ...newPlans[planIndex] };
+        const tabs = { ...(plan.settings_tabs || {}) };
+        
+        const isEnabled = tabs[tabKey]?.admin === true;
+        tabs[tabKey] = {
+            admin: !isEnabled,
+            member: !isEnabled
+        };
+        
+        plan.settings_tabs = tabs;
         newPlans[planIndex] = plan;
         setPlans(newPlans);
     };
@@ -480,6 +496,7 @@ export function LandingPlansEditor() {
                                             return (
                                                 <button
                                                     key={mod.key}
+                                                    type="button"
                                                     onClick={() => toggleProfileModule(pIdx, mod.key)}
                                                     className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
                                                         isEnabled 
@@ -491,6 +508,32 @@ export function LandingPlansEditor() {
                                                         {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
                                                     </div>
                                                     <span className="truncate">{mod.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Abas de Configuração Permitidas</label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-purple-50/30 dark:bg-purple-900/10 rounded-lg border border-purple-100 dark:border-purple-900/30">
+                                        {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map((tab) => {
+                                            const isEnabled = plan.settings_tabs?.[tab.key]?.admin === true;
+                                            return (
+                                                <button
+                                                    key={tab.key}
+                                                    type="button"
+                                                    onClick={() => togglePlanTab(pIdx, tab.key)}
+                                                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
+                                                        isEnabled 
+                                                            ? 'bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-900/40 dark:text-purple-300' 
+                                                            : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-purple-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
+                                                        {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
+                                                    </div>
+                                                    <span className="truncate">{tab.label}</span>
                                                 </button>
                                             );
                                         })}

@@ -37,6 +37,13 @@ BEGIN
             '{modules}',
             COALESCE(profile_mods, '{}'::jsonb)
         );
+
+        -- Aplicar Abas de Configuração (settings_tabs)
+        NEW.settings := jsonb_set(
+            NEW.settings,
+            '{settings_tabs}',
+            COALESCE(plan_data->'settings_tabs', '{}'::jsonb)
+        );
     END IF;
 
     RETURN NEW;
