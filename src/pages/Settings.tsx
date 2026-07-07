@@ -74,12 +74,13 @@ export function Settings() {
     const [waConnected, setWaConnected] = useState(false);
     const isTrial = useMemo(() => {
         if (isAdmin) return false;
-        // 1. Check current entity
-        if (currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial' || !!currentEntity.trial_ends_at) return true;
+        // 1. Check current entity plan name
+        const planName = currentEntity.subscription_plan || currentEntity.settings?.subscription_plan;
+        if (planName?.toLowerCase().trim() === 'trial') return true;
         // 2. Check if any company is on trial
-        if (companies.some(c => c.subscription_plan === 'trial' || c.settings?.subscription_plan === 'trial' || !!c.trial_ends_at)) return true;
+        if (companies.some(c => c.subscription_plan?.toLowerCase().trim() === 'trial' || c.settings?.subscription_plan?.toLowerCase().trim() === 'trial')) return true;
         // 3. Fallback: Registration date (7 days)
-        if (profile?.created_at) {
+        if (!planName && profile?.created_at) {
             const createdAt = new Date(profile.created_at).getTime();
             const now = Date.now();
             if ((now - createdAt) < (7.5 * 24 * 60 * 60 * 1000)) return true;

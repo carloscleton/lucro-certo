@@ -13,7 +13,7 @@ BEGIN
     -- 2. Localizar o plano que corresponde ao nome selecionado
     SELECT p INTO plan_data 
     FROM jsonb_array_elements(app_plans) AS p 
-    WHERE LOWER(p->>'name') = LOWER(NEW.subscription_plan);
+    WHERE TRIM(LOWER(p->>'name')) = TRIM(LOWER(NEW.subscription_plan));
 
     -- 3. Se o plano for encontrado, "libera" as permissões configuradas
     IF plan_data IS NOT NULL THEN

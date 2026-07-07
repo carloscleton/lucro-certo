@@ -172,14 +172,15 @@ export function Layout() {
     const isTrial = useMemo(() => {
         if (isSystemAdmin) return false;
         
-        // 1. Check current entity
-        if (currentEntity.subscription_plan === 'trial' || currentEntity.settings?.subscription_plan === 'trial' || !!currentEntity.trial_ends_at) return true;
+        // 1. Check current entity plan name
+        const planName = currentEntity.subscription_plan || currentEntity.settings?.subscription_plan;
+        if (planName?.toLowerCase().trim() === 'trial') return true;
         
         // 2. Check if any available company is on trial
-        if (availableEntities.some(ent => ent.subscription_plan === 'trial' || ent.settings?.subscription_plan === 'trial' || !!ent.trial_ends_at)) return true;
+        if (availableEntities.some(ent => ent.subscription_plan?.toLowerCase().trim() === 'trial' || ent.settings?.subscription_plan?.toLowerCase().trim() === 'trial')) return true;
 
-        // 3. Robust Fallback: Check profile creation date (7 days)
-        if (profile?.created_at) {
+        // 3. Fallback: If no plan is set yet, check if profile is brand new
+        if (!planName && profile?.created_at) {
             const createdAt = new Date(profile.created_at).getTime();
             const now = Date.now();
             if ((now - createdAt) < (7.5 * 24 * 60 * 60 * 1000)) return true; // 7.5 days buffer

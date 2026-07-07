@@ -125,7 +125,7 @@ export function Login() {
                 const { data } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                 if (data?.landing_plans) {
                     const foundPlan = data.landing_plans.find((p: any) => 
-                        p.name?.toLowerCase() === checkoutPlan.toLowerCase()
+                        p.name?.toLowerCase().trim() === checkoutPlan.toLowerCase().trim()
                     );
                     if (foundPlan?.allowed_entity_type) {
                         setAllowedRegistrationType(foundPlan.allowed_entity_type);
@@ -273,7 +273,7 @@ export function Login() {
                                 const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                                 if (settingsData?.landing_plans) {
                                     const foundPlan = settingsData.landing_plans.find((p: any) => 
-                                        p.name?.toLowerCase() === checkoutPlan?.toLowerCase()
+                                        p.name?.toLowerCase().trim() === checkoutPlan.toLowerCase().trim()
                                     );
                                     if (foundPlan) {
                                         planModules = foundPlan.modules;
@@ -315,7 +315,7 @@ export function Login() {
                             const finalCompanySettings = {
                                 subscription_plan: checkoutPlan,
                                 trial_ends_at: trialEndsAt,
-                                modules: finalCompanyModules // Keep as plan.modules for compatibility in Settings.tsx if needed
+                                modules: planProfileModules || defaultProfileModules
                             };
 
                             await supabase.from('companies').update({
