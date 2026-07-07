@@ -117,6 +117,8 @@ export const renderInvoiceRates = (invoice: any) => {
     } else if (p.pisRate !== undefined && p.pisRate !== null && p.pisRate !== '') {
         const rawPis = Number(p.pisRate);
         pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
+    } else {
+        pisRate = 0.65;
     }
 
     // COFINS
@@ -126,6 +128,8 @@ export const renderInvoiceRates = (invoice: any) => {
     } else if (p.cofinsRate !== undefined && p.cofinsRate !== null && p.cofinsRate !== '') {
         const rawCofins = Number(p.cofinsRate);
         cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
+    } else {
+        cofinsRate = 3;
     }
 
     // CSLL
@@ -135,6 +139,8 @@ export const renderInvoiceRates = (invoice: any) => {
     } else if (p.csllRate !== undefined && p.csllRate !== null && p.csllRate !== '') {
         const rawCsll = Number(p.csllRate);
         csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
+    } else {
+        csllRate = 1;
     }
 
     // IRRF
@@ -144,6 +150,8 @@ export const renderInvoiceRates = (invoice: any) => {
     } else if (p.irRate !== undefined && p.irRate !== null && p.irRate !== '') {
         const rawIr = Number(p.irRate);
         irRate = rawIr < 1 ? rawIr * 100 : rawIr;
+    } else {
+        irRate = 1.5;
     }
 
     // Se não tiver nenhuma alíquota de impostos maior que zero
