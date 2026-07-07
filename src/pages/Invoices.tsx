@@ -79,6 +79,97 @@ export function parseFiscalError(error: any): string {
     return error.message || 'Ocorreu um erro desconhecido no cancelamento.';
 }
 
+export const renderInvoiceRates = (invoice: any) => {
+    const p = invoice.payload || {};
+    const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
+    const serviceItem = servicos[0];
+
+    // Resolve o regime tributário específico deste documento fiscal
+    const invoiceRegime = p.prestador?.regimeTributario !== undefined 
+        ? String(p.prestador.regimeTributario)
+        : (p.retorno?.prestador?.regimeTributario !== undefined 
+            ? String(p.retorno.prestador.regimeTributario)
+            : '1');
+            
+    const isInvoiceSimples = ['1', '2', '4'].includes(invoiceRegime);
+
+    // ISS
+    let issRate = 0;
+    if (serviceItem?.iss?.aliquota !== undefined && serviceItem?.iss?.aliquota !== null && serviceItem?.iss?.aliquota !== '') {
+        issRate = Number(serviceItem.iss.aliquota);
+    } else if (p.issRate !== undefined && p.issRate !== null && p.issRate !== '') {
+        const rawIss = Number(p.issRate);
+        issRate = rawIss < 1 ? rawIss * 100 : rawIss;
+    }
+
+    if (isInvoiceSimples) {
+        return (
+            <div className="text-[9px] text-amber-600 dark:text-amber-500 font-bold mt-1 uppercase tracking-wider bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-950/10 inline-block">
+                Simples (ISS: {issRate}%)
+            </div>
+        );
+    }
+
+    // PIS
+    let pisRate = 0;
+    if (serviceItem?.pis?.aliquota !== undefined && serviceItem?.pis?.aliquota !== null && serviceItem?.pis?.aliquota !== '') {
+        pisRate = Number(serviceItem.pis.aliquota);
+    } else if (p.pisRate !== undefined && p.pisRate !== null && p.pisRate !== '') {
+        const rawPis = Number(p.pisRate);
+        pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
+    }
+
+    // COFINS
+    let cofinsRate = 0;
+    if (serviceItem?.cofins?.aliquota !== undefined && serviceItem?.cofins?.aliquota !== null && serviceItem?.cofins?.aliquota !== '') {
+        cofinsRate = Number(serviceItem.cofins.aliquota);
+    } else if (p.cofinsRate !== undefined && p.cofinsRate !== null && p.cofinsRate !== '') {
+        const rawCofins = Number(p.cofinsRate);
+        cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
+    }
+
+    // CSLL
+    let csllRate = 0;
+    if (serviceItem?.csll?.aliquota !== undefined && serviceItem?.csll?.aliquota !== null && serviceItem?.csll?.aliquota !== '') {
+        csllRate = Number(serviceItem.csll.aliquota);
+    } else if (p.csllRate !== undefined && p.csllRate !== null && p.csllRate !== '') {
+        const rawCsll = Number(p.csllRate);
+        csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
+    }
+
+    // IRRF
+    let irRate = 0;
+    if (serviceItem?.ir?.aliquota !== undefined && serviceItem?.ir?.aliquota !== null && serviceItem?.ir?.aliquota !== '') {
+        irRate = Number(serviceItem.ir.aliquota);
+    } else if (p.irRate !== undefined && p.irRate !== null && p.irRate !== '') {
+        const rawIr = Number(p.irRate);
+        irRate = rawIr < 1 ? rawIr * 100 : rawIr;
+    }
+
+    // Se não tiver nenhuma alíquota de impostos maior que zero
+    if (pisRate === 0 && cofinsRate === 0 && csllRate === 0 && irRate === 0 && issRate === 0) {
+        return null;
+    }
+
+    return (
+        <div className="flex flex-wrap items-center gap-1 mt-1 text-[9px] font-semibold text-gray-400 dark:text-gray-500 font-mono tracking-tight bg-gray-50 dark:bg-slate-900 px-2 py-1 rounded-lg border border-gray-100 dark:border-slate-800/40 inline-block max-w-max">
+            <span className="text-violet-600 dark:text-violet-400" title="PIS">PIS: {pisRate}%</span>
+            <span>•</span>
+            <span className="text-blue-600 dark:text-blue-400" title="COFINS">COF: {cofinsRate}%</span>
+            <span>•</span>
+            <span className="text-orange-600 dark:text-orange-400" title="CSLL">CSLL: {csllRate}%</span>
+            <span>•</span>
+            <span className="text-rose-600 dark:text-rose-400" title="IRRF">IR: {irRate}%</span>
+            {issRate > 0 && (
+                <>
+                    <span>•</span>
+                    <span className="text-emerald-600 dark:text-emerald-400" title="ISS">ISS: {issRate}%</span>
+                </>
+            )}
+        </div>
+    );
+};
+
 export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
     const { currentEntity } = useEntity();
@@ -1233,7 +1324,7 @@ ${messageWithPlaceholder}`;
                                             </div>
                                         </td>
                                         <td className="py-3 px-6">
-                                            <div className="flex flex-col">
+                                            <div className="flex flex-col items-start">
                                                 <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                     {(() => {
                                                         const p = invoice.payload;
@@ -1255,17 +1346,20 @@ ${messageWithPlaceholder}`;
                                                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
                                                     })()}
                                                 </span>
-                                                <Tooltip content={(() => {
-                                                    const p = invoice.payload;
-                                                    const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
-                                                    const servico = servicos[0];
-                                                    return servico?.discriminacao || p?.itens?.[0]?.descricao || 'Sem descrição';
-                                                })()}>
-                                                    <span className="text-[10px] text-blue-500 font-medium mt-0.5 cursor-help flex items-center gap-1 hover:underline">
-                                                        <Search size={10} />
-                                                        Ver Descrição
-                                                    </span>
-                                                </Tooltip>
+                                                <div className="flex flex-col gap-1 items-start mt-0.5">
+                                                    <Tooltip content={(() => {
+                                                        const p = invoice.payload;
+                                                        const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
+                                                        const servico = servicos[0];
+                                                        return servico?.discriminacao || p?.itens?.[0]?.descricao || 'Sem descrição';
+                                                    })()}>
+                                                        <span className="text-[10px] text-blue-500 font-medium cursor-help flex items-center gap-1 hover:underline">
+                                                            <Search size={10} />
+                                                            Ver Descrição
+                                                        </span>
+                                                    </Tooltip>
+                                                    {renderInvoiceRates(invoice)}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="py-3 px-6">
