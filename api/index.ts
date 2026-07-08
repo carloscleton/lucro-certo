@@ -1660,7 +1660,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const defaultAliquota = parseFloat((isSimples ? config.simples_nacional_aliquota : config.default_iss_aliquota) || '0');
                 
                 if (useTestData) {
-                    delete item.versao;
+                    if (isNacional) {
+                        item.versao = '1.00';
+                    } else {
+                        delete item.versao;
+                    }
                     if (item.servico) {
                         const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                         services.forEach((s: any) => {
