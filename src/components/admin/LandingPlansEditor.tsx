@@ -7,7 +7,7 @@ import { useAdmin } from '../../hooks/useAdmin';
 import { useEntity } from '../../context/EntityContext';
 import { supabase } from '../../lib/supabase';
 import { APP_MODULES, SETTINGS_TABS } from '../../config/permissions';
-import { Check } from 'lucide-react';
+
 
 const COMPANY_MODULE_OPTIONS = [
     { key: 'fiscal_module_enabled', label: 'Módulo Fiscal' },
@@ -755,7 +755,8 @@ export function LandingPlansEditor() {
                                      </div>
                                  </div>
                              )}                            </div>
-                        </div>
+                         </div>
+                     </div>
                 ))}
 
                 {/* Botão Adicionar Novo Plano */}
