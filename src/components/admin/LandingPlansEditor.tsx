@@ -121,6 +121,38 @@ export function LandingPlansEditor() {
         setPlans(newPlans);
     };
 
+    const toggleProfileModuleRole = (planIndex: number, moduleKey: string, role: 'admin' | 'member') => {
+        const newPlans = [...plans];
+        const plan = { ...newPlans[planIndex] };
+        const modules = { ...(plan.profile_modules || {}) };
+        
+        const isEnabled = modules[moduleKey]?.[role] === true;
+        modules[moduleKey] = {
+            ...modules[moduleKey],
+            [role]: !isEnabled
+        };
+        
+        plan.profile_modules = modules;
+        newPlans[planIndex] = plan;
+        setPlans(newPlans);
+    };
+
+    const togglePlanTabRole = (planIndex: number, tabKey: string, role: 'admin' | 'member') => {
+        const newPlans = [...plans];
+        const plan = { ...newPlans[planIndex] };
+        const tabs = { ...(plan.settings_tabs || {}) };
+        
+        const isEnabled = tabs[tabKey]?.[role] === true;
+        tabs[tabKey] = {
+            ...tabs[tabKey],
+            [role]: !isEnabled
+        };
+        
+        plan.settings_tabs = tabs;
+        newPlans[planIndex] = plan;
+        setPlans(newPlans);
+    };
+
     const handleMagic = async (pIdx: number) => {
         const plan = plans[pIdx];
         setGeneratingMagic(pIdx);
@@ -488,7 +520,7 @@ export function LandingPlansEditor() {
                             </div>
 
                             <div className="mt-4 space-y-4">
-                                {((plan.allowed_entity_type || 'BOTH') === 'PF' || (plan.allowed_entity_type || 'BOTH') === 'BOTH') && (
+                                {((plan.allowed_entity_type || 'BOTH') === 'PF') ? (
                                     <>
                                         <div>
                                             <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Acesso ao Sidebar (Perfil)</label>
@@ -542,7 +574,102 @@ export function LandingPlansEditor() {
                                             </div>
                                         </div>
                                     </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Acesso ao Sidebar (Perfil)</label>
+                                            <div className="overflow-x-auto custom-scrollbar border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm max-h-60">
+                                                <table className="w-full text-left text-xs">
+                                                    <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700 sticky top-0 z-10">
+                                                        <tr>
+                                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest text-[9px]">Módulo</th>
+                                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[9px]">Admin</th>
+                                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[9px]">Membro</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                                                        {APP_MODULES.filter(m => !['settings'].includes(m.key)).map((mod) => {
+                                                            const adminEnabled = plan.profile_modules?.[mod.key]?.admin === true;
+                                                            const memberEnabled = plan.profile_modules?.[mod.key]?.member === true;
+                                                            return (
+                                                                <tr key={mod.key} className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                                    <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium">{mod.label}</td>
+                                                                    <td className="px-4 py-2">
+                                                                        <div className="flex justify-center">
+                                                                            <input 
+                                                                                type="checkbox" 
+                                                                                checked={adminEnabled} 
+                                                                                onChange={() => toggleProfileModuleRole(pIdx, mod.key, 'admin')} 
+                                                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                                                            />
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-4 py-2">
+                                                                        <div className="flex justify-center">
+                                                                            <input 
+                                                                                type="checkbox" 
+                                                                                checked={memberEnabled} 
+                                                                                onChange={() => toggleProfileModuleRole(pIdx, mod.key, 'member')} 
+                                                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                                                            />
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Abas de Configuração Permitidas</label>
+                                            <div className="overflow-x-auto custom-scrollbar border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm max-h-60">
+                                                <table className="w-full text-left text-xs">
+                                                    <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700 sticky top-0 z-10">
+                                                        <tr>
+                                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest text-[9px]">Aba</th>
+                                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[9px]">Admin</th>
+                                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[9px]">Membro</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                                                        {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map((tab) => {
+                                                            const adminEnabled = plan.settings_tabs?.[tab.key]?.admin === true;
+                                                            const memberEnabled = plan.settings_tabs?.[tab.key]?.member === true;
+                                                            return (
+                                                                <tr key={tab.key} className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                                                                    <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium">{tab.label}</td>
+                                                                    <td className="px-4 py-2">
+                                                                        <div className="flex justify-center">
+                                                                            <input 
+                                                                                type="checkbox" 
+                                                                                checked={adminEnabled} 
+                                                                                onChange={() => togglePlanTabRole(pIdx, tab.key, 'admin')} 
+                                                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                                                            />
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-4 py-2">
+                                                                        <div className="flex justify-center">
+                                                                            <input 
+                                                                                type="checkbox" 
+                                                                                checked={memberEnabled} 
+                                                                                onChange={() => togglePlanTabRole(pIdx, tab.key, 'member')} 
+                                                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                                                            />
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
+                            </div>
 
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Tipo de Cadastro Permitido</label>
@@ -592,7 +719,6 @@ export function LandingPlansEditor() {
                                 )}
                             </div>
                         </div>
-                    </div>
                 ))}
 
                 {/* Botão Adicionar Novo Plano */}
