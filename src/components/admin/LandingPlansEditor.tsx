@@ -488,57 +488,61 @@ export function LandingPlansEditor() {
                             </div>
 
                             <div className="mt-4 space-y-4">
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Acesso ao Sidebar (Perfil)</label>
-                                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30">
-                                        {APP_MODULES.filter(m => !['settings'].includes(m.key)).map((mod) => {
-                                            const isEnabled = plan.profile_modules?.[mod.key]?.admin === true;
-                                            return (
-                                                <button
-                                                    key={mod.key}
-                                                    type="button"
-                                                    onClick={() => toggleProfileModule(pIdx, mod.key)}
-                                                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
-                                                        isEnabled 
-                                                            ? 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300' 
-                                                            : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
-                                                    }`}
-                                                >
-                                                    <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-blue-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
-                                                        {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
-                                                    </div>
-                                                    <span className="truncate">{mod.label}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+                                {((plan.allowed_entity_type || 'BOTH') === 'PF' || (plan.allowed_entity_type || 'BOTH') === 'BOTH') && (
+                                    <>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Acesso ao Sidebar (Perfil)</label>
+                                            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                                                {APP_MODULES.filter(m => !['settings'].includes(m.key)).map((mod) => {
+                                                    const isEnabled = plan.profile_modules?.[mod.key]?.admin === true;
+                                                    return (
+                                                        <button
+                                                            key={mod.key}
+                                                            type="button"
+                                                            onClick={() => toggleProfileModule(pIdx, mod.key)}
+                                                            className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
+                                                                isEnabled 
+                                                                    ? 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300' 
+                                                                    : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
+                                                            }`}
+                                                        >
+                                                            <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-blue-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
+                                                                {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
+                                                            </div>
+                                                            <span className="truncate">{mod.label}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
 
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Abas de Configuração Permitidas</label>
-                                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-purple-50/30 dark:bg-purple-900/10 rounded-lg border border-purple-100 dark:border-purple-900/30">
-                                        {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map((tab) => {
-                                            const isEnabled = plan.settings_tabs?.[tab.key]?.admin === true;
-                                            return (
-                                                <button
-                                                    key={tab.key}
-                                                    type="button"
-                                                    onClick={() => togglePlanTab(pIdx, tab.key)}
-                                                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
-                                                        isEnabled 
-                                                            ? 'bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-900/40 dark:text-purple-300' 
-                                                            : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
-                                                    }`}
-                                                >
-                                                    <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-purple-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
-                                                        {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
-                                                    </div>
-                                                    <span className="truncate">{tab.label}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Abas de Configuração Permitidas</label>
+                                            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-purple-50/30 dark:bg-purple-900/10 rounded-lg border border-purple-100 dark:border-purple-900/30">
+                                                {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map((tab) => {
+                                                    const isEnabled = plan.settings_tabs?.[tab.key]?.admin === true;
+                                                    return (
+                                                        <button
+                                                            key={tab.key}
+                                                            type="button"
+                                                            onClick={() => togglePlanTab(pIdx, tab.key)}
+                                                            className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
+                                                                isEnabled 
+                                                                    ? 'bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-900/40 dark:text-purple-300' 
+                                                                    : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
+                                                            }`}
+                                                        >
+                                                            <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-purple-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
+                                                                {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
+                                                            </div>
+                                                            <span className="truncate">{tab.label}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
 
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Tipo de Cadastro Permitido</label>
@@ -559,31 +563,33 @@ export function LandingPlansEditor() {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Módulos Ativos (Empresa)</label>
-                                    <div className="grid grid-cols-2 gap-2 p-2 bg-emerald-50/30 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
-                                        {COMPANY_MODULE_OPTIONS.map((mod) => {
-                                            const isEnabled = !!plan.modules?.[mod.key];
-                                            return (
-                                                <button
-                                                    key={mod.key}
-                                                    onClick={() => toggleCompanyModule(pIdx, mod.key)}
-                                                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
-                                                        isEnabled 
-                                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' 
-                                                            : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
-                                                    }`}
-                                                >
-                                                    <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
-                                                        {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
-                                                    </div>
-                                                    <span className="truncate">{mod.label}</span>
-                                                </button>
-                                            );
-                                        })}
+                                {((plan.allowed_entity_type || 'BOTH') === 'PJ' || (plan.allowed_entity_type || 'BOTH') === 'BOTH') && (
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Módulos Ativos (Empresa)</label>
+                                        <div className="grid grid-cols-2 gap-2 p-2 bg-emerald-50/30 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                                            {COMPANY_MODULE_OPTIONS.map((mod) => {
+                                                const isEnabled = !!plan.modules?.[mod.key];
+                                                return (
+                                                    <button
+                                                        key={mod.key}
+                                                        onClick={() => toggleCompanyModule(pIdx, mod.key)}
+                                                        className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] font-bold transition-all text-left ${
+                                                            isEnabled 
+                                                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' 
+                                                                : 'bg-white text-gray-400 border border-gray-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'
+                                                        }`}
+                                                    >
+                                                        <div className={`w-2.5 h-2.5 rounded-full flex items-center justify-center ${isEnabled ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700'}`}>
+                                                            {isEnabled && <Check size={8} className="text-white" strokeWidth={4} />}
+                                                        </div>
+                                                        <span className="truncate">{mod.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <p className="text-[9px] text-gray-400 italic mt-2">Define os privilégios iniciais do plano</p>
                                     </div>
-                                </div>
-                                <p className="text-[9px] text-gray-400 italic">Define os privilégios iniciais do plano</p>
+                                )}
                             </div>
                         </div>
                     </div>

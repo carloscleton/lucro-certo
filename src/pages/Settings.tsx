@@ -1184,14 +1184,19 @@ export function Settings() {
                     ] : [])
                 ].filter(tab => {
                     const currentCompany = companies.find(c => c.id === currentEntity.id);
+                    const isPersonalOrPF = currentEntity.type === 'personal' || currentEntity.entity_type === 'PF';
+                    
                     // 1. Feature Availability / Plan Check
                     if (tab.key === 'loyalty' && !currentCompany?.loyalty_module_enabled) return false;
-                    if (tab.key === 'fiscal' && (currentEntity.type !== 'company' || !currentCompany?.fiscal_module_enabled)) return false;
-                    if (tab.key === 'banking' && currentEntity.type !== 'company') return false;
+                    if (tab.key === 'fiscal' && (isPersonalOrPF || !currentCompany?.fiscal_module_enabled)) return false;
+                    if (tab.key === 'banking' && isPersonalOrPF) return false;
                     
                     if (!isTrial) {
-                        if (tab.key === 'payments' && (currentEntity.type !== 'company' || !currentCompany?.payments_module_enabled)) return false;
+                        if (tab.key === 'payments' && (isPersonalOrPF || !currentCompany?.payments_module_enabled)) return false;
                         if (tab.key === 'automations' && (currentEntity.type === 'company' && !currentCompany?.automations_module_enabled)) return false;
+                    } else {
+                        // Even in trial, hide banking/payments/automations for PF
+                        if (['payments', 'banking', 'automations'].includes(tab.key) && isPersonalOrPF) return false;
                     }
 
                     // 0. Super Admin Bypass (Moved down to respect module toggles)
@@ -1199,7 +1204,7 @@ export function Settings() {
 
                     // 2. Personal Context Restrictions
                     // Hide company-specific tabs in personal context UNLESS on trial
-                    if (currentEntity.type === 'personal' && !isTrial) {
+                    if (isPersonalOrPF && !isTrial) {
                         const companyOnlyTabs = ['financial', 'team', 'webhooks'];
                         if (companyOnlyTabs.includes(tab.key)) return false;
                     }

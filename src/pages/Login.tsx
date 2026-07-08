@@ -363,19 +363,64 @@ export function Login() {
                                 return result;
                             };
 
-                            const finalProfileSettings = {
-                                subscription_plan: checkoutPlan,
-                                modules: fillMissingProfileModules(planProfileModules || defaultProfileModules),
-                                settings_tabs: fillMissingSettingsTabs(planSettingsTabs || defaultSettingsTabs)
+                            const getCompanyProfileModules = (planModules: any) => {
+                                return {
+                                    dashboard: { admin: true, member: true },
+                                    quotes: { admin: true, member: true },
+                                    receivables: { admin: true, member: true },
+                                    payables: { admin: true, member: true },
+                                    invoices: { admin: planModules?.fiscal_module_enabled === true, member: planModules?.fiscal_module_enabled === true },
+                                    categories: { admin: true, member: true },
+                                    companies: { admin: true, member: true },
+                                    contacts: { admin: true, member: true },
+                                    services: { admin: true, member: true },
+                                    products: { admin: true, member: true },
+                                    whatsapp: { admin: true, member: true },
+                                    payments: { admin: planModules?.payments_module_enabled === true, member: planModules?.payments_module_enabled === true },
+                                    crm: { admin: planModules?.crm_module_enabled === true, member: planModules?.crm_module_enabled === true },
+                                    agenda: { admin: true, member: true },
+                                    marketing: { admin: planModules?.has_social_copilot === true, member: planModules?.has_social_copilot === true },
+                                    lead_radar: { admin: planModules?.has_lead_radar === true, member: false },
+                                    loyalty: { admin: planModules?.loyalty_module_enabled === true, member: false },
+                                    commissions: { admin: true, member: false },
+                                    reports: { admin: true, member: false },
+                                    settings: { admin: true, member: false }
+                                };
+                            };
+
+                            const getCompanySettingsTabs = (planModules: any) => {
+                                return {
+                                    quotes: { admin: true, member: false },
+                                    financial: { admin: true, member: false },
+                                    team: { admin: true, member: false },
+                                    webhooks: { admin: true, member: false },
+                                    whatsapp: { admin: true, member: false },
+                                    payments: { admin: planModules?.payments_module_enabled === true, member: false },
+                                    banking: { admin: planModules?.banking_module_enabled === true, member: false },
+                                    automations: { admin: planModules?.automations_module_enabled === true, member: false },
+                                    fiscal: { admin: planModules?.fiscal_module_enabled === true, member: false },
+                                    loyalty: { admin: planModules?.loyalty_module_enabled === true, member: false },
+                                    subscription: { admin: true, member: false },
+                                    platform: { admin: false, member: false }
+                                };
                             };
 
                             const finalCompanyModules = planModules || defaultCompanyModules;
 
+                            const derivedProfileModules = planProfileModules || (registrationType === 'PJ' ? getCompanyProfileModules(finalCompanyModules) : defaultProfileModules);
+                            const derivedSettingsTabs = planSettingsTabs || (registrationType === 'PJ' ? getCompanySettingsTabs(finalCompanyModules) : defaultSettingsTabs);
+
+                            const finalProfileSettings = {
+                                subscription_plan: checkoutPlan,
+                                modules: fillMissingProfileModules(derivedProfileModules),
+                                settings_tabs: fillMissingSettingsTabs(derivedSettingsTabs)
+                            };
+
                             const finalCompanySettings = {
                                 subscription_plan: checkoutPlan,
                                 trial_ends_at: trialEndsAt,
-                                modules: fillMissingProfileModules(planProfileModules || defaultProfileModules),
-                                settings_tabs: fillMissingSettingsTabs(planSettingsTabs || defaultSettingsTabs)
+                                modules: fillMissingProfileModules(derivedProfileModules),
+                                settings_tabs: fillMissingSettingsTabs(derivedSettingsTabs)
                             };
 
                             await supabase.from('companies').update({

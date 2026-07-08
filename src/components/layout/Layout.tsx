@@ -205,7 +205,7 @@ export function Layout() {
         if (settings?.modules?.[item.key]?.[roleForMatrix as 'admin' | 'member'] === false) return false;
 
         // 3. PLAN & FEATURE CHECK (Prioritized to respect toggles even in trial)
-        if (currentEntity.type === 'company') {
+        if (currentEntity.type === 'company' && currentEntity.entity_type !== 'PF') {
             const isModuleEnabled = 
                 (item.key === 'crm' && currentEntity.crm_module_enabled) ||
                 (item.key === 'marketing' && currentEntity.has_social_copilot) ||
