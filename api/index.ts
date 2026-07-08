@@ -1656,13 +1656,16 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const targetIbge = isNacional ? '3106200' : '4115200';
                 const targetIm = isNacional ? '1234567' : '8214100099';
                 
+                const isSimples = ['1', '2', '4'].includes(String(config.regime_tributario || ''));
+                const defaultAliquota = parseFloat((isSimples ? config.simples_nacional_aliquota : config.default_iss_aliquota) || '0');
+                
                 if (useTestData) {
                     delete item.versao;
                     if (item.servico) {
                         const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                         services.forEach((s: any) => {
                             s.codigoIbge = targetIbge;
-                            if (!s.iss) s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: 7 };
+                            if (!s.iss) s.iss = { aliquota: defaultAliquota, exigibilidade: 1, tipoTributacao: 7 };
                         });
                     }
                     if (item.codigoIbge) item.codigoIbge = targetIbge;
@@ -1696,7 +1699,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         const services = Array.isArray(item.servico) ? item.servico : [item.servico];
                         services.forEach((s: any) => {
                             if (!s.codigoIbge) s.codigoIbge = companyIbge;
-                            if (!s.iss) s.iss = { aliquota: 0, exigibilidade: 1, tipoTributacao: isNacional ? 1 : 7 };
+                            if (!s.iss) s.iss = { aliquota: defaultAliquota, exigibilidade: 1, tipoTributacao: isNacional ? 1 : 7 };
                         });
                     }
                 }
