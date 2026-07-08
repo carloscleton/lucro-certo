@@ -319,10 +319,54 @@ export function Login() {
                                 warranty_module_enabled: false
                             };
 
+                            const fillMissingProfileModules = (mods: any) => {
+                                const allKeys = [
+                                    'quotes', 'receivables', 'payables', 'invoices', 'categories', 
+                                    'companies', 'contacts', 'services', 'products', 'whatsapp', 
+                                    'payments', 'crm', 'agenda', 'marketing', 'lead_radar', 
+                                    'loyalty', 'commissions', 'reports'
+                                ];
+                                const result = { 
+                                    dashboard: { admin: true, member: true },
+                                    settings: { admin: true, member: false },
+                                    ...(mods || {}) 
+                                };
+                                allKeys.forEach(key => {
+                                    if (!result[key] || typeof result[key] !== 'object') {
+                                        result[key] = { admin: false, member: false };
+                                    } else {
+                                        result[key] = {
+                                            admin: result[key].admin === true,
+                                            member: result[key].member === true
+                                        };
+                                    }
+                                });
+                                return result;
+                            };
+
+                            const fillMissingSettingsTabs = (tabs: any) => {
+                                const allKeys = [
+                                    'quotes', 'financial', 'team', 'webhooks', 'whatsapp', 
+                                    'payments', 'banking', 'automations', 'fiscal', 'subscription', 'platform'
+                                ];
+                                const result = { ...(tabs || {}) };
+                                allKeys.forEach(key => {
+                                    if (!result[key] || typeof result[key] !== 'object') {
+                                        result[key] = { admin: false, member: false };
+                                    } else {
+                                        result[key] = {
+                                            admin: result[key].admin === true,
+                                            member: result[key].member === true
+                                        };
+                                    }
+                                });
+                                return result;
+                            };
+
                             const finalProfileSettings = {
                                 subscription_plan: checkoutPlan,
-                                modules: planProfileModules || defaultProfileModules,
-                                settings_tabs: planSettingsTabs || defaultSettingsTabs
+                                modules: fillMissingProfileModules(planProfileModules || defaultProfileModules),
+                                settings_tabs: fillMissingSettingsTabs(planSettingsTabs || defaultSettingsTabs)
                             };
 
                             const finalCompanyModules = planModules || defaultCompanyModules;
@@ -330,8 +374,8 @@ export function Login() {
                             const finalCompanySettings = {
                                 subscription_plan: checkoutPlan,
                                 trial_ends_at: trialEndsAt,
-                                modules: planProfileModules || defaultProfileModules,
-                                settings_tabs: planSettingsTabs || defaultSettingsTabs
+                                modules: fillMissingProfileModules(planProfileModules || defaultProfileModules),
+                                settings_tabs: fillMissingSettingsTabs(planSettingsTabs || defaultSettingsTabs)
                             };
 
                             await supabase.from('companies').update({

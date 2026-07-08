@@ -219,8 +219,9 @@ export function Layout() {
 
         // 4. TRIAL BYPASS: If not explicitly disabled (checked above), show everything in trial
         if (isTrial) {
-            if (currentEntity.type === 'personal' && (item.key === 'crm' || item.key === 'marketing' || item.key === 'lead_radar' || item.key === 'agenda')) {
-                return false;
+            if (currentEntity.type === 'personal') {
+                if (item.key === 'dashboard' || item.key === 'settings') return true;
+                return settings?.modules?.[item.key]?.admin === true;
             }
             return true;
         }
