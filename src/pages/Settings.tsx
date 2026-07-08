@@ -3253,49 +3253,68 @@ export function Settings() {
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).map(module => {
-                                            const isEnabled = selectedUserForConfig.settings?.modules?.[module.key]?.admin !== false;
-                                            const isAllowedByCompany = isAdmin || !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.modules?.[module.key]?.admin === true || currentEntity?.settings?.modules?.[module.key]?.member === true);
-                                            return (
-                                                <div key={module.key} className={`flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 transition-colors ${isAllowedByCompany ? 'hover:bg-gray-50 dark:hover:bg-slate-700/50' : 'opacity-40'}`}>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="p-2 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
-                                                            <module.icon size={16} />
-                                                        </div>
-                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{module.label}</span>
-                                                    </div>
-                                                    <label className={`relative inline-flex items-center scale-90 ${isAllowedByCompany ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                        <input
-                                                            type="checkbox"
-                                                            className="sr-only peer"
-                                                            checked={isAllowedByCompany && isEnabled}
-                                                            disabled={!isAllowedByCompany}
-                                                            onChange={async (e) => {
-                                                                const newVal = e.target.checked;
-                                                                const currentSettings = selectedUserForConfig.settings || {};
-                                                                const newSettings = {
-                                                                    ...currentSettings,
-                                                                    modules: {
-                                                                        ...(currentSettings.modules || {}),
-                                                                        [module.key]: { admin: newVal, member: newVal }
-                                                                    }
-                                                                };
-                                                                
-                                                                // Marcar carregando visualmente seria ideal, mas o instant save já dá o feedback
-                                                                const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
-                                                                if (error) {
-                                                                    alert('Erro ao salvar: ' + error);
-                                                                } else {
-                                                                    setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
-                                                                }
-                                                            }}
-                                                        />
-                                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                                    </label>
-                                                </div>
-                                            );
-                                        })}
+                                    <div className="overflow-x-auto custom-scrollbar border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm max-h-[300px]">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700 sticky top-0 z-10">
+                                                <tr>
+                                                    <th className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-widest text-[10px]">Módulo</th>
+                                                    <th className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200 text-center w-24 uppercase tracking-widest text-[10px]">Admin</th>
+                                                    <th className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200 text-center w-24 uppercase tracking-widest text-[10px]">Membro</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                                                {APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).map((module) => {
+                                                     const currentSettings = selectedUserForConfig.settings || {};
+                                                     const adminEnabled = getModulePermission(module.key, 'admin', currentSettings);
+                                                     const memberEnabled = getModulePermission(module.key, 'member', currentSettings);
+                                                     const isAllowedByCompany = isAdmin || !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.modules?.[module.key]?.admin === true || currentEntity?.settings?.modules?.[module.key]?.member === true);
+
+                                                     const toggleMod = async (role: 'admin' | 'member', value: boolean) => {
+                                                         const modules = currentSettings.modules || {};
+                                                         const newSettings = {
+                                                             ...currentSettings,
+                                                             modules: {
+                                                                 ...modules,
+                                                                 [module.key]: {
+                                                                     ...(modules[module.key] || {}),
+                                                                     [role]: value
+                                                                 }
+                                                             }
+                                                         };
+                                                         const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                         if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                     };
+
+                                                     return (
+                                                         <tr key={module.key} className={`hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors ${isAllowedByCompany ? '' : 'opacity-40'}`}>
+                                                             <td className="px-6 py-3 text-gray-800 dark:text-gray-300 font-medium">{module.label}</td>
+                                                             <td className="px-6 py-3">
+                                                                 <div className="flex justify-center">
+                                                                     <input 
+                                                                         type="checkbox" 
+                                                                         checked={isAllowedByCompany && adminEnabled} 
+                                                                         disabled={!isAllowedByCompany}
+                                                                         onChange={(e) => toggleMod('admin', e.target.checked)} 
+                                                                         className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                                                     />
+                                                                 </div>
+                                                             </td>
+                                                             <td className="px-6 py-3">
+                                                                 <div className="flex justify-center">
+                                                                     <input 
+                                                                         type="checkbox" 
+                                                                         checked={isAllowedByCompany && memberEnabled} 
+                                                                         disabled={!isAllowedByCompany}
+                                                                         onChange={(e) => toggleMod('member', e.target.checked)} 
+                                                                         className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                                                     />
+                                                                 </div>
+                                                             </td>
+                                                         </tr>
+                                                     );
+                                                 })}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
 
@@ -3338,49 +3357,70 @@ export function Settings() {
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map(tab => {
-                                            const isEnabled = selectedUserForConfig.settings?.settings_tabs?.[tab.key]?.admin !== false;
-                                            const isAllowedByCompany = isAdmin || !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.settings_tabs?.[tab.key]?.admin === true || currentEntity?.settings?.settings_tabs?.[tab.key]?.member === true);
-                                            return (
-                                                <div key={tab.key} className={`flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 transition-colors ${isAllowedByCompany ? 'hover:bg-gray-50 dark:hover:bg-slate-700/50' : 'opacity-40'}`}>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="p-2 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
-                                                            <tab.icon size={16} />
-                                                        </div>
-                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{tab.label}</span>
-                                                    </div>
-                                                    <label className={`relative inline-flex items-center scale-90 ${isAllowedByCompany ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                        <input
-                                                            type="checkbox"
-                                                            className="sr-only peer"
-                                                            checked={isAllowedByCompany && isEnabled}
-                                                            disabled={!isAllowedByCompany}
-                                                            onChange={async (e) => {
-                                                                const newVal = e.target.checked;
-                                                                const currentSettings = selectedUserForConfig.settings || {};
-                                                                const newSettings = {
-                                                                    ...currentSettings,
-                                                                    settings_tabs: {
-                                                                        ...(currentSettings.settings_tabs || {}),
-                                                                        [tab.key]: { admin: newVal, member: newVal }
-                                                                    }
-                                                                };
-                                                                const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
-                                                                if (error) {
-                                                                    alert('Erro ao salvar: ' + error);
-                                                                } else {
-                                                                    setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
-                                                                }
-                                                            }}
-                                                        />
-                                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                                    </label>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+                                    <div className="overflow-x-auto custom-scrollbar border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 shadow-sm max-h-[300px]">
+                                        <table className="w-full text-left text-sm">
+                                             <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700 sticky top-0 z-10">
+                                                 <tr>
+                                                     <th className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-widest text-[10px]">Aba de Configuração</th>
+                                                     <th className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200 text-center w-24 uppercase tracking-widest text-[10px]">Admin</th>
+                                                     <th className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200 text-center w-24 uppercase tracking-widest text-[10px]">Membro</th>
+                                                 </tr>
+                                             </thead>
+                                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                                                 {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map((tab) => {
+                                                     const currentSettings = selectedUserForConfig.settings || {};
+                                                     const adminEnabled = getTabPermission(tab.key, 'admin', currentSettings);
+                                                     const memberEnabled = getTabPermission(tab.key, 'member', currentSettings);
+                                                     const isAllowedByCompany = isAdmin || !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.settings_tabs?.[tab.key]?.admin === true || currentEntity?.settings?.settings_tabs?.[tab.key]?.member === true);
+
+                                                     const toggleTb = async (role: 'admin' | 'member', value: boolean) => {
+                                                         const tabs = currentSettings.settings_tabs || {};
+                                                         const newSettings = {
+                                                             ...currentSettings,
+                                                             settings_tabs: {
+                                                                 ...tabs,
+                                                                 [tab.key]: {
+                                                                     ...(tabs[tab.key] || {}),
+                                                                     [role]: value
+                                                                 }
+                                                             }
+                                                         };
+                                                         const { error } = await updateUserConfig(selectedUserForConfig.id, newSettings);
+                                                         if (!error) setSelectedUserForConfig({ ...selectedUserForConfig, settings: newSettings });
+                                                     };
+
+                                                     return (
+                                                         <tr key={tab.key} className={`hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors ${isAllowedByCompany ? '' : 'opacity-40'}`}>
+                                                             <td className="px-6 py-3 text-gray-800 dark:text-gray-300 font-medium">{tab.label}</td>
+                                                             <td className="px-6 py-3">
+                                                                 <div className="flex justify-center">
+                                                                     <input 
+                                                                         type="checkbox" 
+                                                                         checked={isAllowedByCompany && adminEnabled} 
+                                                                         disabled={!isAllowedByCompany}
+                                                                         onChange={(e) => toggleTb('admin', e.target.checked)} 
+                                                                         className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                                                     />
+                                                                 </div>
+                                                             </td>
+                                                             <td className="px-6 py-3">
+                                                                 <div className="flex justify-center">
+                                                                     <input 
+                                                                         type="checkbox" 
+                                                                         checked={isAllowedByCompany && memberEnabled} 
+                                                                         disabled={!isAllowedByCompany}
+                                                                         onChange={(e) => toggleTb('member', e.target.checked)} 
+                                                                         className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                                                     />
+                                                                 </div>
+                                                             </td>
+                                                         </tr>
+                                                     );
+                                                 })}
+                                             </tbody>
+                                         </table>
+                                     </div>
+                                 </div>
                             </div>
 
                             <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50 flex justify-end">
