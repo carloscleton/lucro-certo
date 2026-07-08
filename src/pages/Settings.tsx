@@ -3239,7 +3239,7 @@ export function Settings() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {APP_MODULES.filter(m => !['dashboard', 'companies'].includes(m.key)).map(module => {
                                             const isEnabled = selectedUserForConfig.settings?.modules?.[module.key]?.admin !== false;
-                                            const isAllowedByCompany = !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.modules?.[module.key]?.admin === true || currentEntity?.settings?.modules?.[module.key]?.member === true);
+                                            const isAllowedByCompany = isAdmin || !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.modules?.[module.key]?.admin === true || currentEntity?.settings?.modules?.[module.key]?.member === true);
                                             return (
                                                 <div key={module.key} className={`flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 transition-colors ${isAllowedByCompany ? 'hover:bg-gray-50 dark:hover:bg-slate-700/50' : 'opacity-40'}`}>
                                                     <div className="flex items-center gap-3">
@@ -3324,7 +3324,7 @@ export function Settings() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map(tab => {
                                             const isEnabled = selectedUserForConfig.settings?.settings_tabs?.[tab.key]?.admin !== false;
-                                            const isAllowedByCompany = !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.settings_tabs?.[tab.key]?.admin === true || currentEntity?.settings?.settings_tabs?.[tab.key]?.member === true);
+                                            const isAllowedByCompany = isAdmin || !currentEntity || currentEntity.type === 'personal' || (currentEntity?.settings?.settings_tabs?.[tab.key]?.admin === true || currentEntity?.settings?.settings_tabs?.[tab.key]?.member === true);
                                             return (
                                                 <div key={tab.key} className={`flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-700 transition-colors ${isAllowedByCompany ? 'hover:bg-gray-50 dark:hover:bg-slate-700/50' : 'opacity-40'}`}>
                                                     <div className="flex items-center gap-3">
