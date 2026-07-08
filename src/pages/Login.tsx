@@ -262,8 +262,6 @@ export function Login() {
 
                             // Dynamic Plan Lookup
                             let planModules: any = null;
-                            let planProfileModules: any = null;
-                            let planSettingsTabs: any = null;
                             try {
                                 const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                                 if (settingsData?.landing_plans) {
@@ -272,14 +270,6 @@ export function Login() {
                                     );
                                     if (foundPlan) {
                                         planModules = foundPlan.modules;
-                                        // Use PJ-specific permissions if the user is registering as PJ
-                                        if (registrationType === 'PJ') {
-                                            planProfileModules = foundPlan.pj_profile_modules || null;
-                                            planSettingsTabs = foundPlan.pj_settings_tabs || null;
-                                        } else {
-                                            planProfileModules = foundPlan.profile_modules || null;
-                                            planSettingsTabs = foundPlan.settings_tabs || null;
-                                        }
                                     }
                                 }
                             } catch (err) {
