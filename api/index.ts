@@ -4073,6 +4073,59 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
     }
 });
 
+app.get(['/fiscal-module/migrate-pdf-urls', '/api/fiscal-module/migrate-pdf-urls'], async (req, res) => {
+    if (!SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_URL) {
+        return res.status(500).json({ error: 'Configuração do Supabase (Service Role) ausente no servidor.' });
+    }
+
+    try {
+        const dbHeaders = {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+        };
+
+        const selectUrl = `${SUPABASE_URL}/rest/v1/fiscal_invoices`;
+        const { data: invoices } = await axios.get(selectUrl, {
+            params: {
+                select: 'id,pdf_url,xml_url,type,company_id'
+            },
+            headers: dbHeaders
+        });
+
+        if (!invoices || invoices.length === 0) {
+            return res.json({ message: 'Nenhuma nota fiscal encontrada no banco de dados.' });
+        }
+
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.get('host');
+        const baseApiUrl = `${protocol}://${host}`;
+
+        let updatedCount = 0;
+        for (const inv of invoices) {
+            const hasDirectPdf = inv.pdf_url && (inv.pdf_url.includes('plugnotas.com.br') || !inv.pdf_url.startsWith(baseApiUrl));
+            if (hasDirectPdf) {
+                const usedType = inv.type || 'nfse';
+                const proxyPdf = `${baseApiUrl}/api/fiscal-module/${usedType}/${inv.id}/pdf?companyId=${inv.company_id}`;
+                const proxyXml = `${baseApiUrl}/api/fiscal-module/${usedType}/${inv.id}/xml?companyId=${inv.company_id}`;
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${inv.id}`, {
+                    pdf_url: proxyPdf,
+                    xml_url: proxyXml
+                }, {
+                    headers: dbHeaders
+                });
+                updatedCount++;
+            }
+        }
+
+        return res.json({ success: true, message: `Migração concluída com sucesso! ${updatedCount} notas foram atualizadas para usar o proxy do Lucro Certo.` });
+    } catch (err: any) {
+        console.error('❌ [MIGRATION] Erro ao migrar URLs de nota:', err.message);
+        return res.status(500).json({ error: 'Erro ao migrar URLs das notas', detail: err.message });
+    }
+});
+
 app.post(['/fiscal-module/test-webhook', '/api/fiscal-module/test-webhook'], authenticate, async (req, res) => {
     const { url, token, user } = req.body;
     
