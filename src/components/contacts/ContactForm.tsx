@@ -11,6 +11,7 @@ import { useAutoSave } from '../../hooks/useAutoSave';
 import { supabase } from '../../lib/supabase';
 import { useEntity } from '../../context/EntityContext';
 import { useLoyalty } from '../../hooks/useLoyalty';
+import { useAuth } from '../../context/AuthContext';
 
 interface ContactFormProps {
     isOpen: boolean;
@@ -42,6 +43,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const { notify } = useNotification();
     const { currentEntity } = useEntity();
     const { plans } = useLoyalty();
+    const { user } = useAuth();
     const [name, setName] = useState('');
     const [type, setType] = useState<'client' | 'supplier' | 'both'>('client');
     const [entityType, setEntityType] = useState<'PF' | 'PJ'>('PF');
@@ -77,6 +79,71 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [searchStreet, setSearchStreet] = useState('');
     const [cepResults, setCepResults] = useState<any[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
+    const [isFetchingTaxId, setIsFetchingTaxId] = useState(false);
+
+    const handleTaxIdLookup = async (value: string) => {
+        if (!user) return;
+        const clean = value.replace(/\D/g, '');
+        if (entityType === 'PF' && clean.length !== 11) return;
+        if (entityType === 'PJ' && clean.length !== 14) return;
+
+        setIsFetchingTaxId(true);
+        try {
+            // 1. Search in local contacts first (filtered by the user's scope)
+            const { data: localContact } = await supabase
+                .from('contacts')
+                .select('*')
+                .eq('tax_id', clean)
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (localContact) {
+                setName(localContact.name || '');
+                setEmail(localContact.email || '');
+                setPhone(formatPhoneFromDB(localContact.phone || ''));
+                setWhatsapp(formatPhoneFromDB(localContact.whatsapp || ''));
+                setBirthday(localContact.birthday || '');
+                setZipCode(localContact.zip_code || '');
+                setStreet(localContact.street || '');
+                setNumber(localContact.number || '');
+                setComplement(localContact.complement || '');
+                setNeighborhood(localContact.neighborhood || '');
+                setCity(localContact.city || '');
+                setState(localContact.state || '');
+                notify('info', 'Contato Encontrado', 'Os dados foram preenchidos a partir de um contato existente.');
+                return;
+            }
+
+            // 2. For PJ, if not found locally, fetch from BrasilAPI
+            if (entityType === 'PJ') {
+                const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.razao_social || data.nome_fantasia) {
+                        setName(data.razao_social || data.nome_fantasia || '');
+                    }
+                    if (data.email) setEmail(data.email);
+                    if (data.telefone) {
+                        const cleanTel = formatPhoneFromDB(data.telefone);
+                        setPhone(cleanTel);
+                        setWhatsapp(cleanTel);
+                    }
+                    if (data.cep) setZipCode(data.cep);
+                    if (data.logradouro) setStreet(data.logradouro);
+                    if (data.bairro) setNeighborhood(data.bairro);
+                    if (data.municipio) setCity(data.municipio);
+                    if (data.uf) setState(data.uf);
+                    if (data.numero && data.numero !== 'S/N') setNumber(data.numero);
+                    if (data.complemento) setComplement(data.complemento);
+                    notify('success', 'CNPJ Encontrado', 'Dados cadastrais importados com sucesso.');
+                }
+            }
+        } catch (err) {
+            console.error('Error looking up tax ID:', err);
+        } finally {
+            setIsFetchingTaxId(false);
+        }
+    };
 
     useEffect(() => {
         if (initialData) {
@@ -452,7 +519,19 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                                 setCnpj(formatCNPJ(val));
                             }
                         }}
+                        onBlur={e => handleTaxIdLookup(e.target.value)}
                         placeholder={entityType === 'PF' ? "000.000.000-00" : "00.000.000/0000-00"}
+                        rightElement={
+                            <button
+                                type="button"
+                                onClick={() => handleTaxIdLookup(entityType === 'PF' ? cpf : cnpj)}
+                                disabled={isFetchingTaxId}
+                                className="p-1 text-gray-400 hover:text-blue-500 disabled:opacity-50 transition-colors"
+                                title="Buscar dados"
+                            >
+                                <Search size={16} className={isFetchingTaxId ? "animate-spin" : ""} />
+                            </button>
+                        }
                     />
 
                     <Input
