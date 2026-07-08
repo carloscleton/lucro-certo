@@ -429,6 +429,9 @@ export function Login() {
                                 settings_tabs: fillMissingSettingsTabs(derivedSettingsTabs)
                             };
 
+                            // Update company: do NOT send settings here.
+                            // The BEFORE trigger (trg_sync_company_plan) fires on subscription_plan update
+                            // and computes the correct PF/PJ permissions based on entity_type automatically.
                             await supabase.from('companies').update({
                                 subscription_plan: checkoutPlan,
                                 next_billing_value: parseFloat(checkoutPrice || '0'),
@@ -436,7 +439,6 @@ export function Login() {
                                 trial_ends_at: trialEndsAt,
                                 phone: finalPhone,
                                 currency: selectedCurrency,
-                                settings: finalCompanySettings,
                                 fiscal_module_enabled: !!finalCompanyModules.fiscal_module_enabled,
                                 payments_module_enabled: !!finalCompanyModules.payments_module_enabled,
                                 crm_module_enabled: !!finalCompanyModules.crm_module_enabled,
@@ -448,9 +450,27 @@ export function Login() {
                                 warranty_module_enabled: !!finalCompanyModules.warranty_module_enabled
                             }).eq('id', newCompanyId);
 
-                             if (signUpData?.user?.id) {
-                                 await supabase.from('profiles').update({ settings: finalProfileSettings }).eq('id', signUpData.user.id);
-                             }
+                            // Now read the settings that the trigger computed and apply them to the user profile
+                            if (signUpData?.user?.id) {
+                                const { data: updatedCompany } = await supabase
+                                    .from('companies')
+                                    .select('settings')
+                                    .eq('id', newCompanyId)
+                                    .maybeSingle();
+
+                                const triggerComputedSettings = updatedCompany?.settings || {};
+
+                                const profileSettings = {
+                                    subscription_plan: checkoutPlan,
+                                    modules: triggerComputedSettings.modules || {},
+                                    settings_tabs: triggerComputedSettings.settings_tabs || {}
+                                };
+
+                                await supabase
+                                    .from('profiles')
+                                    .update({ settings: profileSettings })
+                                    .eq('id', signUpData.user.id);
+                            }
 
                             if (isTrial) {
                                 setLoading(false);
