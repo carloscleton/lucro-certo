@@ -5,6 +5,7 @@ import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { useEntity } from '../../context/EntityContext';
 import { useContacts } from '../../hooks/useContacts';
+import { ContactForm } from '../contacts/ContactForm';
 import { fiscalService } from '../../services/fiscalService';
 import { whatsappService } from '../../services/whatsappService';
 import { supabase } from '../../lib/supabase';
@@ -43,7 +44,7 @@ interface InvoiceItem {
 
 export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initialType, initialNotes }: StandaloneInvoiceModalProps) {
     const { currentEntity, availableEntities, switchEntity } = useEntity();
-    const { contacts } = useContacts();
+    const { contacts, addContact } = useContacts();
     const { companies } = useCompanies();
     const { services } = useServices();
     const { products } = useProducts();
@@ -78,6 +79,36 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const [items, setItems] = useState<InvoiceItem[]>(initialData?.items || [
         { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }
     ]);
+    const [showContactModal, setShowContactModal] = useState(false);
+
+    const handleContactCreated = async (contactData: any) => {
+        try {
+            const newContact = await addContact({
+                name: contactData.name,
+                type: contactData.type,
+                entity_type: contactData.entity_type,
+                email: contactData.email || '',
+                phone: contactData.phone || '',
+                whatsapp: contactData.whatsapp || '',
+                tax_id: contactData.tax_id || '',
+                zip_code: contactData.zip_code || '',
+                street: contactData.street || '',
+                number: contactData.number || '',
+                complement: contactData.complement || '',
+                neighborhood: contactData.neighborhood || '',
+                city: contactData.city || '',
+                state: contactData.state || '',
+                birthday: contactData.birthday || null
+            });
+            
+            if (newContact?.id) {
+                setContactId(newContact.id);
+                setShowContactModal(false);
+            }
+        } catch (error) {
+            console.error('Error creating contact:', error);
+        }
+    };
     const [sendEmail, setSendEmail] = useState(false);
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
@@ -1155,7 +1186,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cliente / Destinatário</label>
+                        <div className="flex items-center justify-between ml-1">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cliente / Destinatário</label>
+                            <button type="button" onClick={() => setShowContactModal(true)} className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-0.5">
+                                <Plus size={12} /> Novo
+                            </button>
+                        </div>
                         <select
                             value={contactId}
                             onChange={(e) => setContactId(e.target.value)}
@@ -1539,6 +1575,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 type={resultModal.type}
                 data={resultModal.data}
                 action={resultModal.action}
+            />
+
+            <ContactForm 
+                isOpen={showContactModal} 
+                onClose={() => setShowContactModal(false)} 
+                onSubmit={handleContactCreated} 
             />
         </Modal>
     );
