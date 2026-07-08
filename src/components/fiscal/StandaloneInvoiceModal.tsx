@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -44,7 +44,7 @@ interface InvoiceItem {
 
 export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initialType, initialNotes }: StandaloneInvoiceModalProps) {
     const { currentEntity, availableEntities, switchEntity } = useEntity();
-    const { contacts, addContact } = useContacts();
+    const { contacts, addContact, updateContact } = useContacts();
     const { companies } = useCompanies();
     const { services } = useServices();
     const { products } = useProducts();
@@ -80,33 +80,84 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }
     ]);
     const [showContactModal, setShowContactModal] = useState(false);
+    const [editingContact, setEditingContact] = useState<any>(null);
 
-    const handleContactCreated = async (contactData: any) => {
+    const selectedContact = useMemo(() => {
+        return contacts.find(c => c.id === contactId);
+    }, [contacts, contactId]);
+
+    const contactValidation = useMemo(() => {
+        if (!selectedContact) return null;
+        
+        const missingFields: string[] = [];
+        if (!selectedContact.tax_id) {
+            missingFields.push(selectedContact.entity_type === 'PJ' ? 'CNPJ' : 'CPF');
+        }
+        if (!selectedContact.zip_code) missingFields.push('CEP');
+        if (!selectedContact.street) missingFields.push('Logradouro');
+        if (!selectedContact.neighborhood) missingFields.push('Bairro');
+        if (!selectedContact.city) missingFields.push('Cidade');
+        if (!selectedContact.state) missingFields.push('UF');
+
+        if (missingFields.length > 0) {
+            return {
+                isValid: false,
+                message: `Dados obrigatórios para emissão estão ausentes: ${missingFields.join(', ')}.`,
+                missingFields
+            };
+        }
+        return { isValid: true };
+    }, [selectedContact]);
+
+    const handleContactSubmit = async (contactData: any) => {
         try {
-            const newContact = await addContact({
-                name: contactData.name,
-                type: contactData.type,
-                entity_type: contactData.entity_type,
-                email: contactData.email || '',
-                phone: contactData.phone || '',
-                whatsapp: contactData.whatsapp || '',
-                tax_id: contactData.tax_id || '',
-                zip_code: contactData.zip_code || '',
-                street: contactData.street || '',
-                number: contactData.number || '',
-                complement: contactData.complement || '',
-                neighborhood: contactData.neighborhood || '',
-                city: contactData.city || '',
-                state: contactData.state || '',
-                birthday: contactData.birthday || null
-            });
+            let contactResult;
+            if (editingContact?.id) {
+                contactResult = await updateContact(editingContact.id, {
+                    name: contactData.name,
+                    type: contactData.type,
+                    entity_type: contactData.entity_type,
+                    email: contactData.email || '',
+                    phone: contactData.phone || '',
+                    whatsapp: contactData.whatsapp || '',
+                    tax_id: contactData.tax_id || '',
+                    zip_code: contactData.zip_code || '',
+                    street: contactData.street || '',
+                    number: contactData.number || '',
+                    complement: contactData.complement || '',
+                    neighborhood: contactData.neighborhood || '',
+                    city: contactData.city || '',
+                    state: contactData.state || '',
+                    birthday: contactData.birthday || null
+                });
+            } else {
+                contactResult = await addContact({
+                    name: contactData.name,
+                    type: contactData.type,
+                    entity_type: contactData.entity_type,
+                    email: contactData.email || '',
+                    phone: contactData.phone || '',
+                    whatsapp: contactData.whatsapp || '',
+                    tax_id: contactData.tax_id || '',
+                    zip_code: contactData.zip_code || '',
+                    street: contactData.street || '',
+                    number: contactData.number || '',
+                    complement: contactData.complement || '',
+                    neighborhood: contactData.neighborhood || '',
+                    city: contactData.city || '',
+                    state: contactData.state || '',
+                    birthday: contactData.birthday || null
+                });
+            }
             
-            if (newContact?.id) {
-                setContactId(newContact.id);
+            const finalId = editingContact?.id || contactResult?.id;
+            if (finalId) {
+                setContactId(finalId);
                 setShowContactModal(false);
+                setEditingContact(null);
             }
         } catch (error) {
-            console.error('Error creating contact:', error);
+            console.error('Error saving contact:', error);
         }
     };
     const [sendEmail, setSendEmail] = useState(false);
@@ -424,8 +475,16 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         }
 
         const contact = contacts.find(c => c.id === contactId);
-        if (!contact?.tax_id) {
+        if (!contact) {
+            setError('Selecione um cliente válido.');
+            return;
+        }
+        if (!contact.tax_id) {
             setError('O cliente selecionado não possui CPF/CNPJ cadastrado.');
+            return;
+        }
+        if (!contact.zip_code || !contact.street || !contact.neighborhood || !contact.city || !contact.state) {
+            setError('O cliente selecionado possui dados de endereço incompletos (CEP, logradouro, bairro, cidade, estado são obrigatórios para emissão).');
             return;
         }
 
@@ -1188,9 +1247,31 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between ml-1">
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cliente / Destinatário</label>
-                            <button type="button" onClick={() => setShowContactModal(true)} className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-0.5">
-                                <Plus size={12} /> Novo
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {contactId && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => {
+                                            setEditingContact(contacts.find(c => c.id === contactId) || null);
+                                            setShowContactModal(true);
+                                        }} 
+                                        className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-0.5"
+                                        title="Editar cliente selecionado"
+                                    >
+                                        <Pencil size={12} /> Editar
+                                    </button>
+                                )}
+                                <button 
+                                    type="button" 
+                                    onClick={() => {
+                                        setEditingContact(null);
+                                        setShowContactModal(true);
+                                    }} 
+                                    className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-0.5"
+                                >
+                                    <Plus size={12} /> Novo
+                                </button>
+                            </div>
                         </div>
                         <select
                             value={contactId}
@@ -1203,6 +1284,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 <option key={c.id} value={c.id}>{c.name} {c.tax_id ? `(${c.tax_id})` : ''}</option>
                             ))}
                         </select>
+                        {contactValidation && !contactValidation.isValid && (
+                            <div className="flex gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 rounded-xl border border-amber-100 dark:border-amber-950/10 text-xs mt-1.5 animate-fadeIn">
+                                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-bold">{contactValidation.message}</p>
+                                    <p className="text-[10px] opacity-80 mt-0.5">Clique em "Editar" para preencher esses dados antes de emitir a nota.</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="md:col-span-2">
@@ -1579,8 +1669,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
             <ContactForm 
                 isOpen={showContactModal} 
-                onClose={() => setShowContactModal(false)} 
-                onSubmit={handleContactCreated} 
+                onClose={() => {
+                    setShowContactModal(false);
+                    setEditingContact(null);
+                }} 
+                onSubmit={handleContactSubmit} 
+                initialData={editingContact}
             />
         </Modal>
     );
