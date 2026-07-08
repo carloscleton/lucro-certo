@@ -416,19 +416,6 @@ export function Login() {
                             const derivedProfileModules = planProfileModules || (registrationType === 'PJ' ? getCompanyProfileModules(finalCompanyModules) : defaultProfileModules);
                             const derivedSettingsTabs = planSettingsTabs || (registrationType === 'PJ' ? getCompanySettingsTabs(finalCompanyModules) : defaultSettingsTabs);
 
-                            const finalProfileSettings = {
-                                subscription_plan: checkoutPlan,
-                                modules: fillMissingProfileModules(derivedProfileModules),
-                                settings_tabs: fillMissingSettingsTabs(derivedSettingsTabs)
-                            };
-
-                            const finalCompanySettings = {
-                                subscription_plan: checkoutPlan,
-                                trial_ends_at: trialEndsAt,
-                                modules: fillMissingProfileModules(derivedProfileModules),
-                                settings_tabs: fillMissingSettingsTabs(derivedSettingsTabs)
-                            };
-
                             // Update company: do NOT send settings here.
                             // The BEFORE trigger (trg_sync_company_plan) fires on subscription_plan update
                             // and computes the correct PF/PJ permissions based on entity_type automatically.
