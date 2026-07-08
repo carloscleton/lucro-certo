@@ -272,8 +272,14 @@ export function Login() {
                                     );
                                     if (foundPlan) {
                                         planModules = foundPlan.modules;
-                                        planProfileModules = foundPlan.profile_modules;
-                                        planSettingsTabs = foundPlan.settings_tabs;
+                                        // Use PJ-specific permissions if the user is registering as PJ
+                                        if (registrationType === 'PJ') {
+                                            planProfileModules = foundPlan.pj_profile_modules || null;
+                                            planSettingsTabs = foundPlan.pj_settings_tabs || null;
+                                        } else {
+                                            planProfileModules = foundPlan.profile_modules || null;
+                                            planSettingsTabs = foundPlan.settings_tabs || null;
+                                        }
                                     }
                                 }
                             } catch (err) {
@@ -447,8 +453,9 @@ export function Login() {
                              }
 
                             if (isTrial) {
-                                navigate('/dashboard');
                                 setLoading(false);
+                                // Force a full page reload so the app context picks up the new settings
+                                window.location.href = '/dashboard';
                                 return;
                             }
 
