@@ -262,6 +262,8 @@ export function Login() {
 
                             // Dynamic Plan Lookup
                             let planModules: any = null;
+                            let planProfileModules: any = null;
+                            let planSettingsTabs: any = null;
                             try {
                                 const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                                 if (settingsData?.landing_plans) {
@@ -270,6 +272,10 @@ export function Login() {
                                     );
                                     if (foundPlan) {
                                         planModules = foundPlan.modules;
+                                        // The user profile settings represent the PF/Personal environment,
+                                        // so it must always get the PF permissions from the plan (profile_modules/settings_tabs).
+                                        planProfileModules = foundPlan.profile_modules || null;
+                                        planSettingsTabs = foundPlan.settings_tabs || null;
                                     }
                                 }
                             } catch (err) {
@@ -312,20 +318,68 @@ export function Login() {
                                 warranty_module_enabled: !!finalCompanyModules.warranty_module_enabled
                             }).eq('id', newCompanyId);
 
-                            // Now read the settings that the trigger computed and apply them to the user profile
+                            // Now update the user profile with the plan's PF settings
                             if (signUpData?.user?.id) {
-                                const { data: updatedCompany } = await supabase
-                                    .from('companies')
-                                    .select('settings')
-                                    .eq('id', newCompanyId)
-                                    .maybeSingle();
+                                const defaultProfileModules = {
+                                    dashboard: { admin: true, member: true },
+                                    receivables: { admin: true, member: true },
+                                    payables: { admin: true, member: true },
+                                    categories: { admin: true, member: true },
+                                    reports: { admin: true, member: true },
+                                    whatsapp: { admin: true, member: true },
+                                    settings: { admin: true, member: false }
+                                };
 
-                                const triggerComputedSettings = updatedCompany?.settings || {};
+                                const defaultSettingsTabs = {
+                                    quotes: { admin: true, member: false },
+                                    financial: { admin: true, member: false },
+                                    team: { admin: true, member: false },
+                                    webhooks: { admin: true, member: false },
+                                    whatsapp: { admin: true, member: false },
+                                    payments: { admin: true, member: false },
+                                    banking: { admin: true, member: false },
+                                    automations: { admin: true, member: false },
+                                    fiscal: { admin: true, member: false },
+                                    subscription: { admin: true, member: false },
+                                    platform: { admin: true, member: false }
+                                };
+
+                                const fillMissingProfileModules = (mods: any) => {
+                                    const result = { ...mods };
+                                    const keys = ['dashboard', 'quotes', 'receivables', 'payables', 'invoices', 'categories', 'companies', 'contacts', 'services', 'products', 'whatsapp', 'payments', 'crm', 'agenda', 'marketing', 'lead_radar', 'loyalty', 'commissions', 'reports', 'settings'];
+                                    keys.forEach(key => {
+                                        if (!result[key]) {
+                                            result[key] = { admin: false, member: false };
+                                        } else {
+                                            result[key] = {
+                                                admin: result[key].admin === true,
+                                                member: result[key].member === true
+                                            };
+                                        }
+                                    });
+                                    return result;
+                                };
+
+                                const fillMissingSettingsTabs = (tabs: any) => {
+                                    const result = { ...tabs };
+                                    const keys = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'payments', 'banking', 'automations', 'fiscal', 'subscription', 'platform'];
+                                    keys.forEach(key => {
+                                        if (!result[key]) {
+                                            result[key] = { admin: false, member: false };
+                                        } else {
+                                            result[key] = {
+                                                admin: result[key].admin === true,
+                                                member: result[key].member === true
+                                            };
+                                        }
+                                    });
+                                    return result;
+                                };
 
                                 const profileSettings = {
                                     subscription_plan: checkoutPlan,
-                                    modules: triggerComputedSettings.modules || {},
-                                    settings_tabs: triggerComputedSettings.settings_tabs || {}
+                                    modules: planProfileModules ? fillMissingProfileModules(planProfileModules) : defaultProfileModules,
+                                    settings_tabs: planSettingsTabs ? fillMissingSettingsTabs(planSettingsTabs) : defaultSettingsTabs
                                 };
 
                                 await supabase
