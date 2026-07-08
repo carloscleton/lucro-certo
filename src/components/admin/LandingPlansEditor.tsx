@@ -551,7 +551,7 @@ export function LandingPlansEditor() {
                                                      </tr>
                                                  </thead>
                                                  <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                                                     {APP_MODULES.filter(m => !['settings'].includes(m.key)).map((mod) => {
+                                                    {APP_MODULES.map((mod) => {
                                                          const adminEnabled = plan.profile_modules?.[mod.key]?.admin === true;
                                                          const memberEnabled = plan.profile_modules?.[mod.key]?.member === true;
                                                          return (
@@ -649,7 +649,7 @@ export function LandingPlansEditor() {
                                                      </tr>
                                                  </thead>
                                                  <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                                                     {APP_MODULES.filter(m => !['settings'].includes(m.key)).map((mod) => {
+                                                    {APP_MODULES.map((mod) => {
                                                          const adminEnabled = plan.pj_profile_modules?.[mod.key]?.admin === true;
                                                          const memberEnabled = plan.pj_profile_modules?.[mod.key]?.member === true;
                                                          return (
