@@ -4012,12 +4012,23 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
              }
          };
  
+         const getValidDocUrl = (docType: 'pdf' | 'xml') => {
+             const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+             const host = req.get('host');
+             const baseApiUrl = `${protocol}://${host}`;
+             const usedType = invoice.type || 'nfse';
+             return `${baseApiUrl}/api/fiscal-module/${usedType}/${invoice.id}/${docType}?companyId=${invoice.company_id}`;
+         };
+
+         const proxyPdfUrl = getValidDocUrl('pdf');
+         const proxyXmlUrl = getValidDocUrl('xml');
+
          // 2. Atualizar a nota no Supabase usando a mesma autenticação
          const updateUrl = `${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${invoice.id}`;
          await axios.patch(updateUrl, {
              status: mappedStatus,
-             pdf_url: finalPdfUrl,
-             xml_url: finalXmlUrl,
+             pdf_url: proxyPdfUrl,
+             xml_url: proxyXmlUrl,
              invoice_number: invoice_number ? String(invoice_number) : null,
              access_key: access_key ? String(access_key) : null,
              dps_number: dps_number ? String(dps_number) : null,
@@ -4037,8 +4048,8 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
                  const quoteUpdateUrl = `${SUPABASE_URL}/rest/v1/quotes?id=eq.${invoice.quote_id}`;
                  await axios.patch(quoteUpdateUrl, {
                      nfe_status: mappedStatus,
-                     nfe_pdf_url: finalPdfUrl,
-                     nfe_xml_url: finalXmlUrl,
+                     nfe_pdf_url: proxyPdfUrl,
+                     nfe_xml_url: proxyXmlUrl,
                      nfe_error: error_message || null
                  }, {
                      headers: dbHeaders
@@ -4050,15 +4061,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
          }
          // 4. Automação de WhatsApp (apenas se foi autorizado/concluído e a empresa estiver configurada para envio automático)
          if (mappedStatus === 'concluido' && invoice.company_id) {
-             let resolvedPdfUrl = finalPdfUrl;
-             if (!resolvedPdfUrl) {
-                 const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-                 const host = req.get('host');
-                 const baseApiUrl = `${protocol}://${host}`;
-                 const usedType = invoice.type || 'nfse';
-                 resolvedPdfUrl = `${baseApiUrl}/api/fiscal-module/${usedType}/${invoice.id}/pdf?companyId=${invoice.company_id}`;
-             }
-             triggerWhatsAppNotificationHelper(invoice.id, resolvedPdfUrl, invoice_number ? String(invoice_number) : '', mappedStatus, authHeader);
+             triggerWhatsAppNotificationHelper(invoice.id, proxyPdfUrl, invoice_number ? String(invoice_number) : '', mappedStatus, authHeader);
          }
          
          console.log(`   [WEBHOOK-UPDATE] Nota ${targetId} atualizada com sucesso para '${mappedStatus}'`);
