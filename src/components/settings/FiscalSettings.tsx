@@ -1753,16 +1753,20 @@ export function FiscalSettings() {
                 : (config.endereco?.cidade || (isNacional ? "Belo Horizonte" : "Maringa")));
 
         const isRegimeNormal = config.regime_tributario === '3';
+        const isSimples = ['1', '2', '4'].includes(String(config.regime_tributario || ''));
+        const defaultAliquota = parseFloat((isSimples ? config.simples_nacional_aliquota : config.default_iss_aliquota) || '0');
+        const defaultTipoTributacao = parseInt(config.regime_tributario || '1');
+
         const serviceItem: any = {
             codigo: isNfeio 
                 ? (nfeioConfig.cityServiceCode || nfeioConfig.cnae || "1.01")
                 : (isNacional ? "010101" : "01.01"),
             discriminacao: isNfeio ? "Prestação de serviço de teste via NFe.io" : "Descrição dos serviços prestados via Laboratório JSON",
             iss: {
-                tipoTributacao: isNfeio ? 1 : (isNacional ? 1 : 6),
+                tipoTributacao: isNfeio ? 1 : defaultTipoTributacao,
                 exigibilidade: 1,
                 retido: false,
-                aliquota: isNfeio ? parseFloat(nfeioConfig.aliquotaIss || '2.00') : (isNacional ? parseFloat(config.simples_nacional_aliquota || '2.00') : 2)
+                aliquota: isNfeio ? parseFloat(nfeioConfig.aliquotaIss || '2.00') : defaultAliquota
             },
             valor: {
                 servico: 100.00
