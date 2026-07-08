@@ -286,33 +286,6 @@ export function Login() {
                                 console.error('Error fetching plan modules:', err);
                             }
 
-                            // Default Sidebar (User)
-                            const defaultProfileModules = {
-                                dashboard: { admin: true, member: true },
-                                receivables: { admin: true, member: true },
-                                payables: { admin: true, member: true },
-                                categories: { admin: true, member: true },
-                                reports: { admin: true, member: true },
-                                whatsapp: { admin: true, member: true },
-                                settings: { admin: true, member: false }
-                            };
-
-                            // Default Settings Tabs (Configuration)
-                            const defaultSettingsTabs = {
-                                quotes: { admin: true, member: false },
-                                financial: { admin: true, member: false },
-                                team: { admin: true, member: false },
-                                webhooks: { admin: true, member: false },
-                                whatsapp: { admin: true, member: false },
-                                payments: { admin: true, member: false },
-                                banking: { admin: true, member: false },
-                                automations: { admin: true, member: false },
-                                fiscal: { admin: true, member: false },
-                                subscription: { admin: true, member: false },
-                                platform: { admin: true, member: false }
-                            };
-
-                            // Default Functional (Company)
                             const defaultCompanyModules = {
                                 fiscal_module_enabled: true,
                                 payments_module_enabled: false,
@@ -325,96 +298,8 @@ export function Login() {
                                 warranty_module_enabled: false
                             };
 
-                            const fillMissingProfileModules = (mods: any) => {
-                                const allKeys = [
-                                    'quotes', 'receivables', 'payables', 'invoices', 'categories', 
-                                    'companies', 'contacts', 'services', 'products', 'whatsapp', 
-                                    'payments', 'crm', 'agenda', 'marketing', 'lead_radar', 
-                                    'loyalty', 'commissions', 'reports'
-                                ];
-                                const result = { 
-                                    dashboard: { admin: true, member: true },
-                                    settings: { admin: true, member: false },
-                                    ...(mods || {}) 
-                                };
-                                allKeys.forEach(key => {
-                                    if (!result[key] || typeof result[key] !== 'object') {
-                                        result[key] = { admin: false, member: false };
-                                    } else {
-                                        result[key] = {
-                                            admin: result[key].admin === true,
-                                            member: result[key].member === true
-                                        };
-                                    }
-                                });
-                                return result;
-                            };
-
-                            const fillMissingSettingsTabs = (tabs: any) => {
-                                const allKeys = [
-                                    'quotes', 'financial', 'team', 'webhooks', 'whatsapp', 
-                                    'payments', 'banking', 'automations', 'fiscal', 'subscription', 'platform'
-                                ];
-                                const result = { ...(tabs || {}) };
-                                allKeys.forEach(key => {
-                                    if (!result[key] || typeof result[key] !== 'object') {
-                                        result[key] = { admin: false, member: false };
-                                    } else {
-                                        result[key] = {
-                                            admin: result[key].admin === true,
-                                            member: result[key].member === true
-                                        };
-                                    }
-                                });
-                                return result;
-                            };
-
-                            const getCompanyProfileModules = (planModules: any) => {
-                                return {
-                                    dashboard: { admin: true, member: true },
-                                    quotes: { admin: true, member: true },
-                                    receivables: { admin: true, member: true },
-                                    payables: { admin: true, member: true },
-                                    invoices: { admin: planModules?.fiscal_module_enabled === true, member: planModules?.fiscal_module_enabled === true },
-                                    categories: { admin: true, member: true },
-                                    companies: { admin: true, member: true },
-                                    contacts: { admin: true, member: true },
-                                    services: { admin: true, member: true },
-                                    products: { admin: true, member: true },
-                                    whatsapp: { admin: true, member: true },
-                                    payments: { admin: planModules?.payments_module_enabled === true, member: planModules?.payments_module_enabled === true },
-                                    crm: { admin: planModules?.crm_module_enabled === true, member: planModules?.crm_module_enabled === true },
-                                    agenda: { admin: true, member: true },
-                                    marketing: { admin: planModules?.has_social_copilot === true, member: planModules?.has_social_copilot === true },
-                                    lead_radar: { admin: planModules?.has_lead_radar === true, member: false },
-                                    loyalty: { admin: planModules?.loyalty_module_enabled === true, member: false },
-                                    commissions: { admin: true, member: false },
-                                    reports: { admin: true, member: false },
-                                    settings: { admin: true, member: false }
-                                };
-                            };
-
-                            const getCompanySettingsTabs = (planModules: any) => {
-                                return {
-                                    quotes: { admin: true, member: false },
-                                    financial: { admin: true, member: false },
-                                    team: { admin: true, member: false },
-                                    webhooks: { admin: true, member: false },
-                                    whatsapp: { admin: true, member: false },
-                                    payments: { admin: planModules?.payments_module_enabled === true, member: false },
-                                    banking: { admin: planModules?.banking_module_enabled === true, member: false },
-                                    automations: { admin: planModules?.automations_module_enabled === true, member: false },
-                                    fiscal: { admin: planModules?.fiscal_module_enabled === true, member: false },
-                                    loyalty: { admin: planModules?.loyalty_module_enabled === true, member: false },
-                                    subscription: { admin: true, member: false },
-                                    platform: { admin: false, member: false }
-                                };
-                            };
-
                             const finalCompanyModules = planModules || defaultCompanyModules;
 
-                            const derivedProfileModules = planProfileModules || (registrationType === 'PJ' ? getCompanyProfileModules(finalCompanyModules) : defaultProfileModules);
-                            const derivedSettingsTabs = planSettingsTabs || (registrationType === 'PJ' ? getCompanySettingsTabs(finalCompanyModules) : defaultSettingsTabs);
 
                             // Update company: do NOT send settings here.
                             // The BEFORE trigger (trg_sync_company_plan) fires on subscription_plan update
