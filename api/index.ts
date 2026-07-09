@@ -2865,6 +2865,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
         // Obter o tipo real da nota no banco de dados para garantir o roteamento correto (NFe.io vs TecnoSpeed)
         let resolvedType = type;
+        let resolvedStatus = '';
         let dbFound = false;
         if (id && SUPABASE_URL) {
             try {
@@ -2872,13 +2873,14 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const dbKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                 const dbAuth = authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`;
                 const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                    params: { ...queryParam, select: 'type' },
+                    params: { ...queryParam, select: 'type,status' },
                     headers: { 'apikey': dbKey, 'Authorization': dbAuth }
                 });
-                if (invData?.[0]?.type) {
-                    resolvedType = invData[0].type;
+                if (invData?.[0]) {
+                    resolvedType = invData[0].type || type;
+                    resolvedStatus = invData[0].status || '';
                     dbFound = true;
-                    console.log(`🔍 [FISCAL-DOWNLOAD] Tipo real resolvido no banco: ${resolvedType} para ID: ${id}`);
+                    console.log(`🔍 [FISCAL-DOWNLOAD] Tipo real resolvido no banco: ${resolvedType} | Status: ${resolvedStatus} para ID: ${id}`);
                 }
             } catch (dbErr: any) {
                 console.warn('⚠️ [FISCAL-DOWNLOAD] Não foi possível verificar o tipo da nota no banco:', dbErr.message);
@@ -3051,7 +3053,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 }
             }
 
-            if (isNfseEndpoint && is404 && !dbFound) {
+            if (isNfseEndpoint && is404 && (!dbFound || String(resolvedStatus).toLowerCase() !== 'processando')) {
                 const fallbackType = primaryType === 'nfse' ? 'nfse/nacional' : 'nfse';
                 console.log(`⚠️ [FISCAL-DOWNLOAD] Não encontrado em ${primaryType}. Tentando fallback em ${fallbackType}...`);
                 try {
