@@ -5603,19 +5603,16 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
 
             for (const provider of providers) {
                 const isActive = provider === activeProvider;
-                const billingConfig = settings.admin_fiscal_billing?.[provider] || {};
+                
+                const billingConfig = settings.admin_fiscal_billing || {};
+                const isFixedEnabled = billingConfig.fixed_enabled ?? true;
+                const isTieredEnabled = !!billingConfig.tiered_enabled;
+                const tiers = billingConfig.tiers || [];
 
                 let fixedFeeToApply = 0.00;
-                if (isActive) {
-                    const fixedFee = typeof billingConfig.fixed_fee === 'number' 
-                        ? billingConfig.fixed_fee 
-                        : (settings.monthly_fee ?? 30.00);
-                    fixedFeeToApply = isExempt ? 0.00 : fixedFee;
-                }
-
-                const perNoteFee = typeof billingConfig.per_note_fee === 'number' 
-                    ? billingConfig.per_note_fee 
-                    : 0.50;
+                let notesCost = 0.00;
+                let appliedPerNoteFee = 0.50;
+                let tieredBreakdown: any[] = [];
 
                 const providerInvoices = invoices.filter(inv => {
                     const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
@@ -5623,12 +5620,55 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                 });
 
                 const notesCount = providerInvoices.filter(inv => 
-                    ['concluido', 'autorizada', 'concluído'].includes(String(inv.status).toLowerCase())
+                    ['concluido', 'autorizada', 'concluído', 'autorizado'].includes(String(inv.status).toLowerCase())
                 ).length;
 
                 const canceledCount = providerInvoices.filter(inv => 
                     ['cancelado', 'cancelada'].includes(String(inv.status).toLowerCase())
                 ).length;
+
+                const totalNotes = notesCount + canceledCount;
+
+                // 1. Fixed + Addon calculation
+                if (isFixedEnabled) {
+                    const providerConfig = billingConfig[provider] || {};
+                    if (isActive) {
+                        const fixedFee = typeof providerConfig.fixed_fee === 'number' 
+                            ? providerConfig.fixed_fee 
+                            : (settings.monthly_fee ?? 30.00);
+                        fixedFeeToApply = isExempt ? 0.00 : fixedFee;
+                    }
+
+                    appliedPerNoteFee = typeof providerConfig.per_note_fee === 'number' 
+                        ? providerConfig.per_note_fee 
+                        : 0.50;
+
+                    notesCost += totalNotes * appliedPerNoteFee;
+                } else {
+                    appliedPerNoteFee = 0;
+                }
+
+                // 2. Tiered calculation
+                if (isTieredEnabled && tiers.length > 0) {
+                    const sortedTiers = [...tiers].sort((a, b) => Number(a.from) - Number(b.from));
+                    for (const tier of sortedTiers) {
+                        const tierFrom = Number(tier.from);
+                        const tierTo = Number(tier.to || 999999);
+                        const price = Number(tier.price);
+                        const notesInTier = Math.max(0, Math.min(totalNotes, tierTo) - tierFrom + 1);
+                        if (notesInTier > 0) {
+                            const cost = notesInTier * price;
+                            notesCost += cost;
+                            tieredBreakdown.push({
+                                from: tierFrom,
+                                to: tierTo,
+                                price,
+                                count: notesInTier,
+                                cost
+                            });
+                        }
+                    }
+                }
 
                 // Skip row if there is no fixed fee and no activity (both issued and canceled are 0)
                 if (fixedFeeToApply <= 0 && notesCount === 0 && canceledCount === 0) {
@@ -5657,7 +5697,6 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                     issuerStatus = 'Histórico (Inativo) ⚠️';
                 }
 
-                const notesCost = (notesCount + canceledCount) * perNoteFee;
                 const totalSuggested = fixedFeeToApply + notesCost;
 
                 simulationResults.push({
@@ -5668,13 +5707,17 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                     isActiveProvider: isActive,
                     issuerStatus,
                     fixedFee: fixedFeeToApply,
-                    perNoteFee,
+                    perNoteFee: appliedPerNoteFee,
                     notesCount,
                     canceledCount,
                     notesCost,
                     commissions: 0,
                     totalSuggested,
-                    isExempt
+                    isExempt,
+                    isTiered: isTieredEnabled,
+                    tieredBreakdown,
+                    fixedEnabled: isFixedEnabled,
+                    tieredEnabled: isTieredEnabled
                 });
             }
         }

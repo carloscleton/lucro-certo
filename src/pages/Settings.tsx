@@ -580,7 +580,11 @@ export function Settings() {
         // Summary financial card
         doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
         doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 40, 'FD');
+
+        const hasTiers = sim.isTiered && sim.tieredBreakdown && sim.tieredBreakdown.length > 0;
+        const summaryCardHeight = hasTiers ? 42 + (sim.tieredBreakdown.length * 6) : 40;
+
+        doc.rect(margin, yPos, pageWidth - (margin * 2), summaryCardHeight, 'FD');
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
@@ -591,24 +595,47 @@ export function Settings() {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(textColor[0], textColor[1], textColor[2]);
         
-        const fixedFeeStr = sim.isExempt
-            ? 'Isento'
-            : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee || 0);
-        doc.text(`Taxa de Mensalidade Fixa:`, margin + 5, yPos + 18);
-        doc.text(fixedFeeStr, pageWidth - margin - 5, yPos + 18, { align: 'right' });
+        let currentY = yPos + 18;
+
+        if (sim.fixedFee > 0 || !hasTiers) {
+            const fixedFeeStr = sim.isExempt
+                ? 'Isento'
+                : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.fixedFee || 0);
+            doc.text(`Taxa de Mensalidade Fixa:`, margin + 5, currentY);
+            doc.text(fixedFeeStr, pageWidth - margin - 5, currentY, { align: 'right' });
+            currentY += 7;
+        }
 
         const totalNotesCount = sim.notesCount + (sim.canceledCount || 0);
-        const perNoteStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee);
-        const notesCostStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.notesCost);
-        doc.text(`Taxa por Notas (${totalNotesCount} notas x ${perNoteStr}/nota):`, margin + 5, yPos + 25);
-        doc.text(notesCostStr, pageWidth - margin - 5, yPos + 25, { align: 'right' });
+
+        if (hasTiers) {
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Taxa por Notas (Modelo de Faixas - Total ${totalNotesCount} notas):`, margin + 5, currentY);
+            currentY += 6;
+            
+            doc.setFont('helvetica', 'normal');
+            sim.tieredBreakdown.forEach((t: any) => {
+                const rangeLabel = t.to >= 999999 ? `Acima de ${t.from - 1} notas` : `Faixa ${t.from} a ${t.to} notas`;
+                const priceStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.price);
+                const tierCostStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.cost);
+                doc.text(`  • ${rangeLabel} (${t.count} notas x ${priceStr}):`, margin + 5, currentY);
+                doc.text(tierCostStr, pageWidth - margin - 5, currentY, { align: 'right' });
+                currentY += 6;
+            });
+        } else {
+            const perNoteStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee);
+            const notesCostStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.notesCost);
+            doc.text(`Taxa por Notas (${totalNotesCount} notas x ${perNoteStr}/nota):`, margin + 5, currentY);
+            doc.text(notesCostStr, pageWidth - margin - 5, currentY, { align: 'right' });
+            currentY += 7;
+        }
 
         // Total suggested row
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.text(`TOTAL A PAGAR DESTA APURAÇÃO:`, margin + 5, yPos + 33);
+        doc.text(`TOTAL A PAGAR DESTA APURAÇÃO:`, margin + 5, currentY + 2);
         const totalSuggestedStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.totalSuggested);
-        doc.text(totalSuggestedStr, pageWidth - margin - 5, yPos + 33, { align: 'right' });
+        doc.text(totalSuggestedStr, pageWidth - margin - 5, currentY + 2, { align: 'right' });
 
         // Save file
         const fileName = `Apuracao_Fiscal_${sim.tradeName.replace(/\s+/g, '_')}_${sim.provider}.pdf`;
@@ -2769,19 +2796,23 @@ export function Settings() {
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-gray-900 dark:text-white">Taxas por Emissão de Notas Fiscais</h4>
-                                            <p className="text-sm text-gray-500">Defina o custo fixo mensal e o valor cobrado por nota emitida para cada emissor fiscal ativo.</p>
+                                            <p className="text-sm text-gray-500">Defina o custo fixo mensal, o custo adicional e o modelo de tabelas progressivas/faixas por emissor ativo.</p>
                                         </div>
                                     </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {/* TecnoSpeed */}
-                                        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
-                                            <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">TecnoSpeed</h5>
-                                            <div className="space-y-4">
-                                                <CurrencyInput
-                                                    label="Valor Fixo Mensal"
-                                                    value={tempCompanyConfig.settings?.admin_fiscal_billing?.tecnospeed?.fixed_fee ?? 30.00}
-                                                    onChange={(num) => {
+
+                                    {/* Billing Model Toggles */}
+                                    <div className="flex flex-col sm:flex-row gap-6 pb-6 mb-6 border-b border-indigo-100/50 dark:border-indigo-900/30">
+                                        {/* Switch 1: Preço Fixo */}
+                                        <div className="flex items-center justify-between flex-1 bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800">
+                                            <div>
+                                                <h5 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Custo Fixo + Adicional</h5>
+                                                <p className="text-[10px] text-gray-500 mt-1">Valor fixo mensal e taxa por nota emitida.</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer ml-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={tempCompanyConfig.settings?.admin_fiscal_billing?.fixed_enabled ?? true}
+                                                    onChange={(e) => {
                                                         const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
                                                         setTempCompanyConfig({
                                                             ...tempCompanyConfig,
@@ -2789,25 +2820,73 @@ export function Settings() {
                                                                 ...(tempCompanyConfig.settings || {}),
                                                                 admin_fiscal_billing: {
                                                                     ...currentBilling,
-                                                                    tecnospeed: {
-                                                                        ...(currentBilling.tecnospeed || {}),
-                                                                        fixed_fee: num
-                                                                    }
+                                                                    fixed_enabled: e.target.checked
                                                                 }
                                                             }
                                                         });
                                                     }}
-                                                    placeholder="Ex: 30,00"
+                                                    className="sr-only peer"
                                                 />
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
-                                                        Valor Adicional por Nota (R$)
-                                                    </label>
-                                                    <Input
-                                                        type="number"
-                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.tecnospeed?.per_note_fee ?? 0.50}
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                            const val = parseFloat(e.target.value) || 0;
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            </label>
+                                        </div>
+
+                                        {/* Switch 2: Tabela por Faixas */}
+                                        <div className="flex items-center justify-between flex-1 bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800">
+                                            <div>
+                                                <h5 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Desconto Progressivo por Faixas</h5>
+                                                <p className="text-[10px] text-gray-500 mt-1">O valor unitário diminui conforme a quantidade acumulada.</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer ml-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!tempCompanyConfig.settings?.admin_fiscal_billing?.tiered_enabled}
+                                                    onChange={(e) => {
+                                                        const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                        const updatedBilling: any = {
+                                                            ...currentBilling,
+                                                            tiered_enabled: e.target.checked
+                                                        };
+                                                        if (e.target.checked && (!currentBilling.tiers || currentBilling.tiers.length === 0)) {
+                                                            updatedBilling.tiers = [
+                                                                { from: 1, to: 100, price: 0.85 },
+                                                                { from: 101, to: 200, price: 0.80 },
+                                                                { from: 201, to: 300, price: 0.75 },
+                                                                { from: 301, to: 400, price: 0.70 },
+                                                                { from: 401, to: 500, price: 0.65 },
+                                                                { from: 501, to: 600, price: 0.60 },
+                                                                { from: 601, to: 700, price: 0.55 },
+                                                                { from: 701, to: 800, price: 0.50 },
+                                                                { from: 801, to: 900, price: 0.45 },
+                                                                { from: 901, to: 999999, price: 0.40 }
+                                                            ];
+                                                        }
+                                                        setTempCompanyConfig({
+                                                            ...tempCompanyConfig,
+                                                            settings: {
+                                                                ...(tempCompanyConfig.settings || {}),
+                                                                admin_fiscal_billing: updatedBilling
+                                                            }
+                                                        });
+                                                    }}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Fixed + Additional Grid */}
+                                    {(tempCompanyConfig.settings?.admin_fiscal_billing?.fixed_enabled ?? true) && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            {/* TecnoSpeed */}
+                                            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
+                                                <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">TecnoSpeed</h5>
+                                                <div className="space-y-4">
+                                                    <CurrencyInput
+                                                        label="Valor Fixo Mensal"
+                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.tecnospeed?.fixed_fee ?? 30.00}
+                                                        onChange={(num) => {
                                                             const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
                                                             setTempCompanyConfig({
                                                                 ...tempCompanyConfig,
@@ -2817,54 +2896,54 @@ export function Settings() {
                                                                         ...currentBilling,
                                                                         tecnospeed: {
                                                                             ...(currentBilling.tecnospeed || {}),
-                                                                            per_note_fee: val
+                                                                            fixed_fee: num
                                                                         }
                                                                     }
                                                                 }
                                                             });
                                                         }}
-                                                        placeholder="Ex: 0.50"
-                                                        step="0.01"
-                                                        min="0"
+                                                        placeholder="Ex: 30,00"
                                                     />
+                                                    <div className="space-y-1">
+                                                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                            Valor Adicional por Nota (R$)
+                                                        </label>
+                                                        <Input
+                                                            type="number"
+                                                            value={tempCompanyConfig.settings?.admin_fiscal_billing?.tecnospeed?.per_note_fee ?? 0.50}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                const val = parseFloat(e.target.value) || 0;
+                                                                const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                setTempCompanyConfig({
+                                                                    ...tempCompanyConfig,
+                                                                    settings: {
+                                                                        ...(tempCompanyConfig.settings || {}),
+                                                                        admin_fiscal_billing: {
+                                                                            ...currentBilling,
+                                                                            tecnospeed: {
+                                                                                ...(currentBilling.tecnospeed || {}),
+                                                                                per_note_fee: val
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }}
+                                                            placeholder="Ex: 0.50"
+                                                            step="0.01"
+                                                            min="0"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {/* NFe.io */}
-                                        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
-                                            <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">NFe.io</h5>
-                                            <div className="space-y-4">
-                                                <CurrencyInput
-                                                    label="Valor Fixo Mensal"
-                                                    value={tempCompanyConfig.settings?.admin_fiscal_billing?.nfeio?.fixed_fee ?? 30.00}
-                                                    onChange={(num) => {
-                                                        const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
-                                                        setTempCompanyConfig({
-                                                            ...tempCompanyConfig,
-                                                            settings: {
-                                                                ...(tempCompanyConfig.settings || {}),
-                                                                admin_fiscal_billing: {
-                                                                    ...currentBilling,
-                                                                    nfeio: {
-                                                                        ...(currentBilling.nfeio || {}),
-                                                                        fixed_fee: num
-                                                                    }
-                                                                }
-                                                            }
-                                                        });
-                                                    }}
-                                                    placeholder="Ex: 30,00"
-                                                />
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
-                                                        Valor Adicional por Nota (R$)
-                                                    </label>
-                                                    <Input
-                                                        type="number"
-                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.nfeio?.per_note_fee ?? 0.50}
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                            const val = parseFloat(e.target.value) || 0;
+                                            {/* NFe.io */}
+                                            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
+                                                <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">NFe.io</h5>
+                                                <div className="space-y-4">
+                                                    <CurrencyInput
+                                                        label="Valor Fixo Mensal"
+                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.nfeio?.fixed_fee ?? 30.00}
+                                                        onChange={(num) => {
                                                             const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
                                                             setTempCompanyConfig({
                                                                 ...tempCompanyConfig,
@@ -2874,54 +2953,54 @@ export function Settings() {
                                                                         ...currentBilling,
                                                                         nfeio: {
                                                                             ...(currentBilling.nfeio || {}),
-                                                                            per_note_fee: val
+                                                                            fixed_fee: num
                                                                         }
                                                                     }
                                                                 }
                                                             });
                                                         }}
-                                                        placeholder="Ex: 0.50"
-                                                        step="0.01"
-                                                        min="0"
+                                                        placeholder="Ex: 30,00"
                                                     />
+                                                    <div className="space-y-1">
+                                                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                            Valor Adicional por Nota (R$)
+                                                        </label>
+                                                        <Input
+                                                            type="number"
+                                                            value={tempCompanyConfig.settings?.admin_fiscal_billing?.nfeio?.per_note_fee ?? 0.50}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                const val = parseFloat(e.target.value) || 0;
+                                                                const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                setTempCompanyConfig({
+                                                                    ...tempCompanyConfig,
+                                                                    settings: {
+                                                                        ...(tempCompanyConfig.settings || {}),
+                                                                        admin_fiscal_billing: {
+                                                                            ...currentBilling,
+                                                                            nfeio: {
+                                                                                ...(currentBilling.nfeio || {}),
+                                                                                per_note_fee: val
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }}
+                                                            placeholder="Ex: 0.50"
+                                                            step="0.01"
+                                                            min="0"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {/* Outro (Customizado) */}
-                                        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
-                                            <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">Outro (Customizado)</h5>
-                                            <div className="space-y-4">
-                                                <CurrencyInput
-                                                    label="Valor Fixo Mensal"
-                                                    value={tempCompanyConfig.settings?.admin_fiscal_billing?.other?.fixed_fee ?? 30.00}
-                                                    onChange={(num) => {
-                                                        const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
-                                                        setTempCompanyConfig({
-                                                            ...tempCompanyConfig,
-                                                            settings: {
-                                                                ...(tempCompanyConfig.settings || {}),
-                                                                admin_fiscal_billing: {
-                                                                    ...currentBilling,
-                                                                    other: {
-                                                                        ...(currentBilling.other || {}),
-                                                                        fixed_fee: num
-                                                                    }
-                                                                }
-                                                            }
-                                                        });
-                                                    }}
-                                                    placeholder="Ex: 30,00"
-                                                />
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
-                                                        Valor Adicional por Nota (R$)
-                                                    </label>
-                                                    <Input
-                                                        type="number"
-                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.other?.per_note_fee ?? 0.50}
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                            const val = parseFloat(e.target.value) || 0;
+                                            {/* Outro (Customizado) */}
+                                            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
+                                                <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">Outro (Customizado)</h5>
+                                                <div className="space-y-4">
+                                                    <CurrencyInput
+                                                        label="Valor Fixo Mensal"
+                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.other?.fixed_fee ?? 30.00}
+                                                        onChange={(num) => {
                                                             const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
                                                             setTempCompanyConfig({
                                                                 ...tempCompanyConfig,
@@ -2931,20 +3010,190 @@ export function Settings() {
                                                                         ...currentBilling,
                                                                         other: {
                                                                             ...(currentBilling.other || {}),
-                                                                            per_note_fee: val
+                                                                            fixed_fee: num
                                                                         }
                                                                     }
                                                                 }
                                                             });
                                                         }}
-                                                        placeholder="Ex: 0.50"
-                                                        step="0.01"
-                                                        min="0"
+                                                        placeholder="Ex: 30,00"
                                                     />
+                                                    <div className="space-y-1">
+                                                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                            Valor Adicional por Nota (R$)
+                                                        </label>
+                                                        <Input
+                                                            type="number"
+                                                            value={tempCompanyConfig.settings?.admin_fiscal_billing?.other?.per_note_fee ?? 0.50}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                const val = parseFloat(e.target.value) || 0;
+                                                                const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                setTempCompanyConfig({
+                                                                    ...tempCompanyConfig,
+                                                                    settings: {
+                                                                        ...(tempCompanyConfig.settings || {}),
+                                                                        admin_fiscal_billing: {
+                                                                            ...currentBilling,
+                                                                            other: {
+                                                                                ...(currentBilling.other || {}),
+                                                                                per_note_fee: val
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }}
+                                                            placeholder="Ex: 0.50"
+                                                            step="0.01"
+                                                            min="0"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {/* Progressive Tiers Config */}
+                                    {!!tempCompanyConfig.settings?.admin_fiscal_billing?.tiered_enabled && (
+                                        <div className="mt-6 p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
+                                            <div className="flex justify-between items-center border-b pb-2">
+                                                <div>
+                                                    <h5 className="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider">Tabela de Faixas Progressivas (Degraus)</h5>
+                                                    <p className="text-[10px] text-gray-400">Defina os intervalos e o preço por nota correspondente.</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                        const currentTiers = currentBilling.tiers || [];
+                                                        
+                                                        const lastTier = currentTiers[currentTiers.length - 1];
+                                                        const nextFrom = lastTier ? Number(lastTier.to) + 1 : 1;
+                                                        const nextTo = nextFrom + 99;
+                                                        const nextPrice = lastTier ? Math.max(0.10, Number(lastTier.price) - 0.05) : 0.85;
+
+                                                        const updatedTiers = [
+                                                            ...currentTiers,
+                                                            { from: nextFrom, to: nextTo, price: parseFloat(nextPrice.toFixed(2)) }
+                                                        ];
+
+                                                        setTempCompanyConfig({
+                                                            ...tempCompanyConfig,
+                                                            settings: {
+                                                                ...(tempCompanyConfig.settings || {}),
+                                                                admin_fiscal_billing: {
+                                                                    ...currentBilling,
+                                                                    tiers: updatedTiers
+                                                                }
+                                                            }
+                                                        });
+                                                    }}
+                                                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-lg transition-colors flex items-center gap-1"
+                                                >
+                                                    <Plus size={14} /> Adicionar Faixa
+                                                </button>
+                                            </div>
+
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left text-xs">
+                                                    <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
+                                                        <tr>
+                                                            <th className="p-3">De (Mínimo)</th>
+                                                            <th className="p-3">Até (Máximo)</th>
+                                                            <th className="p-3">Preço por Nota (R$)</th>
+                                                            <th className="p-3 text-center">Ações</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                                                        {(tempCompanyConfig.settings?.admin_fiscal_billing?.tiers || []).map((tier: any, idx: number) => (
+                                                            <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30">
+                                                                <td className="p-3">
+                                                                    <input
+                                                                        type="number"
+                                                                        value={tier.from}
+                                                                        onChange={(e) => {
+                                                                            const val = parseInt(e.target.value) || 0;
+                                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                            const updatedTiers = [...(currentBilling.tiers || [])];
+                                                                            updatedTiers[idx] = { ...updatedTiers[idx], from: val };
+                                                                            setTempCompanyConfig({
+                                                                                ...tempCompanyConfig,
+                                                                                settings: {
+                                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                                    admin_fiscal_billing: { ...currentBilling, tiers: updatedTiers }
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                        className="w-24 bg-transparent border border-gray-200 dark:border-slate-700 rounded px-2 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                    />
+                                                                </td>
+                                                                <td className="p-3">
+                                                                    <input
+                                                                        type="number"
+                                                                        value={tier.to >= 999999 ? '' : tier.to}
+                                                                        placeholder="Sem limite (∞)"
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value === '' ? 999999 : (parseInt(e.target.value) || 0);
+                                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                            const updatedTiers = [...(currentBilling.tiers || [])];
+                                                                            updatedTiers[idx] = { ...updatedTiers[idx], to: val };
+                                                                            setTempCompanyConfig({
+                                                                                ...tempCompanyConfig,
+                                                                                settings: {
+                                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                                    admin_fiscal_billing: { ...currentBilling, tiers: updatedTiers }
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                        className="w-28 bg-transparent border border-gray-200 dark:border-slate-700 rounded px-2 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                    />
+                                                                </td>
+                                                                <td className="p-3">
+                                                                    <input
+                                                                        type="number"
+                                                                        value={tier.price}
+                                                                        step="0.01"
+                                                                        onChange={(e) => {
+                                                                            const val = parseFloat(e.target.value) || 0;
+                                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                            const updatedTiers = [...(currentBilling.tiers || [])];
+                                                                            updatedTiers[idx] = { ...updatedTiers[idx], price: val };
+                                                                            setTempCompanyConfig({
+                                                                                ...tempCompanyConfig,
+                                                                                settings: {
+                                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                                    admin_fiscal_billing: { ...currentBilling, tiers: updatedTiers }
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                        className="w-24 bg-transparent border border-gray-200 dark:border-slate-700 rounded px-2 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                    />
+                                                                </td>
+                                                                <td className="p-3 text-center">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                            const updatedTiers = (currentBilling.tiers || []).filter((_: any, i: number) => i !== idx);
+                                                                            setTempCompanyConfig({
+                                                                                ...tempCompanyConfig,
+                                                                                settings: {
+                                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                                    admin_fiscal_billing: { ...currentBilling, tiers: updatedTiers }
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                        className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500 rounded transition-colors"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
 

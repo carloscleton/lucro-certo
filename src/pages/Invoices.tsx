@@ -16,6 +16,7 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
 import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
 import { BillingReportModal } from '../components/fiscal/BillingReportModal';
+import { PlatformBillingTracker } from '../components/fiscal/PlatformBillingTracker';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 import { getInvoiceFilename } from '../utils/invoiceUtils';
 
@@ -1078,6 +1079,14 @@ ${messageWithPlaceholder}`;
                     </Button>
                 </div>
             </div>
+
+            {!isLoading && (
+                <PlatformBillingTracker
+                    invoices={invoices}
+                    companySettings={currentCompany?.settings}
+                    activeProvider={currentCompany?.settings?.fiscal_provider || 'tecnospeed'}
+                />
+            )}
 
             {/* Stats */}
             {!isLoading && invoices.length > 0 && (() => {
