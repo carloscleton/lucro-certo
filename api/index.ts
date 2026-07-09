@@ -1214,6 +1214,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             return res.status(400).json({ error: 'Configuração fiscal não encontrada.' });
         }
 
+        let isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+
         const activeProvider = isLabTest ? (provider || settings?.fiscal_provider || 'tecnospeed') : (settings?.fiscal_provider || 'tecnospeed');
         
         if (activeProvider === 'nfeio') {
@@ -1472,10 +1474,32 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const rawPayload = Array.isArray(payload) ? payload : [payload];
             const finalPayload = rawPayload.map((item: any) => {
                 if (typeof item === 'object' && item !== null) {
-                    return {
+                    const mappedItem = {
                         ...item,
                         idIntegracao: item.idIntegracao || externalId
                     };
+
+                    if (isNacional) {
+                        mappedItem.versao = '1.00';
+
+                        // Sanitização nacional para o provedor externo caso use PlugNotas por trás
+                        if (mappedItem.servico) {
+                            const services = Array.isArray(mappedItem.servico) ? mappedItem.servico : [mappedItem.servico];
+                            services.forEach((s: any) => {
+                                if (s.iss) {
+                                    if (!s.iss.tipoTributacao || s.iss.tipoTributacao > 6 || s.iss.tipoTributacao < 1) {
+                                        s.iss.tipoTributacao = 1;
+                                    }
+                                    if (s.iss.aliquota === 0 && s.iss.exigibilidade === 1) {
+                                        s.iss.exigibilidade = 2;
+                                        s.iss.tipoTributacao = 3;
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    return mappedItem;
                 }
                 return item;
             });
@@ -1598,7 +1622,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // Se estivermos em Sandbox, a prioridade é FUNCIONAR. 
         // A Tecnospeed converteu o CNPJ de teste padrão para NFSe Nacional em Jun/2026.
         // Portanto, se for Municipal (!isNacional) e tiver certificado, ignoramos use_test_data e usamos os reais.
-        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+        isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
         const forceTestData = config.use_test_data === true && (!hasCert || isNacional);
         const useTestData = forceTestData || 
                           (isSandbox && !hasCert) || 
