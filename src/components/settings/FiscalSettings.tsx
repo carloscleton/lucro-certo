@@ -1417,13 +1417,17 @@ export function FiscalSettings() {
             const value = newData[key];
             
             if (typeof value === 'string' && value.includes('plugnotas.com.br')) {
-                // Regex para capturar /nfse/pdf/ID ou /nfse-nacional/pdf/ID etc
-                const match = value.match(/\/(nfse-nacional|nfse|nfe|nfce)\/(pdf|xml)\/([a-f0-9]+)/i);
+                // Regex para capturar /nfse/nacional/pdf/ID, /nfse/pdf/ID, etc.
+                const match = value.match(/\/(nfse\/nacional|nfse-nacional|nfse|nfe|nfce)\/(pdf|xml)\/([a-f0-9]+)/i);
                 if (match) {
                     const [_, type, format, id] = match;
+                    let matchedType = type;
+                    if (matchedType === 'nfse/nacional') {
+                        matchedType = 'nfsenac';
+                    }
                     const base = API_BASE_URL.replace(/\/$/, '');
                     const tokenPart = sessionToken ? `&token=${sessionToken}` : '';
-                    newData[key] = `${base}/fiscal-module/${type}/${id}/${format}?companyId=${companyId}${tokenPart}`;
+                    newData[key] = `${base}/fiscal-module/${matchedType}/${id}/${format}?companyId=${companyId}${tokenPart}`;
                 }
             } else if (typeof value === 'object') {
                 newData[key] = wrapFiscalLinks(value, companyId, sessionToken);
