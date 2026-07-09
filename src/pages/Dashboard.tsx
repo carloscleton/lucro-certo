@@ -216,6 +216,12 @@ export function Dashboard() {
     const isCRMEnabled = currentEntity.type === 'company' && currentCompany?.crm_module_enabled;
     const isLoyaltyEnabled = currentEntity.type === 'company' && currentCompany?.loyalty_module_enabled;
     const isFiscalEnabled = currentEntity.type === 'company' && !!currentCompany?.fiscal_module_enabled;
+    const hasNoData = metrics.income === 0 && 
+                      metrics.expense === 0 && 
+                      metrics.totalPayable === 0 && 
+                      metrics.totalReceivable === 0 && 
+                      metrics.rejectedTotal === 0 &&
+                      (!invoices || invoices.length === 0);
 
     // Click handlers for cards
     const handleCardClick = (type: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected') => {
