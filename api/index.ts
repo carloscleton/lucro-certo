@@ -111,6 +111,10 @@ const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
 const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\/+$/, '') || EVOLUTION_API_URL;
 const EVOLUTION_GO_API_KEY = process.env.EVOLUTION_GO_API_KEY?.trim() || EVOLUTION_API_KEY;
 
+// WAHA API Config
+const WAHA_API_URL = process.env.WAHA_API_URL?.trim().replace(/\/+$/, '') || 'http://localhost:3000';
+const WAHA_API_KEY = process.env.WAHA_API_KEY?.trim() || '';
+
 // Helper to get Evolution Config based on company_id or instance name or token
 async function getEvolutionConfig(identifier: { companyId?: string; instanceName?: string; token?: string; userToken?: string; provider?: string }) {
     let companyId = identifier.companyId;
@@ -151,13 +155,15 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
         }
     }
 
-    if (dbProvider === 'evolution_go') {
-        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+    if (dbProvider === 'waha') {
+        return { url: WAHA_API_URL, apiKey: WAHA_API_KEY, isGo: false, provider: 'waha' };
+    } else if (dbProvider === 'evolution_go') {
+        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
     } else if (dbProvider === 'evolution_api') {
-        return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
+        return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
     }
 
-    let defaultIsGo = false;
+    let defaultProvider = 'evolution_api';
     if (companyId && SUPABASE_URL && supabaseKey) {
         try {
             const response = await axios.get(
@@ -171,8 +177,10 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
             );
             if (response.data && response.data.length > 0) {
                 const settings = response.data[0].settings || {};
-                if (settings.whatsapp_provider === 'evolution_go') {
-                    defaultIsGo = true;
+                if (settings.whatsapp_provider) {
+                    defaultProvider = settings.whatsapp_provider;
+                } else if (settings.whatsapp_provider_evo_go_enabled !== false) {
+                    defaultProvider = 'evolution_go';
                 }
             }
         } catch (err: any) {
@@ -180,8 +188,8 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
         }
     }
 
-    // 🔍 2. Auto-detecção inteligente (respeitando o toggle como prioridade, e usando o outro como fallback para evitar 404)
-    if (nameToMatch || tokenToMatch) {
+    // 🔍 2. Auto-detecção inteligente para instâncias Evolution (ignora para WAHA)
+    if (dbProvider !== 'waha' && (nameToMatch || tokenToMatch)) {
         try {
             const [goListRes, stdListRes] = await Promise.allSettled([
                 axios.get(`${EVOLUTION_GO_API_URL}/instance/all`, { headers: { 'apikey': EVOLUTION_GO_API_KEY }, timeout: 1500 }),
@@ -207,23 +215,21 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 );
             }
 
-            if (defaultIsGo) {
-                // Toggle diz para usar Evolution GO
+            if (defaultProvider === 'evolution_go') {
                 if (foundInGo) {
                     console.log(`🔌 [Evolution Config] Usando Evolution GO conforme toggle ativo para a instância ${identifier.instanceName || identifier.token}`);
-                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
                 } else if (foundInStd) {
                     console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution GO, usando Evolution Padrão`);
-                    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
+                    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
                 }
             } else {
-                // Toggle diz para usar Evolution Padrão
                 if (foundInStd) {
                     console.log(`🔌 [Evolution Config] Usando Evolution Padrão conforme toggle inativo para a instância ${identifier.instanceName || identifier.token}`);
-                    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
+                    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
                 } else if (foundInGo) {
                     console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution Padrão, usando Evolution GO`);
-                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+                    return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
                 }
             }
         } catch (detectErr: any) {
@@ -232,10 +238,12 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
     }
 
     // Fallback padrão se não puder auto-detectar
-    if (defaultIsGo) {
-        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true };
+    if (defaultProvider === 'waha') {
+        return { url: WAHA_API_URL, apiKey: WAHA_API_KEY, isGo: false, provider: 'waha' };
+    } else if (defaultProvider === 'evolution_go') {
+        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
     }
-    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false };
+    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
 }
 
 // Helper to get the alternative/fallback Evolution config (opposite of current)
@@ -252,6 +260,48 @@ function getAlternativeConfig(currentConfig: { url: string; apiKey: string; isGo
             apiKey: EVOLUTION_GO_API_KEY,
             isGo: true
         };
+    }
+}
+
+// Helper to send a text message across any provider (Evolution, Evolution GO, WAHA)
+async function sendWhatsAppTextMessage(instanceName: string, phone: string, text: string) {
+    const config = await getEvolutionConfig({ instanceName });
+    const targetName = instanceName;
+    const encodedName = encodeURIComponent(targetName);
+
+    if (config.provider === 'waha') {
+        const wahaHeaders: any = {};
+        if (config.apiKey) {
+            wahaHeaders['X-Api-Key'] = config.apiKey;
+        }
+        await axios.post(`${config.url}/api/sendText`, {
+            session: targetName,
+            chatId: `${phone}@c.us`,
+            text: text
+        }, {
+            headers: wahaHeaders
+        });
+    } else if (config.isGo) {
+        await axios.post(`${config.url}/send/text`, {
+            id: targetName,
+            number: phone,
+            text: text
+        }, {
+            headers: {
+                'apikey': config.apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+    } else {
+        await axios.post(`${config.url}/message/sendText/${encodedName}`, {
+            number: phone,
+            text: text
+        }, {
+            headers: {
+                'apikey': config.apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
     }
 }
 
@@ -3499,7 +3549,43 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                         console.warn(`⚠️ [WhatsApp-Helper] Erro ao baixar PDF para Base64 (${downloadErr.message}). Tentando envio com URL.`);
                     }
 
-                    if (config.isGo) {
+                    if (config.provider === 'waha') {
+                        const wahaHeaders: any = {};
+                        if (config.apiKey) {
+                            wahaHeaders['X-Api-Key'] = config.apiKey;
+                        }
+                        wahaHeaders['Content-Type'] = 'application/json';
+
+                        try {
+                            if (isBase64) {
+                                console.log('📡 Sending PDF via WAHA /api/sendFile...');
+                                await axios.post(`${config.url}/api/sendFile`, {
+                                    session: targetName,
+                                    chatId: `${recipientPhone}@c.us`,
+                                    file: {
+                                        mimetype: 'application/pdf',
+                                        filename: `NotaFiscal-${invoiceNumber || invoice.id}.pdf`,
+                                        data: base64Media
+                                    },
+                                    caption: waMsg
+                                }, {
+                                    headers: wahaHeaders,
+                                    timeout: 15000
+                                });
+                            } else {
+                                throw new Error('Fallback to URL text link');
+                            }
+                        } catch (wahaErr: any) {
+                            console.warn('⚠️ WAHA sendFile failed, sending text fallback:', wahaErr.message);
+                            await axios.post(`${config.url}/api/sendText`, {
+                                session: targetName,
+                                chatId: `${recipientPhone}@c.us`,
+                                text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`
+                            }, {
+                                headers: wahaHeaders
+                            });
+                        }
+                    } else if (config.isGo) {
                         try {
                             await axios.post(`${config.url}/send/media`, {
                                 id: targetName,
@@ -4544,7 +4630,43 @@ app.post('/instances', authenticate, async (req, res) => {
 
     try {
         const config = await getEvolutionConfig({ companyId: company_id, provider });
-        console.log(`🔌 Creating instance "${name}" on Evolution API (Go: ${config.isGo}, URL: ${config.url})...`);
+        console.log(`🔌 Creating instance "${name}" on provider (Go: ${config.isGo}, URL: ${config.url}, Provider: ${config.provider})...`);
+
+        if (config.provider === 'waha') {
+            const wahaHeaders: any = {};
+            if (config.apiKey) {
+                wahaHeaders['X-Api-Key'] = config.apiKey;
+            }
+
+            console.log('📤 Sending payload to WAHA sessions endpoint...');
+            const response = await axios.post(`${config.url}/api/sessions`, { name }, {
+                headers: wahaHeaders
+            });
+
+            console.log('✅ Instance created on WAHA:', response.data);
+
+            try {
+                await axios.post(`${config.url}/api/sessions/${name}/start`, {}, {
+                    headers: wahaHeaders
+                });
+                console.log('✅ WAHA session started!');
+            } catch (startErr: any) {
+                console.warn('⚠️ WAHA session start call failed or already started:', startErr.message);
+            }
+
+            const finalResponseData = {
+                instance: {
+                    instanceName: name,
+                    token: name,
+                    status: 'created'
+                },
+                hash: {
+                    apikey: name
+                }
+            };
+
+            return res.status(201).json(finalResponseData);
+        }
 
         // Função para gerar ID no formato 12-4-4-12 (Total 32 hex)
         const generateEvoID = () => {
@@ -4780,7 +4902,24 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
         console.log(`🔍 Fetching QR Code for instance "${name}" (Go: ${config.isGo})...`);
 
         const executeConnect = async (activeConfig: typeof config) => {
-            if (activeConfig.isGo) {
+            if (activeConfig.provider === 'waha') {
+                const wahaHeaders: any = {};
+                if (activeConfig.apiKey) {
+                    wahaHeaders['X-Api-Key'] = activeConfig.apiKey;
+                }
+
+                const response = await axios.get(`${activeConfig.url}/api/screenshot`, {
+                    params: { session: name },
+                    headers: wahaHeaders,
+                    responseType: 'arraybuffer'
+                });
+
+                const base64Image = `data:image/png;base64,${Buffer.from(response.data).toString('base64')}`;
+                return {
+                    code: '',
+                    base64: base64Image
+                };
+            } else if (activeConfig.isGo) {
                 const allRes = await axios.get(`${activeConfig.url}/instance/all`, {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
@@ -5316,7 +5455,17 @@ app.all(['/instances/:name/logout', '/api/instances/:name/logout'], authenticate
         console.log(`🔌 Logging out instance "${targetName}" (Go: ${config.isGo})...`);
 
         const executeLogout = async (activeConfig: typeof config) => {
-            if (activeConfig.isGo) {
+            if (activeConfig.provider === 'waha') {
+                const wahaHeaders: any = {};
+                if (activeConfig.apiKey) {
+                    wahaHeaders['X-Api-Key'] = activeConfig.apiKey;
+                }
+                console.log(`📡 Trying POST /api/sessions/${targetName}/stop on WAHA...`);
+                await axios.post(`${activeConfig.url}/api/sessions/${targetName}/stop`, {}, {
+                    headers: wahaHeaders
+                });
+                console.log(`✅ Logout/Stop bem sucedido para "${targetName}" no WAHA`);
+            } else if (activeConfig.isGo) {
                 const allRes = await axios.get(`${activeConfig.url}/instance/all`, {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
@@ -5407,7 +5556,16 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
         console.log(`🗑️ Deleting instance "${targetName}" (Go: ${config.isGo})...`);
 
         const executeDelete = async (activeConfig: typeof config) => {
-            if (activeConfig.isGo) {
+            if (activeConfig.provider === 'waha') {
+                const wahaHeaders: any = {};
+                if (activeConfig.apiKey) {
+                    wahaHeaders['X-Api-Key'] = activeConfig.apiKey;
+                }
+                console.log(`📡 Trying DELETE /api/sessions/${targetName} on WAHA...`);
+                return axios.delete(`${activeConfig.url}/api/sessions/${targetName}`, {
+                    headers: wahaHeaders
+                });
+            } else if (activeConfig.isGo) {
                 // Para EvoGo, precisamos buscar a lista de instâncias para achar o UUID correto
                 const allRes = await axios.get(`${activeConfig.url}/instance/all`, {
                     headers: { 'apikey': activeConfig.apiKey }
@@ -6032,13 +6190,7 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
                     const message = `Olá, *${company.trade_name}*! 😊\n\nA fatura de utilização do módulo fiscal para o período de ${startFormatted} a ${endFormatted} foi gerada.\n\n*Detalhes da Fatura:*\n📝 ${description}\n💰 *Valor:* R$ ${parseFloat(amount).toFixed(2).replace('.', ',')}\n\nCopie o link abaixo para efetuar o pagamento via Pix:\n🔗 ${chargeResult.payment_link || 'Link indisponível'}\n\nObrigado por utilizar nossa plataforma! 💼`;
 
                     try {
-                        const encodedInstance = encodeURIComponent(whatsappInstance);
-                        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedInstance}`, {
-                            number: phone,
-                            text: message
-                        }, {
-                            headers: { 'apikey': EVOLUTION_API_KEY }
-                        });
+                        await sendWhatsAppTextMessage(whatsappInstance, phone, message);
                         notificationSent = true;
                         console.log(`✅ [BATCH-BILL] Notificação enviada para ${company.trade_name}`);
                     } catch (waErr: any) {

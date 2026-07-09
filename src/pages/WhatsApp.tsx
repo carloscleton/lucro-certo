@@ -112,8 +112,19 @@ export function WhatsApp() {
     const [evoGoWebSocket, setEvoGoWebSocket] = useState('default');
     const [evoGoNats, setEvoGoNats] = useState('default');
 
-    const [selectedProvider, setSelectedProvider] = useState<'evolution_api' | 'evolution_go'>(
-        currentEntity.settings?.whatsapp_provider === 'evolution_go' ? 'evolution_go' : 'evolution_api'
+    const evoApiAllowed = currentEntity.settings?.whatsapp_provider_evo_api_enabled !== false;
+    const evoGoAllowed = currentEntity.settings?.whatsapp_provider_evo_go_enabled !== false;
+    const wahaAllowed = !!currentEntity.settings?.whatsapp_provider_waha_enabled;
+
+    const getDefaultProvider = () => {
+        if (evoApiAllowed) return 'evolution_api';
+        if (evoGoAllowed) return 'evolution_go';
+        if (wahaAllowed) return 'waha';
+        return 'evolution_api';
+    };
+
+    const [selectedProvider, setSelectedProvider] = useState<'evolution_api' | 'evolution_go' | 'waha'>(
+        getDefaultProvider()
     );
 
     // Detect provider (check if company defaults to EvoGo or has any EvoGo instance in instances list)
@@ -849,8 +860,9 @@ export function WhatsApp() {
                             onChange={(e) => setSelectedProvider(e.target.value as any)}
                             className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 font-semibold text-sm h-[45px] text-gray-700 dark:text-white"
                         >
-                            <option value="evolution_api">Evolution API (Padrão)</option>
-                            <option value="evolution_go">Evolution GO (Alta Performance)</option>
+                            {evoApiAllowed && <option value="evolution_api">Evolution API (Padrão)</option>}
+                            {evoGoAllowed && <option value="evolution_go">Evolution GO (Alta Performance)</option>}
+                            {wahaAllowed && <option value="waha">WAHA API (Alternativo)</option>}
                         </select>
                     </div>
                     <div className="md:col-span-3">
@@ -910,17 +922,19 @@ export function WhatsApp() {
                     )}
 
                     {/* Advanced Settings Toggle */}
-                    <div className="md:col-span-12 mt-2">
-                        <button
-                            type="button"
-                            onClick={() => setShowAdvanced(!showAdvanced)}
-                            className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors"
-                        >
-                            <Settings2 size={16} />
-                            {selectedProvider === 'evolution_go' ? 'Configurações Avançadas (EvoGo)' : 'Configurações Avançadas de Webhook (n8n/Evolution)'}
-                            {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                    </div>
+                    {selectedProvider !== 'waha' && (
+                        <div className="md:col-span-12 mt-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowAdvanced(!showAdvanced)}
+                                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors"
+                            >
+                                <Settings2 size={16} />
+                                {selectedProvider === 'evolution_go' ? 'Configurações Avançadas (EvoGo)' : 'Configurações Avançadas de Webhook (n8n/Evolution)'}
+                                {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
+                        </div>
+                    )}
 
                     {/* Advanced Settings Panel */}
                     {showAdvanced && (
