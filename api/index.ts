@@ -3042,8 +3042,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
         let primaryType = resolvedType || type;
         if (primaryType === 'nfse' || primaryType === 'nfsenac') {
-            const isNacional = primaryType === 'nfsenac' || !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
-            primaryType = isNacional ? 'nfse/nacional' : 'nfse';
+            // PlugNotas usa /nfse/pdf e /nfse/xml para download de PDF/XML tanto para notas municipais quanto nacionais.
+            primaryType = 'nfse';
         }
 
         console.log(`📄 [FISCAL-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para ${primaryType} ID: ${id}`);
@@ -3811,9 +3811,8 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             ? (type === 'nfsenac') 
             : !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
             
-        // Determina o endpoint para consulta. Se for Nacional, tenta nfse/nacional primeiro,
-        // com fallback para nfse caso a nota tenha sido emitida pelo endpoint municipal (compatibilidade retroativa).
-        const targetType = isNacional ? 'nfse/nacional' : (type === 'nfse' || type === 'nfsenac' ? 'nfse' : type);
+        // Tanto para notas municipais quanto nacionais, a consulta é feita na rota base /nfse/{id} no PlugNotas.
+        const targetType = (type === 'nfse' || type === 'nfsenac') ? 'nfse' : type;
 
         // 2. Consultar na TecnoSpeed usando o endpoint correto, com fallback automático
         let statusData: any;
