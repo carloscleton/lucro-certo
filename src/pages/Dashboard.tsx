@@ -474,7 +474,6 @@ export function Dashboard() {
                     </div>
                 </>
             )}
-            </div>
 
             {/* Transaction Detail Modal */}
             <TransactionDetailModal
