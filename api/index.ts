@@ -1615,18 +1615,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const targetCnpj = (firstItem?.prestador?.cpfCnpj || '').replace(/\D/g, '');
         
         // --- DETECÇÃO DE MODO TESTE ---
-        const TEST_CNPJ = '08187168000160'; 
+        isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+        const TEST_CNPJ = isNacional ? '00893566000190' : '08187168000160'; 
         const TEST_IM_MUNICIPAL = '8214100099'; // Maringá
         const TEST_IM_NACIONAL = '1234567';     // Belo Horizonte (Nacional)
         
         // Se estivermos em Sandbox, a prioridade é FUNCIONAR. 
         // A Tecnospeed converteu o CNPJ de teste padrão para NFSe Nacional em Jun/2026.
         // Portanto, se for Municipal (!isNacional) e tiver certificado, ignoramos use_test_data e usamos os reais.
-        isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
         const forceTestData = config.use_test_data === true && (!hasCert || isNacional);
         const useTestData = forceTestData || 
                           (isSandbox && !hasCert) || 
-                          (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104' || targetCnpj === '00893566000190') ||
+                          (targetCnpj === '08187168000160' || targetCnpj === '08184315000104' || targetCnpj === '00893566000190') ||
                           isLabTest === true;
 
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
@@ -1661,7 +1661,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 if (useTestData && !item.prestador) item.prestador = {};
                 if (item.prestador) {
                     if (useTestData) {
-                        item.prestador.cpfCnpj = targetCnpj === '00893566000190' ? '00893566000190' : TEST_CNPJ;
+                        item.prestador.cpfCnpj = TEST_CNPJ;
                         item.prestador.inscricaoMunicipal = isNacional ? TEST_IM_NACIONAL : TEST_IM_MUNICIPAL;
                         delete item.prestador.certificado; 
                     } else {
@@ -1706,7 +1706,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
                     if (item.codigoIbge) item.codigoIbge = targetIbge;
                     if (item.prestador) {
-                        item.prestador.cpfCnpj = targetCnpj === '00893566000190' ? '00893566000190' : TEST_CNPJ;
+                        item.prestador.cpfCnpj = TEST_CNPJ;
                         item.prestador.inscricaoMunicipal = targetIm;
                         delete item.prestador.certificado;
                     }
@@ -2846,7 +2846,7 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
         const useTestData = forceTestData || (isSandbox && !hasCert);
         
         if (useTestData) {
-            cnpj = cnpj === '00893566000190' ? '00893566000190' : '08187168000160'; // CNPJ da TecnoSpeed usado no modo teste/sandbox
+            cnpj = isNacional ? '00893566000190' : '08187168000160'; // CNPJ da TecnoSpeed correspondente ao padrão (nacional ou municipal)
             console.log(`🛠️ [FISCAL-CONSULTAR] Modo Teste Ativo. Forçando CNPJ para ${cnpj} para localizar as notas do Sandbox.`);
         }
 
