@@ -3979,7 +3979,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
         const { data: invoices } = await axios.get(selectUrl, {
             params: {
                 external_id: `eq.${targetId}`,
-                select: 'id,payload,quote_id,company_id'
+                select: 'id,payload,quote_id,company_id,type,external_id'
             },
             headers: dbHeaders
         });
@@ -4025,7 +4025,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
              const host = req.get('host');
              const baseApiUrl = `${protocol}://${host}`;
              const usedType = invoice.type || 'nfse';
-             return `${baseApiUrl}/api/fiscal-module/${usedType}/${invoice.id}/${docType}?companyId=${invoice.company_id}`;
+             return `${baseApiUrl}/api/fiscal-module/${usedType}/${invoice.external_id || targetId}/${docType}?companyId=${invoice.company_id}`;
          };
 
          const proxyPdfUrl = getValidDocUrl('pdf');
