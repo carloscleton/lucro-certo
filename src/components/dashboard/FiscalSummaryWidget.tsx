@@ -1,5 +1,4 @@
-import { BarChart3, Calculator, FileText, Landmark, ShieldCheck } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { BarChart3, Calculator, FileText, ShieldCheck } from 'lucide-react';
 
 interface FiscalSummaryWidgetProps {
     invoices: any[];
@@ -8,7 +7,6 @@ interface FiscalSummaryWidgetProps {
 }
 
 export function FiscalSummaryWidget({ invoices, fiscalSettings, fiscalEnabled }: FiscalSummaryWidgetProps) {
-    const { t } = useTranslation();
 
     if (!fiscalEnabled || !invoices || invoices.length === 0) {
         return null;
