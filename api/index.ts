@@ -2865,6 +2865,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
         // Obter o tipo real da nota no banco de dados para garantir o roteamento correto (NFe.io vs TecnoSpeed)
         let resolvedType = type;
+        let dbFound = false;
         if (id && SUPABASE_URL) {
             try {
                 const queryParam = !isNaN(Number(id)) ? { id: `eq.${id}` } : { external_id: `eq.${id}` };
@@ -2876,6 +2877,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 });
                 if (invData?.[0]?.type) {
                     resolvedType = invData[0].type;
+                    dbFound = true;
                     console.log(`🔍 [FISCAL-DOWNLOAD] Tipo real resolvido no banco: ${resolvedType} para ID: ${id}`);
                 }
             } catch (dbErr: any) {
@@ -3049,7 +3051,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 }
             }
 
-            if (isNfseEndpoint && is404) {
+            if (isNfseEndpoint && is404 && !dbFound) {
                 const fallbackType = primaryType === 'nfse' ? 'nfse/nacional' : 'nfse';
                 console.log(`⚠️ [FISCAL-DOWNLOAD] Não encontrado em ${primaryType}. Tentando fallback em ${fallbackType}...`);
                 try {
