@@ -89,7 +89,10 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
     const fixedFee = typeof providerConfig.fixed_fee === 'number' ? providerConfig.fixed_fee : 30.00;
     const perNoteFee = typeof providerConfig.per_note_fee === 'number' ? providerConfig.per_note_fee : 0.50;
 
-    const totalCostThisMonth = (fixedEnabled ? fixedFee : 0) + (tieredEnabled ? tieredCost : (totalNotes * perNoteFee));
+    const tieredFixedFee = typeof billingConfig.tiered_fixed_fee === 'number' ? billingConfig.tiered_fixed_fee : 100.00;
+    const totalCostThisMonth = tieredEnabled
+        ? (tieredFixedFee + tieredCost)
+        : (fixedEnabled ? fixedFee + (totalNotes * perNoteFee) : 0);
 
     // Find current tier
     const currentTier = tieredEnabled 
@@ -192,6 +195,13 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                                     <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
                                         <span className="text-gray-500 font-medium">Mensalidade Fixa Módulo Fiscal:</span>
                                         <span className="font-semibold text-gray-900 dark:text-white">{fmt(fixedFee)}</span>
+                                    </div>
+                                )}
+
+                                {tieredEnabled && (
+                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
+                                        <span className="text-gray-500 font-medium">Mensalidade Fixa Módulo Fiscal (Faixas):</span>
+                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(tieredFixedFee)}</span>
                                     </div>
                                 )}
 

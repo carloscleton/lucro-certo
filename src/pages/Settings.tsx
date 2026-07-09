@@ -343,9 +343,16 @@ export function Settings() {
                     if (s.isActiveProvider) {
                         const feeFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.fixedFee);
                         const costFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost);
-                        record.descriptions.push(
-                            `Mensalidade Fiscal (${feeFormatted}) + ${totalNotes} Notas ${providerLabel} (${s.notesCount} Ativas / ${s.canceledCount || 0} Canceladas) (${costFormatted})`
-                        );
+                        
+                        if (s.isTiered) {
+                            record.descriptions.push(
+                                `Mensalidade Fiscal Faixas (${feeFormatted}) + ${totalNotes} Notas ${providerLabel} (${s.notesCount} Ativas / ${s.canceledCount || 0} Canceladas) (${costFormatted})`
+                            );
+                        } else {
+                            record.descriptions.push(
+                                `Mensalidade Fiscal (${feeFormatted}) + ${totalNotes} Notas ${providerLabel} (${s.notesCount} Ativas / ${s.canceledCount || 0} Canceladas) (${costFormatted})`
+                            );
+                        }
                     } else {
                         const costFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost);
                         record.descriptions.push(
@@ -778,7 +785,9 @@ export function Settings() {
             doc.text(fixedFeeStr, margin + 143, yPos + 5, { align: 'right' });
 
             // Fee per note
-            const perNoteFeeStr = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee || 0);
+            const perNoteFeeStr = sim.isTiered
+                ? 'Faixas'
+                : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee || 0);
             doc.text(perNoteFeeStr, margin + 161, yPos + 5, { align: 'right' });
 
             // Total suggested
@@ -2806,7 +2815,7 @@ export function Settings() {
                                         <div className="flex items-center justify-between flex-1 bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800">
                                             <div>
                                                 <h5 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Custo Fixo + Adicional</h5>
-                                                <p className="text-[10px] text-gray-500 mt-1">Valor fixo mensal e taxa por nota emitida.</p>
+                                                <p className="text-[10px] text-gray-500 mt-1">Mensalidade e taxa fixa por nota.</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer ml-4">
                                                 <input
@@ -2820,7 +2829,8 @@ export function Settings() {
                                                                 ...(tempCompanyConfig.settings || {}),
                                                                 admin_fiscal_billing: {
                                                                     ...currentBilling,
-                                                                    fixed_enabled: e.target.checked
+                                                                    fixed_enabled: e.target.checked,
+                                                                    tiered_enabled: !e.target.checked
                                                                 }
                                                             }
                                                         });
@@ -2835,7 +2845,7 @@ export function Settings() {
                                         <div className="flex items-center justify-between flex-1 bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800">
                                             <div>
                                                 <h5 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Desconto Progressivo por Faixas</h5>
-                                                <p className="text-[10px] text-gray-500 mt-1">O valor unitário diminui conforme a quantidade acumulada.</p>
+                                                <p className="text-[10px] text-gray-500 mt-1">Valor por nota diminui conforme quantidade acumulada.</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer ml-4">
                                                 <input
@@ -2845,7 +2855,8 @@ export function Settings() {
                                                         const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
                                                         const updatedBilling: any = {
                                                             ...currentBilling,
-                                                            tiered_enabled: e.target.checked
+                                                            tiered_enabled: e.target.checked,
+                                                            fixed_enabled: !e.target.checked
                                                         };
                                                         if (e.target.checked && (!currentBilling.tiers || currentBilling.tiers.length === 0)) {
                                                             updatedBilling.tiers = [
@@ -2860,6 +2871,9 @@ export function Settings() {
                                                                 { from: 801, to: 900, price: 0.45 },
                                                                 { from: 901, to: 999999, price: 0.40 }
                                                             ];
+                                                        }
+                                                        if (e.target.checked && typeof currentBilling.tiered_fixed_fee !== 'number') {
+                                                            updatedBilling.tiered_fixed_fee = 100.00;
                                                         }
                                                         setTempCompanyConfig({
                                                             ...tempCompanyConfig,
@@ -3055,42 +3069,64 @@ export function Settings() {
                                     {/* Progressive Tiers Config */}
                                     {!!tempCompanyConfig.settings?.admin_fiscal_billing?.tiered_enabled && (
                                         <div className="mt-6 p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
-                                            <div className="flex justify-between items-center border-b pb-2">
+                                            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b pb-4 gap-4">
                                                 <div>
                                                     <h5 className="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider">Tabela de Faixas Progressivas (Degraus)</h5>
                                                     <p className="text-[10px] text-gray-400">Defina os intervalos e o preço por nota correspondente.</p>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
-                                                        const currentTiers = currentBilling.tiers || [];
-                                                        
-                                                        const lastTier = currentTiers[currentTiers.length - 1];
-                                                        const nextFrom = lastTier ? Number(lastTier.to) + 1 : 1;
-                                                        const nextTo = nextFrom + 99;
-                                                        const nextPrice = lastTier ? Math.max(0.10, Number(lastTier.price) - 0.05) : 0.85;
+                                                <div className="flex items-end gap-4 w-full lg:w-auto">
+                                                    <div className="w-44">
+                                                        <CurrencyInput
+                                                            label="Valor Fixo Mensal (Faixas)"
+                                                            value={tempCompanyConfig.settings?.admin_fiscal_billing?.tiered_fixed_fee ?? 100.00}
+                                                            onChange={(num) => {
+                                                                const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                setTempCompanyConfig({
+                                                                    ...tempCompanyConfig,
+                                                                    settings: {
+                                                                        ...(tempCompanyConfig.settings || {}),
+                                                                        admin_fiscal_billing: {
+                                                                            ...currentBilling,
+                                                                            tiered_fixed_fee: num
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }}
+                                                            placeholder="Ex: 100,00"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                            const currentTiers = currentBilling.tiers || [];
+                                                            
+                                                            const lastTier = currentTiers[currentTiers.length - 1];
+                                                            const nextFrom = lastTier ? Number(lastTier.to) + 1 : 1;
+                                                            const nextTo = nextFrom + 99;
+                                                            const nextPrice = lastTier ? Math.max(0.10, Number(lastTier.price) - 0.05) : 0.85;
 
-                                                        const updatedTiers = [
-                                                            ...currentTiers,
-                                                            { from: nextFrom, to: nextTo, price: parseFloat(nextPrice.toFixed(2)) }
-                                                        ];
+                                                            const updatedTiers = [
+                                                                ...currentTiers,
+                                                                { from: nextFrom, to: nextTo, price: parseFloat(nextPrice.toFixed(2)) }
+                                                            ];
 
-                                                        setTempCompanyConfig({
-                                                            ...tempCompanyConfig,
-                                                            settings: {
-                                                                ...(tempCompanyConfig.settings || {}),
-                                                                admin_fiscal_billing: {
-                                                                    ...currentBilling,
-                                                                    tiers: updatedTiers
+                                                            setTempCompanyConfig({
+                                                                ...tempCompanyConfig,
+                                                                settings: {
+                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                    admin_fiscal_billing: {
+                                                                        ...currentBilling,
+                                                                        tiers: updatedTiers
+                                                                    }
                                                                 }
-                                                            }
-                                                        });
-                                                    }}
-                                                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-lg transition-colors flex items-center gap-1"
-                                                >
-                                                    <Plus size={14} /> Adicionar Faixa
-                                                </button>
+                                                            });
+                                                        }}
+                                                        className="h-10 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                                                    >
+                                                        <Plus size={14} /> Adicionar Faixa
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div className="overflow-x-auto">
