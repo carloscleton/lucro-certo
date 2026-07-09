@@ -1209,7 +1209,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     }
 
     try {
-        const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId, Boolean(isLabTest));
+        const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId, true);
         if (!config) {
             return res.status(400).json({ error: 'Configuração fiscal não encontrada.' });
         }
@@ -1626,7 +1626,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const forceTestData = config.use_test_data === true && (!hasCert || isNacional);
         const useTestData = forceTestData || 
                           (isSandbox && !hasCert) || 
-                          (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104') ||
+                          (targetCnpj === TEST_CNPJ || targetCnpj === '08184315000104' || targetCnpj === '00893566000190') ||
                           isLabTest === true;
 
         const endpoint = type === 'nfse' ? 'nfse' : 'nfe';
@@ -1661,7 +1661,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 if (useTestData && !item.prestador) item.prestador = {};
                 if (item.prestador) {
                     if (useTestData) {
-                        item.prestador.cpfCnpj = TEST_CNPJ;
+                        item.prestador.cpfCnpj = targetCnpj === '00893566000190' ? '00893566000190' : TEST_CNPJ;
                         item.prestador.inscricaoMunicipal = isNacional ? TEST_IM_NACIONAL : TEST_IM_MUNICIPAL;
                         delete item.prestador.certificado; 
                     } else {
@@ -1706,7 +1706,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
                     if (item.codigoIbge) item.codigoIbge = targetIbge;
                     if (item.prestador) {
-                        item.prestador.cpfCnpj = TEST_CNPJ;
+                        item.prestador.cpfCnpj = targetCnpj === '00893566000190' ? '00893566000190' : TEST_CNPJ;
                         item.prestador.inscricaoMunicipal = targetIm;
                         delete item.prestador.certificado;
                     }
@@ -2846,7 +2846,7 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
         const useTestData = forceTestData || (isSandbox && !hasCert);
         
         if (useTestData) {
-            cnpj = '08187168000160'; // CNPJ da TecnoSpeed usado no modo teste/sandbox
+            cnpj = cnpj === '00893566000190' ? '00893566000190' : '08187168000160'; // CNPJ da TecnoSpeed usado no modo teste/sandbox
             console.log(`🛠️ [FISCAL-CONSULTAR] Modo Teste Ativo. Forçando CNPJ para ${cnpj} para localizar as notas do Sandbox.`);
         }
 
