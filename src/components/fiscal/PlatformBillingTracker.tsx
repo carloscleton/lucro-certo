@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronUp, Receipt, Award, Info, Settings, HelpCircle as HelpIcon } from 'lucide-react';
+import { ChevronDown, ChevronUp, Award } from 'lucide-react';
 
 interface PlatformBillingTrackerProps {
     invoices: any[];
@@ -88,7 +88,6 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
     const providerConfig = billingConfig[activeProvider] || {};
     const fixedFee = typeof providerConfig.fixed_fee === 'number' ? providerConfig.fixed_fee : 30.00;
     const perNoteFee = typeof providerConfig.per_note_fee === 'number' ? providerConfig.per_note_fee : 0.50;
-    const fixedModelCost = fixedEnabled ? fixedFee + (totalNotes * perNoteFee) : 0;
 
     const totalCostThisMonth = (fixedEnabled ? fixedFee : 0) + (tieredEnabled ? tieredCost : (totalNotes * perNoteFee));
 
