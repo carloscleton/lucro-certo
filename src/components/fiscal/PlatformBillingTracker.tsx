@@ -15,12 +15,30 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
     const tieredEnabled = !!billingConfig.tiered_enabled;
     const tiers = billingConfig.tiers || [];
 
-    // Filter invoices of the current month (Calendar month)
-    const now = new Date();
+    const cycleStartDay = typeof billingConfig.billing_cycle_start_day === 'number'
+        ? billingConfig.billing_cycle_start_day
+        : 1;
+
+    // Helper to calculate cycle start and end dates
+    const getBillingCycleDates = (day: number) => {
+        const today = new Date();
+        let cycleStart = new Date(today.getFullYear(), today.getMonth(), day, 0, 0, 0, 0);
+        let cycleEnd = new Date(today.getFullYear(), today.getMonth() + 1, day, 0, 0, 0, 0);
+
+        if (today.getDate() < day) {
+            cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, day, 0, 0, 0, 0);
+            cycleEnd = new Date(today.getFullYear(), today.getMonth(), day, 0, 0, 0, 0);
+        }
+        return { cycleStart, cycleEnd };
+    };
+
+    const { cycleStart, cycleEnd } = getBillingCycleDates(cycleStartDay);
+
+    // Filter invoices of the current cycle
     const currentMonthInvoices = invoices.filter(inv => {
         if (!inv.created_at) return false;
         const d = new Date(inv.created_at);
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        return d >= cycleStart && d < cycleEnd;
     });
 
     // Provider check
@@ -155,7 +173,7 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                             </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
-                            Você emitiu <strong className="text-gray-900 dark:text-white">{totalNotes} nota{totalNotes !== 1 ? 's' : ''}</strong> neste mês de {now.toLocaleString('pt-BR', { month: 'long' })}.
+                            Você emitiu <strong className="text-gray-900 dark:text-white">{totalNotes} nota{totalNotes !== 1 ? 's' : ''}</strong> no ciclo de <strong className="text-gray-900 dark:text-white">{cycleStart.toLocaleDateString('pt-BR')} a {cycleEnd.toLocaleDateString('pt-BR')}</strong>.
                         </p>
                     </div>
                 </div>

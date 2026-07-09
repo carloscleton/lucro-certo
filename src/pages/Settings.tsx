@@ -261,6 +261,7 @@ export function Settings() {
     const [billingProcessing, setBillingProcessing] = useState(false);
     const [selectedBillingCompanyIds, setSelectedBillingCompanyIds] = useState<string[]>([]);
     const [whatsappBillingInstance, setWhatsappBillingInstance] = useState('');
+    const [useIndividualCycles, setUseIndividualCycles] = useState(true);
 
     const uniqueCompaniesWithSuggested = Array.from(new Set(billingSimulation.filter(c => c.totalSuggested > 0).map(c => c.companyId))) as string[];
 
@@ -290,7 +291,8 @@ export function Settings() {
             const response = await axios.get(`${API_BASE_URL}/fiscal-module/admin/billing-simulation`, {
                 params: {
                     startDate: billingStartDate,
-                    endDate: billingEndDate
+                    endDate: billingEndDate,
+                    useIndividualCycles: useIndividualCycles
                 },
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
@@ -374,6 +376,7 @@ export function Settings() {
                 startDate: billingStartDate,
                 endDate: billingEndDate,
                 whatsappInstance: whatsappBillingInstance,
+                useIndividualCycles: useIndividualCycles,
                 billingData: selectedData
             }, {
                 headers: {
@@ -2809,6 +2812,39 @@ export function Settings() {
                                         </div>
                                     </div>
 
+                                    {/* Configuração do Ciclo de Faturamento */}
+                                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100/50 dark:border-slate-800 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
+                                        <div className="flex-1">
+                                            <h5 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Ciclo de Faturamento Mensal</h5>
+                                            <p className="text-[10px] text-gray-500 mt-1">Defina o dia do aniversário do ciclo (1 a 28). As notas serão contadas do dia X do mês anterior ao dia X do mês atual.</p>
+                                        </div>
+                                        <div className="w-full sm:w-44 flex flex-col gap-1">
+                                            <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">Dia de Início do Ciclo</label>
+                                            <select
+                                                value={tempCompanyConfig.settings?.admin_fiscal_billing?.billing_cycle_start_day ?? 1}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 1;
+                                                    const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        settings: {
+                                                            ...(tempCompanyConfig.settings || {}),
+                                                            admin_fiscal_billing: {
+                                                                ...currentBilling,
+                                                                billing_cycle_start_day: val
+                                                            }
+                                                        }
+                                                    });
+                                                }}
+                                                className="w-full bg-transparent border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-white dark:bg-slate-850"
+                                            >
+                                                {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                                                    <option key={day} value={day} className="bg-white dark:bg-slate-800">Dia {day}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
                                     {/* Billing Model Toggles */}
                                     <div className="flex flex-col sm:flex-row gap-6 pb-6 mb-6 border-b border-indigo-100/50 dark:border-indigo-900/30">
                                         {/* Switch 1: Preço Fixo */}
@@ -4252,6 +4288,7 @@ export function Settings() {
                                                 type="date"
                                                 value={billingStartDate}
                                                 onChange={(e) => setBillingStartDate(e.target.value)}
+                                                disabled={useIndividualCycles}
                                             />
                                         </div>
 
@@ -4263,6 +4300,7 @@ export function Settings() {
                                                 type="date"
                                                 value={billingEndDate}
                                                 onChange={(e) => setBillingEndDate(e.target.value)}
+                                                disabled={useIndividualCycles}
                                             />
                                         </div>
 
@@ -4278,6 +4316,20 @@ export function Settings() {
                                             />
                                             <p className="text-[10px] text-gray-400">Default: Instância global configurada nas configurações de plataforma.</p>
                                         </div>
+                                    </div>
+
+                                    {/* Checkbox Ciclos Individuais */}
+                                    <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50/50 dark:bg-slate-800 border border-blue-100/50 dark:border-slate-850">
+                                        <input
+                                            type="checkbox"
+                                            id="useIndividualCycles"
+                                            checked={useIndividualCycles}
+                                            onChange={(e) => setUseIndividualCycles(e.target.checked)}
+                                            className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <label htmlFor="useIndividualCycles" className="text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
+                                            Usar ciclo individual de faturamento de cada empresa (Determina as datas com base no dia do aniversário do ciclo e no último faturamento)
+                                        </label>
                                     </div>
 
                                     <div className="flex justify-end border-t border-gray-100 dark:border-slate-800 pt-4">

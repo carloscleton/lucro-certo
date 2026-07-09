@@ -5874,7 +5874,7 @@ app.get(['/fiscal-module/admin/billing-invoices', '/api/fiscal-module/admin/bill
 // Endpoint for processing batch billing and sending notifications
 app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/billing-process'], authenticate, async (req, res) => {
     const authHeader = req.headers.authorization;
-    const { startDate, endDate, billingData } = req.body; 
+    const { startDate, endDate, billingData, useIndividualCycles } = req.body; 
 
     if (!startDate || !endDate || !Array.isArray(billingData)) {
         return res.status(400).json({ error: 'startDate, endDate e billingData (array) são obrigatórios.' });
@@ -5932,6 +5932,38 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
                 continue;
             }
 
+            const billingConfig = settings.admin_fiscal_billing || {};
+            const cycleStartDay = typeof billingConfig.billing_cycle_start_day === 'number'
+                ? billingConfig.billing_cycle_start_day
+                : 1;
+            const lastBilledAt = billingConfig.last_billed_at || null;
+
+            let startToUse = startDate;
+            let endToUse = endDate;
+
+            if (useIndividualCycles) {
+                const today = new Date();
+                let start = new Date(today.getFullYear(), today.getMonth(), cycleStartDay, 0, 0, 0, 0);
+                let end = new Date(today.getFullYear(), today.getMonth() + 1, cycleStartDay, 0, 0, 0, 0);
+
+                if (today.getDate() < cycleStartDay) {
+                    start = new Date(today.getFullYear(), today.getMonth() - 1, cycleStartDay, 0, 0, 0, 0);
+                    end = new Date(today.getFullYear(), today.getMonth(), cycleStartDay, 0, 0, 0, 0);
+                }
+
+                if (lastBilledAt) {
+                    const lastDate = new Date(lastBilledAt);
+                    start = lastDate;
+                    let nextEnd = new Date(lastDate.getFullYear(), lastDate.getMonth() + 1, cycleStartDay, 0, 0, 0, 0);
+                    if (nextEnd <= lastDate) {
+                        nextEnd = new Date(lastDate.getFullYear(), lastDate.getMonth() + 2, cycleStartDay, 0, 0, 0, 0);
+                    }
+                    end = nextEnd;
+                }
+                startToUse = start.toISOString().split('T')[0];
+                endToUse = end.toISOString().split('T')[0];
+            }
+
             const external_reference = `LC-FISCAL-${companyId.substring(0, 4)}-${new Date().getTime()}`;
 
             const adapter = PaymentFactory.getAdapter(platformProvider, platformConfig, isSandbox);
@@ -5970,12 +6002,34 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
                     }
                 });
 
+                // Update company settings with the new last_billed_at
+                const updatedSettings = {
+                    ...settings,
+                    admin_fiscal_billing: {
+                        ...billingConfig,
+                        last_billed_at: endToUse
+                    }
+                };
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${company.id}`, {
+                    settings: updatedSettings
+                }, {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    }
+                });
+
                 const whatsappInstance = (req.body.whatsappInstance || '').trim();
                 const phone = formatWhatsappNumber(company.owner_phone || company.phone || '');
 
                 let notificationSent = false;
                 if (whatsappInstance && phone) {
-                    const message = `Olá, *${company.trade_name}*! 😊\n\nA fatura de utilização do módulo fiscal para o período de ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')} foi gerada.\n\n*Detalhes da Fatura:*\n📝 ${description}\n💰 *Valor:* R$ ${parseFloat(amount).toFixed(2).replace('.', ',')}\n\nCopie o link abaixo para efetuar o pagamento via Pix:\n🔗 ${chargeResult.payment_link || 'Link indisponível'}\n\nObrigado por utilizar nossa plataforma! 💼`;
+                    const startFormatted = new Date(startToUse).toLocaleDateString('pt-BR');
+                    const endFormatted = new Date(endToUse).toLocaleDateString('pt-BR');
+                    const message = `Olá, *${company.trade_name}*! 😊\n\nA fatura de utilização do módulo fiscal para o período de ${startFormatted} a ${endFormatted} foi gerada.\n\n*Detalhes da Fatura:*\n📝 ${description}\n💰 *Valor:* R$ ${parseFloat(amount).toFixed(2).replace('.', ',')}\n\nCopie o link abaixo para efetuar o pagamento via Pix:\n🔗 ${chargeResult.payment_link || 'Link indisponível'}\n\nObrigado por utilizar nossa plataforma! 💼`;
 
                     try {
                         const encodedInstance = encodeURIComponent(whatsappInstance);
