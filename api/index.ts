@@ -1192,6 +1192,14 @@ app.get(['/fiscal-module/issuer-status/:cpfCnpj', '/api/fiscal-module/issuer-sta
     }
 });
 
+function getNormalizedHost(req: any): string {
+    let host = req.get('host') || '';
+    if (host.includes('-projects.vercel.app')) {
+        host = 'lucrocertovercel.vercel.app';
+    }
+    return host;
+}
+
 app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, async (req, res) => {
     const { companyId, payload, type, quoteId, isLabTest, provider } = req.body;
     const authHeader = req.headers.authorization;
@@ -1418,7 +1426,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     
                     const getValidDocUrl = (docType: 'pdf' | 'xml') => {
                         const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-                        const host = req.get('host');
+                        const host = getNormalizedHost(req);
                         const baseApiUrl = `${protocol}://${host}`;
                         return `${baseApiUrl}/api/fiscal-module/nfeio/${docId}/${docType}?companyId=${companyId}`;
                     };
@@ -1824,7 +1832,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 const getValidDocUrl = (docType: 'pdf' | 'xml') => {
                     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-                    const host = req.get('host');
+                    const host = getNormalizedHost(req);
                     const baseApiUrl = `${protocol}://${host}`;
                     const targetType = endpoint === 'nfse' && isNacional ? 'nfsenac' : endpoint;
                     return `${baseApiUrl}/api/fiscal-module/${targetType}/${externalId}/${docType}?companyId=${companyId}`;
@@ -4022,7 +4030,7 @@ app.post(['/fiscal-module/webhook/update', '/api/fiscal-module/webhook/update'],
  
          const getValidDocUrl = (docType: 'pdf' | 'xml') => {
              const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-             const host = req.get('host');
+             const host = getNormalizedHost(req);
              const baseApiUrl = `${protocol}://${host}`;
              const usedType = invoice.type || 'nfse';
              return `${baseApiUrl}/api/fiscal-module/${usedType}/${invoice.external_id || targetId}/${docType}?companyId=${invoice.company_id}`;
