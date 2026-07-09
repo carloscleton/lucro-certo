@@ -23,116 +23,136 @@ export function DashboardCards({ metrics, previousPeriod, onCardClick }: Dashboa
     const incomeGrowth = previousPeriod ? calculateGrowth(metrics.income, previousPeriod.income) : null;
     const expenseGrowth = previousPeriod ? calculateGrowth(metrics.expense, previousPeriod.expense) : null;
 
+    const hasAnyCard = metrics.income > 0 || 
+                       metrics.expense > 0 || 
+                       metrics.totalPayable > 0 || 
+                       metrics.totalReceivable > 0 || 
+                       metrics.rejectedTotal > 0;
+
+    if (!hasAnyCard) {
+        return null;
+    }
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Receitas */}
-            <div
-                onClick={() => onCardClick?.('income')}
-                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
-            >
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_income_title')}</p>
-                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
-                            {formatCurrency(metrics.income)}
-                        </h3>
-                        {incomeGrowth && (
-                            <div className={`flex items-center gap-1 mt-2 text-[10px] font-bold ${Number(incomeGrowth) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                {Number(incomeGrowth) >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                                {incomeGrowth}% <span className="opacity-60 font-medium">{t('dashboard.vs_previous_month')}</span>
-                            </div>
-                        )}
-                    </div>
-                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
-                        <ArrowUpCircle size={22} />
+            {metrics.income > 0 && (
+                <div
+                    onClick={() => onCardClick?.('income')}
+                    className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
+                >
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_income_title')}</p>
+                            <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
+                                {formatCurrency(metrics.income)}
+                            </h3>
+                            {incomeGrowth && (
+                                <div className={`flex items-center gap-1 mt-2 text-[10px] font-bold ${Number(incomeGrowth) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    {Number(incomeGrowth) >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                    {incomeGrowth}% <span className="opacity-60 font-medium">{t('dashboard.vs_previous_month')}</span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                            <ArrowUpCircle size={22} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Despesas */}
-            <div
-                onClick={() => onCardClick?.('expense')}
-                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
-            >
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_expense_title')}</p>
-                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
-                            {formatCurrency(metrics.expense)}
-                        </h3>
-                        {expenseGrowth && (
-                            <div className={`flex items-center gap-1 mt-2 text-[10px] font-bold ${Number(expenseGrowth) <= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                {Number(expenseGrowth) <= 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
-                                {Math.abs(Number(expenseGrowth))}% <span className="opacity-60 font-medium">{t('dashboard.vs_previous_month')}</span>
-                            </div>
-                        )}
-                    </div>
-                    <div className="p-2.5 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
-                        <ArrowDownCircle size={22} />
+            {metrics.expense > 0 && (
+                <div
+                    onClick={() => onCardClick?.('expense')}
+                    className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
+                >
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_expense_title')}</p>
+                            <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
+                                {formatCurrency(metrics.expense)}
+                            </h3>
+                            {expenseGrowth && (
+                                <div className={`flex items-center gap-1 mt-2 text-[10px] font-bold ${Number(expenseGrowth) <= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    {Number(expenseGrowth) <= 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
+                                    {Math.abs(Number(expenseGrowth))}% <span className="opacity-60 font-medium">{t('dashboard.vs_previous_month')}</span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-2.5 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
+                            <ArrowDownCircle size={22} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* A Pagar */}
-            <div
-                onClick={() => onCardClick?.('payable')}
-                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
-            >
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_commitments_title')}</p>
-                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
-                            {formatCurrency(metrics.totalPayable)}
-                        </h3>
-                        <p className="text-[10px] text-gray-400 mt-2 font-medium">{t('dashboard.pending_in_period')}</p>
-                    </div>
-                    <div className="p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
-                        <DollarSign size={22} />
+            {metrics.totalPayable > 0 && (
+                <div
+                    onClick={() => onCardClick?.('payable')}
+                    className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
+                >
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_commitments_title')}</p>
+                            <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
+                                {formatCurrency(metrics.totalPayable)}
+                            </h3>
+                            <p className="text-[10px] text-gray-400 mt-2 font-medium">{t('dashboard.pending_in_period')}</p>
+                        </div>
+                        <div className="p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
+                            <DollarSign size={22} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* A Receber */}
-            <div
-                onClick={() => onCardClick?.('receivable')}
-                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
-            >
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_receivable_title')}</p>
-                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
-                            {formatCurrency(metrics.totalReceivable)}
-                        </h3>
-                        <p className="text-[10px] text-gray-400 mt-2 font-medium">{t('dashboard.expected_inflow')}</p>
-                    </div>
-                    <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                        <Wallet size={22} />
+            {metrics.totalReceivable > 0 && (
+                <div
+                    onClick={() => onCardClick?.('receivable')}
+                    className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
+                >
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_receivable_title')}</p>
+                            <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
+                                {formatCurrency(metrics.totalReceivable)}
+                            </h3>
+                            <p className="text-[10px] text-gray-400 mt-2 font-medium">{t('dashboard.expected_inflow')}</p>
+                        </div>
+                        <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                            <Wallet size={22} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Recuperação */}
-            <div
-                onClick={() => onCardClick?.('rejected')}
-                className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
-            >
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_recovery_title')}</p>
-                        <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
-                            {formatCurrency(metrics.rejectedTotal)}
-                        </h3>
-                        <p className="text-[10px] text-pink-500 mt-2 font-bold uppercase tracking-tighter">
-                            {metrics.rejectedCount === 1 
-                                ? t('dashboard.opportunity_count', { count: metrics.rejectedCount }) 
-                                : t('dashboard.opportunity_count_plural', { count: metrics.rejectedCount })}
-                        </p>
-                    </div>
-                    <div className="p-2.5 bg-pink-50 dark:bg-pink-900/20 rounded-xl text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform">
-                        <ArrowDownCircle size={22} className="rotate-45" />
+            {metrics.rejectedTotal > 0 && (
+                <div
+                    onClick={() => onCardClick?.('rejected')}
+                    className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/30 transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-2px] group"
+                >
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-wider">{t('dashboard.card_recovery_title')}</p>
+                            <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
+                                {formatCurrency(metrics.rejectedTotal)}
+                            </h3>
+                            <p className="text-[10px] text-pink-500 mt-2 font-bold uppercase tracking-tighter">
+                                {metrics.rejectedCount === 1 
+                                    ? t('dashboard.opportunity_count', { count: metrics.rejectedCount }) 
+                                    : t('dashboard.opportunity_count_plural', { count: metrics.rejectedCount })}
+                            </p>
+                        </div>
+                        <div className="p-2.5 bg-pink-50 dark:bg-pink-900/20 rounded-xl text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform">
+                            <ArrowDownCircle size={22} className="rotate-45" />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

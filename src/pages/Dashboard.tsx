@@ -351,78 +351,129 @@ export function Dashboard() {
 
             <Alerts alerts={alerts} onQuickPay={handleQuickPayClick} />
 
-            <DashboardCards metrics={metrics} previousPeriod={previousPeriod} onCardClick={handleCardClick} />
-
-            <FiscalSummaryWidget
-                invoices={invoices}
-                fiscalSettings={currentCompany?.tecnospeed_config}
-                fiscalEnabled={isFiscalEnabled}
-            />
-
-            {/* Performance Grid Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 scale-in-center">
-                <div className="lg:col-span-8">
-                    <DashboardGauges income={metrics.income} expense={metrics.expense} />
-                </div>
-                <div className="lg:col-span-4">
-                    <TopPerformingWidget expensesByCategory={expensesByCategory} categories={categories} />
-                </div>
-            </div>
-
-            <ContextSummaryWidget contextMetrics={contextMetrics} />
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    <DashboardCharts data={chartData} />
-                    <ExpenseByCategoryChart expenses={expensesByCategory} categories={categories} />
-                    <MonthlyComparison
-                        currentIncome={metrics.income}
-                        currentExpense={metrics.expense}
-                        previousIncome={previousPeriod.income}
-                        previousExpense={previousPeriod.expense}
-                        currentMonthLabel={currentMonthLabel}
-                        previousMonthLabel={previousMonthLabel}
-                    />
-                    <PendingList transactions={pendingList} />
-                    <BudgetProgress categories={categories} expenses={expensesByCategory} />
-                </div>
-
-                <div className="space-y-6">
-                    <AgendaTasksWidget tasks={agendaTasks} />
-
-                    {isCRMEnabled && (
-                        <CRMStatsWidget receivedIncome={metrics.income} />
-                    )}
-
-                    {isLoyaltyEnabled && (
-                        <LoyaltyStatsWidget />
-                    )}
-
-                    <CashFlowForecast
-                        currentBalance={metrics.balance}
-                        monthlyIncome={metrics.income}
-                        monthlyExpense={metrics.expense}
-                        pendingReceivable={metrics.totalReceivable}
-                        pendingPayable={metrics.totalPayable}
-                    />
-
-                    <UpcomingBillsWidget onRefreshMetrics={refreshDashboard} />
-
-                    <div className="glass-card p-6 rounded-2xl transition-all hover:shadow-2xl">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-widest">{t('dashboard.quick_summary')}</h3>
-                        <div className="space-y-4">
-                            <div className="p-4 bg-gray-50/50 dark:bg-slate-900/30 rounded-xl border border-gray-100 dark:border-slate-800">
-                                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter mb-1">{t('dashboard.period_result')}</p>
-                                <p className={`text-2xl font-black ${metrics.income - metrics.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(metrics.income - metrics.expense)}
-                                </p>
-                            </div>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 italic leading-relaxed">
-                                {t('dashboard.quote_tip')}
-                            </p>
-                        </div>
+            {hasNoData ? (
+                <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-10 rounded-2xl border border-white/20 dark:border-slate-700/30 text-center shadow-xl max-w-lg mx-auto mt-10 animate-in fade-in duration-300">
+                    <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500">
+                        <TrendingUp size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        Nenhuma movimentação neste período
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                        Não encontramos receitas, despesas, compromissos ou notas fiscais para o período selecionado.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button
+                            onClick={() => navigate('/dashboard/receivables')}
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-500/10"
+                        >
+                            Nova Receita
+                        </button>
+                        <button
+                            onClick={() => navigate('/dashboard/payables')}
+                            className="px-4 py-2.5 bg-white dark:bg-slate-850 hover:bg-gray-50 dark:hover:bg-slate-750 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 font-bold text-sm rounded-xl transition-all"
+                        >
+                            Nova Despesa
+                        </button>
                     </div>
                 </div>
+            ) : (
+                <>
+                    <DashboardCards metrics={metrics} previousPeriod={previousPeriod} onCardClick={handleCardClick} />
+
+                    <FiscalSummaryWidget
+                        invoices={invoices}
+                        fiscalSettings={currentCompany?.tecnospeed_config}
+                        fiscalEnabled={isFiscalEnabled}
+                    />
+
+                    {/* Performance Grid Row */}
+                    {(metrics.income > 0 || metrics.expense > 0 || expensesByCategory.length > 0) && (
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 scale-in-center mt-6">
+                            {(metrics.income > 0 || metrics.expense > 0) && (
+                                <div className={expensesByCategory.length > 0 ? "lg:col-span-8" : "lg:col-span-12"}>
+                                    <DashboardGauges income={metrics.income} expense={metrics.expense} />
+                                </div>
+                            )}
+                            {expensesByCategory.length > 0 && (
+                                <div className={metrics.income > 0 || metrics.expense > 0 ? "lg:col-span-4" : "lg:col-span-12"}>
+                                    <TopPerformingWidget expensesByCategory={expensesByCategory} categories={categories} />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {(metrics.income > 0 || metrics.expense > 0) && (
+                        <ContextSummaryWidget contextMetrics={contextMetrics} />
+                    )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            {chartData.length > 0 && (metrics.income > 0 || metrics.expense > 0) && (
+                                <DashboardCharts data={chartData} />
+                            )}
+                            {expensesByCategory.length > 0 && (
+                                <ExpenseByCategoryChart expenses={expensesByCategory} categories={categories} />
+                            )}
+                            {(metrics.income > 0 || metrics.expense > 0 || previousPeriod.income > 0 || previousPeriod.expense > 0) && (
+                                <MonthlyComparison
+                                    currentIncome={metrics.income}
+                                    currentExpense={metrics.expense}
+                                    previousIncome={previousPeriod.income}
+                                    previousExpense={previousPeriod.expense}
+                                    currentMonthLabel={currentMonthLabel}
+                                    previousMonthLabel={previousMonthLabel}
+                                />
+                            )}
+                            <PendingList transactions={pendingList} />
+                            {expensesByCategory.length > 0 && (
+                                <BudgetProgress categories={categories} expenses={expensesByCategory} />
+                            )}
+                        </div>
+
+                        <div className="space-y-6">
+                            <AgendaTasksWidget tasks={agendaTasks} />
+
+                            {isCRMEnabled && (
+                                <CRMStatsWidget receivedIncome={metrics.income} />
+                            )}
+
+                            {isLoyaltyEnabled && (
+                                <LoyaltyStatsWidget />
+                            )}
+
+                            {(metrics.income > 0 || metrics.expense > 0 || metrics.totalReceivable > 0 || metrics.totalPayable > 0) && (
+                                <CashFlowForecast
+                                    currentBalance={metrics.balance}
+                                    monthlyIncome={metrics.income}
+                                    monthlyExpense={metrics.expense}
+                                    pendingReceivable={metrics.totalReceivable}
+                                    pendingPayable={metrics.totalPayable}
+                                />
+                            )}
+
+                            <UpcomingBillsWidget onRefreshMetrics={refreshDashboard} />
+
+                            {(metrics.income > 0 || metrics.expense > 0) && (
+                                <div className="glass-card p-6 rounded-2xl transition-all hover:shadow-2xl">
+                                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-widest">{t('dashboard.quick_summary')}</h3>
+                                    <div className="space-y-4">
+                                        <div className="p-4 bg-gray-50/50 dark:bg-slate-900/30 rounded-xl border border-gray-100 dark:border-slate-800">
+                                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter mb-1">{t('dashboard.period_result')}</p>
+                                            <p className={`text-2xl font-black ${metrics.income - metrics.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                                {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(metrics.income - metrics.expense)}
+                                            </p>
+                                        </div>
+                                        <p className="text-[11px] text-gray-400 dark:text-gray-500 italic leading-relaxed">
+                                            {t('dashboard.quote_tip')}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
             </div>
 
             {/* Transaction Detail Modal */}
