@@ -60,12 +60,34 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
             { from: 901, to: 999999, price: 0.40 }
         ];
 
+    const contractedIdx = typeof billingConfig.contracted_tier_index === 'number'
+        ? billingConfig.contracted_tier_index
+        : 0;
+
+    const billingTiers: any[] = [];
+    if (sortedTiers.length > 0) {
+        const contractedTier = sortedTiers[contractedIdx] || sortedTiers[0];
+        billingTiers.push({
+            from: 1,
+            to: Number(contractedTier.to || 999999),
+            price: Number(contractedTier.price)
+        });
+
+        for (let i = contractedIdx + 1; i < sortedTiers.length; i++) {
+            billingTiers.push({
+                from: Number(sortedTiers[i].from),
+                to: Number(sortedTiers[i].to || 999999),
+                price: Number(sortedTiers[i].price)
+            });
+        }
+    }
+
     // Compute tiered breakdown and costs
     const tieredBreakdown: any[] = [];
     let tieredCost = 0;
     
     if (tieredEnabled) {
-        sortedTiers.forEach(t => {
+        billingTiers.forEach(t => {
             const tierFrom = Number(t.from);
             const tierTo = Number(t.to || 999999);
             const price = Number(t.price);
@@ -96,12 +118,12 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
 
     // Find current tier
     const currentTier = tieredEnabled 
-        ? sortedTiers.find(t => totalNotes >= Number(t.from) && totalNotes <= Number(t.to)) || sortedTiers[0]
+        ? billingTiers.find(t => totalNotes >= Number(t.from) && totalNotes <= Number(t.to)) || billingTiers[0]
         : null;
 
     // Find next tier
     const nextTier = tieredEnabled
-        ? sortedTiers.find(t => Number(t.from) > totalNotes)
+        ? billingTiers.find(t => Number(t.from) > totalNotes)
         : null;
 
     const currentPrice = currentTier ? Number(currentTier.price) : perNoteFee;

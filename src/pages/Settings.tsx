@@ -3133,6 +3133,7 @@ export function Settings() {
                                                 <table className="w-full text-left text-xs">
                                                     <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
                                                         <tr>
+                                                            <th className="p-3 text-center w-28">Partida Contratada</th>
                                                             <th className="p-3">De (Mínimo)</th>
                                                             <th className="p-3">Até (Máximo)</th>
                                                             <th className="p-3">Preço por Nota (R$)</th>
@@ -3142,6 +3143,27 @@ export function Settings() {
                                                     <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                                                         {(tempCompanyConfig.settings?.admin_fiscal_billing?.tiers || []).map((tier: any, idx: number) => (
                                                             <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30">
+                                                                <td className="p-3 text-center">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="contracted_tier"
+                                                                        checked={(tempCompanyConfig.settings?.admin_fiscal_billing?.contracted_tier_index ?? 0) === idx}
+                                                                        onChange={() => {
+                                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                            setTempCompanyConfig({
+                                                                                ...tempCompanyConfig,
+                                                                                settings: {
+                                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                                    admin_fiscal_billing: {
+                                                                                        ...currentBilling,
+                                                                                        contracted_tier_index: idx
+                                                                                    }
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-slate-700 bg-transparent"
+                                                                    />
+                                                                </td>
                                                                 <td className="p-3">
                                                                     <input
                                                                         type="number"

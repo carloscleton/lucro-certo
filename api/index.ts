@@ -5644,6 +5644,14 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                         : 0.50;
 
                     notesCost += totalNotes * appliedPerNoteFee;
+                } else if (isTieredEnabled) {
+                    if (isActive) {
+                        const fixedFee = typeof billingConfig.tiered_fixed_fee === 'number' 
+                            ? billingConfig.tiered_fixed_fee 
+                            : 100.00;
+                        fixedFeeToApply = isExempt ? 0.00 : fixedFee;
+                    }
+                    appliedPerNoteFee = 0;
                 } else {
                     appliedPerNoteFee = 0;
                 }
@@ -5651,7 +5659,27 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                 // 2. Tiered calculation
                 if (isTieredEnabled && tiers.length > 0) {
                     const sortedTiers = [...tiers].sort((a, b) => Number(a.from) - Number(b.from));
-                    for (const tier of sortedTiers) {
+                    const contractedIdx = typeof billingConfig.contracted_tier_index === 'number'
+                        ? billingConfig.contracted_tier_index
+                        : 0;
+
+                    const billingTiers: any[] = [];
+                    const contractedTier = sortedTiers[contractedIdx] || sortedTiers[0];
+                    billingTiers.push({
+                        from: 1,
+                        to: Number(contractedTier.to || 999999),
+                        price: Number(contractedTier.price)
+                    });
+
+                    for (let i = contractedIdx + 1; i < sortedTiers.length; i++) {
+                        billingTiers.push({
+                            from: Number(sortedTiers[i].from),
+                            to: Number(sortedTiers[i].to || 999999),
+                            price: Number(sortedTiers[i].price)
+                        });
+                    }
+
+                    for (const tier of billingTiers) {
                         const tierFrom = Number(tier.from);
                         const tierTo = Number(tier.to || 999999);
                         const price = Number(tier.price);
@@ -5717,7 +5745,8 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                     isTiered: isTieredEnabled,
                     tieredBreakdown,
                     fixedEnabled: isFixedEnabled,
-                    tieredEnabled: isTieredEnabled
+                    tieredEnabled: isTieredEnabled,
+                    contractedTierIndex: isTieredEnabled ? contractedIdx : 0
                 });
             }
         }
