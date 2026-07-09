@@ -10,14 +10,7 @@ export function PendingList({ transactions }: PendingListProps) {
     const { t } = useTranslation();
 
     if (transactions.length === 0) {
-        return (
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-colors">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('dashboard.pending_bills_month')}</h3>
-                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                    <p>{t('dashboard.no_pending_bills')}</p>
-                </div>
-            </div>
-        );
+        return null;
     }
 
     return (

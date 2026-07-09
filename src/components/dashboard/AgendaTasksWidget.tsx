@@ -11,6 +11,10 @@ export function AgendaTasksWidget({ tasks }: AgendaTasksWidgetProps) {
     const navigate = useNavigate();
     const { t } = useTranslation();
 
+    if (!tasks || tasks.length === 0) {
+        return null;
+    }
+
     const getTypeIcon = (type: string) => {
         switch (type) {
             case 'call': return <Phone size={14} className="text-emerald-500" />;

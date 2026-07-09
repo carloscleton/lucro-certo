@@ -167,22 +167,7 @@ export function UpcomingBillsWidget({ onRefreshMetrics }: UpcomingBillsWidgetPro
     const totalBills = bills.overdue.length + bills.thisWeek.length + bills.upcoming.length;
 
     if (totalBills === 0) {
-        return (
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                    <Calendar className="w-5 h-5 text-emerald-600" />
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                        {t('dashboard.upcoming_bills_title')}
-                    </h3>
-                </div>
-                <div className="text-center py-8">
-                    <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t('dashboard.no_pending_30_days')}
-                    </p>
-                </div>
-            </div>
-        );
+        return null;
     }
 
     return (

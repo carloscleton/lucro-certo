@@ -24,6 +24,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useAdmin } from '../hooks/useAdmin';
 import { Users, Building, DollarSign, TrendingUp } from 'lucide-react';
 import { AgendaTasksWidget } from '../components/dashboard/AgendaTasksWidget';
+import { FiscalSummaryWidget } from '../components/dashboard/FiscalSummaryWidget';
 import { SettleModal } from '../components/transactions/SettleModal';
 import { DashboardGauges } from '../components/dashboard/DashboardGauges';
 import { TopPerformingWidget } from '../components/dashboard/TopPerformingWidget';
@@ -179,7 +180,7 @@ export function Dashboard() {
         setMonthFilter(''); // Clear month selection if manual date is picked
     };
 
-    const { metrics, chartData, alerts, expensesByCategory, agendaTasks, pendingList, transactions, contextMetrics, previousPeriod, loading, refresh: refreshDashboard } = useDashboard(startDate, endDate);
+    const { metrics, chartData, alerts, expensesByCategory, agendaTasks, pendingList, transactions, contextMetrics, previousPeriod, loading, refresh: refreshDashboard, invoices } = useDashboard(startDate, endDate);
     const { categories, loading: categoriesLoading } = useCategories();
     const { companies } = useCompanies();
     const { currentEntity } = useEntity();
@@ -214,6 +215,7 @@ export function Dashboard() {
     const currentCompany = companies.find(c => c.id === currentEntity.id);
     const isCRMEnabled = currentEntity.type === 'company' && currentCompany?.crm_module_enabled;
     const isLoyaltyEnabled = currentEntity.type === 'company' && currentCompany?.loyalty_module_enabled;
+    const isFiscalEnabled = currentEntity.type === 'company' && !!currentCompany?.fiscal_module_enabled;
 
     // Click handlers for cards
     const handleCardClick = (type: 'income' | 'expense' | 'receivable' | 'payable' | 'balance' | 'rejected') => {
@@ -350,6 +352,12 @@ export function Dashboard() {
             <Alerts alerts={alerts} onQuickPay={handleQuickPayClick} />
 
             <DashboardCards metrics={metrics} previousPeriod={previousPeriod} onCardClick={handleCardClick} />
+
+            <FiscalSummaryWidget
+                invoices={invoices}
+                fiscalSettings={currentCompany?.tecnospeed_config}
+                fiscalEnabled={isFiscalEnabled}
+            />
 
             {/* Performance Grid Row */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 scale-in-center">

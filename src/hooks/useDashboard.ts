@@ -55,6 +55,7 @@ export function useDashboard(startDate: string, endDate: string) {
     });
     const [previousPeriod, setPreviousPeriod] = useState<{ income: number; expense: number }>({ income: 0, expense: 0 });
     const [agendaTasks, setAgendaTasks] = useState<any[]>([]);
+    const [invoices, setInvoices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const { user } = useAuth();
@@ -85,12 +86,22 @@ export function useDashboard(startDate: string, endDate: string) {
             // Fetch Quotes
             let quotesQuery = supabase.from('quotes').select('id, title, total_amount, status, created_at, follow_up_date, negotiation_notes');
 
+            // Fetch Fiscal Invoices
+            let invoicesQuery = supabase
+                .from('fiscal_invoices')
+                .select('*')
+                .eq('deleted', false)
+                .gte('created_at', `${start}T00:00:00.000Z`)
+                .lte('created_at', `${end}T23:59:59.999Z`);
+
             if (currentEntity.type === 'company' && currentEntity.id) {
                 txQuery = txQuery.eq('company_id', currentEntity.id);
                 quotesQuery = quotesQuery.eq('company_id', currentEntity.id);
+                invoicesQuery = invoicesQuery.eq('company_id', currentEntity.id);
             } else {
                 txQuery = txQuery.eq('user_id', user.id).is('company_id', null);
                 quotesQuery = quotesQuery.eq('user_id', user.id).is('company_id', null);
+                invoicesQuery = invoicesQuery.eq('id', '00000000-0000-0000-0000-000000000000');
             }
 
             // Fetch Agenda Tasks
@@ -136,27 +147,31 @@ export function useDashboard(startDate: string, endDate: string) {
                 prevTxQuery = prevTxQuery.eq('user_id', user.id).is('company_id', null);
             }
 
-            const results = await Promise.allSettled([txQuery, quotesQuery, allTxQuery, prevTxQuery, agendaQuery]);
+            const results = await Promise.allSettled([txQuery, quotesQuery, allTxQuery, prevTxQuery, agendaQuery, invoicesQuery]);
 
             const txRes = results[0].status === 'fulfilled' ? results[0].value : { data: [], error: (results[0] as any).reason };
             const quotesRes = results[1].status === 'fulfilled' ? results[1].value : { data: [], error: (results[1] as any).reason };
             const allTxRes = results[2].status === 'fulfilled' ? results[2].value : { data: [], error: (results[2] as any).reason };
             const prevTxRes = results[3].status === 'fulfilled' ? results[3].value : { data: [], error: (results[3] as any).reason };
             const agendaRes = results[4].status === 'fulfilled' ? results[4].value : { data: [], error: (results[4] as any).reason };
+            const invoicesRes = results[5]?.status === 'fulfilled' ? (results[5].value as any) : { data: [], error: (results[5] as any).reason };
 
             if (txRes.error) console.error('Dashboard: Error fetching transactions:', txRes.error);
             if (quotesRes.error) console.error('Dashboard: Error fetching quotes:', quotesRes.error);
             if (allTxRes.error) console.error('Dashboard: Error fetching all transactions:', allTxRes.error);
             if (prevTxRes.error) console.error('Dashboard: Error fetching previous transactions:', prevTxRes.error);
             if (agendaRes.error) console.error('Dashboard: Error fetching agenda tasks:', agendaRes.error);
+            if (invoicesRes.error) console.error('Dashboard: Error fetching invoices:', invoicesRes.error);
 
             const transactions = txRes.data || [];
             const quotes = quotesRes.data || [];
             const allTx = allTxRes.data || [];
             const prevTx = prevTxRes?.data || [];
             const agendaTasks = agendaRes.data || [];
+            const invoices = invoicesRes.data || [];
 
             setAgendaTasks(agendaTasks);
+            setInvoices(invoices);
 
             // Previous period metrics (safe - don't let it break dashboard)
             try {
@@ -366,6 +381,7 @@ export function useDashboard(startDate: string, endDate: string) {
         contextMetrics,
         previousPeriod,
         agendaTasks,
+        invoices,
         loading,
         isRefreshing,
         refresh: fetchMetrics
