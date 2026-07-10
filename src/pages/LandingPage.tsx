@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { supabase } from '../lib/supabase';
 import { PaymentRequired } from './PaymentRequired';
+import { PlanDetailsModal } from '../components/settings/PlanDetailsModal';
 import logoFull from '../assets/logo-full.png';
 import { API_BASE_URL } from '../lib/constants';
 
@@ -164,6 +165,7 @@ export function LandingPage() {
     const [isPopupPaused, setIsPopupPaused] = useState(false);
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [currencySymbol, setCurrencySymbol] = useState('R$');
+    const [selectedPlanForDetails, setSelectedPlanForDetails] = useState<any | null>(null);
 
     const [leadName, setLeadName] = useState('');
     const [leadPhone, setLeadPhone] = useState('');
@@ -968,6 +970,26 @@ export function LandingPage() {
                                         >
                                             {plan.button_text}
                                         </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedPlanForDetails(plan)}
+                                            style={{
+                                                fontSize: '0.8rem',
+                                                color: planColor,
+                                                fontWeight: 700,
+                                                textDecoration: 'underline',
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                marginTop: '0.75rem',
+                                                opacity: 0.8
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
+                                        >
+                                            Ver Detalhes do Plano
+                                        </button>
                                     </div>
                                 </div>
                             );
@@ -1368,6 +1390,12 @@ export function LandingPage() {
             )}
 
             {isUnpaid && <PaymentRequired />}
+
+            <PlanDetailsModal
+                isOpen={!!selectedPlanForDetails}
+                onClose={() => setSelectedPlanForDetails(null)}
+                plan={selectedPlanForDetails}
+            />
         </div>
     );
 }
