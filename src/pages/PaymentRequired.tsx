@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import logoFull from '../assets/logo-full.png';
 import { Modal } from '../components/ui/Modal';
 import { whatsappService } from '../services/whatsappService';
+import { PlanDetailsModal } from '../components/settings/PlanDetailsModal';
 
 export function PaymentRequired() {
     const { user, profile, signOut } = useAuth();
@@ -18,6 +19,7 @@ export function PaymentRequired() {
     const [documentStr, setDocumentStr] = useState('');
     const [phoneStr, setPhoneStr] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
+    const [selectedPlanForDetails, setSelectedPlanForDetails] = useState<any | null>(null);
     const [phoneError, setPhoneError] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [currencySymbol, setCurrencySymbol] = useState('R$');
@@ -502,6 +504,17 @@ export function PaymentRequired() {
                                     }`}>
                                         {selectedPlan?.name === plan.name ? 'Selecionado' : 'Escolher este Plano'}
                                     </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedPlanForDetails(plan);
+                                        }}
+                                        className="text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold mt-2 self-center"
+                                    >
+                                        Ver Detalhes do Plano
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -713,6 +726,12 @@ export function PaymentRequired() {
                     </div>
                 </div>
             </Modal>
+            
+            <PlanDetailsModal
+                isOpen={!!selectedPlanForDetails}
+                onClose={() => setSelectedPlanForDetails(null)}
+                plan={selectedPlanForDetails}
+            />
         </div>
     );
 }

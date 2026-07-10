@@ -5,6 +5,7 @@ import { useEntity } from '../../context/EntityContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { supabase } from '../../lib/supabase';
+import { PlanDetailsModal } from './PlanDetailsModal';
 
 export function SubscriptionSettings() {
     const { currentEntity } = useEntity();
@@ -15,6 +16,7 @@ export function SubscriptionSettings() {
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [availablePlans, setAvailablePlans] = useState<any[]>([]);
     const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
+    const [selectedPlanForDetails, setSelectedPlanForDetails] = useState<any | null>(null);
 
     useEffect(() => {
         const resolveCompany = async () => {
@@ -482,6 +484,14 @@ export function SubscriptionSettings() {
                                                     </span>
                                                 )}
                                             </Button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedPlanForDetails(plan)}
+                                                className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-bold mt-3 self-center"
+                                            >
+                                                Ver Detalhes do Plano
+                                            </button>
                                         </div>
                                     );
                                 })
@@ -512,6 +522,12 @@ export function SubscriptionSettings() {
                     </div>
                 </div>
             )}
+
+            <PlanDetailsModal
+                isOpen={!!selectedPlanForDetails}
+                onClose={() => setSelectedPlanForDetails(null)}
+                plan={selectedPlanForDetails}
+            />
         </div>
     );
 }
