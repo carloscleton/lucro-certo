@@ -12,9 +12,27 @@ export function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsModalProp
 
     const allowedType = plan.allowed_entity_type || 'BOTH';
 
-    const renderPermissionTable = (title: string, colorClass: string) => {
-        const profileModules = plan.profile_modules || {};
-        const settingsTabs = plan.settings_tabs || {};
+    const renderPermissionTable = (title: string, type: 'PF' | 'PJ', colorClass: string) => {
+        const profileModules = type === 'PF' ? (plan.profile_modules || {}) : (plan.pj_profile_modules || {});
+        const settingsTabs = type === 'PF' ? (plan.settings_tabs || {}) : (plan.pj_settings_tabs || {});
+
+        // Filter modules where admin or member is true
+        const filteredModules = APP_MODULES.filter(mod => {
+            const adminEnabled = profileModules[mod.key]?.admin === true;
+            const memberEnabled = profileModules[mod.key]?.member === true;
+            return adminEnabled || memberEnabled;
+        });
+
+        // Filter tabs where admin or member is true
+        const filteredTabs = SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).filter(tab => {
+            const adminEnabled = settingsTabs[tab.key]?.admin === true;
+            const memberEnabled = settingsTabs[tab.key]?.member === true;
+            return adminEnabled || memberEnabled;
+        });
+
+        if (filteredModules.length === 0 && filteredTabs.length === 0) {
+            return null;
+        }
 
         return (
             <div className="space-y-4 flex-1">
@@ -25,94 +43,98 @@ export function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsModalProp
 
                 <div className="space-y-4">
                     {/* Sidebar permissions */}
-                    <div>
-                        <span className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Acesso ao Sidebar (Perfil)</span>
-                        <div className="overflow-hidden border border-gray-100 dark:border-slate-800 rounded-xl bg-gray-50/30 dark:bg-slate-950/20 max-h-60 overflow-y-auto">
-                            <table className="w-full text-left text-xs">
-                                <thead className="bg-gray-100/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-10">
-                                    <tr>
-                                        <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest text-[8px]">Módulo</th>
-                                        <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[8px]">Admin</th>
-                                        <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[8px]">Membro</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
-                                    {APP_MODULES.map((mod) => {
-                                        const adminEnabled = profileModules[mod.key]?.admin === true;
-                                        const memberEnabled = profileModules[mod.key]?.member === true;
-                                        return (
-                                            <tr key={mod.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/10 transition-colors">
-                                                <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-semibold text-[11px]">{mod.label}</td>
-                                                <td className="px-4 py-2">
-                                                    <div className="flex justify-center">
-                                                        {adminEnabled ? (
-                                                            <Check size={14} className="text-emerald-500 stroke-[3px]" />
-                                                        ) : (
-                                                            <span className="text-gray-300 dark:text-slate-700">-</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    <div className="flex justify-center">
-                                                        {memberEnabled ? (
-                                                            <Check size={14} className="text-emerald-500 stroke-[3px]" />
-                                                        ) : (
-                                                            <span className="text-gray-300 dark:text-slate-700">-</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                    {filteredModules.length > 0 && (
+                        <div>
+                            <span className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Acesso ao Sidebar (Perfil)</span>
+                            <div className="overflow-hidden border border-gray-100 dark:border-slate-800 rounded-xl bg-gray-50/30 dark:bg-slate-950/20 max-h-60 overflow-y-auto">
+                                <table className="w-full text-left text-xs">
+                                    <thead className="bg-gray-100/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest text-[8px]">Módulo</th>
+                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[8px]">Admin</th>
+                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[8px]">Membro</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
+                                        {filteredModules.map((mod) => {
+                                            const adminEnabled = profileModules[mod.key]?.admin === true;
+                                            const memberEnabled = profileModules[mod.key]?.member === true;
+                                            return (
+                                                <tr key={mod.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/10 transition-colors">
+                                                    <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-semibold text-[11px]">{mod.label}</td>
+                                                    <td className="px-4 py-2">
+                                                        <div className="flex justify-center">
+                                                            {adminEnabled ? (
+                                                                <Check size={14} className="text-emerald-500 stroke-[3px]" />
+                                                            ) : (
+                                                                <span className="text-gray-300 dark:text-slate-700">-</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <div className="flex justify-center">
+                                                            {memberEnabled ? (
+                                                                <Check size={14} className="text-emerald-500 stroke-[3px]" />
+                                                            ) : (
+                                                                <span className="text-gray-300 dark:text-slate-700">-</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Settings tabs permissions */}
-                    <div>
-                        <span className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Áreas de Configuração</span>
-                        <div className="overflow-hidden border border-gray-100 dark:border-slate-800 rounded-xl bg-gray-50/30 dark:bg-slate-950/20 max-h-60 overflow-y-auto">
-                            <table className="w-full text-left text-xs">
-                                <thead className="bg-gray-100/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-10">
-                                    <tr>
-                                        <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest text-[8px]">Aba</th>
-                                        <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[8px]">Admin</th>
-                                        <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[8px]">Membro</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
-                                    {SETTINGS_TABS.filter(t => !['admin', 'permissions'].includes(t.key)).map((tab) => {
-                                        const adminEnabled = settingsTabs[tab.key]?.admin === true;
-                                        const memberEnabled = settingsTabs[tab.key]?.member === true;
-                                        return (
-                                            <tr key={tab.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/10 transition-colors">
-                                                <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-semibold text-[11px]">{tab.label}</td>
-                                                <td className="px-4 py-2">
-                                                    <div className="flex justify-center">
-                                                        {adminEnabled ? (
-                                                            <Check size={14} className="text-emerald-500 stroke-[3px]" />
-                                                        ) : (
-                                                            <span className="text-gray-300 dark:text-slate-700">-</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    <div className="flex justify-center">
-                                                        {memberEnabled ? (
-                                                            <Check size={14} className="text-emerald-500 stroke-[3px]" />
-                                                        ) : (
-                                                            <span className="text-gray-300 dark:text-slate-700">-</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                    {filteredTabs.length > 0 && (
+                        <div>
+                            <span className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Áreas de Configuração</span>
+                            <div className="overflow-hidden border border-gray-100 dark:border-slate-800 rounded-xl bg-gray-50/30 dark:bg-slate-950/20 max-h-60 overflow-y-auto">
+                                <table className="w-full text-left text-xs">
+                                    <thead className="bg-gray-100/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest text-[8px]">Aba</th>
+                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[8px]">Admin</th>
+                                            <th className="px-4 py-2 font-bold text-gray-500 dark:text-gray-300 text-center w-16 uppercase tracking-widest text-[8px]">Membro</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
+                                        {filteredTabs.map((tab) => {
+                                            const adminEnabled = settingsTabs[tab.key]?.admin === true;
+                                            const memberEnabled = settingsTabs[tab.key]?.member === true;
+                                            return (
+                                                <tr key={tab.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/10 transition-colors">
+                                                    <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-semibold text-[11px]">{tab.label}</td>
+                                                    <td className="px-4 py-2">
+                                                        <div className="flex justify-center">
+                                                            {adminEnabled ? (
+                                                                <Check size={14} className="text-emerald-500 stroke-[3px]" />
+                                                            ) : (
+                                                                <span className="text-gray-300 dark:text-slate-700">-</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <div className="flex justify-center">
+                                                            {memberEnabled ? (
+                                                                <Check size={14} className="text-emerald-500 stroke-[3px]" />
+                                                            ) : (
+                                                                <span className="text-gray-300 dark:text-slate-700">-</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         );
@@ -199,12 +221,12 @@ export function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsModalProp
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         {/* PF permissions */}
                         {(allowedType === 'PF' || allowedType === 'BOTH') && (
-                            renderPermissionTable('Permissões Pessoa Física (PF)', 'bg-blue-500')
+                            renderPermissionTable('Permissões Pessoa Física (PF)', 'PF', 'bg-blue-500')
                         )}
 
                         {/* PJ permissions */}
                         {(allowedType === 'PJ' || allowedType === 'BOTH') && (
-                            renderPermissionTable('Permissões Pessoa Jurídica (PJ)', 'bg-orange-500')
+                            renderPermissionTable('Permissões Pessoa Jurídica (PJ)', 'PJ', 'bg-orange-500')
                         )}
                     </div>
                 </div>
