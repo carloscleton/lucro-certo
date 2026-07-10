@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Check, CheckCircle2, Shield } from 'lucide-react';
 import { APP_MODULES, SETTINGS_TABS } from '../../config/permissions';
 
@@ -13,7 +12,7 @@ export function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsModalProp
 
     const allowedType = plan.allowed_entity_type || 'BOTH';
 
-    const renderPermissionTable = (title: string, type: 'PF' | 'PJ', colorClass: string) => {
+    const renderPermissionTable = (title: string, colorClass: string) => {
         const profileModules = plan.profile_modules || {};
         const settingsTabs = plan.settings_tabs || {};
 
@@ -200,12 +199,12 @@ export function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsModalProp
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         {/* PF permissions */}
                         {(allowedType === 'PF' || allowedType === 'BOTH') && (
-                            renderPermissionTable('Permissões Pessoa Física (PF)', 'PF', 'bg-blue-500')
+                            renderPermissionTable('Permissões Pessoa Física (PF)', 'bg-blue-500')
                         )}
 
                         {/* PJ permissions */}
                         {(allowedType === 'PJ' || allowedType === 'BOTH') && (
-                            renderPermissionTable('Permissões Pessoa Jurídica (PJ)', 'PJ', 'bg-orange-500')
+                            renderPermissionTable('Permissões Pessoa Jurídica (PJ)', 'bg-orange-500')
                         )}
                     </div>
                 </div>
