@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Award } from 'lucide-react';
+import { clsx } from 'clsx';
 
 interface PlatformBillingTrackerProps {
     invoices: any[];
@@ -40,22 +41,6 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
         const d = new Date(inv.created_at);
         return d >= cycleStart && d < cycleEnd;
     });
-
-    // Provider check
-    const currentProviderInvoices = currentMonthInvoices.filter(inv => {
-        const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
-        return p === activeProvider;
-    });
-
-    const countActive = currentProviderInvoices.filter(inv => 
-        ['concluido', 'autorizada', 'concluído', 'autorizado'].includes(String(inv.status).toLowerCase())
-    ).length;
-
-    const countCanceled = currentProviderInvoices.filter(inv => 
-        ['cancelado', 'cancelada'].includes(String(inv.status).toLowerCase())
-    ).length;
-
-    const totalNotes = countActive + countCanceled;
 
     // If neither model is active, hide tracker
     if (!fixedEnabled && !tieredEnabled) {
@@ -100,61 +85,146 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
         }
     }
 
-    // Compute tiered breakdown and costs
-    const tieredBreakdown: any[] = [];
-    let tieredCost = 0;
-    
-    if (tieredEnabled) {
-        billingTiers.forEach(t => {
-            const tierFrom = Number(t.from);
-            const tierTo = Number(t.to || 999999);
-            const price = Number(t.price);
-            const notesInTier = Math.max(0, Math.min(totalNotes, tierTo) - tierFrom + 1);
-            if (notesInTier > 0) {
-                const cost = notesInTier * price;
-                tieredCost += cost;
-                tieredBreakdown.push({
-                    from: tierFrom,
-                    to: tierTo,
-                    price,
-                    count: notesInTier,
-                    cost
-                });
-            }
+    // Identify all providers with activity in this cycle, plus the active provider
+    const providers = new Set<string>();
+    providers.add(activeProvider);
+    currentMonthInvoices.forEach(inv => {
+        const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
+        providers.add(p);
+    });
+
+    const providersDetails: any[] = [];
+    let totalNotesAllProviders = 0;
+    let totalCostAllProviders = 0;
+
+    Array.from(providers).forEach(provider => {
+        const isActive = provider === activeProvider;
+        const providerInvoices = currentMonthInvoices.filter(inv => {
+            const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
+            return p === provider;
         });
-    }
 
-    // Calculate fixed + addon cost
-    const providerConfig = billingConfig[activeProvider] || {};
-    const fixedFee = typeof providerConfig.fixed_fee === 'number' ? providerConfig.fixed_fee : 30.00;
-    const perNoteFee = typeof providerConfig.per_note_fee === 'number' ? providerConfig.per_note_fee : 0.50;
+        const countActive = providerInvoices.filter(inv => 
+            ['concluido', 'autorizada', 'concluído', 'autorizado'].includes(String(inv.status).toLowerCase())
+        ).length;
 
-    const tieredFixedFee = typeof billingConfig.tiered_fixed_fee === 'number' ? billingConfig.tiered_fixed_fee : 100.00;
-    const totalCostThisMonth = tieredEnabled
-        ? (tieredFixedFee + tieredCost)
-        : (fixedEnabled ? fixedFee + (totalNotes * perNoteFee) : 0);
+        const countCanceled = providerInvoices.filter(inv => 
+            ['cancelado', 'cancelada'].includes(String(inv.status).toLowerCase())
+        ).length;
 
-    // Find current tier
+        const totalNotes = countActive + countCanceled;
+
+        // Skip provider if not active and has no notes in the current cycle
+        if (!isActive && totalNotes === 0) {
+            return;
+        }
+
+        totalNotesAllProviders += totalNotes;
+
+        let fixedFeeToApply = 0;
+        let notesCost = 0;
+        let appliedPerNoteFee = 0.50;
+        const tieredBreakdown: any[] = [];
+
+        if (fixedEnabled) {
+            const providerConfig = billingConfig[provider] || {};
+            if (isActive) {
+                const fixedFee = typeof providerConfig.fixed_fee === 'number' ? providerConfig.fixed_fee : 30.00;
+                fixedFeeToApply = fixedFee;
+            }
+            appliedPerNoteFee = typeof providerConfig.per_note_fee === 'number' ? providerConfig.per_note_fee : 0.50;
+            notesCost = totalNotes * appliedPerNoteFee;
+        } else if (tieredEnabled) {
+            if (isActive) {
+                const tieredFixedFee = typeof billingConfig.tiered_fixed_fee === 'number' ? billingConfig.tiered_fixed_fee : 100.00;
+                fixedFeeToApply = tieredFixedFee;
+            }
+            // Compute tiered cost
+            billingTiers.forEach(t => {
+                const tierFrom = Number(t.from);
+                const tierTo = Number(t.to || 999999);
+                const price = Number(t.price);
+                const notesInTier = Math.max(0, Math.min(totalNotes, tierTo) - tierFrom + 1);
+                if (notesInTier > 0) {
+                    const cost = notesInTier * price;
+                    notesCost += cost;
+                    tieredBreakdown.push({
+                        from: tierFrom,
+                        to: tierTo,
+                        price,
+                        count: notesInTier,
+                        cost
+                    });
+                }
+            });
+        }
+
+        const providerTotal = fixedFeeToApply + notesCost;
+        totalCostAllProviders += providerTotal;
+
+        providersDetails.push({
+            provider,
+            isActive,
+            notesCount: countActive,
+            canceledCount: countCanceled,
+            totalNotes,
+            fixedFeeToApply,
+            appliedPerNoteFee,
+            notesCost,
+            providerTotal,
+            tieredBreakdown
+        });
+    });
+
+    const activeProviderDetails = providersDetails.find(pd => pd.isActive) || providersDetails[0];
+    const activeProviderTotalNotes = activeProviderDetails?.totalNotes || 0;
+
+    // Find current tier (based on active provider's usage)
     const currentTier = tieredEnabled 
-        ? billingTiers.find(t => totalNotes >= Number(t.from) && totalNotes <= Number(t.to)) || billingTiers[0]
+        ? billingTiers.find(t => activeProviderTotalNotes >= Number(t.from) && activeProviderTotalNotes <= Number(t.to)) || billingTiers[0]
         : null;
 
     // Find next tier
     const nextTier = tieredEnabled
-        ? billingTiers.find(t => Number(t.from) > totalNotes)
+        ? billingTiers.find(t => Number(t.from) > activeProviderTotalNotes)
         : null;
 
-    const currentPrice = currentTier ? Number(currentTier.price) : perNoteFee;
+    const currentPrice = currentTier ? Number(currentTier.price) : (activeProviderDetails?.appliedPerNoteFee ?? 0.50);
     const nextPrice = nextTier ? Number(nextTier.price) : null;
-    const notesToNextTier = nextTier ? Number(nextTier.from) - totalNotes : 0;
+    const notesToNextTier = nextTier ? Number(nextTier.from) - activeProviderTotalNotes : 0;
 
     const currentTierLimit = currentTier ? Number(currentTier.to) : 100;
     const currentTierStart = currentTier ? Number(currentTier.from) : 1;
     const progressInCurrentTier = currentTier
-        ? Math.min(100, Math.max(0, ((totalNotes - currentTierStart + 1) / (currentTierLimit - currentTierStart + 1)) * 100))
+        ? Math.min(100, Math.max(0, ((activeProviderTotalNotes - currentTierStart + 1) / (currentTierLimit - currentTierStart + 1)) * 100))
         : 100;
 
     const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+    const getSummaryText = () => {
+        const cycleText = `no ciclo de ${cycleStart.toLocaleDateString('pt-BR')} a ${cycleEnd.toLocaleDateString('pt-BR')}`;
+        
+        if (providersDetails.length <= 1) {
+            const pd = providersDetails[0] || { totalNotes: 0 };
+            return (
+                <>
+                    Você emitiu <strong className="text-gray-900 dark:text-white">{pd.totalNotes} nota{pd.totalNotes !== 1 ? 's' : ''}</strong> {cycleText}.
+                </>
+            );
+        }
+        
+        const parts = providersDetails.map(pd => {
+            const providerName = pd.provider === 'nfeio' ? 'NFe.io' : (pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider);
+            const activeSuffix = pd.isActive ? '' : ' (Inativo)';
+            return `${pd.totalNotes} via ${providerName}${activeSuffix}`;
+        });
+        
+        return (
+            <>
+                Você emitiu <strong className="text-gray-900 dark:text-white">{totalNotesAllProviders} notas</strong> {cycleText} ({parts.join(' e ')}).
+            </>
+        );
+    };
 
     return (
         <div className="bg-gradient-to-r from-blue-50/40 via-indigo-50/10 to-transparent dark:from-slate-850 dark:via-slate-850/60 dark:to-transparent border border-blue-100/50 dark:border-slate-800 rounded-3xl p-5 mb-6 animate-in fade-in duration-300 shadow-sm">
@@ -173,7 +243,7 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                             </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
-                            Você emitiu <strong className="text-gray-900 dark:text-white">{totalNotes} nota{totalNotes !== 1 ? 's' : ''}</strong> no ciclo de <strong className="text-gray-900 dark:text-white">{cycleStart.toLocaleDateString('pt-BR')} a {cycleEnd.toLocaleDateString('pt-BR')}</strong>.
+                            {getSummaryText()}
                         </p>
                     </div>
                 </div>
@@ -181,7 +251,7 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                 <div className="flex items-center gap-4 bg-white dark:bg-slate-900/40 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 self-stretch md:self-auto justify-between md:justify-start">
                     <div className="text-right">
                         <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block">Valor Estimado</span>
-                        <span className="text-lg font-black text-blue-600 dark:text-blue-400">{fmt(totalCostThisMonth)}</span>
+                        <span className="text-lg font-black text-blue-600 dark:text-blue-400">{fmt(totalCostAllProviders)}</span>
                     </div>
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
@@ -225,46 +295,73 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
             {/* Expanded Detailed Breakdown */}
             {isExpanded && (
                 <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 space-y-4 animate-in slide-in-from-top-4 duration-300">
-                    {/* Tiers list & cost calculator */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Summary of applied billing */}
                         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800/60">
                             <h5 className="font-bold text-xs uppercase text-gray-400 dark:text-slate-500 tracking-wider mb-3">Demonstrativo Detalhado</h5>
-                            <div className="space-y-2 text-xs">
-                                {fixedEnabled && (
-                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
-                                        <span className="text-gray-500 font-medium">Mensalidade Fixa Módulo Fiscal:</span>
-                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(fixedFee)}</span>
-                                    </div>
-                                )}
-
-                                {tieredEnabled && (
-                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
-                                        <span className="text-gray-500 font-medium">Mensalidade Fixa Módulo Fiscal (Faixas):</span>
-                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(tieredFixedFee)}</span>
-                                    </div>
-                                )}
-
-                                {tieredEnabled ? (
-                                    <div className="space-y-1.5 py-1">
-                                        <span className="text-gray-500 font-bold block mb-1">Notas Cobradas por Faixas:</span>
-                                        {tieredBreakdown.map((b, idx) => (
-                                            <div key={idx} className="flex justify-between pl-3 text-[11px] text-gray-600 dark:text-gray-400">
-                                                <span>• {b.count} nota{b.count !== 1 ? 's' : ''} em Faixa {b.from}-{b.to >= 999999 ? '∞' : b.to} ({fmt(b.price)}/nota)</span>
-                                                <span className="font-medium">{fmt(b.cost)}</span>
+                            <div className="space-y-4 text-xs">
+                                {providersDetails.map((pd, index) => {
+                                    const providerName = pd.provider === 'nfeio' ? 'NFe.io' : (pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider);
+                                    return (
+                                        <div key={pd.provider} className={clsx(index > 0 && "pt-3 border-t border-dashed border-gray-100 dark:border-slate-800/50")}>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                                    {providerName}
+                                                </span>
+                                                <span className={clsx(
+                                                    "px-1.5 py-0.5 rounded text-[9px] font-bold",
+                                                    pd.isActive 
+                                                        ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400"
+                                                        : "bg-gray-100 dark:bg-slate-800 text-gray-500"
+                                                )}>
+                                                    {pd.isActive ? 'Ativo' : 'Histórico (Inativo)'}
+                                                </span>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
-                                        <span className="text-gray-500 font-medium">Notas Emitidas ({totalNotes} x {fmt(perNoteFee)}/nota):</span>
-                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(totalNotes * perNoteFee)}</span>
-                                    </div>
-                                )}
-                                
-                                <div className="flex justify-between pt-3 border-t-2 border-dashed border-gray-100 dark:border-slate-800 font-bold text-sm text-gray-900 dark:text-white">
-                                    <span>Total Estimado:</span>
-                                    <span className="text-blue-600 dark:text-blue-400">{fmt(totalCostThisMonth)}</span>
+
+                                            <div className="space-y-2 pl-2">
+                                                {fixedEnabled && pd.fixedFeeToApply > 0 && (
+                                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
+                                                        <span className="text-gray-500 font-medium">Mensalidade Fixa Módulo Fiscal:</span>
+                                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(pd.fixedFeeToApply)}</span>
+                                                    </div>
+                                                )}
+
+                                                {tieredEnabled && pd.fixedFeeToApply > 0 && (
+                                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
+                                                        <span className="text-gray-500 font-medium">Mensalidade Fixa Módulo Fiscal (Faixas):</span>
+                                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(pd.fixedFeeToApply)}</span>
+                                                    </div>
+                                                )}
+
+                                                {tieredEnabled ? (
+                                                    <div className="space-y-1.5 py-1">
+                                                        <span className="text-gray-500 font-bold block mb-1">Notas Cobradas por Faixas:</span>
+                                                        {pd.tieredBreakdown.map((b: any, idx: number) => (
+                                                            <div key={idx} className="flex justify-between pl-3 text-[11px] text-gray-600 dark:text-gray-400">
+                                                                <span>• {b.count} nota{b.count !== 1 ? 's' : ''} em Faixa {b.from}-{b.to >= 999999 ? '∞' : b.to} ({fmt(b.price)}/nota)</span>
+                                                                <span className="font-medium">{fmt(b.cost)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
+                                                        <span className="text-gray-500 font-medium">Notas Emitidas ({pd.totalNotes} x {fmt(pd.appliedPerNoteFee)}/nota):</span>
+                                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(pd.notesCost)}</span>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-between py-1 font-semibold text-gray-700 dark:text-gray-300 text-[11px]">
+                                                    <span>Subtotal {providerName}:</span>
+                                                    <span>{fmt(pd.providerTotal)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                <div className="flex justify-between pt-3 border-t-2 border-dashed border-gray-250 dark:border-slate-800 font-bold text-sm text-gray-900 dark:text-white">
+                                    <span>Total Estimado Geral:</span>
+                                    <span className="text-blue-600 dark:text-blue-400">{fmt(totalCostAllProviders)}</span>
                                 </div>
                             </div>
                         </div>
