@@ -308,7 +308,7 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                                 </h5>
                                 
                                 <div className="space-y-4">
-                                    {providersDetails.map((pd, index) => {
+                                    {providersDetails.map((pd) => {
                                         const providerName = pd.provider === 'nfeio' ? 'NFe.io' : (pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider);
                                         return (
                                             <div 
