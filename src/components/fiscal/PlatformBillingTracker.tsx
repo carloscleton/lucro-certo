@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Award } from 'lucide-react';
+import { ChevronDown, ChevronUp, Award, Calendar, FileText, Layers, TrendingUp, DollarSign } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface PlatformBillingTrackerProps {
@@ -294,100 +294,140 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
 
             {/* Expanded Detailed Breakdown */}
             {isExpanded && (
-                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 space-y-4 animate-in slide-in-from-top-4 duration-300">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="mt-5 pt-5 border-t border-gray-150 dark:border-slate-800 space-y-4 animate-in slide-in-from-top-4 duration-350">
+                    <div className={clsx(
+                        "grid gap-5",
+                        tieredEnabled ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+                    )}>
                         {/* Summary of applied billing */}
-                        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800/60">
-                            <h5 className="font-bold text-xs uppercase text-gray-400 dark:text-slate-500 tracking-wider mb-3">Demonstrativo Detalhado</h5>
-                            <div className="space-y-4 text-xs">
-                                {providersDetails.map((pd, index) => {
-                                    const providerName = pd.provider === 'nfeio' ? 'NFe.io' : (pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider);
-                                    return (
-                                        <div key={pd.provider} className={clsx(index > 0 && "pt-3 border-t border-dashed border-gray-100 dark:border-slate-800/50")}>
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="font-bold text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                                                    {providerName}
-                                                </span>
-                                                <span className={clsx(
-                                                    "px-1.5 py-0.5 rounded text-[9px] font-bold",
-                                                    pd.isActive 
-                                                        ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400"
-                                                        : "bg-gray-100 dark:bg-slate-800 text-gray-500"
-                                                )}>
-                                                    {pd.isActive ? 'Ativo' : 'Histórico (Inativo)'}
-                                                </span>
-                                            </div>
+                        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <h5 className="font-bold text-xs uppercase text-gray-400 dark:text-slate-500 tracking-wider mb-4 flex items-center gap-1.5">
+                                    <TrendingUp size={14} className="text-blue-500" />
+                                    Demonstrativo Detalhado
+                                </h5>
+                                
+                                <div className="space-y-4">
+                                    {providersDetails.map((pd, index) => {
+                                        const providerName = pd.provider === 'nfeio' ? 'NFe.io' : (pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider);
+                                        return (
+                                            <div 
+                                                key={pd.provider} 
+                                                className="p-4 rounded-xl bg-gray-50/50 dark:bg-slate-900/40 border border-gray-100 dark:border-slate-800/60 shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]"
+                                            >
+                                                <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-2 mb-3">
+                                                    <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-700 dark:text-slate-350">
+                                                        {providerName}
+                                                    </span>
+                                                    <span className={clsx(
+                                                        "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                                                        pd.isActive 
+                                                            ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                                            : "bg-gray-100 dark:bg-slate-800 text-gray-400 border-gray-200/50 dark:border-slate-750"
+                                                    )}>
+                                                        {pd.isActive ? 'Ativo' : 'Histórico (Inativo)'}
+                                                    </span>
+                                                </div>
 
-                                            <div className="space-y-2 pl-2">
-                                                {fixedEnabled && pd.fixedFeeToApply > 0 && (
-                                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
-                                                        <span className="text-gray-500 font-medium">Mensalidade Fixa Módulo Fiscal:</span>
-                                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(pd.fixedFeeToApply)}</span>
-                                                    </div>
-                                                )}
-
-                                                {tieredEnabled && pd.fixedFeeToApply > 0 && (
-                                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
-                                                        <span className="text-gray-500 font-medium">Mensalidade Fixa Módulo Fiscal (Faixas):</span>
-                                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(pd.fixedFeeToApply)}</span>
-                                                    </div>
-                                                )}
-
-                                                {tieredEnabled ? (
-                                                    <div className="space-y-1.5 py-1">
-                                                        <span className="text-gray-500 font-bold block mb-1">Notas Cobradas por Faixas:</span>
-                                                        {pd.tieredBreakdown.map((b: any, idx: number) => (
-                                                            <div key={idx} className="flex justify-between pl-3 text-[11px] text-gray-600 dark:text-gray-400">
-                                                                <span>• {b.count} nota{b.count !== 1 ? 's' : ''} em Faixa {b.from}-{b.to >= 999999 ? '∞' : b.to} ({fmt(b.price)}/nota)</span>
-                                                                <span className="font-medium">{fmt(b.cost)}</span>
+                                                <div className="space-y-2.5">
+                                                    {fixedEnabled && pd.fixedFeeToApply > 0 && (
+                                                        <div className="flex justify-between items-center py-1 text-xs">
+                                                            <div className="flex items-center gap-2 text-gray-500 font-medium">
+                                                                <Calendar size={13} className="text-gray-400" />
+                                                                <span>Mensalidade Fixa Módulo Fiscal:</span>
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800/40">
-                                                        <span className="text-gray-500 font-medium">Notas Emitidas ({pd.totalNotes} x {fmt(pd.appliedPerNoteFee)}/nota):</span>
-                                                        <span className="font-semibold text-gray-900 dark:text-white">{fmt(pd.notesCost)}</span>
-                                                    </div>
-                                                )}
+                                                            <span className="font-semibold text-gray-800 dark:text-slate-200">{fmt(pd.fixedFeeToApply)}</span>
+                                                        </div>
+                                                    )}
 
-                                                <div className="flex justify-between py-1 font-semibold text-gray-700 dark:text-gray-300 text-[11px]">
-                                                    <span>Subtotal {providerName}:</span>
-                                                    <span>{fmt(pd.providerTotal)}</span>
+                                                    {tieredEnabled && pd.fixedFeeToApply > 0 && (
+                                                        <div className="flex justify-between items-center py-1 text-xs">
+                                                            <div className="flex items-center gap-2 text-gray-500 font-medium">
+                                                                <Calendar size={13} className="text-gray-400" />
+                                                                <span>Mensalidade Fixa Módulo Fiscal (Faixas):</span>
+                                                            </div>
+                                                            <span className="font-semibold text-gray-800 dark:text-slate-200">{fmt(pd.fixedFeeToApply)}</span>
+                                                        </div>
+                                                    )}
+
+                                                    {tieredEnabled ? (
+                                                        <div className="space-y-2 py-1 border-t border-gray-50 dark:border-slate-850/50 pt-2 mt-1">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550 block">Notas Cobradas por Faixas:</span>
+                                                            {pd.tieredBreakdown.map((b: any, idx: number) => (
+                                                                <div key={idx} className="flex justify-between items-center pl-3 text-xs">
+                                                                    <div className="flex items-center gap-2 text-gray-500">
+                                                                        <Layers size={11} className="text-gray-400" />
+                                                                        <span>{b.count} nota{b.count !== 1 ? 's' : ''} em Faixa {b.from}-{b.to >= 999999 ? '∞' : b.to} ({fmt(b.price)}/nota)</span>
+                                                                    </div>
+                                                                    <span className="font-medium text-gray-700 dark:text-slate-350">{fmt(b.cost)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex justify-between items-center py-1 text-xs">
+                                                            <div className="flex items-center gap-2 text-gray-500 font-medium">
+                                                                <FileText size={13} className="text-gray-400" />
+                                                                <span>Notas Emitidas ({pd.totalNotes} x {fmt(pd.appliedPerNoteFee)}/nota):</span>
+                                                            </div>
+                                                            <span className="font-semibold text-gray-800 dark:text-slate-200">{fmt(pd.notesCost)}</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex justify-between items-center pt-2.5 border-t border-gray-100 dark:border-slate-800/80 mt-1">
+                                                        <span className="text-[10px] uppercase font-bold text-gray-450 tracking-wider">Subtotal {providerName}</span>
+                                                        <span className="font-bold text-xs text-gray-900 dark:text-white">{fmt(pd.providerTotal)}</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-
-                                <div className="flex justify-between pt-3 border-t-2 border-dashed border-gray-250 dark:border-slate-800 font-bold text-sm text-gray-900 dark:text-white">
-                                    <span>Total Estimado Geral:</span>
-                                    <span className="text-blue-600 dark:text-blue-400">{fmt(totalCostAllProviders)}</span>
+                                        );
+                                    })}
                                 </div>
+                            </div>
+
+                            {/* Highlighted Grand Total Card */}
+                            <div className="mt-5 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent border border-blue-500/20 dark:border-blue-900/35 flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-500 text-white rounded-lg shadow-md shadow-blue-500/10">
+                                        <DollarSign size={16} />
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] text-gray-400 uppercase tracking-widest font-black block leading-none">Total Estimado Geral</span>
+                                        <span className="text-[11px] text-gray-500 font-medium block mt-1">Soma de todos os emissores no ciclo</span>
+                                    </div>
+                                </div>
+                                <span className="text-xl font-black text-blue-600 dark:text-blue-450 leading-none">{fmt(totalCostAllProviders)}</span>
                             </div>
                         </div>
 
                         {/* Complete Tiers Table */}
                         {tieredEnabled && (
-                            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800/60">
-                                <h5 className="font-bold text-xs uppercase text-gray-400 dark:text-slate-500 tracking-wider mb-2">Tabela de Faixas Ativas</h5>
+                            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800/80 shadow-sm">
+                                <h5 className="font-bold text-xs uppercase text-gray-400 dark:text-slate-500 tracking-wider mb-4 flex items-center gap-1.5">
+                                    <Layers size={14} className="text-blue-500" />
+                                    Tabela de Faixas Ativas
+                                </h5>
                                 <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-slate-800 text-xs">
                                     <table className="w-full text-left">
-                                        <thead className="bg-gray-50 dark:bg-slate-800 font-bold text-[10px] text-gray-500 uppercase">
+                                        <thead className="bg-gray-50 dark:bg-slate-800 font-bold text-[10px] text-gray-550 uppercase tracking-wider">
                                             <tr>
-                                                <th className="p-2.5">Faixa (Qtd/Mês)</th>
-                                                <th className="p-2.5 text-right">Preço por Nota</th>
+                                                <th className="p-3">Faixa (Qtd/Mês)</th>
+                                                <th className="p-3 text-right">Preço por Nota</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-slate-850">
                                             {sortedTiers.map((t, idx) => {
                                                 const isCurrent = currentTier && Number(currentTier.from) === Number(t.from);
                                                 return (
-                                                    <tr key={idx} className={isCurrent ? "bg-blue-50/50 dark:bg-blue-950/20 font-bold text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"}>
-                                                        <td className="p-2.5">
-                                                            {t.from} a {t.to >= 999999 ? 'Acima' : t.to} notas
-                                                            {isCurrent && <span className="ml-2 text-[9px] bg-blue-100 dark:bg-blue-900 text-blue-700 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Atual</span>}
+                                                    <tr key={idx} className={isCurrent ? "bg-blue-50/40 dark:bg-blue-950/20 font-bold text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"}>
+                                                        <td className="p-3 flex items-center gap-2">
+                                                            <span>{t.from} a {t.to >= 999999 ? 'Acima' : t.to} notas</span>
+                                                            {isCurrent && (
+                                                                <span className="text-[9px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                                                                    Atual
+                                                                </span>
+                                                            )}
                                                         </td>
-                                                        <td className="p-2.5 text-right font-mono">{fmt(Number(t.price))}</td>
+                                                        <td className="p-3 text-right font-mono font-semibold">{fmt(Number(t.price))}</td>
                                                     </tr>
                                                 );
                                             })}
