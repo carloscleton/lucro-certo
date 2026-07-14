@@ -343,6 +343,11 @@ export function Settings() {
                     const providerLabel = String(s.provider).toUpperCase();
                     
                     if (s.isActiveProvider) {
+                        if (s.setupFee && s.setupFee > 0) {
+                            const setupFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.setupFee);
+                            record.descriptions.push(`Taxa de Implantação (${setupFormatted})`);
+                        }
+
                         const feeFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.fixedFee);
                         const costFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.notesCost);
                         
@@ -3151,6 +3156,59 @@ export function Settings() {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Taxa de Implantação (Setup Fee) */}
+                                    <div className="mt-6 p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
+                                        <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2 text-xs uppercase tracking-wider flex items-center gap-1">
+                                            <span>Taxa de Implantação (Setup)</span>
+                                        </h5>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <CurrencyInput
+                                                label="Valor da Implantação"
+                                                value={tempCompanyConfig.settings?.admin_fiscal_billing?.setup_fee ?? 0.00}
+                                                onChange={(num) => {
+                                                    const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                    setTempCompanyConfig({
+                                                        ...tempCompanyConfig,
+                                                        settings: {
+                                                            ...(tempCompanyConfig.settings || {}),
+                                                            admin_fiscal_billing: {
+                                                                ...currentBilling,
+                                                                setup_fee: num
+                                                            }
+                                                        }
+                                                    });
+                                                }}
+                                                placeholder="Ex: 150,00"
+                                            />
+                                            <div className="flex flex-col justify-end pb-1.5">
+                                                <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!!tempCompanyConfig.settings?.admin_fiscal_billing?.setup_fee_paid}
+                                                        onChange={(e) => {
+                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                            setTempCompanyConfig({
+                                                                ...tempCompanyConfig,
+                                                                settings: {
+                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                    admin_fiscal_billing: {
+                                                                        ...currentBilling,
+                                                                        setup_fee_paid: e.target.checked
+                                                                    }
+                                                                }
+                                                            });
+                                                        }}
+                                                        className="w-4.5 h-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer animate-in fade-in duration-200"
+                                                    />
+                                                    <div className="flex flex-col select-none">
+                                                        <span className="text-gray-950 dark:text-white text-xs font-bold uppercase tracking-wider">Implantação Paga / Quitada</span>
+                                                        <span className="text-[10px] text-gray-400 font-medium">Marque se a taxa já foi cobrada/recebida do cliente</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     {/* Progressive Tiers Config */}
                                     {!!tempCompanyConfig.settings?.admin_fiscal_billing?.tiered_enabled && (

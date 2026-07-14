@@ -159,7 +159,12 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
             });
         }
 
-        const providerTotal = fixedFeeToApply + notesCost;
+        let setupFeeToApply = 0.00;
+        if (isActive && typeof billingConfig.setup_fee === 'number' && billingConfig.setup_fee > 0 && !billingConfig.setup_fee_paid) {
+            setupFeeToApply = billingConfig.setup_fee;
+        }
+
+        const providerTotal = fixedFeeToApply + notesCost + setupFeeToApply;
         totalCostAllProviders += providerTotal;
 
         providersDetails.push({
@@ -171,6 +176,7 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
             fixedFeeToApply,
             appliedPerNoteFee,
             notesCost,
+            setupFeeToApply,
             providerTotal,
             tieredBreakdown
         });
@@ -330,6 +336,16 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                                                 </div>
 
                                                 <div className="space-y-2.5">
+                                                    {pd.setupFeeToApply > 0 && (
+                                                        <div className="flex justify-between items-center py-1 text-xs">
+                                                            <div className="flex items-center gap-2 text-gray-500 font-medium">
+                                                                <DollarSign size={13} className="text-gray-400" />
+                                                                <span>Taxa de Implantação (Cobrança única):</span>
+                                                            </div>
+                                                            <span className="font-semibold text-gray-800 dark:text-slate-200">{fmt(pd.setupFeeToApply)}</span>
+                                                        </div>
+                                                    )}
+
                                                     {fixedEnabled && pd.fixedFeeToApply > 0 && (
                                                         <div className="flex justify-between items-center py-1 text-xs">
                                                             <div className="flex items-center gap-2 text-gray-500 font-medium">

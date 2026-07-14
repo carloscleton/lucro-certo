@@ -5883,7 +5883,12 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                     issuerStatus = 'Histórico (Inativo) ⚠️';
                 }
 
-                const totalSuggested = fixedFeeToApply + notesCost;
+                let setupFeeToApply = 0.00;
+                if (isActive && typeof billingConfig.setup_fee === 'number' && billingConfig.setup_fee > 0 && !billingConfig.setup_fee_paid) {
+                    setupFeeToApply = billingConfig.setup_fee;
+                }
+
+                const totalSuggested = fixedFeeToApply + notesCost + setupFeeToApply;
 
                 simulationResults.push({
                     companyId: company.id,
@@ -5897,6 +5902,7 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                     notesCount,
                     canceledCount,
                     notesCost,
+                    setupFee: setupFeeToApply,
                     commissions: 0,
                     totalSuggested,
                     isExempt,
@@ -6165,7 +6171,8 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
                     ...settings,
                     admin_fiscal_billing: {
                         ...billingConfig,
-                        last_billed_at: endToUse
+                        last_billed_at: endToUse,
+                        setup_fee_paid: billingConfig.setup_fee > 0 ? true : billingConfig.setup_fee_paid
                     }
                 };
 
