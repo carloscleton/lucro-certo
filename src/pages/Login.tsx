@@ -264,6 +264,7 @@ export function Login() {
                             let planModules: any = null;
                             let planProfileModules: any = null;
                             let planSettingsTabs: any = null;
+                            let setupFeeValue = 0.00;
                             try {
                                 const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                                 if (settingsData?.landing_plans) {
@@ -276,6 +277,7 @@ export function Login() {
                                         // so it must always get the PF permissions from the plan (profile_modules/settings_tabs).
                                         planProfileModules = foundPlan.profile_modules || null;
                                         planSettingsTabs = foundPlan.settings_tabs || null;
+                                        setupFeeValue = parseFloat(foundPlan.setup_fee || '0');
                                     }
                                 }
                             } catch (err) {
@@ -317,6 +319,34 @@ export function Login() {
                                 banking_module_enabled: !!finalCompanyModules.banking_module_enabled,
                                 warranty_module_enabled: !!finalCompanyModules.warranty_module_enabled
                             }).eq('id', newCompanyId);
+
+                            // Sequentially merge setup_fee settings to preserve the defaults initialized by the DB trigger
+                            if (setupFeeValue > 0) {
+                                try {
+                                    const { data: compSettingsData } = await supabase
+                                        .from('companies')
+                                        .select('settings')
+                                        .eq('id', newCompanyId)
+                                        .single();
+                                    
+                                    const companySettings = compSettingsData?.settings || {};
+                                    const updatedCompanySettings = {
+                                        ...companySettings,
+                                        admin_fiscal_billing: {
+                                            ...(companySettings.admin_fiscal_billing || {}),
+                                            setup_fee: setupFeeValue,
+                                            setup_fee_paid: false
+                                        }
+                                    };
+
+                                    await supabase
+                                        .from('companies')
+                                        .update({ settings: updatedCompanySettings })
+                                        .eq('id', newCompanyId);
+                                } catch (setErr) {
+                                    console.error('Erro ao inicializar taxa de implantação da empresa:', setErr);
+                                }
+                            }
 
                             // Now update the user profile with the plan's PF settings
                             if (signUpData?.user?.id) {
@@ -700,20 +730,49 @@ export function Login() {
                         {isSignUp && (
                             <>
                                 {searchParams.get('checkout-plan') && (
-                                    <div className="p-4 bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 rounded-[24px] flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 leading-none mb-1">Assinatura Selecionada</p>
-                                            <h3 className="text-sm font-black text-blue-900 dark:text-blue-100 leading-none">{searchParams.get('checkout-plan')}</h3>
+                                    <div className="p-4 bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 rounded-[24px] flex flex-col gap-2.5">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 leading-none mb-1">Assinatura Selecionada</p>
+                                                <h3 className="text-sm font-black text-blue-900 dark:text-blue-100 leading-none">{searchParams.get('checkout-plan')}</h3>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-xl font-black text-blue-700">
+                                                    {(() => {
+                                                        const symbols: any = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': '₲', 'GBP': '£' };
+                                                        return symbols[selectedCurrency] || '$';
+                                                    })()} {searchParams.get('checkout-price')}
+                                                </span>
+                                                <p className="text-[10px] font-bold text-gray-400 leading-none">/mês</p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="text-xl font-black text-blue-700">
-                                                {(() => {
-                                                    const symbols: any = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': '₲', 'GBP': '£' };
-                                                    return symbols[selectedCurrency] || '$';
-                                                })()} {searchParams.get('checkout-price')}
-                                            </span>
-                                            <p className="text-[10px] font-bold text-gray-400 leading-none">/mês</p>
-                                        </div>
+
+                                        {parseFloat(searchParams.get('checkout-setup') || '0') > 0 && (
+                                            <div className="flex items-center justify-between pt-2 border-t border-blue-100/50 dark:border-blue-900/10">
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Taxa de Implantação</p>
+                                                    <span className="text-[10px] text-gray-500 font-medium">Cobrança única</span>
+                                                </div>
+                                                <span className="text-sm font-black text-gray-650 dark:text-gray-300">
+                                                    {(() => {
+                                                        const symbols: any = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': '₲', 'GBP': '£' };
+                                                        return symbols[selectedCurrency] || '$';
+                                                    })()} {searchParams.get('checkout-setup')}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {parseFloat(searchParams.get('checkout-setup') || '0') > 0 && (
+                                            <div className="flex items-center justify-between pt-2 border-t border-blue-100/50 dark:border-blue-900/10 bg-blue-100/30 dark:bg-blue-950/20 px-2 py-1.5 rounded-xl">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-blue-700">Total Inicial</span>
+                                                <span className="text-sm font-black text-blue-800 dark:text-blue-300">
+                                                    {(() => {
+                                                        const symbols: any = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': '₲', 'GBP': '£' };
+                                                        return symbols[selectedCurrency] || '$';
+                                                    })()} {(parseFloat(searchParams.get('checkout-price') || '0') + parseFloat(searchParams.get('checkout-setup') || '0')).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

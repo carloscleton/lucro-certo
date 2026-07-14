@@ -258,7 +258,8 @@ export function LandingPage() {
         const isPJ = planSearch.includes('pj');
         const regType = isBoth ? 'BOTH' : (isPJ ? 'PJ' : 'PF');
         
-        navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}&currency=${selectedCurrency}&registration-type=${regType}`);
+        const setupQuery = plan.setup_fee ? `&checkout-setup=${encodeURIComponent(plan.setup_fee)}` : '';
+        navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}${setupQuery}&currency=${selectedCurrency}&registration-type=${regType}`);
     };
 
 

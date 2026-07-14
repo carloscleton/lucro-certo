@@ -204,6 +204,7 @@ export function LandingPlansEditor() {
             name: "Novo Plano",
             price: "97",
             period: "mês",
+            setup_fee: "0",
             features: ["Feature 1", "Feature 2"],
             button_text: "Assinar Agora",
             button_type: "primary",
@@ -376,7 +377,7 @@ export function LandingPlansEditor() {
                         <div className="flex gap-2">
                             <div className="flex-1">
                                 <CurrencyInput
-                                    label={`Preço (${window.__CURRENCY_SYMBOL__ || `${window.__CURRENCY_SYMBOL__ || "R$"}`})`}
+                                    label={`Preço (${window.__CURRENCY_SYMBOL__ || "R$"})`}
                                     value={parseFloat(plan.price) || 0}
                                     onChange={(num) => updatePlan(pIdx, 'price', num.toString())}
                                 />
@@ -389,6 +390,15 @@ export function LandingPlansEditor() {
                                     onChange={(e) => updatePlan(pIdx, 'period', e.target.value)}
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <CurrencyInput
+                                label="Taxa de Implantação (Setup - Cobrança única)"
+                                value={parseFloat(plan.setup_fee) || 0}
+                                onChange={(num) => updatePlan(pIdx, 'setup_fee', num.toString())}
+                                placeholder="Ex: 200,00"
+                            />
                         </div>
 
                         <div>
