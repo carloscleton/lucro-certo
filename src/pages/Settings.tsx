@@ -3204,6 +3204,11 @@ export function Settings() {
                                                     <div className="flex flex-col select-none">
                                                         <span className="text-gray-950 dark:text-white text-xs font-bold uppercase tracking-wider">Implantação Paga / Quitada</span>
                                                         <span className="text-[10px] text-gray-400 font-medium">Marque se a taxa já foi cobrada/recebida do cliente</span>
+                                                        {tempCompanyConfig.settings?.admin_fiscal_billing?.setup_fee_paid && tempCompanyConfig.settings?.admin_fiscal_billing?.setup_fee_paid_at && (
+                                                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+                                                                Quitada em: {new Date(tempCompanyConfig.settings.admin_fiscal_billing.setup_fee_paid_at).toLocaleDateString('pt-BR')} às {new Date(tempCompanyConfig.settings.admin_fiscal_billing.setup_fee_paid_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </label>
                                             </div>
@@ -4479,6 +4484,7 @@ export function Settings() {
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-center">Notas Emitidas</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-center">Canceladas</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Taxa Fixa</th>
+                                                        <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Implantação</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Taxa/Nota</th>
                                                         <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[10px] text-right">Total Sugerido</th>
                                                     </tr>
@@ -4552,6 +4558,15 @@ export function Settings() {
                                                                     )}
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
+                                                                    {sim.setupFee > 0 ? (
+                                                                        <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.setupFee)}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-gray-400">-</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right font-medium text-gray-650 dark:text-gray-300">
                                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sim.perNoteFee)}
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
@@ -4574,6 +4589,12 @@ export function Settings() {
                                                     <span>Total de notas: <strong className="text-gray-900 dark:text-white">{billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + cur.notesCount + (cur.canceledCount || 0), 0)}</strong></span>
                                                     <span>•</span>
                                                     <span>Valor total estimado: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + cur.totalSuggested, 0))}</strong></span>
+                                                    {billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + (cur.setupFee || 0), 0) > 0 && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span>Total Implantações: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId)).reduce((acc, cur) => acc + (cur.setupFee || 0), 0))}</strong></span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
 

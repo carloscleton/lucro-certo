@@ -6172,7 +6172,8 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
                     admin_fiscal_billing: {
                         ...billingConfig,
                         last_billed_at: endToUse,
-                        setup_fee_paid: billingConfig.setup_fee > 0 ? true : billingConfig.setup_fee_paid
+                        setup_fee_paid: billingConfig.setup_fee > 0 ? true : billingConfig.setup_fee_paid,
+                        setup_fee_paid_at: (billingConfig.setup_fee > 0 && !billingConfig.setup_fee_paid) ? new Date().toISOString() : billingConfig.setup_fee_paid_at
                     }
                 };
 
