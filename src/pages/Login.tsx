@@ -265,6 +265,7 @@ export function Login() {
                             let planProfileModules: any = null;
                             let planSettingsTabs: any = null;
                             let setupFeeValue = 0.00;
+                            let planFiscalBillingConfig: any = null;
                             try {
                                 const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
                                 if (settingsData?.landing_plans) {
@@ -278,6 +279,7 @@ export function Login() {
                                         planProfileModules = foundPlan.profile_modules || null;
                                         planSettingsTabs = foundPlan.settings_tabs || null;
                                         setupFeeValue = parseFloat(foundPlan.setup_fee || '0');
+                                        planFiscalBillingConfig = foundPlan.fiscal_billing_config || null;
                                     }
                                 }
                             } catch (err) {
@@ -321,7 +323,7 @@ export function Login() {
                             }).eq('id', newCompanyId);
 
                             // Sequentially merge setup_fee settings to preserve the defaults initialized by the DB trigger
-                            if (setupFeeValue > 0) {
+                            if (setupFeeValue > 0 || planFiscalBillingConfig) {
                                 try {
                                     const { data: compSettingsData } = await supabase
                                         .from('companies')
@@ -334,8 +336,9 @@ export function Login() {
                                         ...companySettings,
                                         admin_fiscal_billing: {
                                             ...(companySettings.admin_fiscal_billing || {}),
-                                            setup_fee: setupFeeValue,
-                                            setup_fee_paid: false
+                                            ...(planFiscalBillingConfig || {}),
+                                            setup_fee: setupFeeValue > 0 ? setupFeeValue : (planFiscalBillingConfig?.setup_fee ?? 0.00),
+                                            setup_fee_paid: planFiscalBillingConfig?.setup_fee_paid ?? false
                                         }
                                     };
 

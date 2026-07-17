@@ -368,16 +368,62 @@ export function PaymentRequired() {
                 console.log('DEBUG: Empresa PF criada! ID:', targetId);
             }
 
+            // Fetch target plan configuration from app_settings
+            let planFiscalBillingConfig: any = null;
+            let setupFeeValue = 0.00;
+            try {
+                const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+                if (settingsData?.landing_plans) {
+                    const foundPlan = settingsData.landing_plans.find((p: any) => 
+                        p.name?.toLowerCase().trim() === selectedPlan.name.toLowerCase().trim()
+                    );
+                    if (foundPlan) {
+                        planFiscalBillingConfig = foundPlan.fiscal_billing_config || null;
+                        setupFeeValue = parseFloat(foundPlan.setup_fee || '0');
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching plan config in checkout:', err);
+            }
+
+            // Fetch current company settings to merge
+            let updatedCompanySettings: any = null;
+            try {
+                const { data: compSettingsData } = await supabase
+                    .from('companies')
+                    .select('settings')
+                    .eq('id', targetId)
+                    .single();
+                
+                const companySettings = compSettingsData?.settings || {};
+                updatedCompanySettings = {
+                    ...companySettings,
+                    admin_fiscal_billing: {
+                        ...(companySettings.admin_fiscal_billing || {}),
+                        ...(planFiscalBillingConfig || {}),
+                        setup_fee: setupFeeValue > 0 ? setupFeeValue : (planFiscalBillingConfig?.setup_fee ?? 0.00),
+                        setup_fee_paid: planFiscalBillingConfig?.setup_fee_paid ?? false
+                    }
+                };
+            } catch (setErr) {
+                console.error('Erro ao ler ou mesclar configurações da empresa:', setErr);
+            }
+
             // 1. Atualizar o plano e dados de faturamento na empresa
             const isCnpj = cleanDoc.length === 14;
+            const updatePayload: any = { 
+                [isCnpj ? 'cnpj' : 'cpf']: cleanDoc, // Use CPF column if it's 11 digits
+                phone: cleanPhone,
+                subscription_plan: selectedPlan.name,
+                currency: selectedCurrency
+            };
+            if (updatedCompanySettings) {
+                updatePayload.settings = updatedCompanySettings;
+            }
+
             const { error: updateError } = await supabase
                 .from('companies')
-                .update({ 
-                    [isCnpj ? 'cnpj' : 'cpf']: cleanDoc, // Use CPF column if it's 11 digits
-                    phone: cleanPhone,
-                    subscription_plan: selectedPlan.name,
-                    currency: selectedCurrency
-                })
+                .update(updatePayload)
                 .eq('id', targetId);
             
             if (updateError) throw updateError;
