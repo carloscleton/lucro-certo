@@ -2262,7 +2262,14 @@ export function Settings() {
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
                                                         <div className="mb-2">
-                                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.fiscal_module')}</h4>
+                                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                                {t('settings.fiscal_module')}
+                                                                {!isFiscalAllowed && (
+                                                                    <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                        Extra Plano
+                                                                    </span>
+                                                                )}
+                                                            </h4>
                                                             <p className="text-xs text-gray-500 leading-tight">{t('settings.fiscal_module_desc')}</p>
                                                         </div>
                                                         {tempCompanyConfig.fiscal_module_enabled && (
@@ -2344,8 +2351,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isFiscalAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isFiscalAllowed && !!tempCompanyConfig.fiscal_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, fiscal_module_enabled: e.target.checked })} disabled={!isFiscalAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.fiscal_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, fiscal_module_enabled: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
                                                             </label>
                                                         </div>
@@ -2353,13 +2360,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
-                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.payments_module')}</h4>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                            {t('settings.payments_module')}
+                                                            {!isPaymentsAllowed && (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                    Extra Plano
+                                                                </span>
+                                                            )}
+                                                        </h4>
                                                         <p className="text-xs text-gray-500 leading-tight">{t('settings.payments_module_desc')}</p>
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isPaymentsAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isPaymentsAllowed && !!tempCompanyConfig.payments_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, payments_module_enabled: e.target.checked })} disabled={!isPaymentsAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.payments_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, payments_module_enabled: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
                                                             </label>
                                                         </div>
@@ -2367,13 +2381,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
-                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Módulo Bancário & DDA</h4>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                            Módulo Bancário & DDA
+                                                            {!isBankingAllowed && (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                    Extra Plano
+                                                                </span>
+                                                            )}
+                                                        </h4>
                                                         <p className="text-xs text-gray-500 leading-tight">Configurações de contas bancárias, credenciais de APIs e DDA automático.</p>
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isBankingAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isBankingAllowed && !!tempCompanyConfig.banking_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, banking_module_enabled: e.target.checked })} disabled={!isBankingAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.banking_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, banking_module_enabled: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
                                                             </label>
                                                         </div>
@@ -2381,13 +2402,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
-                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">{t('settings.crm_module')}</h4>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                            {t('settings.crm_module')}
+                                                            {!isCrmAllowed && (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                    Extra Plano
+                                                                </span>
+                                                            )}
+                                                        </h4>
                                                         <p className="text-xs text-gray-500 leading-tight">{t('settings.crm_module_desc')}</p>
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isCrmAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isCrmAllowed && !!tempCompanyConfig.crm_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, crm_module_enabled: e.target.checked })} disabled={!isCrmAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.crm_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, crm_module_enabled: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
                                                             </label>
                                                         </div>
@@ -2395,13 +2423,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
-                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Marketing: Postagens IA</h4>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                            Marketing: Postagens IA
+                                                            {!isMarketingAllowed && (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                    Extra Plano
+                                                                </span>
+                                                            )}
+                                                        </h4>
                                                         <p className="text-xs text-gray-500 leading-tight">Criação estratégica de postagens automáticas via WhatsApp/Instagram.</p>
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isMarketingAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isMarketingAllowed && !!tempCompanyConfig.has_social_copilot} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_social_copilot: e.target.checked })} disabled={!isMarketingAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.has_social_copilot} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_social_copilot: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-pink-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
                                                             </label>
                                                         </div>
@@ -2409,13 +2444,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
-                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Automações</h4>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                            Automações
+                                                            {!isAutomationsAllowed && (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                    Extra Plano
+                                                                </span>
+                                                            )}
+                                                        </h4>
                                                         <p className="text-xs text-gray-500 leading-tight">Lembretes, aniversários e cobranças automáticas via WhatsApp.</p>
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isAutomationsAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isAutomationsAllowed && !!tempCompanyConfig.automations_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, automations_module_enabled: e.target.checked })} disabled={!isAutomationsAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.automations_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, automations_module_enabled: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                                                             </label>
                                                         </div>
@@ -2498,13 +2540,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
-                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Radar de Leads</h4>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                            Radar de Leads
+                                                            {!isLeadRadarAllowed && (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                    Extra Plano
+                                                                </span>
+                                                            )}
+                                                        </h4>
                                                         <p className="text-xs text-gray-500 leading-tight">Mineração e abordagem automática de clientes em massa via IA.</p>
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isLeadRadarAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isLeadRadarAllowed && !!tempCompanyConfig.has_lead_radar} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_lead_radar: e.target.checked })} disabled={!isLeadRadarAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.has_lead_radar} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, has_lead_radar: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-violet-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-violet-600"></div>
                                                             </label>
                                                         </div>
@@ -2513,7 +2562,14 @@ export function Settings() {
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
                                                         <div className="mb-2">
-                                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">🏆 Clube de Fidelidade</h4>
+                                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                                🏆 Clube de Fidelidade
+                                                                {!isLoyaltyAllowed && (
+                                                                    <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                        Extra Plano
+                                                                    </span>
+                                                                )}
+                                                            </h4>
                                                             <p className="text-xs text-gray-500 leading-tight">Gestão de planos, recorrência e benefícios para clientes.</p>
                                                         </div>
                                                         {tempCompanyConfig.loyalty_module_enabled && (
@@ -2542,8 +2598,8 @@ export function Settings() {
                                                     </td>
                                                     <td className="px-6 py-5 text-center">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isLoyaltyAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isLoyaltyAllowed && !!tempCompanyConfig.loyalty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_module_enabled: e.target.checked })} disabled={!isLoyaltyAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.loyalty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, loyalty_module_enabled: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-600"></div>
                                                             </label>
                                                         </div>
@@ -2551,13 +2607,20 @@ export function Settings() {
                                                 </tr>
                                                 <tr className="hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                                                     <td className="px-6 py-5">
-                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none">Controle de Garantia</h4>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 leading-none flex items-center">
+                                                            Controle de Garantia
+                                                            {!isWarrantyAllowed && (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium ml-2">
+                                                                    Extra Plano
+                                                                </span>
+                                                            )}
+                                                        </h4>
                                                         <p className="text-xs text-gray-500 leading-tight">Habilita o controle de prazos de garantia e executantes técnicos para os serviços.</p>
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex justify-center">
-                                                            <label className={`relative inline-flex items-center ${isWarrantyAllowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                                                                <input type="checkbox" className="sr-only peer" checked={isWarrantyAllowed && !!tempCompanyConfig.warranty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, warranty_module_enabled: e.target.checked })} disabled={!isWarrantyAllowed} />
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" className="sr-only peer" checked={!!tempCompanyConfig.warranty_module_enabled} onChange={(e) => setTempCompanyConfig({ ...tempCompanyConfig, warranty_module_enabled: e.target.checked })} />
                                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
                                                             </label>
                                                         </div>
