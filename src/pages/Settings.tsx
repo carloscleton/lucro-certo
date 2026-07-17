@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark, Receipt, Download, Plus } from 'lucide-react';
+import { Settings as SettingsIcon, Mail, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark, Receipt, Download, Plus } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase';
 import { SETTINGS_TABS, APP_MODULES, getTabPermission, getModulePermission } from '../config/permissions';
 import { WebhookSettings } from './WebhookSettings';
 import { WhatsApp } from './WhatsApp';
+import { EmailSettings } from '../components/settings/EmailSettings';
 import { FiscalSettings } from '../components/settings/FiscalSettings';
 import { PaymentSettings } from '../components/settings/PaymentSettings';
 import { BankingSettings } from '../components/settings/BankingSettings';
@@ -1215,6 +1216,7 @@ export function Settings() {
                     { key: 'financial', label: t('settings.tab_financial'), icon: Wallet, color: 'blue' },
                     { key: 'team', label: t('settings.tab_team'), icon: Users, color: 'blue' },
                     { key: 'webhooks', label: t('settings.tab_webhooks'), icon: SettingsIcon, color: 'purple' },
+                    { key: 'email', label: 'E-mail', icon: Mail, color: 'blue' },
                     { key: 'whatsapp', label: t('settings.tab_whatsapp'), icon: MessageSquare, color: 'green' },
                     { key: 'payments', label: t('settings.tab_payments'), icon: CreditCard, color: 'emerald' },
                     { key: 'automations', label: 'Automações', icon: Sparkles, color: 'blue' },
@@ -1233,6 +1235,7 @@ export function Settings() {
                     // 1. Feature Availability / Plan Check
                     if (tab.key === 'loyalty' && !currentCompany?.loyalty_module_enabled) return false;
                     if (tab.key === 'fiscal' && (isPersonalOrPF || !currentCompany?.fiscal_module_enabled)) return false;
+                    if (tab.key === 'email' && isPersonalOrPF) return false;
                     if (tab.key === 'banking' && isPersonalOrPF) return false;
                     
                     if (!isTrial) {
@@ -2028,6 +2031,10 @@ export function Settings() {
 
                 {activeTab === 'whatsapp' && (
                     <WhatsApp />
+                )}
+
+                {activeTab === 'email' && (
+                    <EmailSettings />
                 )}
 
                 {activeTab === 'fiscal' && (

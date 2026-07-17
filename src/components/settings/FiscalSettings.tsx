@@ -122,14 +122,7 @@ export function FiscalSettings() {
     const [testingWebhookExterno, setTestingWebhookExterno] = useState(false);
     const [testingWebhookCertificado, setTestingWebhookCertificado] = useState(false);
     const [testingWebhookCallback, setTestingWebhookCallback] = useState(false);
-    const [resendConfig, setResendConfig] = useState({
-        apiKey: '',
-        fromEmail: '',
-        sent_count: 0,
-        has_paid_plan: false
-    });
-    const [showResendApiKey, setShowResendApiKey] = useState(false);
-    const [savingResend, setSavingResend] = useState(false);
+
 
     useEffect(() => {
         if (!currentEntity.id) return;
@@ -382,13 +375,6 @@ export function FiscalSettings() {
             reforma_tributaria_cbs_aliquota: nfe.reforma_tributaria_cbs_aliquota || '0.90'
         });
 
-        const resend = currentCompany.settings?.resend_config || {};
-        setResendConfig({
-            apiKey: resend.apiKey || '',
-            fromEmail: resend.fromEmail || '',
-            sent_count: Number(resend.sent_count || 0),
-            has_paid_plan: !!resend.has_paid_plan
-        });
     }, [currentCompany?.id]); // Depender apenas do ID
 
     const currentCertInfo = useMemo(() => {
@@ -1195,45 +1181,6 @@ export function FiscalSettings() {
         }
     };
 
-    const handleSaveResend = async () => {
-        if (!currentEntity.id || currentEntity.type === 'personal') {
-            setResultModal({
-                isOpen: true,
-                title: 'Aviso',
-                message: 'Configurações de e-mail são exclusivas para empresas. Mude o contexto no topo.',
-                type: 'info'
-            });
-            return;
-        }
-        setSavingResend(true);
-        try {
-            const updatedSettings = {
-                ...(currentCompany?.settings || {}),
-                resend_config: resendConfig
-            };
-            await updateCompany(currentEntity.id, {
-                settings: updatedSettings
-            });
-
-            await refreshEntity();
-            setResultModal({
-                isOpen: true,
-                title: 'Sucesso',
-                message: 'As configurações de e-mail do Resend foram salvas.',
-                type: 'success'
-            });
-        } catch (error: any) {
-            console.error(error);
-            setResultModal({
-                isOpen: true,
-                title: 'Erro ao Salvar',
-                message: 'Não foi possível salvar as configurações de e-mail: ' + (error.message || ''),
-                type: 'error'
-            });
-        } finally {
-            setSavingResend(false);
-        }
-    };
 
     const handleUploadCertificate = async () => {
         const file = fileInputRef.current?.files?.[0];
@@ -5030,132 +4977,6 @@ export function FiscalSettings() {
             </div>
         )}
 
-        {/* Bloco de Configuração de E-mail Próprio (Resend) */}
-        <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom duration-300">
-            <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
-                    <Mail size={24} />
-                </div>
-                <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">Configuração de E-mail Próprio (Resend)</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        O envio de e-mails de Notas Fiscais exige que você configure sua própria conta do Resend para evitar custos centralizados. 
-                        Insira a sua Chave de API e E-mail de remetente verificados no Resend abaixo.
-                    </p>
-                </div>
-            </div>
-
-            {!resendConfig.apiKey && (
-                <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 p-4 rounded-xl flex items-start gap-3">
-                    <AlertCircle className="text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" size={18} />
-                    <div>
-                        <p className="text-xs font-bold text-rose-800 dark:text-rose-400 uppercase tracking-wider">Atenção: E-mail Desativado</p>
-                        <p className="text-xs text-rose-700 dark:text-rose-500 mt-0.5 font-bold">O envio automático de Notas Fiscais por e-mail ficará suspenso para seus clientes até que você configure uma Chave de API do Resend válida.</p>
-                    </div>
-                </div>
-            )}
-
-            {resendConfig.apiKey && (
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
-                        <span>Consumo Mensal de E-mails</span>
-                        <span>
-                            {resendConfig.has_paid_plan ? (
-                                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
-                                    <ShieldCheck size={14} /> Plano Pago (Sem Limites)
-                                </span>
-                            ) : (
-                                `${resendConfig.sent_count} / 3.000`
-                            )}
-                        </span>
-                    </div>
-                    {!resendConfig.has_paid_plan && (
-                        <div className="w-full bg-gray-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                            <div 
-                                className={`h-full transition-all duration-500 rounded-full ${
-                                    resendConfig.sent_count >= 2700 
-                                        ? 'bg-rose-500' 
-                                        : resendConfig.sent_count >= 2000 
-                                            ? 'bg-amber-500' 
-                                            : 'bg-blue-650'
-                                }`}
-                                style={{ width: `${Math.min(100, (resendConfig.sent_count / 3000) * 100)}%` }}
-                            ></div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="relative">
-                    <Input
-                        label="Chave de API do Resend"
-                        type={showResendApiKey ? 'text' : 'password'}
-                        value={resendConfig.apiKey}
-                        onChange={(e: any) => setResendConfig({ ...resendConfig, apiKey: e.target.value })}
-                        placeholder="re_..."
-                        preserveCase={true}
-                        helpText="Insira sua API Key gerada no painel do Resend (resend.com)."
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowResendApiKey(!showResendApiKey)}
-                        className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                        {showResendApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                </div>
-
-                <Input
-                    label="E-mail do Remetente"
-                    value={resendConfig.fromEmail}
-                    onChange={(e: any) => setResendConfig({ ...resendConfig, fromEmail: e.target.value })}
-                    placeholder="Ex: Notas Fiscais <nfe@suaempresa.com.br>"
-                    preserveCase={true}
-                    helpText="Deve ser um domínio configurado e verificado no seu painel do Resend."
-                />
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-150 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={resendConfig.has_paid_plan || false}
-                            onChange={(e) => setResendConfig({ ...resendConfig, has_paid_plan: e.target.checked })}
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                    </label>
-                    <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">Possuo Plano Pago no Resend</p>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">Ative para remover a trava de 3.000 envios de e-mail gratuitos da plataforma.</p>
-                    </div>
-                </div>
-
-                <a 
-                    href="https://resend.com/pricing" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs font-extrabold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 self-start sm:self-auto"
-                >
-                    <ExternalLink size={14} />
-                    Fazer Upgrade no Resend
-                </a>
-            </div>
-
-            <div className="flex justify-end pt-2">
-                <Button
-                    type="button"
-                    onClick={handleSaveResend}
-                    isLoading={savingResend}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg px-4 py-2 flex items-center gap-1.5 shadow-sm"
-                >
-                    <Save size={14} />
-                    Salvar Configuração de E-mail
-                </Button>
-            </div>
-        </div>
     </div>
 
             {/* Modal de Diagnóstico */}

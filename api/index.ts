@@ -4286,6 +4286,100 @@ app.post(['/fiscal-module/test-webhook', '/api/fiscal-module/test-webhook'], aut
     }
 });
 
+const DEFAULT_EMAIL_HTML_TEMPLATE = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nota Fiscal Eletrônica</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:40px 40px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:-0.5px;">{{companyName}}</h1>
+              <p style="margin:8px 0 0;color:#a8b4c8;font-size:14px;letter-spacing:1px;text-transform:uppercase;">{{invoiceLabel}} Eletrônica</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px;">
+              <p style="margin:0 0 8px;color:#64748b;font-size:14px;">Olá,</p>
+              <h2 style="margin:0 0 24px;color:#1e293b;font-size:22px;font-weight:700;">{{clientName}} 👋</h2>
+              <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
+                Sua <strong>{{invoiceLabel}} Nº {{invoiceNumber}}</strong> foi emitida com sucesso e está disponível para acesso.
+              </p>
+              <!-- Destaque -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;margin-bottom:32px;">
+                <tr>
+                  <td style="padding:24px;">
+                    <p style="margin:0 0 4px;color:#0369a1;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Documento Emitido</p>
+                    <p style="margin:0;color:#0c4a6e;font-size:18px;font-weight:700;">{{invoiceLabel}} Nº {{invoiceNumber}}</p>
+                  </td>
+                </tr>
+              </table>
+              <!-- Botão PDF -->
+              {{#if pdfUrl}}
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{pdfUrl}}" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#0f3460,#1a1a2e);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
+                      📄 Visualizar PDF da Nota
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              {{/if}}
+              <!-- Botão XML -->
+              {{#if xmlUrl}}
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{xmlUrl}}" target="_blank" style="display:inline-block;background:#f1f5f9;color:#475569;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid #e2e8f0;">
+                      📁 Baixar XML
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              {{/if}}
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0;" />
+              <p style="margin:0;color:#94a3b8;font-size:13px;text-align:center;line-height:1.6;">
+                Este e-mail foi enviado automaticamente por <strong>{{companyName}}</strong>.<br/>
+                Em caso de dúvidas, entre em contato conosco.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;color:#cbd5e1;font-size:12px;">Powered by <strong>Lucro Certo</strong> &bull; Sistema de Gestão Fiscal</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+const replacePlaceholder = (html: string, placeholder: string, value: string) => {
+    const regex = new RegExp(`\\{\\{\\s*${placeholder}\\s*\\}\\}`, 'g');
+    return html.replace(regex, value || '');
+};
+
+const parseConditionalBlock = (html: string, variableName: string, value: any) => {
+    const regex = new RegExp(`\\{\\{\\s*#if\\s+${variableName}\\s*\\}\\}([\\s\\S]*?)\\{\\{\\s*\\/if\\s*\\}\\}`, 'g');
+    if (value) {
+        return html.replace(regex, '$1');
+    } else {
+        return html.replace(regex, '');
+    }
+};
+
 // ✉️ Envio de e-mail via Resend (funciona para qualquer destinatário)
 app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     const { to, subject, clientName, invoiceNumber, invoiceType, pdfUrl, xmlUrl, companyName, companyLogo, companyId } = req.body;
@@ -4361,85 +4455,20 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         });
     }
 
-    const htmlBody = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nota Fiscal Eletrônica</title>
-</head>
-<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:32px 0;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-          <!-- Header -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:40px 40px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:-0.5px;">${safeCompanyName}</h1>
-              <p style="margin:8px 0 0;color:#a8b4c8;font-size:14px;letter-spacing:1px;text-transform:uppercase;">${invoiceLabel} Eletrônica</p>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:40px;">
-              <p style="margin:0 0 8px;color:#64748b;font-size:14px;">Olá,</p>
-              <h2 style="margin:0 0 24px;color:#1e293b;font-size:22px;font-weight:700;">${safeClientName} 👋</h2>
-              <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
-                Sua <strong>${invoiceLabel} Nº ${safeInvoiceNumber}</strong> foi emitida com sucesso e está disponível para acesso.
-              </p>
-              <!-- Destaque -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;margin-bottom:32px;">
-                <tr>
-                  <td style="padding:24px;">
-                    <p style="margin:0 0 4px;color:#0369a1;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Documento Emitido</p>
-                    <p style="margin:0;color:#0c4a6e;font-size:18px;font-weight:700;">${invoiceLabel} Nº ${safeInvoiceNumber}</p>
-                  </td>
-                </tr>
-              </table>
-              <!-- Botão PDF -->
-              ${pdfUrl ? `
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
-                <tr>
-                  <td align="center">
-                    <a href="${pdfUrl}" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#0f3460,#1a1a2e);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
-                      📄 Visualizar PDF da Nota
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              ` : ''}
-              <!-- Botão XML -->
-              ${xmlUrl ? `
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
-                <tr>
-                  <td align="center">
-                    <a href="${xmlUrl}" target="_blank" style="display:inline-block;background:#f1f5f9;color:#475569;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid #e2e8f0;">
-                      📁 Baixar XML
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              ` : ''}
-              <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0;" />
-              <p style="margin:0;color:#94a3b8;font-size:13px;text-align:center;line-height:1.6;">
-                Este e-mail foi enviado automaticamente por <strong>${safeCompanyName}</strong>.<br/>
-                Em caso de dúvidas, entre em contato conosco.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background:#f8fafc;padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
-              <p style="margin:0;color:#cbd5e1;font-size:12px;">Powered by <strong>Lucro Certo</strong> &bull; Sistema de Gestão Fiscal</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+    // 🎨 Carregar e compilar template de HTML do e-mail
+    let htmlBody = resendConfig.email_html_template || DEFAULT_EMAIL_HTML_TEMPLATE;
+
+    // 1. Processar blocos condicionais
+    htmlBody = parseConditionalBlock(htmlBody, 'pdfUrl', !!pdfUrl && String(pdfUrl).startsWith('http'));
+    htmlBody = parseConditionalBlock(htmlBody, 'xmlUrl', !!xmlUrl && String(xmlUrl).startsWith('http'));
+
+    // 2. Substituir placeholders
+    htmlBody = replacePlaceholder(htmlBody, 'companyName', safeCompanyName);
+    htmlBody = replacePlaceholder(htmlBody, 'clientName', safeClientName);
+    htmlBody = replacePlaceholder(htmlBody, 'invoiceNumber', safeInvoiceNumber);
+    htmlBody = replacePlaceholder(htmlBody, 'invoiceLabel', invoiceLabel);
+    htmlBody = replacePlaceholder(htmlBody, 'pdfUrl', pdfUrl || '');
+    htmlBody = replacePlaceholder(htmlBody, 'xmlUrl', xmlUrl || '');
 
     try {
         console.log(`✉️ [RESEND] Enviando e-mail para: ${to} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);
