@@ -122,6 +122,12 @@ export function FiscalSettings() {
     const [testingWebhookExterno, setTestingWebhookExterno] = useState(false);
     const [testingWebhookCertificado, setTestingWebhookCertificado] = useState(false);
     const [testingWebhookCallback, setTestingWebhookCallback] = useState(false);
+    const [resendConfig, setResendConfig] = useState({
+        apiKey: '',
+        fromEmail: ''
+    });
+    const [showResendApiKey, setShowResendApiKey] = useState(false);
+    const [savingResend, setSavingResend] = useState(false);
 
     useEffect(() => {
         if (!currentEntity.id) return;
@@ -372,6 +378,12 @@ export function FiscalSettings() {
             reforma_tributaria_calculadora_ativa: nfe.reforma_tributaria_calculadora_ativa || false,
             reforma_tributaria_ibs_aliquota: nfe.reforma_tributaria_ibs_aliquota || '0.10',
             reforma_tributaria_cbs_aliquota: nfe.reforma_tributaria_cbs_aliquota || '0.90'
+        });
+
+        const resend = currentCompany.settings?.resend_config || {};
+        setResendConfig({
+            apiKey: resend.apiKey || '',
+            fromEmail: resend.fromEmail || ''
         });
     }, [currentCompany?.id]); // Depender apenas do ID
 
@@ -1176,6 +1188,46 @@ export function FiscalSettings() {
             });
         } finally {
             setSavingNfeio(false);
+        }
+    };
+
+    const handleSaveResend = async () => {
+        if (!currentEntity.id || currentEntity.type === 'personal') {
+            setResultModal({
+                isOpen: true,
+                title: 'Aviso',
+                message: 'Configurações de e-mail são exclusivas para empresas. Mude o contexto no topo.',
+                type: 'info'
+            });
+            return;
+        }
+        setSavingResend(true);
+        try {
+            const updatedSettings = {
+                ...(currentCompany?.settings || {}),
+                resend_config: resendConfig
+            };
+            await updateCompany(currentEntity.id, {
+                settings: updatedSettings
+            });
+
+            await refreshEntity();
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: 'As configurações de e-mail do Resend foram salvas.',
+                type: 'success'
+            });
+        } catch (error: any) {
+            console.error(error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Salvar',
+                message: 'Não foi possível salvar as configurações de e-mail: ' + (error.message || ''),
+                type: 'error'
+            });
+        } finally {
+            setSavingResend(false);
         }
     };
 
@@ -4973,6 +5025,64 @@ export function FiscalSettings() {
                 </div>
             </div>
         )}
+
+        {/* Bloco de Configuração de E-mail Próprio (Resend) */}
+        <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom duration-300">
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+                    <Mail size={24} />
+                </div>
+                <div>
+                    <h4 className="font-bold text-gray-900 dark:text-white">Configuração de E-mail Próprio (Resend)</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Por padrão, o envio de e-mails de Notas Fiscais utiliza o servidor centralizado da plataforma. 
+                        Caso deseje utilizar limites de envio próprios e um e-mail de remetente personalizado da sua empresa, insira sua chave do Resend abaixo.
+                    </p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="relative">
+                    <Input
+                        label="Chave de API do Resend"
+                        type={showResendApiKey ? 'text' : 'password'}
+                        value={resendConfig.apiKey}
+                        onChange={(e: any) => setResendConfig({ ...resendConfig, apiKey: e.target.value })}
+                        placeholder="re_..."
+                        preserveCase={true}
+                        helpText="Insira sua API Key gerada no painel do Resend (resend.com)."
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowResendApiKey(!showResendApiKey)}
+                        className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                        {showResendApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                </div>
+
+                <Input
+                    label="E-mail do Remetente"
+                    value={resendConfig.fromEmail}
+                    onChange={(e: any) => setResendConfig({ ...resendConfig, fromEmail: e.target.value })}
+                    placeholder="Ex: Notas Fiscais <nfe@suaempresa.com.br>"
+                    preserveCase={true}
+                    helpText="Deve ser um domínio configurado e verificado no seu painel do Resend."
+                />
+            </div>
+
+            <div className="flex justify-end pt-2">
+                <Button
+                    type="button"
+                    onClick={handleSaveResend}
+                    isLoading={savingResend}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg px-4 py-2 flex items-center gap-1.5 shadow-sm"
+                >
+                    <Save size={14} />
+                    Salvar Configuração de E-mail
+                </Button>
+            </div>
+        </div>
     </div>
 
             {/* Modal de Diagnóstico */}

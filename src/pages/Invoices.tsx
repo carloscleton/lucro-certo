@@ -936,6 +936,7 @@ ${messageWithPlaceholder}`;
                         pdfUrl: typeof pdfUrl === 'string' && pdfUrl.startsWith('http') ? pdfUrl : undefined,
                         xmlUrl: typeof xmlUrl === 'string' && xmlUrl.startsWith('http') ? xmlUrl : undefined,
                         companyName,
+                        companyId: currentEntity?.id
                     });
                     setResultModal({
                         isOpen: true,

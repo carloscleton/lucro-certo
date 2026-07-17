@@ -4288,20 +4288,52 @@ app.post(['/fiscal-module/test-webhook', '/api/fiscal-module/test-webhook'], aut
 
 // ✉️ Envio de e-mail via Resend (funciona para qualquer destinatário)
 app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
-    const { to, subject, clientName, invoiceNumber, invoiceType, pdfUrl, xmlUrl, companyName, companyLogo } = req.body;
+    const { to, subject, clientName, invoiceNumber, invoiceType, pdfUrl, xmlUrl, companyName, companyLogo, companyId } = req.body;
 
     if (!to) {
         return res.status(400).json({ error: 'E-mail do destinatário é obrigatório.' });
     }
 
-    if (!RESEND_API_KEY) {
-        return res.status(500).json({ error: 'Serviço de e-mail não configurado no servidor. Adicione RESEND_API_KEY.' });
-    }
-
+    let activeApiKey = RESEND_API_KEY;
     const invoiceLabel = invoiceType === 'nfe' ? 'NF-e' : 'NFS-e';
     const safeClientName = clientName || 'Cliente';
     const safeInvoiceNumber = invoiceNumber || 'N/A';
     const safeCompanyName = companyName || 'Lucro Certo';
+    let activeFromEmail = `${safeCompanyName} <onboarding@resend.dev>`;
+
+    if (companyId && SUPABASE_URL) {
+        try {
+            const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+            const authHeader = req.headers.authorization || `Bearer ${supabaseKey}`;
+            const response = await axios.get(
+                `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
+                {
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': authHeader
+                    }
+                }
+            );
+            if (response.data && response.data.length > 0) {
+                const settings = response.data[0].settings || {};
+                const resendConfig = settings.resend_config || {};
+                if (resendConfig.apiKey) {
+                    activeApiKey = resendConfig.apiKey;
+                    console.log(`✉️ [RESEND] Usando API Key personalizada da empresa ${companyId}.`);
+                }
+                if (resendConfig.fromEmail) {
+                    activeFromEmail = resendConfig.fromEmail;
+                    console.log(`✉️ [RESEND] Usando remetente personalizado da empresa ${companyId}: ${activeFromEmail}.`);
+                }
+            }
+        } catch (dbErr: any) {
+            console.warn(`⚠️ [RESEND] Erro ao buscar configurações de email customizado da empresa ${companyId}:`, dbErr.message);
+        }
+    }
+
+    if (!activeApiKey) {
+        return res.status(500).json({ error: 'Serviço de e-mail não configurado no servidor ou na empresa. Adicione a API Key.' });
+    }
 
     const htmlBody = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -4387,13 +4419,13 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         console.log(`✉️ [RESEND] Enviando e-mail para: ${to} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);
 
         const response = await axios.post('https://api.resend.com/emails', {
-            from: `${safeCompanyName} <onboarding@resend.dev>`,
+            from: activeFromEmail,
             to: [to],
             subject: subject || `${invoiceLabel} Nº ${safeInvoiceNumber} - ${safeCompanyName}`,
             html: htmlBody
         }, {
             headers: {
-                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Authorization': `Bearer ${activeApiKey}`,
                 'Content-Type': 'application/json'
             },
             timeout: 15000
