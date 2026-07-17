@@ -41,6 +41,7 @@ export interface Entity {
     phone?: string;
     associated_company_id?: string; // Links personal context to its main billing company
     currency?: string;
+    slug?: string;
 }
 
 interface EntityContextType {
@@ -111,7 +112,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         trial_ends_at,
                         created_at,
                         phone,
-                        currency
+                        currency,
+                        slug
                     ),
                     role,
                     status
@@ -157,7 +159,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     trial_ends_at: item.company.trial_ends_at,
                     created_at: item.company.created_at,
                     phone: item.company.phone,
-                    currency: item.company.currency
+                    currency: item.company.currency,
+                    slug: item.company.slug
                 }));
 
             // Base creation date for personal context (use profile or auth user as fallback)
