@@ -4294,12 +4294,18 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         return res.status(400).json({ error: 'E-mail do destinatário é obrigatório.' });
     }
 
-    let activeApiKey = RESEND_API_KEY;
+    if (!companyId) {
+        return res.status(400).json({ error: 'Configuração de e-mail ausente. ID da empresa não fornecido.' });
+    }
+
+    let activeApiKey = '';
     const invoiceLabel = invoiceType === 'nfe' ? 'NF-e' : 'NFS-e';
     const safeClientName = clientName || 'Cliente';
     const safeInvoiceNumber = invoiceNumber || 'N/A';
     const safeCompanyName = companyName || 'Lucro Certo';
-    let activeFromEmail = `${safeCompanyName} <onboarding@resend.dev>`;
+    let activeFromEmail = '';
+    let companySettings: any = null;
+    let resendConfig: any = {};
 
     if (companyId && SUPABASE_URL) {
         try {
@@ -4315,16 +4321,10 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
                 }
             );
             if (response.data && response.data.length > 0) {
-                const settings = response.data[0].settings || {};
-                const resendConfig = settings.resend_config || {};
-                if (resendConfig.apiKey) {
-                    activeApiKey = resendConfig.apiKey;
-                    console.log(`✉️ [RESEND] Usando API Key personalizada da empresa ${companyId}.`);
-                }
-                if (resendConfig.fromEmail) {
-                    activeFromEmail = resendConfig.fromEmail;
-                    console.log(`✉️ [RESEND] Usando remetente personalizado da empresa ${companyId}: ${activeFromEmail}.`);
-                }
+                companySettings = response.data[0].settings || {};
+                resendConfig = companySettings.resend_config || {};
+                activeApiKey = resendConfig.apiKey || '';
+                activeFromEmail = resendConfig.fromEmail || '';
             }
         } catch (dbErr: any) {
             console.warn(`⚠️ [RESEND] Erro ao buscar configurações de email customizado da empresa ${companyId}:`, dbErr.message);
@@ -4332,7 +4332,33 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     }
 
     if (!activeApiKey) {
-        return res.status(500).json({ error: 'Serviço de e-mail não configurado no servidor ou na empresa. Adicione a API Key.' });
+        return res.status(400).json({ 
+            error: 'Configuração de e-mail ausente', 
+            message: 'Você precisa configurar sua própria Chave de API e E-mail de Remetente do Resend em Configurações > Nota Fiscal.' 
+        });
+    }
+
+    if (!activeFromEmail) {
+        activeFromEmail = `${safeCompanyName} <onboarding@resend.dev>`;
+    }
+
+    // 📅 Controle de limite de 3.000 envios por mês
+    const currentMonth = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+    let sentCount = Number(resendConfig.sent_count || 0);
+    const hasPaidPlan = !!resendConfig.has_paid_plan;
+
+    // Reset mensal automático
+    if (resendConfig.last_reset_month !== currentMonth) {
+        sentCount = 0;
+        resendConfig.sent_count = 0;
+        resendConfig.last_reset_month = currentMonth;
+    }
+
+    if (!hasPaidPlan && sentCount >= 3000) {
+        return res.status(403).json({
+            error: 'Limite de envio atingido',
+            message: 'Você atingiu o limite de 3.000 envios gratuitos de e-mail no seu plano do Resend. Para continuar enviando, você precisa assinar um plano pago no site do Resend (https://resend.com/pricing). Após assinar, ative a opção "Possuo plano pago no Resend" nas configurações fiscais da empresa.'
+        });
     }
 
     const htmlBody = `<!DOCTYPE html>
@@ -4432,6 +4458,33 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         });
 
         console.log(`✅ [RESEND] E-mail enviado com sucesso para ${to}. ID: ${response.data?.id}`);
+
+        // Incrementar contador de envios
+        resendConfig.sent_count = sentCount + 1;
+        companySettings.resend_config = resendConfig;
+
+        // Atualizar no banco via Supabase REST API
+        if (SUPABASE_URL && companyId) {
+            try {
+                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+                const authHeader = `Bearer ${supabaseKey}`;
+                await axios.patch(
+                    `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`,
+                    { settings: companySettings },
+                    {
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': authHeader,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                console.log(`📈 [RESEND] Contador de e-mails incrementado para a empresa ${companyId}: ${resendConfig.sent_count}/3000.`);
+            } catch (updateErr: any) {
+                console.error(`❌ [RESEND] Erro ao incrementar contador da empresa ${companyId} no banco:`, updateErr.response?.data || updateErr.message);
+            }
+        }
+
         res.json({ success: true, id: response.data?.id, message: `E-mail enviado para ${to}` });
     } catch (error: any) {
         const detail = error.response?.data || error.message;

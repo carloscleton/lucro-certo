@@ -124,7 +124,9 @@ export function FiscalSettings() {
     const [testingWebhookCallback, setTestingWebhookCallback] = useState(false);
     const [resendConfig, setResendConfig] = useState({
         apiKey: '',
-        fromEmail: ''
+        fromEmail: '',
+        sent_count: 0,
+        has_paid_plan: false
     });
     const [showResendApiKey, setShowResendApiKey] = useState(false);
     const [savingResend, setSavingResend] = useState(false);
@@ -383,7 +385,9 @@ export function FiscalSettings() {
         const resend = currentCompany.settings?.resend_config || {};
         setResendConfig({
             apiKey: resend.apiKey || '',
-            fromEmail: resend.fromEmail || ''
+            fromEmail: resend.fromEmail || '',
+            sent_count: Number(resend.sent_count || 0),
+            has_paid_plan: !!resend.has_paid_plan
         });
     }, [currentCompany?.id]); // Depender apenas do ID
 
@@ -5035,11 +5039,52 @@ export function FiscalSettings() {
                 <div>
                     <h4 className="font-bold text-gray-900 dark:text-white">Configuração de E-mail Próprio (Resend)</h4>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Por padrão, o envio de e-mails de Notas Fiscais utiliza o servidor centralizado da plataforma. 
-                        Caso deseje utilizar limites de envio próprios e um e-mail de remetente personalizado da sua empresa, insira sua chave do Resend abaixo.
+                        O envio de e-mails de Notas Fiscais exige que você configure sua própria conta do Resend para evitar custos centralizados. 
+                        Insira a sua Chave de API e E-mail de remetente verificados no Resend abaixo.
                     </p>
                 </div>
             </div>
+
+            {!resendConfig.apiKey && (
+                <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 p-4 rounded-xl flex items-start gap-3">
+                    <AlertCircle className="text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" size={18} />
+                    <div>
+                        <p className="text-xs font-bold text-rose-800 dark:text-rose-400 uppercase tracking-wider">Atenção: E-mail Desativado</p>
+                        <p className="text-xs text-rose-700 dark:text-rose-500 mt-0.5 font-bold">O envio automático de Notas Fiscais por e-mail ficará suspenso para seus clientes até que você configure uma Chave de API do Resend válida.</p>
+                    </div>
+                </div>
+            )}
+
+            {resendConfig.apiKey && (
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
+                        <span>Consumo Mensal de E-mails</span>
+                        <span>
+                            {resendConfig.has_paid_plan ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                                    <ShieldCheck size={14} /> Plano Pago (Sem Limites)
+                                </span>
+                            ) : (
+                                `${resendConfig.sent_count} / 3.000`
+                            )}
+                        </span>
+                    </div>
+                    {!resendConfig.has_paid_plan && (
+                        <div className="w-full bg-gray-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div 
+                                className={`h-full transition-all duration-500 rounded-full ${
+                                    resendConfig.sent_count >= 2700 
+                                        ? 'bg-rose-500' 
+                                        : resendConfig.sent_count >= 2000 
+                                            ? 'bg-amber-500' 
+                                            : 'bg-blue-650'
+                                }`}
+                                style={{ width: `${Math.min(100, (resendConfig.sent_count / 3000) * 100)}%` }}
+                            ></div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="relative">
@@ -5069,6 +5114,34 @@ export function FiscalSettings() {
                     preserveCase={true}
                     helpText="Deve ser um domínio configurado e verificado no seu painel do Resend."
                 />
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-150 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={resendConfig.has_paid_plan || false}
+                            onChange={(e) => setResendConfig({ ...resendConfig, has_paid_plan: e.target.checked })}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                    <div>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">Possuo Plano Pago no Resend</p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">Ative para remover a trava de 3.000 envios de e-mail gratuitos da plataforma.</p>
+                    </div>
+                </div>
+
+                <a 
+                    href="https://resend.com/pricing" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs font-extrabold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 self-start sm:self-auto"
+                >
+                    <ExternalLink size={14} />
+                    Fazer Upgrade no Resend
+                </a>
             </div>
 
             <div className="flex justify-end pt-2">
