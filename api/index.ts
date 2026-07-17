@@ -4459,8 +4459,19 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
 
         console.log(`✅ [RESEND] E-mail enviado com sucesso para ${to}. ID: ${response.data?.id}`);
 
-        // Incrementar contador de envios
-        resendConfig.sent_count = sentCount + 1;
+        // Tentar obter consumo real do Resend direto dos headers da resposta
+        const monthlyQuota = response.headers?.['x-resend-monthly-quota'] || response.headers?.['X-Resend-Monthly-Quota'];
+        let updatedCount = sentCount + 1;
+
+        if (monthlyQuota !== undefined && monthlyQuota !== null) {
+            const parsedMonthly = Number(monthlyQuota);
+            if (!isNaN(parsedMonthly)) {
+                updatedCount = parsedMonthly;
+                console.log(`📊 [RESEND] Obtido consumo mensal real dos headers do Resend: ${updatedCount}`);
+            }
+        }
+
+        resendConfig.sent_count = updatedCount;
         companySettings.resend_config = resendConfig;
 
         // Atualizar no banco via Supabase REST API
