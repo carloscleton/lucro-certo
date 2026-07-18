@@ -293,6 +293,28 @@ export function EmailSettings() {
                         </div>
                     </div>
 
+                    {/* Painel de Ajuda / Instruções do Gmail */}
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-5 rounded-2xl space-y-2.5 text-amber-850 dark:text-amber-400">
+                        <p className="font-extrabold flex items-center gap-1.5 text-amber-900 dark:text-amber-300 text-sm">
+                            <AlertCircle size={16} /> Instruções para Configurar Contas do Gmail:
+                        </p>
+                        <ol className="list-decimal list-inside space-y-1.5 font-medium leading-relaxed text-xs">
+                            <li>
+                                <strong>Porta e Conexão Segura:</strong> Se preencher a porta como <strong>587</strong> (recomendado), o interruptor "Conexão Segura (SSL/TLS)" no final deve estar <strong>DESATIVADO</strong>. Se utilizar a porta <strong>465</strong>, o interruptor deve estar <strong>ATIVADO</strong>.
+                            </li>
+                            <li>
+                                <strong>Senha Especial (Senha de App):</strong> O Gmail bloqueia conexões feitas com a sua senha comum de login. Você precisa obrigatoriamente criar uma <strong>Senha de App</strong> no Google:
+                                <ul className="list-disc list-inside pl-5 mt-1.5 space-y-1 text-[11px] font-bold text-amber-800 dark:text-amber-450">
+                                    <li>Acesse sua <a href="https://myaccount.google.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-950 dark:hover:text-amber-300">Conta Google (clique aqui)</a>.</li>
+                                    <li>No menu esquerdo, vá em <strong>Segurança</strong> e certifique-se de que a <strong>Verificação em Duas Etapas</strong> está ativa.</li>
+                                    <li>Pesquise por <strong>"Senhas de App"</strong> na barra de buscas superior e clique na opção.</li>
+                                    <li>Digite um nome de identificação (ex: <code>Lucro Certo</code>) e clique em criar.</li>
+                                    <li>O Google exibirá um código temporário de <strong>16 letras</strong>. Copie e cole esse código no campo <strong>Senha / Senha de App</strong> abaixo.</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Input
                             label="Servidor SMTP (Host)"
