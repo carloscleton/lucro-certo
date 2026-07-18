@@ -340,7 +340,9 @@ export function EmailSettings() {
                 provider: resendConfig.provider,
                 to: testEmail,
                 resendConfig,
-                companyName: currentCompany?.trade_name || currentCompany?.legal_name || 'Minha Empresa'
+                companyName,
+                subject: `[Teste de Layout] NF-e Nº 000123 - ${companyName}`,
+                htmlBody: getPreviewHtml()
             });
 
             if (response.data.success) {

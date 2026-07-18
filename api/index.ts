@@ -4809,14 +4809,14 @@ app.post(['/send-email/custom', '/api/send-email/custom'], authenticate, async (
 
 
 app.post(['/send-email/test', '/api/send-email/test'], authenticate, async (req, res) => {
-    const { provider, to, resendConfig, companyName } = req.body;
+    const { provider, to, resendConfig, companyName, htmlBody, subject } = req.body;
 
     if (!to) {
         return res.status(400).json({ error: 'Destinatário é obrigatório' });
     }
 
-    const testSubject = `📧 Lucro Certo - Teste de Configuração de E-mail`;
-    const testHtml = `
+    const testSubject = subject || `📧 Lucro Certo - Teste de Configuração de E-mail`;
+    const testHtml = htmlBody || `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
             <h2 style="color: #2563eb; margin-top: 0;">Parabéns!</h2>
             <p>Se você está lendo esta mensagem, significa que a sua configuração de e-mail no sistema <strong>Lucro Certo</strong> foi realizada com sucesso!</p>
