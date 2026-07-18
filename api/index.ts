@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
+import nodemailer from 'nodemailer';
 import { PaymentFactory } from './services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -4425,8 +4426,9 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         }
     }
 
+    const isSmtp = resendConfig.provider === 'smtp';
     let isUsingGlobalFallback = false;
-    if (!activeApiKey) {
+    if (!isSmtp && !activeApiKey) {
         if (RESEND_API_KEY) {
             activeApiKey = RESEND_API_KEY;
             const globalFromDomain = process.env.RESEND_FROM_EMAIL || 'nao-responder@lucrocerto.com';
@@ -4478,6 +4480,65 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     htmlBody = replacePlaceholder(htmlBody, 'invoiceLabel', invoiceLabel);
     htmlBody = replacePlaceholder(htmlBody, 'pdfUrl', pdfUrl || '');
     htmlBody = replacePlaceholder(htmlBody, 'xmlUrl', xmlUrl || '');
+
+    if (isSmtp) {
+        try {
+            console.log(`✉️ [SMTP] Enviando e-mail para: ${to} via SMTP (${resendConfig.smtp_host})`);
+            const transporter = nodemailer.createTransport({
+                host: resendConfig.smtp_host,
+                port: Number(resendConfig.smtp_port || 587),
+                secure: !!resendConfig.smtp_secure,
+                auth: {
+                    user: resendConfig.smtp_user,
+                    pass: resendConfig.smtp_pass
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const info = await transporter.sendMail({
+                from: activeFromEmail || resendConfig.smtp_user,
+                to: to,
+                subject: subject || `${invoiceLabel} Nº ${safeInvoiceNumber} - ${safeCompanyName}`,
+                html: htmlBody
+            });
+
+            console.log(`✅ [SMTP] E-mail enviado com sucesso via SMTP. MessageID: ${info.messageId}`);
+            
+            // Increment count for tracking
+            resendConfig.sent_count = sentCount + 1;
+            companySettings.resend_config = resendConfig;
+
+            if (SUPABASE_URL && companyId) {
+                try {
+                    const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+                    const authHeader = `Bearer ${supabaseKey}`;
+                    await axios.patch(
+                        `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`,
+                        { settings: companySettings },
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': authHeader,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+                } catch (updateErr: any) {
+                    console.error(`❌ [SMTP] Erro ao incrementar contador da empresa ${companyId} no banco:`, updateErr.message);
+                }
+            }
+
+            return res.json({ success: true, id: info.messageId, message: `E-mail enviado para ${to} via SMTP` });
+        } catch (smtpErr: any) {
+            console.error('❌ [SMTP] Erro ao enviar e-mail via SMTP:', smtpErr.message);
+            return res.status(500).json({
+                error: 'Erro ao enviar e-mail via SMTP',
+                detail: smtpErr.message
+            });
+        }
+    }
 
     try {
         console.log(`✉️ [RESEND] Enviando e-mail para: ${to} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);

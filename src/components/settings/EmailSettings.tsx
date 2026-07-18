@@ -92,11 +92,17 @@ export function EmailSettings() {
     const [saving, setSaving] = useState(false);
     const [showApiKey, setShowApiKey] = useState(false);
     const [resendConfig, setResendConfig] = useState({
+        provider: 'resend',
         apiKey: '',
         fromEmail: '',
         sent_count: 0,
         has_paid_plan: false,
-        email_html_template: ''
+        email_html_template: '',
+        smtp_host: '',
+        smtp_port: 587,
+        smtp_user: '',
+        smtp_pass: '',
+        smtp_secure: false
     });
 
     const [resultModal, setResultModal] = useState({
@@ -112,11 +118,17 @@ export function EmailSettings() {
         if (!currentCompany) return;
         const resend = currentCompany.settings?.resend_config || {};
         setResendConfig({
+            provider: resend.provider || 'resend',
             apiKey: resend.apiKey || '',
             fromEmail: resend.fromEmail || '',
             sent_count: Number(resend.sent_count || 0),
             has_paid_plan: !!resend.has_paid_plan,
-            email_html_template: resend.email_html_template || ''
+            email_html_template: resend.email_html_template || '',
+            smtp_host: resend.smtp_host || '',
+            smtp_port: Number(resend.smtp_port || 587),
+            smtp_user: resend.smtp_user || '',
+            smtp_pass: resend.smtp_pass || '',
+            smtp_secure: !!resend.smtp_secure
         });
     }, [currentCompany?.id]);
 
@@ -173,12 +185,44 @@ export function EmailSettings() {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                <div className="p-3 bg-blue-100 text-blue-655 rounded-xl">
                     <Mail size={24} />
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configurações de E-mail</h1>
-                    <p className="text-gray-500">Gerencie a integração do Resend e customize seus templates HTML.</p>
+                    <p className="text-gray-500 font-bold">Gerencie o método de envio de e-mails da sua empresa e customize seus templates HTML.</p>
+                </div>
+            </div>
+
+            {/* Seletor de Provedor */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-4">
+                <label className="block text-sm font-bold text-gray-900 dark:text-white">Selecione o Método de Envio de E-mail</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                        type="button"
+                        onClick={() => setResendConfig(prev => ({ ...prev, provider: 'resend' }))}
+                        className={`p-4 rounded-xl border flex flex-col items-start gap-2 text-left transition-all ${
+                            resendConfig.provider === 'resend'
+                                ? 'border-blue-600 bg-blue-50/30 ring-2 ring-blue-500/20'
+                                : 'border-gray-200 hover:border-gray-300 dark:border-slate-700'
+                        }`}
+                    >
+                        <span className="font-bold text-sm text-gray-900 dark:text-white">Resend API (Domínio Próprio)</span>
+                        <span className="text-xs text-gray-500 font-medium">Recomendado para quem possui domínio próprio (White-label). Entrega profissional rápida.</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setResendConfig(prev => ({ ...prev, provider: 'smtp' }))}
+                        className={`p-4 rounded-xl border flex flex-col items-start gap-2 text-left transition-all ${
+                            resendConfig.provider === 'smtp'
+                                ? 'border-blue-600 bg-blue-50/30 ring-2 ring-blue-500/20'
+                                : 'border-gray-200 hover:border-gray-300 dark:border-slate-700'
+                        }`}
+                    >
+                        <span className="font-bold text-sm text-gray-900 dark:text-white">Servidor SMTP (Gmail, Outlook, etc.)</span>
+                        <span className="text-xs text-gray-500 font-medium">Ideal para quem usa e-mail comum (@gmail, @outlook). Sem custo e não exige domínio próprio.</span>
+                    </button>
                 </div>
             </div>
 
