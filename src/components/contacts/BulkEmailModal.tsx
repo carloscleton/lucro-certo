@@ -242,6 +242,33 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [imageLinkUrl, setImageLinkUrl] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [hasSent, setHasSent] = useState(false);
+
+  const getPathFromUrl = (url: string) => {
+    const marker = "/social_media_assets/";
+    const index = url.indexOf(marker);
+    if (index !== -1) {
+      return decodeURIComponent(url.substring(index + marker.length));
+    }
+    return null;
+  };
+
+  const handleClose = async () => {
+    if (uploadedImageUrl && !hasSent) {
+      const pathToDelete = getPathFromUrl(uploadedImageUrl);
+      if (pathToDelete) {
+        try {
+          await storageService.delete("social_media_assets", pathToDelete);
+        } catch (e) {
+          console.debug("Failed to delete flyer on cancel:", e);
+        }
+      }
+    }
+    setUploadedImageUrl("");
+    setImageLinkUrl("");
+    setHasSent(false);
+    onClose();
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -249,6 +276,17 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
 
     setIsUploadingImage(true);
     try {
+      if (uploadedImageUrl) {
+        const oldPath = getPathFromUrl(uploadedImageUrl);
+        if (oldPath) {
+          try {
+            await storageService.delete("social_media_assets", oldPath);
+          } catch (e) {
+            console.debug("Failed to delete old flyer before replacing:", e);
+          }
+        }
+      }
+
       const parts = file.name.split('.');
       const ext = parts.pop() || '';
       const base = parts.join('.');
@@ -529,6 +567,7 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
     }
 
     setCurrentSendIndex(selectedContacts.length);
+    setHasSent(true);
     if (onSuccess) onSuccess();
   };
 
@@ -552,7 +591,7 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 border border-gray-150 dark:border-slate-700 rounded-xl"
           >
             <X size={20} />
@@ -714,7 +753,19 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
                       <img src={uploadedImageUrl} alt="Uploaded Campaign" className="max-w-full max-h-48 object-contain" />
                       <button
                         type="button"
-                        onClick={() => setUploadedImageUrl("")}
+                        onClick={async () => {
+                          if (uploadedImageUrl) {
+                            const path = getPathFromUrl(uploadedImageUrl);
+                            if (path) {
+                              try {
+                                await storageService.delete("social_media_assets", path);
+                              } catch (e) {
+                                console.debug("Failed to delete flyer:", e);
+                              }
+                            }
+                          }
+                          setUploadedImageUrl("");
+                        }}
                         className="absolute top-2 right-2 bg-red-500 hover:bg-red-650 text-white p-1.5 rounded-full transition-all shadow-md"
                       >
                         <X size={14} />
@@ -780,7 +831,7 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded-xl"
           >
             Cancelar
@@ -847,7 +898,7 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
                   disabled={currentSendIndex < selectedContacts.length}
                   onClick={() => {
                     setIsSending(false);
-                    onClose();
+                    handleClose();
                   }}
                   className="bg-gray-900 hover:bg-black text-white px-8 h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-md transition-all animate-pulse"
                 >

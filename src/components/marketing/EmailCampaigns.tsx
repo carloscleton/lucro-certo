@@ -344,6 +344,17 @@ export function EmailCampaigns() {
 
     setIsUploadingImage(true);
     try {
+      if (uploadedImageUrl) {
+        const oldPath = getPathFromUrl(uploadedImageUrl);
+        if (oldPath) {
+          try {
+            await storageService.delete("social_media_assets", oldPath);
+          } catch (e) {
+            console.debug("Failed to delete old flyer before replacing:", e);
+          }
+        }
+      }
+
       const parts = file.name.split('.');
       const ext = parts.pop() || '';
       const base = parts.join('.');
@@ -368,6 +379,15 @@ export function EmailCampaigns() {
     } finally {
       setIsUploadingImage(false);
     }
+  };
+
+  const getPathFromUrl = (url: string) => {
+    const marker = "/social_media_assets/";
+    const index = url.indexOf(marker);
+    if (index !== -1) {
+      return decodeURIComponent(url.substring(index + marker.length));
+    }
+    return null;
   };
 
   const [resultModal, setResultModal] = useState<{
@@ -886,7 +906,19 @@ export function EmailCampaigns() {
                         <img src={uploadedImageUrl} alt="Uploaded Campaign" className="max-w-full max-h-48 object-contain" />
                         <button
                           type="button"
-                          onClick={() => setUploadedImageUrl("")}
+                          onClick={async () => {
+                            if (uploadedImageUrl) {
+                              const path = getPathFromUrl(uploadedImageUrl);
+                              if (path) {
+                                try {
+                                  await storageService.delete("social_media_assets", path);
+                                } catch (e) {
+                                  console.debug("Failed to delete flyer:", e);
+                                }
+                              }
+                            }
+                            setUploadedImageUrl("");
+                          }}
                           className="absolute top-2 right-2 bg-red-500 hover:bg-red-650 text-white p-1.5 rounded-full transition-all shadow-md"
                         >
                           <X size={14} />
