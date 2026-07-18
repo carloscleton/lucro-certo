@@ -191,7 +191,7 @@ export function Settings() {
         if (typeof window === 'undefined') return 'quotes';
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab');
-        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing', 'loyalty', 'banking'];
+        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'email', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing', 'loyalty', 'banking'];
         
         if (tab && validTabs.includes(tab)) {
             sessionStorage.setItem('last_active_settings_tab', tab);
@@ -215,7 +215,7 @@ export function Settings() {
     // Sincroniza a aba ativa quando a URL muda (ex: cliques em links externos para abas específicas)
     useEffect(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing', 'loyalty', 'banking'];
+        const validTabs = ['quotes', 'financial', 'team', 'webhooks', 'whatsapp', 'email', 'fiscal', 'payments', 'admin', 'automations', 'subscription', 'platform_billing', 'loyalty', 'banking'];
         if (tab && validTabs.includes(tab) && tab !== activeTab) {
             setActiveTabState(tab);
         }

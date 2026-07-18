@@ -22,7 +22,8 @@ import {
     Award,
     Calculator,
     Receipt,
-    Landmark
+    Landmark,
+    Mail
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -252,6 +253,14 @@ export const SETTINGS_TABS: TabDefinition[] = [
         color: 'orange',
         desc: 'Controle de acesso',
         defaultPermissions: { admin: false, member: false }
+    },
+    {
+        key: 'email',
+        label: 'E-mail',
+        icon: Mail,
+        color: 'blue',
+        desc: 'Integração com o Resend e templates',
+        defaultPermissions: { admin: true, member: false }
     },
     {
         key: 'whatsapp',
