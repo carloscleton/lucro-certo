@@ -197,12 +197,12 @@ export function EmailSettings() {
                 </div>
 
                 {!resendConfig.apiKey && (
-                    <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 p-4 rounded-xl flex items-start gap-3">
-                        <AlertCircle className="text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" size={18} />
+                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 p-4 rounded-xl flex items-start gap-3">
+                        <AlertCircle className="text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" size={18} />
                         <div>
-                            <p className="text-xs font-bold text-rose-800 dark:text-rose-400 uppercase tracking-wider">Envios Suspensos</p>
-                            <p className="text-xs text-rose-700 dark:text-rose-500 mt-0.5 font-bold">
-                                Você precisa preencher sua chave de API para habilitar o envio de Notas Fiscais e outros e-mails do sistema.
+                            <p className="text-xs font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Servidor Padrão Ativo</p>
+                            <p className="text-xs text-blue-700 dark:text-blue-500 mt-0.5 font-bold">
+                                Sua empresa está utilizando o servidor de e-mail compartilhado da plataforma. Caso queira utilizar a sua própria marca e domínio personalizado como remetente (White-label), preencha sua API Key e E-mail de Remetente do Resend abaixo.
                             </p>
                         </div>
                     </div>

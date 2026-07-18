@@ -4425,11 +4425,20 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         }
     }
 
+    let isUsingGlobalFallback = false;
     if (!activeApiKey) {
-        return res.status(400).json({ 
-            error: 'Configuração de e-mail ausente', 
-            message: 'Você precisa configurar sua própria Chave de API e E-mail de Remetente do Resend em Configurações > Nota Fiscal.' 
-        });
+        if (RESEND_API_KEY) {
+            activeApiKey = RESEND_API_KEY;
+            const globalFromDomain = process.env.RESEND_FROM_EMAIL || 'nao-responder@lucrocerto.com';
+            activeFromEmail = `${safeCompanyName} <${globalFromDomain}>`;
+            isUsingGlobalFallback = true;
+            console.log(`ℹ️ [RESEND] Empresa ${companyId} não tem API Key própria. Usando fallback global: ${activeFromEmail}`);
+        } else {
+            return res.status(400).json({ 
+                error: 'Configuração de e-mail ausente', 
+                message: 'Você precisa configurar sua própria Chave de API e E-mail de Remetente do Resend em Configurações > E-mail.' 
+            });
+        }
     }
 
     if (!activeFromEmail) {
