@@ -9,6 +9,7 @@ import {
   Sparkles,
   Save,
   Megaphone,
+  Mail,
   Instagram,
   Facebook,
   Image as ImageIcon,
@@ -49,6 +50,7 @@ import {
   Tooltip,
 } from "recharts";
 import type { SocialProfile, SocialPost } from "../types/marketing";
+import { EmailCampaigns } from "../components/marketing/EmailCampaigns";
 
 export function Marketing() {
   const { currentEntity } = useEntity();
@@ -129,7 +131,7 @@ export function Marketing() {
 
   // View State
   const [viewMode, setViewMode] = useState<"feed" | "calendar">("feed");
-  const [activeApp, setActiveApp] = useState<"social" | "blog" | "analytics">(
+  const [activeApp, setActiveApp] = useState<"social" | "blog" | "analytics" | "email">(
     "social",
   );
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -1094,6 +1096,14 @@ export function Marketing() {
           >
             <FileText size={18} />
             Blog IA
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveApp("email")}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeApp === "email" ? "bg-white dark:bg-slate-700 text-rose-600 shadow-xl scale-[1.05] ring-1 ring-black/5" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800"}`}
+          >
+            <Mail size={18} />
+            E-mail
           </button>
           <button
             type="button"
@@ -2235,6 +2245,10 @@ export function Marketing() {
             </div>
           </div>
         </div>
+      )}
+
+      {activeApp === "email" && (
+        <EmailCampaigns />
       )}
 
       {/* Modal de Criação de Post Manual */}

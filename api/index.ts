@@ -4606,6 +4606,208 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     }
 });
 
+// ✉️ Envio de e-mail customizado via Resend ou SMTP (Campanhas de E-mail)
+app.post(['/send-email/custom', '/api/send-email/custom'], authenticate, async (req, res) => {
+    const { to, subject, htmlBody, companyId, companyName } = req.body;
+
+    if (!to) {
+        return res.status(400).json({ error: 'E-mail do destinatário é obrigatório.' });
+    }
+    if (!htmlBody) {
+        return res.status(400).json({ error: 'Corpo HTML é obrigatório.' });
+    }
+    if (!companyId) {
+        return res.status(400).json({ error: 'ID da empresa não fornecido.' });
+    }
+
+    let activeApiKey = '';
+    const safeCompanyName = companyName || 'Lucro Certo';
+    let activeFromEmail = '';
+    let companySettings: any = null;
+    let resendConfig: any = {};
+
+    if (companyId && SUPABASE_URL) {
+        try {
+            const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+            const authHeader = req.headers.authorization || `Bearer ${supabaseKey}`;
+            const response = await axios.get(
+                `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
+                {
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': authHeader
+                    }
+                }
+            );
+            if (response.data && response.data.length > 0) {
+                companySettings = response.data[0].settings || {};
+                resendConfig = companySettings.resend_config || {};
+                activeApiKey = resendConfig.apiKey || '';
+                activeFromEmail = resendConfig.fromEmail || '';
+            }
+        } catch (dbErr: any) {
+            console.warn(`⚠️ [RESEND-CUSTOM] Erro ao buscar configurações de email customizado da empresa ${companyId}:`, dbErr.message);
+        }
+    }
+
+    const isSmtp = resendConfig.provider === 'smtp';
+    if (!isSmtp && !activeApiKey) {
+        if (RESEND_API_KEY) {
+            activeApiKey = RESEND_API_KEY;
+            const globalFromDomain = process.env.RESEND_FROM_EMAIL || 'nao-responder@lucrocerto.com';
+            activeFromEmail = `${safeCompanyName} <${globalFromDomain}>`;
+            console.log(`ℹ️ [RESEND-CUSTOM] Usando fallback global: ${activeFromEmail}`);
+        } else {
+            return res.status(400).json({ 
+                error: 'Configuração de e-mail ausente', 
+                message: 'Você precisa configurar sua própria Chave de API e E-mail de Remetente do Resend em Configurações > E-mail.' 
+            });
+        }
+    }
+
+    if (!activeFromEmail) {
+        activeFromEmail = `${safeCompanyName} <onboarding@resend.dev>`;
+    }
+
+    // 📅 Controle de limite de 3.000 envios por mês
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    let sentCount = Number(resendConfig.sent_count || 0);
+    const hasPaidPlan = !!resendConfig.has_paid_plan;
+
+    if (resendConfig.last_reset_month !== currentMonth) {
+        sentCount = 0;
+        resendConfig.sent_count = 0;
+        resendConfig.last_reset_month = currentMonth;
+    }
+
+    if (!hasPaidPlan && sentCount >= 3000) {
+        return res.status(403).json({
+            error: 'Limite de envio atingido',
+            message: 'Você atingiu o limite de 3.000 envios gratuitos de e-mail no seu plano do Resend. Para continuar enviando, você precisa assinar um plano pago no site do Resend (https://resend.com/pricing).'
+        });
+    }
+
+    if (isSmtp) {
+        try {
+            console.log(`✉️ [SMTP-CUSTOM] Enviando e-mail para: ${to} via SMTP (${resendConfig.smtp_host})`);
+            const transporter = nodemailer.createTransport({
+                host: resendConfig.smtp_host,
+                port: Number(resendConfig.smtp_port || 587),
+                secure: !!resendConfig.smtp_secure,
+                auth: {
+                    user: resendConfig.smtp_user,
+                    pass: resendConfig.smtp_pass
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const info = await transporter.sendMail({
+                from: activeFromEmail || resendConfig.smtp_user,
+                to: to,
+                subject: subject || `Mensagem de ${safeCompanyName}`,
+                html: htmlBody
+            });
+
+            console.log(`✅ [SMTP-CUSTOM] E-mail enviado com sucesso. MessageID: ${info.messageId}`);
+            
+            resendConfig.sent_count = sentCount + 1;
+            companySettings.resend_config = resendConfig;
+
+            if (SUPABASE_URL && companyId) {
+                try {
+                    const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+                    const authHeader = `Bearer ${supabaseKey}`;
+                    await axios.patch(
+                        `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`,
+                        { settings: companySettings },
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': authHeader,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+                } catch (updateErr: any) {
+                    console.error(`❌ [SMTP-CUSTOM] Erro ao incrementar contador:`, updateErr.message);
+                }
+            }
+
+            return res.json({ success: true, id: info.messageId, message: `E-mail enviado para ${to}` });
+        } catch (smtpErr: any) {
+            console.error('❌ [SMTP-CUSTOM] Erro ao enviar e-mail via SMTP:', smtpErr.message);
+            return res.status(500).json({
+                error: 'Erro ao enviar e-mail via SMTP',
+                detail: smtpErr.message
+            });
+        }
+    }
+
+    try {
+        console.log(`✉️ [RESEND-CUSTOM] Enviando e-mail para: ${to}`);
+
+        const response = await axios.post('https://api.resend.com/emails', {
+            from: activeFromEmail,
+            to: [to],
+            subject: subject || `Mensagem de ${safeCompanyName}`,
+            html: htmlBody
+        }, {
+            headers: {
+                'Authorization': `Bearer ${activeApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 15000
+        });
+
+        console.log(`✅ [RESEND-CUSTOM] E-mail enviado. ID: ${response.data?.id}`);
+
+        const monthlyQuota = response.headers?.['x-resend-monthly-quota'] || response.headers?.['X-Resend-Monthly-Quota'];
+        let updatedCount = sentCount + 1;
+
+        if (monthlyQuota !== undefined && monthlyQuota !== null) {
+            const parsedMonthly = Number(monthlyQuota);
+            if (!isNaN(parsedMonthly)) {
+                updatedCount = parsedMonthly;
+            }
+        }
+
+        resendConfig.sent_count = updatedCount;
+        companySettings.resend_config = resendConfig;
+
+        if (SUPABASE_URL && companyId) {
+            try {
+                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+                const authHeader = `Bearer ${supabaseKey}`;
+                await axios.patch(
+                    `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`,
+                    { settings: companySettings },
+                    {
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': authHeader,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+            } catch (updateErr: any) {
+                console.error(`❌ [RESEND-CUSTOM] Erro ao incrementar contador:`, updateErr.message);
+            }
+        }
+
+        res.json({ success: true, id: response.data?.id, message: `E-mail enviado para ${to}` });
+    } catch (error: any) {
+        const detail = error.response?.data || error.message;
+        console.error('❌ [RESEND-CUSTOM] Erro ao enviar e-mail:', detail);
+        res.status(error.response?.status || 500).json({
+            error: 'Erro ao enviar e-mail',
+            detail
+        });
+    }
+});
+
+
 app.post(['/send-email/test', '/api/send-email/test'], authenticate, async (req, res) => {
     const { provider, to, resendConfig, companyName } = req.body;
 
