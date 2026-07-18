@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { ResultModal } from "../ui/ResultModal";
 import type { Contact } from "../../hooks/useContacts";
 import { useEntity } from "../../context/EntityContext";
 import { useCompanies } from "../../hooks/useCompanies";
@@ -236,6 +237,18 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
+  const [resultModal, setResultModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success",
+  });
+
   const handleGenerateWithAi = async () => {
     if (!aiPrompt.trim()) return;
 
@@ -245,7 +258,12 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
       const token = sessionData.session?.access_token;
 
       if (!token) {
-        alert("Sessão expirada. Faça login novamente.");
+        setResultModal({
+          isOpen: true,
+          title: "Sessão Expirada",
+          message: "Sessão expirada. Faça login novamente.",
+          type: "error",
+        });
         return;
       }
 
@@ -272,11 +290,21 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
         setHtmlBody(data.html);
         setAiPrompt("");
       } else {
-        alert("Nenhum HTML retornado pela IA.");
+        setResultModal({
+          isOpen: true,
+          title: "Falha na IA",
+          message: "Nenhum HTML retornado pela IA. Certifique-se de que a função de borda (Edge Function) social-copilot-magic foi implantada com a nova versão.",
+          type: "error",
+        });
       }
     } catch (err: any) {
       console.error("AI Email Generation error:", err);
-      alert(err.message || "Erro ao gerar e-mail com IA. Tente novamente.");
+      setResultModal({
+        isOpen: true,
+        title: "Erro de Geração",
+        message: err.message || "Erro ao gerar e-mail com IA. Tente novamente.",
+        type: "error",
+      });
     } finally {
       setIsGeneratingAi(false);
     }
@@ -337,7 +365,12 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
     const token = sessionData.session?.access_token;
 
     if (!token) {
-      alert("Sessão expirada. Por favor, faça login novamente.");
+      setResultModal({
+        isOpen: true,
+        title: "Sessão Expirada",
+        message: "Sessão expirada. Por favor, faça login novamente.",
+        type: "error",
+      });
       return;
     }
 
@@ -660,6 +693,13 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
           </div>
         )}
 
+        <ResultModal
+          isOpen={resultModal.isOpen}
+          onClose={() => setResultModal((prev) => ({ ...prev, isOpen: false }))}
+          title={resultModal.title}
+          message={resultModal.message}
+          type={resultModal.type === "info" ? "success" : resultModal.type}
+        />
       </div>
     </div>
   );

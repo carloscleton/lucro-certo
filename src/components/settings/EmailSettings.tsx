@@ -340,7 +340,12 @@ export function EmailSettings() {
             const token = sessionData.session?.access_token;
 
             if (!token) {
-                alert('Sessão expirada. Faça login novamente.');
+                setResultModal({
+                    isOpen: true,
+                    title: 'Sessão Expirada',
+                    message: 'Sessão expirada. Faça login novamente.',
+                    type: 'error'
+                });
                 return;
             }
 
@@ -367,11 +372,21 @@ export function EmailSettings() {
                 setResendConfig(prev => ({ ...prev, email_html_template: data.html }));
                 setAiPrompt('');
             } else {
-                alert('Nenhum HTML retornado pela IA.');
+                setResultModal({
+                    isOpen: true,
+                    title: 'Falha na IA',
+                    message: 'Nenhum HTML retornado pela IA. Certifique-se de que a função de borda (Edge Function) social-copilot-magic foi implantada com a nova versão.',
+                    type: 'error'
+                });
             }
         } catch (err: any) {
             console.error('AI Email Generation error:', err);
-            alert(err.message || 'Erro ao gerar e-mail com IA. Tente novamente.');
+            setResultModal({
+                isOpen: true,
+                title: 'Erro de Geração',
+                message: err.message || 'Erro ao gerar e-mail com IA. Tente novamente.',
+                type: 'error'
+            });
         } finally {
             setIsGeneratingAi(false);
         }
@@ -379,7 +394,12 @@ export function EmailSettings() {
 
     const handleTestSend = async () => {
         if (!testEmail) {
-            alert('Por favor, informe o e-mail de destino.');
+            setResultModal({
+                isOpen: true,
+                title: 'Campo Obrigatório',
+                message: 'Por favor, informe o e-mail de destino.',
+                type: 'error'
+            });
             return;
         }
 
