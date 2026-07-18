@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Users, Search } from 'lucide-react';
+import { Plus, Users, Search, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useContacts, type Contact } from '../hooks/useContacts';
 import { ContactList } from '../components/contacts/ContactList';
+import { BulkEmailModal } from '../components/contacts/BulkEmailModal';
 import { ContactForm } from '../components/contacts/ContactForm';
 import { ContactHistoryModal } from '../components/contacts/ContactHistoryModal';
 import { Button } from '../components/ui/Button';
@@ -20,6 +21,10 @@ export function Contacts() {
     const [filterType, setFilterType] = useState<'all' | 'client' | 'supplier'>('all');
     const [searchTerm, setSearchTerm] = useState('');
     
+    // Bulk Email Selection States
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [isBulkEmailModalOpen, setIsBulkEmailModalOpen] = useState(false);
+
     // Modal States
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [contactToDelete, setContactToDelete] = useState<string | null>(null);
@@ -85,6 +90,23 @@ export function Contacts() {
         return matchesFilter && matchesSearch;
     });
 
+    const contactsWithEmail = filteredContacts.filter(c => c.email && c.email.trim() !== "");
+    const allSelected = contactsWithEmail.length > 0 && contactsWithEmail.every(c => selectedIds.includes(c.id));
+
+    const handleToggleSelectAll = () => {
+        if (allSelected) {
+            const idsToRemove = contactsWithEmail.map(c => c.id);
+            setSelectedIds(prev => prev.filter(id => !idsToRemove.includes(id)));
+        } else {
+            const idsToAdd = contactsWithEmail.map(c => c.id).filter(id => !selectedIds.includes(id));
+            setSelectedIds(prev => [...prev, ...idsToAdd]);
+        }
+    };
+
+    const handleToggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
     if (loading) return <div>{t('contacts.loading')}</div>;
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -130,13 +152,24 @@ export function Contacts() {
                         {t('contacts.subtitle')}
                     </p>
                 </div>
-                <Button 
-                    onClick={() => handleOpenModal()}
-                    className="h-12 px-8 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 rounded-2xl font-bold text-sm"
-                >
-                    <Plus size={20} className="mr-2" />
-                    {t('contacts.new_contact')}
-                </Button>
+                <div className="flex items-center gap-3">
+                    {selectedIds.length > 0 && (
+                        <Button 
+                            onClick={() => setIsBulkEmailModalOpen(true)}
+                            className="h-12 px-6 bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/20 rounded-2xl font-bold text-sm text-white flex items-center gap-2 border-0"
+                        >
+                            <Mail size={18} />
+                            Enviar E-mail ({selectedIds.length})
+                        </Button>
+                    )}
+                    <Button 
+                        onClick={() => handleOpenModal()}
+                        className="h-12 px-8 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 rounded-2xl font-bold text-sm"
+                    >
+                        <Plus size={20} className="mr-2" />
+                        {t('contacts.new_contact')}
+                    </Button>
+                </div>
             </div>
 
             {/* Filters Bar */}
@@ -202,6 +235,10 @@ export function Contacts() {
                 }}
                 canDelete={canDelete}
                 isLoyaltyEnabled={isLoyaltyEnabled}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onToggleSelectAll={handleToggleSelectAll}
+                allSelected={allSelected}
             />
 
             <ContactForm
@@ -237,6 +274,17 @@ export function Contacts() {
                 message={resultModal.message}
                 type={resultModal.type}
             />
+
+            {isBulkEmailModalOpen && (
+                <BulkEmailModal
+                    isOpen={isBulkEmailModalOpen}
+                    onClose={() => {
+                        setIsBulkEmailModalOpen(false);
+                        setSelectedIds([]);
+                    }}
+                    selectedContacts={contacts.filter(c => selectedIds.includes(c.id))}
+                />
+            )}
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import { Edit2, Trash2, User, Truck, History, Award } from 'lucide-react';
+import { Edit2, Trash2, User, Truck, History, Award, CheckSquare, Square } from 'lucide-react';
 import type { Contact } from '../../hooks/useContacts';
 import { Tooltip } from '../ui/Tooltip';
 
@@ -9,14 +9,27 @@ interface ContactListProps {
     onDelete: (id: string) => void;
     canDelete?: boolean;
     isLoyaltyEnabled?: boolean;
+    selectedIds: string[];
+    onToggleSelect: (id: string) => void;
+    onToggleSelectAll: () => void;
+    allSelected: boolean;
 }
 
-export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDelete = true, isLoyaltyEnabled = true }: ContactListProps) {
+export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDelete = true, isLoyaltyEnabled = true, selectedIds, onToggleSelect, onToggleSelectAll, allSelected }: ContactListProps) {
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden transition-all duration-300">
             <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
                     <tr>
+                        <th className="px-6 py-5 w-12 text-center">
+                            <button
+                                type="button"
+                                onClick={onToggleSelectAll}
+                                className="p-1 text-gray-400 hover:text-blue-500"
+                            >
+                                {allSelected ? <CheckSquare size={18} className="text-blue-600" /> : <Square size={18} />}
+                            </button>
+                        </th>
                         <th className="px-6 py-5 font-bold text-[10px] uppercase tracking-widest text-gray-400">Nome / Identificação</th>
                         <th className="px-6 py-5 font-bold text-[10px] uppercase tracking-widest text-gray-400">Tipo</th>
                         <th className="px-6 py-5 font-bold text-[10px] uppercase tracking-widest text-gray-400 hidden md:table-cell">Informações de Contato</th>
@@ -26,7 +39,7 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                 <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                     {contacts.length === 0 ? (
                         <tr>
-                            <td colSpan={4} className="py-20 text-center">
+                            <td colSpan={5} className="py-20 text-center">
                                 <div className="flex flex-col items-center justify-center">
                                     <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-[2rem] mb-4">
                                         <User size={40} className="text-gray-300 dark:text-slate-600" />
@@ -39,6 +52,20 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                     ) : (
                         contacts.map((contact) => (
                             <tr key={contact.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300">
+                                <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                        type="button"
+                                        disabled={!contact.email || contact.email.trim() === ""}
+                                        onClick={() => onToggleSelect(contact.id)}
+                                        className="p-1 text-gray-400 disabled:opacity-30 hover:text-blue-500"
+                                    >
+                                        {selectedIds.includes(contact.id) ? (
+                                            <CheckSquare size={18} className="text-blue-600" />
+                                        ) : (
+                                            <Square size={18} />
+                                        )}
+                                    </button>
+                                </td>
                                 <td className="px-6 py-4 font-medium">
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2.5 rounded-2xl shadow-sm ${contact.type === 'client'
