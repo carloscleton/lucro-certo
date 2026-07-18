@@ -949,7 +949,13 @@ ${messageWithPlaceholder}`;
             setSendModal(prev => ({ ...prev, isOpen: false }));
         } catch (err: any) {
             console.error('Erro ao enviar documento:', err);
-            const detailedMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Ocorreu um erro ao tentar enviar o documento.';
+            const detailedMessage = 
+                err.response?.data?.detail?.message || 
+                (typeof err.response?.data?.detail === 'string' ? err.response?.data?.detail : null) ||
+                err.response?.data?.message || 
+                err.response?.data?.error || 
+                err.message || 
+                'Ocorreu um erro ao tentar enviar o documento.';
             setResultModal({
                 isOpen: true,
                 title: 'Erro no Envio',
